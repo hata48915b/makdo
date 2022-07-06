@@ -61,9 +61,9 @@ MS Word形式のファイル"sojo.docx"が作成されます。
 
 まず、Python3とpython-docxをインストールしてください。
 
-[Pythonの公式サイト]{https://www.python.org/}
+[Pythonの公式サイト](https://www.python.org/)
 
-[python-docxのページ]{https://package.wiki/python-docx}
+[python-docxのページ](https://package.wiki/python-docx)
 
 その後、例えば"sojo.md"を使って手動で作成する場合には、
 次のように実行してください。

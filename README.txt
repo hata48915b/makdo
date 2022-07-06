@@ -1,4 +1,4 @@
-<!-- Time-stamp:   <2022.07.03-12:01:59-JST> -->
+<!-- Time-stamp:   <2022.07.06-09:31:49-JST> -->
 
 # MAKDO
 
@@ -28,9 +28,9 @@ Markdown形式のファイルから公用文書書式のMS Word形式のファ�
 
 下記のZIPファイルをダウンロードして、展開してください。
 
-[Windows用簡易実行ファイル]{https://hata-o.jp/kian/index?tools#makdo-windows.zip}
+[Windows用簡易実行ファイル](https://hata-o.jp/kian/index?tools#makdo-windows.zip)
 
-[macOS用簡易実行ファイル]{https://hata-o.jp/kian/index?tools#makdo-macos.zip}
+[macOS用簡易実行ファイル](https://hata-o.jp/kian/index?tools#makdo-macos.zip)
 
 展開したフォルダの中に実行ファイルがあります。
 
@@ -50,7 +50,7 @@ Markdown形式のファイルが作成されます。
 PDF形式のファイルが作成されます。
 ただし、LibreOfficeがインストールされていることが必要です。
 
-[LibreOffice]{https://ja.libreoffice.org/download/download/}
+[LibreOffice](https://ja.libreoffice.org/download/download/)
 
 ## 動作環境
 
@@ -58,9 +58,9 @@ Python3とpython-docxが動作すれば、
 Windowsでも、macOSでも、Linuxでも動作します
 （Windows 10、macOS Mojave、Ubuntu 20.04では動作確認済みです。）。
 
-[Pythonの公式サイト]{https://www.python.org/}
+[Pythonの公式サイト](https://www.python.org/)
 
-[python-docxのページ]{https://package.wiki/python-docx}
+[python-docxのページ](https://package.wiki/python-docx)
 
 ### Python3のインストール
 
@@ -72,9 +72,9 @@ Python2では動作しませんので、Python3をインストールする必要
 下記の公式サイトのダウンロードページから、
 インストーラーをダウンロードして実行し、インストールしてください。
 
-[Windows用のダウンロードサイト]{https://www.python.org/downloads/windows/}
+[Windows用のダウンロードサイト](https://www.python.org/downloads/windows/)
 
-[macOS用のダウンロードサイト]{https://www.python.org/downloads/macos/}
+[macOS用のダウンロードサイト](https://www.python.org/downloads/macos/)
 
 インストーラ−は、
 Windowsの場合は"python-(VERSION)-amd64.exe"、
