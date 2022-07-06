@@ -1,4 +1,4 @@
-<!-- Time-stamp:   <2022.07.06-09:31:49-JST> -->
+<!-- Time-stamp:   <2022.07.06-11:05:33-JST> -->
 
 # MAKDO
 
@@ -263,7 +263,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ## 連絡先
 
-[Seiichiro HATA](<infotech@hata-o.jp>)
+[Seiichiro HATA](<mailto:infotech@hata-o.jp>)
 
 ## ウェブページ
 
