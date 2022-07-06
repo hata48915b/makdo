@@ -68,8 +68,8 @@ MS Word形式のファイル"sojo.docx"が作成されます。
 その後、例えば"sojo.md"を使って手動で作成する場合には、
 次のように実行してください。
 
-'''
+```
 python3 makdo-md2docx.py sojo.md sojo.docx
-'''
+```
 
 MS Word形式のファイル"sojo.docx"が作成されます。
