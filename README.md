@@ -1,4 +1,4 @@
-<!-- Time-stamp:   <2022.07.06-11:05:33-JST> -->
+<!-- Time-stamp:   <2022.07.07-11:50:32-JST> -->
 
 # MAKDO
 
@@ -11,7 +11,7 @@
 Markdown形式のファイルから公用文書書式のMS Word形式のファイルを作成したり、
 公用文書書式のMS Word形式のファイルからMarkdown形式のファイルを作成できます。
 
-↓↓↓Markdown形式のファイルのサンプル
+↓↓↓Markdown形式のファイルのサンプル画像
 
 ![Markdown形式のファイルのサンプル画像](image/sojo-md.png "Markdown形式のファイルのサンプル画像")
 
