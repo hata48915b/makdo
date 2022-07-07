@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v01 Hiroshima
-# Time-stamp:   <2022.07.02-09:05:37-JST>
+# Time-stamp:   <2022.07.07-12:14:37-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -536,25 +536,30 @@ class Document:
                 p_prev = paragraphs[i - 1]
             if i < m:
                 p_next = paragraphs[i + 1]
+            ct = Paragraph.concatenate_text(p.md_lines)
             if p.paragraph_class == 'title' and \
                p.section_depth == 1 and \
-               re.match('^# .*\\S+.*$', p.md_lines[0].text):
-                if i == 0:
-                    p.length['space before'] = 0.0
-                elif i > 0 and p_prev.paragraph_class == 'pagebreak':
-                    p.length['space before'] = 0.0
-                elif i > 0 and p_prev.paragraph_class == 'alignment':
-                    p.length['space before'] = 0.6
+               re.match('^# .*\\S+.*$', ct):
+                is_top = False
+                if i == 0 or p_prev.paragraph_class == 'pagebreak':
+                    is_top = True
+                is_bottom = False
+                if i == m or p_next.paragraph_class == 'pagebreak':
+                    is_bottom = True
+                if is_top:
+                    if is_bottom:
+                        p.length['space before'] = 0.0
+                        p.length['space after'] = 0.0
+                    else:
+                        p.length['space before'] = 0.0
+                        p.length['space after'] = 0.9
                 else:
-                    p.length['space before'] = 1.1
-                if i == m:
-                    p.length['space after'] = 0.0
-                elif i < m and p_next.paragraph_class == 'pagebreak':
-                    p.length['space after'] = 0.0
-                elif i < m and p_next.paragraph_class == 'alignment':
-                    p.length['space after'] = 0.4
-                else:
-                    p.length['space after'] = 0.9
+                    if is_bottom:
+                        p.length['space before'] = 1.1
+                        p.length['space after'] = 0.0
+                    else:
+                        p.length['space before'] = 0.6
+                        p.length['space after'] = 0.4
             if p.paragraph_class == 'table' or \
                p.paragraph_class == 'breakdown':
                 sb = p.length['space before']
@@ -813,6 +818,17 @@ class Paragraph:
         self.length \
             = self.get_length()
 
+    @staticmethod
+    def concatenate_text(md_lines):
+        ct = ''
+        for ml in md_lines:
+            ct += ml.text + ' '
+        ct = re.sub('\t', ' ', ct)
+        ct = re.sub(' +', ' ', ct)
+        ct = re.sub('^ ', '', ct)
+        ct = re.sub(' $', '', ct)
+        return ct
+
     def read_first_line_instructions(self):
         section_instructions = []
         decoration_instruction = ''
@@ -880,34 +896,28 @@ class Paragraph:
     def get_paragraph_class(self):
         decoration = self.decoration_instruction
         paragraph_class = None
-        con = ''
-        for ml in self.md_lines:
-            con += ml.text + ' '
-        con = re.sub('\t', ' ', con)
-        con = re.sub(' +', ' ', con)
-        con = re.sub('^ ', '', con)
-        con = re.sub(' $', '', con)
-        if decoration + con == '':
+        ct = self.concatenate_text(self.md_lines)
+        if decoration + ct == '':
             paragraph_class = 'empty'
-        elif re.match('^\n$', decoration + con):
+        elif re.match('^\n$', decoration + ct):
             paragraph_class = 'blank'
-        elif re.match('^#+ ', con) or re.match('^#+$', con):
+        elif re.match('^#+ ', ct) or re.match('^#+$', ct):
             paragraph_class = 'title'
-        elif re.match('^' + NOT_ESCAPED + '::', con):
+        elif re.match('^' + NOT_ESCAPED + '::', ct):
             paragraph_class = 'breakdown'
-        elif re.match('^ *([-\\+\\*]|([0-9]+\\.)) ', con):
+        elif re.match('^ *([-\\+\\*]|([0-9]+\\.)) ', ct):
             paragraph_class = 'list'
-        elif re.match('^: .*$', con) or re.match('^.* :$', con):
+        elif re.match('^: .*$', ct) or re.match('^.* :$', ct):
             paragraph_class = 'alignment'
-        elif re.match('^\\|.*\\|$', con):
+        elif re.match('^\\|.*\\|$', ct):
             paragraph_class = 'table'
-        elif re.match('^! ?\\[[^\\[\\]]*\\] ?\\([^\\(\\)]+\\)$', con):
+        elif re.match('^! ?\\[[^\\[\\]]*\\] ?\\([^\\(\\)]+\\)$', ct):
             paragraph_class = 'image'
-        elif re.match('^```.*$', con):
+        elif re.match('^```.*$', ct):
             paragraph_class = 'preformatted'
-        elif re.match('^<div style="break-.*: page;"></div>$', con):
+        elif re.match('^<div style="break-.*: page;"></div>$', ct):
             paragraph_class = 'pagebreak'
-        elif re.match('<pgbr/?>', con):
+        elif re.match('<pgbr/?>', ct):
             paragraph_class = 'pagebreak'
         else:
             paragraph_class = 'sentence'
