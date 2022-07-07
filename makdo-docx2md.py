@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v01 Hiroshima
-# Time-stamp:   <2022.07.02-09:06:32-JST>
+# Time-stamp:   <2022.07.07-12:33:15-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -139,19 +139,20 @@ MD_TEXT_WIDTH = 79
 
 class Title:
 
-    r1 = '(?:\\*\\*)?\\+\\+(.*)\\+\\+(?:\\*\\*)?'
+    r0 = '((?:__)|(?:\+\+)|(?:--)|(?:~~)|(?:\\*+))*'
+    r1 = '(__)?\\+\\+(.*)\\+\\+(__)?'
     r2 = '(第([0-9０-９]+)条?)'
     r3 = '([0-9０-９]+)'
     r4 = '([⑴-⒇]|([\\(（]([0-9０-９]+)[\\)）]))'
     r5 = '([ｱ-ﾝア-ン])'
     r6 = '([(\\(（]([ｱ-ﾝア-ン])[\\)）])'
     r9 = '((  ?)|(\t)|(' + ZENKAKU_SPACE + ')|(\\. ?)|(．))'
-    res1 = '^' + r1 + '$'
-    res2 = '^' + r2 + r9
-    res3 = '^' + r3 + '(((' + r4 + '?)' + r5 + '?)' + r6 + '?)' + r9
-    res4 = '^' + '(' + r3 + ')?' + r4 + '((' + r5 + '?)' + r6 + '?)' + r9 + '?'
-    res5 = '^' + '((' + r3 + ')?' + r4 + ')?' + r5 + '(' + r6 + '?)' + r9
-    res6 = '^' + '(((' + r3 + ')?' + r4 + ')?' + r5 + '?)' + r6 + r9 + '?'
+    res1 = r1
+    res2 = r0 + r2 + r9
+    res3 = r0 + r3 + '(((' + r4 + '?)' + r5 + '?)' + r6 + '?)' + r9
+    res4 = r0 + '(' + r3 + ')?' + r4 + '((' + r5 + '?)' + r6 + '?)' + r9 + '?'
+    res5 = r0 + '((' + r3 + ')?' + r4 + ')?' + r5 + '(' + r6 + '?)' + r9
+    res6 = r0 + '(((' + r3 + ')?' + r4 + ')?' + r5 + '?)' + r6 + r9 + '?'
     not3 = r3 + r9 + '.*\n[ \t' + ZENKAKU_SPACE + ']*' + r3 + r9
 
     @classmethod
@@ -173,53 +174,60 @@ class Title:
     @classmethod
     def decompose(cls, depth, line):
         if depth == 1:
-            res = cls.res1
+            res = '^' + cls.res1 + '$'
+            comm = ''
             head = ''
             rest = ''
-            text = re.sub(res, '\\1', line)
+            text = re.sub(res, '\\1\\2\\3', line)
             numb = -1
         elif depth == 2:
             res = '^' + cls.res2 + '(.*)$'
-            head = re.sub(res, '\\1', line)
+            comm = re.sub(res, '\\1', line)
+            head = re.sub(res, '\\2', line)
             rest = ''
-            text = re.sub(res, '\\9', line)
-            numb = inverse_n_int(re.sub(res, '\\2', line))
+            text = re.sub(res, '\\10', line)
+            numb = inverse_n_int(re.sub(res, '\\3', line))
         elif depth == 3:
             res = '^' + cls.res3 + '(.*)$'
-            head = re.sub(res, '\\1', line)
-            rest = re.sub(res, '\\2', line)
-            text = re.sub(res, '\\17', line)
-            numb = inverse_n_int(re.sub(res, '\\1', line))
+            comm = re.sub(res, '\\1', line)
+            head = re.sub(res, '\\2', line)
+            rest = re.sub(res, '\\3', line)
+            text = re.sub(res, '\\18', line)
+            numb = inverse_n_int(re.sub(res, '\\2', line))
         elif depth == 4:
             res = '^' + cls.res4 + '(.*)$'
-            head = re.sub(res, '\\3', line)
-            rest = re.sub(res, '\\6', line)
-            text = re.sub(res, '\\17', line)
+            comm = re.sub(res, '\\1', line)
+            head = re.sub(res, '\\4', line)
+            rest = re.sub(res, '\\7', line)
+            text = re.sub(res, '\\18', line)
             if re.match('^[⑴-⒇]$', head):
                 numb = ord(head) - 9331
             else:
-                numb = inverse_n_int(re.sub(res, '\\5', line))
+                numb = inverse_n_int(re.sub(res, '\\6', line))
         elif depth == 5:
             res = '^' + cls.res5 + '(.*)$'
-            head = re.sub(res, '\\7', line)
-            rest = re.sub(res, '\\8', line)
-            text = re.sub(res, '\\17', line)
-            numb = inverse_n_kata(re.sub(res, '\\7', line))
+            comm = re.sub(res, '\\1', line)
+            head = re.sub(res, '\\8', line)
+            rest = re.sub(res, '\\9', line)
+            text = re.sub(res, '\\18', line)
+            numb = inverse_n_kata(re.sub(res, '\\8', line))
         elif depth == 6:
             res = '^' + cls.res6 + '(.*)$'
-            head = re.sub(res, '\\9', line)
+            comm = re.sub(res, '\\1', line)
+            head = re.sub(res, '\\10', line)
             rest = ''
-            text = re.sub(res, '\\17', line)
-            numb = inverse_n_kata(re.sub(res, '\\10', line))
+            text = re.sub(res, '\\18', line)
+            numb = inverse_n_kata(re.sub(res, '\\11', line))
         else:
+            comm = ''
             head = ''
             rest = ''
             text = ''
             numb = -1
         if rest != '':
-            return numb, head, rest + ZENKAKU_SPACE + text
+            return comm, numb, head, rest + ZENKAKU_SPACE + text
         else:
-            return numb, head, text
+            return comm, numb, head, text
 
 
 class List:
@@ -834,7 +842,7 @@ class Document:
     def _modpar_one_line_paragraph(self):
         for p in self.paragraphs:
             rt = p.raw_text
-            cms = ['\\*\\*\\*', '\\*\\*', '\\*', '~~', '__', '\\+\\+', '--']
+            cms = ['\\*\\*\\*', '\\*\\*', '\\*', '~~', '--', '\\+\\+', '__']
             for cm in cms:
                 while re.match(NOT_ESCAPED + cm, rt):
                     rt = re.sub(NOT_ESCAPED + cm, '\\1', rt)
@@ -869,8 +877,8 @@ class Document:
             ln = p.md_text
             ln = re.sub('\n', ' ', ln)
             ln = re.sub(' +', ' ', ln)
-            res = '^((#+ )*).*$'
-            head = re.sub(res, '\\1', ln + ' ')
+            res = '^((?:__)|(?:\+\+)|(?:--)|(?:~~)|(?:\\*+))*((#+ )*).*$'
+            head = re.sub(res, '\\2', ln + ' ')
             head = re.sub(' +', ' ', head)
             head = re.sub(' $', '', head)
             for sharps in head.split(' '):
@@ -1093,24 +1101,24 @@ class Paragraph:
                 is_in_text = True
                 continue
             if re.match('^</w:r>$', rxl):
-                if is_large:
-                    text = '++' + text + '++'
-                    is_large = False
-                if is_small:
-                    text = '--' + text + '--'
-                    is_small = False
+                if is_gothic:
+                    text = '`' + text + '`'
+                    is_gothic = False
                 if is_italic:
                     text = '*' + text + '*'
                     is_italic = False
                 if is_bold:
                     text = '**' + text + '**'
                     is_bold = False
-                if is_gothic:
-                    text = '`' + text + '`'
-                    is_gothic = False
                 if has_strike:
                     text = '~~' + text + '~~'
                     has_strike = False
+                if is_small:
+                    text = '--' + text + '--'
+                    is_small = False
+                if is_large:
+                    text = '++' + text + '++'
+                    is_large = False
                 if has_underline:
                     text = '__' + text + '__'
                     has_underline = False
@@ -1314,7 +1322,7 @@ class Paragraph:
             for i, ss in enumerate(Paragraph.section_states):
                 dp = i + 1
                 if Title.get_depth(rt, aln) == dp:
-                    numb, head, rt = Title.decompose(dp, rt)
+                    comm, numb, head, rt = Title.decompose(dp, rt)
                     for j in range(i + 1, len(states)):
                         states[j] = 0
                     states[i] = numb
@@ -1353,8 +1361,8 @@ class Paragraph:
         for i in range(len(Paragraph.section_states)):
             dp = i + 1
             if Title.get_depth(rt, aln) == dp:
-                n, h, rt = Title.decompose(dp, rt)
-                head += '#' * dp + ' '
+                c, n, h, rt = Title.decompose(dp, rt)
+                head += c + '#' * dp + ' '
         if not re.match('^.*[．。]$', rt):
             raw_md_text = head + rt
         else:
