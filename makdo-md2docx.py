@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v01 Hiroshima
-# Time-stamp:   <2022.07.09-05:53:48-JST>
+# Time-stamp:   <2022.07.09-07:41:34-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -191,8 +191,8 @@ DEFAULT_AUTOSPACE = False
 
 DEFAULT_LINE_SPACING = 2.14  # (2.0980+2.1812)/2=2.1396
 
-DEFAULT_SPACE_BEFORE = '1.0,0.0,0.0,0.0,0.0,0.0'
-DEFAULT_SPACE_AFTER = '0.0,0.0,0.0,0.0,0.0,0.0'
+DEFAULT_SPACE_BEFORE = '1'
+DEFAULT_SPACE_AFTER = ''
 
 ZENKAKU_SPACE = chr(12288)
 
@@ -1013,7 +1013,7 @@ class Paragraph:
             dl = self.section_depth
             if sb[df - 1] != '':
                 length['space before'] += float(sb[df - 1])
-            if sb[dl - 1] != '':
+            if sa[dl - 1] != '':
                 length['space after'] += float(sa[dl - 1])
         # self.length = length
         return length
