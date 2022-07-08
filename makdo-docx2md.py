@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v01 Hiroshima
-# Time-stamp:   <2022.07.07-12:33:15-JST>
+# Time-stamp:   <2022.07.09-05:42:52-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -139,7 +139,7 @@ MD_TEXT_WIDTH = 79
 
 class Title:
 
-    r0 = '((?:__)|(?:\+\+)|(?:--)|(?:~~)|(?:\\*+))*'
+    r0 = '((?:__)|(?:\\+\\+)|(?:--)|(?:~~)|(?:\\*+))*'
     r1 = '(__)?\\+\\+(.*)\\+\\+(__)?'
     r2 = '(第([0-9０-９]+)条?)'
     r3 = '([0-9０-９]+)'
@@ -877,7 +877,7 @@ class Document:
             ln = p.md_text
             ln = re.sub('\n', ' ', ln)
             ln = re.sub(' +', ' ', ln)
-            res = '^((?:__)|(?:\+\+)|(?:--)|(?:~~)|(?:\\*+))*((#+ )*).*$'
+            res = '^((?:__)|(?:\\+\\+)|(?:--)|(?:~~)|(?:\\*+))*((#+ )*).*$'
             head = re.sub(res, '\\2', ln + ' ')
             head = re.sub(' +', ' ', head)
             head = re.sub(' $', '', head)
