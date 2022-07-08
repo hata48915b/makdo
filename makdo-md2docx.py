@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v01 Hiroshima
-# Time-stamp:   <2022.07.07-12:14:37-JST>
+# Time-stamp:   <2022.07.09-05:53:48-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -707,13 +707,18 @@ class Document:
     def make_styles(self, ms_doc):
         size = self.font_size
         line_spacing = self.line_spacing
+        # NORMAL
         ms_doc.styles.add_style('makdo', WD_STYLE_TYPE.PARAGRAPH)
         ms_doc.styles['makdo'].font.name = self.mincho_font
         ms_doc.styles['makdo'].font.size = Pt(size)
         ms_doc.styles['makdo'].paragraph_format.line_spacing \
             = Pt(line_spacing * size)
+        # GOTHIC
         ms_doc.styles.add_style('makdo-g', WD_STYLE_TYPE.PARAGRAPH)
         ms_doc.styles['makdo-g'].font.name = self.gothic_font
+        # ALIGNMENT
+        ms_doc.styles.add_style('makdo-a', WD_STYLE_TYPE.PARAGRAPH)
+        # SPACE
         sb = self.space_before.split(',')
         sa = self.space_after.split(',')
         for i in range(6):
@@ -1290,7 +1295,7 @@ class Paragraph:
         size = self.font_size
         decoration = self.decoration_instruction
         indent = self.length['first indent'] + self.length['left indent']
-        ms_par = self._get_ms_par(ms_doc)
+        ms_par = self._get_ms_par(ms_doc, 'makdo-a')
         ms_fmt = ms_par.paragraph_format
         ms_fmt.first_line_indent = Pt(0 * size)
         oe = OxmlElement('w:wordWrap')

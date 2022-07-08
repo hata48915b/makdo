@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v01 Hiroshima
-# Time-stamp:   <2022.07.09-05:42:52-JST>
+# Time-stamp:   <2022.07.09-05:57:18-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -1287,7 +1287,7 @@ class Paragraph:
             return 'title'
         if stl is not None and stl == 'makdo-g':
             return 'preformatted'
-        if aln is not None:
+        if (stl is not None and stl == 'makdo-a') or (aln is not None):
             return 'alignment'
         for rxl in self.raw_xml_lines:
             if re.match('<w:pStyle w:val=[\'"]ListBullet([0-9]?)[\'"]/>', rxl):
