@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v01 Hiroshima
-# Time-stamp:   <2022.07.10-00:42:19-JST>
+# Time-stamp:   <2022.07.10-06:19:48-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -1165,11 +1165,11 @@ class Paragraph:
             if ml.text == '':
                 continue
             bd = ml.text.split('::', 2)
-            for i, b in enumerate(bd):
-                if (i % 2) == 0:
-                    bd[i] = re.sub('\\s+$', '', bd[i])
-                else:
-                    bd[i] = re.sub('^\\s+', '', bd[i])
+            # for i, b in enumerate(bd):
+            #     if (i % 2) == 0:
+            #         bd[i] = re.sub('\\s+$', '', bd[i])
+            #     else:
+            #         bd[i] = re.sub('^\\s+', '', bd[i])
             res_b = '^ *[-\\+\\*] '
             res_n = '^ *[0-9]+\\. '
             if re.match(res_b, bd[0]):
@@ -1206,7 +1206,7 @@ class Paragraph:
         for i in range(len(bds)):
             ms_tab.rows[i].height_rule = WD_ROW_HEIGHT_RULE.EXACTLY
             ms_tab.rows[i].height = Pt(doc.line_spacing * size * hei_list[i])
-        ms_tab.autfit = True
+        ms_tab.autofit = True
         for j in range(len(bds[0])):
             ms_tab.columns[j].width = Pt((wid_list[j] + 2) * size)
         for i in range(len(bds)):
