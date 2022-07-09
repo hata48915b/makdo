@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v01 Hiroshima
-# Time-stamp:   <2022.07.09-11:26:58-JST>
+# Time-stamp:   <2022.07.10-00:29:38-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -152,7 +152,7 @@ def floats6(s):
 
 HELP_EPILOG = '''Markdownの記法:
   行頭指示
-    [%% ]で始まる行はコメントアウトされます（独自）
+    [<> ]で始まる行はコメントアウトされます（独自）
     [#+=(数字) ]でセクション番号を変えることができます（独自）
     [v=(数字) ]で段落が下に数字文字分ずれます（独自）
     [V=(数字) ]で次の段落が下に数字文字分ずれます（独自）
@@ -199,7 +199,7 @@ ZENKAKU_SPACE = chr(12288)
 RES_NUMBER = '([-\\+]?(([0-9]+(\\.[0-9]+)?)|(\\.[0-9]+)))'
 RES_NUMBER6 = '(' + RES_NUMBER + '?,){,5}' + RES_NUMBER + '?,?'
 
-ORIGINAL_COMMENT_SYMBOL = '%%'
+ORIGINAL_COMMENT_SYMBOL = '<>'
 COMMENT_SEPARATE_SYMBOL = ' / '
 
 NOT_ESCAPED = '^((?:.*[^\\\\])?(?:\\\\\\\\)*)?'
