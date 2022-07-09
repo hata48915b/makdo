@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v01 Hiroshima
-# Time-stamp:   <2022.07.10-00:29:38-JST>
+# Time-stamp:   <2022.07.10-00:42:19-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -536,10 +536,9 @@ class Document:
                 p_prev = paragraphs[i - 1]
             if i < m:
                 p_next = paragraphs[i + 1]
-            ct = Paragraph.concatenate_text(p.md_lines)
             if p.paragraph_class == 'title' and \
                p.section_depth == 1 and \
-               re.match('^# .*\\S+.*$', ct):
+               re.match('^# .*\\S+.*$', p.full_text):
                 is_top = False
                 if i == 0 or p_prev.paragraph_class == 'pagebreak':
                     is_top = True
@@ -567,7 +566,7 @@ class Document:
             if i > 0 and \
                p_prev.paragraph_class == 'title' and \
                p_prev.section_depth == 1 and \
-               re.match('^# *$', Paragraph.concatenate_text(p_prev.md_lines)):
+               re.match('^# *$', p_prev.full_text):
                 if p.paragraph_class == 'title':
                     sb = (doc.space_before + ',,,,,').split(',')
                     df = self.section_depth_first
@@ -785,6 +784,7 @@ class Paragraph:
     def __init__(self, paragraph_number, md_lines):
         self.paragraph_number = paragraph_number
         self.md_lines = md_lines
+        self.full_text = ''
         self.paragraph_class = None
         self.decoration_instruction = ''
         self.section_instructions = []
@@ -806,6 +806,7 @@ class Paragraph:
             self.length_ins, \
             self.md_lines \
             = self.read_first_line_instructions()
+        self.full_text = self.get_full_text()
         self.paragraph_class \
             = self.get_paragraph_class()
         self.section_states, \
@@ -817,16 +818,16 @@ class Paragraph:
         self.length \
             = self.get_length()
 
-    @staticmethod
-    def concatenate_text(md_lines):
-        ct = ''
-        for ml in md_lines:
-            ct += ml.text + ' '
-        ct = re.sub('\t', ' ', ct)
-        ct = re.sub(' +', ' ', ct)
-        ct = re.sub('^ ', '', ct)
-        ct = re.sub(' $', '', ct)
-        return ct
+    def get_full_text(self):
+        full_text = ''
+        for ml in self.md_lines:
+            full_text += ml.text + ' '
+        full_text = re.sub('\t', ' ', full_text)
+        full_text = re.sub(' +', ' ', full_text)
+        full_text = re.sub('^ ', '', full_text)
+        full_text = re.sub(' $', '', full_text)
+        # self.full_text = full_text
+        return full_text
 
     def read_first_line_instructions(self):
         section_instructions = []
@@ -894,29 +895,29 @@ class Paragraph:
 
     def get_paragraph_class(self):
         decoration = self.decoration_instruction
+        full_text = self.full_text
         paragraph_class = None
-        ct = self.concatenate_text(self.md_lines)
-        if decoration + ct == '':
+        if decoration + full_text == '':
             paragraph_class = 'empty'
-        elif re.match('^\n$', decoration + ct):
+        elif re.match('^\n$', decoration + full_text):
             paragraph_class = 'blank'
-        elif re.match('^#+ ', ct) or re.match('^#+$', ct):
+        elif re.match('^#+ ', full_text) or re.match('^#+$', full_text):
             paragraph_class = 'title'
-        elif re.match('^' + NOT_ESCAPED + '::', ct):
+        elif re.match('^' + NOT_ESCAPED + '::', full_text):
             paragraph_class = 'breakdown'
-        elif re.match('^ *([-\\+\\*]|([0-9]+\\.)) ', ct):
+        elif re.match('^ *([-\\+\\*]|([0-9]+\\.)) ', full_text):
             paragraph_class = 'list'
-        elif re.match('^: .*$', ct) or re.match('^.* :$', ct):
+        elif re.match('^: .*$', full_text) or re.match('^.* :$', full_text):
             paragraph_class = 'alignment'
-        elif re.match('^\\|.*\\|$', ct):
+        elif re.match('^\\|.*\\|$', full_text):
             paragraph_class = 'table'
-        elif re.match('^! ?\\[[^\\[\\]]*\\] ?\\([^\\(\\)]+\\)$', ct):
+        elif re.match('^! ?\\[[^\\[\\]]*\\] ?\\([^\\(\\)]+\\)$', full_text):
             paragraph_class = 'image'
-        elif re.match('^```.*$', ct):
+        elif re.match('^```.*$', full_text):
             paragraph_class = 'preformatted'
-        elif re.match('^<div style="break-.*: page;"></div>$', ct):
+        elif re.match('^<div style="break-.*: page;"></div>$', full_text):
             paragraph_class = 'pagebreak'
-        elif re.match('<pgbr/?>', ct):
+        elif re.match('<pgbr/?>', full_text):
             paragraph_class = 'pagebreak'
         else:
             paragraph_class = 'sentence'
@@ -939,14 +940,7 @@ class Paragraph:
                 depth_first = i + 1
                 depth = i + 1
         if self.paragraph_class == 'title':
-            con = ''
-            for ml in self.md_lines:
-                con += ml.text + ' '
-            con = re.sub('\t', ' ', con)
-            con = re.sub(' +', ' ', con)
-            con = re.sub('^ ', '', con)
-            con = re.sub(' $', '', con)
-            for i, sharps in enumerate(con.split(' ')):
+            for i, sharps in enumerate(self.full_text.split(' ')):
                 if re.match('^#+$', sharps):
                     if i == 0:
                         depth_first = len(sharps)
