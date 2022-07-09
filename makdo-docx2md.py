@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v01 Hiroshima
-# Time-stamp:   <2022.07.09-05:57:18-JST>
+# Time-stamp:   <2022.07.09-11:54:45-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -98,6 +98,25 @@ def get_arguments():
         type=float,
         help='フォントサイズ（単位pt）')
     parser.add_argument(
+        '-s', '--line-spacing',
+        type=float,
+        metavar='NUMBER',
+        help='行間の幅（単位文字）')
+    parser.add_argument(
+        '-B', '--space-before',
+        type=floats6,
+        metavar='NUMBER,NUMBER,...',
+        help='タイトル前の空白')
+    parser.add_argument(
+        '-A', '--space-after',
+        type=floats6,
+        metavar='NUMBER,NUMBER,...',
+        help='タイトル後の空白')
+    parser.add_argument(
+        '-a', '--auto-space',
+        action='store_true',
+        help='全角文字と半角文字との間の間隔を微調整します')
+    parser.add_argument(
         'docx_file',
         help='MS Wordファイル')
     parser.add_argument(
@@ -106,6 +125,12 @@ def get_arguments():
         nargs='?',
         help='Markdownファイル（"-"は標準出力）')
     return parser.parse_args()
+
+
+def floats6(s):
+    if not re.match('^(' + RES_NUMBER + '?,){,5}' + RES_NUMBER + '?,?$', s):
+        raise argparse.ArgumentTypeError
+    return s
 
 
 HELP_EPILOG = '''
@@ -129,6 +154,11 @@ DEFAULT_NO_PAGE_NUMBER = False
 DEFAULT_LINE_NUMBER = False
 
 DEFAULT_LINE_SPACING = 2.14  # (2.0980+2.1812)/2=2.1396
+
+DEFAULT_SPACE_BEFORE = ''
+DEFAULT_SPACE_AFTER = ''
+
+DEFAULT_AUTO_SPACE = False
 
 ZENKAKU_SPACE = chr(12288)
 
@@ -463,6 +493,9 @@ class Document:
         self.gothic_font = DEFAULT_GOTHIC_FONT
         self.font_size = DEFAULT_FONT_SIZE
         self.line_spacing = DEFAULT_LINE_SPACING
+        self.space_before = DEFAULT_SPACE_BEFORE
+        self.space_after = DEFAULT_SPACE_AFTER
+        self.auto_space = DEFAULT_AUTO_SPACE
 
     def make_tmpdir(self):
         tmpdir = tempfile.TemporaryDirectory()
@@ -522,6 +555,8 @@ class Document:
     def _configure_by_styles_xml(self, raw_xml_lines):
         xml_body = self._get_xml_body('w:styles', raw_xml_lines)
         xml_blocks = self._get_xml_blocks(xml_body)
+        sb = ['', '', '', '', '', '']
+        sa = ['', '', '', '', '', '']
         for xb in xml_blocks:
             name = ''
             font = ''
@@ -538,6 +573,29 @@ class Document:
                 self.line_spacing = round(ls_x / 20 / self.font_size, 2)
             elif name == 'makdo-g':
                 self.gothic_font = font
+            else:
+                for i in range(6):
+                    if name != 'makdo-' + str(i + 1):
+                        continue
+                    for xl in xb:
+                        sb[i] \
+                            = get_xml_value('w:spacing', 'w:before', sb[i], xl)
+                        sa[i] \
+                            = get_xml_value('w:spacing', 'w:after', sa[i], xl)
+                    if sb[i] != '':
+                        f = float(sb[i])
+                        f = f / 20 / self.font_size / self.line_spacing
+                        sb[i] = str(round(f, 2))
+                    if sa[i] != '':
+                        f = float(sa[i])
+                        f = f / 20 / self.font_size / self.line_spacing
+                        sa[i] = str(round(f, 2))
+        csb = re.sub(',+$', '', ','.join(sb))
+        csa = re.sub(',+$', '', ','.join(sa))
+        if csb != '':
+            self.space_before = csb
+        if csa != '':
+            self.space_after = csa
 
     def _configure_by_document_xml(self, raw_xml_lines):
         width_x = -1.0
@@ -693,7 +751,7 @@ class Document:
         self.paragraphs = self._modpar_title_space_before_and_after()
         self.paragraphs = self._modpar_brank_paragraph_to_space_before()
         # LIST
-        self.paragraphs = self._modpar_title_3_to_list()
+        # self.paragraphs = self._modpar_title_3_to_list()
         # CENTERING
         self.paragraphs = self._modpar_centering_with_title_1()
         # INDENT
@@ -722,14 +780,14 @@ class Document:
             if p.section_depth_first == 1:
                 if i > 0 and p_prev.paragraph_class == 'blank':
                     p_prev.paragraph_class = 'empty'
-                    p.length_ins['space before'] += 0.6
-                if i > 0:
-                    p.length_ins['space before'] -= 0.6
+                    p.length_ins['space before'] += 1.0
+                # if i > 0:
+                #     p.length_ins['space before'] -= 1.0
                 if i < m and p_next.paragraph_class == 'blank':
                     p_next.paragraph_class = 'empty'
-                    p.length_ins['space after'] += 0.4
-                if i < m:
-                    p.length_ins['space after'] -= 0.4
+                    p.length_ins['space after'] += 1.0
+                # if i < m:
+                #     p.length_ins['space after'] -= 1.0
             # elif p.section_depth_first == 2:
             #     if i > 0 and p_prev.paragraph_class == 'blank':
             #         p.length_ins['space before'] += 1.0
@@ -862,7 +920,9 @@ class Document:
                 if ifi + ili == 0:
                     p.length_ins['first indent'] = 0
                     p.length_ins['left indent'] = 0
-                    p.first_line_instructions = p.get_first_line_instructions()
+                    t1 = re.sub('^(#\n+).*$', '\\1', p.first_line_instructions)
+                    p.first_line_instructions \
+                        = t1 + p.get_first_line_instructions()
         return self.paragraphs
 
     def check_section_consistency(self):
@@ -937,8 +997,9 @@ class Document:
         mf.write('gothic_font:    ' + str(self.gothic_font) + '\n')
         mf.write('font_size:      ' + str(round(self.font_size, 1)) + '\n')
         mf.write('line_spacing:   ' + str(round(self.line_spacing, 2)) + '\n')
-        mf.write('space_before:   ' + str('1,0,0,0,0,0\n'))
-        mf.write('space_after:    ' + str('0,0,0,0,0,0\n'))
+        mf.write('space_before:   ' + self.space_before + '\n')
+        mf.write('space_after:    ' + self.space_after + '\n')
+        mf.write('auto_space:     ' + str(self.auto_space) + '\n')
         mf.write('-->\n\n')
         return
 
