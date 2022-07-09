@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v01 Hiroshima
-# Time-stamp:   <2022.07.10-00:24:22-JST>
+# Time-stamp:   <2022.07.10-04:09:13-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -590,8 +590,16 @@ class Document:
                         f = float(sa[i])
                         f = f / 20 / self.font_size / self.line_spacing
                         sa[i] = str(round(f, 2))
-        csb = re.sub(',+$', '', ','.join(sb))
-        csa = re.sub(',+$', '', ','.join(sa))
+        csb = ',' + ','.join(sb) + ','
+        csb = re.sub(',0\\.0,', ',,', csb)
+        csb = re.sub('\\.0,', ',', csb)
+        csb = re.sub('^,', '', csb)
+        csb = re.sub(',+$', '', csb)
+        csa = ',' + ','.join(sa) + ','
+        csa = re.sub(',0\\.0,', ',,', csa)
+        csa = re.sub('\\.0,', ',', csa)
+        csa = re.sub('^,', '', csa)
+        csa = re.sub(',+$', '', csa)
         if csb != '':
             self.space_before = csb
         if csa != '':
@@ -914,15 +922,19 @@ class Document:
             tx = float(get_real_width(rt))
             w = (float(fi + li + tx + ri) * self.font_size * 2.54 / 72 / 2) \
                 + lm + rm
-            if w <= PAPER_WIDTH[self.paper_size]:
-                ifi = float(round(p.length_ins['first indent'] * 2)) / 2
-                ili = float(round(p.length_ins['left indent'] * 2)) / 2
-                if ifi + ili == 0:
-                    p.length_ins['first indent'] = 0
-                    p.length_ins['left indent'] = 0
-                    t1 = re.sub('^(#\n+).*$', '\\1', p.first_line_instructions)
-                    p.first_line_instructions \
-                        = t1 + p.get_first_line_instructions()
+            if w > PAPER_WIDTH[self.paper_size]:
+                continue
+            ifi = float(round(p.length_ins['first indent'] * 2)) / 2
+            ili = float(round(p.length_ins['left indent'] * 2)) / 2
+            if ifi + ili != 0:
+                continue
+            p.length_ins['first indent'] = 0
+            p.length_ins['left indent'] = 0
+            t1 = ''
+            if re.match('^(#\n+).*$', p.first_line_instructions):
+                t1 = re.sub('^(#\n+).*$', '\\1', p.first_line_instructions)
+            p.first_line_instructions \
+                = t1 + p.get_first_line_instructions()
         return self.paragraphs
 
     def check_section_consistency(self):
@@ -1734,6 +1746,15 @@ class Paragraph:
         for s in length_ins:
             length_ins[s] \
                 = self.length[s] - self.length_sec[s] + self.length_spa[s]
+        if self.paragraph_class == 'title':
+            d = self.section_depth_first
+            sb = (doc.space_before + ',,,,,').split(',')[d - 1]
+            if sb != '':
+                length_ins['space before'] -= float(sb)
+            d = self.section_depth
+            sa = (doc.space_after + ',,,,,').split(',')[d - 1]
+            if sa != '':
+                length_ins['space after'] -= float(sa)
         # self.length_ins = length_ins
         return length_ins
 
