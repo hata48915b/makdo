@@ -6,6 +6,7 @@ python3 makdo-md2docx.py --document-style j kisoku.md kisoku.docx
 
 # 運動会規則
 
+v=+0.5
 平成10年1月2日制定 :
 
 v=+0.5 V=0.5 <=-1

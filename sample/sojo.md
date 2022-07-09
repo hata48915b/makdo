@@ -1,16 +1,17 @@
 <!--
 line_number:    True
-space_before:   1,1
+space_before:   0,1
 [Word形式ファイルの作成方法]
 python3 makdo-md2docx.py --line-number --space-before 1,1 sojo.md sojo.docx
 -->
 
-v=0.5
+v=+0.5
 # 訴　　状
 
+v=+0.5
 平成１３年４月５日 :
 
-v=0.5 X=-0.2
+v=+0.5 X=-0.2
 : 赤白市立
 : ++赤白小学校裁判所++　御中
 
@@ -88,6 +89,7 @@ v=+1.0
 
 #
 
+v=+1.0
 : 証拠方法 :
 
 1. 甲第１号証　赤白小学校運動会開催規則
@@ -96,6 +98,7 @@ v=+1.0
 
 #
 
+v=+1.0
 : 附属書類 :
 
 1. 訴状副本　　　　２通

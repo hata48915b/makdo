@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v01 Hiroshima
-# Time-stamp:   <2022.07.09-07:41:34-JST>
+# Time-stamp:   <2022.07.09-11:26:58-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -130,7 +130,7 @@ def get_arguments():
         metavar='NUMBER,NUMBER,...',
         help='タイトル後の空白')
     parser.add_argument(
-        '-a', '--autospace',
+        '-a', '--auto-space',
         action='store_true',
         help='全角文字と半角文字との間の間隔を微調整します')
     parser.add_argument(
@@ -187,11 +187,11 @@ DEFAULT_MINCHO_FONT = 'ＭＳ 明朝'
 DEFAULT_GOTHIC_FONT = 'ＭＳ ゴシック'
 DEFAULT_FONT_SIZE = 12.0
 
-DEFAULT_AUTOSPACE = False
+DEFAULT_AUTO_SPACE = False
 
 DEFAULT_LINE_SPACING = 2.14  # (2.0980+2.1812)/2=2.1396
 
-DEFAULT_SPACE_BEFORE = '1'
+DEFAULT_SPACE_BEFORE = ''
 DEFAULT_SPACE_AFTER = ''
 
 ZENKAKU_SPACE = chr(12288)
@@ -450,7 +450,7 @@ class Document:
         self.line_spacing = DEFAULT_LINE_SPACING
         self.space_before = DEFAULT_SPACE_BEFORE
         self.space_after = DEFAULT_SPACE_AFTER
-        self.autospace = DEFAULT_AUTOSPACE
+        self.auto_space = DEFAULT_AUTO_SPACE
 
     def get_raw_md_lines(self, md_file):
         self.md_file = md_file
@@ -547,19 +547,13 @@ class Document:
                 if i == m or p_next.paragraph_class == 'pagebreak':
                     is_bottom = True
                 if is_top:
-                    if is_bottom:
-                        p.length['space before'] = 0.0
-                        p.length['space after'] = 0.0
-                    else:
-                        p.length['space before'] = 0.0
-                        p.length['space after'] = 0.9
-                else:
-                    if is_bottom:
-                        p.length['space before'] = 1.1
-                        p.length['space after'] = 0.0
-                    else:
-                        p.length['space before'] = 0.6
-                        p.length['space after'] = 0.4
+                    p.length['space before'] = 0.0
+                if is_bottom:
+                    p.length['space after'] = 0.0
+                if (not is_top) and (not is_bottom):
+                    if p.length['space after'] > 0:
+                        p.length['space before'] += 0.1
+                        p.length['space after'] -= 0.1
             if p.paragraph_class == 'table' or \
                p.paragraph_class == 'breakdown':
                 sb = p.length['space before']
@@ -573,7 +567,7 @@ class Document:
             if i > 0 and \
                p_prev.paragraph_class == 'title' and \
                p_prev.section_depth == 1 and \
-               re.match('^# *$', p_prev.md_lines[0].text):
+               re.match('^# *$', Paragraph.concatenate_text(p_prev.md_lines)):
                 if p.paragraph_class == 'title':
                     sb = (doc.space_before + ',,,,,').split(',')
                     df = self.section_depth_first
@@ -657,8 +651,8 @@ class Document:
             self.space_before = args.space_before
         if args.space_after is not None:
             self.space_after = args.space_after
-        if args.autospace:
-            self.autospace = True
+        if args.auto_space:
+            self.auto_space = True
 
     def get_ms_doc(self):
         size = self.font_size
@@ -1481,7 +1475,7 @@ class Paragraph:
             ms_par = ms_doc.add_paragraph(style='makdo')
         else:
             ms_par = ms_doc.add_paragraph(style=style)
-        if not doc.autospace:
+        if not doc.auto_space:
             pPr = ms_par._p.get_or_add_pPr()
             oe = OxmlElement('w:autoSpaceDE')
             oe.set(ns.qn('w:val'), '0')

@@ -11,8 +11,9 @@ mincho_font:    ＭＳ 明朝
 gothic_font:    ＭＳ ゴシック
 font_size:      12.0
 line_spacing:   2.14
-space_before:   1,0,0,0,0,0
+space_before:   0,0,0,0,0,0
 space_after:    0,0,0,0,0,0
+auto_space:     False
 -->
 
 あいうえお

@@ -7,8 +7,10 @@ python3 makdo-md2docx.py shoko.md shoko.docx
 : 原告　運動会赤組
 : 被告　校長太郎外1名
 
+v=+0.5
 # 証拠説明書
 
+v=+0.5
 平成元年２月３日 :
 
 v=+0.5 X=-0.2
