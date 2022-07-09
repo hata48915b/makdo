@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v01 Hiroshima
-# Time-stamp:   <2022.07.09-11:54:45-JST>
+# Time-stamp:   <2022.07.10-00:24:22-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -75,7 +75,7 @@ def get_arguments():
     parser.add_argument(
         '-d', '--document-style',
         type=str,
-        choices=['j', 'J'],
+        choices=['k', 'j'],
         help='文書スタイルの指定')
     parser.add_argument(
         '-N', '--no-page-number',
