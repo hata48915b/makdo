@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v01 Hiroshima
-# Time-stamp:   <2022.07.10-06:19:48-JST>
+# Time-stamp:   <2022.07.11-08:56:45-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -41,6 +41,7 @@ from docx.enum.table import WD_ROW_HEIGHT_RULE
 from docx.oxml import OxmlElement, ns
 from docx.oxml.ns import qn
 from docx.enum.style import WD_STYLE_TYPE
+from docx.shared import RGBColor
 
 
 __version__ = 'v01 Hiroshima'
@@ -780,6 +781,7 @@ class Paragraph:
     is_bold = False
     has_strike = False
     has_underline = False
+    is_white = False
 
     def __init__(self, paragraph_number, md_lines):
         self.paragraph_number = paragraph_number
@@ -837,7 +839,7 @@ class Paragraph:
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
         res_sn = '^\\s*(#+)=\\s*([0-9]+)(.*)$'
-        res_de = '^\\s*(((\\*+)|(~~)|(__)|(//)|(\\+\\+)|(--))\\s*)(.*)$'
+        res_de = '^\\s*(((\\*+)|(~~)|(__)|(//)|(\\+\\+)|(--)|(@@))\\s*)(.*)$'
         res_sb = '^\\s*v=\\s*' + RES_NUMBER + '(.*)$'
         res_sa = '^\\s*V=\\s*' + RES_NUMBER + '(.*)$'
         res_ls = '^\\s*X=\\s*' + RES_NUMBER + '(.*)$'
@@ -1529,7 +1531,7 @@ class Paragraph:
             elif esc == '':
                 esc, tex = cls._set_esc_and_tex(c, tex)
             elif esc == '\\':
-                if re.match('^[\\\\*~_/+-]$', c):
+                if re.match('^[\\\\*~_/+\\-@]$', c):
                     esc = ''
                     tex += c
                 else:
@@ -1586,6 +1588,14 @@ class Paragraph:
                 else:
                     tex += '-'
                     esc, tex = cls._set_esc_and_tex(c, tex)
+            elif esc == '@':
+                if c == '@':
+                    esc = ''
+                    tex = cls._write_string(tex, ms_par)
+                    Paragraph.is_white = not Paragraph.is_white
+                else:
+                    tex += '@'
+                    esc, tex = cls._set_esc_and_tex(c, tex)
             elif esc == '**':
                 if c == '*':
                     esc = ''
@@ -1605,7 +1615,7 @@ class Paragraph:
     def _set_esc_and_tex(cls, c, tex):
         if c == '\0':
             return '', tex
-        elif re.match('^[\\\\*~_/+-]$', c):
+        elif re.match('^[\\\\*~_/+\\-@]$', c):
             return c, tex
         else:
             return '', tex + c
@@ -1645,6 +1655,8 @@ class Paragraph:
             ms_run.underline = True
         # else:
         #     ms_run.underline = False
+        if cls.is_white:
+            ms_run.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
         return ''
 
     def print_warning_messages(self):

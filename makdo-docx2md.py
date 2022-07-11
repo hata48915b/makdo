@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v01 Hiroshima
-# Time-stamp:   <2022.07.10-04:09:13-JST>
+# Time-stamp:   <2022.07.11-09:29:56-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -169,7 +169,7 @@ MD_TEXT_WIDTH = 79
 
 class Title:
 
-    r0 = '((?:__)|(?:\\+\\+)|(?:--)|(?:~~)|(?:\\*+))*'
+    r0 = '((?:__)|(?:\\+\\+)|(?:--)|(?:~~)|(?:\\*+)|(?:@@))*'
     r1 = '(__)?\\+\\+(.*)\\+\\+(__)?'
     r2 = '(第([0-9０-９]+)条?)'
     r3 = '([0-9０-９]+)'
@@ -908,7 +908,8 @@ class Document:
     def _modpar_one_line_paragraph(self):
         for p in self.paragraphs:
             rt = p.raw_text
-            cms = ['\\*\\*\\*', '\\*\\*', '\\*', '~~', '--', '\\+\\+', '__']
+            cms = ['\\*\\*\\*', '\\*\\*', '\\*', '~~', '--', '\\+\\+', '__',
+                   '@@']
             for cm in cms:
                 while re.match(NOT_ESCAPED + cm, rt):
                     rt = re.sub(NOT_ESCAPED + cm, '\\1', rt)
@@ -949,7 +950,7 @@ class Document:
             ln = p.md_text
             ln = re.sub('\n', ' ', ln)
             ln = re.sub(' +', ' ', ln)
-            res = '^((?:__)|(?:\\+\\+)|(?:--)|(?:~~)|(?:\\*+))*((#+ )*).*$'
+            res = '^((?:__)|(?:\\+\\+)|(?:--)|(?:~~)|(?:\\*+)|(?:@@))*((#+ )*).*$'
             head = re.sub(res, '\\2', ln + ' ')
             head = re.sub(' +', ' ', head)
             head = re.sub(' $', '', head)
@@ -1166,6 +1167,7 @@ class Paragraph:
         is_gothic = False
         has_strike = False
         has_underline = False
+        is_white = False
         is_in_text = False
         for rxl in raw_xml_lines:
             if re.match('^<w:r( .*)?>$', rxl):
@@ -1192,6 +1194,9 @@ class Paragraph:
                 if is_large:
                     text = '++' + text + '++'
                     is_large = False
+                if is_white:
+                    text = '@@' + text + '@@'
+                    is_white = False
                 if has_underline:
                     text = '__' + text + '__'
                     has_underline = False
@@ -1227,6 +1232,8 @@ class Paragraph:
                 has_strike = True
             elif re.match('^<w:u( .*)?>$', rxl):
                 has_underline = True
+            elif re.match('^<w:color w:val="FFFFFF"/?>$', rxl):
+                is_white = True
             elif re.match('^<w:br/?>$', rxl):
                 text += '\n'
             elif not re.match('^<.*>$', rxl):
