@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v01 Hiroshima
-# Time-stamp:   <2022.07.11-21:39:07-JST>
+# Time-stamp:   <2022.07.13-15:36:00-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -840,7 +840,9 @@ class Paragraph:
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
         res_sn = '^\\s*(#+)=\\s*([0-9]+)(.*)$'
-        res_de = '^\\s*(((\\*+)|(~~)|(__)|(//)|(\\+\\+)|(--)|(@@))\\s*)(.*)$'
+        res_de = '^\\s*' + \
+            '((?:\\*+)|(?:~~)|(?:__)|(?://)|(?:\\+\\+)|(?:--)|(?:@@))+' + \
+            '(.*)$'
         res_sb = '^\\s*v=\\s*' + RES_NUMBER + '(.*)$'
         res_sa = '^\\s*V=\\s*' + RES_NUMBER + '(.*)$'
         res_ls = '^\\s*X=\\s*' + RES_NUMBER + '(.*)$'
@@ -857,7 +859,7 @@ class Paragraph:
                     section_instructions.append([sec_dep, sec_num])
                 elif re.match(res_de, ml.text):
                     deco = re.sub(res_de, '\\1', ml.text)
-                    ml.text = re.sub(res_de, '\\9', ml.text)
+                    ml.text = re.sub(res_de, '\\2', ml.text)
                     decoration_instruction += deco
                 elif re.match(res_sb, ml.text):
                     deci = re.sub(res_sb, '\\1', ml.text)
