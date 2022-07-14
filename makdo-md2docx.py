@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v01 Hiroshima
-# Time-stamp:   <2022.07.13-15:36:00-JST>
+# Time-stamp:   <2022.07.14-16:42:28-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -31,6 +31,7 @@ import re
 import unicodedata
 import datetime
 import docx
+import chardet
 from docx.shared import Cm, Pt
 from docx.enum.text import WD_LINE_SPACING
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -457,8 +458,11 @@ class Document:
     def get_raw_md_lines(self, md_file):
         self.md_file = md_file
         raw_md_lines = []
+        with open(md_file, 'rb') as f:
+            bf = f.read()
+        enc = chardet.detect(bf)
         try:
-            mfl = self._open_md_file(md_file).readlines()
+            mfl = self._open_md_file(md_file, enc['encoding']).readlines()
         except BaseException:
             msg = 'error: not a markdown file "' + md_file + '"\n'
             sys.stderr.write(msg)
@@ -475,12 +479,12 @@ class Document:
         # self.raw_md_lines = raw_md_lines
         return raw_md_lines
 
-    def _open_md_file(self, md_file):
+    def _open_md_file(self, md_file, enc='utf-8'):
         if md_file == '-':
             mf = sys.stdin
         else:
             try:
-                mf = open(md_file, 'r', encoding='utf-8')
+                mf = open(md_file, 'r', encoding=enc)
             except BaseException:
                 msg = 'error: can\'t read "' + md_file + '"\n'
                 sys.stderr.write(msg)
