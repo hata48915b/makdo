@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v01 Hiroshima
-# Time-stamp:   <2022.07.14-16:42:28-JST>
+# Time-stamp:   <2022.07.16-12:08:29-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -460,9 +460,9 @@ class Document:
         raw_md_lines = []
         with open(md_file, 'rb') as f:
             bf = f.read()
-        enc = chardet.detect(bf)
+        kanji_code = chardet.detect(bf)['encoding']
         try:
-            mfl = self._open_md_file(md_file, enc['encoding']).readlines()
+            mfl = self._open_md_file(md_file, kanji_code).readlines()
         except BaseException:
             msg = 'error: not a markdown file "' + md_file + '"\n'
             sys.stderr.write(msg)
