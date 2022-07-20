@@ -1,4 +1,4 @@
-<!-- Time-stamp:   <2022.07.18-02:57:28-JST> -->
+<!-- Time-stamp:   <2022.07.21-08:37:23-JST> -->
 
 # MAKDO
 
@@ -59,7 +59,7 @@ PDF形式のファイルが作成されます。
 
 ## 動作環境
 
-Python3とpython-docxが動作すれば、
+Python3とpython-docxとchardetが動作すれば、
 Windowsでも、macOSでも、Linuxでも動作します
 （Windows 10、macOS Mojave、Ubuntu 20.04では動作確認済みです。）。
 
@@ -106,6 +106,31 @@ SSL認証のエラーが出る場合は、`--trusted-host`を付けて、
 
 ```
 python -m pip install python-docx
+    --trusted-host pypi.python.org
+    --trusted-host files.pythonhosted.org
+    --trusted-host pypi.org
+```
+
+### chardetのインストール
+
+文字コードはUTF-8を想定しています。
+
+しかし、現時点ではShift_JISも広く使われているため、
+chardetを使って入力ファイルの文字コードを判別し、対応するようにしています。
+
+コマンドプロンプト（Windowsの場合）又はターミナル（macOSの場合）で、
+次のコマンドを実行してインストールしてください。
+
+```
+python -m pip install chardet
+```
+
+SSL認証のエラーが出る場合は、`--trusted-host`を付けて、
+下記のコマンドを実行してください
+（見やすくするため改行していますが、実行する際には1行で入力してください。）。
+
+```
+python -m pip install chardet
     --trusted-host pypi.python.org
     --trusted-host files.pythonhosted.org
     --trusted-host pypi.org
