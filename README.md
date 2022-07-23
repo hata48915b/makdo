@@ -1,4 +1,4 @@
-<!-- Time-stamp:   <2022.07.21-08:37:23-JST> -->
+<!-- Time-stamp:   <2022.07.23-10:44:25-JST> -->
 
 # MAKDO
 
@@ -303,4 +303,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ## 名前の由来
 
 "MAKe DOcx"です。
+
+## ヒストリー
+
+### 2022.07.21 v01 Hiroshima
 
