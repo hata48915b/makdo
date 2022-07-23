@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
-# Version:      v01 Hiroshima
-# Time-stamp:   <2022.07.11-09:29:56-JST>
+# Version:      v02a Shin-Hakushima
+# Time-stamp:   <2022.07.23-10:42:18-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -20,6 +20,9 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
+# 2022.07.21 v01 Hiroshima
+
+
 ############################################################
 # SETTING
 
@@ -33,7 +36,7 @@ import re
 import unicodedata
 
 
-__version__ = 'v01 Hiroshima'
+__version__ = 'v02a Shin-Hakushima'
 
 
 def get_arguments():
