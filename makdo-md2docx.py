@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
-# Version:      v01 Hiroshima
-# Time-stamp:   <2022.07.16-12:08:29-JST>
+# Version:      v02a Shin-Hakushima
+# Time-stamp:   <2022.07.23-10:38:18-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -18,6 +18,9 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+# 2022.07.21 v01 Hiroshima
 
 
 ############################################################
@@ -45,7 +48,7 @@ from docx.enum.style import WD_STYLE_TYPE
 from docx.shared import RGBColor
 
 
-__version__ = 'v01 Hiroshima'
+__version__ = 'v02a Shin-Hakushima'
 
 
 def get_arguments():
@@ -1460,7 +1463,8 @@ class Paragraph:
             text_to_write = self._join_string(text_to_write, text)
         ms_par = self._get_ms_par(ms_doc)
         ms_fmt = ms_par.paragraph_format
-        ms_fmt.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+        if not re.match('^.*\n', text_to_write):
+            ms_fmt.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         self._write_text(text_to_write, ms_par)
 
     @staticmethod
