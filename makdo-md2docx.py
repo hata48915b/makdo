@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v02a Shin-Hakushima
-# Time-stamp:   <2022.07.23-10:38:18-JST>
+# Time-stamp:   <2022.07.26-15:05:10-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -554,10 +554,10 @@ class Document:
                 is_bottom = False
                 if i == m or p_next.paragraph_class == 'pagebreak':
                     is_bottom = True
-                if is_top:
-                    p.length['space before'] = 0.0
-                if is_bottom:
-                    p.length['space after'] = 0.0
+                # if is_top:
+                #     p.length['space before'] = 0.0
+                # if is_bottom:
+                #     p.length['space after'] = 0.0
                 if (not is_top) and (not is_bottom):
                     if p.length['space after'] > 0:
                         p.length['space before'] += 0.1
