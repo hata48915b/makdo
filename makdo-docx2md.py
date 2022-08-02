@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v02a Shin-Hakushima
-# Time-stamp:   <2022.07.23-10:42:18-JST>
+# Time-stamp:   <2022.08.02-09:29:50-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -1691,10 +1691,14 @@ class Paragraph:
         ls = 0.0
         if ls_x > 0.0:
             ls = (ls_x / 20 / size / lnsp) - 1
-        if round(ls, 1) < 0:
-            length['space before'] += ls / 2
-        if round(ls, 1) > 0:
-            length['space after'] -= ls / 2
+        length['space before'] += ls * .75
+        length['space after'] += ls * .25
+        # if round(ls, 1) < 0:
+        #     length['space before'] += ls * .75
+        #     length['space after'] += ls * .25
+        # elif round(ls, 1) > 0:
+        #     length['space before'] -= ls * .25
+        #     length['space after'] -= ls * .75
         length['line spacing'] = ls
         length['first indent'] = (fi_x - hi_x) / 20 / size
         length['left indent'] = (li_x + ti_x) / 20 / size

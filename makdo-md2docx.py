@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v02a Shin-Hakushima
-# Time-stamp:   <2022.07.26-15:05:10-JST>
+# Time-stamp:   <2022.08.02-09:11:52-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -880,12 +880,6 @@ class Paragraph:
                     deci = re.sub(res_ls, '\\1', ml.text)
                     ml.text = re.sub(res_ls, '\\6', ml.text)
                     length_ins['line spacing'] += float(deci)
-                    if float(deci) < 0:
-                        length_ins['space before'] -= float(deci) * .75
-                        length_ins['space after'] -= float(deci) * .25
-                    elif float(deci) > 0:
-                        length_ins['space before'] += float(deci) * .25
-                        length_ins['space after'] += float(deci) * .75
                 elif re.match(res_fi, ml.text):
                     deci = re.sub(res_fi, '\\1', ml.text)
                     ml.text = re.sub(res_fi, '\\6', ml.text)
@@ -898,6 +892,18 @@ class Paragraph:
                     break
             if ml.text != '':
                 break
+        if length_ins['line spacing'] < 0:
+            length_ins['space before'] -= length_ins['line spacing'] * .75
+            length_ins['space after'] -= length_ins['line spacing'] * .25
+        elif length_ins['line spacing'] > 0:
+            if length_ins['space before'] > length_ins['line spacing'] * .75:
+                length_ins['space before'] -= length_ins['line spacing'] * .75
+            else:
+                length_ins['space before'] = 0
+            if length_ins['space after'] > length_ins['line spacing'] * .25:
+                length_ins['space after'] -= length_ins['line spacing'] * .25
+            else:
+                length_ins['space after'] = 0
         # self.section_instructions = section_instructions
         # self.decoration_instruction = decoration_instruction
         # self.length_ins = length_ins
