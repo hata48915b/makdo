@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v02a Shin-Hakushima
-# Time-stamp:   <2022.08.02-09:29:50-JST>
+# Time-stamp:   <2022.08.10-11:10:15-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -572,8 +572,10 @@ class Document:
                 ls_x = get_xml_value('w:spacing', 'w:line', ls_x, xl)
             if name == 'makdo':
                 self.mincho_font = font
-                self.font_size = round(sz_x / 2, 1)
-                self.line_spacing = round(ls_x / 20 / self.font_size, 2)
+                if sz_x > 0:
+                    self.font_size = round(sz_x / 2, 1)
+                if ls_x > 0:
+                    self.line_spacing = round(ls_x / 20 / self.font_size, 2)
             elif name == 'makdo-g':
                 self.gothic_font = font
             else:
