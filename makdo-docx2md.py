@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v02a Shin-Hakushima
-# Time-stamp:   <2022.08.10-11:10:15-JST>
+# Time-stamp:   <2022.08.12-09:24:58-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -801,6 +801,11 @@ class Document:
                     p.length_ins['space after'] += 1.0
                 # if i < m:
                 #     p.length_ins['space after'] -= 1.0
+                if i > 0 and p_prev.paragraph_class != 'pagebreak':
+                    if i < m and p_next.paragraph_class != 'pagebreak':
+                        if p.length_ins['space before'] >= 0.1:
+                            p.length_ins['space before'] -= 0.1
+                            p.length_ins['space after'] += 0.1
             # elif p.section_depth_first == 2:
             #     if i > 0 and p_prev.paragraph_class == 'blank':
             #         p.length_ins['space before'] += 1.0
