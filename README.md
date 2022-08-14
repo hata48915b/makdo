@@ -1,4 +1,4 @@
-<!-- Time-stamp:   <2022.08.10-13:25:25-JST> -->
+<!-- Time-stamp:   <2022.08.14-10:48:53-JST> -->
 
 # MAKDO
 
@@ -349,4 +349,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ### 2022.07.21 v01 Hiroshima
 
 最初のリリースです。
+
+### 2022.08.14 v02 Shin-Hakushima
+
+改良しました。
 

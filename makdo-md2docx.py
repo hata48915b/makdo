@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
-# Version:      v02a Shin-Hakushima
-# Time-stamp:   <2022.08.12-09:24:27-JST>
+# Version:      v02 Shin-Hakushima
+# Time-stamp:   <2022.08.14-10:56:28-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -21,6 +21,7 @@
 
 
 # 2022.07.21 v01 Hiroshima
+# 2022.08.13 v02 Shin-Hakushima
 
 
 ############################################################
@@ -48,7 +49,7 @@ from docx.enum.style import WD_STYLE_TYPE
 from docx.shared import RGBColor
 
 
-__version__ = 'v02a Shin-Hakushima'
+__version__ = 'v02 Shin-Hakushima'
 
 
 def get_arguments():
