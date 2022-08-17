@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.08.14-10:56:28-JST>
+# Time-stamp:   <2022.08.17-13:35:36-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -21,7 +21,7 @@
 
 
 # 2022.07.21 v01 Hiroshima
-# 2022.08.13 v02 Shin-Hakushima
+# 2022.08.17 v02 Shin-Hakushima
 
 
 ############################################################
@@ -1305,6 +1305,8 @@ class Paragraph:
         if re.match('^: .* :$', first_line):
             alignment = 'center'
             for ml in self.md_lines:
+                if ml.text == '':
+                    continue
                 text_to_write += '\n' + re.sub('^: (.*) :$', '\\1', ml.text)
                 if indent > 0:
                     ms_fmt.left_indent = Pt(indent * 2 * size)
@@ -1314,12 +1316,16 @@ class Paragraph:
         elif re.match('^.* :$', first_line):
             alignment = 'right'
             for ml in self.md_lines:
+                if ml.text == '':
+                    continue
                 text_to_write += '\n' + re.sub('^(.*) :$', '\\1', ml.text)
                 ms_fmt.right_indent = Pt(-indent * size)
             ms_par.alignment = WD_ALIGN_PARAGRAPH.RIGHT
         else:
             alignment = 'left'
             for ml in self.md_lines:
+                if ml.text == '':
+                    continue
                 text_to_write += '\n' + re.sub('^: (.*)$', '\\1', ml.text)
                 ms_fmt.left_indent = Pt(+indent * size)
             ms_par.alignment = WD_ALIGN_PARAGRAPH.LEFT
