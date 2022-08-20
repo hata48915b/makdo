@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.08.20-11:49:10-JST>
+# Time-stamp:   <2022.08.20-12:12:17-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -1555,15 +1555,27 @@ class Paragraph:
                 break
         ali_list = []
         wid_list = []
-        for c in tab[conf_row]:
-            c = c.replace(' ', '')
-            if re.match('^:-*:$', c):
-                ali_list.append(WD_TABLE_ALIGNMENT.CENTER)
-            elif re.match('^-+:$', c):
-                ali_list.append(WD_TABLE_ALIGNMENT.RIGHT)
-            else:
-                ali_list.append(WD_TABLE_ALIGNMENT.LEFT)
-            wid_list.append(float(len(c)) / 2)
+        if conf_row >= 0:
+            for s in tab[conf_row]:
+                s = s.replace(' ', '')
+                if re.match('^:-*:$', s):
+                    ali_list.append(WD_TABLE_ALIGNMENT.CENTER)
+                elif re.match('^-+:$', s):
+                    ali_list.append(WD_TABLE_ALIGNMENT.RIGHT)
+                else:
+                    ali_list.append(WD_TABLE_ALIGNMENT.LEFT)
+                wid_list.append(float(len(s)) / 2)
+        else:
+            for i in range(len(tab)):
+                while len(ali_list) < len(tab[i]):
+                    ali_list.append(WD_TABLE_ALIGNMENT.LEFT)
+                while len(wid_list) < len(tab[i]):
+                    wid_list.append(0.0)
+                for j in range(len(tab[i])):
+                    s = tab[i][j]
+                    w = float(get_real_width(s)) / 2
+                    if wid_list[j] < w:
+                        wid_list[j] = w
         return conf_row, ali_list, wid_list
 
     def _write_image_paragraph(self, ms_doc):
