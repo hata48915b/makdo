@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.08.20-11:52:57-JST>
+# Time-stamp:   <2022.08.20-13:02:53-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -1616,18 +1616,11 @@ class Paragraph:
             tmp = []
             for j, cell in enumerate(row):
                 for xml in cell:
-                    if xml == '<w:jc w:val=[\'"]left[\'"]/>':
-                        tmp.append(':' + '-' * (wid[j] - 1))
-                    if xml == '<w:jc w:val=[\'"]center[\'"]/>':
-                        tmp.append(':' + '-' * (wid[j] - 2) + ':')
-                    if xml == '<w:jc w:val=[\'"]right[\'"]/>':
-                        tmp.append('-' * (wid[j] - 1) + ':')
-
                     if re.match('<w:jc w:val=[\'"]left[\'"]/>', xml):
                         tmp.append(':' + '-' * (wid[j] - 1))
-                    if re.match('<w:jc w:val=[\'"]center[\'"]/>', xml):
+                    elif re.match('<w:jc w:val=[\'"]center[\'"]/>', xml):
                         tmp.append(':' + '-' * (wid[j] - 2) + ':')
-                    if re.match('<w:jc w:val=[\'"]right[\'"]/>', xml):
+                    elif re.match('<w:jc w:val=[\'"]right[\'"]/>', xml):
                         tmp.append('-' * (wid[j] - 1) + ':')
             ali.append(tmp)
         raw_md_text = ''
@@ -1668,10 +1661,16 @@ class Paragraph:
         return raw_text
 
     def _get_raw_md_text_of_breakdown_paragraph(self):
+        size = self.font_size
         is_in_row = False
         is_in_cel = False
         tab = []
+        wid = []
         for xl in self.xml_lines:
+            res = '^<w:gridCol w:w=[\'"]([0-9]+)[\'"]/>$'
+            if re.match(res, xl):
+                w = round((float(re.sub(res, '\\1', xl)) / size / 10) - 4)
+                wid.append(w)
             if is_in_cel:
                 cell.append(xl)
             if re.match('<w:tr(.*)?>', xl):
@@ -1688,6 +1687,19 @@ class Paragraph:
                 is_in_row = False
         raw_md_text = ''
         for i, row in enumerate(tab):
+            if len(wid) > 0:
+                is_header = True
+                for j, cell in enumerate(row):
+                    for xml in cell:
+                        if re.match('<w:jc w:val=[\'"]left[\'"]/>', xml):
+                            is_header = False
+                        if re.match('<w:jc w:val=[\'"]rigth[\'"]/>', xml):
+                            is_header = False
+                if not is_header:
+                    for w in wid:
+                        raw_md_text += ':' + '-' * w + ':'
+                    raw_md_text += '\n'
+                    wid = []
             for j, cell in enumerate(row):
                 tmp = ''
                 for lin in cell:
@@ -1706,6 +1718,7 @@ class Paragraph:
                         tmp = re.sub('^' + ZENKAKU_SPACE, '', tmp)
                 raw_md_text += ':' + tmp + ':'
             raw_md_text += '\n'
+        print('>' + raw_md_text)
         raw_md_text = re.sub('^:', '', raw_md_text)
         raw_md_text = re.sub('(::)?:\n:', '\n', raw_md_text)
         raw_md_text = re.sub('(::)?:$', '', raw_md_text)
@@ -1794,6 +1807,8 @@ class Paragraph:
             if doc.document_style == 'j':
                 if self.section_depth >= 3:
                     length_sec['left indent'] -= 1
+        if pclass == 'breakdown':
+            length_sec['first indent'] += 1
         # self.length_sec = length_sec
         return length_sec
 
