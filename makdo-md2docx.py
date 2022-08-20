@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.08.20-12:12:17-JST>
+# Time-stamp:   <2022.08.20-13:04:11-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -21,7 +21,7 @@
 
 
 # 2022.07.21 v01 Hiroshima
-# 2022.08.17 v02 Shin-Hakushima
+# 2022.08.20 v02 Shin-Hakushima
 
 
 ############################################################
