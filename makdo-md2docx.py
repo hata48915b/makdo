@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.08.17-13:35:36-JST>
+# Time-stamp:   <2022.08.20-10:32:02-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -848,6 +848,9 @@ class Paragraph:
         res_fi = '^\\s*<<=\\s*' + RES_NUMBER + '(.*)$'
         res_li = '^\\s*<=\\s*' + RES_NUMBER + '(.*)$'
         for ml in md_lines:
+            # FOR BREAKDOWN
+            if re.match('^-+::-+(::-+)?$', ml.text):
+                continue
             while True:
                 if re.match(res_sn, ml.text):
                     sect = re.sub(res_sn, '\\1', ml.text)
@@ -1167,19 +1170,58 @@ class Paragraph:
 
     def _write_breakdown_paragraph(self, ms_doc):
         size = self.font_size
+        bds = self._get_breakdown_data()
+        conf_row, wid_list, hei_list \
+            = self._get_breakdown_width_and_height(bds)
+        if conf_row >= 0:
+            bds.pop(conf_row)
+        row = len(bds)
+        ms_tab = ms_doc.add_table(row, 3, style='Normal Table')
+        ind = self.length['left indent'] * size * 20
+        oe = OxmlElement('w:tblInd')
+        oe.set(qn('w:w'), str(ind))
+        oe.set(qn('w:type'), 'dxa')
+        tblpr = ms_tab._element.xpath('w:tblPr')
+        tblpr[0].append(oe)
+        for i in range(len(bds)):
+            ms_tab.rows[i].height_rule = WD_ROW_HEIGHT_RULE.AUTO
+            # ms_tab.rows[i].height_rule = WD_ROW_HEIGHT_RULE.EXACTLY
+            ms_tab.rows[i].height = Pt(doc.line_spacing * size * hei_list[i])
+        for j in range(len(bds[0])):
+            ms_tab.columns[j].width = Pt((wid_list[j] + 2) * size)
+        # ms_tab.alignment = WD_TABLE_ALIGNMENT.CENTER
+        for i in range(len(bds)):
+            for j in range(len(bds[i])):
+                cell = bds[i][j]
+                if j == 1:
+                    cell = re.sub('^\\s+', '', cell)
+                else:
+                    cell = re.sub('\\s+$', '', cell)
+                ms_cell = ms_tab.cell(i, j)
+                ms_cell.width = Pt((wid_list[j] + 2) * size)
+                ms_par = ms_cell.paragraphs[0]
+                self._write_text(cell, ms_par)
+                ms_cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
+                ms_fmt = ms_par.paragraph_format
+                ms_fmt.space_before = Pt(0)
+                ms_fmt.space_after = Pt(0)
+                ms_fmt.line_spacing = Pt(doc.line_spacing * size)
+                if i < conf_row:
+                    ms_fmt.alignment = WD_TABLE_ALIGNMENT.CENTER
+                elif j == 1:
+                    ms_fmt.alignment = WD_TABLE_ALIGNMENT.RIGHT
+                else:
+                    ms_fmt.alignment = WD_TABLE_ALIGNMENT.LEFT
+
+    def _get_breakdown_data(self):
         bds = []
         list_states = 0
-        hei_list = []
-        wid_list = [0, 0, 0]
         for ml in self.md_lines:
             if ml.text == '':
                 continue
             bd = ml.text.split('::', 2)
-            # for i, b in enumerate(bd):
-            #     if (i % 2) == 0:
-            #         bd[i] = re.sub('\\s+$', '', bd[i])
-            #     else:
-            #         bd[i] = re.sub('^\\s+', '', bd[i])
+            while len(bd) < 3:
+                bd.append('')
             res_b = '^ *[-\\+\\*] '
             res_n = '^ *[0-9]+\\. '
             if re.match(res_b, bd[0]):
@@ -1191,50 +1233,116 @@ class Paragraph:
                 bd[0] = List.get_number_head_1(list_states) + item
             else:
                 bd[0] = ZENKAKU_SPACE + bd[0]
-            while len(bd) < 3:
-                bd.append('')
             bds.append(bd)
+        return bds
+
+    def _get_breakdown_width_and_height(self, bds):
+        # CONFIGURATION ROW
+        conf_row = -1
+        for i, ml in enumerate(self.md_lines):
+            if re.match('^-+::-+(::-+)?$', ml.text):
+                conf_row = i
+                break
+        # WIDTH
+        wid_list = []
+        if conf_row >= 0:
+            for s in bds[conf_row]:
+                wid_list.append(float(len(s)) / 2)
+        else:
+            wid_list = [0, 0, 0]
+            for i, bd in enumerate(bds):
+                for j, s in enumerate(bd):
+                    s = re.sub('<br/>', '<br>', s)
+                    lns = s.split('<br>')
+                    for ln in lns:
+                        w = float(get_real_width(ln)) / 2
+                        if wid_list[j] < w:
+                            wid_list[j] = w
+        # HEIGHT
+        hei_list = []
+        for i, bd in enumerate(bds):
+            if i == conf_row:
+                continue
             h = 0
-            wl = [0, 0, 0]
-            for i, b in enumerate(bd):
-                bd[i] = re.sub('<br/>', '<br>', bd[i])
-                lns = b.split('<br>')
+            for s in bd:
+                s = re.sub('<br/>', '<br>', s)
+                lns = s.split('<br>')
                 if h < len(lns):
                     h = len(lns)
-                for ln in lns:
-                    wl[i] = float(get_real_width(ln)) / 2
-                    if wid_list[i] < wl[i]:
-                        wid_list[i] = wl[i]
             hei_list.append(h)
-        ms_tab = ms_doc.add_table(len(bds), 3, style='Normal Table')
-        ind = self.length['left indent'] * size * 20
-        oe = OxmlElement('w:tblInd')
-        oe.set(qn('w:w'), str(ind))
-        oe.set(qn('w:type'), 'dxa')
-        tblpr = ms_tab._element.xpath('w:tblPr')
-        tblpr[0].append(oe)
-        for i in range(len(bds)):
-            ms_tab.rows[i].height_rule = WD_ROW_HEIGHT_RULE.EXACTLY
-            ms_tab.rows[i].height = Pt(doc.line_spacing * size * hei_list[i])
-        ms_tab.autofit = True
-        for j in range(len(bds[0])):
-            ms_tab.columns[j].width = Pt((wid_list[j] + 2) * size)
-        for i in range(len(bds)):
-            for j in range(len(bds[i])):
-                ms_cell = ms_tab.cell(i, j)
-                ms_cell.hight = ms_tab.rows[i].height
-                ms_cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
-                ms_cell.width = Pt((wid_list[j] + 2) * size)
-                ms_par = ms_cell.paragraphs[0]
-                self._write_text(bds[i][j] + '\n', ms_par)
-                ms_fmt = ms_par.paragraph_format
-                ms_fmt.space_before = Pt(0)
-                ms_fmt.space_after = Pt(0)
-                ms_fmt.line_spacing = Pt(doc.line_spacing * size)
-                if j == 1:
-                    ms_fmt.alignment = WD_TABLE_ALIGNMENT.RIGHT
-                else:
-                    ms_fmt.alignment = WD_TABLE_ALIGNMENT.LEFT
+        # RETURN
+        return conf_row, wid_list, hei_list
+
+    # def _write_breakdown_paragraph(self, ms_doc):
+    #     size = self.font_size
+    #     bds = []
+    #     list_states = 0
+    #     hei_list = []
+    #     wid_list = [0, 0, 0]
+    #     for ml in self.md_lines:
+    #         if ml.text == '':
+    #             continue
+    #         bd = ml.text.split('::', 2)
+    #         # for i, b in enumerate(bd):
+    #         #     if (i % 2) == 0:
+    #         #         bd[i] = re.sub('\\s+$', '', bd[i])
+    #         #     else:
+    #         #         bd[i] = re.sub('^\\s+', '', bd[i])
+    #         res_b = '^ *[-\\+\\*] '
+    #         res_n = '^ *[0-9]+\\. '
+    #         if re.match(res_b, bd[0]):
+    #             item = re.sub(res_b, '', bd[0])
+    #             bd[0] = List.get_bullet_head_1(0) + item
+    #         elif re.match(res_n, bd[0]):
+    #             item = re.sub(res_n, '', bd[0])
+    #             list_states += 1
+    #             bd[0] = List.get_number_head_1(list_states) + item
+    #         else:
+    #             bd[0] = ZENKAKU_SPACE + bd[0]
+    #         while len(bd) < 3:
+    #             bd.append('')
+    #         bds.append(bd)
+    #         h = 0
+    #         wl = [0, 0, 0]
+    #         for i, b in enumerate(bd):
+    #             bd[i] = re.sub('<br/>', '<br>', bd[i])
+    #             lns = b.split('<br>')
+    #             if h < len(lns):
+    #                 h = len(lns)
+    #             for ln in lns:
+    #                 wl[i] = float(get_real_width(ln)) / 2
+    #                 if wid_list[i] < wl[i]:
+    #                     wid_list[i] = wl[i]
+    #         hei_list.append(h)
+    #     ms_tab = ms_doc.add_table(len(bds), 3, style='Normal Table')
+    #     ind = self.length['left indent'] * size * 20
+    #     oe = OxmlElement('w:tblInd')
+    #     oe.set(qn('w:w'), str(ind))
+    #     oe.set(qn('w:type'), 'dxa')
+    #     tblpr = ms_tab._element.xpath('w:tblPr')
+    #     tblpr[0].append(oe)
+    #     for i in range(len(bds)):
+    #         ms_tab.rows[i].height_rule = WD_ROW_HEIGHT_RULE.EXACTLY
+    #         ms_tab.rows[i].height = Pt(doc.line_spacing * size * hei_list[i])
+    #     ms_tab.autofit = True
+    #     for j in range(len(bds[0])):
+    #         ms_tab.columns[j].width = Pt((wid_list[j] + 2) * size)
+    #     for i in range(len(bds)):
+    #         for j in range(len(bds[i])):
+    #             ms_cell = ms_tab.cell(i, j)
+    #             ms_cell.hight = ms_tab.rows[i].height
+    #             ms_cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
+    #             ms_cell.width = Pt((wid_list[j] + 2) * size)
+    #             ms_par = ms_cell.paragraphs[0]
+    #             self._write_text(bds[i][j] + '\n', ms_par)
+    #             ms_fmt = ms_par.paragraph_format
+    #             ms_fmt.space_before = Pt(0)
+    #             ms_fmt.space_after = Pt(0)
+    #             ms_fmt.line_spacing = Pt(doc.line_spacing * size)
+    #             if j == 1:
+    #                 ms_fmt.alignment = WD_TABLE_ALIGNMENT.RIGHT
+    #             else:
+    #                 ms_fmt.alignment = WD_TABLE_ALIGNMENT.LEFT
 
     def _write_list_paragraph(self, ms_doc):
         size = self.font_size
@@ -1337,9 +1445,9 @@ class Paragraph:
         s_size = 0.8 * size
         Paragraph.font_size = s_size
         tab = self._get_table_data()
-        ali_row, ali_list, wid_list = self._get_table_alignment_and_width(tab)
-        if ali_row >= 0:
-            tab.pop(ali_row)
+        conf_row, ali_list, wid_list = self._get_table_alignment_and_width(tab)
+        if conf_row >= 0:
+            tab.pop(conf_row)
         row = len(tab)
         col = len(tab[0])
         ms_tab = ms_doc.add_table(row, col, style='Table Grid')
@@ -1363,7 +1471,7 @@ class Paragraph:
                 self._write_text(cell, ms_par)
                 ms_cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
                 ms_fmt = ms_par.paragraph_format
-                if i < ali_row:
+                if i < conf_row:
                     ms_fmt.alignment = WD_TABLE_ALIGNMENT.CENTER
                 else:
                     ms_fmt.alignment = ali_list[j]
@@ -1395,17 +1503,17 @@ class Paragraph:
         return tab
 
     def _get_table_alignment_and_width(self, tab):
-        ali_row = -1
+        conf_row = -1
         for i in range(len(tab)):
             for j in range(len(tab[i])):
                 if not re.match('^ *:?-*:? *$', tab[i][j]):
                     break
             else:
-                ali_row = i
+                conf_row = i
                 break
         ali_list = []
         wid_list = []
-        for c in tab[ali_row]:
+        for c in tab[conf_row]:
             c = c.replace(' ', '')
             if re.match('^:-*:$', c):
                 ali_list.append(WD_TABLE_ALIGNMENT.CENTER)
@@ -1414,7 +1522,7 @@ class Paragraph:
             else:
                 ali_list.append(WD_TABLE_ALIGNMENT.LEFT)
             wid_list.append(float(len(c)) / 2)
-        return ali_row, ali_list, wid_list
+        return conf_row, ali_list, wid_list
 
     def _write_image_paragraph(self, ms_doc):
         full_text = ''
