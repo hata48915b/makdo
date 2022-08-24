@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.08.24-09:07:48-JST>
+# Time-stamp:   <2022.08.24-09:46:40-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
