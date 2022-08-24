@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.08.24-09:03:47-JST>
+# Time-stamp:   <2022.08.24-09:07:48-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -21,7 +21,7 @@
 
 
 # 2022.07.21 v01 Hiroshima
-# 2022.08.20 v02 Shin-Hakushima
+# 2022.08.24 v02 Shin-Hakushima
 
 
 ############################################################
@@ -166,6 +166,7 @@ HELP_EPILOG = '''Markdownの記法:
     [<=(数字) ]で全体が左に数字文字分ずれます（独自）
   行中指示
     [;;]から行末まではコメントアウトされます（独自）
+    [<>]は何もせず表示もされません（独自）
   文字装飾
     [*]で挟まれた文字列は斜体になります
     [**]で挟まれた文字列は太字になります
@@ -207,6 +208,7 @@ ZENKAKU_SPACE = chr(12288)
 RES_NUMBER = '([-\\+]?(([0-9]+(\\.[0-9]+)?)|(\\.[0-9]+)))'
 RES_NUMBER6 = '(' + RES_NUMBER + '?,){,5}' + RES_NUMBER + '?,?'
 
+RELAX_SYMBOL = '<>'
 ORIGINAL_COMMENT_SYMBOL = ';;'
 COMMENT_SEPARATE_SYMBOL = ' / '
 
@@ -1695,6 +1697,7 @@ class Paragraph:
                 ln = re.sub(res, '\\1\n', ln)
             text += ln + '\n'
         text = re.sub('\n$', '', text)
+        text = Paragraph._remove_relax_symbol(text)
         esc = ''
         tex = ''
         for c in text + '\0':
@@ -1788,6 +1791,13 @@ class Paragraph:
                 esc, tex = cls._set_esc_and_tex(c, tex)
         if tex != '':
             tex = cls._write_string(tex, ms_par)
+
+    @staticmethod
+    def _remove_relax_symbol(text):
+        res = NOT_ESCAPED + RELAX_SYMBOL
+        while re.match(res, text):
+            text = re.sub(res, '\\1', text)
+        return text
 
     @classmethod
     def _set_esc_and_tex(cls, c, tex):
