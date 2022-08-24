@@ -1,4 +1,4 @@
-<!-- Time-stamp:   <2022.08.14-10:48:53-JST> -->
+<!-- Time-stamp:   <2022.08.25-01:02:20-JST> -->
 
 # MAKDO
 
@@ -350,7 +350,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 最初のリリースです。
 
-### 2022.08.14 v02 Shin-Hakushima
+### 2022.08.24 v02 Shin-Hakushima
 
 改良しました。
 
