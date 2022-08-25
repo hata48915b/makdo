@@ -1,4 +1,4 @@
-<!-- Time-stamp:   <2022.08.25-07:08:43-JST> -->
+<!-- Time-stamp:   <2022.08.25-17:57:35-JST> -->
 
 # MAKDO（魔苦怒）
 
@@ -342,7 +342,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ## 名前の由来
 
-"MAKe DOcx"です。
+"MAKDO"は、"MAKe DOcx"です。
+
+"魔苦怒"は、
+「このアプリの"魔"法で、
+  ナンバリング（番号付け）やインデント（字下げ）の"苦"しみや"怒"りから、
+  皆様を解放したい」
+という思いで、名付けました。
 
 ## ヒストリー
 
