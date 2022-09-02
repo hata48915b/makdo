@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.08.24-09:46:40-JST>
+# Time-stamp:   <2022.09.02-20:09:25-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -1660,6 +1660,7 @@ class Paragraph:
             oe.set(ns.qn('w:val'), '0')
             pPr.append(oe)
         ms_fmt = ms_par.paragraph_format
+        ms_fmt.widow_control = False
         if length['space before'] >= 0:
             ms_fmt.space_before \
                 = Pt(length['space before'] * doc.line_spacing * size)
