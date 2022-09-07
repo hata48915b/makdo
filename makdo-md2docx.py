@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.09.08-07:19:11-JST>
+# Time-stamp:   <2022.09.08-07:39:12-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -894,7 +894,7 @@ class Paragraph:
         res_li = '^\\s*<=\\s*' + RES_NUMBER + '(.*)$'
         for ml in md_lines:
             # FOR BREAKDOWN
-            if re.match('^-+::-+(::-+)?$', ml.text):
+            if re.match('^-+::-*(::-+)?$', ml.text):
                 continue
             while True:
                 if re.match(res_sn, ml.text):
@@ -1265,8 +1265,12 @@ class Paragraph:
             if ml.text == '':
                 continue
             bd = ml.text.split('::', 2)
-            if i == 0:
-                bd[0] = self.decoration_instruction + bd[0]
+            if not re.match('^-+::-*(::-+)?$', self.md_lines[0].text):
+                if i == 0:
+                    bd[0] = self.decoration_instruction + bd[0]
+            else:
+                if i == 1:
+                    bd[0] = self.decoration_instruction + bd[0]
             while len(bd) < 3:
                 bd.append('')
             res_b = '^ *[-\\+\\*] '
