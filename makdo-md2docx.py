@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.09.08-07:39:12-JST>
+# Time-stamp:   <2022.09.08-07:47:32-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -1291,7 +1291,7 @@ class Paragraph:
         # CONFIGURATION ROW
         conf_row = -1
         for i, ml in enumerate(self.md_lines):
-            if re.match('^-+::-+(::-+)?$', ml.text):
+            if re.match('^-+::-*(::-+)?$', ml.text):
                 conf_row = i
                 break
         # WIDTH
