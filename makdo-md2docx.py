@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.09.08-06:43:52-JST>
+# Time-stamp:   <2022.09.08-07:19:11-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -1261,10 +1261,12 @@ class Paragraph:
     def _get_breakdown_data(self):
         bds = []
         list_states = 0
-        for ml in self.md_lines:
+        for i, ml in enumerate(self.md_lines):
             if ml.text == '':
                 continue
             bd = ml.text.split('::', 2)
+            if i == 0:
+                bd[0] = self.decoration_instruction + bd[0]
             while len(bd) < 3:
                 bd.append('')
             res_b = '^ *[-\\+\\*] '
