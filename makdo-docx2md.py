@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.08.24-09:46:26-JST>
+# Time-stamp:   <2022.09.07-18:01:10-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -1416,8 +1416,10 @@ class Paragraph:
             if col != 3:
                 return 'table'
             return 'breakdown'
-        if re.match('^!\\[.*\\]\\(.*\\)$',  rt):
-            return 'image'
+        if rt == '':
+            for rxl in self.raw_xml_lines:
+                if re.match('^<w:drawing>$', rxl):
+                    return 'image'
         if Title.get_depth(rt, aln) > 0:
             return 'title'
         if stl is not None and stl == 'makdo-g':
@@ -1481,6 +1483,8 @@ class Paragraph:
             return self._get_raw_md_text_of_alignment_paragraph()
         elif self.paragraph_class == 'table':
             return self._get_raw_md_text_of_table_paragraph()
+        elif self.paragraph_class == 'image':
+            return self._get_raw_md_text_of_image_paragraph()
         elif self.paragraph_class == 'preformatted':
             return self._get_raw_md_text_of_preformatted_paragraph()
         elif self.paragraph_class == 'breakdown':
@@ -1648,6 +1652,16 @@ class Paragraph:
         # self.raw_md_text = raw_md_text
         return raw_md_text
 
+    def _get_raw_md_text_of_image_paragraph(self):
+        image = ''
+        res = '^<pic:cNvPr id=[\'"].+[\'"] name=[\'"](.*)[\'"]/>$'
+        for rxl in self.raw_xml_lines:
+            if re.match(res, rxl):
+                image = re.sub(res, '\\1', rxl)
+        raw_md_text = '![' + image + '](' + image + ')'
+        # self.raw_md_text = raw_md_text
+        return raw_md_text
+
     def _get_raw_md_text_of_preformatted_paragraph(self):
         raw_text = self.raw_text
         raw_text = re.sub('^`', '', raw_text)
@@ -1657,8 +1671,9 @@ class Paragraph:
             raw_text = re.sub(res, '\\1\\2', raw_text)
         else:
             raw_text = '\n' + raw_text
-        raw_text = '``` ' + raw_text + '\n```'
-        return raw_text
+        raw_md_text = '``` ' + raw_text + '\n```'
+        # self.raw_md_text = raw_md_text
+        return raw_md_text
 
     def _get_raw_md_text_of_breakdown_paragraph(self):
         size = self.font_size
