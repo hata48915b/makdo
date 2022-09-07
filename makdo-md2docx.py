@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.09.02-20:09:25-JST>
+# Time-stamp:   <2022.09.08-06:43:52-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -1528,7 +1528,13 @@ class Paragraph:
             if ml.text == '':
                 continue
             tab.append(ml.text.split('|'))
-        m = len(tab[0]) - 1
+        m = 0
+        for rw in tab:
+            if m < len(rw) - 1:
+                m = len(rw) - 1
+        for rw in tab:
+            while len(rw) -1 < m:
+                rw.append('')
         # for i in range(len(tab)):
         #     for j in range(len(tab[i])):
         #         tab[i][j] = re.sub('^\\s+', '', tab[i][j])
