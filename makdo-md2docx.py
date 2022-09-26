@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.09.08-07:47:32-JST>
+# Time-stamp:   <2022.09.27-08:27:22-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -885,7 +885,7 @@ class Paragraph:
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
         res_sn = '^\\s*(#+)=\\s*([0-9]+)(.*)$'
         res_de = '^\\s*' + \
-            '((?:\\*+)|(?:~~)|(?:__)|(?://)|(?:\\+\\+)|(?:--)|(?:@@))+' + \
+            '((?:(?:\\*+)|(?:~~)|(?:__)|(?://)|(?:\\+\\+)|(?:--)|(?:@@))+)' + \
             '(.*)$'
         res_sb = '^\\s*v=\\s*' + RES_NUMBER + '(.*)$'
         res_sa = '^\\s*V=\\s*' + RES_NUMBER + '(.*)$'
