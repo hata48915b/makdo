@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.09.07-18:01:10-JST>
+# Time-stamp:   <2022.09.30-07:30:31-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -1385,7 +1385,8 @@ class Paragraph:
                 continue
             self.alignment = ds.alignment
             for s in self.length:
-                self.length[s] = ds.raw_length[s]
+                if ds.raw_length[s] is not None:
+                    self.length[s] = ds.raw_length[s]
         # self.style = style
         return style
 
