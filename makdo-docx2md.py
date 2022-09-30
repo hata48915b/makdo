@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.10.01-02:02:26-JST>
+# Time-stamp:   <2022.10.01-04:30:41-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -1412,10 +1412,15 @@ class Paragraph:
         return alignment
 
     def get_paragraph_class(self):
-        rxl = self.raw_xml_lines
         rt = self.raw_text
         stl = self.style
         aln = self.alignment
+        size = Paragraph.font_size
+        fs = -1.0
+        for rxl in self.raw_xml_lines:
+            if fs < 0:
+                fs = get_xml_value('w:sz', 'w:val', fs, rxl) / size / 2
+        td = Title.get_depth(rt, aln)
         if self.raw_class == 'w:sectPr':
             return 'configuration'
         if self.raw_class == 'w:tbl':
@@ -1432,7 +1437,7 @@ class Paragraph:
             for rxl in self.raw_xml_lines:
                 if re.match('^<w:drawing>$', rxl):
                     return 'image'
-        if Title.get_depth(rt, aln) > 0:
+        if (td == 1 and fs > 1.2) or td > 1:
             return 'title'
         if stl is not None and stl == 'makdo-g':
             return 'preformatted'
