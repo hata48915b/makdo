@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.10.01-04:30:41-JST>
+# Time-stamp:   <2022.10.11-16:54:03-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -1750,7 +1750,6 @@ class Paragraph:
                         tmp = re.sub('^' + ZENKAKU_SPACE, '', tmp)
                 raw_md_text += ':' + tmp + ':'
             raw_md_text += '\n'
-        print('>' + raw_md_text)
         raw_md_text = re.sub('^:', '', raw_md_text)
         raw_md_text = re.sub('(::)?:\n:', '\n', raw_md_text)
         raw_md_text = re.sub('(::)?:$', '', raw_md_text)
