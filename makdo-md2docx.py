@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.09.27-08:27:22-JST>
+# Time-stamp:   <2022.11.12-11:27:17-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -606,7 +606,7 @@ class Document:
                     if p_prev.length['space after'] < sb:
                         p_prev.length['space after'] = sb
                 sa = p.length['space after']
-                if m < 0:
+                if i < m:
                     if p_next.length['space before'] < sa:
                         p_next.length['space before'] = sa
             if i > 0 and \
@@ -1057,10 +1057,6 @@ class Paragraph:
             sa = (doc.space_after + ',,,,,').split(',')
             df = self.section_depth_first
             dl = self.section_depth
-            if sb[df - 1] != '':
-                length['space before'] += float(sb[df - 1])
-            if sa[dl - 1] != '':
-                length['space after'] += float(sa[dl - 1])
         # self.length = length
         return length
 
