@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.10.11-16:54:03-JST>
+# Time-stamp:   <2022.10.21-07:43:57-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -258,6 +258,12 @@ class Title:
             rest = ''
             text = ''
             numb = -1
+        if comm == line:
+            comm = ''
+        if head == line:
+            head = ''
+        if rest == line:
+            rest = ''
         if rest != '':
             return comm, numb, head, rest + ZENKAKU_SPACE + text
         else:
