@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.11.13-12:49:07-JST>
+# Time-stamp:   <2022.11.14-09:24:20-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -1721,7 +1721,7 @@ class Paragraph:
             elif esc == '':
                 esc, tex = cls._set_esc_and_tex(c, tex)
                 # CHARACTER IMAGE
-                res = '^(.*)!\\[.?\\]\\(([^\\(\\)]+)\\)$'
+                res = '^(.*(?:\n.*)*)!\\[[^\\[\\]]*\\]\\(([^\\(\\)]+)\\)$'
                 if re.match(res, tex):
                     img = re.sub(res, '\\2', tex)
                     tex = re.sub(res, '\\1', tex)
