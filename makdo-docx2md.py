@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.10.21-07:43:57-JST>
+# Time-stamp:   <2022.11.15-08:00:10-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -525,12 +525,16 @@ class Document:
 
     def __init__(self):
         self.tmpdir = None
+        self.media_dir = None
         self.docx_file = None
         self.md_file = None
         self.footer1_raw_xml_lines = None
         self.styles_raw_xml_lines = None
+        self.rels_raw_xml_lines = None
         self.document_raw_xml_lines = None
         self.styles = None
+        self.rels = None
+        self.images = {}
         self.raw_paragraphs = None
         self.paragraphs = None
         self.paper_size = DEFAULT_PAPER_SIZE
@@ -553,6 +557,17 @@ class Document:
         tmpdir = tempfile.TemporaryDirectory()
         # self.tmpdir = tmpdir
         return tmpdir
+
+    def get_media_dir_name(self, md_file, docx_file):
+        media_dir = ''
+        if md_file != '':
+            if re.match('^.*\\.md$', md_file, re.I):
+                media_dir = re.sub('\\.md$', '', md_file, re.I)
+        else:
+            if re.match('^.*\\.docx$', docx_file, re.I):
+                media_dir = re.sub('\\.docx$', '', docx_file, re.I)
+        # self.media_dir = media_dir
+        return media_dir
 
     def extract_docx_file(self, docx_file):
         self.docx_file = docx_file
@@ -744,6 +759,17 @@ class Document:
             styles.append(s)
         # self.styles = styles
         return styles
+
+    def get_rels(self, raw_xml_lines):
+        rels = {}
+        res = '^<Relationship Id=[\'"](.*)[\'"] .* Target=[\'"](.*)[\'"]/>$'
+        for rxl in raw_xml_lines:
+            if re.match(res, rxl):
+                rel_id = re.sub(res, '\\1', rxl)
+                rel_tg = re.sub(res, '\\2', rxl)
+                rels[rel_id] = rel_tg
+        # self.rels = rels
+        return rels
 
     def get_raw_paragraphs(self, raw_xml_lines):
         raw_paragraphs = []
@@ -1082,6 +1108,26 @@ class Document:
         for i, p in enumerate(ps):
             p.write_md_lines(mf)
 
+    def make_media_dir(self, media_dir):
+        if len(self.images) == 0:
+            return
+        if media_dir == '':
+            sys.stderr.write('error: can\'t make media directory\n')
+            return
+        if os.path.exists(media_dir):
+            if os.path.isdir(media_dir):
+                shutil.rmtree(media_dir)
+            else:
+                sys.stderr.write('error: non-directory "' + media_dir + '"\n')
+                return
+        os.mkdir(media_dir)
+        for rel_img in self.images:
+            if rel_img == '':
+                continue
+            shutil.copy(self.tmpdir.name + '/word/' + rel_img,
+                        media_dir + '/' + self.images[rel_img])
+        return
+
 
 class Style:
 
@@ -1230,7 +1276,21 @@ class Paragraph:
         has_underline = False
         is_white = False
         is_in_text = False
+        res_img_ms = \
+            '^<v:imagedata r:id=[\'"](.+)[\'"] o:title=[\'"](.+)[\'"]/>$'
+        res_img_py_name = \
+            '^<pic:cNvPr id=[\'"](.+)[\'"] name=[\'"](.+)[\'"]/>$'
+        res_img_py_id = \
+            '^<a:blip r:embed=[\'"](.+)[\'"]/>$'
         for rxl in raw_xml_lines:
+            if re.match(res_img_ms, rxl):
+                # IMAGE MS WORD
+                xml_lines.append(rxl)
+                continue
+            if re.match(res_img_py_name, rxl) or re.match(res_img_py_id, rxl):
+                # IMAGE PYTHON-DOCX
+                xml_lines.append(rxl)
+                continue
             if re.match('^<w:r( .*)?>$', rxl):
                 text = ''
                 xml_lines.append(rxl)
@@ -1330,11 +1390,29 @@ class Paragraph:
     def _get_raw_text(self):
         xml_lines = self.xml_lines
         raw_text = ''
+        res_img_ms = \
+            '^<v:imagedata r:id=[\'"](.+)[\'"] o:title=[\'"](.+)[\'"]/>$'
+        res_img_py_name = \
+            '^<pic:cNvPr id=[\'"](.+)[\'"] name=[\'"](.+)[\'"]/>$'
+        res_img_py_id = \
+            '^<a:blip r:embed=[\'"](.+)[\'"]/>$'
         for xl in xml_lines:
-            rs = '^<pic:cNvPr id=[\'"][0-9]+[\'"] name=[\'"](.+)[\'"]/>$'
-            if re.match(rs, xl):
-                img = re.sub(rs, '\\1', xl)
-                raw_text += '![](' + img + ')'
+            if re.match(res_img_ms, xl):
+                img_id = re.sub(res_img_ms, '\\1', xl)
+                img_name = re.sub(res_img_ms, '\\2', xl)
+                img_rel_name = doc.rels[img_id]
+                img_ext = re.sub('^.*\\.', '', img_rel_name)
+                img = img_name + '.' + img_ext
+                doc.images[img_rel_name] = img
+                raw_text += '![' + img + '](' + doc.media_dir + '/' + img + ')'
+            if re.match(res_img_py_name, xl):
+                img = re.sub(res_img_py_name, '\\2', xl)
+                doc.images[''] = img
+                raw_text += '![' + img + '](' + doc.media_dir + '/' + img + ')'
+            if re.match(res_img_py_id, xl):
+                img_id = re.sub(res_img_py_id, '\\1', xl)
+                img_rel_name = doc.rels[img_id]
+                doc.images[img_rel_name] = doc.images['']
             if re.match('^<.*>$', xl):
                 continue
             while True:
@@ -2085,15 +2163,20 @@ if __name__ == '__main__':
 
     doc.tmpdir = doc.make_tmpdir()
 
+    doc.media_dir = doc.get_media_dir_name(args.md_file, args.docx_file)
+
     doc.extract_docx_file(args.docx_file)
 
     doc.footer1_raw_xml_lines = doc.get_raw_xml_lines('/word/footer1.xml')
     doc.styles_raw_xml_lines = doc.get_raw_xml_lines('/word/styles.xml')
+    doc.rels_raw_xml_lines \
+        = doc.get_raw_xml_lines('/word/_rels/document.xml.rels')
     doc.document_raw_xml_lines = doc.get_raw_xml_lines('/word/document.xml')
 
     doc.configure(args)
 
     doc.styles = doc.get_styles(doc.styles_raw_xml_lines)
+    doc.rels = doc.get_rels(doc.rels_raw_xml_lines)
 
     doc.raw_paragraphs = doc.get_raw_paragraphs(doc.document_raw_xml_lines)
     doc.paragraphs = doc.get_paragraphs(doc.raw_paragraphs)
@@ -2102,9 +2185,9 @@ if __name__ == '__main__':
     doc.check_section_consistency()
 
     mf = doc.open_md_file(args.md_file, args.docx_file)
-
     doc.write_configurations(mf)
-
     doc.write_md_lines(mf)
+
+    doc.make_media_dir(doc.media_dir)
 
     sys.exit(0)
