@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.11.15-09:25:58-JST>
+# Time-stamp:   <2022.11.15-17:10:03-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -1058,6 +1058,10 @@ class Paragraph:
             sa = (doc.space_after + ',,,,,').split(',')
             df = self.section_depth_first
             dl = self.section_depth
+            if sb[df - 1] != '':
+                length['space before'] += float(sb[df - 1])
+            if sa[dl - 1] != '':
+                length['space after'] += float(sa[dl - 1])
         # self.length = length
         return length
 
@@ -1536,7 +1540,7 @@ class Paragraph:
             if m < len(rw) - 1:
                 m = len(rw) - 1
         for rw in tab:
-            while len(rw) -1 < m:
+            while len(rw) - 1 < m:
                 rw.append('')
         # for i in range(len(tab)):
         #     for j in range(len(tab[i])):
@@ -1880,7 +1884,7 @@ class Paragraph:
             else:
                 ms_run.add_picture(path, Pt(size), Pt(size))
         except BaseException:
-            ms_run.text = '![' + comm + '](' + path + ')' 
+            ms_run.text = '![' + comm + '](' + path + ')'
             msg = 'can\'t open "' + path + '"'
             self.md_lines[0].append_warning_message(msg)
 
