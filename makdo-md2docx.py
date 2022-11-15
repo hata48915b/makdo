@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.11.14-09:24:20-JST>
+# Time-stamp:   <2022.11.15-09:25:58-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -969,7 +969,8 @@ class Paragraph:
             paragraph_class = 'alignment'
         elif re.match('^\\|.*\\|$', full_text):
             paragraph_class = 'table'
-        elif re.match('^! ?\\[[^\\[\\]]*\\] ?\\([^\\(\\)]+\\)$', full_text):
+        elif re.match('^(! ?\\[[^\\[\\]]*\\] ?\\([^\\(\\)]+\\) ?)+$',
+                      full_text):
             paragraph_class = 'image'
         elif re.match('^```.*$', full_text):
             paragraph_class = 'preformatted'
@@ -1590,23 +1591,23 @@ class Paragraph:
         return conf_row, ali_list, wid_list
 
     def _write_image_paragraph(self, ms_doc):
-        full_text = ''
+        res = '^(! ?\\[([^\\[\\]]*)\\] ?\\(([^\\(\\)]+)\\) ?)+$'
         for ml in self.md_lines:
-            full_text += re.sub('^ *', '', ml.text)
-        res = '^!\\[(.*)\\]\\((.+)\\)$'
-        comm = re.sub(res, '\\1', full_text)
-        path = re.sub(res, '\\2', full_text)
-        try:
-            ms_doc.add_picture(path)
-            ms_doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
-        except BaseException:
-            e = ms_doc.paragraphs[-1]._element
-            e.getparent().remove(e)
-            ms_par = ms_doc.add_paragraph()
-            ms_par.add_run(tex)
-            ms_par.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            msg = 'can\'t open "' + path + '"'
-            md_lines[0].append_warning_message(msg)
+            if not re.match(res, ml.text):
+                continue
+            comm = re.sub(res, '\\2', ml.text)
+            path = re.sub(res, '\\3', ml.text)
+            try:
+                ms_doc.add_picture(path)
+                ms_doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            except BaseException:
+                e = ms_doc.paragraphs[-1]._element
+                e.getparent().remove(e)
+                ms_par = ms_doc.add_paragraph()
+                ms_par.add_run(ml.text)
+                ms_par.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                msg = 'can\'t open "' + path + '"'
+                self.md_lines[0].append_warning_message(msg)
 
     def _write_preformatted_paragraph(self, ms_doc):
         ms_par = ms_doc.add_paragraph(style='makdo-g')
@@ -1696,8 +1697,7 @@ class Paragraph:
             self.md_lines[0].append_warning_message(msg)
         return ms_par
 
-    @classmethod
-    def _write_text(cls, text, ms_par):
+    def _write_text(self, text, ms_par):
         lns = text.split('\n')
         text = ''
         res = NOT_ESCAPED + '<br/?>'
@@ -1714,50 +1714,53 @@ class Paragraph:
                 if esc == '\\':
                     tex += '`'
                 else:
-                    tex = cls._write_string(tex, ms_par)
-                    cls.is_preformatted = not cls.is_preformatted
-            elif cls.is_preformatted:
+                    tex = self._write_string(tex, ms_par)
+                    self.is_preformatted = not self.is_preformatted
+            elif self.is_preformatted:
                 tex += c
             elif esc == '':
-                esc, tex = cls._set_esc_and_tex(c, tex)
-                # CHARACTER IMAGE
-                res = '^(.*(?:\n.*)*)!\\[[^\\[\\]]*\\]\\(([^\\(\\)]+)\\)$'
+                esc, tex = self._set_esc_and_tex(c, tex)
+                # INLINE IMAGE
+                res = '^' \
+                    + '(.*(?:\n.*)*)' \
+                    + '! ?\\[([^\\[\\]]*)\\] ?\\(([^\\(\\)]+)\\)' \
+                    + '$'
                 if re.match(res, tex):
-                    img = re.sub(res, '\\2', tex)
+                    comm = re.sub(res, '\\2', tex)
+                    path = re.sub(res, '\\3', tex)
                     tex = re.sub(res, '\\1', tex)
-                    tex = cls._write_string(tex, ms_par)
-                    ms_run = ms_par.add_run()
-                    ms_run.add_picture(img, Pt(12), Pt(12))
+                    tex = self._write_string(tex, ms_par)
+                    self._write_image(comm, path, ms_par)
             elif esc == '\\':
                 if re.match('^[\\\\*~_/+\\-@]$', c):
                     esc = ''
                     tex += c
                 else:
                     # tex += '\\'
-                    esc, tex = cls._set_esc_and_tex(c, tex)
+                    esc, tex = self._set_esc_and_tex(c, tex)
             elif esc == '*':
                 if c == '*':
                     esc += c
                 else:
-                    tex = cls._write_string(tex, ms_par)
-                    esc, tex = cls._set_esc_and_tex(c, tex)
+                    tex = self._write_string(tex, ms_par)
+                    esc, tex = self._set_esc_and_tex(c, tex)
                     Paragraph.is_italic = not Paragraph.is_italic
             elif esc == '~':
                 if c == '~':
                     esc = ''
-                    tex = cls._write_string(tex, ms_par)
+                    tex = self._write_string(tex, ms_par)
                     Paragraph.has_strike = not Paragraph.has_strike
                 else:
                     tex += '~'
-                    esc, tex = cls._set_esc_and_tex(c, tex)
+                    esc, tex = self._set_esc_and_tex(c, tex)
             elif esc == '_':
                 if c == '_':
                     esc = ''
-                    tex = cls._write_string(tex, ms_par)
+                    tex = self._write_string(tex, ms_par)
                     Paragraph.has_underline = not Paragraph.has_underline
                 else:
                     tex += '_'
-                    esc, tex = cls._set_esc_and_tex(c, tex)
+                    esc, tex = self._set_esc_and_tex(c, tex)
             elif esc == '/':
                 if c == '/':
                     esc = ''
@@ -1765,49 +1768,49 @@ class Paragraph:
                         # http https ftp ...
                         tex += '//'
                     else:
-                        tex = cls._write_string(tex, ms_par)
+                        tex = self._write_string(tex, ms_par)
                         Paragraph.is_italic = not Paragraph.is_italic
                 else:
                     tex += '/'
-                    esc, tex = cls._set_esc_and_tex(c, tex)
+                    esc, tex = self._set_esc_and_tex(c, tex)
             elif esc == '+':
                 if c == '+':
                     esc = ''
-                    tex = cls._write_string(tex, ms_par)
+                    tex = self._write_string(tex, ms_par)
                     Paragraph.is_large = not Paragraph.is_large
                 else:
                     tex += '+'
-                    esc, tex = cls._set_esc_and_tex(c, tex)
+                    esc, tex = self._set_esc_and_tex(c, tex)
             elif esc == '-':
                 if c == '-':
                     esc = ''
-                    tex = cls._write_string(tex, ms_par)
+                    tex = self._write_string(tex, ms_par)
                     Paragraph.is_small = not Paragraph.is_small
                 else:
                     tex += '-'
-                    esc, tex = cls._set_esc_and_tex(c, tex)
+                    esc, tex = self._set_esc_and_tex(c, tex)
             elif esc == '@':
                 if c == '@':
                     esc = ''
-                    tex = cls._write_string(tex, ms_par)
+                    tex = self._write_string(tex, ms_par)
                     Paragraph.is_white = not Paragraph.is_white
                 else:
                     tex += '@'
-                    esc, tex = cls._set_esc_and_tex(c, tex)
+                    esc, tex = self._set_esc_and_tex(c, tex)
             elif esc == '**':
                 if c == '*':
                     esc = ''
-                    tex = cls._write_string(tex, ms_par)
+                    tex = self._write_string(tex, ms_par)
                     Paragraph.is_italic = not Paragraph.is_italic
                     Paragraph.is_bold = not Paragraph.is_bold
                 else:
-                    tex = cls._write_string(tex, ms_par)
-                    esc, tex = cls._set_esc_and_tex(c, tex)
+                    tex = self._write_string(tex, ms_par)
+                    esc, tex = self._set_esc_and_tex(c, tex)
                     Paragraph.is_bold = not Paragraph.is_bold
             else:
-                esc, tex = cls._set_esc_and_tex(c, tex)
+                esc, tex = self._set_esc_and_tex(c, tex)
         if tex != '':
-            tex = cls._write_string(tex, ms_par)
+            tex = self._write_string(tex, ms_par)
 
     @staticmethod
     def _remove_relax_symbol(text):
@@ -1863,6 +1866,23 @@ class Paragraph:
         if cls.is_white:
             ms_run.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
         return ''
+
+    def _write_image(self, comm, path, ms_par):
+        size = self.font_size
+        l_size = 1.2 * size
+        s_size = 0.8 * size
+        ms_run = ms_par.add_run()
+        try:
+            if self.is_large and not self.is_small:
+                ms_run.add_picture(path, Pt(l_size), Pt(l_size))
+            elif not self.is_large and self.is_small:
+                ms_run.add_picture(path, Pt(s_size), Pt(s_size))
+            else:
+                ms_run.add_picture(path, Pt(size), Pt(size))
+        except BaseException:
+            ms_run.text = '![' + comm + '](' + path + ')' 
+            msg = 'can\'t open "' + path + '"'
+            self.md_lines[0].append_warning_message(msg)
 
     def print_warning_messages(self):
         for ml in self.md_lines:
