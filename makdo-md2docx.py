@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.11.15-17:10:03-JST>
+# Time-stamp:   <2022.11.16-18:22:10-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -1486,7 +1486,8 @@ class Paragraph:
             for ml in self.md_lines:
                 if ml.text == '':
                     continue
-                text_to_write += '\n' + re.sub('^: (.*)$', '\\1', ml.text)
+                text_to_write += '\n' + re.sub('^:(?: (.*))?$', '\\1', ml.text)
+                # text_to_write += '\n' + re.sub('^: (.*)$', '\\1', ml.text)
                 ms_fmt.left_indent = Pt(+indent * size)
             ms_par.alignment = WD_ALIGN_PARAGRAPH.LEFT
         text_to_write = re.sub('^\n*', '', text_to_write)
