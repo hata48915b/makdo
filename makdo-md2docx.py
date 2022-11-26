@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.11.16-18:22:10-JST>
+# Time-stamp:   <2022.11.26-12:37:12-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -1720,7 +1720,7 @@ class Paragraph:
                     tex += '`'
                 else:
                     tex = self._write_string(tex, ms_par)
-                    self.is_preformatted = not self.is_preformatted
+                    Paragraph.is_preformatted = not Paragraph.is_preformatted
             elif self.is_preformatted:
                 tex += c
             elif esc == '':
