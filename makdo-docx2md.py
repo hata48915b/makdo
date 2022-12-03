@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.11.15-08:00:10-JST>
+# Time-stamp:   <2022.12.04-07:50:34-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -58,8 +58,8 @@ def get_arguments():
     parser.add_argument(
         '-p', '--paper-size',
         type=str,
-        choices=['A3', 'A4'],
-        help='用紙設定（A3又はA4）')
+        choices=['A3', 'A3P', 'A4', 'A4L'],
+        help='用紙設定（A3、A3縦、A4、A4横）')
     parser.add_argument(
         '-t', '--top-margin',
         type=float,
@@ -141,8 +141,8 @@ HELP_EPILOG = '''
 '''
 
 DEFAULT_PAPER_SIZE = 'A4'
-PAPER_HEIGHT = {'A3': 29.7, 'A4': 29.7}
-PAPER_WIDTH = {'A3': 42.0, 'A4': 21.0}
+PAPER_HEIGHT = {'A3': 29.7, 'A3P': 42.0, 'A4': 29.7, 'A4L': 21.0}
+PAPER_WIDTH = {'A3': 42.0, 'A3P': 29.7, 'A4': 21.0, 'A4L': 29.7}
 
 DEFAULT_TOP_MARGIN = 3.5
 DEFAULT_BOTTOM_MARGIN = 2.0
@@ -695,6 +695,15 @@ class Document:
         if 41.9 <= width and width <= 42.1:
             if 29.6 <= height and height <= 29.8:
                 self.paper_size = 'A3'
+        if 29.6 <= width and width <= 29.8:
+            if 41.9 <= height and height <= 42.1:
+                self.paper_size = 'A3P'
+        if 20.9 <= width and width <= 21.1:
+            if 29.6 <= height and height <= 29.8:
+                self.paper_size = 'A4'
+        if 29.6 <= width and width <= 29.8:
+            if 20.9 <= height and height <= 21.1:
+                self.paper_size = 'A4L'
         if top_x > 0:
             self.top_margin = round(top_x / 567, 1)
         if bottom_x > 0:
