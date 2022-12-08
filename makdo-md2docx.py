@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.04-07:51:53-JST>
+# Time-stamp:   <2022.12.09-08:29:13-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -594,11 +594,16 @@ class Document:
             if p.paragraph_class == 'title' and \
                p.section_depth == 1 and \
                re.match('^# .*\\S+.*$', p.full_text):
-                if i > 0 and p_prev.paragraph_class != 'pagebreak':
-                    if i < m and p_next.paragraph_class != 'pagebreak':
-                        if p.length['space after'] >= 0.1:
-                            p.length['space before'] += 0.1
-                            p.length['space after'] -= 0.1
+                if (p.length['space after'] >= 0.2) or \
+                   (i < m and p_next.length['space before'] >= 0.2):
+                    if i > 0:
+                        p_prev.length['space after'] += 0.1
+                    if True:
+                        p.length['space before'] += 0.1
+                    if p.length['space after'] >= 0.2:
+                        p.length['space after'] -= 0.1
+                    if i < m and p_next.length['space before'] >= 0.2:
+                        p_next.length['space before'] -= 0.1
             if p.paragraph_class == 'table' or \
                p.paragraph_class == 'breakdown':
                 sb = p.length['space before']
