@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.09-11:23:10-JST>
+# Time-stamp:   <2022.12.09-11:55:23-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -2085,7 +2085,9 @@ class Paragraph:
                     tmp = ''
             res = '^[，、．。）」]$'
             if re.match(res, line[i]):
-                if (i == m) or (not re.match(res, line[i + 1])):
+                if ((i == m) or (not re.match(res, line[i + 1]))) and \
+                   ((i > 0) and not re.match('^[０-９]$', line[i - 1])) and \
+                   ((i < m) and not re.match('^[０-９]$', line[i + 1])):
                     splited.append(tmp)
                     tmp = ''
         if tmp != '':
