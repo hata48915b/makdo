@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.09-11:55:23-JST>
+# Time-stamp:   <2022.12.09-18:11:24-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -626,8 +626,9 @@ class Document:
 
     def _configure_by_core_xml(self, raw_xml_lines):
         for i, rxl in enumerate(raw_xml_lines):
-            if i > 0 and raw_xml_lines[i - 1] == '<dc:title>':
-                self.document_title = rxl
+            if i > 0 and re.match('^<dc:title>$', raw_xml_lines[i - 1], re.I):
+                if not re.match('^</dc:title>$', rxl, re.I):
+                    self.document_title = rxl
 
     def _configure_by_footer1_xml(self, raw_xml_lines):
         self.no_page_number = True
