@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.09-08:39:33-JST>
+# Time-stamp:   <2022.12.09-11:23:10-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -55,6 +55,11 @@ def get_arguments():
         action='version',
         version=('%(prog)s ' + __version__),
         help='バージョン番号を表示します')
+    parser.add_argument(
+        '-T', '--document-title',
+        type=str,
+        metavar='STRING',
+        help='文書の標題')
     parser.add_argument(
         '-p', '--paper-size',
         type=str,
@@ -139,6 +144,8 @@ def floats6(s):
 
 HELP_EPILOG = '''
 '''
+
+DEFAULT_DOCUMENT_TITLE = ''
 
 DEFAULT_PAPER_SIZE = 'A4'
 PAPER_HEIGHT = {'A3': 29.7, 'A3P': 42.0, 'A4': 29.7, 'A4L': 21.0}
@@ -528,6 +535,7 @@ class Document:
         self.media_dir = None
         self.docx_file = None
         self.md_file = None
+        self.core_raw_xml_lines = None
         self.footer1_raw_xml_lines = None
         self.styles_raw_xml_lines = None
         self.rels_raw_xml_lines = None
@@ -537,6 +545,7 @@ class Document:
         self.images = {}
         self.raw_paragraphs = None
         self.paragraphs = None
+        self.document_title = DEFAULT_DOCUMENT_TITLE
         self.paper_size = DEFAULT_PAPER_SIZE
         self.top_margin = DEFAULT_TOP_MARGIN
         self.bottom_margin = DEFAULT_BOTTOM_MARGIN
@@ -600,6 +609,8 @@ class Document:
         return raw_xml_lines
 
     def configure(self, args):
+        # DOCUMENT TITLE
+        self._configure_by_core_xml(self.core_raw_xml_lines)
         # PAGE NUMBER
         self._configure_by_footer1_xml(self.footer1_raw_xml_lines)
         # FONT, LINE SPACING
@@ -612,6 +623,11 @@ class Document:
         Paragraph.mincho_font = self.mincho_font
         Paragraph.gothic_font = self.gothic_font
         Paragraph.font_size = self.font_size
+
+    def _configure_by_core_xml(self, raw_xml_lines):
+        for i, rxl in enumerate(raw_xml_lines):
+            if i > 0 and raw_xml_lines[i - 1] == '<dc:title>':
+                self.document_title = rxl
 
     def _configure_by_footer1_xml(self, raw_xml_lines):
         self.no_page_number = True
@@ -736,6 +752,8 @@ class Document:
                 self.document_style = 'j'
 
     def _configure_by_args(self, args):
+        if args.document_title is not None:
+            self.document_title = args.document_title
         if args.paper_size is not None:
             self.paper_size = args.paper_size
         if args.top_margin is not None:
@@ -1099,14 +1117,15 @@ class Document:
 
     def write_configurations(self, mf):
         mf.write('<!--\n')
+        mf.write('document_title: ' + str(self.document_title) + '\n')
+        mf.write('document_style: ' + str(self.document_style) + '\n')
+        mf.write('no_page_number: ' + str(self.no_page_number) + '\n')
+        mf.write('line_number:    ' + str(self.line_number) + '\n')
         mf.write('paper_size:     ' + str(self.paper_size) + '\n')
         mf.write('top_margin:     ' + str(round(self.top_margin, 1)) + '\n')
         mf.write('bottom_margin:  ' + str(round(self.bottom_margin, 1)) + '\n')
         mf.write('left_margin:    ' + str(round(self.left_margin, 1)) + '\n')
         mf.write('right_margin:   ' + str(round(self.right_margin, 1)) + '\n')
-        mf.write('document_style: ' + str(self.document_style) + '\n')
-        mf.write('no_page_number: ' + str(self.no_page_number) + '\n')
-        mf.write('line_number:    ' + str(self.line_number) + '\n')
         mf.write('mincho_font:    ' + str(self.mincho_font) + '\n')
         mf.write('gothic_font:    ' + str(self.gothic_font) + '\n')
         mf.write('font_size:      ' + str(round(self.font_size, 1)) + '\n')
@@ -2181,6 +2200,7 @@ if __name__ == '__main__':
 
     doc.extract_docx_file(args.docx_file)
 
+    doc.core_raw_xml_lines = doc.get_raw_xml_lines('/docProps/core.xml')
     doc.footer1_raw_xml_lines = doc.get_raw_xml_lines('/word/footer1.xml')
     doc.styles_raw_xml_lines = doc.get_raw_xml_lines('/word/styles.xml')
     doc.rels_raw_xml_lines \

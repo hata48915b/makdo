@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.09-08:29:13-JST>
+# Time-stamp:   <2022.12.09-11:02:06-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -67,6 +67,11 @@ def get_arguments():
         action='version',
         version=('%(prog)s ' + __version__),
         help='バージョン番号を表示します')
+    parser.add_argument(
+        '-T', '--document-title',
+        type=str,
+        metavar='STRING',
+        help='文書の標題')
     parser.add_argument(
         '-p', '--paper-size',
         type=str,
@@ -178,6 +183,8 @@ HELP_EPILOG = '''Markdownの記法:
     [--]で挟まれた文字列は文字が小さくなります（独自）
     [@@]で挟まれた文字列は白色になって見えなくなります（独自）
 '''
+
+DEFAULT_DOCUMENT_TITLE = ''
 
 DEFAULT_PAPER_SIZE = 'A4'
 PAPER_HEIGHT = {'A3': 29.7, 'A3P': 42.0, 'A4': 29.7, 'A4L': 21.0}
@@ -488,6 +495,7 @@ class Document:
         self.md_lines = []
         self.raw_paragraphs = []
         self.paragraphs = []
+        self.document_title = DEFAULT_DOCUMENT_TITLE
         self.paper_size = DEFAULT_PAPER_SIZE
         self.top_margin = DEFAULT_TOP_MARGIN
         self.bottom_margin = DEFAULT_BOTTOM_MARGIN
@@ -665,6 +673,8 @@ class Document:
                     else:
                         msg = 'not decimals "' + val + '"'
                         ml.append_warning_message(msg)
+                elif nam == 'document_title':
+                    exec('self.' + nam + ' = "' + val + '"')
                 else:
                     try:
                         exec('self.' + nam + ' = float(' + val + ')')
@@ -673,6 +683,8 @@ class Document:
                         ml.append_warning_message(msg)
 
     def _configure_by_args(self, args):
+        if args.document_title is not None:
+            self.document_title = args.document_title
         if args.paper_size is not None:
             self.paper_size = args.paper_size
         if args.top_margin is not None:
@@ -793,6 +805,7 @@ class Document:
                 x = int(x / 26)
         dt = datetime.datetime.now()
         ms_cp = ms_doc.core_properties
+        ms_cp.title = self.document_title
         ms_cp.author = hs + ' (with makdo ' + __version__ + ')'
         ms_cp.created = dt
         ms_cp.modified = dt
