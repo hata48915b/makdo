@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.11-11:47:48-JST>
+# Time-stamp:   <2022.12.11-22:24:27-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -561,6 +561,7 @@ class Document:
         self.space_before = DEFAULT_SPACE_BEFORE
         self.space_after = DEFAULT_SPACE_AFTER
         self.auto_space = DEFAULT_AUTO_SPACE
+        self.birthtime = None
 
     def make_tmpdir(self):
         tmpdir = tempfile.TemporaryDirectory()
@@ -626,9 +627,18 @@ class Document:
 
     def _configure_by_core_xml(self, raw_xml_lines):
         for i, rxl in enumerate(raw_xml_lines):
-            if i > 0 and re.match('^<dc:title>$', raw_xml_lines[i - 1], re.I):
-                if not re.match('^</dc:title>$', rxl, re.I):
+            resb = '^<dc:title>$'
+            rese = '^</dc:title>$'
+            if i > 0 and re.match(resb, raw_xml_lines[i - 1], re.I):
+                if not re.match(rese, rxl, re.I):
                     self.document_title = rxl
+            resb = '^<dcterms:modified( .*)?>$'
+            rese = '^</dcterms:modified>$'
+            if i > 0 and re.match(resb, raw_xml_lines[i - 1], re.I):
+                if not re.match(rese, rxl, re.I):
+                    self.birthtime = rxl
+                    self.birthtime = re.sub('T', ' ', self.birthtime)
+                    self.birthtime = re.sub('Z', '', self.birthtime)
 
     def _configure_by_footer1_xml(self, raw_xml_lines):
         self.no_page_number = True
@@ -1118,8 +1128,8 @@ class Document:
 
     def write_configurations(self, mf):
         mf.write('<!--\n')
-        mf.write('document_title: ' + str(self.document_title) + '\n')
-        mf.write('document_style: ' + str(self.document_style) + '\n')
+        mf.write('document_title: ' + self.document_title + '\n')
+        mf.write('document_style: ' + self.document_style + '\n')
         mf.write('no_page_number: ' + str(self.no_page_number) + '\n')
         mf.write('line_number:    ' + str(self.line_number) + '\n')
         mf.write('paper_size:     ' + str(self.paper_size) + '\n')
@@ -1127,13 +1137,14 @@ class Document:
         mf.write('bottom_margin:  ' + str(round(self.bottom_margin, 1)) + '\n')
         mf.write('left_margin:    ' + str(round(self.left_margin, 1)) + '\n')
         mf.write('right_margin:   ' + str(round(self.right_margin, 1)) + '\n')
-        mf.write('mincho_font:    ' + str(self.mincho_font) + '\n')
-        mf.write('gothic_font:    ' + str(self.gothic_font) + '\n')
+        mf.write('mincho_font:    ' + self.mincho_font + '\n')
+        mf.write('gothic_font:    ' + self.gothic_font + '\n')
         mf.write('font_size:      ' + str(round(self.font_size, 1)) + '\n')
         mf.write('line_spacing:   ' + str(round(self.line_spacing, 2)) + '\n')
         mf.write('space_before:   ' + self.space_before + '\n')
         mf.write('space_after:    ' + self.space_after + '\n')
         mf.write('auto_space:     ' + str(self.auto_space) + '\n')
+        mf.write('birthtime:      ' + self.birthtime + '\n')
         mf.write('-->\n\n')
         return
 
