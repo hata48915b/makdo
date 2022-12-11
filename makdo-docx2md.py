@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.11-11:39:43-JST>
+# Time-stamp:   <2022.12.11-11:47:48-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -1308,7 +1308,6 @@ class Paragraph:
         is_gothic = False
         has_strike = False
         has_underline = False
-        is_white = False
         color = ''
         is_in_text = False
         res_img_ms = \
@@ -1350,11 +1349,11 @@ class Paragraph:
                 if is_large:
                     text = '++' + text + '++'
                     is_large = False
-                if is_white:
-                    text = '@@' + text + '@@'
-                    is_white = False
                 if color != '':
-                    text = '@' + color + '@' + text + '@' + color + '@'
+                    if color == 'FFFFFF':
+                        text = '@@' + text + '@@'
+                    else:
+                        text = '@' + color + '@' + text + '@' + color + '@'
                     color = ''
                 if has_underline:
                     text = '__' + text + '__'
@@ -1391,8 +1390,6 @@ class Paragraph:
                 has_strike = True
             elif re.match('^<w:u( .*)?>$', rxl):
                 has_underline = True
-            elif re.match('^<w:color w:val="FFFFFF"/?>$', rxl):
-                is_white = True
             elif re.match('^<w:color w:val="[0-9A-F]+"/?>$', rxl):
                 color = re.sub('^<.*w:val="([0-9A-F]+)".*>$', '\\1', rxl, re.I)
                 color = color.upper()

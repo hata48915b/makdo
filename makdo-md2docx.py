@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.11-11:36:43-JST>
+# Time-stamp:   <2022.12.11-11:59:27-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -844,7 +844,6 @@ class Paragraph:
     is_bold = False
     has_strike = False
     has_underline = False
-    is_white = False
     color = ''
 
     def __init__(self, paragraph_number, md_lines):
@@ -1758,16 +1757,17 @@ class Paragraph:
                     tex = re.sub(res, '\\1', tex)
                     tex = self._write_string(tex, ms_par)
                     self._write_image(comm, path, ms_par)
-                elif re.match('^.*@([0-9A-F]+)@$', tex + esc, re.I):
-                    color = re.sub('.*@([0-9A-F]+)@$', '\\1', tex + esc)
-                    color = re.sub('^([0-9A-F])([0-9A-F])([0-9A-F])$',
-                                   '\\1\\1\\2\\2\\3\\3', color)
-                    tex = re.sub('@([0-9A-F]+)@$', '', tex + esc)
+                elif re.match(NOT_ESCAPED + '@([0-9A-F]*)@$', tex, re.I):
+                    col = re.sub('.*@([0-9A-F]*)@$', '\\1', tex)
+                    col = re.sub('^([0-9A-F])([0-9A-F])([0-9A-F])$',
+                                 '\\1\\1\\2\\2\\3\\3', col)
+                    if col == '':
+                        col = 'FFFFFF'
+                    tex = re.sub('@([0-9A-F]*)@$', '', tex)
                     tex = self._write_string(tex, ms_par)
                     esc = ''
-                    Paragraph.is_white = False
                     if Paragraph.color == '':
-                        Paragraph.color = color
+                        Paragraph.color = col
                     else:
                         Paragraph.color = ''
             elif esc == '\\':
@@ -1828,14 +1828,6 @@ class Paragraph:
                 else:
                     tex += '-'
                     esc, tex = self._set_esc_and_tex(c, tex)
-            elif esc == '@':
-                if c == '@':
-                    esc = ''
-                    tex = self._write_string(tex, ms_par)
-                    Paragraph.is_white = not Paragraph.is_white
-                    Paragraph.color = ''
-                else:
-                    tex += '@'
                     esc, tex = self._set_esc_and_tex(c, tex)
             elif esc == '**':
                 if c == '*':
@@ -1863,7 +1855,7 @@ class Paragraph:
     def _set_esc_and_tex(cls, c, tex):
         if c == '\0':
             return '', tex
-        elif re.match('^[\\\\*~_/+\\-@]$', c):
+        elif re.match('^[\\\\*~_/+\\-]$', c):
             return c, tex
         else:
             return '', tex + c
@@ -1903,8 +1895,6 @@ class Paragraph:
             ms_run.underline = True
         # else:
         #     ms_run.underline = False
-        if cls.is_white:
-            ms_run.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
         if cls.color != '':
             r = int(re.sub('^(..)(..)(..)$', '\\1', cls.color), 16)
             g = int(re.sub('^(..)(..)(..)$', '\\2', cls.color), 16)
