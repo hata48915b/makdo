@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.09-18:11:24-JST>
+# Time-stamp:   <2022.12.11-11:39:43-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -1309,6 +1309,7 @@ class Paragraph:
         has_strike = False
         has_underline = False
         is_white = False
+        color = ''
         is_in_text = False
         res_img_ms = \
             '^<v:imagedata r:id=[\'"](.+)[\'"] o:title=[\'"](.+)[\'"]/>$'
@@ -1352,6 +1353,9 @@ class Paragraph:
                 if is_white:
                     text = '@@' + text + '@@'
                     is_white = False
+                if color != '':
+                    text = '@' + color + '@' + text + '@' + color + '@'
+                    color = ''
                 if has_underline:
                     text = '__' + text + '__'
                     has_underline = False
@@ -1389,6 +1393,9 @@ class Paragraph:
                 has_underline = True
             elif re.match('^<w:color w:val="FFFFFF"/?>$', rxl):
                 is_white = True
+            elif re.match('^<w:color w:val="[0-9A-F]+"/?>$', rxl):
+                color = re.sub('^<.*w:val="([0-9A-F]+)".*>$', '\\1', rxl, re.I)
+                color = color.upper()
             elif re.match('^<w:br/?>$', rxl):
                 text += '\n'
             elif not re.match('^<.*>$', rxl):
