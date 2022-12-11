@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.11-11:59:27-JST>
+# Time-stamp:   <2022.12.11-12:51:00-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -1827,7 +1827,6 @@ class Paragraph:
                     Paragraph.is_small = not Paragraph.is_small
                 else:
                     tex += '-'
-                    esc, tex = self._set_esc_and_tex(c, tex)
                     esc, tex = self._set_esc_and_tex(c, tex)
             elif esc == '**':
                 if c == '*':
