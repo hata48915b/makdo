@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.13-03:09:34-JST>
+# Time-stamp:   <2022.12.13-03:17:18-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -922,7 +922,7 @@ class Paragraph:
                     ml_rawt = re.sub(res_de, '\\2', ml_rawt)
                     ml.text = re.sub(res_de, '\\2', ml.text)
                     decoration_instruction += deco
-                elif re.match(res_sb, ml_rawt) and  re.match(res_sb, ml.text):
+                elif re.match(res_sb, ml_rawt) and re.match(res_sb, ml.text):
                     deci = re.sub(res_sb, '\\1', ml.text)
                     ml_rawt = re.sub(res_sb, '\\6', ml_rawt)
                     ml.text = re.sub(res_sb, '\\6', ml.text)
