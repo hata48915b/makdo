@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.11-22:24:27-JST>
+# Time-stamp:   <2022.12.12-12:56:51-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -1370,6 +1370,7 @@ class Paragraph:
                     text = '__' + text + '__'
                     has_underline = False
                 xml_lines.append(text)
+                text = ''
                 is_in_text = False
                 continue
             if not is_in_text:
