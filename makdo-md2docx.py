@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.13-02:41:02-JST>
+# Time-stamp:   <2022.12.13-03:09:34-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -906,7 +906,7 @@ class Paragraph:
         for ml in md_lines:
             # FOR BREAKDOWN
             if re.match('^-+::-*(::-+)?$', ml.text):
-                continue
+                break
             ml_rawt = ml.raw_text
             while True:
                 if re.match(res_sn, ml_rawt) and re.match(res_sn, ml.text):
