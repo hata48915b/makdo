@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.12-19:55:28-JST>
+# Time-stamp:   <2022.12.13-02:56:25-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -2212,6 +2212,8 @@ class Paragraph:
                 text_to_write += '\n'
             mf.write(text_to_write)
             return
+        if re.match('^\\s*(#+|v|V|X|<<|<)=\\s*[0-9]+', mt):
+            mt = '<!---->' + mt
         if mt == '':
             text_to_text = '  \n\n'
         elif fli == '':

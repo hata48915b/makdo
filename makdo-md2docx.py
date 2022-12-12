@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.11-21:57:48-JST>
+# Time-stamp:   <2022.12.13-02:41:02-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -884,24 +884,13 @@ class Paragraph:
         self.length \
             = self.get_length()
 
-    def get_full_text(self):
-        full_text = ''
-        for ml in self.md_lines:
-            full_text += ml.text + ' '
-        full_text = re.sub('\t', ' ', full_text)
-        full_text = re.sub(' +', ' ', full_text)
-        full_text = re.sub('^ ', '', full_text)
-        full_text = re.sub(' $', '', full_text)
-        # self.full_text = full_text
-        return full_text
-
     def read_first_line_instructions(self):
         section_instructions = []
         decoration_instruction = ''
-        md_lines = self.md_lines
         length_ins \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
+        md_lines = self.md_lines
         res_sn = '^\\s*(#+)=\\s*([0-9]+)(.*)$'
         res_de = '^\\s*' + \
             '((?:' + \
@@ -918,36 +907,44 @@ class Paragraph:
             # FOR BREAKDOWN
             if re.match('^-+::-*(::-+)?$', ml.text):
                 continue
+            ml_rawt = ml.raw_text
             while True:
-                if re.match(res_sn, ml.text):
+                if re.match(res_sn, ml_rawt) and re.match(res_sn, ml.text):
                     sect = re.sub(res_sn, '\\1', ml.text)
                     numb = re.sub(res_sn, '\\2', ml.text)
+                    ml_rawt = re.sub(res_sn, '\\3', ml_rawt)
                     ml.text = re.sub(res_sn, '\\3', ml.text)
                     sec_dep = len(sect)
                     sec_num = int(numb)
                     section_instructions.append([sec_dep, sec_num])
-                elif re.match(res_de, ml.text):
+                elif re.match(res_de, ml_rawt) and re.match(res_de, ml.text):
                     deco = re.sub(res_de, '\\1', ml.text)
+                    ml_rawt = re.sub(res_de, '\\2', ml_rawt)
                     ml.text = re.sub(res_de, '\\2', ml.text)
                     decoration_instruction += deco
-                elif re.match(res_sb, ml.text):
+                elif re.match(res_sb, ml_rawt) and  re.match(res_sb, ml.text):
                     deci = re.sub(res_sb, '\\1', ml.text)
+                    ml_rawt = re.sub(res_sb, '\\6', ml_rawt)
                     ml.text = re.sub(res_sb, '\\6', ml.text)
                     length_ins['space before'] += float(deci)
-                elif re.match(res_sa, ml.text):
+                elif re.match(res_sa, ml_rawt) and re.match(res_sa, ml.text):
                     deci = re.sub(res_sa, '\\1', ml.text)
+                    ml_rawt = re.sub(res_sa, '\\6', ml_rawt)
                     ml.text = re.sub(res_sa, '\\6', ml.text)
                     length_ins['space after'] += float(deci)
-                elif re.match(res_ls, ml.text):
+                elif re.match(res_ls, ml_rawt) and re.match(res_ls, ml.text):
                     deci = re.sub(res_ls, '\\1', ml.text)
+                    ml_rawt = re.sub(res_ls, '\\6', ml_rawt)
                     ml.text = re.sub(res_ls, '\\6', ml.text)
                     length_ins['line spacing'] += float(deci)
-                elif re.match(res_fi, ml.text):
+                elif re.match(res_fi, ml_rawt) and re.match(res_fi, ml.text):
                     deci = re.sub(res_fi, '\\1', ml.text)
+                    ml_rawt = re.sub(res_fi, '\\6', ml_rawt)
                     ml.text = re.sub(res_fi, '\\6', ml.text)
                     length_ins['first indent'] = -float(deci)
-                elif re.match(res_li, ml.text):
+                elif re.match(res_li, ml_rawt) and re.match(res_li, ml.text):
                     deci = re.sub(res_li, '\\1', ml.text)
+                    ml_rawt = re.sub(res_li, '\\6', ml_rawt)
                     ml.text = re.sub(res_li, '\\6', ml.text)
                     length_ins['left indent'] = -float(deci)
                 else:
@@ -972,6 +969,17 @@ class Paragraph:
         # self.md_lines = md_lines
         return section_instructions, decoration_instruction, \
             length_ins, md_lines
+
+    def get_full_text(self):
+        full_text = ''
+        for ml in self.md_lines:
+            full_text += ml.text + ' '
+        full_text = re.sub('\t', ' ', full_text)
+        full_text = re.sub(' +', ' ', full_text)
+        full_text = re.sub('^ ', '', full_text)
+        full_text = re.sub(' $', '', full_text)
+        # self.full_text = full_text
+        return full_text
 
     def get_paragraph_class(self):
         decoration = self.decoration_instruction
