@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.12-19:26:46-JST>
+# Time-stamp:   <2022.12.12-19:55:28-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -1476,8 +1476,18 @@ class Paragraph:
                     raw_text = re.sub('--$', '', raw_text)
                     xl = re.sub('^--', '', xl)
                     continue
-                if re.match('^.*(\n.*)*\\*$', raw_text) and \
-                   re.match('^\\*.*$', xl):
+                if re.match('^.*(\n.*)*[^\\*]\\*\\*\\*$', raw_text) and \
+                   re.match('^\\*\\*\\*[^\\*].*$', xl):
+                    raw_text = re.sub('\\*\\*\\*$', '', raw_text)
+                    xl = re.sub('^\\*\\*\\*', '', xl)
+                    continue
+                if re.match('^.*(\n.*)*[^\\*]\\*\\*$', raw_text) and \
+                   re.match('^\\*\\*[^\\*].*$', xl):
+                    raw_text = re.sub('\\*\\*$', '', raw_text)
+                    xl = re.sub('^\\*\\*', '', xl)
+                    continue
+                if re.match('^.*(\n.*)*[^\\*]\\*$', raw_text) and \
+                   re.match('^\\*[^\\*].*$', xl):
                     raw_text = re.sub('\\*$', '', raw_text)
                     xl = re.sub('^\\*', '', xl)
                     continue
@@ -1496,6 +1506,14 @@ class Paragraph:
                     raw_text = re.sub('`$', '', raw_text)
                     xl = re.sub('^`', '', xl)
                     continue
+                if re.match('^.*(\n.*)*@[0-9A-F]*@$', raw_text) and \
+                   re.match('^@[0-9A-F]*@.*$', xl):
+                    ce = re.sub('^.*(?:\n.*)*(@[0-9A-F]*@)$', '\\1', raw_text)
+                    cb = re.sub('^(@[0-9A-F]*@).*$', '\\1', xl)
+                    if ce == cb:
+                        raw_text = re.sub('@[0-9A-F]*@$', '', raw_text)
+                        xl = re.sub('^@[0-9A-F]*@', '', xl)
+                        continue
                 else:
                     break
             raw_text += xl
