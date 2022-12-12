@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.12-12:56:51-JST>
+# Time-stamp:   <2022.12.12-19:26:46-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -1476,22 +1476,22 @@ class Paragraph:
                     raw_text = re.sub('--$', '', raw_text)
                     xl = re.sub('^--', '', xl)
                     continue
-                if re.match('^.*(\n.*)\\*$', raw_text) and \
+                if re.match('^.*(\n.*)*\\*$', raw_text) and \
                    re.match('^\\*.*$', xl):
                     raw_text = re.sub('\\*$', '', raw_text)
                     xl = re.sub('^\\*', '', xl)
                     continue
-                if re.match('^.*(\n.*)~~$', raw_text) and \
+                if re.match('^.*(\n.*)*~~$', raw_text) and \
                    re.match('^~~.*$', xl):
                     raw_text = re.sub('~~$', '', raw_text)
                     xl = re.sub('^~~', '', xl)
                     continue
-                if re.match('^.*(\n.*)__$', raw_text) and \
+                if re.match('^.*(\n.*)*__$', raw_text) and \
                    re.match('^__.*$', xl):
                     raw_text = re.sub('__$', '', raw_text)
                     xl = re.sub('^__', '', xl)
                     continue
-                if re.match('^.*(\n.*)`$', raw_text) and \
+                if re.match('^.*(\n.*)*`$', raw_text) and \
                    re.match('^`.*$', xl):
                     raw_text = re.sub('`$', '', raw_text)
                     xl = re.sub('^`', '', xl)
