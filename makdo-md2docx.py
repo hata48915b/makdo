@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.13-03:17:18-JST>
+# Time-stamp:   <2022.12.13-19:36:51-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -220,7 +220,7 @@ RELAX_SYMBOL = '<>'
 ORIGINAL_COMMENT_SYMBOL = ';;'
 COMMENT_SEPARATE_SYMBOL = ' / '
 
-NOT_ESCAPED = '^((?:.*[^\\\\])?(?:\\\\\\\\)*)?'
+NOT_ESCAPED = '((?:.*[^\\\\])?(?:\\\\\\\\)*)?'
 
 
 class Title:
@@ -1735,7 +1735,7 @@ class Paragraph:
     def _write_text(self, text, ms_par):
         lns = text.split('\n')
         text = ''
-        res = NOT_ESCAPED + '<br/?>'
+        res = '^' + NOT_ESCAPED + '<br/?>'
         for ln in lns:
             while re.match(res, ln):
                 ln = re.sub(res, '\\1\n', ln)
@@ -1766,8 +1766,9 @@ class Paragraph:
                     tex = re.sub(res, '\\1', tex)
                     tex = self._write_string(tex, ms_par)
                     self._write_image(comm, path, ms_par)
-                elif re.match(NOT_ESCAPED + '@([0-9A-F]*)@$', tex, re.I):
-                    col = re.sub('.*@([0-9A-F]*)@$', '\\1', tex)
+                elif re.match('^(?:.*\n)*' + NOT_ESCAPED + '@([0-9A-F]*)@$',
+                              tex, re.I):
+                    col = re.sub('(?:.*\n)*.*@([0-9A-F]*)@$', '\\1', tex)
                     col = re.sub('^([0-9A-F])([0-9A-F])([0-9A-F])$',
                                  '\\1\\1\\2\\2\\3\\3', col)
                     if col == '':
@@ -1854,7 +1855,7 @@ class Paragraph:
 
     @staticmethod
     def _remove_relax_symbol(text):
-        res = NOT_ESCAPED + RELAX_SYMBOL
+        res = '^(?:.*\n)*' + NOT_ESCAPED + RELAX_SYMBOL
         while re.match(res, text):
             text = re.sub(res, '\\1', text)
         return text
@@ -1958,7 +1959,7 @@ class MdLine:
         for i, c in enumerate(rt):
             tmp += c
             if not MdLine.is_in_comment:
-                if re.match(NOT_ESCAPED + '<!--$', tmp):
+                if re.match('^' + NOT_ESCAPED + '<!--$', tmp):
                     tmp = re.sub('<!--$', '', tmp)
                     text += tmp
                     tmp = ''
@@ -1966,13 +1967,13 @@ class MdLine:
                         comment = ''
                     MdLine.is_in_comment = True
             else:
-                if re.match(NOT_ESCAPED + '-->$', tmp):
+                if re.match('^' + NOT_ESCAPED + '-->$', tmp):
                     tmp = re.sub('-->$', '', tmp)
                     comment += tmp + com_sep
                     tmp = ''
                     MdLine.is_in_comment = False
             if not MdLine.is_in_comment:
-                if re.match(NOT_ESCAPED + ori_sym + '$', tmp):
+                if re.match('^' + NOT_ESCAPED + ori_sym + '$', tmp):
                     tmp = re.sub(ori_sym + '$', '', tmp)
                     text += tmp
                     tmp = ''
@@ -1992,7 +1993,7 @@ class MdLine:
                     tmp = ''
         if comment is not None:
             comment = re.sub(com_sep + '$', '', comment)
-        text = re.sub(NOT_ESCAPED + '<br/?>$', '\\1\n', text)
+        text = re.sub('^' + NOT_ESCAPED + '<br/?>$', '\\1\n', text)
         text = re.sub('  $', '\n', text)
         text = re.sub(' *$', '', text)
         # self.text = text

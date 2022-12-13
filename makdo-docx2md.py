@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.13-02:56:25-JST>
+# Time-stamp:   <2022.12.13-19:38:46-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -173,7 +173,7 @@ DEFAULT_AUTO_SPACE = False
 
 ZENKAKU_SPACE = chr(12288)
 
-NOT_ESCAPED = '^((?:.*[^\\\\])?(?:\\\\\\\\)*)?'
+NOT_ESCAPED = '((?:.*[^\\\\])?(?:\\\\\\\\)*)?'
 
 MD_TEXT_WIDTH = 79
 
@@ -1039,10 +1039,10 @@ class Document:
             cms = ['\\*\\*\\*', '\\*\\*', '\\*', '~~', '--', '\\+\\+', '__',
                    '@@']
             for cm in cms:
-                while re.match(NOT_ESCAPED + cm, rt):
-                    rt = re.sub(NOT_ESCAPED + cm, '\\1', rt)
-            while re.match(NOT_ESCAPED + '\\\\', rt):
-                rt = re.sub(NOT_ESCAPED + '\\\\', '\\1', rt)
+                while re.match('^' + NOT_ESCAPED + cm, rt):
+                    rt = re.sub('^' + NOT_ESCAPED + cm, '\\1', rt)
+            while re.match('^' + NOT_ESCAPED + '\\\\', rt):
+                rt = re.sub('^' + NOT_ESCAPED + '\\\\', '\\1', rt)
             lm = self.left_margin
             rm = self.right_margin
             fi = p.length['first indent']
