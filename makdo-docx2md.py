@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.13-19:38:46-JST>
+# Time-stamp:   <2022.12.14-08:05:42-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -173,14 +173,14 @@ DEFAULT_AUTO_SPACE = False
 
 ZENKAKU_SPACE = chr(12288)
 
-NOT_ESCAPED = '((?:.*[^\\\\])?(?:\\\\\\\\)*)?'
+NOT_ESCAPED = '^((?:(?:.*\n)*.*[^\\\\])?(?:\\\\\\\\)*)?'
 
 MD_TEXT_WIDTH = 79
 
 
 class Title:
 
-    r0 = '((?:__)|(?:\\+\\+)|(?:--)|(?:~~)|(?:\\*+)|(?:@@))*'
+    r0 = '((?:__)|(?:\\+\\+)|(?:--)|(?:~~)|(?:\\*+)|(?:@[0-9A-F]*@))*'
     r1 = '(__)?\\+\\+(.*)\\+\\+(__)?'
     r2 = '(第([0-9０-９]+)条?)'
     r3 = '([0-9０-９]+)'
@@ -1037,12 +1037,12 @@ class Document:
         for p in self.paragraphs:
             rt = p.raw_text
             cms = ['\\*\\*\\*', '\\*\\*', '\\*', '~~', '--', '\\+\\+', '__',
-                   '@@']
+                   '@[0-9A-F]*@']
             for cm in cms:
-                while re.match('^' + NOT_ESCAPED + cm, rt):
-                    rt = re.sub('^' + NOT_ESCAPED + cm, '\\1', rt)
-            while re.match('^' + NOT_ESCAPED + '\\\\', rt):
-                rt = re.sub('^' + NOT_ESCAPED + '\\\\', '\\1', rt)
+                while re.match(NOT_ESCAPED + cm, rt):
+                    rt = re.sub(NOT_ESCAPED + cm, '\\1', rt)
+            while re.match(NOT_ESCAPED + '\\\\', rt):
+                rt = re.sub(NOT_ESCAPED + '\\\\', '\\1', rt)
             lm = self.left_margin
             rm = self.right_margin
             fi = p.length['first indent']
@@ -1079,7 +1079,7 @@ class Document:
             ln = re.sub('\n', ' ', ln)
             ln = re.sub(' +', ' ', ln)
             res = '^' \
-                + '((?:__)|(?:\\+\\+)|(?:--)|(?:~~)|(?:\\*+)|(?:@@))' \
+                + '((?:__)|(?:\\+\\+)|(?:--)|(?:~~)|(?:\\*+)|(?:@[0-9A-F]*@))' \
                 + '*((#+ )*).*$'
             head = re.sub(res, '\\2', ln + ' ')
             head = re.sub(' +', ' ', head)
