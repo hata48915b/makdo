@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.14-21:16:24-JST>
+# Time-stamp:   <2022.12.15-05:51:06-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -2048,6 +2048,7 @@ class Paragraph:
         # rls = float(round(ls * 2)) / 2
         rfi = float(round(fi * 2)) / 2
         rli = float(round(li * 2)) / 2
+        rri = float(round(ri * 2)) / 2
         ins = ''
         if rsb < 0:
             ins += 'v=' + str(rsb) + ' '
@@ -2065,6 +2066,8 @@ class Paragraph:
             ins += '<<=' + str(-rfi) + ' '
         if rli != 0:
             ins += '<=' + str(-rli) + ' '
+        if rri != 0:
+            ins += '>=' + str(-rri) + ' '
         ins = re.sub(' $', '', ins)
         first_line_instructions = ins
         # self.first_line_instructions = ins

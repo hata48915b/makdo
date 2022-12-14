@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.14-21:18:21-JST>
+# Time-stamp:   <2022.12.15-05:56:58-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -164,11 +164,12 @@ def floats6(s):
 HELP_EPILOG = '''Markdownの記法:
   行頭指示
     [#+=(数字) ]でセクション番号を変えることができます（独自）
-    [v=(数字) ]で段落が下に数字行分ずれます（独自）
-    [V=(数字) ]で次の段落が下に数字行分ずれます（独自）
-    [X=(数字) ]で改行幅を数字行分増減します（独自）
-    [<<=(数字) ]で1行目が左に数字文字分ずれます（独自）
-    [<=(数字) ]で全体が左に数字文字分ずれます（独自）
+    [v=(数字) ]で段落の上の余白を行数だけ増減します（独自）
+    [V=(数字) ]で段落の下の余白を行数だけ増減します（独自）
+    [X=(数字) ]で段落の改行幅を行数だけ増減します（独自）
+    [<<=(数字) ]で段落1行目の左の余白を文字数だけ増減します（独自）
+    [<=(数字) ]で段落の左の余白を文字数だけ増減します（独自）
+    [>=(数字) ]で段落の右の余白を文字数だけ増減します（独自）
   行中指示
     [;;]から行末まではコメントアウトされます（独自）
     [<>]は何もせず表示もされません（独自）
@@ -906,6 +907,7 @@ class Paragraph:
         res_ls = '^\\s*X=\\s*' + RES_NUMBER + '(.*)$'
         res_fi = '^\\s*<<=\\s*' + RES_NUMBER + '(.*)$'
         res_li = '^\\s*<=\\s*' + RES_NUMBER + '(.*)$'
+        res_ri = '^\\s*>=\\s*' + RES_NUMBER + '(.*)$'
         for ml in md_lines:
             # FOR BREAKDOWN
             if re.match('^-+::-*(::-+)?$', ml.text):
@@ -950,6 +952,11 @@ class Paragraph:
                     ml_rawt = re.sub(res_li, '\\6', ml_rawt)
                     ml.text = re.sub(res_li, '\\6', ml.text)
                     length_ins['left indent'] = -float(deci)
+                elif re.match(res_ri, ml_rawt) and re.match(res_ri, ml.text):
+                    deci = re.sub(res_ri, '\\1', ml.text)
+                    ml_rawt = re.sub(res_ri, '\\6', ml_rawt)
+                    ml.text = re.sub(res_ri, '\\6', ml.text)
+                    length_ins['right indent'] = -float(deci)
                 else:
                     break
             if ml.text != '':
