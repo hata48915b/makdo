@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.14-08:02:47-JST>
+# Time-stamp:   <2022.12.14-11:53:10-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -983,7 +983,6 @@ class Paragraph:
 
     def get_paragraph_class(self):
         decoration = self.decoration_instruction
-        first_line = self.md_lines[0].text
         full_text = self.full_text
         paragraph_class = None
         if decoration + full_text == '':
@@ -992,13 +991,13 @@ class Paragraph:
             paragraph_class = 'blank'
         elif re.match('^#+ ', full_text) or re.match('^#+$', full_text):
             paragraph_class = 'title'
-        elif re.match(NOT_ESCAPED + '::', first_line):
+        elif re.match(NOT_ESCAPED + '::', full_text):
             paragraph_class = 'breakdown'
         elif re.match('^ *([-\\+\\*]|([0-9]+\\.)) ', full_text):
             paragraph_class = 'list'
-        elif re.match('^: .*$', first_line) or re.match('^.* :$', first_line):
+        elif re.match('^: .*$', full_text) or re.match('^.* :$', full_text):
             paragraph_class = 'alignment'
-        elif re.match('^\\|.*\\|$', first_line):
+        elif re.match('^\\|.*\\|$', full_text):
             paragraph_class = 'table'
         elif re.match('^(! ?\\[[^\\[\\]]*\\] ?\\([^\\(\\)]+\\) ?)+$',
                       full_text):
