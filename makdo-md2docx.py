@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.14-11:53:10-JST>
+# Time-stamp:   <2022.12.14-21:18:21-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -821,6 +821,9 @@ class Document:
                 docx_file = re.sub('\\.md$', '.docx', md_file)
                 self.docx_file = docx_file
         if os.path.exists(docx_file):
+            if os.path.getmtime(md_file) < os.path.getmtime(docx_file):
+                sys.stderr.write('error: overwriting newer file\n')
+                sys.exit(1)
             if os.path.exists(docx_file + '~'):
                 os.remove(docx_file + '~')
             os.rename(docx_file, docx_file + '~')

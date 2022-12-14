@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.14-08:05:42-JST>
+# Time-stamp:   <2022.12.14-21:16:24-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -1116,6 +1116,9 @@ class Document:
                 if re.match('^.*\\.docx$', docx_file):
                     md_file = re.sub('\\.docx$', '.md', docx_file)
             if os.path.exists(md_file):
+                if os.path.getmtime(docx_file) < os.path.getmtime(md_file):
+                    sys.stderr.write('error: overwriting newer file\n')
+                    sys.exit(1)
                 if os.path.exists(md_file + '~'):
                     os.remove(md_file + '~')
                 os.rename(md_file, md_file + '~')
@@ -2260,6 +2263,7 @@ if __name__ == '__main__':
     mf = doc.open_md_file(args.md_file, args.docx_file)
     doc.write_configurations(mf)
     doc.write_md_lines(mf)
+    mf.close()
 
     doc.make_media_dir(doc.media_dir)
 
