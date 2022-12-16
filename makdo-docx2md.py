@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.15-05:51:06-JST>
+# Time-stamp:   <2022.12.16-09:13:27-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -85,7 +85,7 @@ def get_arguments():
         '-d', '--document-style',
         type=str,
         choices=['k', 'j'],
-        help='文書スタイルの指定')
+        help='文書スタイルの指定（契約、条文）')
     parser.add_argument(
         '-N', '--no-page-number',
         action='store_true',
@@ -1079,7 +1079,8 @@ class Document:
             ln = re.sub('\n', ' ', ln)
             ln = re.sub(' +', ' ', ln)
             res = '^' \
-                + '((?:__)|(?:\\+\\+)|(?:--)|(?:~~)|(?:\\*+)|(?:@[0-9A-F]*@))' \
+                + '((?:__)|(?:\\+\\+)|(?:--)|(?:~~)|(?:\\*+)' \
+                + '|(?:@[0-9A-F]*@))' \
                 + '*((#+ )*).*$'
             head = re.sub(res, '\\2', ln + ' ')
             head = re.sub(' +', ' ', head)

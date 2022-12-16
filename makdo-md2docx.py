@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.15-05:56:58-JST>
+# Time-stamp:   <2022.12.16-09:10:52-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -101,7 +101,7 @@ def get_arguments():
         '-d', '--document-style',
         type=str,
         choices=['k', 'j'],
-        help='文書スタイルの指定')
+        help='文書スタイルの指定（契約、条文）')
     parser.add_argument(
         '-N', '--no-page-number',
         action='store_true',
@@ -156,7 +156,7 @@ def get_arguments():
 
 
 def floats6(s):
-    if not re.match('^(' + RES_NUMBER + '?,){,5}' + RES_NUMBER + '?,?$', s):
+    if not re.match('^' + RES_NUMBER6 + '$', s):
         raise argparse.ArgumentTypeError
     return s
 
@@ -649,40 +649,82 @@ class Document:
             com = ml.comment
             if com is None:
                 break
-            res = '^\\s*(\\S+)\\s*:\\s*(\\S+)\\s*$'
-            # res = '^[ \t]*([^ \t]+)[ \t]*:[ \t]*([^ \t]+)[ \t]*$'
-            if re.match(res, com):
-                nam = re.sub(res, '\\1', com)
-                val = re.sub(res, '\\2', com)
-                try:
-                    eval('self.' + nam)
-                except BaseException:
-                    msg = 'no option "' + nam + '"'
-                    ml.append_warning_message(msg)
-                if nam == 'paper_size' or \
-                   nam == 'mincho_font' or nam == 'gothic_font' or \
-                   nam == 'document_style':
-                    exec('self.' + nam + ' = "' + val + '"')
-                elif nam == 'no_page_number' or nam == 'line_number':
-                    if val == 'True' or val == 'False':
-                        exec('self.' + nam + ' = ' + val)
-                    else:
-                        msg = 'not boolian "' + val + '"'
-                        ml.append_warning_message(msg)
-                elif nam == 'space_before' or nam == 'space_after':
-                    if re.match('^' + RES_NUMBER6 + '$', val):
-                        exec('self.' + nam + ' = "' + val + '"')
-                    else:
-                        msg = 'not decimals "' + val + '"'
-                        ml.append_warning_message(msg)
-                elif nam == 'document_title':
-                    exec('self.' + nam + ' = "' + val + '"')
-                else:
-                    try:
-                        exec('self.' + nam + ' = float(' + val + ')')
-                    except BaseException:
-                        msg = 'not decimal "' + val + '"'
-                        ml.append_warning_message(msg)
+            res = '^\\s*([^:]+):\\s*(.*)$'
+            if not re.match(res, com):
+                continue
+            nam = re.sub(res, '\\1', com).rstrip()
+            val = re.sub(res, '\\2', com).rstrip()
+            if False:
+                pass
+            elif nam == 'document_style':
+                if val != '-' and val != 'k' and val != 'j':
+                    msg = '"' + nam + '" must be "-", "k" or "j"'
+                    sys.stderr.write('error: ' + msg + '\n')
+                    sys.exit(0)
+            elif nam == 'paper_size':
+                if not re.match('^(A3|A3P|A4|A4L)$', val):
+                    msg = '"' + nam + '" must be "A3", "A3P", "A4" or "A4L"'
+                    sys.stderr.write('error: ' + msg + '\n')
+                    sys.exit(0)
+            elif (nam == 'no_page_number' or
+                  nam == 'line_number' or
+                  nam == 'auto_space'):
+                if val != 'True' and val != 'False':
+                    msg = '"' + nam + '" must be "True" or "False"'
+                    sys.stderr.write('error: ' + msg + '\n')
+                    sys.exit(0)
+            elif (re.match('^(top|bottom|left|right)_margin$', nam) or
+                  nam == 'line_spacing' or
+                  nam == 'font_size'):
+                if not re.match('^' + RES_NUMBER + '$', val):
+                    msg = '"' + nam + '" must be an integer or a decimal'
+                    sys.stderr.write('error: ' + msg + '\n')
+                    sys.exit(0)
+            elif re.match('^space_(before|after)$', nam):
+                if not re.match('^' + RES_NUMBER6 + '$', val):
+                    msg = '"' + nam + '" must be 6 integers or decimals'
+                    sys.stderr.write('error: ' + msg + '\n')
+                    sys.exit(0)
+            elif nam == 'birthtime':
+                res = '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$'
+                if not re.match(res, val):
+                    msg = '"' + nam + '" must be "YYYY-MM-DD hh:mm:ss"'
+                    sys.stderr.write('error: ' + msg + '\n')
+                    sys.exit(0)
+            if False:
+                pass
+            elif nam == 'document_title':
+                self.document_title = val
+            elif nam == 'document_style':
+                self.document_style = val
+            elif nam == 'no_page_number':
+                self.no_page_number = bool(val)
+            elif nam == 'line_number':
+                self.line_number = bool(val)
+            elif nam == 'paper_size':
+                self.paper_size = val
+            elif nam == 'top_margin':
+                self.top_margin = float(val)
+            elif nam == 'bottom_margin':
+                self.bottom_margin = float(val)
+            elif nam == 'left_margin':
+                self.left_margin = float(val)
+            elif nam == 'right_margin':
+                self.right_margin = float(val)
+            elif nam == 'mincho_font':
+                self.mincho_font = val
+            elif nam == 'gothic_font':
+                self.gothic_font = val
+            elif nam == 'font_size':
+                self.font_size = float(val)
+            elif nam == 'line_spacing':
+                self.line_spacing = float(val)
+            elif nam == 'space_before':
+                self.space_before = val
+            elif nam == 'space_after':
+                self.space_after = val
+            elif nam == 'auto_space':
+                self.auto_space = val
 
     def _configure_by_args(self, args):
         if args.document_title is not None:
