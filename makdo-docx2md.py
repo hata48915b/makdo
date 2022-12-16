@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.16-09:13:27-JST>
+# Time-stamp:   <2022.12.17-08:50:59-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -1117,8 +1117,11 @@ class Document:
                 if re.match('^.*\\.docx$', docx_file):
                     md_file = re.sub('\\.docx$', '.md', docx_file)
             if os.path.exists(md_file):
+                if not os.access(md_file, os.W_OK):
+                    sys.stderr.write('error: overwriting a unwritable file\n')
+                    sys.exit(1)
                 if os.path.getmtime(docx_file) < os.path.getmtime(md_file):
-                    sys.stderr.write('error: overwriting newer file\n')
+                    sys.stderr.write('error: overwriting a newer file\n')
                     sys.exit(1)
                 if os.path.exists(md_file + '~'):
                     os.remove(md_file + '~')
