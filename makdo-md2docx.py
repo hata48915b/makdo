@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.16-09:10:52-JST>
+# Time-stamp:   <2022.12.16-13:42:37-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -698,9 +698,15 @@ class Document:
             elif nam == 'document_style':
                 self.document_style = val
             elif nam == 'no_page_number':
-                self.no_page_number = bool(val)
+                if val == 'True':
+                    self.no_page_number = True
+                else:
+                    self.no_page_number = False
             elif nam == 'line_number':
-                self.line_number = bool(val)
+                if val == 'True':
+                    self.line_number = True
+                else:
+                    self.line_number = False
             elif nam == 'paper_size':
                 self.paper_size = val
             elif nam == 'top_margin':
