@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.17-09:15:38-JST>
+# Time-stamp:   <2022.12.17-11:24:51-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -586,7 +586,7 @@ class Document:
             shutil.unpack_archive(docx_file, tmpdir, 'zip')
         except BaseException:
             msg = 'not a ms word file "' + docx_file + '"'
-            sys.stderr.write('error: ' + msg + '\n')
+            sys.stderr.write('error: ' + msg + '\n\n')
             sys.exit(1)
 
     def get_raw_xml_lines(self, xml_file):
@@ -597,7 +597,7 @@ class Document:
             xf = open(path, 'r', encoding='utf-8')
         except BaseException:
             msg = 'can\'t read "' + xml_file + '"'
-            sys.stderr.write('error: ' + msg + '\n')
+            sys.stderr.write('error: ' + msg + '\n\n')
             sys.exit(1)
         tmp = ''
         for ln in xf:
@@ -1097,18 +1097,18 @@ class Document:
                     continue
                 depth += 1
                 if depth != dp:
-                    msg = 'bad section depth "' + p.md_text + '"'
-                    sys.stderr.write('warning: ' + msg + '\n')
+                    msg = 'bad section depth\n' + p.md_text
+                    sys.stderr.write('warning: ' + msg + '\n\n')
             if i == 0:
                 continue
             if self.document_style != 'j' or p.section_depth != 3:
                 if section_states[i] != p.section_states[i]:
-                    msg = 'bad section number "' + p.md_text + '"'
-                    sys.stderr.write('warning: ' + msg + '\n')
+                    msg = 'bad section number\n' + p.md_text
+                    sys.stderr.write('warning: ' + msg + '\n\n')
             else:
                 if section_states[i] != p.section_states[i] - 1:
-                    msg = 'warning: bad section number "' + p.md_text + '"'
-                    sys.stderr.write('warning: ' + msg + '\n')
+                    msg = 'warning: bad section number\n' + p.md_text
+                    sys.stderr.write('warning: ' + msg + '\n\n')
 
     def open_md_file(self, md_file, docx_file):
         if md_file == '-':
@@ -1120,11 +1120,11 @@ class Document:
             if os.path.exists(md_file):
                 if not os.access(md_file, os.W_OK):
                     msg = 'overwriting a unwritable file "' + md_file + '"'
-                    sys.stderr.write('error: ' + msg + '\n')
+                    sys.stderr.write('error: ' + msg + '\n\n')
                     sys.exit(1)
                 if os.path.getmtime(docx_file) < os.path.getmtime(md_file):
                     msg = 'overwriting a newer file "' + md_file + '"'
-                    sys.stderr.write('error: ' + msg + '\n')
+                    sys.stderr.write('error: ' + msg + '\n\n')
                     sys.exit(1)
                 if os.path.exists(md_file + '~'):
                     os.remove(md_file + '~')
@@ -1133,7 +1133,7 @@ class Document:
                 mf = open(md_file, 'w', encoding='utf-8', newline='\n')
             except BaseException:
                 msg = 'can\'t write "' + md_file + '"'
-                sys.stderr.write('error: ' + msg + '\n')
+                sys.stderr.write('error: ' + msg + '\n\n')
                 sys.exit(1)
         return mf
 
@@ -1169,14 +1169,14 @@ class Document:
             return
         if media_dir == '':
             msg = 'can\'t make media directory'
-            sys.stderr.write('error: ' + msg + '\n')
+            sys.stderr.write('error: ' + msg + '\n\n')
             return
         if os.path.exists(media_dir):
             if os.path.isdir(media_dir):
                 shutil.rmtree(media_dir)
             else:
                 msg = 'non-directory "' + media_dir + '"'
-                sys.stderr.write('error: ' + msg + '\n')
+                sys.stderr.write('error: ' + msg + '\n\n')
                 return
         os.mkdir(media_dir)
         for rel_img in self.images:
@@ -1684,10 +1684,17 @@ class Paragraph:
             if Title.get_depth(rt, aln) == dp:
                 c, n, h, rt = Title.decompose(dp, rt)
                 head += c + '#' * dp + ' '
-        if not re.match('^.*[．。]$', rt):
-            raw_md_text = head + rt
-        else:
+        if re.match('\\s+', rt):
+            t = self._split_by_punctuate_and_reconcatenate(rt).rstrip()
+            msg = 'removed spaces\n' + t
+            sys.stderr.write('warning: ' + msg + '\n\n')
+            rt = re.sub('\\s+', '', rt)
+        if re.match('^.*[．。].*$', rt):
             raw_md_text = head + '\n' + rt
+        elif get_real_width(rt) >= 37 * 4:
+            raw_md_text = head + '\n' + rt
+        else:
+            raw_md_text = head + rt
         # self.md_text = md_text
         return raw_md_text
 
@@ -2106,11 +2113,15 @@ class Paragraph:
                 rmt = re.sub(res, '\\1\n\\3', rmt)
         md_text = ''
         for line in rmt.split('\n'):
-            splited = self._split_by_punctuate(line)
-            md_text += self._reconcatenate(splited)
+            md_text += self._split_by_punctuate_and_reconcatenate(line)
             splited = []
         md_text = re.sub('\n$', '', md_text)
         return md_text
+
+    def _split_by_punctuate_and_reconcatenate(self, line):
+        s = self._split_by_punctuate(line)
+        reconcatenated = self._reconcatenate(s)
+        return reconcatenated
 
     @staticmethod
     def _split_by_punctuate(line):

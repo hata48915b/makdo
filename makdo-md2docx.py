@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.17-09:14:16-JST>
+# Time-stamp:   <2022.12.17-10:58:35-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -441,7 +441,7 @@ def n_kata(n):
         return chr(12448 + (1 * n) + 37)
     else:
         msg = 'overflowed katakana "' + str(n) + '"'
-        sys.stderr.write('warning: ' + msg + '\n')
+        sys.stderr.write('warning: ' + msg + '\n\n')
         return '？'
 
 
@@ -456,7 +456,7 @@ def n_paren_kata(n):
         return '(' + chr(65392 + n - 1) + ')'
     else:
         msg = 'overflowed parenthesis katakata "' + str(n) + '"'
-        sys.stderr.write('warning: ' + msg + '\n')
+        sys.stderr.write('warning: ' + msg + '\n\n')
         return '(?)'
 
 
@@ -467,7 +467,7 @@ def n_alph(n):
         return chr(65344 + n)
     else:
         msg = 'overflowed alphabet "' + str(n) + '"'
-        sys.stderr.write('warning: ' + msg + '\n')
+        sys.stderr.write('warning: ' + msg + '\n\n')
         return '？'
 
 
@@ -478,7 +478,7 @@ def n_paren_alph(n):
         return chr(9371 + n)
     else:
         msg = 'overflowed parenthesis alphabet "' + str(n) + '"'
-        sys.stderr.write('warning: ' + msg + '\n')
+        sys.stderr.write('warning: ' + msg + '\n\n')
         return '(?)'
 
 
@@ -524,7 +524,7 @@ class Document:
             mfl = self._open_md_file(md_file, kanji_code).readlines()
         except BaseException:
             msg = 'not a markdown file "' + md_file + '"'
-            sys.stderr.write('error: ' + msg + '\n')
+            sys.stderr.write('error: ' + msg + '\n\n')
             sys.exit(0)
         if len(mfl) > 0 and len(mfl[0]) > 0:
             mfl[0] = re.sub('^' + chr(65279), '', mfl[0])  # remove BOM
@@ -546,7 +546,7 @@ class Document:
                 mf = open(md_file, 'r', encoding=enc)
             except BaseException:
                 msg = 'can\'t read "' + md_file + '"'
-                sys.stderr.write('error: ' + msg + '\n')
+                sys.stderr.write('error: ' + msg + '\n\n')
                 sys.exit(0)
         return mf
 
@@ -659,37 +659,37 @@ class Document:
             elif nam == 'document_style':
                 if val != '-' and val != 'k' and val != 'j':
                     msg = '"' + nam + '" must be "-", "k" or "j"'
-                    sys.stderr.write('error: ' + msg + '\n')
+                    sys.stderr.write('error: ' + msg + '\n\n')
                     sys.exit(0)
             elif nam == 'paper_size':
                 if not re.match('^(A3|A3P|A4|A4L)$', val):
                     msg = '"' + nam + '" must be "A3", "A3P", "A4" or "A4L"'
-                    sys.stderr.write('error: ' + msg + '\n')
+                    sys.stderr.write('error: ' + msg + '\n\n')
                     sys.exit(0)
             elif (nam == 'no_page_number' or
                   nam == 'line_number' or
                   nam == 'auto_space'):
                 if val != 'True' and val != 'False':
                     msg = '"' + nam + '" must be "True" or "False"'
-                    sys.stderr.write('error: ' + msg + '\n')
+                    sys.stderr.write('error: ' + msg + '\n\n')
                     sys.exit(0)
             elif (re.match('^(top|bottom|left|right)_margin$', nam) or
                   nam == 'line_spacing' or
                   nam == 'font_size'):
                 if not re.match('^' + RES_NUMBER + '$', val):
                     msg = '"' + nam + '" must be an integer or a decimal'
-                    sys.stderr.write('error: ' + msg + '\n')
+                    sys.stderr.write('error: ' + msg + '\n\n')
                     sys.exit(0)
             elif re.match('^space_(before|after)$', nam):
                 if not re.match('^' + RES_NUMBER6 + '$', val):
                     msg = '"' + nam + '" must be 6 integers or decimals'
-                    sys.stderr.write('error: ' + msg + '\n')
+                    sys.stderr.write('error: ' + msg + '\n\n')
                     sys.exit(0)
             elif nam == 'birthtime':
                 res = '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$'
                 if not re.match(res, val):
                     msg = '"' + nam + '" must be "YYYY-MM-DD hh:mm:ss"'
-                    sys.stderr.write('error: ' + msg + '\n')
+                    sys.stderr.write('error: ' + msg + '\n\n')
                     sys.exit(0)
             if False:
                 pass
@@ -872,11 +872,11 @@ class Document:
         if os.path.exists(docx_file):
             if not os.access(docx_file, os.W_OK):
                 msg = 'overwriting a unwritable file "' + docx_file + '"'
-                sys.stderr.write('error: ' + msg + '\n')
+                sys.stderr.write('error: ' + msg + '\n\n')
                 sys.exit(1)
             if os.path.getmtime(md_file) < os.path.getmtime(docx_file):
                 msg = 'overwriting a newer file "' + docx_file + '"'
-                sys.stderr.write('error: ' + msg + '\n')
+                sys.stderr.write('error: ' + msg + '\n\n')
                 sys.exit(1)
             if os.path.exists(docx_file + '~'):
                 os.remove(docx_file + '~')
@@ -1191,7 +1191,7 @@ class Paragraph:
             ms_par = self._get_ms_par(ms_doc)
             self._write_text(text_to_write, ms_par)
             msg = 'unexpected state (empty paragraph)' + '\n  ' + text_to_write
-            sys.stderr.write('warning: ' + msg + '\n')
+            sys.stderr.write('warning: ' + msg + '\n\n')
 
     def _write_blank_paragraph(self, ms_doc):
         text_to_write = self.decoration_instruction
@@ -1201,7 +1201,7 @@ class Paragraph:
         if text_to_write != '\n':
             self._write_text(text_to_write, ms_par)
             msg = 'unexpected state (blank paragraph)' + '\n  ' + text_to_write
-            sys.stderr.write('warning: ' + msg + '\n')
+            sys.stderr.write('warning: ' + msg + '\n\n')
 
     def _write_title_paragraph(self, ms_doc):
         md_lines = self.md_lines
@@ -2069,7 +2069,7 @@ class MdLine:
         for wm in self._warning_messages:
             msg = wm + ' (line ' + str(self.line_number) + ')' + '\n  ' \
                 + self.raw_text
-            sys.stderr.write('warning: ' + msg + '\n')
+            sys.stderr.write('warning: ' + msg + '\n\n')
 
 
 ############################################################
