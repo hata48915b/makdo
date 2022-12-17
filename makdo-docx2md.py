@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.17-14:00:06-JST>
+# Time-stamp:   <2022.12.17-14:51:00-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -175,7 +175,7 @@ ZENKAKU_SPACE = chr(12288)
 
 NOT_ESCAPED = '^((?:(?:.*\n)*.*[^\\\\])?(?:\\\\\\\\)*)?'
 
-MD_TEXT_WIDTH = 79
+MD_TEXT_WIDTH = 68
 
 
 class Title:
