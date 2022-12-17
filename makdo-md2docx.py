@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.17-08:51:41-JST>
+# Time-stamp:   <2022.12.17-09:14:16-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -440,8 +440,8 @@ def n_kata(n):
     elif n <= 46:
         return chr(12448 + (1 * n) + 37)
     else:
-        msg = 'warning: overflowed katakana "' + str(n) + '"\n'
-        sys.stderr.write(msg)
+        msg = 'overflowed katakana "' + str(n) + '"'
+        sys.stderr.write('warning: ' + msg + '\n')
         return '？'
 
 
@@ -455,8 +455,8 @@ def n_paren_kata(n):
     elif n <= 46:
         return '(' + chr(65392 + n - 1) + ')'
     else:
-        msg = 'warning: overflowed parenthesis katakata "' + str(n) + '"\n'
-        sys.stderr.write(msg)
+        msg = 'overflowed parenthesis katakata "' + str(n) + '"'
+        sys.stderr.write('warning: ' + msg + '\n')
         return '(?)'
 
 
@@ -466,8 +466,8 @@ def n_alph(n):
     elif n <= 26:
         return chr(65344 + n)
     else:
-        msg = 'warning: overflowed alphabet "' + str(n) + '"\n'
-        sys.stderr.write(msg)
+        msg = 'overflowed alphabet "' + str(n) + '"'
+        sys.stderr.write('warning: ' + msg + '\n')
         return '？'
 
 
@@ -477,8 +477,8 @@ def n_paren_alph(n):
     elif n <= 26:
         return chr(9371 + n)
     else:
-        msg = 'warning: overflowed parenthesis alphabet "' + str(n) + '"\n'
-        sys.stderr.write(msg)
+        msg = 'overflowed parenthesis alphabet "' + str(n) + '"'
+        sys.stderr.write('warning: ' + msg + '\n')
         return '(?)'
 
 
@@ -523,8 +523,8 @@ class Document:
         try:
             mfl = self._open_md_file(md_file, kanji_code).readlines()
         except BaseException:
-            msg = 'error: not a markdown file "' + md_file + '"\n'
-            sys.stderr.write(msg)
+            msg = 'not a markdown file "' + md_file + '"'
+            sys.stderr.write('error: ' + msg + '\n')
             sys.exit(0)
         if len(mfl) > 0 and len(mfl[0]) > 0:
             mfl[0] = re.sub('^' + chr(65279), '', mfl[0])  # remove BOM
@@ -545,8 +545,8 @@ class Document:
             try:
                 mf = open(md_file, 'r', encoding=enc)
             except BaseException:
-                msg = 'error: can\'t read "' + md_file + '"\n'
-                sys.stderr.write(msg)
+                msg = 'can\'t read "' + md_file + '"'
+                sys.stderr.write('error: ' + msg + '\n')
                 sys.exit(0)
         return mf
 
@@ -871,10 +871,12 @@ class Document:
                 self.docx_file = docx_file
         if os.path.exists(docx_file):
             if not os.access(docx_file, os.W_OK):
-                sys.stderr.write('error: overwriting a unwritable file\n')
+                msg = 'overwriting a unwritable file "' + docx_file + '"'
+                sys.stderr.write('error: ' + msg + '\n')
                 sys.exit(1)
             if os.path.getmtime(md_file) < os.path.getmtime(docx_file):
-                sys.stderr.write('error: overwriting a newer file\n')
+                msg = 'overwriting a newer file "' + docx_file + '"'
+                sys.stderr.write('error: ' + msg + '\n')
                 sys.exit(1)
             if os.path.exists(docx_file + '~'):
                 os.remove(docx_file + '~')
@@ -1188,8 +1190,8 @@ class Paragraph:
         if text_to_write != '':
             ms_par = self._get_ms_par(ms_doc)
             self._write_text(text_to_write, ms_par)
-            msg = 'warning: unexpected state (empty paragraph)'
-            sys.stderr.write(msg + '\n  ' + text_to_write + '\n')
+            msg = 'unexpected state (empty paragraph)' + '\n  ' + text_to_write
+            sys.stderr.write('warning: ' + msg + '\n')
 
     def _write_blank_paragraph(self, ms_doc):
         text_to_write = self.decoration_instruction
@@ -1198,8 +1200,8 @@ class Paragraph:
         ms_par = self._get_ms_par(ms_doc)
         if text_to_write != '\n':
             self._write_text(text_to_write, ms_par)
-            msg = 'warning: unexpected state (blank paragraph)'
-            sys.stderr.write(msg + '\n  ' + text_to_write + '\n')
+            msg = 'unexpected state (blank paragraph)' + '\n  ' + text_to_write
+            sys.stderr.write('warning: ' + msg + '\n')
 
     def _write_title_paragraph(self, ms_doc):
         md_lines = self.md_lines
@@ -2065,8 +2067,9 @@ class MdLine:
 
     def print_warning_messages(self):
         for wm in self._warning_messages:
-            msg = 'warning: ' + wm + ' (line ' + str(self.line_number) + ')'
-            sys.stderr.write(msg + '\n  ' + self.raw_text + '\n')
+            msg = wm + ' (line ' + str(self.line_number) + ')' + '\n  ' \
+                + self.raw_text
+            sys.stderr.write('warning: ' + msg + '\n')
 
 
 ############################################################

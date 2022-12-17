@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.17-08:50:59-JST>
+# Time-stamp:   <2022.12.17-09:15:38-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -585,8 +585,8 @@ class Document:
         try:
             shutil.unpack_archive(docx_file, tmpdir, 'zip')
         except BaseException:
-            msg = 'error: not a ms word file "' + docx_file + '"\n'
-            sys.stderr.write(msg)
+            msg = 'not a ms word file "' + docx_file + '"'
+            sys.stderr.write('error: ' + msg + '\n')
             sys.exit(1)
 
     def get_raw_xml_lines(self, xml_file):
@@ -596,7 +596,8 @@ class Document:
         try:
             xf = open(path, 'r', encoding='utf-8')
         except BaseException:
-            sys.stderr.write('error: can\'t read "' + xml_file + '"\n')
+            msg = 'can\'t read "' + xml_file + '"'
+            sys.stderr.write('error: ' + msg + '\n')
             sys.exit(1)
         tmp = ''
         for ln in xf:
@@ -1096,18 +1097,18 @@ class Document:
                     continue
                 depth += 1
                 if depth != dp:
-                    msg = 'warning: bad section depth "' + p.md_text + '"\n'
-                    sys.stderr.write(msg)
+                    msg = 'bad section depth "' + p.md_text + '"'
+                    sys.stderr.write('warning: ' + msg + '\n')
             if i == 0:
                 continue
             if self.document_style != 'j' or p.section_depth != 3:
                 if section_states[i] != p.section_states[i]:
-                    msg = 'warning: bad section number "' + p.md_text + '"\n'
-                    sys.stderr.write(msg)
+                    msg = 'bad section number "' + p.md_text + '"'
+                    sys.stderr.write('warning: ' + msg + '\n')
             else:
                 if section_states[i] != p.section_states[i] - 1:
-                    msg = 'warning: bad section number "' + p.md_text + '"\n'
-                    sys.stderr.write(msg)
+                    msg = 'warning: bad section number "' + p.md_text + '"'
+                    sys.stderr.write('warning: ' + msg + '\n')
 
     def open_md_file(self, md_file, docx_file):
         if md_file == '-':
@@ -1118,10 +1119,12 @@ class Document:
                     md_file = re.sub('\\.docx$', '.md', docx_file)
             if os.path.exists(md_file):
                 if not os.access(md_file, os.W_OK):
-                    sys.stderr.write('error: overwriting a unwritable file\n')
+                    msg = 'overwriting a unwritable file "' + md_file + '"'
+                    sys.stderr.write('error: ' + msg + '\n')
                     sys.exit(1)
                 if os.path.getmtime(docx_file) < os.path.getmtime(md_file):
-                    sys.stderr.write('error: overwriting a newer file\n')
+                    msg = 'overwriting a newer file "' + md_file + '"'
+                    sys.stderr.write('error: ' + msg + '\n')
                     sys.exit(1)
                 if os.path.exists(md_file + '~'):
                     os.remove(md_file + '~')
@@ -1129,7 +1132,8 @@ class Document:
             try:
                 mf = open(md_file, 'w', encoding='utf-8', newline='\n')
             except BaseException:
-                sys.stderr.write('error: can\'t write "' + md_file + '"\n')
+                msg = 'can\'t write "' + md_file + '"'
+                sys.stderr.write('error: ' + msg + '\n')
                 sys.exit(1)
         return mf
 
@@ -1164,13 +1168,15 @@ class Document:
         if len(self.images) == 0:
             return
         if media_dir == '':
-            sys.stderr.write('error: can\'t make media directory\n')
+            msg = 'can\'t make media directory'
+            sys.stderr.write('error: ' + msg + '\n')
             return
         if os.path.exists(media_dir):
             if os.path.isdir(media_dir):
                 shutil.rmtree(media_dir)
             else:
-                sys.stderr.write('error: non-directory "' + media_dir + '"\n')
+                msg = 'non-directory "' + media_dir + '"'
+                sys.stderr.write('error: ' + msg + '\n')
                 return
         os.mkdir(media_dir)
         for rel_img in self.images:
