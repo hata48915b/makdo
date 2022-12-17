@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.17-11:24:51-JST>
+# Time-stamp:   <2022.12.17-14:00:06-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -2162,6 +2162,11 @@ class Paragraph:
         tex = ''
         tmp = ''
         for p in splited:
+            if get_ideal_width(tmp) <= MD_TEXT_WIDTH:
+                if re.match('^.*[．。]$', tmp):
+                    if tmp != '':
+                        tex += tmp + '\n'
+                        tmp = ''
             if get_ideal_width(tmp + p) > MD_TEXT_WIDTH:
                 if tmp != '':
                     tex += tmp + '\n'
