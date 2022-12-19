@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.19-09:47:20-JST>
+# Time-stamp:   <2022.12.20-06:41:34-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -2192,7 +2192,7 @@ class Paragraph:
                         continue
                     if not re.match('^[^ぁ-ん，、．。].*$', s2):
                         continue
-                    if re.match('^.*[０-９]．$', s1) and \
+                    if re.match('^.*[０-９][，．]$', s1) and \
                        re.match('^[０-９].*$', s2):
                         continue
                     if s1 != '':
