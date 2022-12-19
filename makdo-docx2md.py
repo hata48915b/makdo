@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.17-14:51:00-JST>
+# Time-stamp:   <2022.12.19-09:47:20-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -1685,7 +1685,7 @@ class Paragraph:
                 c, n, h, rt = Title.decompose(dp, rt)
                 head += c + '#' * dp + ' '
         if re.match('\\s+', rt):
-            t = self._split_by_punctuate_and_reconcatenate(rt).rstrip()
+            t = self._split_into_lines(rt).rstrip()
             msg = 'removed spaces\n' + t
             sys.stderr.write('warning: ' + msg + '\n\n')
             rt = re.sub('\\s+', '', rt)
@@ -2113,60 +2113,66 @@ class Paragraph:
                 rmt = re.sub(res, '\\1\n\\3', rmt)
         md_text = ''
         for line in rmt.split('\n'):
-            md_text += self._split_by_punctuate_and_reconcatenate(line)
-            splited = []
+            md_text += self._split_into_lines(line)
         md_text = re.sub('\n$', '', md_text)
         return md_text
 
-    def _split_by_punctuate_and_reconcatenate(self, line):
-        s = self._split_by_punctuate(line)
-        reconcatenated = self._reconcatenate(s)
-        return reconcatenated
+    def _split_into_lines(self, line):
+        phrases = self._split_into_phrases(line)
+        lines = self._concatenate_phrases(phrases)
+        return lines
 
     @staticmethod
-    def _split_by_punctuate(line):
-        splited = []
+    def _split_into_phrases(line):
+        phrases = []
         tmp = ''
         m = len(line) - 1
         for i, c in enumerate(line):
             tmp += c
-            res = '^[^\\(\\[]$'
-            if re.match('^ $', line[i]):
-                if (i == m) or re.match(res, line[i + 1]):
-                    splited.append(tmp)
+            if i == m:
+                if tmp != '':
+                    phrases.append(tmp)
                     tmp = ''
-            res = '^[^（「]$'
-            if re.match(res, line[i]):
-                if (i == m) or (not re.match(res, line[i + 1])):
-                    splited.append(tmp)
+                break
+            if re.match('^ $', line[i]) and (not re.match('^ $', line[i + 1])):
+                if tmp != '':
+                    phrases.append(tmp)
                     tmp = ''
+            # res = '^[\\(\\[]$'
+            # if re.match('^ $', line[i]) and (not re.match(res, line[i + 1])):
+            #     if tmp != '':
+            #         phrases.append(tmp)
+            #         tmp = ''
             res = '^[,\\.\\)\\]]$'
-            if re.match(res, line[i]):
-                if (i == m) or re.match('^ $', line[i + 1]):
-                    splited.append(tmp)
+            if re.match(res, line[i]) and (not re.match('^ $', line[i + 1])):
+                if tmp != '':
+                    phrases.append(tmp)
                     tmp = ''
-            res = '^[，、．。）」]$'
-            if re.match(res, line[i]):
-                if ((i == m) or (not re.match(res, line[i + 1]))) and \
-                   ((i > 0) and not re.match('^[０-９]$', line[i - 1])) and \
-                   ((i < m) and not re.match('^[０-９]$', line[i + 1])):
-                    splited.append(tmp)
+            res = '^[『「｛（＜]$'
+            if (not re.match(res, line[i])) and re.match(res, line[i + 1]):
+                if tmp != '':
+                    phrases.append(tmp)
                     tmp = ''
-        if tmp != '':
-            splited.append(tmp + '\n')
-            tmp = ''
-        return splited
+            res = '^[，、．。＞）｝」』]$'
+            if re.match(res, line[i]) and (not re.match(res, line[i + 1])):
+                if re.match('^[，．]$', line[i]) and \
+                   ((i > 0) and re.match('^[０-９]$', line[i - 1])) and \
+                   ((i < m) and re.match('^[０-９]$', line[i + 1])):
+                        continue
+                if tmp != '':
+                    phrases.append(tmp)
+                    tmp = ''
+        return phrases
 
     @staticmethod
-    def _reconcatenate(splited):
+    def _concatenate_phrases(phrases):
         tex = ''
         tmp = ''
-        for p in splited:
+        for p in phrases:
             if get_ideal_width(tmp) <= MD_TEXT_WIDTH:
                 if re.match('^.*[．。]$', tmp):
-                    if tmp != '':
-                        tex += tmp + '\n'
-                        tmp = ''
+                    tex += tmp + '\n'
+                    tmp = ''
             if get_ideal_width(tmp + p) > MD_TEXT_WIDTH:
                 if tmp != '':
                     tex += tmp + '\n'
@@ -2174,40 +2180,41 @@ class Paragraph:
             tmp += p
             if get_ideal_width(tmp) <= MD_TEXT_WIDTH:
                 if re.match('^.*[．。]$', tmp):
-                    if tmp != '':
-                        tex += tmp + '\n'
-                        tmp = ''
-            else:
-                while get_ideal_width(tmp) > MD_TEXT_WIDTH:
+                    tex += tmp + '\n'
+                    tmp = ''
+            while get_ideal_width(tmp) > MD_TEXT_WIDTH:
+                for i in range(len(tmp), -1, -1):
+                    s1 = tmp[:i]
+                    s2 = tmp[i:]
+                    if get_ideal_width(s1) > MD_TEXT_WIDTH:
+                        continue
+                    if not re.match('^.*[ぁ-ん，、．。]$', s1):
+                        continue
+                    if not re.match('^[^ぁ-ん，、．。].*$', s2):
+                        continue
+                    if re.match('^.*[０-９]．$', s1) and \
+                       re.match('^[０-９].*$', s2):
+                        continue
+                    if s1 != '':
+                        tex += s1 + '\n'
+                        tmp = s2
+                        break
+                else:
                     for i in range(len(tmp), -1, -1):
                         s1 = tmp[:i]
                         s2 = tmp[i:]
-                        if get_ideal_width(s1) > MD_TEXT_WIDTH:
+                        if re.match('.*[\\\\*~_/+-@]$', s1):
                             continue
-                        if not re.match('^.*[ぁ-ん。]$', s1):
+                        if re.match('^[\\\\*~_/+-@].*', s2):
                             continue
-                        if not re.match('^[^ぁ-ん。].*$', s2):
-                            continue
-                        if s1 != '':
-                            tex += s1 + '\n'
-                            tmp = s2
-                            break
+                        if get_ideal_width(s1) < MD_TEXT_WIDTH:
+                            if s1 != '':
+                                tex += s1 + '\n'
+                                tmp = s2
+                                break
                     else:
-                        for i in range(len(tmp), -1, -1):
-                            s1 = tmp[:i]
-                            s2 = tmp[i:]
-                            if re.match('.*[\\\\*~_/+-]$', s1):
-                                continue
-                            if re.match('^[\\\\*~_/+-].*', s2):
-                                continue
-                            if get_ideal_width(s1) < MD_TEXT_WIDTH:
-                                if s1 != '':
-                                    tex += s1 + '\n'
-                                    tmp = s2
-                                    break
-                        else:
-                            tex += tmp + '\n'
-                            tmp = ''
+                        tex += tmp + '\n'
+                        tmp = ''
         if tmp != '':
             tex += tmp + '\n'
             tmp = ''
