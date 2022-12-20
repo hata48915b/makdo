@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.20-06:41:34-JST>
+# Time-stamp:   <2022.12.21-07:54:15-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -2188,17 +2188,20 @@ class Paragraph:
                     s2 = tmp[i:]
                     if get_ideal_width(s1) > MD_TEXT_WIDTH:
                         continue
-                    if not re.match('^.*[ぁ-ん，、．。]$', s1):
-                        continue
-                    if not re.match('^[^ぁ-ん，、．。].*$', s2):
-                        continue
                     if re.match('^.*[０-９][，．]$', s1) and \
                        re.match('^[０-９].*$', s2):
                         continue
-                    if s1 != '':
-                        tex += s1 + '\n'
-                        tmp = s2
-                        break
+                    if re.match('^.*を$', s1):
+                        if s1 != '':
+                            tex += s1 + '\n'
+                            tmp = s2
+                            break
+                    if re.match('^.*[ぁ-ん，、．。]$', s1) and \
+                       re.match('^[^ぁ-ん，、．。].*$', s2):
+                        if s1 != '':
+                            tex += s1 + '\n'
+                            tmp = s2
+                            break
                 else:
                     for i in range(len(tmp), -1, -1):
                         s1 = tmp[:i]
@@ -2206,6 +2209,9 @@ class Paragraph:
                         if re.match('.*[\\\\*~_/+-@]$', s1):
                             continue
                         if re.match('^[\\\\*~_/+-@].*', s2):
+                            continue
+                        if re.match('.*@[0-9A-F]*$', s1) and \
+                           re.match('^[0-9A-F]*@.*', s2):
                             continue
                         if get_ideal_width(s1) < MD_TEXT_WIDTH:
                             if s1 != '':
