@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.21-14:34:08-JST>
+# Time-stamp:   <2022.12.21-15:14:49-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -1533,6 +1533,15 @@ class Paragraph:
         raw_text = raw_text.replace('&lt;', '<')
         raw_text = raw_text.replace('&gt;', '>')
         raw_text = raw_text.replace('&amp;', '&')
+        ress = ['\\*\\*\\*', '\\*\\*', '\\*', '~~', '//', '\\+\\+', '--', '@@',
+                '@[0-9A-F]+@']
+        while True:
+            for r in ress:
+                res = r + '([ \u3000]+)' + r
+                if re.match('^.*' + res, raw_text):
+                    raw_text = re.sub(res, '\\1', raw_text)
+                    continue
+            break
         # self.raw_text = raw_text
         return raw_text
 
