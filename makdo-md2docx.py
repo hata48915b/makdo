@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.21-11:08:21-JST>
+# Time-stamp:   <2022.12.21-14:30:36-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -1058,8 +1058,8 @@ class Paragraph:
             paragraph_class = 'breakdown'
         elif re.match('^ *([-\\+\\*]|([0-9]+\\.)) ', full_text):
             paragraph_class = 'list'
-        elif re.match('^: (.*\n)*.*$', full_text) or \
-             re.match('^(.*\n)*.* :$', full_text):
+        elif (re.match('^: (.*\n)*.*$', full_text) or
+              re.match('^(.*\n)*.* :$', full_text)):
             paragraph_class = 'alignment'
         elif re.match('^\\|.*\\|$', full_text):
             paragraph_class = 'table'

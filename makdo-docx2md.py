@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.21-07:54:15-JST>
+# Time-stamp:   <2022.12.21-14:27:45-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -1415,7 +1415,7 @@ class Paragraph:
                 has_strike = True
             elif re.match('^<w:u( .*)?>$', rxl):
                 has_underline = True
-            elif re.match('^<w:color w:val="[0-9A-F]+"/?>$', rxl):
+            elif re.match('^<w:color w:val="[0-9A-F]+"( .*)?/?>$', rxl):
                 color = re.sub('^<.*w:val="([0-9A-F]+)".*>$', '\\1', rxl, re.I)
                 color = color.upper()
             elif re.match('^<w:br/?>$', rxl):
