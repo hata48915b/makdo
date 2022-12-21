@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v02 Shin-Hakushima
-# Time-stamp:   <2022.12.21-14:27:45-JST>
+# Time-stamp:   <2022.12.21-14:34:08-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -2158,7 +2158,7 @@ class Paragraph:
                 if re.match('^[，．]$', line[i]) and \
                    ((i > 0) and re.match('^[０-９]$', line[i - 1])) and \
                    ((i < m) and re.match('^[０-９]$', line[i + 1])):
-                        continue
+                    continue
                 if tmp != '':
                     phrases.append(tmp)
                     tmp = ''
