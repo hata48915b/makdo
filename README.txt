@@ -1,4 +1,4 @@
-<!-- Time-stamp:   <2022.12.25-10:51:09-JST> -->
+<!-- Time-stamp:   <2022.12.26-11:46:14-JST> -->
 
 # MAKDO（魔苦怒）
 
@@ -56,11 +56,9 @@ pandocなどの優れたソフトを使わずに、あえて自作した理由�
 
 ![簡易実行ファイルの実行方法](image/simple-exec.gif "簡易実行ファイルの実行方法")
 
-下記のZIPファイルをダウンロードして、展開してください。
+下記にアクセスして、OSに合ったZIPファイルをダウンロードして、展開してください。
 
-[Windows用簡易実行ファイル](https://hata-o.jp/kian/index?tools#makdo-windows.zip)
-
-[macOS用簡易実行ファイル](https://hata-o.jp/kian/index?tools#makdo-macos.zip)
+[簡易実行ファイル](https://hata-o.jp/kian/index?tools#makdo)
 
 展開したフォルダの中に実行ファイルがあります。
 
