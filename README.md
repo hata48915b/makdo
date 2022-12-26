@@ -1,10 +1,51 @@
-<!-- Time-stamp:   <2022.12.26-11:46:14-JST> -->
+<!-- Time-stamp:   <2022.12.26-17:54:39-JST> -->
 
 # MAKDO（魔苦怒）
 
 〜〜 MS Wordがなくても、MS Word形式のファイルを読み書きできます 〜〜
 
 〜〜 わずらわしいナンバリング（番号付け）やインデント（字下げ）から、あなたを解放します 〜〜
+
+## とりあえず使いたい方へ
+
+こんな感じで、Markdown形式のファイルからMS Word形式のファイルを作ったり、
+その逆ができたりします。
+
+↓↓↓ 簡易実行ファイルの実行の様子（Windowsの場合）
+
+![簡易実行ファイルの実行の様子](image/simple-exec.gif "簡易実行ファイルの実行の様子")
+
+とりあえず使いたい方のために、簡易実行ファイルを用意しました
+（このREADMEは、簡易実行ファイルを作成するためのソースファイルの説明用です。）。
+
+簡易実行ファイルであれば、環境の設定やアプリのインストールが不要で、
+しかも、コマンドプロンプト（Windowsの場合）やターミナル（macOSの場合）上のコマンドではなく、
+マウスを使ってdrag & dropで実行できます。
+
+とりあえず使いたい方は、下記にアクセスして、
+OSに合ったZIPファイルをダウンロードして、展開してください。
+
+[簡易実行ファイルのダウンロード](https://hata-o.jp/kian/index?tools#makdo)
+
+展開したフォルダの中に実行ファイルがあります。
+
+"makdo-md2docx"
+（Windowsの場合は"makdo-md2docx.bat"、macOSの場合は"makdo-md2docx.app"）に、
+Markdown形式のファイルをドラッグ＆ドロップすると、
+公用文書書式のMS Word形式のファイルが作成されます。
+
+"makdo-docx2md"
+（Windowsの場合は"makdo-docx2md.bat"、macOSの場合は"makdo-docx2md.app"）に、
+公用文書書式のMS Word形式のファイルをドラッグ＆ドロップすると、
+Markdown形式のファイルが作成されます。
+
+なお、"makdo-docx2pdf"
+（Windowsの場合は"makdo-docx2pdf.bat"、macOSの場合は"makdo-docx2pdf.app"）に、
+公用文書書式のMS Word形式のファイルをドラッグ＆ドロップすると、
+PDF形式のファイルが作成されます。
+ただし、LibreOfficeがインストールされていることが必要です。
+
+[LibreOffice](https://ja.libreoffice.org/download/download/)
 
 ## これは何？
 
@@ -43,42 +84,6 @@ pandocなどの優れたソフトを使わずに、あえて自作した理由�
 
 なお、Markdown形式と公用文書書式のMS Word形式についてお知りになりたい方は、
 後記の「Markdown形式とは」と「公用文書書式のMS Word形式とは」をご覧ください。
-
-## とりあえず使いたい方へ
-
-簡易実行ファイルを用意しましたので、こちらではなく、そちらをお使いください。
-
-簡易実行ファイルであれば、環境の設定やアプリのインストールが不要で、
-しかも、コマンドプロンプト（Windowsの場合）やターミナル（macOSの場合）上のコマンドではなく、
-マウスを使ってdrag & dropで実行できます。
-
-↓↓↓ 簡易実行ファイルの実行方法（Windowsの場合）
-
-![簡易実行ファイルの実行方法](image/simple-exec.gif "簡易実行ファイルの実行方法")
-
-下記にアクセスして、OSに合ったZIPファイルをダウンロードして、展開してください。
-
-[簡易実行ファイル](https://hata-o.jp/kian/index?tools#makdo)
-
-展開したフォルダの中に実行ファイルがあります。
-
-"makdo-md2docx"
-（Windowsの場合は"makdo-md2docx.bat"、macOSの場合は"makdo-md2docx.app"）に、
-Markdown形式のファイルをドラッグ＆ドロップすると、
-公用文書書式のMS Word形式のファイルが作成されます。
-
-"makdo-docx2md"
-（Windowsの場合は"makdo-docx2md.bat"、macOSの場合は"makdo-docx2md.app"）に、
-公用文書書式のMS Word形式のファイルをドラッグ＆ドロップすると、
-Markdown形式のファイルが作成されます。
-
-なお、"makdo-docx2pdf"
-（Windowsの場合は"makdo-docx2pdf.bat"、macOSの場合は"makdo-docx2pdf.app"）に、
-公用文書書式のMS Word形式のファイルをドラッグ＆ドロップすると、
-PDF形式のファイルが作成されます。
-ただし、LibreOfficeがインストールされていることが必要です。
-
-[LibreOffice](https://ja.libreoffice.org/download/download/)
 
 ## 動作環境
 
