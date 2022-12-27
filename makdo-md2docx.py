@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v03 Yokogawa
-# Time-stamp:   <2022.12.28-05:23:19-JST>
+# Time-stamp:   <2022.12.28-05:48:54-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -533,18 +533,19 @@ class Document:
             sys.stderr.write(msg + '\n\n')
             sys.exit(0)
         enc = chardet.detect(bd)['encoding']
-        if enc is not None:
+        if enc is None:
+            sd = bd.decode('SHIFT_JIS')
+        elif (re.match('^utf[-_]?.*$', enc, re.I)) or \
+             (re.match('^shift[-_]?jis.*$', enc, re.I)) or \
+             (re.match('^cp932.*$', enc, re.I)) or \
+             (re.match('^euc[-_]?(jp|jis).*$', enc, re.I)) or \
+             (re.match('^iso[-_]?2022[-_]?jp.*$', enc, re.I)) or \
+             (re.match('^ascii.*$', enc, re.I)):
             sd = bd.decode(enc)
         else:
-            sd = bd.decode('SHIFT_JIS')
-        if not re.match('^utf[-_]?.*$', enc, re.I) and \
-           not re.match('^shift[-_]?jis.*$', enc, re.I) and \
-           not re.match('^cp932.*$', enc, re.I) and \
-           not re.match('^euc[-_]?jp.*$', enc, re.I) and \
-           not re.match('^iso[-_]?2022[-_]?jp.*$', enc, re.I) and \
-           not re.match('^ascii.*$', enc, re.I):
             # Windows-1252 (Western Europe)
             # MacCyrillic (Macintosh Cyrillic)
+            sd = bd.decode('SHIFT_JIS')
             msg = 'warning: ' \
                 + 'detected encoding "' + enc + '" may be wrong'
             sys.stderr.write(msg + '\n\n')
