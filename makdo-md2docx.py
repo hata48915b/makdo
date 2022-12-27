@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v03 Yokogawa
-# Time-stamp:   <2022.12.28-05:06:13-JST>
+# Time-stamp:   <2022.12.28-05:23:19-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -441,8 +441,9 @@ def n_kata(n):
     elif n <= 46:
         return chr(12448 + (1 * n) + 37)
     else:
-        msg = 'overflowed katakana "' + str(n) + '"'
-        sys.stderr.write('warning: ' + msg + '\n\n')
+        msg = 'warning: ' \
+            + 'overflowed katakana "' + str(n) + '"'
+        sys.stderr.write(msg + '\n\n')
         return '？'
 
 
@@ -456,8 +457,9 @@ def n_paren_kata(n):
     elif n <= 46:
         return '(' + chr(65392 + n - 1) + ')'
     else:
-        msg = 'overflowed parenthesis katakata "' + str(n) + '"'
-        sys.stderr.write('warning: ' + msg + '\n\n')
+        msg = 'warning: ' \
+            + 'overflowed parenthesis katakata "' + str(n) + '"'
+        sys.stderr.write(msg + '\n\n')
         return '(?)'
 
 
@@ -467,8 +469,9 @@ def n_alph(n):
     elif n <= 26:
         return chr(65344 + n)
     else:
-        msg = 'overflowed alphabet "' + str(n) + '"'
-        sys.stderr.write('warning: ' + msg + '\n\n')
+        msg = 'warning: ' \
+            + 'overflowed alphabet "' + str(n) + '"'
+        sys.stderr.write(msg + '\n\n')
         return '？'
 
 
@@ -478,8 +481,9 @@ def n_paren_alph(n):
     elif n <= 26:
         return chr(9371 + n)
     else:
-        msg = 'overflowed parenthesis alphabet "' + str(n) + '"'
-        sys.stderr.write('warning: ' + msg + '\n\n')
+        msg = 'warning: ' \
+            + 'overflowed parenthesis alphabet "' + str(n) + '"'
+        sys.stderr.write(msg + '\n\n')
         return '(?)'
 
 
@@ -524,8 +528,9 @@ class Document:
             else:
                 bd = open(md_file, 'rb').read()
         except BaseException:
-            msg = 'file "' + md_file + '" is not found'
-            sys.stderr.write('error: ' + msg + '\n\n')
+            msg = 'error: ' \
+                + 'file "' + md_file + '" is not found'
+            sys.stderr.write(msg + '\n\n')
             sys.exit(0)
         enc = chardet.detect(bd)['encoding']
         if enc is not None:
@@ -538,10 +543,11 @@ class Document:
            not re.match('^euc[-_]?jp.*$', enc, re.I) and \
            not re.match('^iso[-_]?2022[-_]?jp.*$', enc, re.I) and \
            not re.match('^ascii.*$', enc, re.I):
-            # Windows-1252 (Western Europe) 
+            # Windows-1252 (Western Europe)
             # MacCyrillic (Macintosh Cyrillic)
-            msg = 'detected encoding "' + enc + '" may be wrong'
-            sys.stderr.write('warning: ' + msg + '\n\n')
+            msg = 'warning: ' \
+                + 'detected encoding "' + enc + '" may be wrong'
+            sys.stderr.write(msg + '\n\n')
         sd = re.sub('^' + chr(65279), '', sd)  # remove BOM / unnecessary?
         sd = re.sub('\r\n', '\n', sd)  # unnecessary?
         sd = re.sub('\r', '\n', sd)  # unnecessary?
@@ -661,38 +667,44 @@ class Document:
                 pass
             elif nam == 'document_style':
                 if val != '-' and val != 'k' and val != 'j':
-                    msg = '"' + nam + '" must be "-", "k" or "j"'
-                    sys.stderr.write('error: ' + msg + '\n\n')
+                    msg = 'error: ' \
+                        + '"' + nam + '" must be "-", "k" or "j"'
+                    sys.stderr.write(msg + '\n\n')
                     sys.exit(0)
             elif nam == 'paper_size':
                 if not re.match('^(A3|A3P|A4|A4L)$', val):
-                    msg = '"' + nam + '" must be "A3", "A3P", "A4" or "A4L"'
-                    sys.stderr.write('error: ' + msg + '\n\n')
+                    msg = 'error: ' \
+                        + '"' + nam + '" must be "A3", "A3P", "A4" or "A4L"'
+                    sys.stderr.write(msg + '\n\n')
                     sys.exit(0)
             elif (nam == 'no_page_number' or
                   nam == 'line_number' or
                   nam == 'auto_space'):
                 if val != 'True' and val != 'False':
-                    msg = '"' + nam + '" must be "True" or "False"'
-                    sys.stderr.write('error: ' + msg + '\n\n')
+                    msg = 'error: ' \
+                        + '"' + nam + '" must be "True" or "False"'
+                    sys.stderr.write(msg + '\n\n')
                     sys.exit(0)
             elif (re.match('^(top|bottom|left|right)_margin$', nam) or
                   nam == 'line_spacing' or
                   nam == 'font_size'):
                 if not re.match('^' + RES_NUMBER + '$', val):
-                    msg = '"' + nam + '" must be an integer or a decimal'
-                    sys.stderr.write('error: ' + msg + '\n\n')
+                    msg = 'error: ' \
+                        + '"' + nam + '" must be an integer or a decimal'
+                    sys.stderr.write(msg + '\n\n')
                     sys.exit(0)
             elif re.match('^space_(before|after)$', nam):
                 if not re.match('^' + RES_NUMBER6 + '$', val):
-                    msg = '"' + nam + '" must be 6 integers or decimals'
-                    sys.stderr.write('error: ' + msg + '\n\n')
+                    msg = 'error: ' \
+                        + '"' + nam + '" must be 6 integers or decimals'
+                    sys.stderr.write(msg + '\n\n')
                     sys.exit(0)
             elif nam == 'birthtime':
                 res = '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$'
                 if not re.match(res, val):
-                    msg = '"' + nam + '" must be "YYYY-MM-DD hh:mm:ss"'
-                    sys.stderr.write('error: ' + msg + '\n\n')
+                    msg = 'error: ' \
+                        + '"' + nam + '" must be "YYYY-MM-DD hh:mm:ss"'
+                    sys.stderr.write(msg + '\n\n')
                     sys.exit(0)
             if False:
                 pass
@@ -876,12 +888,14 @@ class Document:
             self.docx_file = docx_file
         if os.path.exists(docx_file):
             if not os.access(docx_file, os.W_OK):
-                msg = 'overwriting a unwritable file "' + docx_file + '"'
-                sys.stderr.write('error: ' + msg + '\n\n')
+                msg = 'error: ' \
+                    + 'overwriting a unwritable file "' + docx_file + '"'
+                sys.stderr.write(msg + '\n\n')
                 sys.exit(1)
             if os.path.getmtime(md_file) < os.path.getmtime(docx_file):
-                msg = 'overwriting a newer file "' + docx_file + '"'
-                sys.stderr.write('error: ' + msg + '\n\n')
+                msg = 'error: ' \
+                    + 'overwriting a newer file "' + docx_file + '"'
+                sys.stderr.write(msg + '\n\n')
                 sys.exit(1)
             if os.path.exists(docx_file + '~'):
                 os.remove(docx_file + '~')
@@ -1196,8 +1210,9 @@ class Paragraph:
         if text_to_write != '':
             ms_par = self._get_ms_par(ms_doc)
             self._write_text(text_to_write, ms_par)
-            msg = 'unexpected state (empty paragraph)' + '\n  ' + text_to_write
-            sys.stderr.write('warning: ' + msg + '\n\n')
+            msg = 'warning: ' \
+                + 'unexpected state (empty paragraph)' + '\n  ' + text_to_write
+            sys.stderr.write(msg + '\n\n')
 
     def _write_blank_paragraph(self, ms_doc):
         text_to_write = self.decoration_instruction
@@ -1206,8 +1221,9 @@ class Paragraph:
         ms_par = self._get_ms_par(ms_doc)
         if text_to_write != '\n':
             self._write_text(text_to_write, ms_par)
-            msg = 'unexpected state (blank paragraph)' + '\n  ' + text_to_write
-            sys.stderr.write('warning: ' + msg + '\n\n')
+            msg = 'warning: ' \
+                + 'unexpected state (blank paragraph)' + '\n  ' + text_to_write
+            sys.stderr.write(msg + '\n\n')
 
     def _write_title_paragraph(self, ms_doc):
         md_lines = self.md_lines
@@ -1779,14 +1795,16 @@ class Paragraph:
                 = Pt(length['space before'] * doc.line_spacing * size)
         else:
             ms_fmt.space_before = Pt(0)
-            msg = 'warning: "space before" must be positive'
+            msg = 'warning: ' \
+                + '"space before" must be positive'
             self.md_lines[0].append_warning_message(msg)
         if length['space after'] >= 0:
             ms_fmt.space_after \
                 = Pt(length['space after'] * doc.line_spacing * size)
         else:
             ms_fmt.space_after = Pt(0)
-            msg = 'warning: "space after" must be positive'
+            msg = 'warning: ' \
+                + '"space after" must be positive'
             self.md_lines[0].append_warning_message(msg)
         ms_fmt.first_line_indent = Pt(length['first indent'] * size)
         ms_fmt.left_indent = Pt(length['left indent'] * size)
@@ -1797,7 +1815,8 @@ class Paragraph:
         ls = doc.line_spacing * (1 + length['line spacing'])
         ms_fmt.line_spacing = Pt(ls * size)
         if ls < 1.0:
-            msg = 'warning: too small line spacing'
+            msg = 'warning: ' \
+                + 'too small line spacing'
             self.md_lines[0].append_warning_message(msg)
         return ms_par
 
@@ -2073,9 +2092,10 @@ class MdLine:
 
     def print_warning_messages(self):
         for wm in self._warning_messages:
-            msg = wm + ' (line ' + str(self.line_number) + ')' + '\n  ' \
+            msg = 'warning: ' \
+                + wm + ' (line ' + str(self.line_number) + ')' + '\n  ' \
                 + self.raw_text
-            sys.stderr.write('warning: ' + msg + '\n\n')
+            sys.stderr.write(msg + '\n\n')
 
 
 ############################################################
