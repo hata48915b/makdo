@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v03 Yokogawa
-# Time-stamp:   <2022.12.25-11:09:10-JST>
+# Time-stamp:   <2022.12.28-05:01:36-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -518,38 +518,40 @@ class Document:
     def get_raw_md_lines(self, md_file):
         self.md_file = md_file
         raw_md_lines = []
-        with open(md_file, 'rb') as f:
-            bf = f.read()
-        kanji_code = chardet.detect(bf)['encoding']
         try:
-            mfl = self._open_md_file(md_file, kanji_code).readlines()
+            if md_file == '-':
+                bd = sys.stdin.buffer.read()
+            else:
+                bd = open(md_file, 'rb').read()
         except BaseException:
-            msg = 'not a markdown file "' + md_file + '"'
+            msg = 'file "' + md_file + '" is not found'
             sys.stderr.write('error: ' + msg + '\n\n')
             sys.exit(0)
-        if len(mfl) > 0 and len(mfl[0]) > 0:
-            mfl[0] = re.sub('^' + chr(65279), '', mfl[0])  # remove BOM
-        for rml in mfl:
-            rml = re.sub('\n$', '', rml)
-            rml = re.sub('\r$', '', rml)
+        enc = chardet.detect(bd)['encoding']
+        if enc is not None:
+            sd = bd.decode(enc)
+        else:
+            sd = bd.decode('SHIFT_JIS')
+        if not re.match('^utf[-_]?.*$', enc, re.I) and \
+           not re.match('^shift[-_]?jis.*$', enc, re.I) and \
+           not re.match('^cp932.*$', enc, re.I) and \
+           not re.match('^euc[-_]?jp.*$', enc, re.I) and \
+           not re.match('^iso[-_]?2022[-_]?jp.*$', enc, re.I) and \
+           not re.match('^ascii.*$', enc, re.I):
+            # Windows-1252 (Western Europe) 
+            # MacCyrillic (Macintosh Cyrillic)
+            msg = 'detected encoding "' + enc + '" may be wrong'
+            sys.stderr.write('warning: ' + msg + '\n\n')
+        sd = re.sub('^' + chr(65279), '', sd)  # remove BOM / unnecessary?
+        sd = re.sub('\r\n', '\n', sd)  # unnecessary?
+        sd = re.sub('\r', '\n', sd)  # unnecessary?
+        for rml in sd.split('\n'):
             rml = re.sub('  $', '\n', rml)
             rml = re.sub('[ ' + ZENKAKU_SPACE + '\t]*$', '', rml)
             raw_md_lines.append(rml)
         raw_md_lines.append('')
         # self.raw_md_lines = raw_md_lines
         return raw_md_lines
-
-    def _open_md_file(self, md_file, enc='utf-8'):
-        if md_file == '-':
-            mf = sys.stdin
-        else:
-            try:
-                mf = open(md_file, 'r', encoding=enc)
-            except BaseException:
-                msg = 'can\'t read "' + md_file + '"'
-                sys.stderr.write('error: ' + msg + '\n\n')
-                sys.exit(0)
-        return mf
 
     def get_md_lines(self, raw_md_lines):
         md_lines = []
