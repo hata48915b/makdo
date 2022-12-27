@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v03 Yokogawa
-# Time-stamp:   <2022.12.28-05:01:36-JST>
+# Time-stamp:   <2022.12.28-05:06:13-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -871,7 +871,9 @@ class Document:
         if docx_file == '':
             if re.match('^.*\\.md$', md_file):
                 docx_file = re.sub('\\.md$', '.docx', md_file)
-                self.docx_file = docx_file
+            else:
+                docx_file = md_file + '.docx'
+            self.docx_file = docx_file
         if os.path.exists(docx_file):
             if not os.access(docx_file, os.W_OK):
                 msg = 'overwriting a unwritable file "' + docx_file + '"'
