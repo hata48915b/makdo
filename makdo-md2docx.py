@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v03 Yokogawa
-# Time-stamp:   <2022.12.28-17:21:13-JST>
+# Time-stamp:   <2022.12.29-06:23:53-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -694,7 +694,9 @@ class Document:
             com = ml.comment
             if com is None:
                 break
-            res = '^\\s*([^:]+):\\s*(.*)$'
+            if re.match('^\\s*#', com):
+                continue
+            res = '^\\s*([^:：]+)[:：]\\s*(.*)$'
             if not re.match(res, com):
                 continue
             nam = re.sub(res, '\\1', com).rstrip()
@@ -714,7 +716,7 @@ class Document:
                     msg = '※ 警告: ' \
                         + '「' + nam + '」は"-"、"k"又は"j"で' \
                         + 'なければなりません'
-                    # msg = 'error: ' \
+                    # msg = 'warning: ' \
                     #     + '"' + nam + '" must be "-", "k" or "j"'
                     sys.stderr.write(msg + '\n\n')
             elif nam == 'paper_size' or nam == '用紙サ':
@@ -725,7 +727,7 @@ class Document:
                     msg = '※ 警告: ' \
                         + '「' + nam + '」は"A3"、"A3P"、"A4"又は"A4L"で' \
                         + 'なければなりません'
-                    # msg = 'error: ' \
+                    # msg = 'warning: ' \
                     #     + '"' + nam + '" must be "A3", "A3P", "A4" or "A4L"'
                     sys.stderr.write(msg + '\n\n')
             elif (nam == 'no_page_number' or nam == '頁番号' or
@@ -749,11 +751,15 @@ class Document:
                             self.auto_space = True
                         else:
                             self.auto_space = False
+                    else:
+                        msg = '※ バグ: 「' + nam + '」の設定に失敗しました'
+                        # msg = 'bug: failed to configure "' + nam + '"'
+                        sys.stderr.write(msg + '\n\n')
                 else:
                     msg = '※ 警告: ' \
                         + '「' + nam + '」は"True"又は"False"で' \
                         + 'なければなりません'
-                    # msg = 'error: ' \
+                    # msg = 'warning: ' \
                     #     + '"' + nam + '" must be "True" or "False"'
                     sys.stderr.write(msg + '\n\n')
             elif (re.match('^(top|bottom|left|right)_margin$', nam) or
@@ -774,28 +780,37 @@ class Document:
                         self.line_spacing = float(val)
                     elif nam == 'font_size' or nam == '文字サ':
                         self.font_size = float(val)
+                    else:
+                        msg = '※ バグ: 「' + nam + '」の設定に失敗しました'
+                        # msg = 'bug: failed to configure "' + nam + '"'
+                        sys.stderr.write(msg + '\n\n')
                 else:
                     msg = '※ 警告: ' \
                         + '「' + nam + '」は整数又は小数で' \
                         + 'なければなりません'
-                    # msg = 'error: ' \
+                    # msg = 'warning: ' \
                     #     + '"' + nam + '" must be an integer or a decimal'
                     sys.stderr.write(msg + '\n\n')
             elif (re.match('^space_(before|after)$', nam) or
-                  re.match('^段落(前|後)$', nam)):
+                  re.match('^節(前|後)高$', nam)):
                 val = unicodedata.normalize('NFKC', val)
                 val = val.replace('、', ',')
+                val = val.replace(' ', '')
                 if re.match('^' + RES_NUMBER6 + '$', val):
-                    if nam == 'space_before' or nam == '段落前':
+                    if nam == 'space_before' or nam == '節前高':
                         self.space_before = val
-                    elif nam == 'space_after'or nam == '段落後':
+                    elif nam == 'space_after'or nam == '節後高':
                         self.space_after = val
+                    else:
+                        msg = '※ バグ: 「' + nam + '」の設定に失敗しました'
+                        # msg = 'bug: failed to configure "' + nam + '"'
+                        sys.stderr.write(msg + '\n\n')
                 else:
                     msg = '※ 警告: ' \
                         + '「' + nam + '」は' \
                         + '整数又は小数をカンマで区切って並べたもので' \
                         + 'なければなりません'
-                    # msg = 'error: ' \
+                    # msg = 'warning: ' \
                     #     + '"' + nam + '" must be 6 integers or decimals'
                     sys.stderr.write(msg + '\n\n')
             elif nam == 'birthtime' or nam == '起源時':
@@ -809,9 +824,15 @@ class Document:
                         + '「' + nam + '」は' \
                         + '"YYYY-MM-DD hh:mm:ss"の形式で' \
                         + 'なければなりません'
-                    # msg = 'error: ' \
+                    # msg = 'warning: ' \
                     #     + '"' + nam + '" must be "YYYY-MM-DD hh:mm:ss"'
                     sys.stderr.write(msg + '\n\n')
+            else:
+                msg = '※ 警告: ' \
+                    + '「' + nam + '」という設定項目は存在しません'
+                # msg = 'warning: ' \
+                #     + 'configuration name "' + nam + '" does not exist'
+                sys.stderr.write(msg + '\n\n')
 
     def _configure_by_args(self, args):
         if args.document_title is not None:
@@ -902,7 +923,7 @@ class Document:
             = Pt(line_spacing * size)
         if not doc.auto_space:
             pPr = ms_doc.styles['makdo']._element.get_or_add_pPr()
-            # KANJI<->ENGLISH 
+            # KANJI<->ENGLISH
             oe = OxmlElement('w:autoSpaceDE')
             oe.set(ns.qn('w:val'), '0')
             pPr.append(oe)

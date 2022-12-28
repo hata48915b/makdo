@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v03 Yokogawa
-# Time-stamp:   <2022.12.28-13:08:01-JST>
+# Time-stamp:   <2022.12.29-05:51:02-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -704,14 +704,14 @@ class Document:
                         f = float(sa[i])
                         f = f / 20 / self.font_size / self.line_spacing
                         sa[i] = str(round(f, 2))
-        csb = ',' + ','.join(sb) + ','
+        csb = ',' + ', '.join(sb) + ','
         # csb = re.sub(',0\\.0,', ',,', csb)
-        csb = re.sub('\\.0,', ',', csb)
+        # csb = re.sub('\\.0,', ',', csb)
         csb = re.sub('^,', '', csb)
         csb = re.sub(',$', '', csb)
-        csa = ',' + ','.join(sa) + ','
+        csa = ',' + ', '.join(sa) + ','
         # csa = re.sub(',0\\.0,', ',,', csa)
-        csa = re.sub('\\.0,', ',', csa)
+        # csa = re.sub('\\.0,', ',', csa)
         csa = re.sub('^,', '', csa)
         csa = re.sub(',$', '', csa)
         if csb != '':
@@ -1180,7 +1180,8 @@ class Document:
         return mf
 
     def write_configurations(self, mf):
-        mf.write('<!--\n')
+        mf.write('<!----------------------【設定】-------------------------\n')
+        mf.write('\n')
         # ENGLISH
         # mf.write('document_title: ' + self.document_title + '\n')
         # mf.write('document_style: ' + self.document_style + '\n')
@@ -1203,33 +1204,61 @@ class Document:
         # mf.write('auto_space:     ' + str(self.auto_space) + '\n')
         # mf.write('birthtime:      ' + self.birthtime + '\n')
         # JAPANESE
-        mf.write('書題名: ' + self.document_title + '\n')
+        mf.write('# プロパティに表示される書面のタイトルを指定ください。\n')
+        if self.document_title != '':
+            mf.write('書題名: ' + self.document_title + '\n')
+        else:
+            mf.write('書題名: -\n')
+        mf.write('\n')
+        mf.write('# 3つの書式（-=一般、k=契約書 、j=条文）を指定できます。\n')
         mf.write('文書式: ' + self.document_style + '\n')
+        mf.write('\n')
+        mf.write('# ページ番号を記載するかどうか（有、無）を指定できます。\n')
         if self.no_page_number:
             mf.write('頁番号: 無\n')
         else:
             mf.write('頁番号: 有\n')
+        mf.write('\n')
+        mf.write('# 行番号を記載するかどうか（有、無）を指定できます。\n')
         if self.line_number:
             mf.write('行番号: 有\n')
         else:
             mf.write('行番号: 無\n')
+        mf.write('\n')
+        mf.write('# 用紙のサイズ（A3、A3P、A4、A4L）を指定できます。\n')
         mf.write('用紙サ: ' + str(self.paper_size) + '\n')
+        mf.write('\n')
+        mf.write('# 上下左右の余白をセンチメートル単位で指定できます。\n')
         mf.write('上余白: ' + str(round(self.top_margin, 1)) + '\n')
         mf.write('下余白: ' + str(round(self.bottom_margin, 1)) + '\n')
         mf.write('左余白: ' + str(round(self.left_margin, 1)) + '\n')
         mf.write('右余白: ' + str(round(self.right_margin, 1)) + '\n')
+        mf.write('\n')
+        mf.write('# 明朝体とゴシック体のフォントを指定できます。\n')
         mf.write('明朝体: ' + self.mincho_font + '\n')
         mf.write('ゴシ体: ' + self.gothic_font + '\n')
+        mf.write('\n')
+        mf.write('# 文字の大きさをポイント単位で指定できます。\n')
         mf.write('文字サ: ' + str(round(self.font_size, 1)) + '\n')
+        mf.write('\n')
+        mf.write('# 行間の高さをフォントの高さの倍数で指定できます。\n')
         mf.write('行間高: ' + str(round(self.line_spacing, 2)) + '\n')
-        mf.write('段落前: ' + self.space_before + '\n')
-        mf.write('段落後: ' + self.space_after + '\n')
+        mf.write('\n')
+        mf.write('# セクション前後の余白を行間の高さの倍数で指定できます。\n')
+        mf.write('節前高: ' + self.space_before + '\n')
+        mf.write('節後高: ' + self.space_after + '\n')
+        mf.write('\n')
+        mf.write('# 半角字と全角字の間の余白（有、無）を指定できます。\n')
         if self.auto_space:
             mf.write('字間整: 有\n')
         else:
             mf.write('字間整: 無\n')
+        mf.write('\n')
+        mf.write('# 元のWordファイルの最終更新日が自動で指定されます。\n')
         mf.write('起源時: ' + self.birthtime + '\n')
-        mf.write('-->\n\n')
+        mf.write('\n')
+        mf.write('-------------------------------------------------------->\n')
+        mf.write('\n')
         return
 
     def write_md_lines(self, mf):
