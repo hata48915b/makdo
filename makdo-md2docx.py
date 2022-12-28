@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v03 Yokogawa
-# Time-stamp:   <2022.12.28-05:48:54-JST>
+# Time-stamp:   <2022.12.28-09:47:42-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -441,8 +441,12 @@ def n_kata(n):
     elif n <= 46:
         return chr(12448 + (1 * n) + 37)
     else:
-        msg = 'warning: ' \
-            + 'overflowed katakana "' + str(n) + '"'
+        msg = '※ 警告: ' \
+            + 'カタカナ番号"' \
+            + str(n) \
+            + '"は上限46を超えています'
+        # msg = 'warning: ' \
+        #     + 'overflowed katakana "' + str(n) + '"'
         sys.stderr.write(msg + '\n\n')
         return '？'
 
@@ -457,8 +461,12 @@ def n_paren_kata(n):
     elif n <= 46:
         return '(' + chr(65392 + n - 1) + ')'
     else:
-        msg = 'warning: ' \
-            + 'overflowed parenthesis katakata "' + str(n) + '"'
+        msg = '※ 警告: ' \
+            + '括弧付きカタカナ番号"' \
+            + str(n) \
+            + '"は上限46を超えています'
+        # msg = 'warning: ' \
+        #     + 'overflowed parenthesis katakata "' + str(n) + '"'
         sys.stderr.write(msg + '\n\n')
         return '(?)'
 
@@ -469,8 +477,12 @@ def n_alph(n):
     elif n <= 26:
         return chr(65344 + n)
     else:
-        msg = 'warning: ' \
-            + 'overflowed alphabet "' + str(n) + '"'
+        msg = '※ 警告: ' \
+            + 'アルファベット番号"' \
+            + str(n) \
+            + '"は上限26を超えています'
+        # msg = 'warning: ' \
+        #     + 'overflowed alphabet "' + str(n) + '"'
         sys.stderr.write(msg + '\n\n')
         return '？'
 
@@ -481,8 +493,12 @@ def n_paren_alph(n):
     elif n <= 26:
         return chr(9371 + n)
     else:
-        msg = 'warning: ' \
-            + 'overflowed parenthesis alphabet "' + str(n) + '"'
+        msg = '※ 警告: ' \
+            + '括弧付きアルファベット番号"' \
+            + str(n) \
+            + '"は上限26を超えています'
+        # msg = 'warning: ' \
+        #     + 'overflowed parenthesis alphabet "' + str(n) + '"'
         sys.stderr.write(msg + '\n\n')
         return '(?)'
 
@@ -518,6 +534,7 @@ class Document:
         self.space_before = DEFAULT_SPACE_BEFORE
         self.space_after = DEFAULT_SPACE_AFTER
         self.auto_space = DEFAULT_AUTO_SPACE
+        self.birthtime = ''
 
     def get_raw_md_lines(self, md_file):
         self.md_file = md_file
@@ -528,27 +545,43 @@ class Document:
             else:
                 bd = open(md_file, 'rb').read()
         except BaseException:
-            msg = 'error: ' \
-                + 'file "' + md_file + '" is not found'
+            msg = '※ エラー: ' \
+                + '入力ファイル「' + md_file + '」を読み込めません'
+            # msg = 'error: ' \
+            #     + 'file "' + md_file + '" is not found'
             sys.stderr.write(msg + '\n\n')
             sys.exit(0)
         enc = chardet.detect(bd)['encoding']
         if enc is None:
-            sd = bd.decode('SHIFT_JIS')
+            enc = 'SHIFT_JIS'
         elif (re.match('^utf[-_]?.*$', enc, re.I)) or \
              (re.match('^shift[-_]?jis.*$', enc, re.I)) or \
              (re.match('^cp932.*$', enc, re.I)) or \
              (re.match('^euc[-_]?(jp|jis).*$', enc, re.I)) or \
              (re.match('^iso[-_]?2022[-_]?jp.*$', enc, re.I)) or \
              (re.match('^ascii.*$', enc, re.I)):
-            sd = bd.decode(enc)
+            pass
         else:
             # Windows-1252 (Western Europe)
             # MacCyrillic (Macintosh Cyrillic)
-            sd = bd.decode('SHIFT_JIS')
-            msg = 'warning: ' \
-                + 'detected encoding "' + enc + '" may be wrong'
+            # ...
+            msg = '※ 警告: ' \
+                + '文字コード「' + enc + '」から「SHIFT_JIS」に修正しました'
+            # msg = 'warning: ' \
+            #     + 'detected encoding "' + enc + '" may be wrong'
             sys.stderr.write(msg + '\n\n')
+            enc = 'SHIFT_JIS'
+        try:
+            sd = bd.decode(enc)
+        except BaseException:
+            msg = '※ エラー: ' \
+                + '正しい文字コードを取得できませんでした' \
+                + '（Markdownでない？）'
+            # msg = 'error: ' \
+            #     + 'could not detect correct character code '
+            #     + '(not markdown?)'
+            sys.stderr.write(msg + '\n\n')
+            sys.exit(0)
         sd = re.sub('^' + chr(65279), '', sd)  # remove BOM / unnecessary?
         sd = re.sub('\r\n', '\n', sd)  # unnecessary?
         sd = re.sub('\r', '\n', sd)  # unnecessary?
@@ -666,87 +699,107 @@ class Document:
             val = re.sub(res, '\\2', com).rstrip()
             if False:
                 pass
-            elif nam == 'document_style':
-                if val != '-' and val != 'k' and val != 'j':
-                    msg = 'error: ' \
-                        + '"' + nam + '" must be "-", "k" or "j"'
-                    sys.stderr.write(msg + '\n\n')
-                    sys.exit(0)
-            elif nam == 'paper_size':
-                if not re.match('^(A3|A3P|A4|A4L)$', val):
-                    msg = 'error: ' \
-                        + '"' + nam + '" must be "A3", "A3P", "A4" or "A4L"'
-                    sys.stderr.write(msg + '\n\n')
-                    sys.exit(0)
-            elif (nam == 'no_page_number' or
-                  nam == 'line_number' or
-                  nam == 'auto_space'):
-                if val != 'True' and val != 'False':
-                    msg = 'error: ' \
-                        + '"' + nam + '" must be "True" or "False"'
-                    sys.stderr.write(msg + '\n\n')
-                    sys.exit(0)
-            elif (re.match('^(top|bottom|left|right)_margin$', nam) or
-                  nam == 'line_spacing' or
-                  nam == 'font_size'):
-                if not re.match('^' + RES_NUMBER + '$', val):
-                    msg = 'error: ' \
-                        + '"' + nam + '" must be an integer or a decimal'
-                    sys.stderr.write(msg + '\n\n')
-                    sys.exit(0)
-            elif re.match('^space_(before|after)$', nam):
-                if not re.match('^' + RES_NUMBER6 + '$', val):
-                    msg = 'error: ' \
-                        + '"' + nam + '" must be 6 integers or decimals'
-                    sys.stderr.write(msg + '\n\n')
-                    sys.exit(0)
-            elif nam == 'birthtime':
-                res = '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$'
-                if not re.match(res, val):
-                    msg = 'error: ' \
-                        + '"' + nam + '" must be "YYYY-MM-DD hh:mm:ss"'
-                    sys.stderr.write(msg + '\n\n')
-                    sys.exit(0)
-            if False:
-                pass
             elif nam == 'document_title':
                 self.document_title = val
-            elif nam == 'document_style':
-                self.document_style = val
-            elif nam == 'no_page_number':
-                if val == 'True':
-                    self.no_page_number = True
-                else:
-                    self.no_page_number = False
-            elif nam == 'line_number':
-                if val == 'True':
-                    self.line_number = True
-                else:
-                    self.line_number = False
-            elif nam == 'paper_size':
-                self.paper_size = val
-            elif nam == 'top_margin':
-                self.top_margin = float(val)
-            elif nam == 'bottom_margin':
-                self.bottom_margin = float(val)
-            elif nam == 'left_margin':
-                self.left_margin = float(val)
-            elif nam == 'right_margin':
-                self.right_margin = float(val)
             elif nam == 'mincho_font':
                 self.mincho_font = val
             elif nam == 'gothic_font':
                 self.gothic_font = val
-            elif nam == 'font_size':
-                self.font_size = float(val)
-            elif nam == 'line_spacing':
-                self.line_spacing = float(val)
-            elif nam == 'space_before':
-                self.space_before = val
-            elif nam == 'space_after':
-                self.space_after = val
-            elif nam == 'auto_space':
-                self.auto_space = val
+            elif nam == 'document_style':
+                if val == '-' or val == 'k' or val == 'j':
+                    self.document_style = val
+                else:
+                    msg = '※ 警告: ' \
+                        + '「' + nam + '」は"-"、"k"又は"j"で' \
+                        + 'なければなりません'
+                    # msg = 'error: ' \
+                    #     + '"' + nam + '" must be "-", "k" or "j"'
+                    sys.stderr.write(msg + '\n\n')
+            elif nam == 'paper_size':
+                if re.match('^(A3|A3P|A4|A4L)$', val):
+                    self.paper_size = val
+                else:
+                    msg = '※ 警告: ' \
+                        + '「' + nam + '」は"A3"、"A3P"、"A4"又は"A4L"で' \
+                        + 'なければなりません'
+                    # msg = 'error: ' \
+                    #     + '"' + nam + '" must be "A3", "A3P", "A4" or "A4L"'
+                    sys.stderr.write(msg + '\n\n')
+            elif (nam == 'no_page_number' or
+                  nam == 'line_number' or
+                  nam == 'auto_space'):
+                if val == 'True' or val == 'False':
+                    if nam == 'no_page_number':
+                        if val == 'True':
+                            self.no_page_number = True
+                        else:
+                            self.no_page_number = False
+                    elif nam == 'line_number':
+                        if val == 'True':
+                            self.line_number = True
+                        else:
+                            self.line_number = False
+                    elif nam == 'auto_space':
+                        if val == 'True':
+                            self.auto_space = True
+                        else:
+                            self.auto_space = False
+                else:
+                    msg = '※ 警告: ' \
+                        + '「' + nam + '」は"True"又は"False"で' \
+                        + 'なければなりません'
+                    # msg = 'error: ' \
+                    #     + '"' + nam + '" must be "True" or "False"'
+                    sys.stderr.write(msg + '\n\n')
+            elif (re.match('^(top|bottom|left|right)_margin$', nam) or
+                  nam == 'line_spacing' or
+                  nam == 'font_size'):
+                if re.match('^' + RES_NUMBER + '$', val):
+                    if nam == 'top_margin':
+                        self.top_margin = float(val)
+                    elif nam == 'bottom_margin':
+                        self.bottom_margin = float(val)
+                    elif nam == 'left_margin':
+                        self.left_margin = float(val)
+                    elif nam == 'right_margin':
+                        self.right_margin = float(val)
+                    elif nam == 'line_spacing':
+                        self.line_spacing = float(val)
+                    elif nam == 'font_size':
+                        self.font_size = float(val)
+                else:
+                    msg = '※ 警告: ' \
+                        + '「' + nam + '」は整数又は小数で' \
+                        + 'なければなりません'
+                    # msg = 'error: ' \
+                    #     + '"' + nam + '" must be an integer or a decimal'
+                    sys.stderr.write(msg + '\n\n')
+            elif re.match('^space_(before|after)$', nam):
+                if re.match('^' + RES_NUMBER6 + '$', val):
+                    if nam == 'space_before':
+                        self.space_before = val
+                    elif nam == 'space_after':
+                        self.space_after = val
+                else:
+                    msg = '※ 警告: ' \
+                        + '「' + nam + '」は' \
+                        + '整数又は小数をカンマで区切って並べたもので' \
+                        + 'なければなりません'
+                    # msg = 'error: ' \
+                    #     + '"' + nam + '" must be 6 integers or decimals'
+                    sys.stderr.write(msg + '\n\n')
+            elif nam == 'birthtime':
+                res = '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$'
+                if re.match(res, val):
+                    self.birthtime = val
+                else:
+                    msg = '※ 警告: ' \
+                        + '「' + nam + '」は' \
+                        + '"YYYY-MM-DD hh:mm:ss"の形式で' \
+                        + 'なければなりません'
+                    # msg = 'error: ' \
+                    #     + '"' + nam + '" must be "YYYY-MM-DD hh:mm:ss"'
+                    sys.stderr.write(msg + '\n\n')
 
     def _configure_by_args(self, args):
         if args.document_title is not None:
@@ -889,19 +942,33 @@ class Document:
             self.docx_file = docx_file
         if os.path.exists(docx_file):
             if not os.access(docx_file, os.W_OK):
-                msg = 'error: ' \
-                    + 'overwriting a unwritable file "' + docx_file + '"'
+                msg = '※ エラー: ' \
+                    + '出力ファイル「' + docx_file + '」に書き込み権限が' \
+                    + 'ありません'
+                # msg = 'error: ' \
+                #     + 'overwriting a unwritable file "' + docx_file + '"'
                 sys.stderr.write(msg + '\n\n')
                 sys.exit(1)
             if os.path.getmtime(md_file) < os.path.getmtime(docx_file):
-                msg = 'error: ' \
-                    + 'overwriting a newer file "' + docx_file + '"'
+                msg = '※ エラー: ' \
+                    + '出力ファイル「' + docx_file + '」の方が' \
+                    + '入力ファイル「' + md_file + '」よりも新しいです'
+                # msg = 'error: ' \
+                #     + 'overwriting a newer file "' + docx_file + '"'
                 sys.stderr.write(msg + '\n\n')
                 sys.exit(1)
             if os.path.exists(docx_file + '~'):
                 os.remove(docx_file + '~')
             os.rename(docx_file, docx_file + '~')
-        ms_doc.save(docx_file)
+        try:
+            ms_doc.save(docx_file)
+        except BaseException:
+            msg = '※ エラー: ' \
+                + '出力ファイル「' + docx_file + '」の書込みに失敗しました'
+            # msg = 'error: ' \
+            #     + 'failed to write output file "' + docx_file + '"'
+            sys.stderr.write(msg + '\n\n')
+            sys.exit(1)
 
     def print_warning_messages(self):
         for p in self.paragraphs:
@@ -1115,6 +1182,13 @@ class Paragraph:
         if self.paragraph_class == 'title':
             for i, sharps in enumerate(self.full_text.split(' ')):
                 if re.match('^#+$', sharps):
+                    if len(sharps) > 6:
+                        msg = '※ 警告: ' \
+                            + '節記号"' + sharps + '"は深過ぎです'
+                        # msg = 'warning: ' \
+                        #     + 'section symbol "' + sharps + '" is too deep'
+                        sys.stderr.write(msg + '\n\n')
+                        sharps = '######'
                     if i == 0:
                         depth_first = len(sharps)
                     depth = len(sharps)
@@ -1211,8 +1285,12 @@ class Paragraph:
         if text_to_write != '':
             ms_par = self._get_ms_par(ms_doc)
             self._write_text(text_to_write, ms_par)
-            msg = 'warning: ' \
-                + 'unexpected state (empty paragraph)' + '\n  ' + text_to_write
+            msg = '※ 警告: ' \
+                + '空段落が「' + text_to_write + '」を' \
+                + '含んでいます'
+            # msg = 'warning: ' \
+            #     + 'unexpected state (empty paragraph)' + '\n  ' \
+            #     + text_to_write
             sys.stderr.write(msg + '\n\n')
 
     def _write_blank_paragraph(self, ms_doc):
@@ -1222,8 +1300,12 @@ class Paragraph:
         ms_par = self._get_ms_par(ms_doc)
         if text_to_write != '\n':
             self._write_text(text_to_write, ms_par)
-            msg = 'warning: ' \
-                + 'unexpected state (blank paragraph)' + '\n  ' + text_to_write
+            msg = '※ 警告: ' \
+                + '改行段落が「' + re.sub('\n$', '', text_to_write) + '」を' \
+                + '含んでいます'
+            # msg = 'warning: ' \
+            #     + 'unexpected state (blank paragraph)' + '\n  ' \
+            #     + text_to_write
             sys.stderr.write(msg + '\n\n')
 
     def _write_title_paragraph(self, ms_doc):
@@ -1296,7 +1378,11 @@ class Paragraph:
     def _is_consistent_with_depth(md_line, pre_dep, dep):
         if pre_dep > 0:
             if (pre_dep <= 2) or (pre_dep + 1 != dep):
-                msg = 'bad depth ' + str(pre_dep) + ' to ' + str(dep)
+                msg = '警告: ' \
+                    + 'セクションの深さが「' + str(pre_dep) + '」から「' \
+                    + str(dep) + '」に飛んでいます'
+                # msg = 'warning: bad depth ' + str(pre_dep) \
+                #     + ' to ' + str(dep)
                 md_line.append_warning_message(msg)
                 return False
         return True
@@ -1309,6 +1395,8 @@ class Paragraph:
             if hs == '':
                 continue
             sec_dep = len(hs)
+            if sec_dep > 6:
+                sec_dep = 6
             if sec_dep == 1:
                 head_string += Title.get_head_1(sec_stat[0])
             elif sec_dep == 2:
@@ -1712,7 +1800,7 @@ class Paragraph:
         return conf_row, ali_list, wid_list
 
     def _write_image_paragraph(self, ms_doc):
-        res = '^(! ?\\[([^\\[\\]]*)\\] ?\\(([^\\(\\)]+)\\) ?)+$'
+        res = '^(! *\\[([^\\[\\]]*)\\] *\\(([^\\(\\)]+)\\) *)+$'
         for ml in self.md_lines:
             if not re.match(res, ml.text):
                 continue
@@ -1727,8 +1815,14 @@ class Paragraph:
                 ms_par = ms_doc.add_paragraph()
                 ms_par.add_run(ml.text)
                 ms_par.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                msg = 'can\'t open "' + path + '"'
-                self.md_lines[0].append_warning_message(msg)
+                msg = '警告: ' \
+                    + '画像「' + path + '」が読み込めません'
+                # msg = 'warning: can\'t open "' + path + '"'
+                r = '^.*! *\\[.*\\] *\\(' + path + '\\).*$'
+                for ml in self.md_lines:
+                    if re.match(r, ml.text):
+                        ml.append_warning_message(msg)
+                        break
 
     def _write_preformatted_paragraph(self, ms_doc):
         ms_par = ms_doc.add_paragraph(style='makdo-g')
@@ -1796,16 +1890,20 @@ class Paragraph:
                 = Pt(length['space before'] * doc.line_spacing * size)
         else:
             ms_fmt.space_before = Pt(0)
-            msg = 'warning: ' \
-                + '"space before" must be positive'
+            msg = '警告: ' \
+                + '段落前の余白「v」の値が少な過ぎます'
+            # msg = 'warning: ' \
+            #     + '"space before" must be positive'
             self.md_lines[0].append_warning_message(msg)
         if length['space after'] >= 0:
             ms_fmt.space_after \
                 = Pt(length['space after'] * doc.line_spacing * size)
         else:
             ms_fmt.space_after = Pt(0)
-            msg = 'warning: ' \
-                + '"space after" must be positive'
+            msg = '警告: ' \
+                + '段落後の余白「V」の値が少な過ぎます'
+            # msg = 'warning: ' \
+            #     + '"space after" must be positive'
             self.md_lines[0].append_warning_message(msg)
         ms_fmt.first_line_indent = Pt(length['first indent'] * size)
         ms_fmt.left_indent = Pt(length['left indent'] * size)
@@ -1816,8 +1914,10 @@ class Paragraph:
         ls = doc.line_spacing * (1 + length['line spacing'])
         ms_fmt.line_spacing = Pt(ls * size)
         if ls < 1.0:
-            msg = 'warning: ' \
-                + 'too small line spacing'
+            msg = '警告: ' \
+                + '段落後の余白「X」の値が少な過ぎます'
+            # msg = 'warning: ' \
+            #     + 'too small line spacing'
             self.md_lines[0].append_warning_message(msg)
         return ms_par
 
@@ -2013,8 +2113,13 @@ class Paragraph:
                 ms_run.add_picture(path, Pt(size), Pt(size))
         except BaseException:
             ms_run.text = '![' + comm + '](' + path + ')'
-            msg = 'can\'t open "' + path + '"'
-            self.md_lines[0].append_warning_message(msg)
+            msg = '警告: ' \
+                + 'インライン画像「' + path + '」が読み込めません'
+            # msg = 'warning: can\'t open "' + path + '"'
+            for ml in self.md_lines:
+                if re.match('^.*! ?\\[.*\\] ?\\(' + path + '\\).*$', ml.text):
+                    ml.append_warning_message(msg)
+                    break
 
     def print_warning_messages(self):
         for ml in self.md_lines:
@@ -2093,8 +2198,7 @@ class MdLine:
 
     def print_warning_messages(self):
         for wm in self._warning_messages:
-            msg = 'warning: ' \
-                + wm + ' (line ' + str(self.line_number) + ')' + '\n  ' \
+            msg = wm + ' (line ' + str(self.line_number) + ')' + '\n  ' \
                 + self.raw_text
             sys.stderr.write(msg + '\n\n')
 

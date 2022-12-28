@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v03 Yokogawa
-# Time-stamp:   <2022.12.28-05:26:44-JST>
+# Time-stamp:   <2022.12.28-10:17:57-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -562,7 +562,7 @@ class Document:
         self.space_before = DEFAULT_SPACE_BEFORE
         self.space_after = DEFAULT_SPACE_AFTER
         self.auto_space = DEFAULT_AUTO_SPACE
-        self.birthtime = None
+        self.birthtime = ''
 
     def make_tmpdir(self):
         tmpdir = tempfile.TemporaryDirectory()
@@ -577,6 +577,8 @@ class Document:
         else:
             if re.match('^.*\\.docx$', docx_file, re.I):
                 media_dir = re.sub('\\.docx$', '', docx_file, re.I)
+        if media_dir == '':
+            media_dir = docx_file + '.dir'
         # self.media_dir = media_dir
         return media_dir
 
@@ -586,8 +588,10 @@ class Document:
         try:
             shutil.unpack_archive(docx_file, tmpdir, 'zip')
         except BaseException:
-            msg = 'error: ' \
-                + 'not a ms word file "' + docx_file + '"'
+            msg = '※ エラー: ' \
+                + '入力ファイル「' + docx_file + '」を展開できません'
+            # msg = 'error: ' \
+            #     + 'not a ms word file "' + docx_file + '"'
             sys.stderr.write(msg + '\n\n')
             sys.exit(1)
 
@@ -598,8 +602,10 @@ class Document:
         try:
             xf = open(path, 'r', encoding='utf-8')
         except BaseException:
-            msg = 'error: ' \
-                + 'can\'t read "' + xml_file + '"'
+            msg = '※ エラー: ' \
+                + 'XMLファイル「' + xml_file + '」を読み込めません'
+            # msg = 'error: ' \
+            #     + 'can\'t read "' + xml_file + '"'
             sys.stderr.write(msg + '\n\n')
             sys.exit(1)
         tmp = ''
@@ -1100,20 +1106,29 @@ class Document:
                     continue
                 depth += 1
                 if depth != dp:
-                    msg = 'warning: ' \
-                        + 'bad section depth\n' + p.md_text
+                    msg = '※ 警告: ' \
+                        + 'セクションの深さが整合していません\n  ' \
+                        + p.md_text
+                    # msg = 'warning: ' \
+                    #     + 'bad section depth\n  ' + p.md_text
                     sys.stderr.write(msg + '\n\n')
             if i == 0:
                 continue
             if self.document_style != 'j' or p.section_depth != 3:
                 if section_states[i] != p.section_states[i]:
-                    msg = 'warning: ' \
-                        + 'bad section number\n' + p.md_text
+                    msg = '※ 警告: ' \
+                        + 'セクション番号が飛んでいます\n  ' \
+                        + p.md_text
+                    # msg = 'warning: ' \
+                    #     + 'bad section number\n  ' + p.md_text
                     sys.stderr.write(msg + '\n\n')
             else:
                 if section_states[i] != p.section_states[i] - 1:
-                    msg = 'warning: ' \
-                        + 'warning: bad section number\n' + p.md_text
+                    msg = '※ 警告: ' \
+                        + 'セクション番号が飛んでいます\n  ' \
+                        + p.md_text
+                    # msg = 'warning: ' \
+                    #     + 'bad section number\n  ' + p.md_text
                     sys.stderr.write(msg + '\n\n')
 
     def open_md_file(self, md_file, docx_file):
@@ -1127,13 +1142,19 @@ class Document:
                     md_file = docx_file + '.md'
             if os.path.exists(md_file):
                 if not os.access(md_file, os.W_OK):
-                    msg = 'error: ' \
-                        + 'overwriting a unwritable file "' + md_file + '"'
+                    msg = '※ エラー: ' \
+                        + '出力ファイル「' + md_file + '」に書き込み権限が' \
+                        + 'ありません'
+                    # msg = 'error: ' \
+                    #     + 'overwriting a unwritable file "' + md_file + '"'
                     sys.stderr.write(msg + '\n\n')
                     sys.exit(1)
                 if os.path.getmtime(docx_file) < os.path.getmtime(md_file):
-                    msg = 'error: ' \
-                        + 'overwriting a newer file "' + md_file + '"'
+                    msg = '※ エラー: ' \
+                        + '出力ファイル「' + md_file + '」の方が' \
+                        + '入力ファイル「' + docx_file + '」よりも新しいです'
+                    # msg = 'error: ' \
+                    #     + 'overwriting a newer file "' + md_file + '"'
                     sys.stderr.write(msg + '\n\n')
                     sys.exit(1)
                 if os.path.exists(md_file + '~'):
@@ -1142,8 +1163,10 @@ class Document:
             try:
                 mf = open(md_file, 'w', encoding='utf-8', newline='\n')
             except BaseException:
-                msg = 'error: ' \
-                    + 'can\'t write "' + md_file + '"'
+                msg = '※ エラー: ' \
+                    + '出力ファイル「' + md_file + '」の書き込みに失敗しました'
+                # msg = 'error: ' \
+                #     + 'can\'t write "' + md_file + '"'
                 sys.stderr.write(msg + '\n\n')
                 sys.exit(1)
         return mf
@@ -1179,16 +1202,21 @@ class Document:
         if len(self.images) == 0:
             return
         if media_dir == '':
-            msg = 'error: ' \
-                + 'can\'t make media directory'
+            msg = '※ 警告: ' \
+                + '画像の保存先の名前が空です'
+            # msg = 'warning: ' \
+            #     + 'empty media directory name'
             sys.stderr.write(msg + '\n\n')
             return
         if os.path.exists(media_dir):
             if os.path.isdir(media_dir):
                 shutil.rmtree(media_dir)
             else:
-                msg = 'error: ' \
-                    + 'non-directory "' + media_dir + '"'
+                msg = '※ 警告: ' \
+                    + '画像の保存先と同じ名前のファイル「' + media_dir \
+                    + '」が存在します'
+                # msg = 'warning: ' \
+                #     + 'non-directory "' + media_dir + '"'
                 sys.stderr.write(msg + '\n\n')
                 return
         os.mkdir(media_dir)
@@ -1707,9 +1735,12 @@ class Paragraph:
                 c, n, h, rt = Title.decompose(dp, rt)
                 head += c + '#' * dp + ' '
         if re.match('\\s+', rt):
-            t = self._split_into_lines(rt).rstrip()
-            msg = 'warning: ' \
-                + 'removed spaces\n' + t
+            msg = '※ 警告: ' \
+                + '行頭の空白を削除しました\n  ' \
+                + head + self._split_into_lines(rt).rstrip()
+            # msg = 'warning: ' \
+            #     + 'removed spaces\n' \
+            #     + head + self._split_into_lines(rt).rstrip()
             sys.stderr.write(msg + '\n\n')
             rt = re.sub('\\s+', '', rt)
         if re.match('^.*[．。].*$', rt):
