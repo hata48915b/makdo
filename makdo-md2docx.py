@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v03 Yokogawa
-# Time-stamp:   <2022.12.28-09:47:42-JST>
+# Time-stamp:   <2022.12.28-13:02:52-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -130,7 +130,7 @@ def get_arguments():
         '-s', '--line-spacing',
         type=float,
         metavar='NUMBER',
-        help='行間の幅（単位文字）')
+        help='行間の高さ（単位文字）')
     parser.add_argument(
         '-B', '--space-before',
         type=floats6,
@@ -699,13 +699,13 @@ class Document:
             val = re.sub(res, '\\2', com).rstrip()
             if False:
                 pass
-            elif nam == 'document_title':
+            elif nam == 'document_title' or nam == '書題名':
                 self.document_title = val
-            elif nam == 'mincho_font':
+            elif nam == 'mincho_font' or nam == '明朝体':
                 self.mincho_font = val
-            elif nam == 'gothic_font':
+            elif nam == 'gothic_font' or nam == 'ゴシ体':
                 self.gothic_font = val
-            elif nam == 'document_style':
+            elif nam == 'document_style' or nam == '文書式':
                 if val == '-' or val == 'k' or val == 'j':
                     self.document_style = val
                 else:
@@ -715,7 +715,7 @@ class Document:
                     # msg = 'error: ' \
                     #     + '"' + nam + '" must be "-", "k" or "j"'
                     sys.stderr.write(msg + '\n\n')
-            elif nam == 'paper_size':
+            elif nam == 'paper_size' or nam == '用紙サ':
                 if re.match('^(A3|A3P|A4|A4L)$', val):
                     self.paper_size = val
                 else:
@@ -725,22 +725,23 @@ class Document:
                     # msg = 'error: ' \
                     #     + '"' + nam + '" must be "A3", "A3P", "A4" or "A4L"'
                     sys.stderr.write(msg + '\n\n')
-            elif (nam == 'no_page_number' or
-                  nam == 'line_number' or
-                  nam == 'auto_space'):
-                if val == 'True' or val == 'False':
-                    if nam == 'no_page_number':
-                        if val == 'True':
+            elif (nam == 'no_page_number' or nam == '頁番号' or
+                  nam == 'line_number' or nam == '行番号' or
+                  nam == 'auto_space' or nam == '字間整'):
+                if val == 'True' or val == '有' or \
+                   val == 'False' or val == '無':
+                    if nam == 'no_page_number'or nam == '頁番号':
+                        if val == 'True' or val == '無':
                             self.no_page_number = True
                         else:
                             self.no_page_number = False
-                    elif nam == 'line_number':
-                        if val == 'True':
+                    elif nam == 'line_number' or nam == '行番号':
+                        if val == 'True' or val == '有':
                             self.line_number = True
                         else:
                             self.line_number = False
-                    elif nam == 'auto_space':
-                        if val == 'True':
+                    elif nam == 'auto_space'or nam == '字間整':
+                        if val == 'True' or val == '有':
                             self.auto_space = True
                         else:
                             self.auto_space = False
@@ -752,20 +753,21 @@ class Document:
                     #     + '"' + nam + '" must be "True" or "False"'
                     sys.stderr.write(msg + '\n\n')
             elif (re.match('^(top|bottom|left|right)_margin$', nam) or
-                  nam == 'line_spacing' or
-                  nam == 'font_size'):
+                  re.match('^(上|下|左|右)余白$', nam) or
+                  nam == 'line_spacing' or nam == '行間高' or
+                  nam == 'font_size' or nam == '文字サ'):
                 if re.match('^' + RES_NUMBER + '$', val):
-                    if nam == 'top_margin':
+                    if nam == 'top_margin' or nam == '上余白':
                         self.top_margin = float(val)
-                    elif nam == 'bottom_margin':
+                    elif nam == 'bottom_margin' or nam == '下余白':
                         self.bottom_margin = float(val)
-                    elif nam == 'left_margin':
+                    elif nam == 'left_margin' or nam == '左余白':
                         self.left_margin = float(val)
-                    elif nam == 'right_margin':
+                    elif nam == 'right_margin' or nam == '右余白':
                         self.right_margin = float(val)
-                    elif nam == 'line_spacing':
+                    elif nam == 'line_spacing' or nam == '行間高':
                         self.line_spacing = float(val)
-                    elif nam == 'font_size':
+                    elif nam == 'font_size' or nam == '文字サ':
                         self.font_size = float(val)
                 else:
                     msg = '※ 警告: ' \
@@ -774,11 +776,12 @@ class Document:
                     # msg = 'error: ' \
                     #     + '"' + nam + '" must be an integer or a decimal'
                     sys.stderr.write(msg + '\n\n')
-            elif re.match('^space_(before|after)$', nam):
+            elif (re.match('^space_(before|after)$', nam) or
+                  re.match('^段落(前|後)$', nam)):
                 if re.match('^' + RES_NUMBER6 + '$', val):
-                    if nam == 'space_before':
+                    if nam == 'space_before' or nam == '段落前':
                         self.space_before = val
-                    elif nam == 'space_after':
+                    elif nam == 'space_after'or nam == '段落後':
                         self.space_after = val
                 else:
                     msg = '※ 警告: ' \
@@ -788,7 +791,7 @@ class Document:
                     # msg = 'error: ' \
                     #     + '"' + nam + '" must be 6 integers or decimals'
                     sys.stderr.write(msg + '\n\n')
-            elif nam == 'birthtime':
+            elif nam == 'birthtime' or nam == '起源時':
                 res = '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$'
                 if re.match(res, val):
                     self.birthtime = val
@@ -888,6 +891,16 @@ class Document:
         ms_doc.styles['makdo'].font.size = Pt(size)
         ms_doc.styles['makdo'].paragraph_format.line_spacing \
             = Pt(line_spacing * size)
+        if not doc.auto_space:
+            pPr = ms_doc.styles['makdo']._element.get_or_add_pPr()
+            # KANJI<->ENGLISH 
+            oe = OxmlElement('w:autoSpaceDE')
+            oe.set(ns.qn('w:val'), '0')
+            pPr.append(oe)
+            # KANJI<->NUMBER
+            oe = OxmlElement('w:autoSpaceDN')
+            oe.set(ns.qn('w:val'), '0')
+            pPr.append(oe)
         # GOTHIC
         ms_doc.styles.add_style('makdo-g', WD_STYLE_TYPE.PARAGRAPH)
         ms_doc.styles['makdo-g'].font.name = self.gothic_font

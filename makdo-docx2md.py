@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v03 Yokogawa
-# Time-stamp:   <2022.12.28-10:17:57-JST>
+# Time-stamp:   <2022.12.28-13:08:01-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -111,7 +111,7 @@ def get_arguments():
         '-s', '--line-spacing',
         type=float,
         metavar='NUMBER',
-        help='行間の幅（単位文字）')
+        help='行間の高さ（単位文字）')
     parser.add_argument(
         '-B', '--space-before',
         type=floats6,
@@ -659,24 +659,32 @@ class Document:
     def _configure_by_styles_xml(self, raw_xml_lines):
         xml_body = self._get_xml_body('w:styles', raw_xml_lines)
         xml_blocks = self._get_xml_blocks(xml_body)
-        sb = ['', '', '', '', '', '']
-        sa = ['', '', '', '', '', '']
+        sb = ['0', '0', '0', '0', '0', '0']
+        sa = ['0', '0', '0', '0', '0', '0']
         for xb in xml_blocks:
             name = ''
             font = ''
             sz_x = -1.0
             ls_x = -1.0
+            ase = -1
+            asn = -1
             for xl in xb:
                 name = get_xml_value('w:name', 'w:val', name, xl)
                 font = get_xml_value('w:rFonts', '*', font, xl)
                 sz_x = get_xml_value('w:sz', 'w:val', sz_x, xl)
                 ls_x = get_xml_value('w:spacing', 'w:line', ls_x, xl)
+                ase = get_xml_value('w:autoSpaceDE', 'w:val', ase, xl)
+                asn = get_xml_value('w:autoSpaceDN', 'w:val', asn, xl)
             if name == 'makdo':
                 self.mincho_font = font
                 if sz_x > 0:
                     self.font_size = round(sz_x / 2, 1)
                 if ls_x > 0:
                     self.line_spacing = round(ls_x / 20 / self.font_size, 2)
+                if ase == 0 and asn == 0:
+                    self.auto_space = False
+                else:
+                    self.auto_space = True
             elif name == 'makdo-g':
                 self.gothic_font = font
             else:
@@ -697,15 +705,15 @@ class Document:
                         f = f / 20 / self.font_size / self.line_spacing
                         sa[i] = str(round(f, 2))
         csb = ',' + ','.join(sb) + ','
-        csb = re.sub(',0\\.0,', ',,', csb)
+        # csb = re.sub(',0\\.0,', ',,', csb)
         csb = re.sub('\\.0,', ',', csb)
         csb = re.sub('^,', '', csb)
-        csb = re.sub(',+$', '', csb)
+        csb = re.sub(',$', '', csb)
         csa = ',' + ','.join(sa) + ','
-        csa = re.sub(',0\\.0,', ',,', csa)
+        # csa = re.sub(',0\\.0,', ',,', csa)
         csa = re.sub('\\.0,', ',', csa)
         csa = re.sub('^,', '', csa)
-        csa = re.sub(',+$', '', csa)
+        csa = re.sub(',$', '', csa)
         if csb != '':
             self.space_before = csb
         if csa != '':
@@ -1173,23 +1181,54 @@ class Document:
 
     def write_configurations(self, mf):
         mf.write('<!--\n')
-        mf.write('document_title: ' + self.document_title + '\n')
-        mf.write('document_style: ' + self.document_style + '\n')
-        mf.write('no_page_number: ' + str(self.no_page_number) + '\n')
-        mf.write('line_number:    ' + str(self.line_number) + '\n')
-        mf.write('paper_size:     ' + str(self.paper_size) + '\n')
-        mf.write('top_margin:     ' + str(round(self.top_margin, 1)) + '\n')
-        mf.write('bottom_margin:  ' + str(round(self.bottom_margin, 1)) + '\n')
-        mf.write('left_margin:    ' + str(round(self.left_margin, 1)) + '\n')
-        mf.write('right_margin:   ' + str(round(self.right_margin, 1)) + '\n')
-        mf.write('mincho_font:    ' + self.mincho_font + '\n')
-        mf.write('gothic_font:    ' + self.gothic_font + '\n')
-        mf.write('font_size:      ' + str(round(self.font_size, 1)) + '\n')
-        mf.write('line_spacing:   ' + str(round(self.line_spacing, 2)) + '\n')
-        mf.write('space_before:   ' + self.space_before + '\n')
-        mf.write('space_after:    ' + self.space_after + '\n')
-        mf.write('auto_space:     ' + str(self.auto_space) + '\n')
-        mf.write('birthtime:      ' + self.birthtime + '\n')
+        # ENGLISH
+        # mf.write('document_title: ' + self.document_title + '\n')
+        # mf.write('document_style: ' + self.document_style + '\n')
+        # mf.write('no_page_number: ' + str(self.no_page_number) + '\n')
+        # mf.write('line_number:    ' + str(self.line_number) + '\n')
+        # mf.write('paper_size:     ' + str(self.paper_size) + '\n')
+        # mf.write('top_margin:     ' + str(round(self.top_margin, 1)) + '\n')
+        # mf.write('bottom_margin:  '
+        #          + str(round(self.bottom_margin, 1)) + '\n')
+        # mf.write('left_margin:    ' + str(round(self.left_margin, 1)) + '\n')
+        # mf.write('right_margin:   '
+        #          + str(round(self.right_margin, 1)) + '\n')
+        # mf.write('mincho_font:    ' + self.mincho_font + '\n')
+        # mf.write('gothic_font:    ' + self.gothic_font + '\n')
+        # mf.write('font_size:      ' + str(round(self.font_size, 1)) + '\n')
+        # mf.write('line_spacing:   '
+        #          + str(round(self.line_spacing, 2)) + '\n')
+        # mf.write('space_before:   ' + self.space_before + '\n')
+        # mf.write('space_after:    ' + self.space_after + '\n')
+        # mf.write('auto_space:     ' + str(self.auto_space) + '\n')
+        # mf.write('birthtime:      ' + self.birthtime + '\n')
+        # JAPANESE
+        mf.write('書題名: ' + self.document_title + '\n')
+        mf.write('文書式: ' + self.document_style + '\n')
+        if self.no_page_number:
+            mf.write('頁番号: 無\n')
+        else:
+            mf.write('頁番号: 有\n')
+        if self.line_number:
+            mf.write('行番号: 有\n')
+        else:
+            mf.write('行番号: 無\n')
+        mf.write('用紙サ: ' + str(self.paper_size) + '\n')
+        mf.write('上余白: ' + str(round(self.top_margin, 1)) + '\n')
+        mf.write('下余白: ' + str(round(self.bottom_margin, 1)) + '\n')
+        mf.write('左余白: ' + str(round(self.left_margin, 1)) + '\n')
+        mf.write('右余白: ' + str(round(self.right_margin, 1)) + '\n')
+        mf.write('明朝体: ' + self.mincho_font + '\n')
+        mf.write('ゴシ体: ' + self.gothic_font + '\n')
+        mf.write('文字サ: ' + str(round(self.font_size, 1)) + '\n')
+        mf.write('行間高: ' + str(round(self.line_spacing, 2)) + '\n')
+        mf.write('段落前: ' + self.space_before + '\n')
+        mf.write('段落後: ' + self.space_after + '\n')
+        if self.auto_space:
+            mf.write('字間整: 有\n')
+        else:
+            mf.write('字間整: 無\n')
+        mf.write('起源時: ' + self.birthtime + '\n')
         mf.write('-->\n\n')
         return
 
