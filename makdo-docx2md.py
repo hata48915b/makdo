@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v03 Yokogawa
-# Time-stamp:   <2022.12.29-05:51:02-JST>
+# Time-stamp:   <2022.12.29-06:34:20-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -161,7 +161,7 @@ DEFAULT_MINCHO_FONT = 'ＭＳ 明朝'
 DEFAULT_GOTHIC_FONT = 'ＭＳ ゴシック'
 DEFAULT_FONT_SIZE = 12.0
 
-DEFAULT_DOCUMENT_STYLE = '-'
+DEFAULT_DOCUMENT_STYLE = 'n'
 DEFAULT_NO_PAGE_NUMBER = False
 DEFAULT_LINE_NUMBER = False
 
@@ -1210,7 +1210,7 @@ class Document:
         else:
             mf.write('書題名: -\n')
         mf.write('\n')
-        mf.write('# 3つの書式（-=一般、k=契約書 、j=条文）を指定できます。\n')
+        mf.write('# 3つの書式（n=普通、k=契約、j=条文）を指定できます。\n')
         mf.write('文書式: ' + self.document_style + '\n')
         mf.write('\n')
         mf.write('# ページ番号を記載するかどうか（有、無）を指定できます。\n')

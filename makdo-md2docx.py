@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v03 Yokogawa
-# Time-stamp:   <2022.12.29-06:23:53-JST>
+# Time-stamp:   <2022.12.29-06:38:16-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -198,7 +198,7 @@ DEFAULT_BOTTOM_MARGIN = 2.2
 DEFAULT_LEFT_MARGIN = 3.0
 DEFAULT_RIGHT_MARGIN = 2.0
 
-DEFAULT_DOCUMENT_STYLE = '-'
+DEFAULT_DOCUMENT_STYLE = 'n'
 DEFAULT_NO_PAGE_NUMBER = False
 DEFAULT_LINE_NUMBER = False
 
@@ -710,7 +710,7 @@ class Document:
             elif nam == 'gothic_font' or nam == 'ゴシ体':
                 self.gothic_font = val
             elif nam == 'document_style' or nam == '文書式':
-                if val == '-' or val == 'k' or val == 'j':
+                if val == 'n' or val == 'k' or val == 'j':
                     self.document_style = val
                 else:
                     msg = '※ 警告: ' \
@@ -1443,7 +1443,7 @@ class Paragraph:
             if sec_dep == 1:
                 head_string += Title.get_head_1(sec_stat[0])
             elif sec_dep == 2:
-                if doc.document_style == '-':
+                if doc.document_style == 'n':
                     head_string += Title.get_head_2(sec_stat[1])
                 else:
                     head_string += Title.get_head_2_j_or_J(sec_stat[1])
