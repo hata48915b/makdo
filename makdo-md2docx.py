@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v03 Yokogawa
-# Time-stamp:   <2022.12.28-13:02:52-JST>
+# Time-stamp:   <2022.12.28-17:21:13-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -223,6 +223,8 @@ ORIGINAL_COMMENT_SYMBOL = ';;'
 COMMENT_SEPARATE_SYMBOL = ' / '
 
 NOT_ESCAPED = '^((?:(?:.*\n)*.*[^\\\\])?(?:\\\\\\\\)*)?'
+
+HORIZONTAL_BAR = '[ー−—－―‐]'
 
 
 class Title:
@@ -716,6 +718,7 @@ class Document:
                     #     + '"' + nam + '" must be "-", "k" or "j"'
                     sys.stderr.write(msg + '\n\n')
             elif nam == 'paper_size' or nam == '用紙サ':
+                val = unicodedata.normalize('NFKC', val)
                 if re.match('^(A3|A3P|A4|A4L)$', val):
                     self.paper_size = val
                 else:
@@ -728,6 +731,7 @@ class Document:
             elif (nam == 'no_page_number' or nam == '頁番号' or
                   nam == 'line_number' or nam == '行番号' or
                   nam == 'auto_space' or nam == '字間整'):
+                val = unicodedata.normalize('NFKC', val)
                 if val == 'True' or val == '有' or \
                    val == 'False' or val == '無':
                     if nam == 'no_page_number'or nam == '頁番号':
@@ -756,6 +760,7 @@ class Document:
                   re.match('^(上|下|左|右)余白$', nam) or
                   nam == 'line_spacing' or nam == '行間高' or
                   nam == 'font_size' or nam == '文字サ'):
+                val = unicodedata.normalize('NFKC', val)
                 if re.match('^' + RES_NUMBER + '$', val):
                     if nam == 'top_margin' or nam == '上余白':
                         self.top_margin = float(val)
@@ -778,6 +783,8 @@ class Document:
                     sys.stderr.write(msg + '\n\n')
             elif (re.match('^space_(before|after)$', nam) or
                   re.match('^段落(前|後)$', nam)):
+                val = unicodedata.normalize('NFKC', val)
+                val = val.replace('、', ',')
                 if re.match('^' + RES_NUMBER6 + '$', val):
                     if nam == 'space_before' or nam == '段落前':
                         self.space_before = val
@@ -792,6 +799,8 @@ class Document:
                     #     + '"' + nam + '" must be 6 integers or decimals'
                     sys.stderr.write(msg + '\n\n')
             elif nam == 'birthtime' or nam == '起源時':
+                val = unicodedata.normalize('NFKC', val)
+                val = re.sub(HORIZONTAL_BAR, '-', val)
                 res = '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$'
                 if re.match(res, val):
                     self.birthtime = val
