@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v03 Yokogawa
-# Time-stamp:   <2022.12.29-06:34:20-JST>
+# Time-stamp:   <2022.12.29-07:37:41-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -620,104 +620,20 @@ class Document:
         return raw_xml_lines
 
     def configure(self, args):
-        # DOCUMENT TITLE
-        self._configure_by_core_xml(self.core_raw_xml_lines)
-        # PAGE NUMBER
-        self._configure_by_footer1_xml(self.footer1_raw_xml_lines)
-        # FONT, LINE SPACING
-        self._configure_by_styles_xml(self.styles_raw_xml_lines)
-        # PAPER SIZE, MARGIN, LINE NUMBER
+        # PAPER SIZE, MARGIN, LINE NUMBER, DOCUMENT STYLE
         self._configure_by_document_xml(self.document_raw_xml_lines)
+        # DOCUMENT TITLE, DOCUMENT STYLE, BIRTHTIME
+        self._configure_by_core_xml(self.core_raw_xml_lines)
+        # NO PAGE NUMBER
+        self._configure_by_footer1_xml(self.footer1_raw_xml_lines)
+        # FONT, LINE SPACING, AUTOSPACE, SAPCE BEFORE AND AFTER
+        self._configure_by_styles_xml(self.styles_raw_xml_lines)
         # REVISE
         self._configure_by_args(args)
         # PARAGRAPH
         Paragraph.mincho_font = self.mincho_font
         Paragraph.gothic_font = self.gothic_font
         Paragraph.font_size = self.font_size
-
-    def _configure_by_core_xml(self, raw_xml_lines):
-        for i, rxl in enumerate(raw_xml_lines):
-            resb = '^<dc:title>$'
-            rese = '^</dc:title>$'
-            if i > 0 and re.match(resb, raw_xml_lines[i - 1], re.I):
-                if not re.match(rese, rxl, re.I):
-                    self.document_title = rxl
-            resb = '^<dcterms:modified( .*)?>$'
-            rese = '^</dcterms:modified>$'
-            if i > 0 and re.match(resb, raw_xml_lines[i - 1], re.I):
-                if not re.match(rese, rxl, re.I):
-                    self.birthtime = rxl
-                    self.birthtime = re.sub('T', ' ', self.birthtime)
-                    self.birthtime = re.sub('Z', '', self.birthtime)
-
-    def _configure_by_footer1_xml(self, raw_xml_lines):
-        self.no_page_number = True
-        for rxl in raw_xml_lines:
-            if rxl == 'PAGE':
-                self.no_page_number = False
-
-    def _configure_by_styles_xml(self, raw_xml_lines):
-        xml_body = self._get_xml_body('w:styles', raw_xml_lines)
-        xml_blocks = self._get_xml_blocks(xml_body)
-        sb = ['0', '0', '0', '0', '0', '0']
-        sa = ['0', '0', '0', '0', '0', '0']
-        for xb in xml_blocks:
-            name = ''
-            font = ''
-            sz_x = -1.0
-            ls_x = -1.0
-            ase = -1
-            asn = -1
-            for xl in xb:
-                name = get_xml_value('w:name', 'w:val', name, xl)
-                font = get_xml_value('w:rFonts', '*', font, xl)
-                sz_x = get_xml_value('w:sz', 'w:val', sz_x, xl)
-                ls_x = get_xml_value('w:spacing', 'w:line', ls_x, xl)
-                ase = get_xml_value('w:autoSpaceDE', 'w:val', ase, xl)
-                asn = get_xml_value('w:autoSpaceDN', 'w:val', asn, xl)
-            if name == 'makdo':
-                self.mincho_font = font
-                if sz_x > 0:
-                    self.font_size = round(sz_x / 2, 1)
-                if ls_x > 0:
-                    self.line_spacing = round(ls_x / 20 / self.font_size, 2)
-                if ase == 0 and asn == 0:
-                    self.auto_space = False
-                else:
-                    self.auto_space = True
-            elif name == 'makdo-g':
-                self.gothic_font = font
-            else:
-                for i in range(6):
-                    if name != 'makdo-' + str(i + 1):
-                        continue
-                    for xl in xb:
-                        sb[i] \
-                            = get_xml_value('w:spacing', 'w:before', sb[i], xl)
-                        sa[i] \
-                            = get_xml_value('w:spacing', 'w:after', sa[i], xl)
-                    if sb[i] != '':
-                        f = float(sb[i])
-                        f = f / 20 / self.font_size / self.line_spacing
-                        sb[i] = str(round(f, 2))
-                    if sa[i] != '':
-                        f = float(sa[i])
-                        f = f / 20 / self.font_size / self.line_spacing
-                        sa[i] = str(round(f, 2))
-        csb = ',' + ', '.join(sb) + ','
-        # csb = re.sub(',0\\.0,', ',,', csb)
-        # csb = re.sub('\\.0,', ',', csb)
-        csb = re.sub('^,', '', csb)
-        csb = re.sub(',$', '', csb)
-        csa = ',' + ', '.join(sa) + ','
-        # csa = re.sub(',0\\.0,', ',,', csa)
-        # csa = re.sub('\\.0,', ',', csa)
-        csa = re.sub('^,', '', csa)
-        csa = re.sub(',$', '', csa)
-        if csb != '':
-            self.space_before = csb
-        if csa != '':
-            self.space_after = csa
 
     def _configure_by_document_xml(self, raw_xml_lines):
         width_x = -1.0
@@ -733,8 +649,10 @@ class Document:
             bottom_x = get_xml_value('w:pgMar', 'w:bottom', bottom_x, rxl)
             left_x = get_xml_value('w:pgMar', 'w:left', left_x, rxl)
             right_x = get_xml_value('w:pgMar', 'w:right', right_x, rxl)
+            # LINE NUMBER
             if re.match('^<w:lnNumType( .*)?>$', rxl):
                 self.line_number = True
+        # PAPER SIZE
         width = width_x / 567
         height = height_x / 567
         if 41.9 <= width and width <= 42.1:
@@ -749,6 +667,7 @@ class Document:
         if 29.6 <= width and width <= 29.8:
             if 20.9 <= height and height <= 21.1:
                 self.paper_size = 'A4L'
+        # MARGIN
         if top_x > 0:
             self.top_margin = round(top_x / 567, 1)
         if bottom_x > 0:
@@ -779,6 +698,110 @@ class Document:
                 self.document_style = 'k'
             else:
                 self.document_style = 'j'
+
+    def _configure_by_core_xml(self, raw_xml_lines):
+        for i, rxl in enumerate(raw_xml_lines):
+            # DOCUMUNT TITLE
+            resb = '^<dc:title>$'
+            rese = '^</dc:title>$'
+            if i > 0 and re.match(resb, raw_xml_lines[i - 1], re.I):
+                if not re.match(rese, rxl, re.I):
+                    self.document_title = rxl
+            # DOCUMENT STYLE
+            resb = '^<cp:category>$'
+            rese = '^</cp:category>$'
+            if i > 0 and re.match(resb, raw_xml_lines[i - 1], re.I):
+                if not re.match(rese, rxl, re.I):
+                    if re.match('^.*（普通）.*$', rxl):
+                        self.document_style = 'n'
+                    elif re.match('^.*（契約）.*$', rxl):
+                        self.document_style = 'k'
+                    elif re.match('^.*（条文）.*$', rxl):
+                        self.document_style = 'j'
+            # BIRTHTIME
+            resb = '^<dcterms:modified( .*)?>$'
+            rese = '^</dcterms:modified>$'
+            if i > 0 and re.match(resb, raw_xml_lines[i - 1], re.I):
+                if not re.match(rese, rxl, re.I):
+                    self.birthtime = rxl
+                    self.birthtime = re.sub('T', ' ', self.birthtime)
+                    self.birthtime = re.sub('Z', '', self.birthtime)
+
+    def _configure_by_footer1_xml(self, raw_xml_lines):
+        # NO PAGE NUMBER
+        self.no_page_number = True
+        for rxl in raw_xml_lines:
+            if rxl == 'PAGE':
+                self.no_page_number = False
+
+    def _configure_by_styles_xml(self, raw_xml_lines):
+        xml_body = self._get_xml_body('w:styles', raw_xml_lines)
+        xml_blocks = self._get_xml_blocks(xml_body)
+        sb = ['0', '0', '0', '0', '0', '0']
+        sa = ['0', '0', '0', '0', '0', '0']
+        for xb in xml_blocks:
+            name = ''
+            font = ''
+            sz_x = -1.0
+            ls_x = -1.0
+            ase = -1
+            asn = -1
+            for xl in xb:
+                name = get_xml_value('w:name', 'w:val', name, xl)
+                font = get_xml_value('w:rFonts', '*', font, xl)
+                sz_x = get_xml_value('w:sz', 'w:val', sz_x, xl)
+                ls_x = get_xml_value('w:spacing', 'w:line', ls_x, xl)
+                ase = get_xml_value('w:autoSpaceDE', 'w:val', ase, xl)
+                asn = get_xml_value('w:autoSpaceDN', 'w:val', asn, xl)
+            if name == 'makdo':
+                # MINCHO FONT
+                self.mincho_font = font
+                # FONT SIZE
+                if sz_x > 0:
+                    self.font_size = round(sz_x / 2, 1)
+                # LINE SPACING
+                if ls_x > 0:
+                    self.line_spacing = round(ls_x / 20 / self.font_size, 2)
+                # AUTOSPACE
+                if ase == 0 and asn == 0:
+                    self.auto_space = False
+                else:
+                    self.auto_space = True
+            elif name == 'makdo-g':
+                # GOTHIC FONT
+                self.gothic_font = font
+            else:
+                for i in range(6):
+                    if name != 'makdo-' + str(i + 1):
+                        continue
+                    for xl in xb:
+                        sb[i] \
+                            = get_xml_value('w:spacing', 'w:before', sb[i], xl)
+                        sa[i] \
+                            = get_xml_value('w:spacing', 'w:after', sa[i], xl)
+                    if sb[i] != '':
+                        f = float(sb[i])
+                        f = f / 20 / self.font_size / self.line_spacing
+                        sb[i] = str(round(f, 2))
+                    if sa[i] != '':
+                        f = float(sa[i])
+                        f = f / 20 / self.font_size / self.line_spacing
+                        sa[i] = str(round(f, 2))
+        # SPACE BEFORE, SPACE AFTER
+        csb = ',' + ', '.join(sb) + ','
+        # csb = re.sub(',0\\.0,', ',,', csb)
+        # csb = re.sub('\\.0,', ',', csb)
+        csb = re.sub('^,', '', csb)
+        csb = re.sub(',$', '', csb)
+        csa = ',' + ', '.join(sa) + ','
+        # csa = re.sub(',0\\.0,', ',,', csa)
+        # csa = re.sub('\\.0,', ',', csa)
+        csa = re.sub('^,', '', csa)
+        csa = re.sub(',$', '', csa)
+        if csb != '':
+            self.space_before = csb
+        if csa != '':
+            self.space_after = csa
 
     def _configure_by_args(self, args):
         if args.document_title is not None:

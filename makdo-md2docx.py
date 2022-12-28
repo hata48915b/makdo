@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v03 Yokogawa
-# Time-stamp:   <2022.12.29-06:38:16-JST>
+# Time-stamp:   <2022.12.29-07:40:12-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -714,7 +714,7 @@ class Document:
                     self.document_style = val
                 else:
                     msg = '※ 警告: ' \
-                        + '「' + nam + '」は"-"、"k"又は"j"で' \
+                        + '「' + nam + '」は"n"、"k"又は"j"で' \
                         + 'なければなりません'
                     # msg = 'warning: ' \
                     #     + '"' + nam + '" must be "-", "k" or "j"'
@@ -968,6 +968,12 @@ class Document:
         dt = datetime.datetime.now()
         ms_cp = ms_doc.core_properties
         ms_cp.title = self.document_title
+        if self.document_style == 'n':
+            ms_cp.category = '（普通）'
+        elif self.document_style == 'k':
+            ms_cp.category = '（契約）'
+        elif self.document_style == 'j':
+            ms_cp.category = '（条文）'
         ms_cp.author = hs + ' (with makdo ' + __version__ + ')'
         ms_cp.created = dt
         ms_cp.modified = dt
