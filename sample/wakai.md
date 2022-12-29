@@ -1,8 +1,15 @@
-<!--
-document_style: k
-[Word形式ファイルの作成方法]
-python3 makdo-md2docx.py --document-style j wakai.md wakai.docx
--->
+<!----------------------【設定】-------------------------
+
+# プロパティに表示される書面のタイトルを指定ください。
+書題名: サンプル和解契約書
+
+# 3つの書式（n=普通、k=契約、j=条文）を指定できます。
+文書式: k
+
+# [Word形式ファイルの作成方法]
+# python3 makdo-md2docx.py --document-style j wakai.md wakai.docx
+
+-------------------------------------------------------->
 
 # 和解契約書
 

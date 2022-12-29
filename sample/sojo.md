@@ -1,9 +1,18 @@
-<!--
-line_number:    True
-space_before:   0,1
-[Word形式ファイルの作成方法]
-python3 makdo-md2docx.py --line-number --space-before 1,1 sojo.md sojo.docx
--->
+<!----------------------【設定】-------------------------
+
+# プロパティに表示される書面のタイトルを指定ください。
+書題名: サンプル訴状
+
+# 行番号を記載するかどうか（有、無）を指定できます。
+行番号: 有
+
+# セクション前後の余白を行間の高さの倍数で指定できます。
+節前高: ,1,,,,
+
+# [Word形式ファイルの作成方法]
+# python3 makdo-md2docx.py --line-number --space-before ,1 sojo.md sojo.docx
+
+-------------------------------------------------------->
 
 v=+0.5
 # 訴　　状
