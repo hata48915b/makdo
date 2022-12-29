@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v03 Yokogawa
-# Time-stamp:   <2022.12.29-07:40:12-JST>
+# Time-stamp:   <2022.12.29-09:18:20-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -965,18 +965,33 @@ class Document:
             for i in range(8):
                 hs += chr(x % 26 + 97)
                 x = int(x / 26)
-        dt = datetime.datetime.now()
-        ms_cp = ms_doc.core_properties
-        ms_cp.title = self.document_title
+        tt = self.document_title
         if self.document_style == 'n':
-            ms_cp.category = '（普通）'
+            ct = '（普通）'
         elif self.document_style == 'k':
-            ms_cp.category = '（契約）'
+            ct = '（契約）'
         elif self.document_style == 'j':
-            ms_cp.category = '（条文）'
-        ms_cp.author = hs + ' (with makdo ' + __version__ + ')'
-        ms_cp.created = dt
-        ms_cp.modified = dt
+            ct = '（条文）'
+        at = hs + ' (with makdo ' + __version__ + ')'
+        dt = datetime.datetime.now()
+        # pt = datetime.datetime(1970, 1, 1, 0, 0, 0)
+        ms_cp = ms_doc.core_properties
+        ms_cp.identifier \
+            = 'makdo; ' + hs + '; ' + dt.strftime('%Y.%m.%d %H:%M:%S.%f')[:-4]
+        ms_cp.title = tt               # タイトル
+        # ms_cp.subject = ''           # 件名
+        # ms_cp.keywords = ''          # タグ
+        ms_cp.category = ct            # 分類項目
+        # ms_cp.comments = ''          # コメント
+        ms_cp.author = at              # 作成者
+        # ms_cp.last_modified_by = ''  # 前回保存者
+        #ms_cp.revision = 1            # 改訂番号
+        # ms_cp.version = ''           # バージョン番号
+        ms_cp.created = dt             # コンテンツの作成日時
+        ms_cp.modified = dt            # 前回保存時
+        # ms_cp.last_printed = pt      # 前回印刷日
+        # ms_cp.content_status = ''    # 内容の状態
+        # ms_cp.language = ''          # 言語
 
     def write_document(self, ms_doc):
         for p in self.paragraphs:
