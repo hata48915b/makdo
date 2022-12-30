@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v03 Yokogawa
-# Time-stamp:   <2022.12.29-07:37:41-JST>
+# Time-stamp:   <2022.12.30-15:17:53-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -1464,7 +1464,7 @@ class Paragraph:
         is_gothic = False
         has_strike = False
         has_underline = False
-        color = ''
+        font_color = ''
         is_in_text = False
         res_img_ms = \
             '^<v:imagedata r:id=[\'"](.+)[\'"] o:title=[\'"](.+)[\'"]/>$'
@@ -1505,12 +1505,14 @@ class Paragraph:
                 if is_large:
                     text = '++' + text + '++'
                     is_large = False
-                if color != '':
-                    if color == 'FFFFFF':
+                if font_color != '':
+                    if font_color == 'FFFFFF':
                         text = '@@' + text + '@@'
                     else:
-                        text = '@' + color + '@' + text + '@' + color + '@'
-                    color = ''
+                        text = '@' + font_color + '@' \
+                            + text \
+                            + '@' + font_color + '@'
+                    font_color = ''
                 if has_underline:
                     text = '__' + text + '__'
                     has_underline = False
@@ -1548,8 +1550,9 @@ class Paragraph:
             elif re.match('^<w:u( .*)?>$', rxl):
                 has_underline = True
             elif re.match('^<w:color w:val="[0-9A-F]+"( .*)?/?>$', rxl):
-                color = re.sub('^<.*w:val="([0-9A-F]+)".*>$', '\\1', rxl, re.I)
-                color = color.upper()
+                font_color \
+                    = re.sub('^<.*w:val="([0-9A-F]+)".*>$', '\\1', rxl, re.I)
+                font_color = font_color.upper()
             elif re.match('^<w:br/?>$', rxl):
                 text += '\n'
             elif not re.match('^<.*>$', rxl):

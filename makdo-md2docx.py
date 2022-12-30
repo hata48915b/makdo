@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v03 Yokogawa
-# Time-stamp:   <2022.12.30-14:53:25-JST>
+# Time-stamp:   <2022.12.30-15:15:18-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -1053,7 +1053,7 @@ class Paragraph:
     is_bold = False
     has_strike = False
     has_underline = False
-    color = ''
+    font_color = ''
 
     def __init__(self, paragraph_number, md_lines):
         self.paragraph_number = paragraph_number
@@ -2063,10 +2063,10 @@ class Paragraph:
                     tex = re.sub('@([0-9A-F]*)@$', '', tex)
                     tex = self._write_string(tex, ms_par)
                     esc = ''
-                    if Paragraph.color == '':
-                        Paragraph.color = col
+                    if Paragraph.font_color == '':
+                        Paragraph.font_color = col
                     else:
-                        Paragraph.color = ''
+                        Paragraph.font_color = ''
             elif esc == '\\':
                 if re.match('^[\\\\*~_/+\\-@]$', c):
                     esc = ''
@@ -2191,10 +2191,10 @@ class Paragraph:
             ms_run.underline = True
         # else:
         #     ms_run.underline = False
-        if cls.color != '':
-            r = int(re.sub('^(..)(..)(..)$', '\\1', cls.color), 16)
-            g = int(re.sub('^(..)(..)(..)$', '\\2', cls.color), 16)
-            b = int(re.sub('^(..)(..)(..)$', '\\3', cls.color), 16)
+        if cls.font_color != '':
+            r = int(re.sub('^(..)(..)(..)$', '\\1', cls.font_color), 16)
+            g = int(re.sub('^(..)(..)(..)$', '\\2', cls.font_color), 16)
+            b = int(re.sub('^(..)(..)(..)$', '\\3', cls.font_color), 16)
             ms_run.font.color.rgb = RGBColor(r, g, b)
         return ''
 
