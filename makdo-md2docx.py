@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v03 Yokogawa
-# Time-stamp:   <2022.12.30-15:20:13-JST>
+# Time-stamp:   <2022.12.30-16:43:30-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -48,6 +48,7 @@ from docx.oxml import OxmlElement, ns
 from docx.oxml.ns import qn
 from docx.enum.style import WD_STYLE_TYPE
 from docx.shared import RGBColor
+from docx.enum.text import WD_COLOR_INDEX
 
 
 __version__ = 'v03 Yokogawa'
@@ -187,7 +188,12 @@ HELP_EPILOG = '''Markdownの記法:
     [--]で挟まれた文字列は文字が小さくなります（独自）
     [@@]で挟まれた文字列は白色になって見えなくなります（独自）
     [@XXXXXX@]で挟まれた文字列はRGBXXXXXX色になります（独自）
+    [_foo_]で挟まれた区間の背景はfoo色になります（独自）
+      'yellow green cyan magenta blue red darkBlue'
+      'darkCyan darkGreen darkMagenta darkRed darkYellow'
+      'darkGray lightGray black'
 '''
+
 
 DEFAULT_DOCUMENT_TITLE = ''
 
@@ -207,6 +213,24 @@ DEFAULT_LINE_NUMBER = False
 DEFAULT_MINCHO_FONT = 'ＭＳ 明朝'
 DEFAULT_GOTHIC_FONT = 'ＭＳ ゴシック'
 DEFAULT_FONT_SIZE = 12.0
+
+HIGHLIGHT_COLOR = {
+    'yellow': WD_COLOR_INDEX.YELLOW,
+    'green': WD_COLOR_INDEX.BRIGHT_GREEN,
+    'cyan': WD_COLOR_INDEX.TURQUOISE,
+    'magenta': WD_COLOR_INDEX.PINK,
+    'blue': WD_COLOR_INDEX.BLUE,
+    'red': WD_COLOR_INDEX.RED,
+    'darkBlue': WD_COLOR_INDEX.DARK_BLUE,
+    'darkCyan': WD_COLOR_INDEX.TEAL,
+    'darkGreen': WD_COLOR_INDEX.GREEN,
+    'darkMagenta': WD_COLOR_INDEX.VIOLET,
+    'darkRed': WD_COLOR_INDEX.DARK_RED,
+    'darkYellow': WD_COLOR_INDEX.DARK_YELLOW,
+    'darkGray': WD_COLOR_INDEX.GRAY_50,
+    'lightGray': WD_COLOR_INDEX.GRAY_25,
+    'black': WD_COLOR_INDEX.BLACK,
+}
 
 DEFAULT_AUTO_SPACE = False
 
@@ -1056,6 +1080,7 @@ class Paragraph:
     has_strike = False
     has_underline = False
     font_color = ''
+    highlight_color = None
 
     def __init__(self, paragraph_number, md_lines):
         self.paragraph_number = paragraph_number
@@ -1105,7 +1130,7 @@ class Paragraph:
         res_de = '^\\s*' + \
             '((?:' + \
             '(?:\\*+)|(?:~~)|(?:__)|(?://)|(?:\\+\\+)|(?:--)' + \
-            '|(?:@[0-9A-F]*@)' + \
+            '|(?:@[0-9A-F]*@)|(?:_[a-zA-Z]*_)' + \
             ')+)' + \
             '(.*)$'
         res_sb = '^\\s*v=\\s*' + RES_NUMBER + '(.*)$'
@@ -2069,6 +2094,16 @@ class Paragraph:
                         Paragraph.font_color = col
                     else:
                         Paragraph.font_color = ''
+                elif re.match(NOT_ESCAPED + '_([a-zA-Z]*)_$', tex + esc):
+                    col = re.sub(NOT_ESCAPED + '_([a-zA-Z]*)$', '\\2', tex)
+                    if col in HIGHLIGHT_COLOR:
+                        tex = re.sub('_([a-zA-Z]*)$', '', tex)
+                        tex = self._write_string(tex, ms_par)
+                        esc = ''
+                        if Paragraph.highlight_color is None:
+                            Paragraph.highlight_color = HIGHLIGHT_COLOR[col]
+                        else:
+                            Paragraph.highlight_color = None
             elif esc == '\\':
                 if re.match('^[\\\\*~_/+\\-@]$', c):
                     esc = ''
@@ -2198,6 +2233,8 @@ class Paragraph:
             g = int(re.sub('^(..)(..)(..)$', '\\2', cls.font_color), 16)
             b = int(re.sub('^(..)(..)(..)$', '\\3', cls.font_color), 16)
             ms_run.font.color.rgb = RGBColor(r, g, b)
+        if cls.highlight_color is not None:
+            ms_run.font.highlight_color = cls.highlight_color
         return ''
 
     def _write_image(self, comm, path, ms_par):

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v03 Yokogawa
-# Time-stamp:   <2022.12.30-15:17:53-JST>
+# Time-stamp:   <2022.12.30-16:38:27-JST>
 
 # docx2md.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -1465,6 +1465,7 @@ class Paragraph:
         has_strike = False
         has_underline = False
         font_color = ''
+        highlight_color = ''
         is_in_text = False
         res_img_ms = \
             '^<v:imagedata r:id=[\'"](.+)[\'"] o:title=[\'"](.+)[\'"]/>$'
@@ -1513,6 +1514,11 @@ class Paragraph:
                             + text \
                             + '@' + font_color + '@'
                     font_color = ''
+                if highlight_color != '':
+                    text = '_' + highlight_color + '_' \
+                        + text \
+                        + '_' + highlight_color + '_'
+                    highlight_color = ''
                 if has_underline:
                     text = '__' + text + '__'
                     has_underline = False
@@ -1553,6 +1559,9 @@ class Paragraph:
                 font_color \
                     = re.sub('^<.*w:val="([0-9A-F]+)".*>$', '\\1', rxl, re.I)
                 font_color = font_color.upper()
+            elif re.match('^<w:highlight w:val="[a-zA-Z]+"( .*)?/?>$', rxl):
+                highlight_color \
+                    = re.sub('^<.*w:val="([a-zA-Z]+)".*>$', '\\1', rxl)
             elif re.match('^<w:br/?>$', rxl):
                 text += '\n'
             elif not re.match('^<.*>$', rxl):
