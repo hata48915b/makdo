@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v03 Yokogawa
-# Time-stamp:   <2022.12.30-15:15:18-JST>
+# Time-stamp:   <2022.12.30-15:20:13-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -174,6 +174,8 @@ HELP_EPILOG = '''Markdownの記法:
   行中指示
     [;;]から行末まではコメントアウトされます（独自）
     [<>]は何もせず表示もされません（独自）
+    [<br>]で改行されます
+    [<pgbr>]で改行されます
   文字装飾
     [*]で挟まれた文字列は斜体になります
     [**]で挟まれた文字列は太字になります
