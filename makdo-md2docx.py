@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v03 Yokogawa
-# Time-stamp:   <2022.12.30-12:52:58-JST>
+# Time-stamp:   <2022.12.30-14:53:25-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -985,7 +985,7 @@ class Document:
         # ms_cp.comments = ''          # コメント
         ms_cp.author = at              # 作成者
         # ms_cp.last_modified_by = ''  # 前回保存者
-        #ms_cp.revision = 1            # 改訂番号
+        # ms_cp.revision = 1           # 改訂番号
         # ms_cp.version = ''           # バージョン番号
         ms_cp.created = dt             # コンテンツの作成日時
         ms_cp.modified = dt            # 前回保存時
@@ -1214,8 +1214,9 @@ class Paragraph:
             paragraph_class = 'alignment'
         elif re.match('^\\|.*\\|$', full_text):
             paragraph_class = 'table'
-        elif re.match('^(! ?\\[[^\\[\\]]*\\] ?\\([^\\(\\)]+\\) ?)+$',
-                      full_text):
+        elif re.match('^(\\s*' +
+                      '(! ?\\[[^\\[\\]]*\\] ?\\([^\\(\\)]+\\)|\\+\\+|\\-\\-)' +
+                      ')+\\s*$', full_text):
             paragraph_class = 'image'
         elif re.match('^```.*$', full_text):
             paragraph_class = 'preformatted'
@@ -1864,29 +1865,63 @@ class Paragraph:
         return conf_row, ali_list, wid_list
 
     def _write_image_paragraph(self, ms_doc):
-        res = '^(! *\\[([^\\[\\]]*)\\] *\\(([^\\(\\)]+)\\) *)+$'
+        full_text = self.decoration_instruction
         for ml in self.md_lines:
-            if not re.match(res, ml.text):
-                continue
-            comm = re.sub(res, '\\2', ml.text)
-            path = re.sub(res, '\\3', ml.text)
-            try:
-                ms_doc.add_picture(path)
-                ms_doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
-            except BaseException:
-                e = ms_doc.paragraphs[-1]._element
-                e.getparent().remove(e)
-                ms_par = ms_doc.add_paragraph()
-                ms_par.add_run(ml.text)
-                ms_par.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                msg = '警告: ' \
-                    + '画像「' + path + '」が読み込めません'
-                # msg = 'warning: can\'t open "' + path + '"'
-                r = '^.*! *\\[.*\\] *\\(' + path + '\\).*$'
-                for ml in self.md_lines:
-                    if re.match(r, ml.text):
-                        if msg not in ml.warning_messages:
-                            ml.append_warning_message(msg)
+            full_text += ml.text
+        image_res = '! *\\[([^\\[\\]]*)\\] *\\(([^\\(\\)]+)\\)'
+        full_text = re.sub('\\s*(' + image_res + ')\\s*', '\n\\1\n', full_text)
+        full_text = re.sub('\\s*\\+\\+\\s*', '\n++\n', full_text)
+        full_text = re.sub('\\s*\\-\\-\\s*', '\n--\n', full_text)
+        full_text = re.sub('\n+', '\n', full_text)
+        full_text = re.sub('^\n+', '', full_text)
+        full_text = re.sub('\n+$', '', full_text)
+        is_large = False
+        is_small = False
+        text_height \
+            = PAPER_HEIGHT[doc.paper_size] - doc.top_margin - doc.bottom_margin
+        text_width \
+            = PAPER_WIDTH[doc.paper_size] - doc.left_margin - doc.right_margin
+        for text in full_text.split('\n'):
+            if re.match(image_res, text):
+                comm = re.sub(image_res, '\\1', text)
+                path = re.sub(image_res, '\\2', text)
+                try:
+                    if is_large:
+                        if text_height > text_width:
+                            ms_doc.add_picture(path, height=Cm(text_height))
+                        else:
+                            ms_doc.add_picture(path, width=Cm(text_width))
+                    elif is_small:
+                        if text_height > text_width:
+                            ms_doc.add_picture(path, width=Cm(text_width))
+                        else:
+                            ms_doc.add_picture(path, height=Cm(text_height))
+                    else:
+                        ms_doc.add_picture(path)
+                    ms_doc.paragraphs[-1].alignment \
+                        = WD_ALIGN_PARAGRAPH.CENTER
+                except BaseException:
+                    e = ms_doc.paragraphs[-1]._element
+                    e.getparent().remove(e)
+                    ms_par = ms_doc.add_paragraph()
+                    ms_par.add_run(text)
+                    ms_par.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    msg = '警告: ' \
+                        + '画像「' + path + '」が読み込めません'
+                    # msg = 'warning: can\'t open "' + path + '"'
+                    r = '^.*! *\\[.*\\] *\\(' + path + '\\).*$'
+                    for ml in self.md_lines:
+                        if re.match(r, ml.text):
+                            if msg not in ml.warning_messages:
+                                ml.append_warning_message(msg)
+            elif text == '++':
+                is_large = not is_large
+                if is_small:
+                    is_small = False
+            elif text == '--':
+                is_small = not is_small
+                if is_large:
+                    is_large = False
 
     def _write_preformatted_paragraph(self, ms_doc):
         ms_par = ms_doc.add_paragraph(style='makdo-g')
