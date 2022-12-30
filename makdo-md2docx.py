@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v03 Yokogawa
-# Time-stamp:   <2022.12.29-09:18:20-JST>
+# Time-stamp:   <2022.12.30-12:52:58-JST>
 
 # md2docx.py
 # Copyright (C) 2022  Seiichiro HATA
@@ -1885,8 +1885,8 @@ class Paragraph:
                 r = '^.*! *\\[.*\\] *\\(' + path + '\\).*$'
                 for ml in self.md_lines:
                     if re.match(r, ml.text):
-                        ml.append_warning_message(msg)
-                        break
+                        if msg not in ml.warning_messages:
+                            ml.append_warning_message(msg)
 
     def _write_preformatted_paragraph(self, ms_doc):
         ms_par = ms_doc.add_paragraph(style='makdo-g')
@@ -2180,10 +2180,11 @@ class Paragraph:
             msg = '警告: ' \
                 + 'インライン画像「' + path + '」が読み込めません'
             # msg = 'warning: can\'t open "' + path + '"'
+            r = '^.*! *\\[.*\\] *\\(' + path + '\\).*$'
             for ml in self.md_lines:
-                if re.match('^.*! ?\\[.*\\] ?\\(' + path + '\\).*$', ml.text):
-                    ml.append_warning_message(msg)
-                    break
+                if re.match(r, ml.text):
+                    if msg not in ml.warning_messages:
+                        ml.append_warning_message(msg)
 
     def print_warning_messages(self):
         for ml in self.md_lines:
@@ -2201,7 +2202,7 @@ class MdLine:
         self.raw_text = raw_text
         self.text = ''
         self.comment = ''
-        self._warning_messages = []
+        self.warning_messages = []
         self.text, self.comment = self.separate_comment()
 
     def separate_comment(self):
@@ -2258,10 +2259,10 @@ class MdLine:
         return text, comment
 
     def append_warning_message(self, warning_message):
-        self._warning_messages.append(warning_message)
+        self.warning_messages.append(warning_message)
 
     def print_warning_messages(self):
-        for wm in self._warning_messages:
+        for wm in self.warning_messages:
             msg = wm + ' (line ' + str(self.line_number) + ')' + '\n  ' \
                 + self.raw_text
             sys.stderr.write(msg + '\n\n')
