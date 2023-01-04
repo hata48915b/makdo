@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v03 Yokogawa
-# Time-stamp:   <2022.12.30-16:38:27-JST>
+# Time-stamp:   <2023.01.04-12:05:46-JST>
 
 # docx2md.py
-# Copyright (C) 2022  Seiichiro HATA
+# Copyright (C) 2022-2023  Seiichiro HATA
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -1671,8 +1671,7 @@ class Paragraph:
                         raw_text = re.sub('@[0-9A-F]*@$', '', raw_text)
                         xl = re.sub('^@[0-9A-F]*@', '', xl)
                         continue
-                else:
-                    break
+                break
             raw_text += xl
         raw_text = raw_text.replace('&lt;', '<')
         raw_text = raw_text.replace('&gt;', '>')
