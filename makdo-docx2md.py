@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v03 Yokogawa
-# Time-stamp:   <2023.01.04-15:30:37-JST>
+# Time-stamp:   <2023.01.04-15:53:02-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -729,7 +729,7 @@ class Document:
                         dt += datetime.timedelta(hours=9)
                         jst = datetime.timezone(datetime.timedelta(hours=9))
                         dt = dt.replace(tzinfo=jst)
-                    self.original_file = dt.strftime('%Y.%m.%d-%H:%M:%S-JST')
+                    self.original_file = dt.strftime('%Y-%m-%dT%H:%M:%S+09:00')
 
     def _configure_by_footer1_xml(self, raw_xml_lines):
         # NO PAGE NUMBER
@@ -1229,7 +1229,7 @@ class Document:
         # mf.write('space_before:   ' + self.space_before + '\n')
         # mf.write('space_after:    ' + self.space_after + '\n')
         # mf.write('auto_space:     ' + str(self.auto_space) + '\n')
-        # mf.write('original_file:  ' + self.birthtime + '\n')
+        # mf.write('original_file:  ' + self.original_file + '\n')
         # JAPANESE
         mf.write('# プロパティに表示される書面のタイトルを指定ください。\n')
         if self.document_title != '':

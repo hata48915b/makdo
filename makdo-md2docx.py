@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v03 Yokogawa
-# Time-stamp:   <2023.01.04-14:58:19-JST>
+# Time-stamp:   <2023.01.04-15:56:20-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -562,7 +562,7 @@ class Document:
         self.space_before = DEFAULT_SPACE_BEFORE
         self.space_after = DEFAULT_SPACE_AFTER
         self.auto_space = DEFAULT_AUTO_SPACE
-        self.birthtime = ''
+        self.original_file = ''
 
     def get_raw_md_lines(self, md_file):
         self.md_file = md_file
@@ -839,20 +839,26 @@ class Document:
                     # msg = 'warning: ' \
                     #     + '"' + nam + '" must be 6 integers or decimals'
                     sys.stderr.write(msg + '\n\n')
-            elif nam == 'birthtime' or nam == '起源時':
-                val = unicodedata.normalize('NFKC', val)
-                val = re.sub(HORIZONTAL_BAR, '-', val)
-                res = '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$'
-                if re.match(res, val):
-                    self.birthtime = val
-                else:
-                    msg = '※ 警告: ' \
-                        + '「' + nam + '」は' \
-                        + '"YYYY-MM-DD hh:mm:ss"の形式で' \
-                        + 'なければなりません'
-                    # msg = 'warning: ' \
-                    #     + '"' + nam + '" must be "YYYY-MM-DD hh:mm:ss"'
-                    sys.stderr.write(msg + '\n\n')
+            elif nam == 'original_file' or nam == '元原稿':
+                self.original_file = val
+                # val = unicodedata.normalize('NFKC', val)
+                # val = re.sub(HORIZONTAL_BAR, '-', val)
+                # res = '^' \
+                #     + '[0-9]{4}-[0-9]{2}-[0-9]{2}' \
+                #     + 'T' \
+                #     + '[0-9]{2}:[0-9]{2}:[0-9]{2}' \
+                #     + '.*' \
+                #     + '$'
+                # if re.match(res, val):
+                #     self.original_file = val
+                # else:
+                #     msg = '※ 警告: ' \
+                #         + '「' + nam + '」は' \
+                #         + '"YYYY.MM.DD-hh:mm:ss-TZD"の形式で' \
+                #         + 'なければなりません'
+                #     # msg = 'warning: ' \
+                #     #     + '"' + nam + '" must be "YYYY.MM.DD-hh:mm:ss-TZD"'
+                #     sys.stderr.write(msg + '\n\n')
             else:
                 msg = '※ 警告: ' \
                     + '「' + nam + '」という設定項目は存在しません'
