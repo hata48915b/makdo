@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v03 Yokogawa
-# Time-stamp:   <2023.01.04-15:53:02-JST>
+# Time-stamp:   <2023.01.04-17:12:03-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -178,6 +178,75 @@ ZENKAKU_SPACE = chr(12288)
 NOT_ESCAPED = '^((?:(?:.*\n)*.*[^\\\\])?(?:\\\\\\\\)*)?'
 
 MD_TEXT_WIDTH = 68
+
+FONT_COLOR = {
+    'FF0000': 'red',
+    # 'FF0000': 'R',
+    '7F0000': 'darkRed',
+    # '7F0000': 'DR',
+    'FFFF00': 'yellow',
+    # 'FFFF00': 'Y',
+    '7F7F00': 'darkYellow',
+    # '7F7F00': 'DY',
+    '00FF00': 'green',
+    # '00FF00': 'G',
+    '007F00': 'darkGreen',
+    # '007F00': 'DG',
+    '00FFFF': 'cyan',
+    # '00FFFF': 'C',
+    '007F7F': 'darkCyan',
+    # '007F7F': 'DC',
+    '0000FF': 'blue',
+    # '0000FF': 'B',
+    '00007F': 'darkBlue',
+    # '00007F': 'DB',
+    'FF00FF': 'magenta',
+    # 'FF00FF': 'M',
+    '7F007F': 'darkMagenta',
+    # '7F007F': 'DM',
+    'BFBFBF': 'lightGray',
+    # 'BFBFBF': 'G1',
+    '7F7F7F': 'darkGray',
+    # '7F7F7F': 'G2',
+    '000000': 'black',
+    # '000000': 'BK',
+    'FF5D5D': 'a000',
+    'FF603C': 'a010',
+    'FF6512': 'a020',
+    'E07000': 'a030',
+    'BC7A00': 'a040',
+    'A08300': 'a050',
+    '898900': 'a060',
+    '758F00': 'a070',
+    '619500': 'a080',
+    '4E9B00': 'a090',
+    '38A200': 'a100',
+    '1FA900': 'a110',
+    '00B200': 'a120',
+    '00AF20': 'a130',
+    '00AC3C': 'a140',
+    '00AA55': 'a150',
+    '00A76D': 'a160',
+    '00A586': 'a170',
+    '00A2A2': 'a180',
+    '009FC3': 'a190',
+    '009AED': 'a200',
+    '1F8FFF': 'a210',
+    '4385FF': 'a220',
+    '5F7CFF': 'a230',
+    '7676FF': 'a240',
+    '8A70FF': 'a250',
+    '9E6AFF': 'a260',
+    'B164FF': 'a270',
+    'C75DFF': 'a280',
+    'E056FF': 'a290',
+    'FF4DFF': 'a300',
+    'FF50DF': 'a310',
+    'FF53C3': 'a320',
+    'FF55AA': 'a330',
+    'FF5892': 'a340',
+    'FF5A79': 'a350',
+}
 
 
 class Title:
@@ -1237,25 +1306,37 @@ class Document:
         else:
             mf.write('書題名: -\n')
         mf.write('\n')
-        mf.write('# 3つの書式（n=普通、k=契約、j=条文）を指定できます。\n')
-        mf.write('文書式: ' + self.document_style + '\n')
+        mf.write('# 3つの書式（普通、契約、条文）を指定できます。\n')
+        if self.document_style == 'k':
+            mf.write('文書式: 契約\n')
+        elif self.document_style == 'j':
+            mf.write('文書式: 条文\n')
+        else:
+            mf.write('文書式: 普通\n')
         mf.write('\n')
-        mf.write('# ページ番号を記載するかどうか（有、無）を指定できます。\n')
+        mf.write('# ページ番号の記載（有、無）を指定できます。\n')
         if self.no_page_number:
             mf.write('頁番号: 無\n')
         else:
             mf.write('頁番号: 有\n')
         mf.write('\n')
-        mf.write('# 行番号を記載するかどうか（有、無）を指定できます。\n')
+        mf.write('# 行番号の記載を（有、無）を指定できます。\n')
         if self.line_number:
             mf.write('行番号: 有\n')
         else:
             mf.write('行番号: 無\n')
         mf.write('\n')
-        mf.write('# 用紙のサイズ（A3、A3P、A4、A4L）を指定できます。\n')
-        mf.write('用紙サ: ' + str(self.paper_size) + '\n')
+        mf.write('# 用紙のサイズ（A3横、A3縦、A4横、A4縦）を指定できます。\n')
+        if self.paper_size == 'A3':
+            mf.write('用紙サ: A3横\n')
+        elif self.paper_size == 'A3P':
+            mf.write('用紙サ: A3縦\n')
+        elif self.paper_size == 'A4L':
+            mf.write('用紙サ: A4横\n')
+        else:
+            mf.write('用紙サ: A4縦\n')
         mf.write('\n')
-        mf.write('# 上下左右の余白をセンチメートル単位で指定できます。\n')
+        mf.write('# 用紙上下左右の余白をセンチメートル単位で指定できます。\n')
         mf.write('上余白: ' + str(round(self.top_margin, 1)) + '\n')
         mf.write('下余白: ' + str(round(self.bottom_margin, 1)) + '\n')
         mf.write('左余白: ' + str(round(self.left_margin, 1)) + '\n')
@@ -1265,17 +1346,17 @@ class Document:
         mf.write('明朝体: ' + self.mincho_font + '\n')
         mf.write('ゴシ体: ' + self.gothic_font + '\n')
         mf.write('\n')
-        mf.write('# 文字の大きさをポイント単位で指定できます。\n')
+        mf.write('# 基本文字の大きさをポイント単位で指定できます。\n')
         mf.write('文字サ: ' + str(round(self.font_size, 1)) + '\n')
         mf.write('\n')
-        mf.write('# 行間の高さをフォントの高さの倍数で指定できます。\n')
+        mf.write('# 行間の高さを基本文字の高さの倍数で指定できます。\n')
         mf.write('行間高: ' + str(round(self.line_spacing, 2)) + '\n')
         mf.write('\n')
         mf.write('# セクション前後の余白を行間の高さの倍数で指定できます。\n')
-        mf.write('節前高: ' + self.space_before + '\n')
-        mf.write('節後高: ' + self.space_after + '\n')
+        mf.write('前余白: ' + self.space_before + '\n')
+        mf.write('後余白: ' + self.space_after + '\n')
         mf.write('\n')
-        mf.write('# 半角字と全角字の間の余白（有、無）を指定できます。\n')
+        mf.write('# 半角字と全角字の間の間隔調整（有、無）を指定できます。\n')
         if self.auto_space:
             mf.write('字間整: 有\n')
         else:
@@ -1513,6 +1594,10 @@ class Paragraph:
                 if font_color != '':
                     if font_color == 'FFFFFF':
                         text = '@@' + text + '@@'
+                    elif font_color in FONT_COLOR:
+                        text = '@' + FONT_COLOR[font_color] + '@' \
+                            + text \
+                            + '@' + FONT_COLOR[font_color] + '@'
                     else:
                         text = '@' + font_color + '@' \
                             + text \

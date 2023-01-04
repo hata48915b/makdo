@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v03 Yokogawa
-# Time-stamp:   <2023.01.04-15:56:20-JST>
+# Time-stamp:   <2023.01.04-17:23:55-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -176,7 +176,7 @@ HELP_EPILOG = '''Markdownの記法:
     [;;]から行末まではコメントアウトされます（独自）
     [<>]は何もせず表示もされません（独自）
     [<br>]で改行されます
-    [<pgbr>]で改行されます
+    [<pgbr>]で改行されます（独自）
   文字装飾
     [*]で挟まれた文字列は斜体になります
     [**]で挟まれた文字列は太字になります
@@ -187,11 +187,12 @@ HELP_EPILOG = '''Markdownの記法:
     [++]で挟まれた文字列は文字が大きくなります（独自）
     [--]で挟まれた文字列は文字が小さくなります（独自）
     [@@]で挟まれた文字列は白色になって見えなくなります（独自）
-    [@XXXXXX@]で挟まれた文字列はRGBXXXXXX色になります（独自）
+    [@XXYYZZ@]で挟まれた文字列はRGB(XX,YY,ZZ)色になります（独自）
+    [@foo@]で挟まれた文字列はfoo色になります（独自）
     [_foo_]で挟まれた区間の背景はfoo色になります（独自）
-      'yellow green cyan magenta blue red darkBlue'
-      'darkCyan darkGreen darkMagenta darkRed darkYellow'
-      'darkGray lightGray black'
+      'red(R) darkRed(DR) yellow(Y) darkYellow(DY) green(G) darkGreen(DG)'
+      'cyan(C) darkCyan(DC) blue(B) darkBlue(DB) magenta(M) darkMagenta(DM)'
+      'lightGray(G1) darkGray(G2) black(BK)'
 '''
 
 
@@ -214,22 +215,106 @@ DEFAULT_MINCHO_FONT = 'ＭＳ 明朝'
 DEFAULT_GOTHIC_FONT = 'ＭＳ ゴシック'
 DEFAULT_FONT_SIZE = 12.0
 
+FONT_COLOR = {
+    'red':         'FF0000',
+    'R':           'FF0000',
+    'darkRed':     '7F0000',
+    'DR':          '7F0000',
+    'yellow':      'FFFF00',
+    'Y':           'FFFF00',
+    'darkYellow':  '7F7F00',
+    'DY':          '7F7F00',
+    'green':       '00FF00',
+    'G':           '00FF00',
+    'darkGreen':   '007F00',
+    'DG':          '007F00',
+    'cyan':        '00FFFF',
+    'C':           '00FFFF',
+    'darkCyan':    '007F7F',
+    'DC':          '007F7F',
+    'blue':        '0000FF',
+    'B':           '0000FF',
+    'darkBlue':    '00007F',
+    'DB':          '00007F',
+    'magenta':     'FF00FF',
+    'M':           'FF00FF',
+    'darkMagenta': '7F007F',
+    'DM':          '7F007F',
+    'lightGray':   'BFBFBF',
+    'G1':          'BFBFBF',
+    'darkGray':    '7F7F7F',
+    'G2':          '7F7F7F',
+    'black':       '000000',
+    'BK':          '000000',
+    'a000': 'FF5D5D',
+    'a010': 'FF603C',
+    'a020': 'FF6512',
+    'a030': 'E07000',
+    'a040': 'BC7A00',
+    'a050': 'A08300',
+    'a060': '898900',
+    'a070': '758F00',
+    'a080': '619500',
+    'a090': '4E9B00',
+    'a100': '38A200',
+    'a110': '1FA900',
+    'a120': '00B200',
+    'a130': '00AF20',
+    'a140': '00AC3C',
+    'a150': '00AA55',
+    'a160': '00A76D',
+    'a170': '00A586',
+    'a180': '00A2A2',
+    'a190': '009FC3',
+    'a200': '009AED',
+    'a210': '1F8FFF',
+    'a220': '4385FF',
+    'a230': '5F7CFF',
+    'a240': '7676FF',
+    'a250': '8A70FF',
+    'a260': '9E6AFF',
+    'a270': 'B164FF',
+    'a280': 'C75DFF',
+    'a290': 'E056FF',
+    'a300': 'FF4DFF',
+    'a310': 'FF50DF',
+    'a320': 'FF53C3',
+    'a330': 'FF55AA',
+    'a340': 'FF5892',
+    'a350': 'FF5A79',
+}
+
 HIGHLIGHT_COLOR = {
-    'yellow': WD_COLOR_INDEX.YELLOW,
-    'green': WD_COLOR_INDEX.BRIGHT_GREEN,
-    'cyan': WD_COLOR_INDEX.TURQUOISE,
-    'magenta': WD_COLOR_INDEX.PINK,
-    'blue': WD_COLOR_INDEX.BLUE,
-    'red': WD_COLOR_INDEX.RED,
-    'darkBlue': WD_COLOR_INDEX.DARK_BLUE,
-    'darkCyan': WD_COLOR_INDEX.TEAL,
-    'darkGreen': WD_COLOR_INDEX.GREEN,
+    'red':         WD_COLOR_INDEX.RED,
+    'R':           WD_COLOR_INDEX.RED,
+    'darkRed':     WD_COLOR_INDEX.DARK_RED,
+    'DR':          WD_COLOR_INDEX.DARK_RED,
+    'yellow':      WD_COLOR_INDEX.YELLOW,
+    'Y':           WD_COLOR_INDEX.YELLOW,
+    'darkYellow':  WD_COLOR_INDEX.DARK_YELLOW,
+    'DY':          WD_COLOR_INDEX.DARK_YELLOW,
+    'green':       WD_COLOR_INDEX.BRIGHT_GREEN,
+    'G':           WD_COLOR_INDEX.BRIGHT_GREEN,
+    'darkGreen':   WD_COLOR_INDEX.GREEN,
+    'DG':          WD_COLOR_INDEX.GREEN,
+    'cyan':        WD_COLOR_INDEX.TURQUOISE,
+    'C':           WD_COLOR_INDEX.TURQUOISE,
+    'darkCyan':    WD_COLOR_INDEX.TEAL,
+    'DC':          WD_COLOR_INDEX.TEAL,
+    'blue':        WD_COLOR_INDEX.BLUE,
+    'B':           WD_COLOR_INDEX.BLUE,
+    'darkBlue':    WD_COLOR_INDEX.DARK_BLUE,
+    'DB':          WD_COLOR_INDEX.DARK_BLUE,
+    'magenta':     WD_COLOR_INDEX.PINK,
+    'M':           WD_COLOR_INDEX.PINK,
     'darkMagenta': WD_COLOR_INDEX.VIOLET,
-    'darkRed': WD_COLOR_INDEX.DARK_RED,
-    'darkYellow': WD_COLOR_INDEX.DARK_YELLOW,
-    'darkGray': WD_COLOR_INDEX.GRAY_50,
-    'lightGray': WD_COLOR_INDEX.GRAY_25,
-    'black': WD_COLOR_INDEX.BLACK,
+    'DM':          WD_COLOR_INDEX.VIOLET,
+    'lightGray':   WD_COLOR_INDEX.GRAY_25,
+    'G1':          WD_COLOR_INDEX.GRAY_25,
+    'darkGray':    WD_COLOR_INDEX.GRAY_50,
+    'G2':          WD_COLOR_INDEX.GRAY_50,
+    'black':       WD_COLOR_INDEX.BLACK,
+    'BK':          WD_COLOR_INDEX.BLACK,
 }
 
 DEFAULT_AUTO_SPACE = False
@@ -736,22 +821,33 @@ class Document:
             elif nam == 'gothic_font' or nam == 'ゴシ体':
                 self.gothic_font = val
             elif nam == 'document_style' or nam == '文書式':
-                if val == 'n' or val == 'k' or val == 'j':
-                    self.document_style = val
+                if val == 'n' or val == '普通':
+                    self.document_style = 'n'
+                elif val == 'k' or val == '契約':
+                    self.document_style = 'k'
+                elif val == 'j' or val == '条文':
+                    self.document_style = 'j'
                 else:
                     msg = '※ 警告: ' \
-                        + '「' + nam + '」は"n"、"k"又は"j"で' \
+                        + '「' + nam + '」の値は"普通"、"契約"又は"条文"で' \
                         + 'なければなりません'
                     # msg = 'warning: ' \
                     #     + '"' + nam + '" must be "-", "k" or "j"'
                     sys.stderr.write(msg + '\n\n')
             elif nam == 'paper_size' or nam == '用紙サ':
                 val = unicodedata.normalize('NFKC', val)
-                if re.match('^(A3|A3P|A4|A4L)$', val):
-                    self.paper_size = val
+                if val == 'A3' or val == 'A3横':
+                    self.paper_size = 'A3'
+                elif val == 'A3P' or val == 'A3縦':
+                    self.paper_size = 'A3P'
+                elif val == 'A4' or val == 'A4縦':
+                    self.paper_size = 'A4'
+                elif val == 'A4L' or val == 'A4横':
+                    self.paper_size = 'A4L'
                 else:
                     msg = '※ 警告: ' \
-                        + '「' + nam + '」は"A3"、"A3P"、"A4"又は"A4L"で' \
+                        + '「' + nam + '」の値は' \
+                        + '"A3横"、"A3縦"、"A4横"又は"A4縦"で' \
                         + 'なければなりません'
                     # msg = 'warning: ' \
                     #     + '"' + nam + '" must be "A3", "A3P", "A4" or "A4L"'
@@ -783,7 +879,7 @@ class Document:
                         sys.stderr.write(msg + '\n\n')
                 else:
                     msg = '※ 警告: ' \
-                        + '「' + nam + '」は"True"又は"False"で' \
+                        + '「' + nam + '」の値は"有"又は"無"で' \
                         + 'なければなりません'
                     # msg = 'warning: ' \
                     #     + '"' + nam + '" must be "True" or "False"'
@@ -812,20 +908,20 @@ class Document:
                         sys.stderr.write(msg + '\n\n')
                 else:
                     msg = '※ 警告: ' \
-                        + '「' + nam + '」は整数又は小数で' \
+                        + '「' + nam + '」の値は整数又は小数で' \
                         + 'なければなりません'
                     # msg = 'warning: ' \
                     #     + '"' + nam + '" must be an integer or a decimal'
                     sys.stderr.write(msg + '\n\n')
             elif (re.match('^space_(before|after)$', nam) or
-                  re.match('^節(前|後)高$', nam)):
+                  re.match('^(前|後)余白$', nam)):
                 val = unicodedata.normalize('NFKC', val)
                 val = val.replace('、', ',')
                 val = val.replace(' ', '')
                 if re.match('^' + RES_NUMBER6 + '$', val):
-                    if nam == 'space_before' or nam == '節前高':
+                    if nam == 'space_before' or nam == '前余白':
                         self.space_before = val
-                    elif nam == 'space_after'or nam == '節後高':
+                    elif nam == 'space_after'or nam == '後余白':
                         self.space_after = val
                     else:
                         msg = '※ バグ: 「' + nam + '」の設定に失敗しました'
@@ -833,7 +929,7 @@ class Document:
                         sys.stderr.write(msg + '\n\n')
                 else:
                     msg = '※ 警告: ' \
-                        + '「' + nam + '」は' \
+                        + '「' + nam + '」の値は' \
                         + '整数又は小数をカンマで区切って並べたもので' \
                         + 'なければなりません'
                     # msg = 'warning: ' \
@@ -1006,13 +1102,15 @@ class Document:
             ct = '（条文）'
         at = hs + ' (with makdo ' + __version__ + ')'
         dt = datetime.datetime.utcnow()
+        # utc = datetime.timezone.utc
+        # pt = datetime.datetime(1970, 1, 1, 0, 0, 0, tzinfo=utc)
         # TIMEZONE IS NOT SUPPORTED
         # jst = datetime.timezone(datetime.timedelta(hours=9))
         # dt = datetime.datetime.now(jst)
-        # pt = datetime.datetime(1970, 1, 1, 0, 0, 0, tzinfo=jst)
+        # pt = datetime.datetime(1970, 1, 1, 9, 0, 0, tzinfo=jst)
         ms_cp = ms_doc.core_properties
         ms_cp.identifier \
-            = 'makdo; ' + hs + '; ' + dt.strftime('%Y.%m.%d-%H:%M:%S.%f-UTC')
+            = 'makdo; ' + hs + '; ' + dt.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
         ms_cp.title = tt               # タイトル
         # ms_cp.subject = ''           # 件名
         # ms_cp.keywords = ''          # タグ
@@ -2090,23 +2188,27 @@ class Paragraph:
                     tex = re.sub(res, '\\1', tex)
                     tex = self._write_string(tex, ms_par)
                     self._write_image(comm, path, ms_par)
-                elif re.match(NOT_ESCAPED + '@([0-9A-F]*)@$', tex, re.I):
-                    col = re.sub(NOT_ESCAPED + '@([0-9A-F]*)@$', '\\2', tex)
-                    col = re.sub('^([0-9A-F])([0-9A-F])([0-9A-F])$',
-                                 '\\1\\1\\2\\2\\3\\3', col)
+                elif re.match(NOT_ESCAPED + '@([a-zA-Z0-9]*)@$', tex):
+                    col = re.sub(NOT_ESCAPED + '@([a-zA-Z0-9]*)@$', '\\2', tex)
                     if col == '':
                         col = 'FFFFFF'
-                    tex = re.sub('@([0-9A-F]*)@$', '', tex)
-                    tex = self._write_string(tex, ms_par)
-                    esc = ''
-                    if Paragraph.font_color == '':
-                        Paragraph.font_color = col
-                    else:
-                        Paragraph.font_color = ''
-                elif re.match(NOT_ESCAPED + '_([a-zA-Z]*)_$', tex + esc):
-                    col = re.sub(NOT_ESCAPED + '_([a-zA-Z]*)$', '\\2', tex)
+                    elif re.match('^([0-9A-F])([0-9A-F])([0-9A-F])$', col):
+                        col = re.sub('^([0-9A-F])([0-9A-F])([0-9A-F])$',
+                                     '\\1\\1\\2\\2\\3\\3', col)
+                    elif col in FONT_COLOR:
+                        col = FONT_COLOR[col]
+                    if re.match('^[0-9A-F]{6}$', col):
+                        tex = re.sub('@([a-zA-Z0-9]*)@$', '', tex)
+                        tex = self._write_string(tex, ms_par)
+                        esc = ''
+                        if Paragraph.font_color == '':
+                            Paragraph.font_color = col
+                        else:
+                            Paragraph.font_color = ''
+                elif re.match(NOT_ESCAPED + '_([a-zA-Z0-9]+)_$', tex + esc):
+                    col = re.sub(NOT_ESCAPED + '_([a-zA-Z0-9]+)$', '\\2', tex)
                     if col in HIGHLIGHT_COLOR:
-                        tex = re.sub('_([a-zA-Z]*)$', '', tex)
+                        tex = re.sub('_([a-zA-Z0-9]+)$', '', tex)
                         tex = self._write_string(tex, ms_par)
                         esc = ''
                         if Paragraph.highlight_color is None:
