@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v03 Yokogawa
-# Time-stamp:   <2022.12.30-16:43:30-JST>
+# Time-stamp:   <2023.01.04-14:58:19-JST>
 
 # md2docx.py
-# Copyright (C) 2022  Seiichiro HATA
+# Copyright (C) 2022-2023  Seiichiro HATA
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -999,11 +999,14 @@ class Document:
         elif self.document_style == 'j':
             ct = '（条文）'
         at = hs + ' (with makdo ' + __version__ + ')'
-        dt = datetime.datetime.now()
-        # pt = datetime.datetime(1970, 1, 1, 0, 0, 0)
+        dt = datetime.datetime.utcnow()
+        # TIMEZONE IS NOT SUPPORTED
+        # jst = datetime.timezone(datetime.timedelta(hours=9))
+        # dt = datetime.datetime.now(jst)
+        # pt = datetime.datetime(1970, 1, 1, 0, 0, 0, tzinfo=jst)
         ms_cp = ms_doc.core_properties
         ms_cp.identifier \
-            = 'makdo; ' + hs + '; ' + dt.strftime('%Y.%m.%d %H:%M:%S.%f')[:-4]
+            = 'makdo; ' + hs + '; ' + dt.strftime('%Y.%m.%d-%H:%M:%S.%f-UTC')
         ms_cp.title = tt               # タイトル
         # ms_cp.subject = ''           # 件名
         # ms_cp.keywords = ''          # タグ

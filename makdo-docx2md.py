@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v03 Yokogawa
-# Time-stamp:   <2023.01.04-12:05:46-JST>
+# Time-stamp:   <2023.01.04-15:30:37-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -36,6 +36,7 @@ import shutil
 import argparse
 import re
 import unicodedata
+import datetime
 
 
 __version__ = 'v03 Yokogawa'
@@ -562,7 +563,7 @@ class Document:
         self.space_before = DEFAULT_SPACE_BEFORE
         self.space_after = DEFAULT_SPACE_AFTER
         self.auto_space = DEFAULT_AUTO_SPACE
-        self.birthtime = ''
+        self.original_file = ''
 
     def make_tmpdir(self):
         tmpdir = tempfile.TemporaryDirectory()
@@ -622,7 +623,7 @@ class Document:
     def configure(self, args):
         # PAPER SIZE, MARGIN, LINE NUMBER, DOCUMENT STYLE
         self._configure_by_document_xml(self.document_raw_xml_lines)
-        # DOCUMENT TITLE, DOCUMENT STYLE, BIRTHTIME
+        # DOCUMENT TITLE, DOCUMENT STYLE, ORIGINAL FILE
         self._configure_by_core_xml(self.core_raw_xml_lines)
         # NO PAGE NUMBER
         self._configure_by_footer1_xml(self.footer1_raw_xml_lines)
@@ -718,14 +719,17 @@ class Document:
                         self.document_style = 'k'
                     elif re.match('^.*（条文）.*$', rxl):
                         self.document_style = 'j'
-            # BIRTHTIME
+            # ORIGINAL FILE
             resb = '^<dcterms:modified( .*)?>$'
             rese = '^</dcterms:modified>$'
             if i > 0 and re.match(resb, raw_xml_lines[i - 1], re.I):
                 if not re.match(rese, rxl, re.I):
-                    self.birthtime = rxl
-                    self.birthtime = re.sub('T', ' ', self.birthtime)
-                    self.birthtime = re.sub('Z', '', self.birthtime)
+                    dt = datetime.datetime.strptime(rxl, '%Y-%m-%dT%H:%M:%S%z')
+                    if dt.tzname() == 'UTC':
+                        dt += datetime.timedelta(hours=9)
+                        jst = datetime.timezone(datetime.timedelta(hours=9))
+                        dt = dt.replace(tzinfo=jst)
+                    self.original_file = dt.strftime('%Y.%m.%d-%H:%M:%S-JST')
 
     def _configure_by_footer1_xml(self, raw_xml_lines):
         # NO PAGE NUMBER
@@ -1225,7 +1229,7 @@ class Document:
         # mf.write('space_before:   ' + self.space_before + '\n')
         # mf.write('space_after:    ' + self.space_after + '\n')
         # mf.write('auto_space:     ' + str(self.auto_space) + '\n')
-        # mf.write('birthtime:      ' + self.birthtime + '\n')
+        # mf.write('original_file:  ' + self.birthtime + '\n')
         # JAPANESE
         mf.write('# プロパティに表示される書面のタイトルを指定ください。\n')
         if self.document_title != '':
@@ -1278,7 +1282,7 @@ class Document:
             mf.write('字間整: 無\n')
         mf.write('\n')
         mf.write('# 元のWordファイルの最終更新日が自動で指定されます。\n')
-        mf.write('起源時: ' + self.birthtime + '\n')
+        mf.write('元原稿: ' + self.original_file + '\n')
         mf.write('\n')
         mf.write('-------------------------------------------------------->\n')
         mf.write('\n')
