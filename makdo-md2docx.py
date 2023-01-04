@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v03 Yokogawa
-# Time-stamp:   <2023.01.04-17:23:55-JST>
+# Time-stamp:   <2023.01.04-19:36:57-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2355,11 +2355,11 @@ class Paragraph:
         ms_run = ms_par.add_run()
         try:
             if self.is_large and not self.is_small:
-                ms_run.add_picture(path, Pt(l_size), Pt(l_size))
+                ms_run.add_picture(path, height=Pt(l_size))
             elif not self.is_large and self.is_small:
-                ms_run.add_picture(path, Pt(s_size), Pt(s_size))
+                ms_run.add_picture(path, height=Pt(s_size))
             else:
-                ms_run.add_picture(path, Pt(size), Pt(size))
+                ms_run.add_picture(path, height=Pt(size))
         except BaseException:
             ms_run.text = '![' + comm + '](' + path + ')'
             msg = '警告: ' \
