@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v03 Yokogawa
-# Time-stamp:   <2023.01.05-10:55:42-JST>
+# Time-stamp:   <2023.01.05-13:13:10-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1459,6 +1459,11 @@ class Document:
                     # msg = 'warning: ' \
                     #     + 'bad section number\n  ' + p.md_text
                     sys.stderr.write(msg + '\n\n')
+                    p.md_text = '<!-- ' \
+                        + '#' * p.section_depth \
+                        + '=' \
+                        + str(p.section_states[i]) \
+                        + ' -->\n\n' + p.md_text
             else:
                 if section_states[i] != p.section_states[i] - 1:
                     msg = '※ 警告: ' \
@@ -1466,7 +1471,11 @@ class Document:
                         + p.md_text
                     # msg = 'warning: ' \
                     #     + 'bad section number\n  ' + p.md_text
-                    sys.stderr.write(msg + '\n\n')
+                    p.md_text = '<!-- ' \
+                        + '#' * p.section_depth \
+                        + '=' \
+                        + str(p.section_states[i]) \
+                        + ' -->\n\n' + p.md_text
 
     def open_md_file(self, md_file, docx_file):
         if md_file == '-':
@@ -2742,7 +2751,7 @@ class Paragraph:
             mf.write(text_to_write)
             return
         if re.match('^\\s*(#+|v|V|X|<<|<)=\\s*[0-9]+', mt):
-            mt = '<!---->' + mt
+            mt = '\\' + mt
         if mt == '':
             text_to_text = '  \n\n'
         elif fli == '':
