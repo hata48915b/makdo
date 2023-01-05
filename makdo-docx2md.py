@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v03 Yokogawa
-# Time-stamp:   <2023.01.06-07:45:46-JST>
+# Time-stamp:   <2023.01.06-08:42:32-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1460,29 +1460,30 @@ class Document:
                 continue
             if self.document_style != 'j' or p.section_depth != 3:
                 if section_states[i] != p.section_states[i]:
+                    p.warning_messages += '<!-- ' \
+                        + 'セクション番号が違っています（' \
+                        + '想定は' + str(section_states[i]) + '、' \
+                        + '実際は' + str(p.section_states[i]) + '） ' \
+                        + '-->\n'
                     msg = '※ 警告: ' \
-                        + 'セクション番号が飛んでいます\n  ' \
+                        + 'セクション番号が違っています\n  ' \
                         + p.md_text
                     # msg = 'warning: ' \
                     #     + 'bad section number\n  ' + p.md_text
                     sys.stderr.write(msg + '\n\n')
-                    p.md_text = '<!-- ' \
-                        + '#' * p.section_depth \
-                        + '=' \
-                        + str(p.section_states[i]) \
-                        + ' -->\n\n' + p.md_text
             else:
-                if section_states[i] != p.section_states[i] - 1:
+                if section_states[i] + 1 != p.section_states[i]:
+                    p.warning_messages += '<!-- ' \
+                        + 'セクション番号が違っています（' \
+                        + '想定は' + str(section_states[i] + 1) + '、' \
+                        + '実際は' + str(p.section_states[i]) + '） ' \
+                        + '-->\n'
                     msg = '※ 警告: ' \
-                        + 'セクション番号が飛んでいます\n  ' \
+                        + 'セクション番号が違っています\n  ' \
                         + p.md_text
                     # msg = 'warning: ' \
                     #     + 'bad section number\n  ' + p.md_text
-                    p.md_text = '<!-- ' \
-                        + '#' * p.section_depth \
-                        + '=' \
-                        + str(p.section_states[i]) \
-                        + ' -->\n\n' + p.md_text
+                    sys.stderr.write(msg + '\n\n')
 
     def open_md_file(self, md_file, docx_file):
         if md_file == '-':
@@ -1740,6 +1741,7 @@ class Paragraph:
         self.end_space = ''
         self.raw_md_text = ''
         self.md_text = ''
+        self.warning_messages = ''
         self.first_line_instructions = ''
         self.section_states = []
         self.section_depth_first = 0
@@ -2580,7 +2582,10 @@ class Paragraph:
         if rri != 0:
             ins += '>=' + str(-rri) + ' '
         ins = re.sub(' $', '', ins)
-        first_line_instructions = ins
+        fli = self.first_line_instructions
+        fli = re.sub('(v|V|X|<<|<|>)=[\\+\\-]?[\\.0-9]+\\s*', '', fli)
+        first_line_instructions = fli + ins
+        # first_line_instructions = ins
         # self.first_line_instructions = ins
         return first_line_instructions
 
@@ -2728,6 +2733,7 @@ class Paragraph:
 
     def write_md_lines(self, mf):
         pc = self.paragraph_class
+        wm = self.warning_messages
         fli = self.first_line_instructions
         mt = self.md_text
         n = self.paragraph_number - 1
@@ -2755,6 +2761,8 @@ class Paragraph:
             text_to_write += mt + '\n'
             if n == m or p_next.paragraph_class != 'list_system':
                 text_to_write += '\n'
+            if wm != '':
+                text_to_text = wm + text_to_text
             mf.write(text_to_write)
             return
         if re.match('^\\s*(#+|v|V|X|<<|<)=\\s*[0-9]+', mt):
@@ -2765,6 +2773,8 @@ class Paragraph:
             text_to_text = mt + '\n\n'
         else:
             text_to_text = fli + '\n' + mt + '\n\n'
+        if wm != '':
+            text_to_text = wm + text_to_text
         mf.write(text_to_text)
 
 
