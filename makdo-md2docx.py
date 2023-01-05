@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v03 Yokogawa
-# Time-stamp:   <2023.01.04-19:36:57-JST>
+# Time-stamp:   <2023.01.05-12:37:58-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2164,127 +2164,101 @@ class Paragraph:
             text += ln + '\n'
         text = re.sub('\n$', '', text)
         text = Paragraph._remove_relax_symbol(text)
-        esc = ''
+        res_img = '(.*(?:\n.*)*)! ?\\[([^\\[\\]]*)\\] ?\\(([^\\(\\)]+)\\)'
         tex = ''
         for c in text + '\0':
-            if c == '`':
-                if esc == '\\':
-                    tex += '`'
-                else:
-                    tex = self._write_string(tex, ms_par)
-                    Paragraph.is_preformatted = not Paragraph.is_preformatted
-            elif self.is_preformatted:
+            if False:
+                pass
+            elif re.match(NOT_ESCAPED + '\\*\\*\\*$', tex + c):
+                # ***
+                tex = re.sub('\\*\\*\\*$', '', tex + c)
+                tex = self._write_string(tex, ms_par)
+                Paragraph.is_italic = not Paragraph.is_italic
+                Paragraph.is_bold = not Paragraph.is_bold
+                continue
+            elif re.match(NOT_ESCAPED + '\\*\\*$', tex) and c != '*':
+                # **
+                tex = re.sub('\\*\\*$', '', tex)
+                tex = self._write_string(tex, ms_par)
                 tex += c
-            elif esc == '':
-                esc, tex = self._set_esc_and_tex(c, tex)
-                # INLINE IMAGE
-                res = '^' \
-                    + '(.*(?:\n.*)*)' \
-                    + '! ?\\[([^\\[\\]]*)\\] ?\\(([^\\(\\)]+)\\)' \
-                    + '$'
-                if re.match(res, tex):
-                    comm = re.sub(res, '\\2', tex)
-                    path = re.sub(res, '\\3', tex)
-                    tex = re.sub(res, '\\1', tex)
+                Paragraph.is_bold = not Paragraph.is_bold
+                continue
+            elif re.match(NOT_ESCAPED + '\\*$', tex) and c != '*':
+                # *
+                tex = re.sub('\\*$', '', tex)
+                tex = self._write_string(tex, ms_par)
+                tex += c
+                Paragraph.is_italic = not Paragraph.is_italic
+                continue
+            elif re.match(NOT_ESCAPED + '//$', tex + c):
+                if not re.match('[a-z]+://', tex + c):
+                    # not http:// https:// ftp:// ...
+                    tex = re.sub('//$', '', tex + c)
                     tex = self._write_string(tex, ms_par)
-                    self._write_image(comm, path, ms_par)
-                elif re.match(NOT_ESCAPED + '@([a-zA-Z0-9]*)@$', tex):
-                    col = re.sub(NOT_ESCAPED + '@([a-zA-Z0-9]*)@$', '\\2', tex)
-                    if col == '':
-                        col = 'FFFFFF'
-                    elif re.match('^([0-9A-F])([0-9A-F])([0-9A-F])$', col):
-                        col = re.sub('^([0-9A-F])([0-9A-F])([0-9A-F])$',
-                                     '\\1\\1\\2\\2\\3\\3', col)
-                    elif col in FONT_COLOR:
-                        col = FONT_COLOR[col]
-                    if re.match('^[0-9A-F]{6}$', col):
-                        tex = re.sub('@([a-zA-Z0-9]*)@$', '', tex)
-                        tex = self._write_string(tex, ms_par)
-                        esc = ''
-                        if Paragraph.font_color == '':
-                            Paragraph.font_color = col
-                        else:
-                            Paragraph.font_color = ''
-                elif re.match(NOT_ESCAPED + '_([a-zA-Z0-9]+)_$', tex + esc):
-                    col = re.sub(NOT_ESCAPED + '_([a-zA-Z0-9]+)$', '\\2', tex)
-                    if col in HIGHLIGHT_COLOR:
-                        tex = re.sub('_([a-zA-Z0-9]+)$', '', tex)
-                        tex = self._write_string(tex, ms_par)
-                        esc = ''
-                        if Paragraph.highlight_color is None:
-                            Paragraph.highlight_color = HIGHLIGHT_COLOR[col]
-                        else:
-                            Paragraph.highlight_color = None
-            elif esc == '\\':
-                if re.match('^[\\\\*~_/+\\-@]$', c):
-                    esc = ''
-                    tex += c
-                else:
-                    # tex += '\\'
-                    esc, tex = self._set_esc_and_tex(c, tex)
-            elif esc == '*':
-                if c == '*':
-                    esc += c
-                else:
-                    tex = self._write_string(tex, ms_par)
-                    esc, tex = self._set_esc_and_tex(c, tex)
                     Paragraph.is_italic = not Paragraph.is_italic
-            elif esc == '~':
-                if c == '~':
-                    esc = ''
+                    continue
+            elif re.match(NOT_ESCAPED + '~~$', tex + c):
+                # ~~
+                tex = re.sub('~~$', '', tex + c)
+                tex = self._write_string(tex, ms_par)
+                Paragraph.has_strike = not Paragraph.has_strike
+                continue
+            elif re.match(NOT_ESCAPED + '__$', tex + c):
+                # __
+                tex = re.sub('__$', '', tex + c)
+                tex = self._write_string(tex, ms_par)
+                Paragraph.has_underline = not Paragraph.has_underline
+                continue
+            elif re.match(NOT_ESCAPED + '\\+\\+$', tex + c):
+                # ++
+                tex = re.sub('\\+\\+$', '', tex + c)
+                tex = self._write_string(tex, ms_par)
+                Paragraph.is_large = not Paragraph.is_large
+                continue
+            elif re.match(NOT_ESCAPED + '\\-\\-$', tex + c):
+                # --
+                tex = re.sub('\\-\\-$', '', tex + c)
+                tex = self._write_string(tex, ms_par)
+                Paragraph.is_small = not Paragraph.is_small
+                continue
+            elif re.match(NOT_ESCAPED + '@([a-zA-Z0-9]*)@$', tex + c):
+                # @...@
+                col = re.sub(NOT_ESCAPED + '@([a-zA-Z0-9]*)@$', '\\2', tex + c)
+                if col == '':
+                    col = 'FFFFFF'
+                elif re.match('^([0-9A-F])([0-9A-F])([0-9A-F])$', col):
+                    col = re.sub('^([0-9A-F])([0-9A-F])([0-9A-F])$',
+                                 '\\1\\1\\2\\2\\3\\3', col)
+                elif col in FONT_COLOR:
+                    col = FONT_COLOR[col]
+                if re.match('^[0-9A-F]{6}$', col):
+                    tex = re.sub('@([a-zA-Z0-9]*)@$', '', tex + c)
                     tex = self._write_string(tex, ms_par)
-                    Paragraph.has_strike = not Paragraph.has_strike
-                else:
-                    tex += '~'
-                    esc, tex = self._set_esc_and_tex(c, tex)
-            elif esc == '_':
-                if c == '_':
-                    esc = ''
-                    tex = self._write_string(tex, ms_par)
-                    Paragraph.has_underline = not Paragraph.has_underline
-                else:
-                    tex += '_'
-                    esc, tex = self._set_esc_and_tex(c, tex)
-            elif esc == '/':
-                if c == '/':
-                    esc = ''
-                    if re.match('^.*[a-z]+:$', tex):
-                        # http https ftp ...
-                        tex += '//'
+                    if Paragraph.font_color == '':
+                        Paragraph.font_color = col
                     else:
-                        tex = self._write_string(tex, ms_par)
-                        Paragraph.is_italic = not Paragraph.is_italic
-                else:
-                    tex += '/'
-                    esc, tex = self._set_esc_and_tex(c, tex)
-            elif esc == '+':
-                if c == '+':
-                    esc = ''
+                        Paragraph.font_color = ''
+                    continue
+            elif re.match(NOT_ESCAPED + '_([a-zA-Z0-9]+)_$', tex + c):
+                # _..._
+                col = re.sub(NOT_ESCAPED + '_([a-zA-Z0-9]+)_$', '\\2', tex + c)
+                if col in HIGHLIGHT_COLOR:
+                    tex = re.sub('_([a-zA-Z0-9]+)_$', '', tex + c)
                     tex = self._write_string(tex, ms_par)
-                    Paragraph.is_large = not Paragraph.is_large
-                else:
-                    tex += '+'
-                    esc, tex = self._set_esc_and_tex(c, tex)
-            elif esc == '-':
-                if c == '-':
-                    esc = ''
-                    tex = self._write_string(tex, ms_par)
-                    Paragraph.is_small = not Paragraph.is_small
-                else:
-                    tex += '-'
-                    esc, tex = self._set_esc_and_tex(c, tex)
-            elif esc == '**':
-                if c == '*':
-                    esc = ''
-                    tex = self._write_string(tex, ms_par)
-                    Paragraph.is_italic = not Paragraph.is_italic
-                    Paragraph.is_bold = not Paragraph.is_bold
-                else:
-                    tex = self._write_string(tex, ms_par)
-                    esc, tex = self._set_esc_and_tex(c, tex)
-                    Paragraph.is_bold = not Paragraph.is_bold
-            else:
-                esc, tex = self._set_esc_and_tex(c, tex)
+                    if Paragraph.highlight_color is None:
+                        Paragraph.highlight_color = HIGHLIGHT_COLOR[col]
+                    else:
+                        Paragraph.highlight_color = None
+                    continue
+            elif re.match(res_img, tex + c):
+                # ![...](...)
+                comm = re.sub(res_img, '\\2', tex + c)
+                path = re.sub(res_img, '\\3', tex + c)
+                tex = re.sub(res_img, '\\1', tex + c)
+                tex = self._write_string(tex, ms_par)
+                self._write_image(comm, path, ms_par)
+            tex += c
+        tex = re.sub('\0$', '', tex)
         if tex != '':
             tex = self._write_string(tex, ms_par)
 
@@ -2296,18 +2270,13 @@ class Paragraph:
         return text
 
     @classmethod
-    def _set_esc_and_tex(cls, c, tex):
-        if c == '\0':
-            return '', tex
-        elif re.match('^[\\\\*~_/+\\-]$', c):
-            return c, tex
-        else:
-            return '', tex + c
-
-    @classmethod
     def _write_string(cls, string, ms_par):
         if string == '':
             return ''
+        # REMOVE ESCAPE SYMBOL (BACKSLASH)
+        string = re.sub('\\\\', '-\\\\', string)
+        string = re.sub('-\\\\-\\\\', '-\\\\\\\\', string)
+        string = re.sub('-\\\\', '', string)
         size = cls.font_size
         l_size = 1.2 * size
         s_size = 0.8 * size
