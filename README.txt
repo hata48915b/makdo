@@ -1,4 +1,4 @@
-<!-- Time-stamp:   <2022.12.30-19:56:10-JST> -->
+<!-- Time-stamp:   <2023.01.07-07:27:44-JST> -->
 
 # MAKDO（魔苦怒）
 
@@ -347,7 +347,7 @@ python-docxでの実装は不可能ですが、
 
 ## 著作権
 
-Copyright © 2022  Seiichiro HATA
+Copyright © 2022-2023  Seiichiro HATA
 
 ## ライセンス
 
@@ -366,9 +366,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ## 連絡先
 
+弁護士 秦 誠一郎
+
+[Seiichiro HATA](https://hata-o.jp/hata48915b/)
+
 [Seiichiro HATA](<mailto:infotech@hata-o.jp>)
 
 ## ウェブページ
+
+[makdo](https://github.com/hata48915b/makdo)
 
 [makdo](https://hata-o.jp/kian/index?tools#makdo)
 
@@ -395,4 +401,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ### 2022.12.25 v03 Yokogawa リリース
 
 修正を加えたリリースです。
+
+### 2023.01.07 v04 Mitaki リリース
+
+日本語対応を強化しました。
 
