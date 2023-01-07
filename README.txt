@@ -1,6 +1,10 @@
-<!-- Time-stamp:   <2023.01.07-07:27:44-JST> -->
+<!-- Time-stamp:   <2023.01.07-12:31:24-JST> -->
 
 # MAKDO（魔苦怒）
+
+![MAKDOのLOGO](image/md8docx.png "MAKDOのLOGO")
+
+〜〜 Markdown形式からMS Word形式へ、MS Word形式からMarkdown形式へ 〜〜
 
 〜〜 MS Wordがなくても、MS Word形式のファイルを読み書きできます 〜〜
 
