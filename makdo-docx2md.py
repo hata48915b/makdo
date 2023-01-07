@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.01.08-07:43:40-JST>
+# Time-stamp:   <2023.01.08-08:53:56-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1456,23 +1456,25 @@ class Document:
                     # msg = 'warning: ' \
                     #     + 'bad section depth\n  ' + p.md_text
                     sys.stderr.write(msg + '\n\n')
-            if self.document_style == 'j' and section_states[2] == 1:
-                section_states[2] = 2
+
+            if self.document_style == 'j':
+                if section_states[1] > 0 and section_states[2] == 1:
+                    section_states[2] = 2
             if i == 0:
                 continue
-            sharps = '#' * p.section_depth + '=' + str(p.section_states[i] - 1)
+            sharps = '#' * p.section_depth + '=' + str(p.section_states[i])
             if section_states[i] != p.section_states[i]:
                 p.warning_messages += '<!-- ' \
-                    + 'セクション番号が違っていると思われます（' \
+                    + 'セクション番号が間違っている可能性があります（' \
                     + '想定は' + str(section_states[i]) + '、' \
                     + '実際は' + str(p.section_states[i]) + '） ' \
                     + '-->\n' \
                     + sharps + '\n'
                 msg = '※ 警告: ' \
-                    + 'セクション番号が違っていると思われます\n  ' \
+                    + 'セクション番号が間違っている可能性があります\n  ' \
                     + p.md_text
                 # msg = 'warning: ' \
-                    #     + 'bad section number\n  ' + p.md_text
+                #     + 'bad section number\n  ' + p.md_text
                 sys.stderr.write(msg + '\n\n')
                 section_states[i] = p.section_states[i]
 
@@ -2476,7 +2478,7 @@ class Paragraph:
             if depth_first > 2 and states[1] == 0:
                 length_sec['left indent'] -= 1
             if doc.document_style == 'j':
-                if self.section_depth >= 3:
+                if self.section_states[1] > 0 and self.section_depth >= 3:
                     length_sec['left indent'] -= 1
         elif re.match('^((list_system)|(list)|(breakdown))$', pclass):
             length_sec['first indent'] = 0
@@ -2485,7 +2487,7 @@ class Paragraph:
             if depth_first == 3 and states[1] == 0:
                 length_sec['left indent'] -= 1
             if doc.document_style == 'j':
-                if self.section_depth >= 3:
+                if self.section_states[1] > 0 and self.section_depth >= 3:
                     length_sec['left indent'] -= 1
         elif pclass == 'sentence':
             if depth_first > 0:
@@ -2495,7 +2497,7 @@ class Paragraph:
             if depth_first == 3 and states[1] == 0:
                 length_sec['left indent'] -= 1
             if doc.document_style == 'j':
-                if self.section_depth >= 3:
+                if self.section_states[1] > 0 and self.section_depth >= 3:
                     length_sec['left indent'] -= 1
         if pclass == 'breakdown':
             length_sec['first indent'] += 1

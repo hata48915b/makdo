@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.01.08-06:31:57-JST>
+# Time-stamp:   <2023.01.08-08:45:33-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1371,7 +1371,10 @@ class Paragraph:
         for si in self.section_instructions:
             dep = si[0]
             num = si[1]
-            Paragraph.section_states[dep - 1] = num - 1
+            if doc.document_style == 'j' and Paragraph.section_states[1] > 0:
+                Paragraph.section_states[dep - 1] = num - 2
+            else:
+                Paragraph.section_states[dep - 1] = num - 1
             for i in range(dep, len(Paragraph.section_states)):
                 Paragraph.section_states[i] = 0
         for i, pss in enumerate(Paragraph.section_states):
@@ -1605,10 +1608,10 @@ class Paragraph:
                 else:
                     head_string += Title.get_head_2_j_or_J(sec_stat[1])
             elif sec_dep == 3:
-                if doc.document_style != 'j':
-                    head_string += Title.get_head_3(sec_stat[2])
-                else:
+                if doc.document_style == 'j' and sec_stat[1] > 0:
                     head_string += Title.get_head_3(sec_stat[2] + 1)
+                else:
+                    head_string += Title.get_head_3(sec_stat[2])
             elif sec_dep == 4:
                 head_string += Title.get_head_4(sec_stat[3])
             elif sec_dep == 5:
@@ -2141,8 +2144,9 @@ class Paragraph:
             self.md_lines[0].append_warning_message(msg)
         ms_fmt.first_line_indent = Pt(length['first indent'] * size)
         ms_fmt.left_indent = Pt(length['left indent'] * size)
-        if doc.document_style == 'j' and self.section_depth_first >= 3:
-            ms_fmt.left_indent = Pt((length['left indent'] - 1) * size)
+        if doc.document_style == 'j':
+            if self.section_states[1] > 0 and self.section_depth_first >= 3:
+                ms_fmt.left_indent = Pt((length['left indent'] - 1) * size)
         ms_fmt.right_indent = Pt(length['right indent'] * size)
         # ms_fmt.line_spacing_rule = WD_LINE_SPACING.ONE_POINT_FIVE
         ls = doc.line_spacing * (1 + length['line spacing'])
