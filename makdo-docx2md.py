@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.01.07-06:47:48-JST>
+# Time-stamp:   <2023.01.08-07:43:40-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1438,7 +1438,6 @@ class Document:
                 + '|(?:@[0-9A-F]*@))' \
                 + '*((#+ )*).*$'
             head = re.sub(res, '\\2', ln + ' ')
-            head = re.sub(' +', ' ', head)
             head = re.sub(' $', '', head)
             for sharps in head.split(' '):
                 i = len(sharps) - 1
@@ -1457,34 +1456,25 @@ class Document:
                     # msg = 'warning: ' \
                     #     + 'bad section depth\n  ' + p.md_text
                     sys.stderr.write(msg + '\n\n')
+            if self.document_style == 'j' and section_states[2] == 1:
+                section_states[2] = 2
             if i == 0:
                 continue
-            if self.document_style != 'j' or p.section_depth != 3:
-                if section_states[i] != p.section_states[i]:
-                    p.warning_messages += '<!-- ' \
-                        + 'セクション番号が違っています（' \
-                        + '想定は' + str(section_states[i]) + '、' \
-                        + '実際は' + str(p.section_states[i]) + '） ' \
-                        + '-->\n'
-                    msg = '※ 警告: ' \
-                        + 'セクション番号が違っています\n  ' \
-                        + p.md_text
-                    # msg = 'warning: ' \
+            sharps = '#' * p.section_depth + '=' + str(p.section_states[i] - 1)
+            if section_states[i] != p.section_states[i]:
+                p.warning_messages += '<!-- ' \
+                    + 'セクション番号が違っていると思われます（' \
+                    + '想定は' + str(section_states[i]) + '、' \
+                    + '実際は' + str(p.section_states[i]) + '） ' \
+                    + '-->\n' \
+                    + sharps + '\n'
+                msg = '※ 警告: ' \
+                    + 'セクション番号が違っていると思われます\n  ' \
+                    + p.md_text
+                # msg = 'warning: ' \
                     #     + 'bad section number\n  ' + p.md_text
-                    sys.stderr.write(msg + '\n\n')
-            else:
-                if section_states[i] + 1 != p.section_states[i]:
-                    p.warning_messages += '<!-- ' \
-                        + 'セクション番号が違っています（' \
-                        + '想定は' + str(section_states[i] + 1) + '、' \
-                        + '実際は' + str(p.section_states[i]) + '） ' \
-                        + '-->\n'
-                    msg = '※ 警告: ' \
-                        + 'セクション番号が違っています\n  ' \
-                        + p.md_text
-                    # msg = 'warning: ' \
-                    #     + 'bad section number\n  ' + p.md_text
-                    sys.stderr.write(msg + '\n\n')
+                sys.stderr.write(msg + '\n\n')
+                section_states[i] = p.section_states[i]
 
     def open_md_file(self, md_file, docx_file):
         if md_file == '-':
