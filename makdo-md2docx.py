@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.01.07-06:46:47-JST>
+# Time-stamp:   <2023.01.08-06:31:57-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2170,6 +2170,12 @@ class Paragraph:
         for c in text + '\0':
             if False:
                 pass
+            elif re.match(NOT_ESCAPED + '`$', tex + c):
+                # `
+                tex = re.sub('`$', '', tex + c)
+                tex = self._write_string(tex, ms_par)
+                Paragraph.is_preformatted = not Paragraph.is_preformatted
+                continue
             elif re.match(NOT_ESCAPED + '\\*\\*\\*$', tex + c):
                 # ***
                 tex = re.sub('\\*\\*\\*$', '', tex + c)
