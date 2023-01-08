@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.01.08-08:53:56-JST>
+# Time-stamp:   <2023.01.08-09:18:25-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -881,15 +881,18 @@ class Document:
         return tmpdir
 
     def get_media_dir_name(self, md_file, docx_file):
-        media_dir = ''
         if md_file != '':
-            if re.match('^.*\\.md$', md_file, re.I):
+            if md_file == '-':
+                media_dir = ''
+            elif re.match('^.*\\.md$', md_file, re.I):
                 media_dir = re.sub('\\.md$', '', md_file, re.I)
+            else:
+                media_dir = md_file + '.dir'
         else:
             if re.match('^.*\\.docx$', docx_file, re.I):
                 media_dir = re.sub('\\.docx$', '', docx_file, re.I)
-        if media_dir == '':
-            media_dir = docx_file + '.dir'
+            else:
+                media_dir = docx_file + '.dir'
         # self.media_dir = media_dir
         return media_dir
 
@@ -1621,11 +1624,6 @@ class Document:
         if len(self.images) == 0:
             return
         if media_dir == '':
-            msg = '※ 警告: ' \
-                + '画像の保存先の名前が空です'
-            # msg = 'warning: ' \
-            #     + 'empty media directory name'
-            sys.stderr.write(msg + '\n\n')
             return
         if os.path.exists(media_dir):
             if os.path.isdir(media_dir):
