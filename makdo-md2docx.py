@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.01.08-08:45:33-JST>
+# Time-stamp:   <2023.01.09-07:31:36-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -183,17 +183,18 @@ HELP_EPILOG = '''Markdownの記法:
     [**]で挟まれた文字列は太字になります
     [***]で挟まれた文字列は斜体かつ太字になります
     [~~]で挟まれた文字列は打消線が引かれます
-    [__]で挟まれた文字列は下線が引かれます
-    [//]で挟まれた文字列は斜体になります（修正）
+    [`]で挟まれた文字列はゴシック体になります
+    [//]で挟まれた文字列は斜体になります（独自）
+    [__]で挟まれた文字列は下線が引かれます（独自）
     [++]で挟まれた文字列は文字が大きくなります（独自）
     [--]で挟まれた文字列は文字が小さくなります（独自）
     [@@]で挟まれた文字列は白色になって見えなくなります（独自）
     [@XXYYZZ@]で挟まれた文字列はRGB(XX,YY,ZZ)色になります（独自）
     [@foo@]で挟まれた文字列はfoo色になります（独自）
     [_foo_]で挟まれた区間の背景はfoo色になります（独自）
-      'red(R) darkRed(DR) yellow(Y) darkYellow(DY) green(G) darkGreen(DG)'
-      'cyan(C) darkCyan(DC) blue(B) darkBlue(DB) magenta(M) darkMagenta(DM)'
-      'lightGray(G1) darkGray(G2) black(BK)'
+      red(R) darkRed(DR) yellow(Y) darkYellow(DY) green(G) darkGreen(DG)
+      cyan(C) darkCyan(DC) blue(B) darkBlue(DB) magenta(M) darkMagenta(DM)
+      lightGray(G1) darkGray(G2) black(BK)
 '''
 
 
