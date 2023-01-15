@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.01.15-11:21:21-JST>
+# Time-stamp:   <2023.01.16-08:24:10-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2358,7 +2358,10 @@ class Paragraph:
             elif aln == 'center':
                 raw_md_text += ': ' + ln + ' :\n'
             else:
-                raw_md_text += ': ' + ln + '\n'
+                if re.match('^.* +$', ln):
+                    raw_md_text += ': ' + ln + '\\\n'
+                else:
+                    raw_md_text += ': ' + ln + '\n'
         raw_md_text = re.sub('\n$', '', raw_md_text)
         # self.raw_md_text = raw_md_text
         return raw_md_text
@@ -2700,8 +2703,11 @@ class Paragraph:
                 rmt = re.sub(res, '\\1\n\\3', rmt)
         md_text = ''
         for line in rmt.split('\n'):
+            if re.match('^.* +$', line):
+                line += '\\'
+            line += '  '
             md_text += self._split_into_lines(line)
-        md_text = re.sub('\n$', '', md_text)
+        md_text = re.sub('  \n$', '', md_text)
         return md_text
 
     def _split_into_lines(self, line):
@@ -2799,12 +2805,27 @@ class Paragraph:
                     for i in range(len(tmp), -1, -1):
                         s1 = tmp[:i]
                         s2 = tmp[i:]
-                        if re.match('.*[\\\\*~_/+-@]$', s1):
+                        if re.match('^.*\\\\$', s1):
                             continue
-                        if re.match('^[\\\\*~_/+-@].*', s2):
+                        if re.match('^\\\\.*$', s2):
                             continue
-                        if re.match('.*@[0-9A-F]*$', s1) and \
-                           re.match('^[0-9A-F]*@.*', s2):
+                        if re.match('^.*\\*$', s1) and re.match('^\\*.*$', s2):
+                            continue
+                        if re.match('^.*~$', s1) and re.match('^~.*$', s2):
+                            continue
+                        if re.match('^.*/$', s1) and re.match('^/.*$', s2):
+                            continue
+                        if re.match('^.*_[0-9a-zA-Z]*$', s1) and \
+                           re.match('^[0-9a-zA-Z]*_.*$', s2):
+                            continue
+                        if re.match('^.*@[0-9a-zA-Z]*$', s1) and \
+                           re.match('^[0-9a-zA-Z]*@.*$', s2):
+                            continue
+                        if re.match('^.*\\+$', s1) and re.match('^\\+.*$', s2):
+                            continue
+                        if re.match('^.*-$', s1) and re.match('^-.*$', s2):
+                            continue
+                        if re.match('^.* $', s1) and re.match('^ .*$', s2):
                             continue
                         if get_ideal_width(s1) < MD_TEXT_WIDTH:
                             if s1 != '':
