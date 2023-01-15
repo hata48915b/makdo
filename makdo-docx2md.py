@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.01.09-22:30:46-JST>
+# Time-stamp:   <2023.01.15-11:21:21-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -66,8 +66,8 @@ def get_arguments():
     parser.add_argument(
         '-p', '--paper-size',
         type=str,
-        choices=['A3', 'A3P', 'A4', 'A4L'],
-        help='用紙設定（A3、A3縦、A4、A4横）')
+        choices=['A3', 'A3L', 'A3P', 'A4', 'A4L', 'A4P'],
+        help='用紙設定（A3、A3L、A3P、A4、A4L、A4P）')
     parser.add_argument(
         '-t', '--top-margin',
         type=float,
@@ -90,9 +90,9 @@ def get_arguments():
         choices=['k', 'j'],
         help='文書スタイルの指定（契約、条文）')
     parser.add_argument(
-        '-N', '--no-page-number',
-        action='store_true',
-        help='ページ番号を出力しません')
+        '-P', '--page-number',
+        type=str,
+        help='ページ番号の書式')
     parser.add_argument(
         '-L', '--line-number',
         action='store_true',
@@ -164,7 +164,7 @@ DEFAULT_GOTHIC_FONT = 'ＭＳ ゴシック'
 DEFAULT_FONT_SIZE = 12.0
 
 DEFAULT_DOCUMENT_STYLE = 'n'
-DEFAULT_NO_PAGE_NUMBER = False
+DEFAULT_PAGE_NUMBER = 'n'
 DEFAULT_LINE_NUMBER = False
 
 DEFAULT_LINE_SPACING = 2.14  # (2.0980+2.1812)/2=2.1396
@@ -853,6 +853,7 @@ class Document:
         self.md_file = None
         self.core_raw_xml_lines = None
         self.footer1_raw_xml_lines = None
+        self.footer2_raw_xml_lines = None
         self.styles_raw_xml_lines = None
         self.rels_raw_xml_lines = None
         self.document_raw_xml_lines = None
@@ -868,7 +869,7 @@ class Document:
         self.left_margin = DEFAULT_LEFT_MARGIN
         self.right_margin = DEFAULT_RIGHT_MARGIN
         self.document_style = DEFAULT_DOCUMENT_STYLE
-        self.no_page_number = DEFAULT_NO_PAGE_NUMBER
+        self.page_number = DEFAULT_PAGE_NUMBER
         self.line_number = DEFAULT_LINE_NUMBER
         self.mincho_font = DEFAULT_MINCHO_FONT
         self.gothic_font = DEFAULT_GOTHIC_FONT
@@ -942,8 +943,9 @@ class Document:
         self._configure_by_document_xml(self.document_raw_xml_lines)
         # DOCUMENT TITLE, DOCUMENT STYLE, ORIGINAL FILE
         self._configure_by_core_xml(self.core_raw_xml_lines)
-        # NO PAGE NUMBER
-        self._configure_by_footer1_xml(self.footer1_raw_xml_lines)
+        # PAGE NUMBER
+        self._configure_by_footerX_xml(self.footer1_raw_xml_lines)
+        self._configure_by_footerX_xml(self.footer2_raw_xml_lines)
         # FONT, LINE SPACING, AUTOSPACE, SAPCE BEFORE AND AFTER
         self._configure_by_styles_xml(self.styles_raw_xml_lines)
         # REVISE
@@ -1048,12 +1050,42 @@ class Document:
                         dt = dt.replace(tzinfo=jst)
                     self.original_file = dt.strftime('%Y-%m-%dT%H:%M:%S+09:00')
 
-    def _configure_by_footer1_xml(self, raw_xml_lines):
-        # NO PAGE NUMBER
-        self.no_page_number = True
+    def _configure_by_footerX_xml(self, raw_xml_lines):
+        # PAGE NUMBER
+        pn = ''
+        is_in_paragraph = False
+        alg = 'L'
         for rxl in raw_xml_lines:
-            if rxl == 'PAGE':
-                self.no_page_number = False
+            if re.match('^<w:p( .*)?>$', rxl):
+                is_in_paragraph = True
+                continue
+            elif re.match('^</w:p>$', rxl):
+                is_in_paragraph = False
+                continue
+            if not is_in_paragraph:
+                continue
+            if re.match('<w:jc( .*)w:val=[\'"]center[\'"]( .*)?/>', rxl):
+                alg = 'C'
+            elif re.match('<w:jc( .*)w:val=[\'"]right[\'"]( .*)?/>', rxl):
+                alg = 'R'
+            elif re.match('^<.*>$', rxl):
+                continue
+            elif re.match('^PAGE( .*)?', rxl):
+                pn += 'n'
+            elif re.match('^NUMPAGES( .*)?', rxl):
+                pn += 'N'
+            else:
+                pn += rxl
+        if pn != '':
+            pn = re.sub('n-\\s[0-9]+\\s-', '- n -', pn)
+            pn = re.sub('N-\\s[0-9]+\\s-', '- N -', pn)
+            pn = re.sub('n[0-9a-zA-Z]+', 'n', pn)
+            pn = re.sub('N[0-9a-zA-Z]+', 'N', pn)
+            if alg == 'L':
+                pn = ': ' + pn
+            elif alg == 'R':
+                pn = pn + ' :'
+            self.page_number = pn
 
     def _configure_by_styles_xml(self, raw_xml_lines):
         xml_body = self._get_xml_body('w:styles', raw_xml_lines)
@@ -1145,8 +1177,8 @@ class Document:
             self.font_size = args.font_size
         if args.document_style is not None:
             self.document_style = args.document_style
-        if args.no_page_number:
-            self.no_page_number = True
+        if args.page_number is not None:
+            self.page_number = args.page_number
         if args.line_number:
             self.line_number = True
 
@@ -1526,37 +1558,68 @@ class Document:
         return mf
 
     def write_configurations(self, mf):
-        mf.write('<!----------------------【設定】-------------------------\n')
+        mf.write(
+            '<!---------------------------【設定】----------------------------'
+            + '\n')
         mf.write('\n')
-        # ENGLISH
-        # mf.write('document_title: ' + self.document_title + '\n')
-        # mf.write('document_style: ' + self.document_style + '\n')
-        # mf.write('no_page_number: ' + str(self.no_page_number) + '\n')
-        # mf.write('line_number:    ' + str(self.line_number) + '\n')
-        # mf.write('paper_size:     ' + str(self.paper_size) + '\n')
-        # mf.write('top_margin:     ' + str(round(self.top_margin, 1)) + '\n')
-        # mf.write('bottom_margin:  '
-        #          + str(round(self.bottom_margin, 1)) + '\n')
-        # mf.write('left_margin:    ' + str(round(self.left_margin, 1)) + '\n')
-        # mf.write('right_margin:   '
-        #          + str(round(self.right_margin, 1)) + '\n')
-        # mf.write('mincho_font:    ' + self.mincho_font + '\n')
-        # mf.write('gothic_font:    ' + self.gothic_font + '\n')
-        # mf.write('font_size:      ' + str(round(self.font_size, 1)) + '\n')
-        # mf.write('line_spacing:   '
-        #          + str(round(self.line_spacing, 2)) + '\n')
-        # mf.write('space_before:   ' + self.space_before + '\n')
-        # mf.write('space_after:    ' + self.space_after + '\n')
-        # mf.write('auto_space:     ' + str(self.auto_space) + '\n')
-        # mf.write('original_file:  ' + self.original_file + '\n')
-        # JAPANESE
-        mf.write('# プロパティに表示される書面のタイトルを指定ください。\n')
+        # self._write_configurations_in_english(mf)
+        self._write_configurations_in_japanese(mf)
+        mf.write(
+            '---------------------------------------------------------------->'
+            + '\n')
+        mf.write('\n')
+        return
+
+    def _write_configurations_in_english(self, mf):
+        mf.write('document_title: '
+                 + self.document_title + '\n')
+        mf.write('document_style: '
+                 + self.document_style + '\n')
+        mf.write('paper_size:     '
+                 + str(self.paper_size) + '\n')
+        mf.write('top_margin:     '
+                 + str(round(self.top_margin, 1)) + '\n')
+        mf.write('bottom_margin:  '
+                 + str(round(self.bottom_margin, 1)) + '\n')
+        mf.write('left_margin:    '
+                 + str(round(self.left_margin, 1)) + '\n')
+        mf.write('right_margin:   '
+                 + str(round(self.right_margin, 1)) + '\n')
+        mf.write('page_number:    '
+                 + str(self.page_number) + '\n')
+        mf.write('line_number:    '
+                 + str(self.line_number) + '\n')
+        mf.write('mincho_font:    '
+                 + self.mincho_font + '\n')
+        mf.write('gothic_font:    '
+                 + self.gothic_font + '\n')
+        mf.write('font_size:      '
+                 + str(round(self.font_size, 1)) + '\n')
+        mf.write('line_spacing:   '
+                 + str(round(self.line_spacing, 2)) + '\n')
+        mf.write('space_before:   '
+                 + self.space_before + '\n')
+        mf.write('space_after:    '
+                 + self.space_after + '\n')
+        mf.write('auto_space:     '
+                 + str(self.auto_space) + '\n')
+        mf.write('original_file:  '
+                 + self.original_file + '\n')
+
+    def _write_configurations_in_japanese(self, mf):
+
+        mf.write(
+            '# プロパティに表示される書面のタイトルを指定ください。'
+            + '\n')
         if self.document_title != '':
             mf.write('書題名: ' + self.document_title + '\n')
         else:
             mf.write('書題名: -\n')
         mf.write('\n')
-        mf.write('# 3つの書式（普通、契約、条文）を指定できます。\n')
+
+        mf.write(
+            '# 3つの書式（普通、契約、条文）を指定できます。'
+            + '\n')
         if self.document_style == 'k':
             mf.write('文書式: 契約\n')
         elif self.document_style == 'j':
@@ -1564,20 +1627,11 @@ class Document:
         else:
             mf.write('文書式: 普通\n')
         mf.write('\n')
-        mf.write('# ページ番号の記載（有、無）を指定できます。\n')
-        if self.no_page_number:
-            mf.write('頁番号: 無\n')
-        else:
-            mf.write('頁番号: 有\n')
-        mf.write('\n')
-        mf.write('# 行番号の記載を（有、無）を指定できます。\n')
-        if self.line_number:
-            mf.write('行番号: 有\n')
-        else:
-            mf.write('行番号: 無\n')
-        mf.write('\n')
-        mf.write('# 用紙のサイズ（A3横、A3縦、A4横、A4縦）を指定できます。\n')
-        if self.paper_size == 'A3':
+
+        mf.write(
+            '# 用紙のサイズ（A3横、A3縦、A4横、A4縦）を指定できます。'
+            + '\n')
+        if self.paper_size == 'A3L' or self.paper_size == 'A3':
             mf.write('用紙サ: A3横\n')
         elif self.paper_size == 'A3P':
             mf.write('用紙サ: A3縦\n')
@@ -1586,38 +1640,76 @@ class Document:
         else:
             mf.write('用紙サ: A4縦\n')
         mf.write('\n')
-        mf.write('# 用紙上下左右の余白をセンチメートル単位で指定できます。\n')
-        mf.write('上余白: ' + str(round(self.top_margin, 1)) + '\n')
-        mf.write('下余白: ' + str(round(self.bottom_margin, 1)) + '\n')
-        mf.write('左余白: ' + str(round(self.left_margin, 1)) + '\n')
-        mf.write('右余白: ' + str(round(self.right_margin, 1)) + '\n')
+
+        mf.write(
+            '# 用紙の上下左右の余白をセンチメートル単位で指定できます。'
+            + '\n')
+        mf.write('上余白: ' + str(round(self.top_margin, 1)) + ' cm\n')
+        mf.write('下余白: ' + str(round(self.bottom_margin, 1)) + ' cm\n')
+        mf.write('左余白: ' + str(round(self.left_margin, 1)) + ' cm\n')
+        mf.write('右余白: ' + str(round(self.right_margin, 1)) + ' cm\n')
         mf.write('\n')
-        mf.write('# 明朝体とゴシック体のフォントを指定できます。\n')
+
+        mf.write(
+            '# ページ番号の書式（無、有、n :、-n-、n/N等）を指定できます。'
+            + '\n')
+        if self.page_number == '':
+            mf.write('頁番号: 無\n')
+        elif self.page_number == DEFAULT_PAGE_NUMBER:
+            mf.write('頁番号: 有\n')
+        else:
+            mf.write('頁番号: ' + self.page_number + '\n')
+        mf.write('\n')
+
+        mf.write(
+            '# 行番号の記載（無、有）を指定できます。'
+            + '\n')
+        if self.line_number:
+            mf.write('行番号: 有\n')
+        else:
+            mf.write('行番号: 無\n')
+        mf.write('\n')
+
+        mf.write(
+            '# 明朝体とゴシック体のフォントを指定できます。'
+            + '\n')
         mf.write('明朝体: ' + self.mincho_font + '\n')
         mf.write('ゴシ体: ' + self.gothic_font + '\n')
         mf.write('\n')
-        mf.write('# 基本文字の大きさをポイント単位で指定できます。\n')
-        mf.write('文字サ: ' + str(round(self.font_size, 1)) + '\n')
+
+        mf.write(
+            '# 基本の文字の大きさをポイント単位で指定できます。'
+            + '\n')
+        mf.write('文字サ: ' + str(round(self.font_size, 1)) + ' pt\n')
         mf.write('\n')
-        mf.write('# 行間の高さを基本文字の高さの倍数で指定できます。\n')
-        mf.write('行間高: ' + str(round(self.line_spacing, 2)) + '\n')
+
+        mf.write(
+            '# 行間の高さを基本の文字の高さの何倍にするかを指定できます。'
+            + '\n')
+        mf.write('行間高: ' + str(round(self.line_spacing, 2)) + ' 倍\n')
         mf.write('\n')
-        mf.write('# セクション前後の余白を行間の高さの倍数で指定できます。\n')
-        mf.write('前余白: ' + self.space_before + '\n')
-        mf.write('後余白: ' + self.space_after + '\n')
+
+        mf.write(
+            '# セクションタイトル前後の余白を行間の高さの倍数で指定できます。'
+            + '\n')
+        mf.write('前余白: ' + re.sub(',', ' 倍,', self.space_before) + ' 倍\n')
+        mf.write('後余白: ' + re.sub(',', ' 倍,', self.space_after) + ' 倍\n')
         mf.write('\n')
-        mf.write('# 半角字と全角字の間の間隔調整（有、無）を指定できます。\n')
+
+        mf.write(
+            '# 半角文字と全角文字の間の間隔調整（無、有）を指定できます。'
+            + '\n')
         if self.auto_space:
             mf.write('字間整: 有\n')
         else:
             mf.write('字間整: 無\n')
         mf.write('\n')
-        mf.write('# 元のWordファイルの最終更新日が自動で指定されます。\n')
+
+        mf.write(
+            '# 変換元のWordファイルの最終更新日時が自動で指定されます。'
+            + '\n')
         mf.write('元原稿: ' + self.original_file + '\n')
         mf.write('\n')
-        mf.write('-------------------------------------------------------->\n')
-        mf.write('\n')
-        return
 
     def write_md_lines(self, mf):
         ps = self.paragraphs
@@ -2159,7 +2251,8 @@ class Paragraph:
         elif self.paragraph_class == 'breakdown':
             return self._get_raw_md_text_of_breakdown_paragraph()
         elif self.paragraph_class == 'pagebreak':
-            return '<div style="break-after: page;"></div>'
+            return '<pgbr>'
+            # return '<div style="break-after: page;"></div>'
         return self.raw_text
 
     def _get_raw_md_text_of_title_paragraph(self):
@@ -2791,6 +2884,7 @@ if __name__ == '__main__':
 
     doc.core_raw_xml_lines = doc.get_raw_xml_lines('/docProps/core.xml')
     doc.footer1_raw_xml_lines = doc.get_raw_xml_lines('/word/footer1.xml')
+    doc.footer2_raw_xml_lines = doc.get_raw_xml_lines('/word/footer2.xml')
     doc.styles_raw_xml_lines = doc.get_raw_xml_lines('/word/styles.xml')
     doc.rels_raw_xml_lines \
         = doc.get_raw_xml_lines('/word/_rels/document.xml.rels')

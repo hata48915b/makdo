@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.01.09-07:31:36-JST>
+# Time-stamp:   <2023.01.15-11:11:36-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -78,8 +78,8 @@ def get_arguments():
     parser.add_argument(
         '-p', '--paper-size',
         type=str,
-        choices=['A3', 'A3P', 'A4', 'A4L'],
-        help='用紙設定（A3、A3縦、A4、A4横）')
+        choices=['A3', 'A3L', 'A3P', 'A4', 'A4L', 'A4P'],
+        help='用紙設定（A3、A3L、A3P、A4、A4L、A4P）')
     parser.add_argument(
         '-t', '--top-margin',
         type=float,
@@ -106,9 +106,9 @@ def get_arguments():
         choices=['k', 'j'],
         help='文書スタイルの指定（契約、条文）')
     parser.add_argument(
-        '-N', '--no-page-number',
-        action='store_true',
-        help='ページ番号を出力しません')
+        '-P', '--page-number',
+        type=str,
+        help='ページ番号の書式')
     parser.add_argument(
         '-L', '--line-number',
         action='store_true',
@@ -201,8 +201,10 @@ HELP_EPILOG = '''Markdownの記法:
 DEFAULT_DOCUMENT_TITLE = ''
 
 DEFAULT_PAPER_SIZE = 'A4'
-PAPER_HEIGHT = {'A3': 29.7, 'A3P': 42.0, 'A4': 29.7, 'A4L': 21.0}
-PAPER_WIDTH = {'A3': 42.0, 'A3P': 29.7, 'A4': 21.0, 'A4L': 29.7}
+PAPER_HEIGHT = {'A3': 29.7, 'A3L': 29.7, 'A3P': 42.0,
+                'A4': 29.7, 'A4L': 21.0, 'A4P': 29.7}
+PAPER_WIDTH = {'A3': 42.0, 'A3L': 42.0, 'A3P': 29.7,
+               'A4': 21.0, 'A4L': 29.7, 'A4P': 21.0}
 
 DEFAULT_TOP_MARGIN = 3.5
 DEFAULT_BOTTOM_MARGIN = 2.2
@@ -210,7 +212,7 @@ DEFAULT_LEFT_MARGIN = 3.0
 DEFAULT_RIGHT_MARGIN = 2.0
 
 DEFAULT_DOCUMENT_STYLE = 'n'
-DEFAULT_NO_PAGE_NUMBER = False
+DEFAULT_PAGE_NUMBER = 'n'
 DEFAULT_LINE_NUMBER = False
 
 DEFAULT_MINCHO_FONT = 'ＭＳ 明朝'
@@ -640,7 +642,7 @@ class Document:
         self.left_margin = DEFAULT_LEFT_MARGIN
         self.right_margin = DEFAULT_RIGHT_MARGIN
         self.document_style = DEFAULT_DOCUMENT_STYLE
-        self.no_page_number = DEFAULT_NO_PAGE_NUMBER
+        self.page_number = DEFAULT_PAGE_NUMBER
         self.line_number = DEFAULT_LINE_NUMBER
         self.mincho_font = DEFAULT_MINCHO_FONT
         self.gothic_font = DEFAULT_GOTHIC_FONT
@@ -818,12 +820,8 @@ class Document:
                 pass
             elif nam == 'document_title' or nam == '書題名':
                 self.document_title = val
-            elif nam == 'mincho_font' or nam == '明朝体':
-                self.mincho_font = val
-            elif nam == 'gothic_font' or nam == 'ゴシ体':
-                self.gothic_font = val
             elif nam == 'document_style' or nam == '文書式':
-                if val == 'n' or val == '普通':
+                if val == 'n' or val == '普通' or val == '-':
                     self.document_style = 'n'
                 elif val == 'k' or val == '契約':
                     self.document_style = 'k'
@@ -838,14 +836,18 @@ class Document:
                     sys.stderr.write(msg + '\n\n')
             elif nam == 'paper_size' or nam == '用紙サ':
                 val = unicodedata.normalize('NFKC', val)
-                if val == 'A3' or val == 'A3横':
+                if val == 'A3':
                     self.paper_size = 'A3'
+                elif val == 'A3L' or val == 'A3横':
+                    self.paper_size = 'A3L'
                 elif val == 'A3P' or val == 'A3縦':
                     self.paper_size = 'A3P'
-                elif val == 'A4' or val == 'A4縦':
+                elif val == 'A4':
                     self.paper_size = 'A4'
                 elif val == 'A4L' or val == 'A4横':
                     self.paper_size = 'A4L'
+                elif val == 'A4P' or val == 'A4縦':
+                    self.paper_size = 'A4P'
                 else:
                     msg = '※ 警告: ' \
                         + '「' + nam + '」の値は' \
@@ -854,43 +856,10 @@ class Document:
                     # msg = 'warning: ' \
                     #     + '"' + nam + '" must be "A3", "A3P", "A4" or "A4L"'
                     sys.stderr.write(msg + '\n\n')
-            elif (nam == 'no_page_number' or nam == '頁番号' or
-                  nam == 'line_number' or nam == '行番号' or
-                  nam == 'auto_space' or nam == '字間整'):
-                val = unicodedata.normalize('NFKC', val)
-                if val == 'True' or val == '有' or \
-                   val == 'False' or val == '無':
-                    if nam == 'no_page_number'or nam == '頁番号':
-                        if val == 'True' or val == '無':
-                            self.no_page_number = True
-                        else:
-                            self.no_page_number = False
-                    elif nam == 'line_number' or nam == '行番号':
-                        if val == 'True' or val == '有':
-                            self.line_number = True
-                        else:
-                            self.line_number = False
-                    elif nam == 'auto_space'or nam == '字間整':
-                        if val == 'True' or val == '有':
-                            self.auto_space = True
-                        else:
-                            self.auto_space = False
-                    else:
-                        msg = '※ バグ: 「' + nam + '」の設定に失敗しました'
-                        # msg = 'bug: failed to configure "' + nam + '"'
-                        sys.stderr.write(msg + '\n\n')
-                else:
-                    msg = '※ 警告: ' \
-                        + '「' + nam + '」の値は"有"又は"無"で' \
-                        + 'なければなりません'
-                    # msg = 'warning: ' \
-                    #     + '"' + nam + '" must be "True" or "False"'
-                    sys.stderr.write(msg + '\n\n')
             elif (re.match('^(top|bottom|left|right)_margin$', nam) or
-                  re.match('^(上|下|左|右)余白$', nam) or
-                  nam == 'line_spacing' or nam == '行間高' or
-                  nam == 'font_size' or nam == '文字サ'):
+                  re.match('^(上|下|左|右)余白$', nam)):
                 val = unicodedata.normalize('NFKC', val)
+                val = re.sub('\\s*cm$', '', val)
                 if re.match('^' + RES_NUMBER + '$', val):
                     if nam == 'top_margin' or nam == '上余白':
                         self.top_margin = float(val)
@@ -900,14 +869,55 @@ class Document:
                         self.left_margin = float(val)
                     elif nam == 'right_margin' or nam == '右余白':
                         self.right_margin = float(val)
-                    elif nam == 'line_spacing' or nam == '行間高':
-                        self.line_spacing = float(val)
-                    elif nam == 'font_size' or nam == '文字サ':
-                        self.font_size = float(val)
-                    else:
-                        msg = '※ バグ: 「' + nam + '」の設定に失敗しました'
-                        # msg = 'bug: failed to configure "' + nam + '"'
-                        sys.stderr.write(msg + '\n\n')
+                else:
+                    msg = '※ 警告: ' \
+                        + '「' + nam + '」の値は整数又は小数で' \
+                        + 'なければなりません'
+                    # msg = 'warning: ' \
+                    #     + '"' + nam + '" must be an integer or a decimal'
+                    sys.stderr.write(msg + '\n\n')
+            elif nam == 'page_number' or nam == '頁番号':
+                val = unicodedata.normalize('NFKC', val)
+                if val == 'True' or val == '有':
+                    self.page_number = DEFAULT_PAGE_NUMBER
+                elif val == 'False' or val == '無' or val == '-':
+                    self.page_number = ''
+                else:
+                    self.page_number = val
+            elif nam == 'line_number' or nam == '行番号':
+                val = unicodedata.normalize('NFKC', val)
+                if val == 'True' or val == '有':
+                    self.line_number = True
+                elif val == 'False' or val == '無':
+                    self.line_number = False
+                else:
+                    msg = '※ 警告: ' \
+                        + '「' + nam + '」の値は"有"又は"無"で' \
+                        + 'なければなりません'
+                    # msg = 'warning: ' \
+                    #     + '"' + nam + '" must be "True" or "False"'
+                    sys.stderr.write(msg + '\n\n')
+            elif nam == 'mincho_font' or nam == '明朝体':
+                self.mincho_font = val
+            elif nam == 'gothic_font' or nam == 'ゴシ体':
+                self.gothic_font = val
+            elif nam == 'font_size' or nam == '文字サ':
+                val = unicodedata.normalize('NFKC', val)
+                val = re.sub('\\s*pt$', '', val)
+                if re.match('^' + RES_NUMBER + '$', val):
+                    self.font_size = float(val)
+                else:
+                    msg = '※ 警告: ' \
+                        + '「' + nam + '」の値は整数又は小数で' \
+                        + 'なければなりません'
+                    # msg = 'warning: ' \
+                    #     + '"' + nam + '" must be an integer or a decimal'
+                    sys.stderr.write(msg + '\n\n')
+            elif nam == 'line_spacing' or nam == '行間高':
+                val = unicodedata.normalize('NFKC', val)
+                val = re.sub('\\s*倍$', '', val)
+                if re.match('^' + RES_NUMBER + '$', val):
+                    self.line_spacing = float(val)
                 else:
                     msg = '※ 警告: ' \
                         + '「' + nam + '」の値は整数又は小数で' \
@@ -919,16 +929,13 @@ class Document:
                   re.match('^(前|後)余白$', nam)):
                 val = unicodedata.normalize('NFKC', val)
                 val = val.replace('、', ',')
+                val = val.replace('倍', '')
                 val = val.replace(' ', '')
                 if re.match('^' + RES_NUMBER6 + '$', val):
                     if nam == 'space_before' or nam == '前余白':
                         self.space_before = val
                     elif nam == 'space_after'or nam == '後余白':
                         self.space_after = val
-                    else:
-                        msg = '※ バグ: 「' + nam + '」の設定に失敗しました'
-                        # msg = 'bug: failed to configure "' + nam + '"'
-                        sys.stderr.write(msg + '\n\n')
                 else:
                     msg = '※ 警告: ' \
                         + '「' + nam + '」の値は' \
@@ -937,26 +944,21 @@ class Document:
                     # msg = 'warning: ' \
                     #     + '"' + nam + '" must be 6 integers or decimals'
                     sys.stderr.write(msg + '\n\n')
+            elif nam == 'auto_space' or nam == '字間整':
+                val = unicodedata.normalize('NFKC', val)
+                if val == 'True' or val == '有':
+                    self.auto_space = True
+                elif val == 'False' or val == '無':
+                    self.auto_space = False
+                else:
+                    msg = '※ 警告: ' \
+                        + '「' + nam + '」の値は"有"又は"無"で' \
+                        + 'なければなりません'
+                    # msg = 'warning: ' \
+                    #     + '"' + nam + '" must be "True" or "False"'
+                    sys.stderr.write(msg + '\n\n')
             elif nam == 'original_file' or nam == '元原稿':
                 self.original_file = val
-                # val = unicodedata.normalize('NFKC', val)
-                # val = re.sub(HORIZONTAL_BAR, '-', val)
-                # res = '^' \
-                #     + '[0-9]{4}-[0-9]{2}-[0-9]{2}' \
-                #     + 'T' \
-                #     + '[0-9]{2}:[0-9]{2}:[0-9]{2}' \
-                #     + '.*' \
-                #     + '$'
-                # if re.match(res, val):
-                #     self.original_file = val
-                # else:
-                #     msg = '※ 警告: ' \
-                #         + '「' + nam + '」は' \
-                #         + '"YYYY.MM.DD-hh:mm:ss-TZD"の形式で' \
-                #         + 'なければなりません'
-                #     # msg = 'warning: ' \
-                #     #     + '"' + nam + '" must be "YYYY.MM.DD-hh:mm:ss-TZD"'
-                #     sys.stderr.write(msg + '\n\n')
             else:
                 msg = '※ 警告: ' \
                     + '「' + nam + '」という設定項目は存在しません'
@@ -985,8 +987,8 @@ class Document:
             self.font_size = args.font_size
         if args.document_style is not None:
             self.document_style = args.document_style
-        if args.no_page_number:
-            self.no_page_number = True
+        if args.page_number is not None:
+            self.page_number = args.page_number
         if args.line_number:
             self.line_number = True
         if args.line_spacing is not None:
@@ -1018,20 +1020,54 @@ class Document:
         ms_doc.styles['List Number'].font.size = Pt(size)
         ms_doc.styles['List Number 2'].font.size = Pt(size)
         ms_doc.styles['List Number 3'].font.size = Pt(size)
-        if not self.no_page_number:
+        if self.page_number != '':
+            pn = self.page_number
             ms_par = ms_doc.sections[0].footer.paragraphs[0]
             ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-            ms_run = ms_par.add_run()
-            oe = OxmlElement('w:fldChar')
-            oe.set(ns.qn('w:fldCharType'), 'begin')
-            ms_run._r.append(oe)
-            oe = OxmlElement('w:instrText')
-            oe.set(ns.qn('xml:space'), 'preserve')
-            oe.text = "PAGE"
-            ms_run._r.append(oe)
-            oe = OxmlElement('w:fldChar')
-            oe.set(ns.qn('w:fldCharType'), 'end')
-            ms_run._r.append(oe)
+            if re.match('^: (.*) :$', pn):
+                pn = re.sub('^: (.*) :', '\\1', pn)
+                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+            elif re.match('^: (.*)$', pn):
+                pn = re.sub('^: (.*)', '\\1', pn)
+                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+            elif re.match('^(.*) :$', pn):
+                pn = re.sub('(.*) :$', '\\1', pn)
+                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
+            while pn != '':
+                if re.match('^n', pn):
+                    pn = re.sub('^n', '', pn)
+                    ms_run = ms_par.add_run()
+                    oe = OxmlElement('w:fldChar')
+                    oe.set(ns.qn('w:fldCharType'), 'begin')
+                    ms_run._r.append(oe)
+                    oe = OxmlElement('w:instrText')
+                    oe.set(ns.qn('xml:space'), 'preserve')
+                    oe.text = 'PAGE'
+                    ms_run._r.append(oe)
+                    oe = OxmlElement('w:fldChar')
+                    oe.set(ns.qn('w:fldCharType'), 'end')
+                    ms_run._r.append(oe)
+                elif re.match('^N', pn):
+                    pn = re.sub('^N', '', pn)
+                    ms_run = ms_par.add_run()
+                    oe = OxmlElement('w:fldChar')
+                    oe.set(ns.qn('w:fldCharType'), 'begin')
+                    ms_run._r.append(oe)
+                    oe = OxmlElement('w:instrText')
+                    oe.set(ns.qn('xml:space'), 'preserve')
+                    oe.text = 'NUMPAGES'
+                    ms_run._r.append(oe)
+                    oe = OxmlElement('w:fldChar')
+                    oe.set(ns.qn('w:fldCharType'), 'end')
+                    ms_run._r.append(oe)
+                else:
+                    st = re.sub('^([^nN])(.*)$', '\\1', pn)
+                    pn = re.sub('^([^nN])(.*)$', '\\2', pn)
+                    ms_run = ms_par.add_run()
+                    oe = OxmlElement('w:t')
+                    oe.set(ns.qn('xml:space'), 'preserve')
+                    oe.text = st
+                    ms_run._r.append(oe)
         if self.line_number:
             ms_scp = ms_doc.sections[0]._sectPr
             oe = OxmlElement('w:lnNumType')
