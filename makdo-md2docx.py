@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.01.15-11:11:36-JST>
+# Time-stamp:   <2023.01.16-09:22:56-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -106,6 +106,10 @@ def get_arguments():
         choices=['k', 'j'],
         help='文書スタイルの指定（契約、条文）')
     parser.add_argument(
+        '-H', '--header-string',
+        type=str,
+        help='ヘッダーの文字列')
+    parser.add_argument(
         '-P', '--page-number',
         type=str,
         help='ページ番号の書式')
@@ -200,6 +204,8 @@ HELP_EPILOG = '''Markdownの記法:
 
 DEFAULT_DOCUMENT_TITLE = ''
 
+DEFAULT_DOCUMENT_STYLE = 'n'
+
 DEFAULT_PAPER_SIZE = 'A4'
 PAPER_HEIGHT = {'A3': 29.7, 'A3L': 29.7, 'A3P': 42.0,
                 'A4': 29.7, 'A4L': 21.0, 'A4P': 29.7}
@@ -211,8 +217,10 @@ DEFAULT_BOTTOM_MARGIN = 2.2
 DEFAULT_LEFT_MARGIN = 3.0
 DEFAULT_RIGHT_MARGIN = 2.0
 
-DEFAULT_DOCUMENT_STYLE = 'n'
+DEFAULT_HEADER_STRING = ''
+
 DEFAULT_PAGE_NUMBER = 'n'
+
 DEFAULT_LINE_NUMBER = False
 
 DEFAULT_MINCHO_FONT = 'ＭＳ 明朝'
@@ -636,12 +644,13 @@ class Document:
         self.raw_paragraphs = []
         self.paragraphs = []
         self.document_title = DEFAULT_DOCUMENT_TITLE
+        self.document_style = DEFAULT_DOCUMENT_STYLE
         self.paper_size = DEFAULT_PAPER_SIZE
         self.top_margin = DEFAULT_TOP_MARGIN
         self.bottom_margin = DEFAULT_BOTTOM_MARGIN
         self.left_margin = DEFAULT_LEFT_MARGIN
         self.right_margin = DEFAULT_RIGHT_MARGIN
-        self.document_style = DEFAULT_DOCUMENT_STYLE
+        self.header_string = DEFAULT_HEADER_STRING
         self.page_number = DEFAULT_PAGE_NUMBER
         self.line_number = DEFAULT_LINE_NUMBER
         self.mincho_font = DEFAULT_MINCHO_FONT
@@ -876,6 +885,8 @@ class Document:
                     # msg = 'warning: ' \
                     #     + '"' + nam + '" must be an integer or a decimal'
                     sys.stderr.write(msg + '\n\n')
+            elif nam == 'header_string' or nam == '頭書き':
+                self.header_string = val
             elif nam == 'page_number' or nam == '頁番号':
                 val = unicodedata.normalize('NFKC', val)
                 if val == 'True' or val == '有':
@@ -987,6 +998,8 @@ class Document:
             self.font_size = args.font_size
         if args.document_style is not None:
             self.document_style = args.document_style
+        if args.header_string is not None:
+            self.header_string = args.header_string
         if args.page_number is not None:
             self.page_number = args.page_number
         if args.line_number:
@@ -1020,6 +1033,27 @@ class Document:
         ms_doc.styles['List Number'].font.size = Pt(size)
         ms_doc.styles['List Number 2'].font.size = Pt(size)
         ms_doc.styles['List Number 3'].font.size = Pt(size)
+        # HEADER
+        if self.header_string != '':
+            hs = self.header_string
+            ms_par = ms_doc.sections[0].header.paragraphs[0]
+            ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+            if re.match('^: (.*) :$', hs):
+                hs = re.sub('^: (.*) :', '\\1', hs)
+                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+            elif re.match('^: (.*)$', hs):
+                hs = re.sub('^: (.*)', '\\1', hs)
+                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+            elif re.match('^(.*) :$', hs):
+                hs = re.sub('(.*) :$', '\\1', hs)
+                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
+            ms_run = ms_par.add_run()
+            ms_run.font.size = Pt(self.font_size * 0.8)
+            oe = OxmlElement('w:t')
+            oe.set(ns.qn('xml:space'), 'preserve')
+            oe.text = hs
+            ms_run._r.append(oe)
+        # FOOTER
         if self.page_number != '':
             pn = self.page_number
             ms_par = ms_doc.sections[0].footer.paragraphs[0]
@@ -1033,41 +1067,40 @@ class Document:
             elif re.match('^(.*) :$', pn):
                 pn = re.sub('(.*) :$', '\\1', pn)
                 ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
-            while pn != '':
-                if re.match('^n', pn):
-                    pn = re.sub('^n', '', pn)
-                    ms_run = ms_par.add_run()
-                    oe = OxmlElement('w:fldChar')
-                    oe.set(ns.qn('w:fldCharType'), 'begin')
-                    ms_run._r.append(oe)
-                    oe = OxmlElement('w:instrText')
-                    oe.set(ns.qn('xml:space'), 'preserve')
+            tex = ''
+            for c in pn + '\0':
+                if c != 'n' and c != 'N' and c != '\0':
+                    tex += c
+                    continue
+                if not re.match(NOT_ESCAPED + 'x', tex + 'x') and c != '\0':
+                    tex = re.sub('\\\\$', '', tex) + c
+                    continue
+                # TEXT
+                ms_run = ms_par.add_run()
+                oe = OxmlElement('w:t')
+                oe.set(ns.qn('xml:space'), 'preserve')
+                oe.text = tex
+                ms_run._r.append(oe)
+                tex = ''
+                # PAGE OR NUMPAGES
+                if c == '\0':
+                    continue
+                pn = re.sub('^n', '', pn)
+                ms_run = ms_par.add_run()
+                oe = OxmlElement('w:fldChar')
+                oe.set(ns.qn('w:fldCharType'), 'begin')
+                ms_run._r.append(oe)
+                oe = OxmlElement('w:instrText')
+                oe.set(ns.qn('xml:space'), 'preserve')
+                if c == 'n':
                     oe.text = 'PAGE'
-                    ms_run._r.append(oe)
-                    oe = OxmlElement('w:fldChar')
-                    oe.set(ns.qn('w:fldCharType'), 'end')
-                    ms_run._r.append(oe)
-                elif re.match('^N', pn):
-                    pn = re.sub('^N', '', pn)
-                    ms_run = ms_par.add_run()
-                    oe = OxmlElement('w:fldChar')
-                    oe.set(ns.qn('w:fldCharType'), 'begin')
-                    ms_run._r.append(oe)
-                    oe = OxmlElement('w:instrText')
-                    oe.set(ns.qn('xml:space'), 'preserve')
-                    oe.text = 'NUMPAGES'
-                    ms_run._r.append(oe)
-                    oe = OxmlElement('w:fldChar')
-                    oe.set(ns.qn('w:fldCharType'), 'end')
-                    ms_run._r.append(oe)
-                else:
-                    st = re.sub('^([^nN])(.*)$', '\\1', pn)
-                    pn = re.sub('^([^nN])(.*)$', '\\2', pn)
-                    ms_run = ms_par.add_run()
-                    oe = OxmlElement('w:t')
-                    oe.set(ns.qn('xml:space'), 'preserve')
-                    oe.text = st
-                    ms_run._r.append(oe)
+                elif c == 'N':
+                    oe.text = 'PAGE'
+                ms_run._r.append(oe)
+                oe = OxmlElement('w:fldChar')
+                oe.set(ns.qn('w:fldCharType'), 'end')
+                ms_run._r.append(oe)
+        # LINE NUMBER
         if self.line_number:
             ms_scp = ms_doc.sections[0]._sectPr
             oe = OxmlElement('w:lnNumType')

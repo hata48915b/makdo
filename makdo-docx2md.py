@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.01.16-08:24:10-JST>
+# Time-stamp:   <2023.01.16-11:18:25-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -90,6 +90,10 @@ def get_arguments():
         choices=['k', 'j'],
         help='文書スタイルの指定（契約、条文）')
     parser.add_argument(
+        '-H', '--header-string',
+        type=str,
+        help='ヘッダーの文字列')
+    parser.add_argument(
         '-P', '--page-number',
         type=str,
         help='ページ番号の書式')
@@ -150,6 +154,8 @@ HELP_EPILOG = '''
 
 DEFAULT_DOCUMENT_TITLE = ''
 
+DEFAULT_DOCUMENT_STYLE = 'n'
+
 DEFAULT_PAPER_SIZE = 'A4'
 PAPER_HEIGHT = {'A3': 29.7, 'A3P': 42.0, 'A4': 29.7, 'A4L': 21.0}
 PAPER_WIDTH = {'A3': 42.0, 'A3P': 29.7, 'A4': 21.0, 'A4L': 29.7}
@@ -159,13 +165,15 @@ DEFAULT_BOTTOM_MARGIN = 2.0
 DEFAULT_LEFT_MARGIN = 3.0
 DEFAULT_RIGHT_MARGIN = 2.0
 
+DEFAULT_HEADER_STRING = ''
+
+DEFAULT_PAGE_NUMBER = 'n'
+
+DEFAULT_LINE_NUMBER = False
+
 DEFAULT_MINCHO_FONT = 'ＭＳ 明朝'
 DEFAULT_GOTHIC_FONT = 'ＭＳ ゴシック'
 DEFAULT_FONT_SIZE = 12.0
-
-DEFAULT_DOCUMENT_STYLE = 'n'
-DEFAULT_PAGE_NUMBER = 'n'
-DEFAULT_LINE_NUMBER = False
 
 DEFAULT_LINE_SPACING = 2.14  # (2.0980+2.1812)/2=2.1396
 
@@ -863,12 +871,13 @@ class Document:
         self.raw_paragraphs = None
         self.paragraphs = None
         self.document_title = DEFAULT_DOCUMENT_TITLE
+        self.document_style = DEFAULT_DOCUMENT_STYLE
         self.paper_size = DEFAULT_PAPER_SIZE
         self.top_margin = DEFAULT_TOP_MARGIN
         self.bottom_margin = DEFAULT_BOTTOM_MARGIN
         self.left_margin = DEFAULT_LEFT_MARGIN
         self.right_margin = DEFAULT_RIGHT_MARGIN
-        self.document_style = DEFAULT_DOCUMENT_STYLE
+        self.header_string = DEFAULT_HEADER_STRING
         self.page_number = DEFAULT_PAGE_NUMBER
         self.line_number = DEFAULT_LINE_NUMBER
         self.mincho_font = DEFAULT_MINCHO_FONT
@@ -943,6 +952,9 @@ class Document:
         self._configure_by_document_xml(self.document_raw_xml_lines)
         # DOCUMENT TITLE, DOCUMENT STYLE, ORIGINAL FILE
         self._configure_by_core_xml(self.core_raw_xml_lines)
+        # HEADER STRING
+        self._configure_by_headerX_xml(self.header1_raw_xml_lines)
+        self._configure_by_headerX_xml(self.header2_raw_xml_lines)
         # PAGE NUMBER
         self._configure_by_footerX_xml(self.footer1_raw_xml_lines)
         self._configure_by_footerX_xml(self.footer2_raw_xml_lines)
@@ -1049,6 +1061,43 @@ class Document:
                         jst = datetime.timezone(datetime.timedelta(hours=9))
                         dt = dt.replace(tzinfo=jst)
                     self.original_file = dt.strftime('%Y-%m-%dT%H:%M:%S+09:00')
+
+    def _configure_by_headerX_xml(self, raw_xml_lines):
+        # HEADER STRING
+        hs = ''
+        is_in_paragraph = False
+        alg = 'L'
+        for rxl in raw_xml_lines:
+            if re.match('^<w:p( .*)?>$', rxl):
+                is_in_paragraph = True
+                continue
+            elif re.match('^</w:p>$', rxl):
+                is_in_paragraph = False
+                continue
+            if not is_in_paragraph:
+                continue
+            if re.match('<w:jc( .*)w:val=[\'"]center[\'"]( .*)?/>', rxl):
+                alg = 'C'
+            elif re.match('<w:jc( .*)w:val=[\'"]right[\'"]( .*)?/>', rxl):
+                alg = 'R'
+            elif re.match('^<.*>$', rxl):
+                continue
+            elif re.match('^PAGE( .*)?', rxl):
+                hs += 'n'
+            elif re.match('^NUMPAGES( .*)?', rxl):
+                hs += 'N'
+            else:
+                hs += rxl
+        if hs != '':
+            hs = re.sub('n-\\s[0-9]+\\s-', '- n -', hs)
+            hs = re.sub('N-\\s[0-9]+\\s-', '- N -', hs)
+            hs = re.sub('n[0-9a-zA-Z]+', 'n', hs)
+            hs = re.sub('N[0-9a-zA-Z]+', 'N', hs)
+            if alg == 'L':
+                hs = ': ' + hs
+            elif alg == 'R':
+                hs = hs + ' :'
+            self.header_string = hs
 
     def _configure_by_footerX_xml(self, raw_xml_lines):
         # PAGE NUMBER
@@ -1159,6 +1208,8 @@ class Document:
     def _configure_by_args(self, args):
         if args.document_title is not None:
             self.document_title = args.document_title
+        if args.document_style is not None:
+            self.document_style = args.document_style
         if args.paper_size is not None:
             self.paper_size = args.paper_size
         if args.top_margin is not None:
@@ -1169,18 +1220,18 @@ class Document:
             self.left_margin = args.left_margin
         if args.right_margin is not None:
             self.right_margin = args.right_margin
+        if args.header_string is not None:
+            self.header_string = args.header_string
+        if args.page_number is not None:
+            self.page_number = args.page_number
+        if args.line_number:
+            self.line_number = True
         if args.mincho_font is not None:
             self.mincho_font = args.mincho_font
         if args.gothic_font is not None:
             self.gothic_font = args.gothic_font
         if args.font_size is not None:
             self.font_size = args.font_size
-        if args.document_style is not None:
-            self.document_style = args.document_style
-        if args.page_number is not None:
-            self.page_number = args.page_number
-        if args.line_number:
-            self.line_number = True
 
     def get_styles(self, raw_xml_lines):
         styles = []
@@ -1585,6 +1636,8 @@ class Document:
                  + str(round(self.left_margin, 1)) + '\n')
         mf.write('right_margin:   '
                  + str(round(self.right_margin, 1)) + '\n')
+        mf.write('header_string:  '
+                 + str(self.header_string) + '\n')
         mf.write('page_number:    '
                  + str(self.page_number) + '\n')
         mf.write('line_number:    '
@@ -1648,6 +1701,12 @@ class Document:
         mf.write('下余白: ' + str(round(self.bottom_margin, 1)) + ' cm\n')
         mf.write('左余白: ' + str(round(self.left_margin, 1)) + ' cm\n')
         mf.write('右余白: ' + str(round(self.right_margin, 1)) + ' cm\n')
+        mf.write('\n')
+
+        mf.write(
+            '# ページのヘッダーに表示する文字列（別紙 :等）を指定できます。'
+            + '\n')
+        mf.write('頭書き: ' + self.header_string + '\n')
         mf.write('\n')
 
         mf.write(
@@ -2904,6 +2963,8 @@ if __name__ == '__main__':
     doc.extract_docx_file(args.docx_file)
 
     doc.core_raw_xml_lines = doc.get_raw_xml_lines('/docProps/core.xml')
+    doc.header1_raw_xml_lines = doc.get_raw_xml_lines('/word/header1.xml')
+    doc.header2_raw_xml_lines = doc.get_raw_xml_lines('/word/header2.xml')
     doc.footer1_raw_xml_lines = doc.get_raw_xml_lines('/word/footer1.xml')
     doc.footer2_raw_xml_lines = doc.get_raw_xml_lines('/word/footer2.xml')
     doc.styles_raw_xml_lines = doc.get_raw_xml_lines('/word/styles.xml')
