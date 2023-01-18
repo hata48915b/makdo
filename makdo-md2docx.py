@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.01.16-09:22:56-JST>
+# Time-stamp:   <2023.01.18-10:06:28-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1149,21 +1149,20 @@ class Document:
                     = Pt(float(sa[i]) * line_spacing * size)
 
     def write_property(self, ms_doc):
-        user = os.getenv('USER')
+        host = os.getenv('HOST')              # linux
+        if host is None:
+            host = os.getenv('COMPUTERNAME')  # windows
+        if host is None:
+            host = os.getenv('HOSTNAME')      # macos
+        if host is None:
+            host = '-'
+        hh = self._get_hash(host)
+        user = os.getenv('USER')              # linux, macos
         if user is None:
-            user = os.getenv('USERNAME')
+            user = os.getenv('USERNAME')      # windows
         if user is None:
-            hs = '-'
-        else:
-            x = 9973
-            b = 99999989
-            m = 999999999989
-            for c in user + ' 2022.05.07 07:31:03':
-                x = (x * b + ord(c)) % m
-            hs = ''
-            for i in range(8):
-                hs += chr(x % 26 + 97)
-                x = int(x / 26)
+            user = '='
+        hu = self._get_hash(user)
         tt = self.document_title
         if self.document_style == 'n':
             ct = '（普通）'
@@ -1171,7 +1170,7 @@ class Document:
             ct = '（契約）'
         elif self.document_style == 'j':
             ct = '（条文）'
-        at = hs + ' (with makdo ' + __version__ + ')'
+        at = hu + '@' + hh + ' (makdo ' + __version__ + ')'
         dt = datetime.datetime.utcnow()
         # utc = datetime.timezone.utc
         # pt = datetime.datetime(1970, 1, 1, 0, 0, 0, tzinfo=utc)
@@ -1181,7 +1180,9 @@ class Document:
         # pt = datetime.datetime(1970, 1, 1, 9, 0, 0, tzinfo=jst)
         ms_cp = ms_doc.core_properties
         ms_cp.identifier \
-            = 'makdo; ' + hs + '; ' + dt.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+            = 'makdo;' \
+            + hu + '@' + hh + ';' \
+            + dt.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
         ms_cp.title = tt               # タイトル
         # ms_cp.subject = ''           # 件名
         # ms_cp.keywords = ''          # タグ
@@ -1196,6 +1197,21 @@ class Document:
         # ms_cp.last_printed = pt      # 前回印刷日
         # ms_cp.content_status = ''    # 内容の状態
         # ms_cp.language = ''          # 言語
+
+    @staticmethod
+    def _get_hash(st):
+        x = 9973
+        b = 99999989
+        m = 999999999989
+        z = int(((4 ** 20) - 1) / (4 - 1) * 2)
+        for c in st + ' 2022.05.07 07:31:03':
+            x = (x * b + ord(c)) % m
+            x = x ^ z
+        hs = ''
+        for i in range(8):
+            hs += chr(x % 26 + 97)
+            x = int(x / 26)
+        return hs
 
     def write_document(self, ms_doc):
         for p in self.paragraphs:
