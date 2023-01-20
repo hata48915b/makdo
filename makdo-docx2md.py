@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.01.16-11:18:25-JST>
+# Time-stamp:   <2023.01.21-08:42:27-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1948,6 +1948,7 @@ class Paragraph:
         has_underline = False
         font_color = ''
         highlight_color = ''
+        has_deleted = False  # TRACK CHANGES
         is_in_text = False
         res_img_ms = \
             '^<v:imagedata r:id=[\'"](.+)[\'"] o:title=[\'"](.+)[\'"]/>$'
@@ -2008,6 +2009,10 @@ class Paragraph:
                 if has_underline:
                     text = '__' + text + '__'
                     has_underline = False
+                # TRACK CHANGES
+                if has_deleted:
+                    text = '&lt;!--' + text + '--&gt;'
+                    has_deleted = False
                 xml_lines.append(text)
                 text = ''
                 is_in_text = False
@@ -2048,6 +2053,9 @@ class Paragraph:
             elif re.match('^<w:highlight w:val="[a-zA-Z]+"( .*)?/?>$', rxl):
                 highlight_color \
                     = re.sub('^<.*w:val="([a-zA-Z]+)".*>$', '\\1', rxl)
+            # TRACK CHANGES
+            elif re.match('^<w:delText( .*)?>$', rxl):
+                has_deleted = True
             elif re.match('^<w:br/?>$', rxl):
                 text += '\n'
             elif not re.match('^<.*>$', rxl):
@@ -2157,6 +2165,12 @@ class Paragraph:
                         raw_text = re.sub('@[0-9A-F]*@$', '', raw_text)
                         xl = re.sub('^@[0-9A-F]*@', '', xl)
                         continue
+                # TRACK CHANGES
+                if re.match('^.*(\n.*)*--&gt;$', raw_text) and \
+                   re.match('^&lt;!--.*$', xl):
+                    raw_text = re.sub('--&gt;$', '', raw_text)
+                    xl = re.sub('^&lt;!--', '', xl)
+                    continue
                 break
             raw_text += xl
         raw_text = raw_text.replace('&lt;', '<')
@@ -2864,27 +2878,43 @@ class Paragraph:
                     for i in range(len(tmp), -1, -1):
                         s1 = tmp[:i]
                         s2 = tmp[i:]
+                        # '\' +
                         if re.match('^.*\\\\$', s1):
                             continue
+                        # + '\'
                         if re.match('^\\\\.*$', s2):
                             continue
+                        # '*' + '*'
                         if re.match('^.*\\*$', s1) and re.match('^\\*.*$', s2):
                             continue
+                        # '~' + '~'
                         if re.match('^.*~$', s1) and re.match('^~.*$', s2):
                             continue
+                        # '/' + '/'
                         if re.match('^.*/$', s1) and re.match('^/.*$', s2):
                             continue
+                        # '+' + '+'
+                        if re.match('^.*\\+$', s1) and re.match('^\\+.*$', s2):
+                            continue
+                        # '-' + '-'
+                        if re.match('^.*-$', s1) and re.match('^-.*$', s2):
+                            continue
+                        # '_.*' + '.*_'
                         if re.match('^.*_[0-9a-zA-Z]*$', s1) and \
                            re.match('^[0-9a-zA-Z]*_.*$', s2):
                             continue
+                        # '@.*' + '.*@'
                         if re.match('^.*@[0-9a-zA-Z]*$', s1) and \
                            re.match('^[0-9a-zA-Z]*@.*$', s2):
                             continue
-                        if re.match('^.*\\+$', s1) and re.match('^\\+.*$', s2):
-                            continue
-                        if re.match('^.*-$', s1) and re.match('^-.*$', s2):
-                            continue
+                        # ' ' + ' '
                         if re.match('^.* $', s1) and re.match('^ .*$', s2):
+                            continue
+                        # '<!' + '-' or '<' + '!-' (TRACK CHANGES)
+                        if re.match('^.*<!?$', s1) and re.match('^!?-.*$', s2):
+                            continue
+                        # '-' + '>' (TRACK CHANGES)
+                        if re.match('^.*-$', s1) and re.match('^>.*$', s2):
                             continue
                         if get_ideal_width(s1) < MD_TEXT_WIDTH:
                             if s1 != '':
