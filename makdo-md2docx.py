@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.01.21-09:37:49-JST>
+# Time-stamp:   <2023.01.21-09:54:35-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -50,8 +50,8 @@ from docx.oxml.ns import qn
 from docx.enum.style import WD_STYLE_TYPE
 from docx.shared import RGBColor
 from docx.enum.text import WD_COLOR_INDEX
-import getpass  # user
 import socket   # host
+import getpass  # user
 
 
 __version__ = 'v04 Mitaki'
