@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.01.18-10:06:28-JST>
+# Time-stamp:   <2023.01.21-08:57:51-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1182,7 +1182,7 @@ class Document:
         ms_cp.identifier \
             = 'makdo;' \
             + hu + '@' + hh + ';' \
-            + dt.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+            + dt.strftime('%Y-%m-%dT%H:%M:%SZ')
         ms_cp.title = tt               # タイトル
         # ms_cp.subject = ''           # 件名
         # ms_cp.keywords = ''          # タグ
