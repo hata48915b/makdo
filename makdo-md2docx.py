@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.01.21-10:08:54-JST>
+# Time-stamp:   <2023.01.21-11:44:22-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1097,7 +1097,7 @@ class Document:
                 if c == 'n':
                     oe.text = 'PAGE'
                 elif c == 'N':
-                    oe.text = 'PAGE'
+                    oe.text = 'NUMPAGES'
                 ms_run._r.append(oe)
                 oe = OxmlElement('w:fldChar')
                 oe.set(ns.qn('w:fldCharType'), 'end')
