@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.01.21-08:57:51-JST>
+# Time-stamp:   <2023.01.21-09:37:49-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -50,6 +50,8 @@ from docx.oxml.ns import qn
 from docx.enum.style import WD_STYLE_TYPE
 from docx.shared import RGBColor
 from docx.enum.text import WD_COLOR_INDEX
+import getpass  # user
+import socket   # host
 
 
 __version__ = 'v04 Mitaki'
@@ -1149,17 +1151,11 @@ class Document:
                     = Pt(float(sa[i]) * line_spacing * size)
 
     def write_property(self, ms_doc):
-        host = os.getenv('HOST')              # linux
-        if host is None:
-            host = os.getenv('COMPUTERNAME')  # windows
-        if host is None:
-            host = os.getenv('HOSTNAME')      # macos
+        host = socket.gethostname()
         if host is None:
             host = '-'
         hh = self._get_hash(host)
-        user = os.getenv('USER')              # linux, macos
-        if user is None:
-            user = os.getenv('USERNAME')      # windows
+        user = getpass.getuser()
         if user is None:
             user = '='
         hu = self._get_hash(user)
@@ -1200,6 +1196,9 @@ class Document:
 
     @staticmethod
     def _get_hash(st):
+        # ''  owicwvnu
+        # '-' sojfooxd
+        # '=' empzhdhk
         x = 9973
         b = 99999989
         m = 999999999989
