@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.01.21-08:42:27-JST>
+# Time-stamp:   <2023.01.21-13:01:29-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2775,12 +2775,15 @@ class Paragraph:
             while re.match(res, rmt):
                 rmt = re.sub(res, '\\1\n\\3', rmt)
         md_text = ''
-        for line in rmt.split('\n'):
+        lines = rmt.split('\n')
+        for i in range(len(lines)):
+            line = lines[i]
             if re.match('^.* +$', line):
                 line += '\\'
-            line += '  '
+            if i < len(lines) - 1:
+                line += '  '
             md_text += self._split_into_lines(line)
-        md_text = re.sub('  \n$', '', md_text)
+        md_text = re.sub('\n$', '', md_text)
         return md_text
 
     def _split_into_lines(self, line):
@@ -2800,6 +2803,8 @@ class Paragraph:
                     phrases.append(tmp)
                     tmp = ''
                 break
+            if re.match('^ $', line[i + 1]):
+                continue
             if re.match('^ $', line[i]) and (not re.match('^ $', line[i + 1])):
                 if tmp != '':
                     phrases.append(tmp)
