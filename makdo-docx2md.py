@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.01.21-13:01:29-JST>
+# Time-stamp:   <2023.01.23-12:16:26-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1948,7 +1948,8 @@ class Paragraph:
         has_underline = False
         font_color = ''
         highlight_color = ''
-        has_deleted = False  # TRACK CHANGES
+        has_deleted = False   # TRACK CHANGES
+        has_inserted = False  # TRACK CHANGES
         is_in_text = False
         res_img_ms = \
             '^<v:imagedata r:id=[\'"](.+)[\'"] o:title=[\'"](.+)[\'"]/>$'
@@ -1969,6 +1970,13 @@ class Paragraph:
                 text = ''
                 xml_lines.append(rxl)
                 is_in_text = True
+                continue
+            # TRACK CHANGES
+            if re.match('^<w:ins( .*)?>$', rxl):
+                has_inserted = True
+                continue
+            elif re.match('^</w:ins( .*)?>$', rxl):
+                has_inserted = False
                 continue
             if re.match('^</w:r>$', rxl):
                 if is_gothic:
@@ -2013,6 +2021,8 @@ class Paragraph:
                 if has_deleted:
                     text = '&lt;!--' + text + '--&gt;'
                     has_deleted = False
+                elif has_inserted:
+                    text = '&lt;!+&gt;' + text + '&lt;+&gt;'
                 xml_lines.append(text)
                 text = ''
                 is_in_text = False
@@ -2053,11 +2063,11 @@ class Paragraph:
             elif re.match('^<w:highlight w:val="[a-zA-Z]+"( .*)?/?>$', rxl):
                 highlight_color \
                     = re.sub('^<.*w:val="([a-zA-Z]+)".*>$', '\\1', rxl)
+            elif re.match('^<w:br/?>$', rxl):
+                text += '\n'
             # TRACK CHANGES
             elif re.match('^<w:delText( .*)?>$', rxl):
                 has_deleted = True
-            elif re.match('^<w:br/?>$', rxl):
-                text += '\n'
             elif not re.match('^<.*>$', rxl):
                 rxl = rxl.replace('\\', '\\\\')
                 rxl = rxl.replace('*', '\\*')
@@ -2070,6 +2080,8 @@ class Paragraph:
                 rxl = rxl.replace('++', '\\+\\+')
                 rxl = rxl.replace('--', '\\-\\-')
                 rxl = rxl.replace('%%', '\\%\\%')
+                rxl = rxl.replace('&lt;', '\\&lt;')
+                rxl = rxl.replace('&gt;', '\\&gt;')
                 text += rxl
         # self.xml_lines = xml_lines
         return xml_lines
@@ -2166,10 +2178,15 @@ class Paragraph:
                         xl = re.sub('^@[0-9A-F]*@', '', xl)
                         continue
                 # TRACK CHANGES
-                if re.match('^.*(\n.*)*--&gt;$', raw_text) and \
-                   re.match('^&lt;!--.*$', xl):
-                    raw_text = re.sub('--&gt;$', '', raw_text)
-                    xl = re.sub('^&lt;!--', '', xl)
+                if re.match('^.*(\n.*)*\\-\\-&gt;$', raw_text) and \
+                   re.match('^&lt;!\\-\\-.*$', xl):
+                    raw_text = re.sub('\\-\\-&gt;$', '', raw_text)
+                    xl = re.sub('^&lt;!\\-\\-', '', xl)
+                    continue
+                if re.match('^.*(\n.*)*&lt;\\+&gt;$', raw_text) and \
+                   re.match('^&lt;!\\+&gt;.*$', xl):
+                    raw_text = re.sub('&lt;\\+&gt;$', '', raw_text)
+                    xl = re.sub('^&lt;!\\+&gt;', '', xl)
                     continue
                 break
             raw_text += xl
@@ -2798,6 +2815,7 @@ class Paragraph:
         m = len(line) - 1
         for i, c in enumerate(line):
             tmp += c
+            tmp2 = line[i + 1:]
             if i == m:
                 if tmp != '':
                     phrases.append(tmp)
@@ -2833,6 +2851,16 @@ class Paragraph:
                 if tmp != '':
                     phrases.append(tmp)
                     tmp = ''
+            # TRACK CHANGES
+            if re.match(NOT_ESCAPED + 'x$', tmp + 'x') and \
+               re.match('^(<!\\-\\-|<!\\+>).*$', tmp2):
+                if tmp != '':
+                    phrases.append(tmp)
+                    tmp = ''
+            if re.match('^.*(\\-\\->|<\\+>)$', tmp):
+                if tmp != '':
+                    phrases.append(tmp)
+                    tmp = ''
         return phrases
 
     @staticmethod
@@ -2842,8 +2870,17 @@ class Paragraph:
         for p in phrases:
             if get_ideal_width(tmp) <= MD_TEXT_WIDTH:
                 if re.match('^.*[．。]$', tmp):
-                    tex += tmp + '\n'
-                    tmp = ''
+                    if tmp != '':
+                        tex += tmp + '\n'
+                        tmp = ''
+                if re.match('^(<!\\-\\-|<!\\+>).*', p):
+                    if tmp != '':
+                        tex += tmp + '\n'
+                        tmp = ''
+                if re.match('^.*(\\-\\->|<\\+>)$', tmp):
+                    if tmp != '':
+                        tex += tmp + '\n'
+                        tmp = ''
             if get_ideal_width(tmp + p) > MD_TEXT_WIDTH:
                 if tmp != '':
                     tex += tmp + '\n'
@@ -2915,11 +2952,17 @@ class Paragraph:
                         # ' ' + ' '
                         if re.match('^.* $', s1) and re.match('^ .*$', s2):
                             continue
-                        # '<!' + '-' or '<' + '!-' (TRACK CHANGES)
-                        if re.match('^.*<!?$', s1) and re.match('^!?-.*$', s2):
+                        # '<!' + '[-+]' or '<' + '![-+]' (TRACK CHANGES)
+                        if re.match('^.*<!?$', s1) and \
+                           re.match('^!?[\\-\\+].*$', s2):
                             continue
-                        # '-' + '>' (TRACK CHANGES)
-                        if re.match('^.*-$', s1) and re.match('^>.*$', s2):
+                        # '[-+]' + '>' (TRACK CHANGES)
+                        if re.match('^.*[\\-\\+]$', s1) and \
+                           re.match('^>.*$', s2):
+                            continue
+                        # '</?.*' + '.*>'
+                        if re.match('^.*</?[0-9a-z]*$', s1) and \
+                           re.match('^/?[0-9a-z]*>.*$', s2):
                             continue
                         if get_ideal_width(s1) < MD_TEXT_WIDTH:
                             if s1 != '':

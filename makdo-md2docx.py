@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.01.21-11:44:22-JST>
+# Time-stamp:   <2023.01.23-11:27:18-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2502,6 +2502,10 @@ class MdLine:
         if comment is not None:
             comment = re.sub(com_sep + '$', '', comment)
         text = re.sub(NOT_ESCAPED + '<br/?>$', '\\1\n', text)
+        # TRACK CHANGES
+        res = NOT_ESCAPED + '<!?\\+>'
+        while re.match(res, text):
+            text = re.sub(res, '\\1', text)
         text = re.sub('  $', '\n', text)
         text = re.sub(' *$', '', text)
         # self.text = text
