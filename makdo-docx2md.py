@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.01.23-12:16:26-JST>
+# Time-stamp:   <2023.01.24-07:45:44-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1139,8 +1139,8 @@ class Document:
     def _configure_by_styles_xml(self, raw_xml_lines):
         xml_body = self._get_xml_body('w:styles', raw_xml_lines)
         xml_blocks = self._get_xml_blocks(xml_body)
-        sb = ['0', '0', '0', '0', '0', '0']
-        sa = ['0', '0', '0', '0', '0', '0']
+        sb = ['0.0', '0.0', '0.0', '0.0', '0.0', '0.0']
+        sa = ['0.0', '0.0', '0.0', '0.0', '0.0', '0.0']
         for xb in xml_blocks:
             name = ''
             font = ''
