@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.01.24-07:45:44-JST>
+# Time-stamp:   <2023.01.25-02:52:34-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2803,10 +2803,11 @@ class Paragraph:
         md_text = re.sub('\n$', '', md_text)
         return md_text
 
-    def _split_into_lines(self, line):
-        phrases = self._split_into_phrases(line)
-        lines = self._concatenate_phrases(phrases)
-        return lines
+    @classmethod
+    def _split_into_lines(cls, line):
+        phrases = cls._split_into_phrases(line)
+        splited = cls._concatenate_phrases(phrases)
+        return splited
 
     @staticmethod
     def _split_into_phrases(line):
