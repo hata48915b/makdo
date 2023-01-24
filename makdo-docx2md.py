@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.01.25-03:16:28-JST>
+# Time-stamp:   <2023.01.25-03:18:17-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -3086,5 +3086,7 @@ if __name__ == '__main__':
     mf.close()
 
     doc.make_media_dir(doc.media_dir)
+
+    # print(Paragraph._split_into_lines(''))
 
     sys.exit(0)
