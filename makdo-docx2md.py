@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.01.25-03:14:18-JST>
+# Time-stamp:   <2023.01.25-03:16:28-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2807,6 +2807,10 @@ class Paragraph:
     def _split_into_lines(cls, line):
         phrases = cls._split_into_phrases(line)
         splited = cls._concatenate_phrases(phrases)
+        # FOR TRAILING WHITE SPACE
+        splited = re.sub('\n$', '-\n', splited)
+        splited = re.sub('  \n', '  \\\n', splited)
+        splited = re.sub('-\n$', '\n', splited)
         return splited
 
     @staticmethod
