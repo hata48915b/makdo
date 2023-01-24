@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.01.25-02:52:34-JST>
+# Time-stamp:   <2023.01.25-03:10:24-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2816,48 +2816,62 @@ class Paragraph:
         m = len(line) - 1
         for i, c in enumerate(line):
             tmp += c
-            tmp2 = line[i + 1:]
             if i == m:
                 if tmp != '':
                     phrases.append(tmp)
                     tmp = ''
                 break
-            if re.match('^ $', line[i + 1]):
+            c2 = line[i + 1]
+            tmp2 = line[i + 1:]
+            # + ' '
+            if re.match('^ $', c2):
                 continue
-            if re.match('^ $', line[i]) and (not re.match('^ $', line[i + 1])):
+            # ' ' + '[^ ]'
+            if re.match('^ $', c) and (not re.match('^ $', c2)):
                 if tmp != '':
                     phrases.append(tmp)
                     tmp = ''
-            # res = '^[\\(\\[]$'
-            # if re.match('^ $', line[i]) and (not re.match(res, line[i + 1])):
+            # '[[{(]' + '[^[{(]'
+            # res = '^[\\[{\\(]$'
+            # if re.match('^ $', c) and (not re.match(res, c2)):
             #     if tmp != '':
             #         phrases.append(tmp)
             #         tmp = ''
-            res = '^[,\\.\\)\\]]$'
-            if re.match(res, line[i]) and (not re.match('^ $', line[i + 1])):
-                if tmp != '':
-                    phrases.append(tmp)
-                    tmp = ''
-            res = '^[『「｛（＜]$'
-            if (not re.match(res, line[i])) and re.match(res, line[i + 1]):
-                if tmp != '':
-                    phrases.append(tmp)
-                    tmp = ''
-            res = '^[，、．。＞）｝」』]$'
-            if re.match(res, line[i]) and (not re.match(res, line[i + 1])):
-                if re.match('^[，．]$', line[i]) and \
-                   ((i > 0) and re.match('^[０-９]$', line[i - 1])) and \
-                   ((i < m) and re.match('^[０-９]$', line[i + 1])):
+            # '[,.)}]]' + '[^,.)}] ]'
+            res = '^[,\\.\\)}\\]]$'
+            if re.match(res, c) and (not re.match(res, c2)) \
+               and (not re.match('^ $', c2)):
+                if re.match('^[,\\.]$', c) and \
+                   ((i > 0) and re.match('^[0-9０-９]$', line[i - 1])) and \
+                   ((i < m) and re.match('^[0-9０-９]$', line[i + 1])):
                     continue
                 if tmp != '':
                     phrases.append(tmp)
                     tmp = ''
-            # TRACK CHANGES
+            # '[^『「｛（＜]' + '[『「｛（＜]'
+            res = '^[『「｛（＜]$'
+            if (not re.match(res, c)) and re.match(res, c2):
+                if tmp != '':
+                    phrases.append(tmp)
+                    tmp = ''
+            # '[，、．。＞）｝」』]' + '[^，、．。＞）｝」』]'
+            res = '^[，、．。＞）｝」』]$'
+            if re.match(res, c) and (not re.match(res, c2)) \
+               and (not re.match('^ $', c2)):
+                if re.match('^[，．]$', c) and \
+                   ((i > 0) and re.match('^[0-9０-９]$', line[i - 1])) and \
+                   ((i < m) and re.match('^[0-9０-９]$', line[i + 1])):
+                    continue
+                if tmp != '':
+                    phrases.append(tmp)
+                    tmp = ''
+            # '<!--' or '<!+>' (TRACK CHANGES)
             if re.match(NOT_ESCAPED + 'x$', tmp + 'x') and \
                re.match('^(<!\\-\\-|<!\\+>).*$', tmp2):
                 if tmp != '':
                     phrases.append(tmp)
                     tmp = ''
+            # '-->' or '<+>' (TRACK CHANGES)
             if re.match('^.*(\\-\\->|<\\+>)$', tmp):
                 if tmp != '':
                     phrases.append(tmp)
