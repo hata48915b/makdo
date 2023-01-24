@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.01.25-03:10:24-JST>
+# Time-stamp:   <2023.01.25-03:14:18-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2939,8 +2939,8 @@ class Paragraph:
                         if re.match('^.*\\\\$', s1):
                             continue
                         # + '\'
-                        if re.match('^\\\\.*$', s2):
-                            continue
+                        # if re.match('^\\\\.*$', s2):
+                        #     continue
                         # '*' + '*'
                         if re.match('^.*\\*$', s1) and re.match('^\\*.*$', s2):
                             continue
@@ -2979,7 +2979,7 @@ class Paragraph:
                         if re.match('^.*</?[0-9a-z]*$', s1) and \
                            re.match('^/?[0-9a-z]*>.*$', s2):
                             continue
-                        if get_ideal_width(s1) < MD_TEXT_WIDTH:
+                        if get_ideal_width(s1) <= MD_TEXT_WIDTH:
                             if s1 != '':
                                 tex += s1 + '\n'
                                 tmp = s2
