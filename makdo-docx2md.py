@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.01.25-03:18:17-JST>
+# Time-stamp:   <2023.02.01-07:19:56-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2169,13 +2169,23 @@ class Paragraph:
                     raw_text = re.sub('`$', '', raw_text)
                     xl = re.sub('^`', '', xl)
                     continue
-                if re.match('^.*(\n.*)*@[0-9A-F]*@$', raw_text) and \
-                   re.match('^@[0-9A-F]*@.*$', xl):
-                    ce = re.sub('^.*(?:\n.*)*(@[0-9A-F]*@)$', '\\1', raw_text)
-                    cb = re.sub('^(@[0-9A-F]*@).*$', '\\1', xl)
+                if re.match('^.*(\n.*)*@[0-9a-zA-Z]*@$', raw_text) and \
+                   re.match('^@[0-9a-zA-Z]*@.*$', xl):
+                    ce = re.sub('^.*(?:\n.*)*(@[0-9a-zA-Z]*@)$', '\\1',
+                                raw_text)
+                    cb = re.sub('^(@[0-9a-zA-Z]*@).*$', '\\1', xl)
                     if ce == cb:
-                        raw_text = re.sub('@[0-9A-F]*@$', '', raw_text)
-                        xl = re.sub('^@[0-9A-F]*@', '', xl)
+                        raw_text = re.sub('@[0-9a-zA-Z]*@$', '', raw_text)
+                        xl = re.sub('^@[0-9a-zA-Z]*@', '', xl)
+                        continue
+                if re.match('^.*(\n.*)*_[0-9a-zA-Z]*_$', raw_text) and \
+                   re.match('^_[0-9a-zA-Z]*_.*$', xl):
+                    ce = re.sub('^.*(?:\n.*)*(_[0-9a-zA-Z]*_)$', '\\1',
+                                raw_text)
+                    cb = re.sub('^(_[0-9a-zA-Z]*_).*$', '\\1', xl)
+                    if ce == cb:
+                        raw_text = re.sub('_[0-9a-zA-Z]*_$', '', raw_text)
+                        xl = re.sub('^_[0-9a-zA-Z]*_', '', xl)
                         continue
                 # TRACK CHANGES
                 if re.match('^.*(\n.*)*\\-\\-&gt;$', raw_text) and \
@@ -2795,10 +2805,11 @@ class Paragraph:
         lines = rmt.split('\n')
         for i in range(len(lines)):
             line = lines[i]
-            if re.match('^.* +$', line):
+            if re.match('^.* {2:}$', line):
                 line += '\\'
             if i < len(lines) - 1:
-                line += '  '
+                if not (i == 0 and re.match('^#+ ?$', line)):
+                    line += ' ' * 2
             md_text += self._split_into_lines(line)
         md_text = re.sub('\n$', '', md_text)
         return md_text
