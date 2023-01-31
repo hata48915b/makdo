@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.01.23-11:27:18-JST>
+# Time-stamp:   <2023.01.31-17:04:42-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1049,12 +1049,35 @@ class Document:
             elif re.match('^(.*) :$', hs):
                 hs = re.sub('(.*) :$', '\\1', hs)
                 ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
-            ms_run = ms_par.add_run()
-            ms_run.font.size = Pt(self.font_size * 0.8)
-            oe = OxmlElement('w:t')
-            oe.set(ns.qn('xml:space'), 'preserve')
-            oe.text = hs
-            ms_run._r.append(oe)
+            tex = ''
+            is_large = False
+            is_small = False
+            for c in hs + '\0':
+                tex += c
+                if re.match(NOT_ESCAPED + '\\-\\-$', tex) or \
+                   re.match(NOT_ESCAPED + '\\+\\+$', tex) or \
+                   re.match(NOT_ESCAPED + '\0$', tex):
+                    ms_run = ms_par.add_run()
+                    if is_small:
+                        ms_run.font.size = Pt(self.font_size * 0.8)
+                    elif is_large:
+                        ms_run.font.size = Pt(self.font_size * 1.2)
+                    else:
+                        ms_run.font.size = Pt(self.font_size * 1.0)
+                    oe = OxmlElement('w:t')
+                    oe.set(ns.qn('xml:space'), 'preserve')
+                    if re.match(NOT_ESCAPED + '\\-\\-$', tex):
+                        oe.text = re.sub('\\-\\-$', '', tex)
+                        is_small = not is_small
+                        is_large = False
+                    elif re.match(NOT_ESCAPED + '\\+\\+$', tex):
+                        oe.text = re.sub('\\+\\+$', '', tex)
+                        is_small = False
+                        is_large = not is_large
+                    elif re.match(NOT_ESCAPED + '\0$', tex):
+                        oe.text = re.sub('\0$', '', tex)
+                    tex = ''
+                    ms_run._r.append(oe)
         # FOOTER
         if self.page_number != '':
             pn = self.page_number
