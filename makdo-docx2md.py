@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.02.03-06:27:00-JST>
+# Time-stamp:   <2023.02.03-06:29:09-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -511,8 +511,8 @@ class Title:
         + '|(?://)' \
         + '|(?:\\-\\-)' \
         + '|(?:\\+\\+)' \
-        + '|(?:@[0-9a-zA-Z]*@)' \
-        + '|(?:_[0-9a-zA-Z]*_)' \
+        + '|(?:@[0-9A-Za-z]*@)' \
+        + '|(?:_[0-9A-Za-z]*_)' \
         + ')*'
     r1 = '(__)?\\+\\+(.*)\\+\\+(__)?'
     r2 = '(第([0-9０-９]+)条?)'
@@ -1100,8 +1100,8 @@ class Document:
         if hs != '':
             hs = re.sub('n-\\s[0-9]+\\s-', '- n -', hs)
             hs = re.sub('N-\\s[0-9]+\\s-', '- N -', hs)
-            hs = re.sub('n[0-9a-zA-Z]+', 'n', hs)
-            hs = re.sub('N[0-9a-zA-Z]+', 'N', hs)
+            hs = re.sub('n[0-9A-Za-z]+', 'n', hs)
+            hs = re.sub('N[0-9A-Za-z]+', 'N', hs)
             if alg == 'L':
                 hs = ': ' + hs
             elif alg == 'R':
@@ -1137,8 +1137,8 @@ class Document:
         if pn != '':
             pn = re.sub('n-\\s[0-9]+\\s-', '- n -', pn)
             pn = re.sub('N-\\s[0-9]+\\s-', '- N -', pn)
-            pn = re.sub('n[0-9a-zA-Z]+', 'n', pn)
-            pn = re.sub('N[0-9a-zA-Z]+', 'N', pn)
+            pn = re.sub('n[0-9A-Za-z]+', 'n', pn)
+            pn = re.sub('N[0-9A-Za-z]+', 'N', pn)
             if alg == 'L':
                 pn = ': ' + pn
             elif alg == 'R':
@@ -2192,23 +2192,23 @@ class Paragraph:
                     raw_text = re.sub('`$', '', raw_text)
                     xl = re.sub('^`', '', xl)
                     continue
-                if re.match('^.*(\n.*)*@[0-9a-zA-Z]*@$', raw_text) and \
-                   re.match('^@[0-9a-zA-Z]*@.*$', xl):
-                    ce = re.sub('^.*(?:\n.*)*(@[0-9a-zA-Z]*@)$', '\\1',
+                if re.match('^.*(\n.*)*@[0-9A-Za-z]*@$', raw_text) and \
+                   re.match('^@[0-9A-Za-z]*@.*$', xl):
+                    ce = re.sub('^.*(?:\n.*)*(@[0-9A-Za-z]*@)$', '\\1',
                                 raw_text)
-                    cb = re.sub('^(@[0-9a-zA-Z]*@).*$', '\\1', xl)
+                    cb = re.sub('^(@[0-9A-Za-z]*@).*$', '\\1', xl)
                     if ce == cb:
-                        raw_text = re.sub('@[0-9a-zA-Z]*@$', '', raw_text)
-                        xl = re.sub('^@[0-9a-zA-Z]*@', '', xl)
+                        raw_text = re.sub('@[0-9A-Za-z]*@$', '', raw_text)
+                        xl = re.sub('^@[0-9A-Za-z]*@', '', xl)
                         continue
-                if re.match('^.*(\n.*)*_[0-9a-zA-Z]*_$', raw_text) and \
-                   re.match('^_[0-9a-zA-Z]*_.*$', xl):
-                    ce = re.sub('^.*(?:\n.*)*(_[0-9a-zA-Z]*_)$', '\\1',
+                if re.match('^.*(\n.*)*_[0-9A-Za-z]*_$', raw_text) and \
+                   re.match('^_[0-9A-Za-z]*_.*$', xl):
+                    ce = re.sub('^.*(?:\n.*)*(_[0-9A-Za-z]*_)$', '\\1',
                                 raw_text)
-                    cb = re.sub('^(_[0-9a-zA-Z]*_).*$', '\\1', xl)
+                    cb = re.sub('^(_[0-9A-Za-z]*_).*$', '\\1', xl)
                     if ce == cb:
-                        raw_text = re.sub('_[0-9a-zA-Z]*_$', '', raw_text)
-                        xl = re.sub('^_[0-9a-zA-Z]*_', '', xl)
+                        raw_text = re.sub('_[0-9A-Za-z]*_$', '', raw_text)
+                        xl = re.sub('^_[0-9A-Za-z]*_', '', xl)
                         continue
                 # TRACK CHANGES
                 if re.match('^.*(\n.*)*\\-\\-&gt;$', raw_text) and \
@@ -2997,12 +2997,12 @@ class Paragraph:
                         if re.match('^.*-$', s1) and re.match('^-.*$', s2):
                             continue
                         # '_.*' + '.*_'
-                        if re.match('^.*_[0-9a-zA-Z]*$', s1) and \
-                           re.match('^[0-9a-zA-Z]*_.*$', s2):
+                        if re.match('^.*_[0-9A-Za-z]*$', s1) and \
+                           re.match('^[0-9A-Za-z]*_.*$', s2):
                             continue
                         # '@.*' + '.*@'
-                        if re.match('^.*@[0-9a-zA-Z]*$', s1) and \
-                           re.match('^[0-9a-zA-Z]*@.*$', s2):
+                        if re.match('^.*@[0-9A-Za-z]*$', s1) and \
+                           re.match('^[0-9A-Za-z]*@.*$', s2):
                             continue
                         # ' ' + ' '
                         if re.match('^.* $', s1) and re.match('^ .*$', s2):
