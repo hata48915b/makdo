@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.02.03-06:00:42-JST>
+# Time-stamp:   <2023.02.03-08:35:11-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -193,9 +193,9 @@ HELP_EPILOG = '''Markdownの記法:
     [//]で挟まれた文字列は斜体になります（独自）
     [--]で挟まれた文字列は文字が小さくなります（独自）
     [++]で挟まれた文字列は文字が大きくなります（独自）
-    [@@]で挟まれた文字列は白色になって見えなくなります（独自）
-    [@XXYYZZ@]で挟まれた文字列はRGB(XX,YY,ZZ)色になります（独自）
-    [@foo@]で挟まれた文字列はfoo色になります（独自）
+    [^^]で挟まれた文字列は白色になって見えなくなります（独自）
+    [^XXYYZZ^]で挟まれた文字列はRGB(XX,YY,ZZ)色になります（独自）
+    [^foo^]で挟まれた文字列はfoo色になります（独自）
     [__]で挟まれた文字列は下線が引かれます（独自）
     [_foo_]で挟まれた区間の背景はfoo色になります（独自）
       red(R) darkRed(DR) yellow(Y) darkYellow(DY) green(G) darkGreen(DG)
@@ -1346,12 +1346,16 @@ class Paragraph:
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
         md_lines = self.md_lines
         res_sn = '^\\s*(#+)=\\s*([0-9]+)(.*)$'
-        res_de = '^\\s*' \
-            + '((?:' \
-            + '(?:\\*{1,3})|(?:~~)|(?:`)|(?://)|(?:\\-\\-)|(?:\\+\\+)' \
-            + '|(?:@[0-9A-Za-z]*@)|(?:_[0-9A-Za-z]*_)' \
-            + ')+)' \
-            + '(.*)$'
+        res_de = ('^\\s*((?:'
+                  + '(?:\\*{1,3})'             # italic, bold
+                  + '|(?:~~)'                  # strikethrough
+                  + '|(?:`)'                   # preformatted
+                  + '|(?://)'                  # italic
+                  + '|(?:\\-\\-)'              # small
+                  + '|(?:\\+\\+)'              # large
+                  + '|(?:\\^[0-9A-Za-z]*\\^)'  # font color
+                  + '|(?:_[0-9A-Za-z]*_)'      # highlight color
+                  + ')+)(.*)$')
         res_sb = '^\\s*v=\\s*' + RES_NUMBER + '(.*)$'
         res_sa = '^\\s*V=\\s*' + RES_NUMBER + '(.*)$'
         res_ls = '^\\s*X=\\s*' + RES_NUMBER + '(.*)$'
@@ -2285,67 +2289,63 @@ class Paragraph:
         for c in text + '\0':
             if False:
                 pass
-            elif re.match(NOT_ESCAPED + '`$', tex + c):
-                # `
-                tex = re.sub('`$', '', tex + c)
-                tex = self._write_string(tex, ms_par)
-                Paragraph.is_preformatted = not Paragraph.is_preformatted
-                continue
             elif re.match(NOT_ESCAPED + '\\*\\*\\*$', tex + c):
-                # ***
+                # *** (ITALIC AND BOLD)
                 tex = re.sub('\\*\\*\\*$', '', tex + c)
                 tex = self._write_string(tex, ms_par)
                 Paragraph.is_italic = not Paragraph.is_italic
                 Paragraph.is_bold = not Paragraph.is_bold
                 continue
             elif re.match(NOT_ESCAPED + '\\*\\*$', tex) and c != '*':
-                # **
+                # ** (BOLD)
                 tex = re.sub('\\*\\*$', '', tex)
                 tex = self._write_string(tex, ms_par)
                 tex += c
                 Paragraph.is_bold = not Paragraph.is_bold
                 continue
             elif re.match(NOT_ESCAPED + '\\*$', tex) and c != '*':
-                # *
+                # * (ITALIC)
                 tex = re.sub('\\*$', '', tex)
                 tex = self._write_string(tex, ms_par)
                 tex += c
                 Paragraph.is_italic = not Paragraph.is_italic
                 continue
+            elif re.match(NOT_ESCAPED + '~~$', tex + c):
+                # ~~ (STRIKETHROUGH)
+                tex = re.sub('~~$', '', tex + c)
+                tex = self._write_string(tex, ms_par)
+                Paragraph.has_strike = not Paragraph.has_strike
+                continue
+            elif re.match(NOT_ESCAPED + '`$', tex + c):
+                # ` (PREFORMATTED)
+                tex = re.sub('`$', '', tex + c)
+                tex = self._write_string(tex, ms_par)
+                Paragraph.is_preformatted = not Paragraph.is_preformatted
+                continue
             elif re.match(NOT_ESCAPED + '//$', tex + c):
+                # // (ITALIC)
                 if not re.match('[a-z]+://', tex + c):
                     # not http:// https:// ftp:// ...
                     tex = re.sub('//$', '', tex + c)
                     tex = self._write_string(tex, ms_par)
                     Paragraph.is_italic = not Paragraph.is_italic
                     continue
-            elif re.match(NOT_ESCAPED + '~~$', tex + c):
-                # ~~
-                tex = re.sub('~~$', '', tex + c)
-                tex = self._write_string(tex, ms_par)
-                Paragraph.has_strike = not Paragraph.has_strike
-                continue
-            elif re.match(NOT_ESCAPED + '__$', tex + c):
-                # __
-                tex = re.sub('__$', '', tex + c)
-                tex = self._write_string(tex, ms_par)
-                Paragraph.has_underline = not Paragraph.has_underline
-                continue
-            elif re.match(NOT_ESCAPED + '\\+\\+$', tex + c):
-                # ++
-                tex = re.sub('\\+\\+$', '', tex + c)
-                tex = self._write_string(tex, ms_par)
-                Paragraph.is_large = not Paragraph.is_large
-                continue
             elif re.match(NOT_ESCAPED + '\\-\\-$', tex + c):
-                # --
+                # -- (SMALL)
                 tex = re.sub('\\-\\-$', '', tex + c)
                 tex = self._write_string(tex, ms_par)
                 Paragraph.is_small = not Paragraph.is_small
                 continue
-            elif re.match(NOT_ESCAPED + '@([0-9A-Za-z]*)@$', tex + c):
-                # @...@
-                col = re.sub(NOT_ESCAPED + '@([0-9A-Za-z]*)@$', '\\2', tex + c)
+            elif re.match(NOT_ESCAPED + '\\+\\+$', tex + c):
+                # ++ (LARGE)
+                tex = re.sub('\\+\\+$', '', tex + c)
+                tex = self._write_string(tex, ms_par)
+                Paragraph.is_large = not Paragraph.is_large
+                continue
+            elif re.match(NOT_ESCAPED + '\\^([0-9A-Za-z]*)\\^$', tex + c):
+                # ^...^ (FONT COLOR)
+                col = re.sub(NOT_ESCAPED + '\\^([0-9A-Za-z]*)\\^$', '\\2',
+                             tex + c)
                 if col == '':
                     col = 'FFFFFF'
                 elif re.match('^([0-9A-F])([0-9A-F])([0-9A-F])$', col):
@@ -2354,15 +2354,21 @@ class Paragraph:
                 elif col in FONT_COLOR:
                     col = FONT_COLOR[col]
                 if re.match('^[0-9A-F]{6}$', col):
-                    tex = re.sub('@([0-9A-Za-z]*)@$', '', tex + c)
+                    tex = re.sub('\\^([0-9A-Za-z]*)\\^$', '', tex + c)
                     tex = self._write_string(tex, ms_par)
                     if Paragraph.font_color == '':
                         Paragraph.font_color = col
                     else:
                         Paragraph.font_color = ''
                     continue
+            elif re.match(NOT_ESCAPED + '__$', tex + c):
+                # __ (UNDERLINE)
+                tex = re.sub('__$', '', tex + c)
+                tex = self._write_string(tex, ms_par)
+                Paragraph.has_underline = not Paragraph.has_underline
+                continue
             elif re.match(NOT_ESCAPED + '_([0-9A-Za-z]+)_$', tex + c):
-                # _..._
+                # _..._ (HIGHLIGHT COLOR)
                 col = re.sub(NOT_ESCAPED + '_([0-9A-Za-z]+)_$', '\\2', tex + c)
                 if col in HIGHLIGHT_COLOR:
                     tex = re.sub('_([0-9A-Za-z]+)_$', '', tex + c)
