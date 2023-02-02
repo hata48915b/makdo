@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.02.01-07:19:56-JST>
+# Time-stamp:   <2023.02.03-06:27:00-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -504,7 +504,16 @@ CONJUNCTIONS = [
 
 class Title:
 
-    r0 = '((?:__)|(?:\\+\\+)|(?:--)|(?:~~)|(?:\\*+)|(?:@[0-9A-F]*@))*'
+    r0 = '' \
+        + '((?:\\*{1,3})' \
+        + '|(?:~~)' \
+        + '|(?:`)' \
+        + '|(?://)' \
+        + '|(?:\\-\\-)' \
+        + '|(?:\\+\\+)' \
+        + '|(?:@[0-9a-zA-Z]*@)' \
+        + '|(?:_[0-9a-zA-Z]*_)' \
+        + ')*'
     r1 = '(__)?\\+\\+(.*)\\+\\+(__)?'
     r2 = '(第([0-9０-９]+)条?)'
     r3 = '([0-9０-９]+)'
@@ -1481,8 +1490,16 @@ class Document:
     def _modpar_one_line_paragraph(self):
         for p in self.paragraphs:
             rt = p.raw_text
-            cms = ['\\*\\*\\*', '\\*\\*', '\\*', '~~', '--', '\\+\\+', '__',
-                   '@[0-9A-F]*@']
+            cms = ['\\*\\*\\*',
+                   '\\*\\*',
+                   '\\*',
+                   '~~',
+                   '`',
+                   '//',
+                   '\\-\\-',
+                   '\\+\\+',
+                   '@[0-9A-Za-z]*@',
+                   '_[0-9A-Za-z]*_']
             for cm in cms:
                 while re.match(NOT_ESCAPED + cm, rt):
                     rt = re.sub(NOT_ESCAPED + cm, '\\1', rt)
@@ -1524,9 +1541,15 @@ class Document:
             ln = re.sub('\n', ' ', ln)
             ln = re.sub(' +', ' ', ln)
             res = '^' \
-                + '((?:__)|(?:\\+\\+)|(?:--)|(?:~~)|(?:\\*+)' \
-                + '|(?:@[0-9A-F]*@))' \
-                + '*((#+ )*).*$'
+                + '((?:\\*{1,3})' \
+                + '|(?:~~)' \
+                + '|(?:`)' \
+                + '|(?://)' \
+                + '|(?:\\-\\-)' \
+                + '|(?:\\+\\+)' \
+                + '|(?:@[0-9A-Za-z]*@)' \
+                + '|(?:_[0-9A-Za-z]*_)' \
+                + ')*((#+ )*).*$'
             head = re.sub(res, '\\2', ln + ' ')
             head = re.sub(' $', '', head)
             for sharps in head.split(' '):
@@ -2203,8 +2226,10 @@ class Paragraph:
         raw_text = raw_text.replace('&lt;', '<')
         raw_text = raw_text.replace('&gt;', '>')
         raw_text = raw_text.replace('&amp;', '&')
-        com = ['\\*\\*\\*', '\\*\\*', '\\*', '~~', '//', '\\+\\+', '--', '@@',
-               '@[0-9A-F]+@']
+        com = ['\\*\\*\\*', '\\*\\*', '\\*',
+               '~~', '`', '//',
+               '\\-\\-', '\\+\\+',
+               '@[0-9A-Za-z]+@', '_[0-9A-Za-z]+_']
         while True:
             for c in com:
                 res = c + '(\\s+)' + c
