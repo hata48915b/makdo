@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.01.31-17:04:42-JST>
+# Time-stamp:   <2023.02.03-06:00:42-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -191,16 +191,19 @@ HELP_EPILOG = '''Markdownの記法:
     [~~]で挟まれた文字列は打消線が引かれます
     [`]で挟まれた文字列はゴシック体になります
     [//]で挟まれた文字列は斜体になります（独自）
-    [__]で挟まれた文字列は下線が引かれます（独自）
-    [++]で挟まれた文字列は文字が大きくなります（独自）
     [--]で挟まれた文字列は文字が小さくなります（独自）
+    [++]で挟まれた文字列は文字が大きくなります（独自）
     [@@]で挟まれた文字列は白色になって見えなくなります（独自）
     [@XXYYZZ@]で挟まれた文字列はRGB(XX,YY,ZZ)色になります（独自）
     [@foo@]で挟まれた文字列はfoo色になります（独自）
+    [__]で挟まれた文字列は下線が引かれます（独自）
     [_foo_]で挟まれた区間の背景はfoo色になります（独自）
       red(R) darkRed(DR) yellow(Y) darkYellow(DY) green(G) darkGreen(DG)
       cyan(C) darkCyan(DC) blue(B) darkBlue(DB) magenta(M) darkMagenta(DM)
       lightGray(G1) darkGray(G2) black(BK)
+  エスケープ記号
+    [\\]をコマンドの前に書くとコマンドが文字列になります
+    [\\\\]で"\\"が表示されます
 '''
 
 
@@ -1343,12 +1346,12 @@ class Paragraph:
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
         md_lines = self.md_lines
         res_sn = '^\\s*(#+)=\\s*([0-9]+)(.*)$'
-        res_de = '^\\s*' + \
-            '((?:' + \
-            '(?:\\*+)|(?:~~)|(?:__)|(?://)|(?:\\+\\+)|(?:--)' + \
-            '|(?:@[0-9A-F]*@)|(?:_[a-zA-Z]*_)' + \
-            ')+)' + \
-            '(.*)$'
+        res_de = '^\\s*' \
+            + '((?:' \
+            + '(?:\\*{1,3})|(?:~~)|(?:`)|(?://)|(?:\\-\\-)|(?:\\+\\+)' \
+            + '|(?:@[0-9A-Za-z]*@)|(?:_[0-9A-Za-z]*_)' \
+            + ')+)' \
+            + '(.*)$'
         res_sb = '^\\s*v=\\s*' + RES_NUMBER + '(.*)$'
         res_sa = '^\\s*V=\\s*' + RES_NUMBER + '(.*)$'
         res_ls = '^\\s*X=\\s*' + RES_NUMBER + '(.*)$'
@@ -2208,8 +2211,8 @@ class Paragraph:
     @staticmethod
     def _join_string(string_a, string_b):
         string_joined = string_a + string_b
-        if re.match('^.*[0-9a-zA-Z,\\.\\)}\\]]$', string_a):
-            if re.match('^[0-9a-zA-Z\\({\\]].*$', string_b):
+        if re.match('^.*[0-9A-Za-z,\\.\\)}\\]]$', string_a):
+            if re.match('^[0-9A-Za-z\\({\\]].*$', string_b):
                 string_joined = string_a + ' ' + string_b
         return string_joined
 
@@ -2340,9 +2343,9 @@ class Paragraph:
                 tex = self._write_string(tex, ms_par)
                 Paragraph.is_small = not Paragraph.is_small
                 continue
-            elif re.match(NOT_ESCAPED + '@([a-zA-Z0-9]*)@$', tex + c):
+            elif re.match(NOT_ESCAPED + '@([0-9A-Za-z]*)@$', tex + c):
                 # @...@
-                col = re.sub(NOT_ESCAPED + '@([a-zA-Z0-9]*)@$', '\\2', tex + c)
+                col = re.sub(NOT_ESCAPED + '@([0-9A-Za-z]*)@$', '\\2', tex + c)
                 if col == '':
                     col = 'FFFFFF'
                 elif re.match('^([0-9A-F])([0-9A-F])([0-9A-F])$', col):
@@ -2351,18 +2354,18 @@ class Paragraph:
                 elif col in FONT_COLOR:
                     col = FONT_COLOR[col]
                 if re.match('^[0-9A-F]{6}$', col):
-                    tex = re.sub('@([a-zA-Z0-9]*)@$', '', tex + c)
+                    tex = re.sub('@([0-9A-Za-z]*)@$', '', tex + c)
                     tex = self._write_string(tex, ms_par)
                     if Paragraph.font_color == '':
                         Paragraph.font_color = col
                     else:
                         Paragraph.font_color = ''
                     continue
-            elif re.match(NOT_ESCAPED + '_([a-zA-Z0-9]+)_$', tex + c):
+            elif re.match(NOT_ESCAPED + '_([0-9A-Za-z]+)_$', tex + c):
                 # _..._
-                col = re.sub(NOT_ESCAPED + '_([a-zA-Z0-9]+)_$', '\\2', tex + c)
+                col = re.sub(NOT_ESCAPED + '_([0-9A-Za-z]+)_$', '\\2', tex + c)
                 if col in HIGHLIGHT_COLOR:
-                    tex = re.sub('_([a-zA-Z0-9]+)_$', '', tex + c)
+                    tex = re.sub('_([0-9A-Za-z]+)_$', '', tex + c)
                     tex = self._write_string(tex, ms_par)
                     if Paragraph.highlight_color is None:
                         Paragraph.highlight_color = HIGHLIGHT_COLOR[col]
