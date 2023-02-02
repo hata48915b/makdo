@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.02.03-06:29:09-JST>
+# Time-stamp:   <2023.02.03-08:24:40-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -504,16 +504,17 @@ CONJUNCTIONS = [
 
 class Title:
 
-    r0 = '' \
-        + '((?:\\*{1,3})' \
-        + '|(?:~~)' \
-        + '|(?:`)' \
-        + '|(?://)' \
-        + '|(?:\\-\\-)' \
-        + '|(?:\\+\\+)' \
-        + '|(?:@[0-9A-Za-z]*@)' \
-        + '|(?:_[0-9A-Za-z]*_)' \
-        + ')*'
+    # FONT DECORATIONS
+    r0 = (''
+          + '((?:\\*{1,3})'            # italic, bold
+          + '|(?:~~)'                  # strikethrough
+          + '|(?:`)'                   # preformatted
+          + '|(?://)'                  # italic
+          + '|(?:\\-\\-)'              # small
+          + '|(?:\\+\\+)'              # large
+          + '|(?:\\^[0-9A-Za-z]*\\^)'  # font color
+          + '|(?:_[0-9A-Za-z]*_)'      # highlight color
+          + ')*')
     r1 = '(__)?\\+\\+(.*)\\+\\+(__)?'
     r2 = '(第([0-9０-９]+)条?)'
     r3 = '([0-9０-９]+)'
@@ -1490,16 +1491,16 @@ class Document:
     def _modpar_one_line_paragraph(self):
         for p in self.paragraphs:
             rt = p.raw_text
-            cms = ['\\*\\*\\*',
-                   '\\*\\*',
-                   '\\*',
-                   '~~',
-                   '`',
-                   '//',
-                   '\\-\\-',
-                   '\\+\\+',
-                   '@[0-9A-Za-z]*@',
-                   '_[0-9A-Za-z]*_']
+            cms = ['\\*\\*\\*',           # italic and bold
+                   '\\*\\*',              # bold
+                   '\\*',                 # italic
+                   '~~',                  # strikethrough
+                   '`',                   # preformatted
+                   '//',                  # italic
+                   '\\-\\-',              # small
+                   '\\+\\+',              # large
+                   '\\^[0-9A-Za-z]*\\^',  # font color
+                   '_[0-9A-Za-z]*_']      # higilight color
             for cm in cms:
                 while re.match(NOT_ESCAPED + cm, rt):
                     rt = re.sub(NOT_ESCAPED + cm, '\\1', rt)
@@ -1540,16 +1541,16 @@ class Document:
             ln = p.md_text
             ln = re.sub('\n', ' ', ln)
             ln = re.sub(' +', ' ', ln)
-            res = '^' \
-                + '((?:\\*{1,3})' \
-                + '|(?:~~)' \
-                + '|(?:`)' \
-                + '|(?://)' \
-                + '|(?:\\-\\-)' \
-                + '|(?:\\+\\+)' \
-                + '|(?:@[0-9A-Za-z]*@)' \
-                + '|(?:_[0-9A-Za-z]*_)' \
-                + ')*((#+ )*).*$'
+            res = ('^'
+                   + '((?:\\*{1,3})'            # italic, bold
+                   + '|(?:~~)'                  # strikethrough
+                   + '|(?:`)'                   # preformatted
+                   + '|(?://)'                  # italic
+                   + '|(?:\\-\\-)'              # small
+                   + '|(?:\\+\\+)'              # large
+                   + '|(?:\\^[0-9A-Za-z]*\\^)'  # font color
+                   + '|(?:_[0-9A-Za-z]*_)'      # highlight color
+                   + ')*((#+ )*).*$')
             head = re.sub(res, '\\2', ln + ' ')
             head = re.sub(' $', '', head)
             for sharps in head.split(' '):
@@ -2002,48 +2003,58 @@ class Paragraph:
                 has_inserted = False
                 continue
             if re.match('^</w:r>$', rxl):
-                if is_gothic:
-                    text = '`' + text + '`'
-                    is_gothic = False
+                # ITALIC
                 if is_italic:
                     text = '*' + text + '*'
                     is_italic = False
+                # BOLD
                 if is_bold:
                     text = '**' + text + '**'
                     is_bold = False
+                # STRIKETHROUGH
                 if has_strike:
                     text = '~~' + text + '~~'
                     has_strike = False
+                # PREFORMATTED
+                if is_gothic:
+                    text = '`' + text + '`'
+                    is_gothic = False
+                # SMALL
                 if is_small:
                     text = '--' + text + '--'
                     is_small = False
+                # LARGE
                 if is_large:
                     text = '++' + text + '++'
                     is_large = False
+                # FONT COLOR
                 if font_color != '':
                     if font_color == 'FFFFFF':
-                        text = '@@' + text + '@@'
+                        text = '^^' + text + '^^'
                     elif font_color in FONT_COLOR:
-                        text = '@' + FONT_COLOR[font_color] + '@' \
+                        text = '^' + FONT_COLOR[font_color] + '^' \
                             + text \
-                            + '@' + FONT_COLOR[font_color] + '@'
+                            + '^' + FONT_COLOR[font_color] + '^'
                     else:
-                        text = '@' + font_color + '@' \
+                        text = '^' + font_color + '^' \
                             + text \
-                            + '@' + font_color + '@'
+                            + '^' + font_color + '^'
                     font_color = ''
+                # UNDERLINE
+                if has_underline:
+                    text = '__' + text + '__'
+                    has_underline = False
+                # HIGILIGHT COLOR
                 if highlight_color != '':
                     text = '_' + highlight_color + '_' \
                         + text \
                         + '_' + highlight_color + '_'
                     highlight_color = ''
-                if has_underline:
-                    text = '__' + text + '__'
-                    has_underline = False
-                # TRACK CHANGES
+                # TRACK CHANGES (DELETED)
                 if has_deleted:
                     text = '&lt;!--' + text + '--&gt;'
                     has_deleted = False
+                # TRACK CHANGES (INSERTED)
                 elif has_inserted:
                     text = '&lt;!+&gt;' + text + '&lt;+&gt;'
                 xml_lines.append(text)
@@ -2152,55 +2163,65 @@ class Paragraph:
             if re.match('^<.*>$', xl):
                 continue
             while True:
-                if re.match('^.*(\n.*)*\\+\\+$', raw_text) and \
-                   re.match('^\\+\\+.*$', xl):
-                    raw_text = re.sub('\\+\\+$', '', raw_text)
-                    xl = re.sub('^\\+\\+', '', xl)
-                    continue
-                if re.match('^.*(\n.*)*--$', raw_text) and \
-                   re.match('^--.*$', xl):
-                    raw_text = re.sub('--$', '', raw_text)
-                    xl = re.sub('^--', '', xl)
-                    continue
+                # ITALIC AND BOLD
                 if re.match('^.*(\n.*)*[^\\*]\\*\\*\\*$', raw_text) and \
                    re.match('^\\*\\*\\*[^\\*].*$', xl):
                     raw_text = re.sub('\\*\\*\\*$', '', raw_text)
                     xl = re.sub('^\\*\\*\\*', '', xl)
                     continue
+                # ITALIC
                 if re.match('^.*(\n.*)*[^\\*]\\*\\*$', raw_text) and \
                    re.match('^\\*\\*[^\\*].*$', xl):
                     raw_text = re.sub('\\*\\*$', '', raw_text)
                     xl = re.sub('^\\*\\*', '', xl)
                     continue
+                # BOLD
                 if re.match('^.*(\n.*)*[^\\*]\\*$', raw_text) and \
                    re.match('^\\*[^\\*].*$', xl):
                     raw_text = re.sub('\\*$', '', raw_text)
                     xl = re.sub('^\\*', '', xl)
                     continue
+                # STRIKETHROUGH
                 if re.match('^.*(\n.*)*~~$', raw_text) and \
                    re.match('^~~.*$', xl):
                     raw_text = re.sub('~~$', '', raw_text)
                     xl = re.sub('^~~', '', xl)
                     continue
-                if re.match('^.*(\n.*)*__$', raw_text) and \
-                   re.match('^__.*$', xl):
-                    raw_text = re.sub('__$', '', raw_text)
-                    xl = re.sub('^__', '', xl)
-                    continue
+                # PREFORMATTED
                 if re.match('^.*(\n.*)*`$', raw_text) and \
                    re.match('^`.*$', xl):
                     raw_text = re.sub('`$', '', raw_text)
                     xl = re.sub('^`', '', xl)
                     continue
-                if re.match('^.*(\n.*)*@[0-9A-Za-z]*@$', raw_text) and \
-                   re.match('^@[0-9A-Za-z]*@.*$', xl):
-                    ce = re.sub('^.*(?:\n.*)*(@[0-9A-Za-z]*@)$', '\\1',
+                # SMALL
+                if re.match('^.*(\n.*)*\\-\\-$', raw_text) and \
+                   re.match('^\\-\\-.*$', xl):
+                    raw_text = re.sub('\\-\\-$', '', raw_text)
+                    xl = re.sub('^\\-\\-', '', xl)
+                    continue
+                # LARGE
+                if re.match('^.*(\n.*)*\\+\\+$', raw_text) and \
+                   re.match('^\\+\\+.*$', xl):
+                    raw_text = re.sub('\\+\\+$', '', raw_text)
+                    xl = re.sub('^\\+\\+', '', xl)
+                    continue
+                # FOND COLOR
+                if re.match('^.*(\n.*)*\\^[0-9A-Za-z]*\\^$', raw_text) and \
+                   re.match('^\\^[0-9A-Za-z]*\\^.*$', xl):
+                    ce = re.sub('^.*(?:\n.*)*(\\^[0-9A-Za-z]*\\^)$', '\\1',
                                 raw_text)
-                    cb = re.sub('^(@[0-9A-Za-z]*@).*$', '\\1', xl)
+                    cb = re.sub('^(\\^[0-9A-Za-z]*\\^).*$', '\\1', xl)
                     if ce == cb:
-                        raw_text = re.sub('@[0-9A-Za-z]*@$', '', raw_text)
-                        xl = re.sub('^@[0-9A-Za-z]*@', '', xl)
+                        raw_text = re.sub('\\^[0-9A-Za-z]*\\^$', '', raw_text)
+                        xl = re.sub('^\\^[0-9A-Za-z]*\\^', '', xl)
                         continue
+                # UNDERLINE
+                if re.match('^.*(\n.*)*__$', raw_text) and \
+                   re.match('^__.*$', xl):
+                    raw_text = re.sub('__$', '', raw_text)
+                    xl = re.sub('^__', '', xl)
+                    continue
+                # HIGILIGHT COLOR
                 if re.match('^.*(\n.*)*_[0-9A-Za-z]*_$', raw_text) and \
                    re.match('^_[0-9A-Za-z]*_.*$', xl):
                     ce = re.sub('^.*(?:\n.*)*(_[0-9A-Za-z]*_)$', '\\1',
@@ -2210,12 +2231,13 @@ class Paragraph:
                         raw_text = re.sub('_[0-9A-Za-z]*_$', '', raw_text)
                         xl = re.sub('^_[0-9A-Za-z]*_', '', xl)
                         continue
-                # TRACK CHANGES
+                # TRACK CHANGES (DELETED)
                 if re.match('^.*(\n.*)*\\-\\-&gt;$', raw_text) and \
                    re.match('^&lt;!\\-\\-.*$', xl):
                     raw_text = re.sub('\\-\\-&gt;$', '', raw_text)
                     xl = re.sub('^&lt;!\\-\\-', '', xl)
                     continue
+                # TRACK CHANGES (INSERTED)
                 if re.match('^.*(\n.*)*&lt;\\+&gt;$', raw_text) and \
                    re.match('^&lt;!\\+&gt;.*$', xl):
                     raw_text = re.sub('&lt;\\+&gt;$', '', raw_text)
@@ -2226,10 +2248,16 @@ class Paragraph:
         raw_text = raw_text.replace('&lt;', '<')
         raw_text = raw_text.replace('&gt;', '>')
         raw_text = raw_text.replace('&amp;', '&')
-        com = ['\\*\\*\\*', '\\*\\*', '\\*',
-               '~~', '`', '//',
-               '\\-\\-', '\\+\\+',
-               '@[0-9A-Za-z]+@', '_[0-9A-Za-z]+_']
+        com = ['\\*\\*\\*',           # italic and bold
+               '\\*\\*',              # bold
+               '\\*',                 # italice
+               '~~',                  # strikethroug
+               '`',                   # preformatted
+               '//',                  # italic
+               '\\-\\-',              # small
+               '\\+\\+',              # large
+               '\\^[0-9A-Za-z]+\\^',  # font color
+               '_[0-9A-Za-z]+_']      # highlight color
         while True:
             for c in com:
                 res = c + '(\\s+)' + c
@@ -2981,30 +3009,33 @@ class Paragraph:
                         # + '\'
                         # if re.match('^\\\\.*$', s2):
                         #     continue
-                        # '*' + '*'
+                        # '*' + '*' (BOLD)
                         if re.match('^.*\\*$', s1) and re.match('^\\*.*$', s2):
                             continue
-                        # '~' + '~'
+                        # '~' + '~' (STRIKETHROUGH)
                         if re.match('^.*~$', s1) and re.match('^~.*$', s2):
                             continue
-                        # '/' + '/'
+                        # '`' + '`' (PREFORMATTED)
+                        if re.match('^.*`$', s1) and re.match('^`.*$', s2):
+                            continue
+                        # '/' + '/' (ITALIC)
                         if re.match('^.*/$', s1) and re.match('^/.*$', s2):
                             continue
-                        # '+' + '+'
+                        # '-' + '-' (SMALL)
+                        if re.match('^.*\\-$', s1) and re.match('^\\-.*$', s2):
+                            continue
+                        # '+' + '+' (LARGE)
                         if re.match('^.*\\+$', s1) and re.match('^\\+.*$', s2):
                             continue
-                        # '-' + '-'
-                        if re.match('^.*-$', s1) and re.match('^-.*$', s2):
+                        # '^.*' + '.*^' (FONT COLOR)
+                        if re.match('^.*\\^[0-9A-Za-z]*$', s1) and \
+                           re.match('^[0-9A-Za-z]*\\^.*$', s2):
                             continue
-                        # '_.*' + '.*_'
+                        # '_.*' + '.*_' (UNDERLINE AND HIGHLIGHT COLOR)
                         if re.match('^.*_[0-9A-Za-z]*$', s1) and \
                            re.match('^[0-9A-Za-z]*_.*$', s2):
                             continue
-                        # '@.*' + '.*@'
-                        if re.match('^.*@[0-9A-Za-z]*$', s1) and \
-                           re.match('^[0-9A-Za-z]*@.*$', s2):
-                            continue
-                        # ' ' + ' '
+                        # ' ' + ' ' (LINE BREAK)
                         if re.match('^.* $', s1) and re.match('^ .*$', s2):
                             continue
                         # '<!' + '[-+]' or '<' + '![-+]' (TRACK CHANGES)
