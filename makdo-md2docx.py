@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.02.04-09:40:36-JST>
+# Time-stamp:   <2023.02.05-04:54:32-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -355,7 +355,7 @@ NOT_ESCAPED = '^((?:(?:.*\n)*.*[^\\\\])?(?:\\\\\\\\)*)?'
 HORIZONTAL_BAR = '[ー−—－―‐]'
 
 
-class Chapter:
+class ParagraphChapter:
 
     """A class to handle chapter"""
 
@@ -366,6 +366,13 @@ class Chapter:
               [0, 0, 0, 0, 0],
               [0, 0, 0, 0, 0]]
     post_char = ['編', '章', '節', '款', '目']
+
+    @classmethod
+    def is_this_class(cls, md_text):
+        if cls.get_depth(md_text) >= 0:
+            return True
+        else:
+            return False
 
     @classmethod
     def get_depth(cls, md_text):
@@ -415,10 +422,10 @@ class Chapter:
         return docx_text
 
     @classmethod
-    def mod_length(cls, full_text, length_docx):
+    def modify_length(cls, depth, length_docx):
         length_docx['space before'] += 0.5
         length_docx['space after'] += 0.5
-        length_docx['left indent'] += Chapter.get_depth(full_text)
+        length_docx['left indent'] += depth
         return length_docx
 
 
@@ -1520,7 +1527,7 @@ class Paragraph:
             paragraph_class = 'empty'
         elif re.match('^\n$', decoration + full_text):
             paragraph_class = 'blank'
-        elif Chapter.get_depth(full_text) >= 0:
+        elif ParagraphChapter.is_this_class(full_text):
             paragraph_class = 'chapter'
         elif re.match('^#+ ', full_text) or re.match('^#+$', full_text):
             paragraph_class = 'title'
@@ -1629,7 +1636,8 @@ class Paragraph:
         for s in length:
             length[s] = self.length_ins[s] + self.length_sec[s]
         if self.paragraph_class == 'chapter':
-            length = Chapter.mod_length(self.full_text, self.length_ins)
+            depth = ParagraphChapter.get_depth(self.full_text)
+            length = ParagraphChapter.modify_length(depth, self.length_ins)
         if self.paragraph_class == 'title':
             sb = (doc.space_before + ',,,,,').split(',')
             sa = (doc.space_after + ',,,,,').split(',')
@@ -1710,7 +1718,7 @@ class Paragraph:
             text_to_write = ''
             if i == 0:
                 text_to_write += self.decoration_instruction
-            text_to_write += Chapter.get_docx_text(ml.text)
+            text_to_write += ParagraphChapter.get_docx_text(ml.text)
             ms_par = self._get_ms_par(ms_doc)
             self._write_text(text_to_write, ms_par)
 
