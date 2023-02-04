@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.02.03-08:35:11-JST>
+# Time-stamp:   <2023.02.04-09:04:18-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -353,6 +353,71 @@ COMMENT_SEPARATE_SYMBOL = ' / '
 NOT_ESCAPED = '^((?:(?:.*\n)*.*[^\\\\])?(?:\\\\\\\\)*)?'
 
 HORIZONTAL_BAR = '[ー−—－―‐]'
+
+
+class Chapter:
+
+    """A class to handle chapter"""
+
+    re_str = '^(\\$+)((?:-\\$+)*)\\s*(.*)$'
+    number = [[0, 0, 0, 0, 0],
+              [0, 0, 0, 0, 0],
+              [0, 0, 0, 0, 0],
+              [0, 0, 0, 0, 0],
+              [0, 0, 0, 0, 0]]
+    post_char = ['編', '章', '節', '款', '目']
+
+    @classmethod
+    def get_depth(cls, md_text):
+        if not re.match(cls.re_str, md_text):
+            return -1
+        head = re.sub(cls.re_str, '\\1', md_text)
+        return len(head) - 1
+
+    def __init__(self, md_text):
+        head = re.sub(self.re_str, '\\1', md_text)
+        bran = re.sub(self.re_str, '\\2', md_text)
+        titl = re.sub(self.re_str, '\\3', md_text)
+        depth = len(head) - 1
+        lengt = len(bran.replace('$', ''))
+        if lengt >= len(self.number[depth]):
+            msg = '※ 警告: ' \
+                + '"' + self.post_char[depth] + '"の枝番が上限を超えています' \
+                + '\n  ' + md_text
+            # msg = 'warning: ' \
+            #     + '"' + self.post_char[depth] + '" has too many branches' \
+            #     + '\n  ' + md_text
+            sys.stderr.write(msg + '\n\n')
+        for j in range(len(self.number[depth])):
+            if j < lengt:
+                continue
+            elif j == lengt:
+                self.number[depth][j] += 1
+            else:
+                self.number[depth][j] = 0
+        for i in range(depth + 1, len(self.number)):
+            for j in range(len(self.number[i])):
+                self.number[i][j] = 0
+        self.line = '第' + str(self.number[depth][0]) + self.post_char[depth]
+        for j in range(1, lengt + 1):
+            if self.number[depth][j] == 0:
+                msg = '※ 警告: ' \
+                    + '"' + self.post_char[depth] + '"の枝番が' \
+                    + '"0"を含んでいます' \
+                    + '\n  ' + md_text
+                # msg = 'warning: ' \
+                #     + '"' + self.post_char[depth] + '" has "0" branch' \
+                #     + '\n  ' + md_text
+                sys.stderr.write(msg + '\n\n')
+            self.line += 'の' + str(self.number[depth][j])
+        self.line += '\u3000' + titl
+
+    @classmethod
+    def mod_length(cls, full_text, length_docx):
+        length_docx['space before'] += 0.5
+        length_docx['space after'] += 0.5
+        length_docx['left indent'] += Chapter.get_depth(full_text)
+        return length_docx
 
 
 class Title:
@@ -1453,6 +1518,8 @@ class Paragraph:
             paragraph_class = 'empty'
         elif re.match('^\n$', decoration + full_text):
             paragraph_class = 'blank'
+        elif Chapter.get_depth(full_text) >= 0:
+            paragraph_class = 'chapter'
         elif re.match('^#+ ', full_text) or re.match('^#+$', full_text):
             paragraph_class = 'title'
         elif re.match(NOT_ESCAPED + '::', full_text):
@@ -1559,6 +1626,8 @@ class Paragraph:
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
         for s in length:
             length[s] = self.length_ins[s] + self.length_sec[s]
+        if self.paragraph_class == 'chapter':
+            length = Chapter.mod_length(self.full_text, self.length_ins)
         if self.paragraph_class == 'title':
             sb = (doc.space_before + ',,,,,').split(',')
             sa = (doc.space_after + ',,,,,').split(',')
@@ -1568,6 +1637,12 @@ class Paragraph:
                 length['space before'] += float(sb[df - 1])
             if sa[dl - 1] != '':
                 length['space after'] += float(sa[dl - 1])
+        if doc.document_style == 'j':
+            if self.paragraph_class == 'title' or \
+               self.paragraph_class == 'sentence':
+                if self.section_states[1] > 0 and \
+                   self.section_depth_first >= 3:
+                    length['left indent'] -= 1
         # self.length = length
         return length
 
@@ -1577,6 +1652,8 @@ class Paragraph:
             self._write_empty_paragraph(ms_doc)
         elif paragraph_class == 'blank':
             self._write_blank_paragraph(ms_doc)
+        elif paragraph_class == 'chapter':
+            self._write_chapter_paragraph(ms_doc)
         elif paragraph_class == 'title':
             self._write_title_paragraph(ms_doc)
         elif paragraph_class == 'breakdown':
@@ -1625,6 +1702,16 @@ class Paragraph:
             #     + 'unexpected state (blank paragraph)' + '\n  ' \
             #     + text_to_write
             sys.stderr.write(msg + '\n\n')
+
+    def _write_chapter_paragraph(self, ms_doc):
+        for i, ml in enumerate(self.md_lines):
+            text_to_write = ''
+            if i == 0:
+                text_to_write += self.decoration_instruction
+            c = Chapter(ml.text)
+            text_to_write += c.line
+            ms_par = self._get_ms_par(ms_doc)
+            self._write_text(text_to_write, ms_par)
 
     def _write_title_paragraph(self, ms_doc):
         md_lines = self.md_lines
@@ -2259,9 +2346,6 @@ class Paragraph:
             self.md_lines[0].append_warning_message(msg)
         ms_fmt.first_line_indent = Pt(length['first indent'] * size)
         ms_fmt.left_indent = Pt(length['left indent'] * size)
-        if doc.document_style == 'j':
-            if self.section_states[1] > 0 and self.section_depth_first >= 3:
-                ms_fmt.left_indent = Pt((length['left indent'] - 1) * size)
         ms_fmt.right_indent = Pt(length['right indent'] * size)
         # ms_fmt.line_spacing_rule = WD_LINE_SPACING.ONE_POINT_FIVE
         ls = doc.line_spacing * (1 + length['line spacing'])

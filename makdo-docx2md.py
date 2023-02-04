@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.02.03-08:24:40-JST>
+# Time-stamp:   <2023.02.04-09:15:29-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -502,11 +502,11 @@ CONJUNCTIONS = [
 ]
 
 
-class Title:
+class Chapter:
 
     # FONT DECORATIONS
     r0 = (''
-          + '((?:\\*{1,3})'            # italic, bold
+          + '((?:(?:\\*{1,3})'         # italic, bold
           + '|(?:~~)'                  # strikethrough
           + '|(?:`)'                   # preformatted
           + '|(?://)'                  # italic
@@ -514,7 +514,69 @@ class Title:
           + '|(?:\\+\\+)'              # large
           + '|(?:\\^[0-9A-Za-z]*\\^)'  # font color
           + '|(?:_[0-9A-Za-z]*_)'      # highlight color
-          + ')*')
+          + ')*)')
+    r1 = '^' + r0 + '第[0-9０-９]+編'
+    r2 = '^' + r0 + '第[0-9０-９]+章'
+    r3 = '^' + r0 + '第[0-9０-９]+節'
+    r4 = '^' + r0 + '第[0-9０-９]+款'
+    r5 = '^' + r0 + '第[0-9０-９]+目'
+
+    @classmethod
+    def get_depth(cls, raw_text):
+        if re.match(cls.r1 + '(の[0-9０-９]+)*\\s', raw_text):
+            return 0
+        elif re.match(cls.r2 + '(の[0-9０-９]+)*\\s', raw_text):
+            return 1
+        elif re.match(cls.r3 + '(の[0-9０-９]+)*\\s', raw_text):
+            return 2
+        elif re.match(cls.r4 + '(の[0-9０-９]+)*\\s', raw_text):
+            return 3
+        elif re.match(cls.r5 + '(の[0-9０-９]+)*\\s', raw_text):
+            return 4
+        else:
+            return -1
+
+    @classmethod
+    def get_md_line(cls, raw_text):
+        md_text = raw_text
+        if re.match(cls.r1, md_text):
+            md_text = re.sub(cls.r1, '\\1$', md_text)
+        elif re.match(cls.r2, md_text):
+            md_text = re.sub(cls.r2, '\\1$$', md_text)
+        elif re.match(cls.r3, md_text):
+            md_text = re.sub(cls.r3, '\\1$$$', md_text)
+        elif re.match(cls.r4, md_text):
+            md_text = re.sub(cls.r4, '\\1$$$$', md_text)
+        elif re.match(cls.r5, md_text):
+            md_text = re.sub(cls.r5, '\\1$$$$$', md_text)
+        res = '^(' + cls.r0 + '\\$+(-\\$)*)の[0-9０-９]+'
+        while re.match(res, md_text):
+            md_text = re.sub(res, '\\1-$', md_text)
+        res = '^(' + cls.r0 + '\\$+(-\\$)*)\\s'
+        md_text = re.sub(res, '\\1 ', md_text)
+        return md_text
+
+    @classmethod
+    def mod_length_ins(cls, raw_text, length_ins):
+        length_ins['space before'] -= 0.5
+        length_ins['space after'] -= 0.5
+        length_ins['left indent'] -= cls.get_depth(raw_text)
+        return length_ins
+
+
+class Title:
+
+    # FONT DECORATIONS
+    r0 = (''
+          + '((?:(?:\\*{1,3})'         # italic, bold
+          + '|(?:~~)'                  # strikethrough
+          + '|(?:`)'                   # preformatted
+          + '|(?://)'                  # italic
+          + '|(?:\\-\\-)'              # small
+          + '|(?:\\+\\+)'              # large
+          + '|(?:\\^[0-9A-Za-z]*\\^)'  # font color
+          + '|(?:_[0-9A-Za-z]*_)'      # highlight color
+          + ')*)')
     r1 = '(__)?\\+\\+(.*)\\+\\+(__)?'
     r2 = '(第([0-9０-９]+)条?)'
     r3 = '([0-9０-９]+)'
@@ -2334,6 +2396,8 @@ class Paragraph:
             for rxl in self.raw_xml_lines:
                 if re.match('^<w:drawing>$', rxl):
                     return 'image'
+        if Chapter.get_depth(rt) >= 0:
+            return 'chapter'
         if (td == 1 and fs > 1.2) or td > 1:
             return 'title'
         if stl is not None and stl == 'makdo-g':
@@ -2387,7 +2451,9 @@ class Paragraph:
         return states, depth_first, depth
 
     def _get_raw_md_text(self):
-        if self.paragraph_class == 'title':
+        if self.paragraph_class == 'chapter':
+            return Chapter.get_md_line(self.raw_text)
+        elif self.paragraph_class == 'title':
             return self._get_raw_md_text_of_title_paragraph()
         elif self.paragraph_class == 'list_system':
             return self._get_raw_md_text_of_list_system_paragraph()
@@ -2770,6 +2836,8 @@ class Paragraph:
         for s in length_ins:
             length_ins[s] \
                 = self.length[s] - self.length_sec[s] + self.length_spa[s]
+        if self.paragraph_class == 'chapter':
+            length_ins = Chapter.mod_length_ins(self.raw_text, length_ins)
         if self.paragraph_class == 'title':
             d = self.section_depth_first
             sb = (doc.space_before + ',,,,,').split(',')[d - 1]
