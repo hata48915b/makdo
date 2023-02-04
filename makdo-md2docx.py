@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.02.04-09:04:18-JST>
+# Time-stamp:   <2023.02.04-09:40:36-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -374,43 +374,45 @@ class Chapter:
         head = re.sub(cls.re_str, '\\1', md_text)
         return len(head) - 1
 
-    def __init__(self, md_text):
-        head = re.sub(self.re_str, '\\1', md_text)
-        bran = re.sub(self.re_str, '\\2', md_text)
-        titl = re.sub(self.re_str, '\\3', md_text)
+    @classmethod
+    def get_docx_text(cls, md_text):
+        head = re.sub(cls.re_str, '\\1', md_text)
+        bran = re.sub(cls.re_str, '\\2', md_text)
+        titl = re.sub(cls.re_str, '\\3', md_text)
         depth = len(head) - 1
         lengt = len(bran.replace('$', ''))
-        if lengt >= len(self.number[depth]):
+        if lengt >= len(cls.number[depth]):
             msg = '※ 警告: ' \
-                + '"' + self.post_char[depth] + '"の枝番が上限を超えています' \
+                + '"' + cls.post_char[depth] + '"の枝番が上限を超えています' \
                 + '\n  ' + md_text
             # msg = 'warning: ' \
-            #     + '"' + self.post_char[depth] + '" has too many branches' \
+            #     + '"' + cls.post_char[depth] + '" has too many branches' \
             #     + '\n  ' + md_text
             sys.stderr.write(msg + '\n\n')
-        for j in range(len(self.number[depth])):
+        for j in range(len(cls.number[depth])):
             if j < lengt:
                 continue
             elif j == lengt:
-                self.number[depth][j] += 1
+                cls.number[depth][j] += 1
             else:
-                self.number[depth][j] = 0
-        for i in range(depth + 1, len(self.number)):
-            for j in range(len(self.number[i])):
-                self.number[i][j] = 0
-        self.line = '第' + str(self.number[depth][0]) + self.post_char[depth]
+                cls.number[depth][j] = 0
+        for i in range(depth + 1, len(cls.number)):
+            for j in range(len(cls.number[i])):
+                cls.number[i][j] = 0
+        docx_text = '第' + str(cls.number[depth][0]) + cls.post_char[depth]
         for j in range(1, lengt + 1):
-            if self.number[depth][j] == 0:
+            if cls.number[depth][j] == 0:
                 msg = '※ 警告: ' \
-                    + '"' + self.post_char[depth] + '"の枝番が' \
+                    + '"' + cls.post_char[depth] + '"の枝番が' \
                     + '"0"を含んでいます' \
                     + '\n  ' + md_text
                 # msg = 'warning: ' \
-                #     + '"' + self.post_char[depth] + '" has "0" branch' \
+                #     + '"' + cls.post_char[depth] + '" has "0" branch' \
                 #     + '\n  ' + md_text
                 sys.stderr.write(msg + '\n\n')
-            self.line += 'の' + str(self.number[depth][j])
-        self.line += '\u3000' + titl
+            docx_text += 'の' + str(cls.number[depth][j])
+        docx_text += '\u3000' + titl
+        return docx_text
 
     @classmethod
     def mod_length(cls, full_text, length_docx):
@@ -1708,8 +1710,7 @@ class Paragraph:
             text_to_write = ''
             if i == 0:
                 text_to_write += self.decoration_instruction
-            c = Chapter(ml.text)
-            text_to_write += c.line
+            text_to_write += Chapter.get_docx_text(ml.text)
             ms_par = self._get_ms_par(ms_doc)
             self._write_text(text_to_write, ms_par)
 
