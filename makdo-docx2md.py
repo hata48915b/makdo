@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.02.04-09:15:29-JST>
+# Time-stamp:   <2023.02.04-09:47:55-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2577,7 +2577,7 @@ class Paragraph:
             elif aln == 'center':
                 raw_md_text += ': ' + ln + ' :\n'
             else:
-                if re.match('^.* +$', ln):
+                if re.match('^.*  +$', ln):
                     raw_md_text += ': ' + ln + '\\\n'
                 else:
                     raw_md_text += ': ' + ln + '\n'
