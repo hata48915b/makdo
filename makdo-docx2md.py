@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.02.04-09:47:55-JST>
+# Time-stamp:   <2023.02.05-06:15:45-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -187,6 +187,20 @@ ZENKAKU_SPACE = chr(12288)
 NOT_ESCAPED = '^((?:(?:.*\n)*.*[^\\\\])?(?:\\\\\\\\)*)?'
 
 MD_TEXT_WIDTH = 68
+
+FONT_DECORATIONS = [
+    '\\*\\*\\*',           # italic and bold
+    '\\*\\*',              # bold
+    '\\*',                 # italic
+    '~~',                  # strikethrough
+    '`',                   # preformatted
+    '//',                  # italic
+    '__',                  # underline
+    '\\-\\-',              # small
+    '\\+\\+',              # large
+    '\\^[0-9A-Za-z]*\\^',  # font color
+    '_[0-9A-Za-z]+_',      # higilight color
+]
 
 FONT_COLOR = {
     'FF0000': 'red',
@@ -502,24 +516,21 @@ CONJUNCTIONS = [
 ]
 
 
-class Chapter:
+class ParagraphChapter:
 
-    # FONT DECORATIONS
-    r0 = (''
-          + '((?:(?:\\*{1,3})'         # italic, bold
-          + '|(?:~~)'                  # strikethrough
-          + '|(?:`)'                   # preformatted
-          + '|(?://)'                  # italic
-          + '|(?:\\-\\-)'              # small
-          + '|(?:\\+\\+)'              # large
-          + '|(?:\\^[0-9A-Za-z]*\\^)'  # font color
-          + '|(?:_[0-9A-Za-z]*_)'      # highlight color
-          + ')*)')
-    r1 = '^' + r0 + '第[0-9０-９]+編'
-    r2 = '^' + r0 + '第[0-9０-９]+章'
-    r3 = '^' + r0 + '第[0-9０-９]+節'
-    r4 = '^' + r0 + '第[0-9０-９]+款'
-    r5 = '^' + r0 + '第[0-9０-９]+目'
+    r0 = '^((?:' + '|'.join(FONT_DECORATIONS) + ')*)'
+    r1 = r0 + '第[0-9０-９]+編'
+    r2 = r0 + '第[0-9０-９]+章'
+    r3 = r0 + '第[0-9０-９]+節'
+    r4 = r0 + '第[0-9０-９]+款'
+    r5 = r0 + '第[0-9０-９]+目'
+
+    @classmethod
+    def is_this_class(cls, raw_text):
+        if cls.get_depth(raw_text) >= 0:
+            return True
+        else:
+            return False
 
     @classmethod
     def get_depth(cls, raw_text):
@@ -549,34 +560,24 @@ class Chapter:
             md_text = re.sub(cls.r4, '\\1$$$$', md_text)
         elif re.match(cls.r5, md_text):
             md_text = re.sub(cls.r5, '\\1$$$$$', md_text)
-        res = '^(' + cls.r0 + '\\$+(-\\$)*)の[0-9０-９]+'
+        res = cls.r0 + '(\\$+(?:-\\$)*)の[0-9０-９]+'
         while re.match(res, md_text):
-            md_text = re.sub(res, '\\1-$', md_text)
-        res = '^(' + cls.r0 + '\\$+(-\\$)*)\\s'
-        md_text = re.sub(res, '\\1 ', md_text)
+            md_text = re.sub(res, '\\1\\2-$', md_text)
+        res = cls.r0 + '(\\$+(?:-\\$)*)\\s'
+        md_text = re.sub(res, '\\1\\2 ', md_text)
         return md_text
 
     @classmethod
-    def mod_length_ins(cls, raw_text, length_ins):
+    def modify_length_ins(cls, depth, length_ins):
         length_ins['space before'] -= 0.5
         length_ins['space after'] -= 0.5
-        length_ins['left indent'] -= cls.get_depth(raw_text)
+        length_ins['left indent'] -= depth
         return length_ins
 
 
 class Title:
 
-    # FONT DECORATIONS
-    r0 = (''
-          + '((?:(?:\\*{1,3})'         # italic, bold
-          + '|(?:~~)'                  # strikethrough
-          + '|(?:`)'                   # preformatted
-          + '|(?://)'                  # italic
-          + '|(?:\\-\\-)'              # small
-          + '|(?:\\+\\+)'              # large
-          + '|(?:\\^[0-9A-Za-z]*\\^)'  # font color
-          + '|(?:_[0-9A-Za-z]*_)'      # highlight color
-          + ')*)')
+    r0 = '^((?:' + '|'.join(FONT_DECORATIONS) + ')*)'
     r1 = '(__)?\\+\\+(.*)\\+\\+(__)?'
     r2 = '(第([0-9０-９]+)条?)'
     r3 = '([0-9０-９]+)'
@@ -584,7 +585,7 @@ class Title:
     r5 = '([ｱ-ﾝア-ン])'
     r6 = '([(\\(（]([ｱ-ﾝア-ン])[\\)）])'
     r9 = '((  ?)|(\t)|(' + ZENKAKU_SPACE + ')|(\\. ?)|(．))'
-    res1 = r1
+    res1 = '^' + r1
     res2 = r0 + r2 + r9
     res3 = r0 + r3 + '(((' + r4 + '?)' + r5 + '?)' + r6 + '?)' + r9
     res4 = r0 + '(' + r3 + ')?' + r4 + '((' + r5 + '?)' + r6 + '?)' + r9 + '?'
@@ -611,28 +612,28 @@ class Title:
     @classmethod
     def decompose(cls, depth, line):
         if depth == 1:
-            res = '^' + cls.res1 + '$'
+            res = cls.res1 + '$'
             comm = ''
             head = ''
             rest = ''
             text = re.sub(res, '\\1\\2\\3', line)
             numb = -1
         elif depth == 2:
-            res = '^' + cls.res2 + '(.*)$'
+            res = cls.res2 + '(.*)$'
             comm = re.sub(res, '\\1', line)
             head = re.sub(res, '\\2', line)
             rest = ''
             text = re.sub(res, '\\10', line)
             numb = inverse_n_int(re.sub(res, '\\3', line))
         elif depth == 3:
-            res = '^' + cls.res3 + '(.*)$'
+            res = cls.res3 + '(.*)$'
             comm = re.sub(res, '\\1', line)
             head = re.sub(res, '\\2', line)
             rest = re.sub(res, '\\3', line)
             text = re.sub(res, '\\18', line)
             numb = inverse_n_int(re.sub(res, '\\2', line))
         elif depth == 4:
-            res = '^' + cls.res4 + '(.*)$'
+            res = cls.res4 + '(.*)$'
             comm = re.sub(res, '\\1', line)
             head = re.sub(res, '\\4', line)
             rest = re.sub(res, '\\7', line)
@@ -642,14 +643,14 @@ class Title:
             else:
                 numb = inverse_n_int(re.sub(res, '\\6', line))
         elif depth == 5:
-            res = '^' + cls.res5 + '(.*)$'
+            res = cls.res5 + '(.*)$'
             comm = re.sub(res, '\\1', line)
             head = re.sub(res, '\\8', line)
             rest = re.sub(res, '\\9', line)
             text = re.sub(res, '\\18', line)
             numb = inverse_n_kata(re.sub(res, '\\8', line))
         elif depth == 6:
-            res = '^' + cls.res6 + '(.*)$'
+            res = cls.res6 + '(.*)$'
             comm = re.sub(res, '\\1', line)
             head = re.sub(res, '\\10', line)
             rest = ''
@@ -1553,19 +1554,9 @@ class Document:
     def _modpar_one_line_paragraph(self):
         for p in self.paragraphs:
             rt = p.raw_text
-            cms = ['\\*\\*\\*',           # italic and bold
-                   '\\*\\*',              # bold
-                   '\\*',                 # italic
-                   '~~',                  # strikethrough
-                   '`',                   # preformatted
-                   '//',                  # italic
-                   '\\-\\-',              # small
-                   '\\+\\+',              # large
-                   '\\^[0-9A-Za-z]*\\^',  # font color
-                   '_[0-9A-Za-z]*_']      # higilight color
-            for cm in cms:
-                while re.match(NOT_ESCAPED + cm, rt):
-                    rt = re.sub(NOT_ESCAPED + cm, '\\1', rt)
+            for fd in FONT_DECORATIONS:
+                while re.match(NOT_ESCAPED + fd, rt):
+                    rt = re.sub(NOT_ESCAPED + fd, '\\1', rt)
             while re.match(NOT_ESCAPED + '\\\\', rt):
                 rt = re.sub(NOT_ESCAPED + '\\\\', '\\1', rt)
             lm = self.left_margin
@@ -1603,16 +1594,7 @@ class Document:
             ln = p.md_text
             ln = re.sub('\n', ' ', ln)
             ln = re.sub(' +', ' ', ln)
-            res = ('^'
-                   + '((?:\\*{1,3})'            # italic, bold
-                   + '|(?:~~)'                  # strikethrough
-                   + '|(?:`)'                   # preformatted
-                   + '|(?://)'                  # italic
-                   + '|(?:\\-\\-)'              # small
-                   + '|(?:\\+\\+)'              # large
-                   + '|(?:\\^[0-9A-Za-z]*\\^)'  # font color
-                   + '|(?:_[0-9A-Za-z]*_)'      # highlight color
-                   + ')*((#+ )*).*$')
+            res = '^((?:' + '|'.join(FONT_DECORATIONS) + ')*)((?:#+ )*).*$'
             head = re.sub(res, '\\2', ln + ' ')
             head = re.sub(' $', '', head)
             for sharps in head.split(' '):
@@ -2321,8 +2303,8 @@ class Paragraph:
                '\\^[0-9A-Za-z]+\\^',  # font color
                '_[0-9A-Za-z]+_']      # highlight color
         while True:
-            for c in com:
-                res = c + '(\\s+)' + c
+            for fd in FONT_DECORATIONS:
+                res = fd + '(\\s+)' + fd
                 if re.match('^.*' + res, raw_text):
                     raw_text = re.sub(res, '\\1', raw_text)
                     continue
@@ -2396,7 +2378,7 @@ class Paragraph:
             for rxl in self.raw_xml_lines:
                 if re.match('^<w:drawing>$', rxl):
                     return 'image'
-        if Chapter.get_depth(rt) >= 0:
+        if ParagraphChapter.is_this_class(rt):
             return 'chapter'
         if (td == 1 and fs > 1.2) or td > 1:
             return 'title'
@@ -2452,7 +2434,7 @@ class Paragraph:
 
     def _get_raw_md_text(self):
         if self.paragraph_class == 'chapter':
-            return Chapter.get_md_line(self.raw_text)
+            return ParagraphChapter.get_md_line(self.raw_text)
         elif self.paragraph_class == 'title':
             return self._get_raw_md_text_of_title_paragraph()
         elif self.paragraph_class == 'list_system':
@@ -2837,7 +2819,8 @@ class Paragraph:
             length_ins[s] \
                 = self.length[s] - self.length_sec[s] + self.length_spa[s]
         if self.paragraph_class == 'chapter':
-            length_ins = Chapter.mod_length_ins(self.raw_text, length_ins)
+            depth = ParagraphChapter.get_depth(self.raw_text)
+            length_ins = ParagraphChapter.modify_length_ins(depth, length_ins)
         if self.paragraph_class == 'title':
             d = self.section_depth_first
             sb = (doc.space_before + ',,,,,').split(',')[d - 1]
