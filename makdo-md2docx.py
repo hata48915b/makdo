@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.02.06-05:37:38-JST>
+# Time-stamp:   <2023.02.06-06:20:59-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1895,12 +1895,6 @@ class Paragraph:
                 length['space before'] += float(sb[df - 1])
             if sa[dl - 1] != '':
                 length['space after'] += float(sa[dl - 1])
-        if doc.document_style == 'j':
-            if self.paragraph_class == 'title' or \
-               self.paragraph_class == 'sentence':
-                if ParagraphSection.states[1][0] > 0 and \
-                   self.section_depth_first >= 3:
-                    length['left indent'] -= 1
         # self.length = length
         return length
 
@@ -1909,6 +1903,12 @@ class Paragraph:
             ParagraphChapter.set_states(ci)
         for si in self.section_instructions:
             ParagraphSection.set_states(si)
+        if doc.document_style == 'j':
+            if self.paragraph_class == 'title' or \
+               self.paragraph_class == 'sentence':
+                if ParagraphSection.states[1][0] > 0 and \
+                   self.section_depth_first >= 3:
+                    self.length['left indent'] -= 1
         paragraph_class = self.paragraph_class
         if paragraph_class == 'empty':
             self._write_empty_paragraph(ms_doc)
