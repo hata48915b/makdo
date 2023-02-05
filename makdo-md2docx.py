@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.02.05-04:54:32-JST>
+# Time-stamp:   <2023.02.06-05:37:38-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -357,79 +357,297 @@ HORIZONTAL_BAR = '[ー−—－―‐]'
 
 class ParagraphChapter:
 
-    """A class to handle chapter"""
+    """A class to handle chapter paragraph"""
 
-    re_str = '^(\\$+)((?:-\\$+)*)\\s*(.*)$'
-    number = [[0, 0, 0, 0, 0],
-              [0, 0, 0, 0, 0],
-              [0, 0, 0, 0, 0],
-              [0, 0, 0, 0, 0],
-              [0, 0, 0, 0, 0]]
+    res_par = '^(\\$+)((?:-\\$+)*)\\s*(.*)$'
+    res_ins = '^(\\$+)((?:-\\$+)*)=\\s*([0-9]+)$'
+    states = [[0, 0, 0, 0, 0],  # 第１編
+              [0, 0, 0, 0, 0],  # 第１章
+              [0, 0, 0, 0, 0],  # 第１節
+              [0, 0, 0, 0, 0],  # 第１款
+              [0, 0, 0, 0, 0]]  # 第１目
     post_char = ['編', '章', '節', '款', '目']
 
     @classmethod
-    def is_this_class(cls, md_text):
-        if cls.get_depth(md_text) >= 0:
+    def is_this_class(cls, full_text):
+        if re.match(cls.res_par, full_text):
             return True
         else:
             return False
 
     @classmethod
     def get_depth(cls, md_text):
-        if not re.match(cls.re_str, md_text):
-            return -1
-        head = re.sub(cls.re_str, '\\1', md_text)
-        return len(head) - 1
+        if not re.match(cls.res_par, md_text):
+            return 0
+        head = re.sub(cls.res_par, '\\1', md_text)
+        depth = len(head)
+        return depth
+
+    @classmethod
+    def set_states(cls, ins):
+        if not re.match(cls.res_ins, ins):
+            return
+        head = re.sub(cls.res_ins, '\\1', ins)
+        bran = re.sub(cls.res_ins, '\\2', ins)
+        stat = re.sub(cls.res_ins, '\\3', ins)
+        xdepth = len(head) - 1
+        height = len(bran.replace('$', ''))
+        cls.check_xdepth_and_height(xdepth, height, ins)
+        if height == 0:
+            cls.states[xdepth][height] = int(stat) - 1
+        else:
+            cls.states[xdepth][height] = int(stat) - 2
+        cls.reset_after(xdepth, height, ins)
+
+    @classmethod
+    def update_states(cls, md_text):
+        if not re.match(cls.res_par, md_text):
+            return
+        head = re.sub(cls.res_par, '\\1', md_text)
+        bran = re.sub(cls.res_par, '\\2', md_text)
+        titl = re.sub(cls.res_par, '\\3', md_text)
+        xdepth = len(head) - 1
+        height = len(bran.replace('$', ''))
+        cls.check_xdepth_and_height(xdepth, height, md_text)
+        cls.states[xdepth][height] += 1
+        cls.reset_after(xdepth, height, md_text)
+
+    @classmethod
+    def check_xdepth_and_height(cls, xdepth, height, md_text):
+        if xdepth >= len(cls.states):
+            msg = '※ 警告: ' \
+                + 'チャプターの深さが上限を超えています' \
+                + '\n  ' + md_text
+            # msg = 'warning: ' \
+            #     + 'chapter has too many branches' \
+            #     + '\n  ' + md_text
+            sys.stderr.write(msg + '\n\n')
+        if height >= len(cls.states[xdepth]):
+            msg = '※ 警告: ' \
+                + 'チャプターの枝が上限を超えています' \
+                + '\n  ' + md_text
+            # msg = 'warning: ' \
+            #     + 'chapter has too many branches' \
+            #     + '\n  ' + md_text
+            sys.stderr.write(msg + '\n\n')
+
+    @classmethod
+    def reset_after(cls, xdepth, height, md_text):
+        for i in range(len(cls.states)):
+            for j in range(len(cls.states[i])):
+                if i < xdepth:
+                    pass
+                elif i == xdepth:
+                    if j <= height:
+                        if cls.states[i][j] == 0:
+                            print(str(i) + '/' + str(j))
+                            msg = '※ 警告: ' \
+                                + 'チャプターの枝番が"0"を含んでいます' \
+                                + '\n  ' + md_text
+                            # msg = 'warning: ' \
+                            #     + 'chapter has "0" branch' \
+                            #     + '\n  ' + md_text
+                            sys.stderr.write(msg + '\n\n')
+                    else:
+                        cls.states[i][j] = 0
+                else:
+                    cls.states[i][j] = 0
 
     @classmethod
     def get_docx_text(cls, md_text):
-        head = re.sub(cls.re_str, '\\1', md_text)
-        bran = re.sub(cls.re_str, '\\2', md_text)
-        titl = re.sub(cls.re_str, '\\3', md_text)
+        if not re.match(cls.res_par, md_text):
+            return
+        head = re.sub(cls.res_par, '\\1', md_text)
+        bran = re.sub(cls.res_par, '\\2', md_text)
+        titl = re.sub(cls.res_par, '\\3', md_text)
         depth = len(head) - 1
-        lengt = len(bran.replace('$', ''))
-        if lengt >= len(cls.number[depth]):
-            msg = '※ 警告: ' \
-                + '"' + cls.post_char[depth] + '"の枝番が上限を超えています' \
-                + '\n  ' + md_text
-            # msg = 'warning: ' \
-            #     + '"' + cls.post_char[depth] + '" has too many branches' \
-            #     + '\n  ' + md_text
-            sys.stderr.write(msg + '\n\n')
-        for j in range(len(cls.number[depth])):
-            if j < lengt:
-                continue
-            elif j == lengt:
-                cls.number[depth][j] += 1
-            else:
-                cls.number[depth][j] = 0
-        for i in range(depth + 1, len(cls.number)):
-            for j in range(len(cls.number[i])):
-                cls.number[i][j] = 0
-        docx_text = '第' + str(cls.number[depth][0]) + cls.post_char[depth]
-        for j in range(1, lengt + 1):
-            if cls.number[depth][j] == 0:
-                msg = '※ 警告: ' \
-                    + '"' + cls.post_char[depth] + '"の枝番が' \
-                    + '"0"を含んでいます' \
-                    + '\n  ' + md_text
-                # msg = 'warning: ' \
-                #     + '"' + cls.post_char[depth] + '" has "0" branch' \
-                #     + '\n  ' + md_text
-                sys.stderr.write(msg + '\n\n')
-            docx_text += 'の' + str(cls.number[depth][j])
-        docx_text += '\u3000' + titl
+        heigh = len(bran.replace('$', ''))
+        docx_text = '第' + n_int(cls.states[depth][0]) + cls.post_char[depth]
+        for j in range(1, heigh + 1):
+            docx_text += 'の' + n_int(cls.states[depth][j] + 1)
+        docx_text += ZENKAKU_SPACE + titl
         return docx_text
 
     @classmethod
     def modify_length(cls, depth, length_docx):
         length_docx['space before'] += 0.5
         length_docx['space after'] += 0.5
-        length_docx['left indent'] += depth
+        if depth > 0:
+            length_docx['left indent'] += depth - 1
         return length_docx
 
 
-class Title:
+class ParagraphSection:
+
+    """A class to handle section paragraph"""
+
+    res_par = '^(#+)((?:-#+)*)\\s*(.*)$'
+    res_ins = '^(#+)((?:-#+)*)=\\s*([0-9]+)$'
+    states = [[0, 0, 0, 0, 0],  # -
+              [0, 0, 0, 0, 0],  # 第１
+              [0, 0, 0, 0, 0],  # １
+              [0, 0, 0, 0, 0],  # (1)
+              [0, 0, 0, 0, 0],  # ア
+              [0, 0, 0, 0, 0],  # (ｱ)
+              [0, 0, 0, 0, 0],  # ａ
+              [0, 0, 0, 0, 0]]  # (a)
+
+    @classmethod
+    def is_this_class(cls, full_text):
+        if re.match(cls.res_par, full_text):
+            return True
+        else:
+            return False
+
+    @classmethod
+    def get_depths(cls, full_text):
+        depth_first = -1
+        depth = -1
+        head = re.sub('[^\\-# ].*', '', full_text)
+        for s in head.split(' '):
+            if s == '':
+                continue
+            if re.match(cls.res_par, s):
+                depth = len(re.sub('\\-.*', '', s))
+                if depth_first == -1:
+                    depth_first = depth
+                if depth > 6:
+                    msg = '※ 警告: ' \
+                        + 'セクションの深さが上限を超えています\n' \
+                        + '  s'
+                    # msg = 'warning: ' \
+                    #     + 'section symbol is too deep\n' \
+                    #     + '  s'
+                    sys.stderr.write(msg + '\n\n')
+        return depth_first, depth
+
+    @classmethod
+    def set_states(cls, ins):
+        if not re.match(cls.res_ins, ins):
+            return
+        head = re.sub(cls.res_ins, '\\1', ins)
+        bran = re.sub(cls.res_ins, '\\2', ins)
+        stat = re.sub(cls.res_ins, '\\3', ins)
+        xdepth = len(head) - 1
+        height = len(bran.replace('#', ''))
+        cls.check_xdepth_and_height(xdepth, height, ins)
+        if height == 0:
+            cls.states[xdepth][height] = int(stat) - 1
+        else:
+            cls.states[xdepth][height] = int(stat) - 2
+        cls.reset_after(xdepth, height, ins)
+
+    @classmethod
+    def update_states(cls, md_text):
+        if md_text == '':
+            return
+        head = re.sub(cls.res_par, '\\1', md_text)
+        bran = re.sub(cls.res_par, '\\2', md_text)
+        titl = re.sub(cls.res_par, '\\3', md_text)
+        xdepth = len(head) - 1
+        height = len(bran.replace('#', ''))
+        if height >= len(cls.states[xdepth]):
+            msg = '※ 警告: ' \
+                + 'セクションの枝番が上限を超えています' \
+                + '\n  ' + md_text
+            # msg = 'warning: ' \
+            #     + 'section has too many branches' \
+            #     + '\n  ' + md_text
+            sys.stderr.write(msg + '\n\n')
+        cls.check_xdepth_and_height(xdepth, height, md_text)
+        cls.states[xdepth][height] += 1
+        cls.reset_after(xdepth, height, md_text)
+
+    @classmethod
+    def check_xdepth_and_height(cls, xdepth, height, md_text):
+        if xdepth >= len(cls.states):
+            msg = '※ 警告: ' \
+                + 'セクションの深さが上限を超えています' \
+                + '\n  ' + md_text
+            # msg = 'warning: ' \
+            #     + 'seciton has too many branches' \
+            #     + '\n  ' + md_text
+            sys.stderr.write(msg + '\n\n')
+        if height >= len(cls.states[xdepth]):
+            msg = '※ 警告: ' \
+                + 'セクションの枝が上限を超えています' \
+                + '\n  ' + md_text
+            # msg = 'warning: ' \
+            #     + 'section has too many branches' \
+            #     + '\n  ' + md_text
+            sys.stderr.write(msg + '\n\n')
+
+    @classmethod
+    def reset_after(cls, xdepth, height, md_text):
+        for i in range(len(cls.states)):
+            for j in range(len(cls.states[i])):
+                if i < xdepth:
+                    pass
+                elif i == xdepth:
+                    if j <= height:
+                        if cls.states[i][j] == 0:
+                            print(str(i) + '/' + str(j))
+                            msg = '※ 警告: ' \
+                                + 'セクションの枝番が"0"を含んでいます' \
+                                + '\n  ' + md_text
+                            # msg = 'warning: ' \
+                            #     + 'section has "0" branch' \
+                            #     + '\n  ' + md_text
+                            sys.stderr.write(msg + '\n\n')
+                    else:
+                        cls.states[i][j] = 0
+                else:
+                    cls.states[i][j] = 0
+
+    @classmethod
+    def get_head_string(cls, md_text):
+        if not re.match(cls.res_par, md_text):
+            return ''
+        head = re.sub(cls.res_par, '\\1', md_text)
+        bran = re.sub(cls.res_par, '\\2', md_text)
+        titl = re.sub(cls.res_par, '\\3', md_text)
+        xdepth = len(head) - 1
+        height = len(bran.replace('#', ''))
+        head_string = ''
+        if xdepth == 0:
+            head_string = cls.get_head_1(cls.states[0][0])
+        elif xdepth == 1:
+            if doc.document_style == 'n':
+                head_string = cls.get_head_2(cls.states[1][0])
+            else:
+                head_string = cls.get_head_2_j_or_J(cls.states[1][0])
+        elif xdepth == 2:
+            if doc.document_style != 'j' or cls.states[1][0] == 0:
+                head_string = cls.get_head_3(cls.states[2][0])
+            else:
+                head_string = cls.get_head_3(cls.states[2][0] + 1)
+        elif xdepth == 3:
+            head_string = cls.get_head_4(cls.states[3][0])
+        elif xdepth == 4:
+            head_string = cls.get_head_5(cls.states[4][0])
+        elif xdepth == 5:
+            head_string = cls.get_head_6(cls.states[5][0])
+        elif xdepth == 6:
+            head_string = cls.get_head_7(cls.states[6][0])
+        elif xdepth == 7:
+            head_string = cls.get_head_8(cls.states[7][0])
+        for j in range(1, height + 1):
+            head_string += 'の' + n_int(cls.states[xdepth][j] + 1)
+        return head_string
+
+    @classmethod
+    def get_head_space(cls, depth):
+        n = cls.states[depth - 1][0]
+        if depth == 1:
+            return ''
+        elif depth == 4 and ((n == 0) or (n > 20)):
+            return ' '
+        elif depth == 6:
+            return ' '
+        elif depth == 8:
+            return ' '
+        else:
+            return ZENKAKU_SPACE
 
     @staticmethod
     def get_head_1(n):
@@ -464,15 +682,12 @@ class Title:
         return n_paren_kata(n)
 
     @staticmethod
-    def get_head_space(section_depth, n):
-        if section_depth == 1:
-            return ''
-        elif section_depth == 4 and ((n == 0) or (n > 20)):
-            return ' '
-        elif section_depth == 6:
-            return ' '
-        else:
-            return ZENKAKU_SPACE
+    def get_head_7(n):
+        return n_alph(n)
+
+    @staticmethod
+    def get_head_8(n):
+        return n_paren_alph(n)
 
 
 class List:
@@ -836,9 +1051,24 @@ class Document:
 
     def get_paragraphs(self, raw_paragraphs):
         paragraphs = []
+        chapter_instructions = []
+        section_instructions = []
         for rp in raw_paragraphs:
-            if rp.paragraph_class != 'empty':
+            if rp.paragraph_class == 'empty':
+                if len(rp.chapter_instructions) > 0:
+                    chapter_instructions += rp.chapter_instructions
+                if len(rp.section_instructions) > 0:
+                    section_instructions += rp.section_instructions
+            else:
                 paragraphs.append(rp)
+                # CHAPTER INSTRUCTIONS
+                if len(chapter_instructions) > 0:
+                    paragraphs[-1].chapter_instructions += chapter_instructions
+                    chapter_instructions = []
+                # SECITON INSTRUCTIONS
+                if len(section_instructions) > 0:
+                    paragraphs[-1].section_instructions += section_instructions
+                    section_instructions = []
         # self.paragraphs = paragraphs
         return paragraphs
 
@@ -1364,7 +1594,6 @@ class Paragraph:
 
     mincho_font = None
     font_size = None
-    section_states = [0, 0, 0, 0, 0, 0]
     is_preformatted = False
     is_large = False
     is_small = False
@@ -1381,6 +1610,7 @@ class Paragraph:
         self.full_text = ''
         self.paragraph_class = None
         self.decoration_instruction = ''
+        self.chapter_instructions = []
         self.section_instructions = []
         self.section_states = []
         self.section_depth_first = 0
@@ -1395,7 +1625,8 @@ class Paragraph:
         self.length_sec \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
-        self.section_instructions, \
+        self.chapter_instructions, \
+            self.section_instructions, \
             self.decoration_instruction, \
             self.length_ins, \
             self.md_lines \
@@ -1403,23 +1634,24 @@ class Paragraph:
         self.full_text = self.get_full_text()
         self.paragraph_class \
             = self.get_paragraph_class()
-        self.section_states, \
-            self.section_depth_first, \
+        self.section_depth_first, \
             self.section_depth \
-            = self.get_section_states_and_depths()
+            = self.get_section_depths()
         self.length_sec \
             = self.get_length_sec()
         self.length \
             = self.get_length()
 
     def read_first_line_instructions(self):
+        chapter_instructions = []
         section_instructions = []
         decoration_instruction = ''
         length_ins \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
         md_lines = self.md_lines
-        res_sn = '^\\s*(#+)=\\s*([0-9]+)(.*)$'
+        res_cn = '^\\s*(\\$+(?:-\\$)*=\\s*[0-9]+)(.*)$'
+        res_sn = '^\\s*(#+(?:-#)*=\\s*[0-9]+)(.*)$'
         res_de = ('^\\s*((?:'
                   + '(?:\\*{1,3})'             # italic, bold
                   + '|(?:~~)'                  # strikethrough
@@ -1440,53 +1672,98 @@ class Paragraph:
             # FOR BREAKDOWN
             if re.match('^-+::-*(::-+)?$', ml.text):
                 break
-            ml_rawt = ml.raw_text
             while True:
-                if re.match(res_sn, ml_rawt) and re.match(res_sn, ml.text):
-                    sect = re.sub(res_sn, '\\1', ml.text)
-                    numb = re.sub(res_sn, '\\2', ml.text)
-                    ml_rawt = re.sub(res_sn, '\\3', ml_rawt)
-                    ml.text = re.sub(res_sn, '\\3', ml.text)
-                    sec_dep = len(sect)
-                    sec_num = int(numb)
-                    section_instructions.append([sec_dep, sec_num])
-                elif re.match(res_de, ml_rawt) and re.match(res_de, ml.text):
+                if False:
+                    pass
+                elif re.match(res_cn, ml.text):
+                    chap_ins = re.sub(res_cn, '\\1', ml.text)
+                    ml.text = re.sub(res_cn, '\\2', ml.text)
+                    chapter_instructions.append(chap_ins)
+                elif re.match(res_sn, ml.text):
+                    sect_ins = re.sub(res_cn, '\\1', ml.text)
+                    ml.text = re.sub(res_sn, '\\2', ml.text)
+                    section_instructions.append(sect_ins)
+                elif re.match(res_de, ml.text):
                     deco = re.sub(res_de, '\\1', ml.text)
-                    ml_rawt = re.sub(res_de, '\\2', ml_rawt)
                     ml.text = re.sub(res_de, '\\2', ml.text)
                     decoration_instruction += deco
-                elif re.match(res_sb, ml_rawt) and re.match(res_sb, ml.text):
+                elif re.match(res_sb, ml.text):
                     deci = re.sub(res_sb, '\\1', ml.text)
-                    ml_rawt = re.sub(res_sb, '\\6', ml_rawt)
                     ml.text = re.sub(res_sb, '\\6', ml.text)
                     length_ins['space before'] += float(deci)
-                elif re.match(res_sa, ml_rawt) and re.match(res_sa, ml.text):
+                elif re.match(res_sa, ml.text):
                     deci = re.sub(res_sa, '\\1', ml.text)
-                    ml_rawt = re.sub(res_sa, '\\6', ml_rawt)
                     ml.text = re.sub(res_sa, '\\6', ml.text)
                     length_ins['space after'] += float(deci)
-                elif re.match(res_ls, ml_rawt) and re.match(res_ls, ml.text):
+                elif re.match(res_ls, ml.text):
                     deci = re.sub(res_ls, '\\1', ml.text)
-                    ml_rawt = re.sub(res_ls, '\\6', ml_rawt)
                     ml.text = re.sub(res_ls, '\\6', ml.text)
                     length_ins['line spacing'] += float(deci)
-                elif re.match(res_fi, ml_rawt) and re.match(res_fi, ml.text):
+                elif re.match(res_fi, ml.text):
                     deci = re.sub(res_fi, '\\1', ml.text)
-                    ml_rawt = re.sub(res_fi, '\\6', ml_rawt)
                     ml.text = re.sub(res_fi, '\\6', ml.text)
                     length_ins['first indent'] = -float(deci)
-                elif re.match(res_li, ml_rawt) and re.match(res_li, ml.text):
+                elif re.match(res_li, ml.text):
                     deci = re.sub(res_li, '\\1', ml.text)
-                    ml_rawt = re.sub(res_li, '\\6', ml_rawt)
                     ml.text = re.sub(res_li, '\\6', ml.text)
                     length_ins['left indent'] = -float(deci)
-                elif re.match(res_ri, ml_rawt) and re.match(res_ri, ml.text):
+                elif re.match(res_ri, ml.text):
                     deci = re.sub(res_ri, '\\1', ml.text)
-                    ml_rawt = re.sub(res_ri, '\\6', ml_rawt)
                     ml.text = re.sub(res_ri, '\\6', ml.text)
                     length_ins['right indent'] = -float(deci)
                 else:
                     break
+            # ml_rawt = ml.raw_text
+            # while True:
+            #     if False:
+            #         pass
+            #     elif re.match(res_cn, ml_rawt) and re.match(res_cn, ml.text):
+            #         chap_ins = re.sub(res_cn, '\\1', ml_text)
+            #         ml_rawt = re.sub(res_cn, '\\2', ml_rawt)
+            #         ml.text = re.sub(res_cn, '\\2', ml.text)
+            #         chapter_instructions.append(chap_ins)
+            #     elif re.match(res_sn, ml_rawt) and re.match(res_sn, ml.text):
+            #         sect_ins = re.sub(res_cn, '\\1', ml_text)
+            #         ml_rawt = re.sub(res_sn, '\\2', ml_rawt)
+            #         ml.text = re.sub(res_sn, '\\2', ml.text)
+            #         section_instructions.append(sect_ins)
+            #     elif re.match(res_de, ml_rawt) and re.match(res_de, ml.text):
+            #         deco = re.sub(res_de, '\\1', ml.text)
+            #         ml_rawt = re.sub(res_de, '\\2', ml_rawt)
+            #         ml.text = re.sub(res_de, '\\2', ml.text)
+            #         decoration_instruction += deco
+            #     elif re.match(res_sb, ml_rawt) and re.match(res_sb, ml.text):
+            #         deci = re.sub(res_sb, '\\1', ml.text)
+            #         ml_rawt = re.sub(res_sb, '\\6', ml_rawt)
+            #         ml.text = re.sub(res_sb, '\\6', ml.text)
+            #         length_ins['space before'] += float(deci)
+            #     elif re.match(res_sa, ml_rawt) and re.match(res_sa, ml.text):
+            #         deci = re.sub(res_sa, '\\1', ml.text)
+            #         ml_rawt = re.sub(res_sa, '\\6', ml_rawt)
+            #         ml.text = re.sub(res_sa, '\\6', ml.text)
+            #         length_ins['space after'] += float(deci)
+            #     elif re.match(res_ls, ml_rawt) and re.match(res_ls, ml.text):
+            #         deci = re.sub(res_ls, '\\1', ml.text)
+            #         ml_rawt = re.sub(res_ls, '\\6', ml_rawt)
+            #         ml.text = re.sub(res_ls, '\\6', ml.text)
+            #         length_ins['line spacing'] += float(deci)
+            #     elif re.match(res_fi, ml_rawt) and re.match(res_fi, ml.text):
+            #         deci = re.sub(res_fi, '\\1', ml.text)
+            #         ml_rawt = re.sub(res_fi, '\\6', ml_rawt)
+            #         ml.text = re.sub(res_fi, '\\6', ml.text)
+            #         length_ins['first indent'] = -float(deci)
+            #     elif re.match(res_li, ml_rawt) and re.match(res_li, ml.text):
+            #         deci = re.sub(res_li, '\\1', ml.text)
+            #         ml_rawt = re.sub(res_li, '\\6', ml_rawt)
+            #         ml.text = re.sub(res_li, '\\6', ml.text)
+            #         length_ins['left indent'] = -float(deci)
+            #     elif re.match(res_ri, ml_rawt) and re.match(res_ri, ml.text):
+            #         deci = re.sub(res_ri, '\\1', ml.text)
+            #         ml_rawt = re.sub(res_ri, '\\6', ml_rawt)
+            #         ml.text = re.sub(res_ri, '\\6', ml.text)
+            #         length_ins['right indent'] = -float(deci)
+            #     else:
+            #        break
             if ml.text != '':
                 break
         if length_ins['line spacing'] < 0:
@@ -1501,12 +1778,13 @@ class Paragraph:
                 length_ins['space after'] -= length_ins['line spacing'] * .25
             else:
                 length_ins['space after'] = 0
+        # self.chapter_instructions = chapter_instructions
         # self.section_instructions = section_instructions
         # self.decoration_instruction = decoration_instruction
         # self.length_ins = length_ins
         # self.md_lines = md_lines
-        return section_instructions, decoration_instruction, \
-            length_ins, md_lines
+        return chapter_instructions, section_instructions, \
+            decoration_instruction, length_ins, md_lines
 
     def get_full_text(self):
         full_text = ''
@@ -1529,7 +1807,7 @@ class Paragraph:
             paragraph_class = 'blank'
         elif ParagraphChapter.is_this_class(full_text):
             paragraph_class = 'chapter'
-        elif re.match('^#+ ', full_text) or re.match('^#+$', full_text):
+        elif ParagraphSection.is_this_class(full_text):
             paragraph_class = 'title'
         elif re.match(NOT_ESCAPED + '::', full_text):
             paragraph_class = 'breakdown'
@@ -1555,55 +1833,25 @@ class Paragraph:
         # self.paragraph_class = paragraph_class
         return paragraph_class
 
-    def get_section_states_and_depths(self):
-        states = []
+    def get_section_depths(self):
         depth_first = 0
         depth = 0
-        for si in self.section_instructions:
-            dep = si[0]
-            num = si[1]
-            if doc.document_style == 'j' and Paragraph.section_states[1] > 0:
-                Paragraph.section_states[dep - 1] = num - 2
-            else:
-                Paragraph.section_states[dep - 1] = num - 1
-            for i in range(dep, len(Paragraph.section_states)):
-                Paragraph.section_states[i] = 0
-        for i, pss in enumerate(Paragraph.section_states):
-            states.append(pss)
-            if pss > 0:
+        for i, pss in enumerate(ParagraphSection.states):
+            if pss[0] > 0:
                 depth_first = i + 1
                 depth = i + 1
         if self.paragraph_class == 'title':
-            for i, sharps in enumerate(self.full_text.split(' ')):
-                if re.match('^#+$', sharps):
-                    if len(sharps) > 6:
-                        msg = '※ 警告: ' \
-                            + '節記号"' + sharps + '"は深過ぎです'
-                        # msg = 'warning: ' \
-                        #     + 'section symbol "' + sharps + '" is too deep'
-                        sys.stderr.write(msg + '\n\n')
-                        sharps = '######'
-                    if i == 0:
-                        depth_first = len(sharps)
-                    depth = len(sharps)
-                    states[depth - 1] += 1
-                    for i in range(depth, len(states)):
-                        states[i] = 0
-                else:
-                    break
-            for i, s in enumerate(states):
-                Paragraph.section_states[i] = s
-        # self.section_states = states
+            depth_first, depth = ParagraphSection.get_depths(self.full_text)
         # self.section_depth_first = depth_first
         # self.section_depth = depth
-        return states, depth_first, depth
+        return depth_first, depth
 
     def get_length_sec(self):
         length_sec \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
         par_class = self.paragraph_class
-        states = self.section_states
+        states = ParagraphSection.states
         depth_first = self.section_depth_first
         depth = self.section_depth
         if par_class == 'title':
@@ -1650,13 +1898,17 @@ class Paragraph:
         if doc.document_style == 'j':
             if self.paragraph_class == 'title' or \
                self.paragraph_class == 'sentence':
-                if self.section_states[1] > 0 and \
+                if ParagraphSection.states[1][0] > 0 and \
                    self.section_depth_first >= 3:
                     length['left indent'] -= 1
         # self.length = length
         return length
 
     def write_paragraph(self, ms_doc):
+        for ci in self.chapter_instructions:
+            ParagraphChapter.set_states(ci)
+        for si in self.section_instructions:
+            ParagraphSection.set_states(si)
         paragraph_class = self.paragraph_class
         if paragraph_class == 'empty':
             self._write_empty_paragraph(ms_doc)
@@ -1718,6 +1970,7 @@ class Paragraph:
             text_to_write = ''
             if i == 0:
                 text_to_write += self.decoration_instruction
+            ParagraphChapter.update_states(ml.text)
             text_to_write += ParagraphChapter.get_docx_text(ml.text)
             ms_par = self._get_ms_par(ms_doc)
             self._write_text(text_to_write, ms_par)
@@ -1729,7 +1982,11 @@ class Paragraph:
         depth = self.section_depth
         text_to_write = self.decoration_instruction
         head_symbol, title, text = self._split_title_paragraph(md_lines)
-        head_string = self._get_title_head_string(head_symbol)
+        head_string = ''
+        for hs in head_symbol.split(' '):
+            ParagraphSection.update_states(hs)
+            head_string += ParagraphSection.get_head_string(hs)
+        head_string += ParagraphSection.get_head_space(depth)
         if title + text == '':
             return
         ms_par = self._get_ms_par(ms_doc)
@@ -1750,42 +2007,21 @@ class Paragraph:
         title = ''
         text = ''
         is_in_head = True
-        has_title = False
-        pre_dep = -1
-        dep = 0
+        res = '(#+(?:-#+)*(?:\\s+#+(?:-#+)*)*)'
         for ml in md_lines:
-            for i, c in enumerate(ml.text):
-                if not is_in_head:
-                    if i == 0:
-                        title = Paragraph._join_string(title, c)
-                    else:
-                        title += c
-                    continue
-                if c == '#':
-                    head += c
-                    dep += 1
-                elif c == ' ' or c == '\t':
+            if is_in_head:
+                if re.match('^' + res + '\\s*$', ml.text):
+                    head += ml.text
                     head += ' '
-                    Paragraph._is_consistent_with_depth(ml, pre_dep, dep)
-                    pre_dep = dep
-                    dep = 0
+                elif re.match('^' + res + '\\s+(.*)$', ml.text):
+                    head += re.sub('^' + res + '\\s+(.*)$', '\\1', ml.text)
+                    head += ' '
+                    title = re.sub('^' + res + '\\s+(.*)$', '\\2', ml.text)
                 else:
                     is_in_head = False
-                    if re.match('.*#.*', ml.text[:i]):
-                        has_title = True
-                    title = c
-            if is_in_head:
-                head += ' '
-                Paragraph._is_consistent_with_depth(ml, pre_dep, dep)
-                pre_dep = dep
-                dep = 0
-        head = re.sub('\t', ' ', head)
-        head = re.sub('^ *', '', head)
-        head = re.sub(' +', ' ', head)
-        if re.match('.*[．。]$', title):
-            has_title = False
-        if not has_title:
-            title, text = '', title
+                    text += ml.text
+            else:
+                text += ml.text
         return head, title, text
 
     @staticmethod
@@ -1800,37 +2036,6 @@ class Paragraph:
                 md_line.append_warning_message(msg)
                 return False
         return True
-
-    def _get_title_head_string(self, head_symbol):
-        sec_stat = self.section_states
-        sec_dep = -1
-        head_string = ''
-        for hs in head_symbol.split(' '):
-            if hs == '':
-                continue
-            sec_dep = len(hs)
-            if sec_dep > 6:
-                sec_dep = 6
-            if sec_dep == 1:
-                head_string += Title.get_head_1(sec_stat[0])
-            elif sec_dep == 2:
-                if doc.document_style == 'n':
-                    head_string += Title.get_head_2(sec_stat[1])
-                else:
-                    head_string += Title.get_head_2_j_or_J(sec_stat[1])
-            elif sec_dep == 3:
-                if doc.document_style == 'j' and sec_stat[1] > 0:
-                    head_string += Title.get_head_3(sec_stat[2] + 1)
-                else:
-                    head_string += Title.get_head_3(sec_stat[2])
-            elif sec_dep == 4:
-                head_string += Title.get_head_4(sec_stat[3])
-            elif sec_dep == 5:
-                head_string += Title.get_head_5(sec_stat[4])
-            elif sec_dep == 6:
-                head_string += Title.get_head_6(sec_stat[5])
-        head_string += Title.get_head_space(sec_dep, sec_stat[sec_dep - 1])
-        return head_string
 
     def _write_breakdown_paragraph(self, ms_doc):
         size = self.font_size
