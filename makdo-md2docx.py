@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.02.06-06:20:59-JST>
+# Time-stamp:   <2023.02.06-07:33:45-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2007,8 +2007,10 @@ class Paragraph:
         title = ''
         text = ''
         is_in_head = True
-        res = '(#+(?:-#+)*(?:\\s+#+(?:-#+)*)*)'
+        res = '(#+(?:\\-#+)*(?:\\s+#+(?:\\-#+)*)*)'
         for ml in md_lines:
+            if ml.text == '':
+                continue
             if is_in_head:
                 if re.match('^' + res + '\\s*$', ml.text):
                     head += ml.text
