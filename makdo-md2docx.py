@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.02.06-08:03:28-JST>
+# Time-stamp:   <2023.02.06-12:21:22-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1906,9 +1906,15 @@ class Paragraph:
         length_sec = self.get_length_sec()
         for s in self.length:
             self.length[s] += length_sec[s]
-        depth_first, depth    = self.get_section_depths()
+        depth_first, depth = self.get_section_depths()
         if self.paragraph_class == 'sentence':
-            self.length['left indent'] += depth
+            if ParagraphSection.states[0][0] > 0:
+                self.length['first indent'] += 1
+                self.length['left indent'] += depth - 1
+        if self.paragraph_class == 'title' or \
+           self.paragraph_class == 'sentence':
+            if ParagraphSection.states[1][0] == 0 and depth > 2:
+                self.length['left indent'] += -1
         if doc.document_style == 'j':
             if self.paragraph_class == 'title' or \
                self.paragraph_class == 'sentence':
