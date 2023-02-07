@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.02.05-06:15:45-JST>
+# Time-stamp:   <2023.02.07-09:48:17-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -577,21 +577,33 @@ class ParagraphChapter:
 
 class Title:
 
-    r0 = '^((?:' + '|'.join(FONT_DECORATIONS) + ')*)'
-    r1 = '(__)?\\+\\+(.*)\\+\\+(__)?'
-    r2 = '(第([0-9０-９]+)条?)'
-    r3 = '([0-9０-９]+)'
-    r4 = '([⑴-⒇]|([\\(（]([0-9０-９]+)[\\)）]))'
-    r5 = '([ｱ-ﾝア-ン])'
-    r6 = '([(\\(（]([ｱ-ﾝア-ン])[\\)）])'
-    r9 = '((  ?)|(\t)|(' + ZENKAKU_SPACE + ')|(\\. ?)|(．))'
-    res1 = '^' + r1
-    res2 = r0 + r2 + r9
-    res3 = r0 + r3 + '(((' + r4 + '?)' + r5 + '?)' + r6 + '?)' + r9
-    res4 = r0 + '(' + r3 + ')?' + r4 + '((' + r5 + '?)' + r6 + '?)' + r9 + '?'
-    res5 = r0 + '((' + r3 + ')?' + r4 + ')?' + r5 + '(' + r6 + '?)' + r9
-    res6 = r0 + '(((' + r3 + ')?' + r4 + ')?' + r5 + '?)' + r6 + r9 + '?'
-    not3 = r3 + r9 + '.*\n[ \t' + ZENKAKU_SPACE + ']*' + r3 + r9
+    r0 = '((?:' + '|'.join(FONT_DECORATIONS) + ')*)'
+    r1 = '(.*)'
+    r2 = '(?:(第([0-9０-９]+)条?)((?:の[0-9０-９]+)*))'
+    r3 = '(?:(([0-9０-９]+))((?:の[0-9０-９]+)*))'
+    r4 = '(?:(([⑴-⒇])|[\\(（]([0-9０-９]+)[\\)）])((?:の[0-9０-９]+)*))'
+    r5 = '(?:(([ｱ-ﾝア-ン]))((?:の[0-9０-９]+)*))'
+    r6 = '(?:([(\\(（]([ｱ-ﾝア-ン])[\\)）])((?:の[0-9０-９]+)*))'
+    r7 = '(?:(([a-zａ-ｚ]))((?:の[0-9０-９]+)*))'
+    r8 = '(?:([(\\(（]([a-zａ-ｚ])[\\)）])((?:の[0-9０-９]+)*))'
+    r9 = '(?:  ?|\t|\u3000|\\. ?|．)'
+    res1 = '^' + r0 + '\\+\\+' + r0 + r1 + r0 + '\\+\\+' + r0
+    res2 = '^' + r0 + r2 + '()' + r9
+    res3 = '^' + r0 + r3 + '(' + r4 + '?' + r5 + '?' + r6 + '?' + r7 + '?' + r8 + '?)' + r9
+    res4 = '^' + r0 + r3 + '?' + r4 + '(' + r5 + '?' + r6 + '?' + r7 + '?' + r8 + '?)' + r9
+    res5 = '^' + r0 + r3 + '?' + r4 + '?' + r5 + '(' + r6 + '?' + r7 + '?' + r8 + '?)' + r9
+    res6 = '^' + r0 + r3 + '?' + r4 + '?' + r5 + '?' + r6 + '(' + r7 + '?' + r8 + '?)' + r9
+    res7 = '^' + r0 + r3 + '?' + r4 + '?' + r5 + '?' + r6 + '?' + r7 + '(' + r8 + '?)' + r9
+    res8 = '^' + r0 + r3 + '?' + r4 + '?' + r5 + '?' + r6 + '?' + r7 + '?' + r8 + '()' + r9
+    not3 = r3 + r9 + '.*\n[ \t\u3000]*' + r3 + r9
+    states = [[0, 0, 0, 0, 0],  # -
+              [0, 0, 0, 0, 0],  # 第１
+              [0, 0, 0, 0, 0],  # １
+              [0, 0, 0, 0, 0],  # (1)
+              [0, 0, 0, 0, 0],  # ア
+              [0, 0, 0, 0, 0],  # (ｱ)
+              [0, 0, 0, 0, 0],  # ａ
+              [0, 0, 0, 0, 0]]  # (a)
 
     @classmethod
     def get_depth(cls, line, alignment):
@@ -616,52 +628,69 @@ class Title:
             comm = ''
             head = ''
             rest = ''
-            text = re.sub(res, '\\1\\2\\3', line)
-            numb = -1
+            text = re.sub(res, '\\1\\2\\3\\4\\5', line)
+            numb = [-1]
         elif depth == 2:
             res = cls.res2 + '(.*)$'
             comm = re.sub(res, '\\1', line)
-            head = re.sub(res, '\\2', line)
-            rest = ''
-            text = re.sub(res, '\\10', line)
-            numb = inverse_n_int(re.sub(res, '\\3', line))
+            head = re.sub(res, '\\2\\4', line)
+            rest = re.sub(res, '\\5', line)
+            text = re.sub(res, '\\6', line)
+            numb = []
+            for n in re.sub(res, '\\4', line).split('の'):
+                numb.append(inverse_n_int(n))
+            numb[0] = inverse_n_int(re.sub(res, '\\3', line))
         elif depth == 3:
             res = cls.res3 + '(.*)$'
             comm = re.sub(res, '\\1', line)
-            head = re.sub(res, '\\2', line)
-            rest = re.sub(res, '\\3', line)
-            text = re.sub(res, '\\18', line)
-            numb = inverse_n_int(re.sub(res, '\\2', line))
+            head = re.sub(res, '\\2\\4', line)
+            rest = re.sub(res, '\\5', line)
+            text = re.sub(res, '\\22', line)
+            numb = []
+            for n in re.sub(res, '\\4', line).split('の'):
+                numb.append(inverse_n_int(n))
+            numb[0] = inverse_n_int(re.sub(res, '\\3', line))
         elif depth == 4:
             res = cls.res4 + '(.*)$'
             comm = re.sub(res, '\\1', line)
-            head = re.sub(res, '\\4', line)
-            rest = re.sub(res, '\\7', line)
-            text = re.sub(res, '\\18', line)
-            if re.match('^[⑴-⒇]$', head):
-                numb = ord(head) - 9331
+            head = re.sub(res, '\\5\\8', line)
+            rest = re.sub(res, '\\9', line)
+            text = re.sub(res, '\\22', line)
+            h1 = re.sub(res, '\\6', line)
+            h2 = re.sub(res, '\\7', line)
+            numb = []
+            for n in re.sub(res, '\\8', line).split('の'):
+                numb.append(inverse_n_int(n))
+            if re.match('^[⑴-⒇]$', h1):
+                numb[0] = [ord(h1) - 9331]
             else:
-                numb = inverse_n_int(re.sub(res, '\\6', line))
+                numb[0] = [inverse_n_int(h2)]
         elif depth == 5:
             res = cls.res5 + '(.*)$'
             comm = re.sub(res, '\\1', line)
-            head = re.sub(res, '\\8', line)
-            rest = re.sub(res, '\\9', line)
-            text = re.sub(res, '\\18', line)
-            numb = inverse_n_kata(re.sub(res, '\\8', line))
+            head = re.sub(res, '\\9\\11', line)
+            rest = re.sub(res, '\\12', line)
+            text = re.sub(res, '\\22', line)
+            numb = []
+            for n in re.sub(res, '\\11', line).split('の'):
+                numb.append(inverse_n_int(n))
+            numb[0] = inverse_n_kata(re.sub(res, '\\10', line))
         elif depth == 6:
             res = cls.res6 + '(.*)$'
             comm = re.sub(res, '\\1', line)
-            head = re.sub(res, '\\10', line)
-            rest = ''
-            text = re.sub(res, '\\18', line)
-            numb = inverse_n_kata(re.sub(res, '\\11', line))
+            head = re.sub(res, '\\12\\14', line)
+            rest = re.sub(res, '\\15', line)
+            text = re.sub(res, '\\22', line)
+            numb = []
+            for n in re.sub(res, '\\14', line).split('の'):
+                numb.append(inverse_n_int(n))
+            numb[0] = inverse_n_kata(re.sub(res, '\\13', line))
         else:
             comm = ''
             head = ''
             rest = ''
             text = ''
-            numb = -1
+            numb = [-1]
         if comm == line:
             comm = ''
         if head == line:
@@ -669,9 +698,11 @@ class Title:
         if rest == line:
             rest = ''
         if rest != '':
-            return comm, numb, head, rest + ZENKAKU_SPACE + text
+            return comm, numb, rest + '\u3000' + text
+            # return comm, numb, head, rest + ZENKAKU_SPACE + text
         else:
-            return comm, numb, head, text
+            return comm, numb, text
+            # return comm, numb, head, text
 
 
 class List:
@@ -1614,27 +1645,26 @@ class Document:
                     # msg = 'warning: ' \
                     #     + 'bad section depth\n  ' + p.md_text
                     sys.stderr.write(msg + '\n\n')
-
             if self.document_style == 'j':
                 if section_states[1] > 0 and section_states[2] == 1:
                     section_states[2] = 2
             if i == 0:
                 continue
             sharps = '#' * p.section_depth + '=' + str(p.section_states[i])
-            if section_states[i] != p.section_states[i]:
-                p.warning_messages += '<!-- ' \
-                    + 'セクション番号が間違っている可能性があります（' \
-                    + '想定は' + str(section_states[i]) + '、' \
-                    + '実際は' + str(p.section_states[i]) + '） ' \
-                    + '-->\n' \
-                    + sharps + '\n'
-                msg = '※ 警告: ' \
-                    + 'セクション番号が間違っている可能性があります\n  ' \
-                    + p.md_text
-                # msg = 'warning: ' \
-                #     + 'bad section number\n  ' + p.md_text
-                sys.stderr.write(msg + '\n\n')
-                section_states[i] = p.section_states[i]
+            # if section_states[i] != p.section_states[i]:
+            #     p.warning_messages += '<!-- ' \
+            #         + 'セクション番号が間違っている可能性があります（' \
+            #         + '想定は' + str(section_states[i]) + '、' \
+            #         + '実際は' + str(p.section_states[i]) + '） ' \
+            #         + '-->\n' \
+            #         + sharps + '\n'
+            #     msg = '※ 警告: ' \
+            #         + 'セクション番号が間違っている可能性があります\n  ' \
+            #         + p.md_text
+            #     # msg = 'warning: ' \
+            #     #     + 'bad section number\n  ' + p.md_text
+            #     sys.stderr.write(msg + '\n\n')
+            #     section_states[i] = p.section_states[i]
 
     def open_md_file(self, md_file, docx_file):
         if md_file == '-':
@@ -2419,10 +2449,11 @@ class Paragraph:
             for i, ss in enumerate(Paragraph.section_states):
                 dp = i + 1
                 if Title.get_depth(rt, aln) == dp:
-                    comm, numb, head, rt = Title.decompose(dp, rt)
+                    comm, numb, rt = Title.decompose(dp, rt)
+                    # comm, numb, head, rt = Title.decompose(dp, rt)
                     for j in range(i + 1, len(states)):
                         states[j] = 0
-                    states[i] = numb
+                    states[i] = numb[0]
                     if depth_first == 0:
                         depth_first = dp
                     depth = dp
@@ -2463,8 +2494,9 @@ class Paragraph:
         for i in range(len(Paragraph.section_states)):
             dp = i + 1
             if Title.get_depth(rt, aln) == dp:
-                c, n, h, rt = Title.decompose(dp, rt)
-                head += c + '#' * dp + ' '
+                c, n, rt = Title.decompose(dp, rt)
+                # c, n, h, rt = Title.decompose(dp, rt)
+                head += c + '#' * dp + '-#' * (len(n) - 1) + ' '
         if re.match('\\s+', rt):
             msg = '※ 警告: ' \
                 + '行頭の空白を削除しました\n  ' \
