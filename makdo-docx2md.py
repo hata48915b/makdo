@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.02.07-10:16:16-JST>
+# Time-stamp:   <2023.02.08-06:10:58-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1429,12 +1429,12 @@ class Document:
         # LEFT ALIGNMENT
         self.paragraphs = self._modpar_left_alignment()
         # SPACE BEFORE AND AFTER
-        self.paragraphs = self._modpar_title_space_before_and_after()
+        self.paragraphs = self._modpar_section_space_before_and_after()
         self.paragraphs = self._modpar_brank_paragraph_to_space_before()
         # LIST
-        # self.paragraphs = self._modpar_title_3_to_list()
+        # self.paragraphs = self._modpar_section_3_to_list()
         # CENTERING
-        self.paragraphs = self._modpar_centering_with_title_1()
+        self.paragraphs = self._modpar_centering_with_section_1()
         # INDENT
         self.paragraphs = self._modpar_one_line_paragraph()
         # RETURN
@@ -1449,14 +1449,14 @@ class Document:
                         p.alignment = 'left'
         return self.paragraphs
 
-    def _modpar_title_space_before_and_after(self):
+    def _modpar_section_space_before_and_after(self):
         m = len(self.paragraphs) - 1
         for i, p in enumerate(self.paragraphs):
             if i > 0:
                 p_prev = self.paragraphs[i - 1]
             if i < m:
                 p_next = self.paragraphs[i + 1]
-            if p.paragraph_class != 'title':
+            if p.paragraph_class != 'section':
                 continue
             if p.section_depth_first == 1:
                 if i > 0 and p_prev.paragraph_class == 'blank':
@@ -1505,9 +1505,9 @@ class Document:
                 p.first_line_instructions = p.get_first_line_instructions()
         return self.paragraphs
 
-    def _modpar_title_3_to_list(self):
+    def _modpar_section_3_to_list(self):
         for p in self.paragraphs:
-            if p.paragraph_class != 'title':
+            if p.paragraph_class != 'section':
                 continue
             if p.section_depth_first != 3:
                 continue
@@ -1535,12 +1535,12 @@ class Document:
             p.first_line_instructions = p.get_first_line_instructions()
         return self.paragraphs
 
-    def _modpar_centering_with_title_1(self):
+    def _modpar_centering_with_section_1(self):
         is_list = False
         m = len(self.paragraphs) - 1
         for i, p in enumerate(self.paragraphs):
             if is_list:
-                if p.paragraph_class == 'title' and \
+                if p.paragraph_class == 'section' and \
                    p.section_depth_first == 3 and \
                    p.section_depth == 3:
                     p.paragraph_class = 'list_system'
@@ -1570,11 +1570,11 @@ class Document:
             if p_prev.paragraph_class != 'blank' and \
                p.length_ins['space before'] <= 0:
                 continue
-            if p_next.paragraph_class != 'title' and \
+            if p_next.paragraph_class != 'section' and \
                p_next.paragraph_class != 'list_system' and \
                p_next.paragraph_class != 'list':
                 continue
-            if p_next.paragraph_class == 'title':
+            if p_next.paragraph_class == 'section':
                 if p_next.section_depth_first != 3:
                     continue
                 if p_next.section_depth != 3:
@@ -1625,7 +1625,7 @@ class Document:
         for ss in range(m):
             section_states.append(0)
         for i, p in enumerate(self.paragraphs):
-            if p.paragraph_class != 'title':
+            if p.paragraph_class != 'section':
                 continue
             depth = -1
             ln = p.md_text
@@ -2417,7 +2417,7 @@ class Paragraph:
         if ParagraphChapter.is_this_class(rt):
             return 'chapter'
         if (sd == 1 and fs > 1.2) or sd > 1:
-            return 'title'
+            return 'section'
         if stl is not None and stl == 'makdo-g':
             return 'preformatted'
         if (stl is not None and stl == 'makdo-a') or (aln is not None):
@@ -2449,7 +2449,7 @@ class Paragraph:
             if ss != 0:
                 depth_first = i + 1
                 depth = i + 1
-        if self.paragraph_class == 'title':
+        if self.paragraph_class == 'section':
             depth_first = 0
             depth = 0
             for i, ss in enumerate(Paragraph.section_states):
@@ -2472,8 +2472,8 @@ class Paragraph:
     def _get_raw_md_text(self):
         if self.paragraph_class == 'chapter':
             return ParagraphChapter.get_md_line(self.raw_text)
-        elif self.paragraph_class == 'title':
-            return self._get_raw_md_text_of_title_paragraph()
+        elif self.paragraph_class == 'section':
+            return self._get_raw_md_text_of_section_paragraph()
         elif self.paragraph_class == 'list_system':
             return self._get_raw_md_text_of_list_system_paragraph()
         elif self.paragraph_class == 'list':
@@ -2493,7 +2493,7 @@ class Paragraph:
             # return '<div style="break-after: page;"></div>'
         return self.raw_text
 
-    def _get_raw_md_text_of_title_paragraph(self):
+    def _get_raw_md_text_of_section_paragraph(self):
         rt = self.raw_text
         aln = self.alignment
         head = ''
@@ -2808,7 +2808,7 @@ class Paragraph:
         length_sec \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
-        if pclass == 'title':
+        if pclass == 'section':
             if depth_first > 1:
                 length_sec['first indent'] = depth_first - depth - 1
                 length_sec['left indent'] = depth - 1
@@ -2859,7 +2859,7 @@ class Paragraph:
         if self.paragraph_class == 'chapter':
             depth = ParagraphChapter.get_depth(self.raw_text)
             length_ins = ParagraphChapter.modify_length_ins(depth, length_ins)
-        if self.paragraph_class == 'title':
+        if self.paragraph_class == 'section':
             d = self.section_depth_first
             sb = (doc.space_before + ',,,,,').split(',')[d - 1]
             if sb != '':
@@ -2924,7 +2924,7 @@ class Paragraph:
 
     def get_md_text(self):
         rmt = self.raw_md_text
-        if self.paragraph_class == 'title':
+        if self.paragraph_class == 'section':
             if len(rmt.split('\n')) == 1:
                 return rmt
         if self.paragraph_class == 'list':
@@ -2939,7 +2939,7 @@ class Paragraph:
             return rmt
         if self.paragraph_class == 'pagebreak':
             return rmt
-        if self.paragraph_class == 'title':
+        if self.paragraph_class == 'section':
             res = '^((#+ \n)*#+ )(#+ .*)$'
             while re.match(res, rmt):
                 rmt = re.sub(res, '\\1\n\\3', rmt)

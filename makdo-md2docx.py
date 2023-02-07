@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.02.07-10:21:44-JST>
+# Time-stamp:   <2023.02.08-06:12:26-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -361,11 +361,12 @@ class ParagraphChapter:
 
     res_par = '^(\\$+)((?:-\\$+)*)\\s*(.*)$'
     res_ins = '^(\\$+)((?:-\\$+)*)=\\s*([0-9]+)$'
-    states = [[0, 0, 0, 0, 0],  # 第１編
-              [0, 0, 0, 0, 0],  # 第１章
-              [0, 0, 0, 0, 0],  # 第１節
-              [0, 0, 0, 0, 0],  # 第１款
-              [0, 0, 0, 0, 0]]  # 第１目
+    #          ---HEIGHT----
+    states = [[0, 0, 0, 0, 0],  # 第１編 D
+              [0, 0, 0, 0, 0],  # 第１章 E
+              [0, 0, 0, 0, 0],  # 第１節 P
+              [0, 0, 0, 0, 0],  # 第１款 T
+              [0, 0, 0, 0, 0]]  # 第１目 H
     post_char = ['編', '章', '節', '款', '目']
 
     @classmethod
@@ -483,14 +484,15 @@ class ParagraphSection:
 
     res_par = '^(#+)((?:-#+)*)\\s*(.*)$'
     res_ins = '^(#+)((?:-#+)*)=\\s*([0-9]+)$'
-    states = [[0, 0, 0, 0, 0],  # -
-              [0, 0, 0, 0, 0],  # 第１
-              [0, 0, 0, 0, 0],  # １
-              [0, 0, 0, 0, 0],  # (1)
-              [0, 0, 0, 0, 0],  # ア
-              [0, 0, 0, 0, 0],  # (ｱ)
-              [0, 0, 0, 0, 0],  # ａ
-              [0, 0, 0, 0, 0]]  # (a)
+    #          ---HEIGHT----
+    states = [[0, 0, 0, 0, 0],  # -    |
+              [0, 0, 0, 0, 0],  # 第１ D
+              [0, 0, 0, 0, 0],  # １   E
+              [0, 0, 0, 0, 0],  # (1)  P
+              [0, 0, 0, 0, 0],  # ア   T
+              [0, 0, 0, 0, 0],  # (ｱ)  H
+              [0, 0, 0, 0, 0],  # ａ   |
+              [0, 0, 0, 0, 0]]  # (a)  |
 
     @classmethod
     def is_this_class(cls, full_text):
@@ -1074,7 +1076,7 @@ class Document:
                 p_prev = paragraphs[i - 1]
             if i < m:
                 p_next = paragraphs[i + 1]
-            if p.paragraph_class == 'title' and \
+            if p.paragraph_class == 'section' and \
                p.section_depth == 1 and \
                re.match('^# .*\\S+.*$', p.full_text):
                 if (p.length['space after'] >= 0.2) or \
@@ -1098,10 +1100,10 @@ class Document:
                     if p_next.length['space before'] < sa:
                         p_next.length['space before'] = sa
             if i > 0 and \
-               p_prev.paragraph_class == 'title' and \
+               p_prev.paragraph_class == 'section' and \
                p_prev.section_depth == 1 and \
                re.match('^# *$', p_prev.full_text):
-                if p.paragraph_class == 'title':
+                if p.paragraph_class == 'section':
                     sb = (doc.space_before + ',,,,,').split(',')
                     df = self.section_depth_first
                     if sb[df - 1] != '':
@@ -1617,9 +1619,6 @@ class Paragraph:
         self.length_ins \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
-        self.length_sec \
-            = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
-               'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
         self.chapter_instructions, \
             self.section_instructions, \
             self.decoration_instruction, \
@@ -1632,8 +1631,6 @@ class Paragraph:
         self.section_depth_first, \
             self.section_depth \
             = self.get_section_depths()
-        self.length_sec \
-            = self.get_length_sec()
         self.length \
             = self.get_length()
 
@@ -1803,7 +1800,7 @@ class Paragraph:
         elif ParagraphChapter.is_this_class(full_text):
             paragraph_class = 'chapter'
         elif ParagraphSection.is_this_class(full_text):
-            paragraph_class = 'title'
+            paragraph_class = 'section'
         elif re.match(NOT_ESCAPED + '::', full_text):
             paragraph_class = 'breakdown'
         elif re.match('^ *([-\\+\\*]|([0-9]+\\.)) ', full_text):
@@ -1835,7 +1832,7 @@ class Paragraph:
             if pss[0] > 0:
                 depth_first = i + 1
                 depth = i + 1
-        if self.paragraph_class == 'title':
+        if self.paragraph_class == 'section':
             depth_first, depth = ParagraphSection.get_depths(self.full_text)
         # self.section_depth_first = depth_first
         # self.section_depth = depth
@@ -1849,7 +1846,7 @@ class Paragraph:
         states = ParagraphSection.states
         depth_first = self.section_depth_first
         depth = self.section_depth
-        if par_class == 'title':
+        if par_class == 'section':
             if depth_first > 1:
                 length_sec['first indent'] = depth_first - depth - 1.0
             if depth_first > 1:
@@ -1869,7 +1866,6 @@ class Paragraph:
                 length_sec['left indent'] = depth - 1.0
             if depth_first >= 3 and states[1] == 0:
                 length_sec['left indent'] -= 1.0
-        # self.length_sec = length_sec
         return length_sec
 
     def get_length(self):
@@ -1878,7 +1874,7 @@ class Paragraph:
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
         for s in length:
             length[s] = self.length_ins[s]
-        if self.paragraph_class == 'title':
+        if self.paragraph_class == 'section':
             sb = (doc.space_before + ',,,,,').split(',')
             sa = (doc.space_after + ',,,,,').split(',')
             df = self.section_depth_first
@@ -1906,12 +1902,12 @@ class Paragraph:
             if ParagraphSection.states[0][0] > 0:
                 self.length['first indent'] += 1
                 self.length['left indent'] += depth - 1
-        if self.paragraph_class == 'title' or \
+        if self.paragraph_class == 'section' or \
            self.paragraph_class == 'sentence':
             if ParagraphSection.states[1][0] == 0 and depth > 2:
                 self.length['left indent'] += -1
         if doc.document_style == 'j':
-            if self.paragraph_class == 'title' or \
+            if self.paragraph_class == 'section' or \
                self.paragraph_class == 'sentence':
                 if ParagraphSection.states[1][0] > 0 and \
                    self.section_depth_first >= 3:
@@ -1923,8 +1919,8 @@ class Paragraph:
             self._write_blank_paragraph(ms_doc)
         elif paragraph_class == 'chapter':
             self._write_chapter_paragraph(ms_doc)
-        elif paragraph_class == 'title':
-            self._write_title_paragraph(ms_doc)
+        elif paragraph_class == 'section':
+            self._write_section_paragraph(ms_doc)
         elif paragraph_class == 'breakdown':
             self._write_breakdown_paragraph(ms_doc)
         elif paragraph_class == 'list':
@@ -1982,18 +1978,18 @@ class Paragraph:
             ms_par = self._get_ms_par(ms_doc)
             self._write_text(text_to_write, ms_par)
 
-    def _write_title_paragraph(self, ms_doc):
+    def _write_section_paragraph(self, ms_doc):
         md_lines = self.md_lines
         size = self.font_size
         ll_size = size * 1.4
         depth = self.section_depth
         text_to_write = self.decoration_instruction
-        head_symbol, title, text = self._split_title_paragraph(md_lines)
+        head_symbol, title, text = self._split_section_paragraph(md_lines)
         head_string = ''
         for hs in head_symbol.split(' '):
             ParagraphSection.update_states(hs)
             head_string += ParagraphSection.get_head_string(hs)
-        head_string += ParagraphSection.get_head_space(depth ,head_string)
+        head_string += ParagraphSection.get_head_space(depth, head_string)
         if title + text == '':
             return
         ms_par = self._get_ms_par(ms_doc)
@@ -2009,7 +2005,7 @@ class Paragraph:
             Paragraph.font_size = size
 
     @staticmethod
-    def _split_title_paragraph(md_lines):
+    def _split_section_paragraph(md_lines):
         head = ''
         title = ''
         text = ''
