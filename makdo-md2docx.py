@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.02.06-12:21:22-JST>
+# Time-stamp:   <2023.02.07-09:59:28-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -636,18 +636,11 @@ class ParagraphSection:
         return head_string
 
     @classmethod
-    def get_head_space(cls, depth):
-        n = cls.states[depth - 1][0]
-        if depth == 1:
-            return ''
-        elif depth == 4 and ((n == 0) or (n > 20)):
-            return ' '
-        elif depth == 6:
-            return ' '
-        elif depth == 8:
+    def get_head_space(cls, head_string):
+        if re.match('^.*\\(.*\\)$', head_string):
             return ' '
         else:
-            return ZENKAKU_SPACE
+            return '\u3000'
 
     @staticmethod
     def get_head_1(n):
@@ -1998,7 +1991,7 @@ class Paragraph:
         for hs in head_symbol.split(' '):
             ParagraphSection.update_states(hs)
             head_string += ParagraphSection.get_head_string(hs)
-        head_string += ParagraphSection.get_head_space(depth)
+        head_string += ParagraphSection.get_head_space(head_string)
         if title + text == '':
             return
         ms_par = self._get_ms_par(ms_doc)
