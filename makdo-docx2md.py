@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.02.07-09:48:17-JST>
+# Time-stamp:   <2023.02.07-10:16:16-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -575,7 +575,7 @@ class ParagraphChapter:
         return length_ins
 
 
-class Title:
+class ParagraphSection:
 
     r0 = '((?:' + '|'.join(FONT_DECORATIONS) + ')*)'
     r1 = '(.*)'
@@ -589,12 +589,18 @@ class Title:
     r9 = '(?:  ?|\t|\u3000|\\. ?|．)'
     res1 = '^' + r0 + '\\+\\+' + r0 + r1 + r0 + '\\+\\+' + r0
     res2 = '^' + r0 + r2 + '()' + r9
-    res3 = '^' + r0 + r3 + '(' + r4 + '?' + r5 + '?' + r6 + '?' + r7 + '?' + r8 + '?)' + r9
-    res4 = '^' + r0 + r3 + '?' + r4 + '(' + r5 + '?' + r6 + '?' + r7 + '?' + r8 + '?)' + r9
-    res5 = '^' + r0 + r3 + '?' + r4 + '?' + r5 + '(' + r6 + '?' + r7 + '?' + r8 + '?)' + r9
-    res6 = '^' + r0 + r3 + '?' + r4 + '?' + r5 + '?' + r6 + '(' + r7 + '?' + r8 + '?)' + r9
-    res7 = '^' + r0 + r3 + '?' + r4 + '?' + r5 + '?' + r6 + '?' + r7 + '(' + r8 + '?)' + r9
-    res8 = '^' + r0 + r3 + '?' + r4 + '?' + r5 + '?' + r6 + '?' + r7 + '?' + r8 + '()' + r9
+    res3 = '^' + r0 + r3 + '(' + r4 + '?' + r5 + '?' \
+        + r6 + '?' + r7 + '?' + r8 + '?)' + r9
+    res4 = '^' + r0 + r3 + '?' + r4 + '(' + r5 + '?' \
+        + r6 + '?' + r7 + '?' + r8 + '?)' + r9
+    res5 = '^' + r0 + r3 + '?' + r4 + '?' + r5 + '(' \
+        + r6 + '?' + r7 + '?' + r8 + '?)' + r9
+    res6 = '^' + r0 + r3 + '?' + r4 + '?' + r5 + '?' \
+        + r6 + '(' + r7 + '?' + r8 + '?)' + r9
+    res7 = '^' + r0 + r3 + '?' + r4 + '?' + r5 + '?' \
+        + r6 + '?' + r7 + '(' + r8 + '?)' + r9
+    res8 = '^' + r0 + r3 + '?' + r4 + '?' + r5 + '?' \
+        + r6 + '?' + r7 + '?' + r8 + '()' + r9
     not3 = r3 + r9 + '.*\n[ \t\u3000]*' + r3 + r9
     states = [[0, 0, 0, 0, 0],  # -
               [0, 0, 0, 0, 0],  # 第１
@@ -2391,7 +2397,7 @@ class Paragraph:
         for rxl in self.raw_xml_lines:
             if fs < 0:
                 fs = get_xml_value('w:sz', 'w:val', fs, rxl) / size / 2
-        td = Title.get_depth(rt, aln)
+        sd = ParagraphSection.get_depth(rt, aln)
         if self.raw_class == 'w:sectPr':
             return 'configuration'
         if self.raw_class == 'w:tbl':
@@ -2410,7 +2416,7 @@ class Paragraph:
                     return 'image'
         if ParagraphChapter.is_this_class(rt):
             return 'chapter'
-        if (td == 1 and fs > 1.2) or td > 1:
+        if (sd == 1 and fs > 1.2) or sd > 1:
             return 'title'
         if stl is not None and stl == 'makdo-g':
             return 'preformatted'
@@ -2448,9 +2454,9 @@ class Paragraph:
             depth = 0
             for i, ss in enumerate(Paragraph.section_states):
                 dp = i + 1
-                if Title.get_depth(rt, aln) == dp:
-                    comm, numb, rt = Title.decompose(dp, rt)
-                    # comm, numb, head, rt = Title.decompose(dp, rt)
+                if ParagraphSection.get_depth(rt, aln) == dp:
+                    comm, numb, rt = ParagraphSection.decompose(dp, rt)
+                    # comm, numb, head, rt = ParagraphSection.decompose(dp, rt)
                     for j in range(i + 1, len(states)):
                         states[j] = 0
                     states[i] = numb[0]
@@ -2493,9 +2499,9 @@ class Paragraph:
         head = ''
         for i in range(len(Paragraph.section_states)):
             dp = i + 1
-            if Title.get_depth(rt, aln) == dp:
-                c, n, rt = Title.decompose(dp, rt)
-                # c, n, h, rt = Title.decompose(dp, rt)
+            if ParagraphSection.get_depth(rt, aln) == dp:
+                c, n, rt = ParagraphSection.decompose(dp, rt)
+                # c, n, h, rt = ParagraphSection.decompose(dp, rt)
                 head += c + '#' * dp + '-#' * (len(n) - 1) + ' '
         if re.match('\\s+', rt):
             msg = '※ 警告: ' \

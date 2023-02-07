@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.02.07-09:59:28-JST>
+# Time-stamp:   <2023.02.07-10:21:44-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -636,8 +636,10 @@ class ParagraphSection:
         return head_string
 
     @classmethod
-    def get_head_space(cls, head_string):
-        if re.match('^.*\\(.*\\)$', head_string):
+    def get_head_space(cls, depth, head_string):
+        if depth == 1:
+            return ''
+        elif re.match('^.*\\(.*\\)$', head_string):
             return ' '
         else:
             return '\u3000'
@@ -1876,9 +1878,6 @@ class Paragraph:
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
         for s in length:
             length[s] = self.length_ins[s]
-        if self.paragraph_class == 'chapter':
-            depth = ParagraphChapter.get_depth(self.full_text)
-            length = ParagraphChapter.modify_length(depth, self.length_ins)
         if self.paragraph_class == 'title':
             sb = (doc.space_before + ',,,,,').split(',')
             sa = (doc.space_after + ',,,,,').split(',')
@@ -1896,6 +1895,9 @@ class Paragraph:
             ParagraphChapter.set_states(ci)
         for si in self.section_instructions:
             ParagraphSection.set_states(si)
+        if self.paragraph_class == 'chapter':
+            depth = ParagraphChapter.get_depth(self.full_text)
+            self.length = ParagraphChapter.modify_length(depth, self.length)
         length_sec = self.get_length_sec()
         for s in self.length:
             self.length[s] += length_sec[s]
@@ -1991,7 +1993,7 @@ class Paragraph:
         for hs in head_symbol.split(' '):
             ParagraphSection.update_states(hs)
             head_string += ParagraphSection.get_head_string(hs)
-        head_string += ParagraphSection.get_head_space(head_string)
+        head_string += ParagraphSection.get_head_space(depth ,head_string)
         if title + text == '':
             return
         ms_par = self._get_ms_par(ms_doc)
