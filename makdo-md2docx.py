@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.02.08-06:12:26-JST>
+# Time-stamp:   <2023.02.08-06:35:00-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -341,8 +341,6 @@ DEFAULT_LINE_SPACING = 2.14  # (2.0980+2.1812)/2=2.1396
 DEFAULT_SPACE_BEFORE = ''
 DEFAULT_SPACE_AFTER = ''
 
-ZENKAKU_SPACE = chr(12288)
-
 RES_NUMBER = '([-\\+]?(([0-9]+(\\.[0-9]+)?)|(\\.[0-9]+)))'
 RES_NUMBER6 = '(' + RES_NUMBER + '?,){,5}' + RES_NUMBER + '?,?'
 
@@ -359,8 +357,6 @@ class ParagraphChapter:
 
     """A class to handle chapter paragraph"""
 
-    res_par = '^(\\$+)((?:-\\$+)*)\\s*(.*)$'
-    res_ins = '^(\\$+)((?:-\\$+)*)=\\s*([0-9]+)$'
     #          ---HEIGHT----
     states = [[0, 0, 0, 0, 0],  # 第１編 D
               [0, 0, 0, 0, 0],  # 第１章 E
@@ -368,6 +364,9 @@ class ParagraphChapter:
               [0, 0, 0, 0, 0],  # 第１款 T
               [0, 0, 0, 0, 0]]  # 第１目 H
     post_char = ['編', '章', '節', '款', '目']
+
+    res_par = '^(\\$+)((?:-\\$+)*)\\s*(.*)$'
+    res_ins = '^(\\$+)((?:-\\$+)*)=\\s*([0-9]+)$'
 
     @classmethod
     def is_this_class(cls, full_text):
@@ -441,9 +440,8 @@ class ParagraphChapter:
                 elif i == xdepth:
                     if j <= height:
                         if cls.states[i][j] == 0:
-                            print(str(i) + '/' + str(j))
                             msg = '※ 警告: ' \
-                                + 'チャプターの枝番が"0"を含んでいます' \
+                                + 'チャプターの枝番が1以下を含んでいます' \
                                 + '\n  ' + md_text
                             # msg = 'warning: ' \
                             #     + 'chapter has "0" branch' \
@@ -466,7 +464,7 @@ class ParagraphChapter:
         docx_text = '第' + n_int(cls.states[depth][0]) + cls.post_char[depth]
         for j in range(1, heigh + 1):
             docx_text += 'の' + n_int(cls.states[depth][j] + 1)
-        docx_text += ZENKAKU_SPACE + titl
+        docx_text += '\u3000' + titl
         return docx_text
 
     @classmethod
@@ -482,8 +480,6 @@ class ParagraphSection:
 
     """A class to handle section paragraph"""
 
-    res_par = '^(#+)((?:-#+)*)\\s*(.*)$'
-    res_ins = '^(#+)((?:-#+)*)=\\s*([0-9]+)$'
     #          ---HEIGHT----
     states = [[0, 0, 0, 0, 0],  # -    |
               [0, 0, 0, 0, 0],  # 第１ D
@@ -493,6 +489,9 @@ class ParagraphSection:
               [0, 0, 0, 0, 0],  # (ｱ)  H
               [0, 0, 0, 0, 0],  # ａ   |
               [0, 0, 0, 0, 0]]  # (a)  |
+
+    res_par = '^(#+)((?:-#+)*)\\s*(.*)$'
+    res_ins = '^(#+)((?:-#+)*)=\\s*([0-9]+)$'
 
     @classmethod
     def is_this_class(cls, full_text):
@@ -588,9 +587,8 @@ class ParagraphSection:
                 elif i == xdepth:
                     if j <= height:
                         if cls.states[i][j] == 0:
-                            print(str(i) + '/' + str(j))
                             msg = '※ 警告: ' \
-                                + 'セクションの枝番が"0"を含んでいます' \
+                                + 'セクションの枝番が1以下を含んでいます' \
                                 + '\n  ' + md_text
                             # msg = 'warning: ' \
                             #     + 'section has "0" branch' \
@@ -1004,7 +1002,7 @@ class Document:
         sd = re.sub('\r', '\n', sd)  # unnecessary?
         for rml in sd.split('\n'):
             rml = re.sub('  $', '\n', rml)
-            rml = re.sub('[ ' + ZENKAKU_SPACE + '\t]*$', '', rml)
+            rml = re.sub('[ \t\u3000]*$', '', rml)
             raw_md_lines.append(rml)
         raw_md_lines.append('')
         # self.raw_md_lines = raw_md_lines
@@ -2112,7 +2110,7 @@ class Paragraph:
                 list_states += 1
                 bd[0] = List.get_number_head_1(list_states) + item
             else:
-                bd[0] = ZENKAKU_SPACE + bd[0]
+                bd[0] = '\u3000' + bd[0]
             bds.append(bd)
         return bds
 
@@ -2178,7 +2176,7 @@ class Paragraph:
     #             list_states += 1
     #             bd[0] = List.get_number_head_1(list_states) + item
     #         else:
-    #             bd[0] = ZENKAKU_SPACE + bd[0]
+    #             bd[0] = '\u3000' + bd[0]
     #         while len(bd) < 3:
     #             bd.append('')
     #         bds.append(bd)
@@ -2248,29 +2246,29 @@ class Paragraph:
             if re.match('^ *[-\\+\\*] ', text):
                 if list_depth == 1:
                     text_to_write \
-                        += ZENKAKU_SPACE * 0 + List.get_bullet_head_1(n) + item
+                        += '\u3000' * 0 + List.get_bullet_head_1(n) + item
                 elif list_depth == 2:
                     text_to_write \
-                        += ZENKAKU_SPACE * 2 + List.get_bullet_head_2(n) + item
+                        += '\u3000' * 2 + List.get_bullet_head_2(n) + item
                 elif list_depth == 3:
                     text_to_write \
-                        += ZENKAKU_SPACE * 4 + List.get_bullet_head_3(n) + item
+                        += '\u3000' * 4 + List.get_bullet_head_3(n) + item
                 else:
                     text_to_write \
-                        += ZENKAKU_SPACE * 6 + List.get_bullet_head_4(n) + item
+                        += '\u3000' * 6 + List.get_bullet_head_4(n) + item
             else:
                 if list_depth == 1:
                     text_to_write \
-                        += ZENKAKU_SPACE * 0 + List.get_number_head_1(n) + item
+                        += '\u3000' * 0 + List.get_number_head_1(n) + item
                 elif list_depth == 2:
                     text_to_write \
-                        += ZENKAKU_SPACE * 2 + List.get_number_head_2(n) + item
+                        += '\u3000' * 2 + List.get_number_head_2(n) + item
                 elif list_depth == 3:
                     text_to_write \
-                        += ZENKAKU_SPACE * 4 + List.get_number_head_3(n) + item
+                        += '\u3000' * 4 + List.get_number_head_3(n) + item
                 else:
                     text_to_write \
-                        += ZENKAKU_SPACE * 6 + number_list_head_4(n) + item
+                        += '\u3000' * 6 + number_list_head_4(n) + item
         text_to_write = re.sub('^\n*', '', text_to_write)
         text_to_write = re.sub('\n*$', '', text_to_write)
         ms_par = self._get_ms_par(ms_doc)

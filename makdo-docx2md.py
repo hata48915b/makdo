@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.02.08-06:10:58-JST>
+# Time-stamp:   <2023.02.08-07:28:04-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -181,8 +181,6 @@ DEFAULT_SPACE_BEFORE = ''
 DEFAULT_SPACE_AFTER = ''
 
 DEFAULT_AUTO_SPACE = False
-
-ZENKAKU_SPACE = chr(12288)
 
 NOT_ESCAPED = '^((?:(?:.*\n)*.*[^\\\\])?(?:\\\\\\\\)*)?'
 
@@ -518,12 +516,19 @@ CONJUNCTIONS = [
 
 class ParagraphChapter:
 
+    #          ---HEIGHT----
+    states = [[0, 0, 0, 0, 0],  # 第１編 D
+              [0, 0, 0, 0, 0],  # 第１章 E
+              [0, 0, 0, 0, 0],  # 第１節 P
+              [0, 0, 0, 0, 0],  # 第１款 T
+              [0, 0, 0, 0, 0]]  # 第１目 H
+    post_char = ['編', '章', '節', '款', '目']
     r0 = '^((?:' + '|'.join(FONT_DECORATIONS) + ')*)'
-    r1 = r0 + '第[0-9０-９]+編'
-    r2 = r0 + '第[0-9０-９]+章'
-    r3 = r0 + '第[0-9０-９]+節'
-    r4 = r0 + '第[0-9０-９]+款'
-    r5 = r0 + '第[0-9０-９]+目'
+    r1 = r0 + '第([0-9０-９])+' + post_char[0]
+    r2 = r0 + '第([0-9０-９])+' + post_char[1]
+    r3 = r0 + '第([0-9０-９])+' + post_char[2]
+    r4 = r0 + '第([0-9０-９])+' + post_char[3]
+    r5 = r0 + '第([0-9０-９])+' + post_char[4]
 
     @classmethod
     def is_this_class(cls, raw_text):
@@ -550,19 +555,40 @@ class ParagraphChapter:
     @classmethod
     def get_md_line(cls, raw_text):
         md_text = raw_text
+        states = [0 for i in range(len(cls.states[0]))]
         if re.match(cls.r1, md_text):
+            xdepth = 0
+            states[0] = inverse_n_int(re.sub(cls.r1 + '.*', '\\2', md_text))
             md_text = re.sub(cls.r1, '\\1$', md_text)
         elif re.match(cls.r2, md_text):
+            xdepth = 1
+            states[0] = inverse_n_int(re.sub(cls.r2 + '.*', '\\2', md_text))
             md_text = re.sub(cls.r2, '\\1$$', md_text)
         elif re.match(cls.r3, md_text):
+            xdepth = 2
+            states[0] = inverse_n_int(re.sub(cls.r3 + '.*', '\\2', md_text))
             md_text = re.sub(cls.r3, '\\1$$$', md_text)
         elif re.match(cls.r4, md_text):
+            xdepth = 3
+            states[0] = inverse_n_int(re.sub(cls.r4 + '.*', '\\2', md_text))
             md_text = re.sub(cls.r4, '\\1$$$$', md_text)
         elif re.match(cls.r5, md_text):
+            xdepth = 4
+            states[0] = inverse_n_int(re.sub(cls.r5 + '.*', '\\2', md_text))
             md_text = re.sub(cls.r5, '\\1$$$$$', md_text)
-        res = cls.r0 + '(\\$+(?:-\\$)*)の[0-9０-９]+'
+        height = 0
+        res = cls.r0 + '(\\$+(?:-\\$)*)の([0-9０-９]+)'
         while re.match(res, md_text):
+            height += 1
+            states[height] = inverse_n_int(re.sub(res + '.*', '\\3', md_text)) - 1
             md_text = re.sub(res, '\\1\\2-$', md_text)
+        cls.states[xdepth][height] += 1
+        for h in range(len(states)):
+            if cls.states[xdepth][h] != states[h]:
+                msg = '<!-- チャプター番号が間違っている可能性があります -->'
+                ins = '$' * (xdepth + 1) + '-$' * h + '=' + str(states[h])
+                md_text = msg + '\n' + ins + '\n\n' + md_text
+                cls.states[xdepth][h] = states[h]
         res = cls.r0 + '(\\$+(?:-\\$)*)\\s'
         md_text = re.sub(res, '\\1\\2 ', md_text)
         return md_text
@@ -577,6 +603,14 @@ class ParagraphChapter:
 
 class ParagraphSection:
 
+    states = [[0, 0, 0, 0, 0],  # -
+              [0, 0, 0, 0, 0],  # 第１
+              [0, 0, 0, 0, 0],  # １
+              [0, 0, 0, 0, 0],  # (1)
+              [0, 0, 0, 0, 0],  # ア
+              [0, 0, 0, 0, 0],  # (ｱ)
+              [0, 0, 0, 0, 0],  # ａ
+              [0, 0, 0, 0, 0]]  # (a)
     r0 = '((?:' + '|'.join(FONT_DECORATIONS) + ')*)'
     r1 = '(.*)'
     r2 = '(?:(第([0-9０-９]+)条?)((?:の[0-9０-９]+)*))'
@@ -601,15 +635,7 @@ class ParagraphSection:
         + r6 + '?' + r7 + '(' + r8 + '?)' + r9
     res8 = '^' + r0 + r3 + '?' + r4 + '?' + r5 + '?' \
         + r6 + '?' + r7 + '?' + r8 + '()' + r9
-    not3 = r3 + r9 + '.*\n[ \t\u3000]*' + r3 + r9
-    states = [[0, 0, 0, 0, 0],  # -
-              [0, 0, 0, 0, 0],  # 第１
-              [0, 0, 0, 0, 0],  # １
-              [0, 0, 0, 0, 0],  # (1)
-              [0, 0, 0, 0, 0],  # ア
-              [0, 0, 0, 0, 0],  # (ｱ)
-              [0, 0, 0, 0, 0],  # ａ
-              [0, 0, 0, 0, 0]]  # (a)
+    not3 = '^[0-9０-９]+(?:, ?|\\. ?|，|．)[0-9０-９]+'
 
     @classmethod
     def get_depth(cls, line, alignment):
@@ -668,9 +694,9 @@ class ParagraphSection:
             for n in re.sub(res, '\\8', line).split('の'):
                 numb.append(inverse_n_int(n))
             if re.match('^[⑴-⒇]$', h1):
-                numb[0] = [ord(h1) - 9331]
+                numb[0] = ord(h1) - 9331
             else:
-                numb[0] = [inverse_n_int(h2)]
+                numb[0] = inverse_n_int(h2)
         elif depth == 5:
             res = cls.res5 + '(.*)$'
             comm = re.sub(res, '\\1', line)
@@ -705,7 +731,7 @@ class ParagraphSection:
             rest = ''
         if rest != '':
             return comm, numb, rest + '\u3000' + text
-            # return comm, numb, head, rest + ZENKAKU_SPACE + text
+            # return comm, numb, head, rest + '\u3000' + text
         else:
             return comm, numb, text
             # return comm, numb, head, text
@@ -713,10 +739,10 @@ class ParagraphSection:
 
 class List:
 
-    res_b1 = '(•((  ?)|(\t)|(' + ZENKAKU_SPACE + ')))'  # U+2022 Bullet
-    res_b2 = '(◦((  ?)|(\t)|(' + ZENKAKU_SPACE + ')))'  # U+25E6 White Bullet
-    res_b3 = '(‣((  ?)|(\t)|(' + ZENKAKU_SPACE + ')))'  # U+2023 Triangular Bul
-    res_b4 = '(⁃((  ?)|(\t)|(' + ZENKAKU_SPACE + ')))'  # U+2043 Hyphen Bullet
+    res_b1 = '(•((  ?)|(\t)|(\u3000)))'  # U+2022 Bullet
+    res_b2 = '(◦((  ?)|(\t)|(\u3000)))'  # U+25E6 White Bullet
+    res_b3 = '(‣((  ?)|(\t)|(\u3000)))'  # U+2023 Triangular Bul
+    res_b4 = '(⁃((  ?)|(\t)|(\u3000)))'  # U+2043 Hyphen Bullet
     res_n1 = '(([0-9０-９]+)((\\. ?)|(．)))'
     res_n2 = '(([0-9０-９]+)((\\) ?)|(）)))'
     res_n3 = '(([a-zａ-ｚ]+)((\\. ?)|(．)))'
@@ -745,42 +771,42 @@ class List:
     @classmethod
     def decompose(cls, type_and_depth, line):
         if type_and_depth == 'b1':
-            res = '^[ \t' + ZENKAKU_SPACE + ']*' + cls.res_b1 + '(.*)$'
+            res = '^[ \t\u3000]*' + cls.res_b1 + '(.*)$'
             head = re.sub(res, '\\1', line)
             text = re.sub(res, '\\6', line)
             numb = -1
         elif type_and_depth == 'b2':
-            res = '^[ \t' + ZENKAKU_SPACE + ']*' + cls.res_b2 + '(.*)$'
+            res = '^[ \t\u3000]*' + cls.res_b2 + '(.*)$'
             head = re.sub(res, '\\1', line)
             text = re.sub(res, '\\6', line)
             numb = -1
         elif type_and_depth == 'b3':
-            res = '^[ \t' + ZENKAKU_SPACE + ']*' + cls.res_b3 + '(.*)$'
+            res = '^[ \t\u3000]*' + cls.res_b3 + '(.*)$'
             head = re.sub(res, '\\1', line)
             text = re.sub(res, '\\6', line)
             numb = -1
         elif type_and_depth == 'b4':
-            res = '^[ \t' + ZENKAKU_SPACE + ']*' + cls.res_b4 + '(.*)$'
+            res = '^[ \t\u3000]*' + cls.res_b4 + '(.*)$'
             head = re.sub(res, '\\1', line)
             text = re.sub(res, '\\6', line)
             numb = -1
         elif type_and_depth == 'n1':
-            res = '^[ \t' + ZENKAKU_SPACE + ']*' + cls.res_n1 + '(.*)$'
+            res = '^[ \t\u3000]*' + cls.res_n1 + '(.*)$'
             head = re.sub(res, '\\1', line)
             text = re.sub(res, '\\6', line)
             numb = inverse_n_int(re.sub(res, '\\2', line))
         elif type_and_depth == 'n2':
-            res = '^[ \t' + ZENKAKU_SPACE + ']*' + cls.res_n2 + '(.*)$'
+            res = '^[ \t\u3000]*' + cls.res_n2 + '(.*)$'
             head = re.sub(res, '\\1', line)
             text = re.sub(res, '\\6', line)
             numb = inverse_n_int(re.sub(res, '\\2', line))
         elif type_and_depth == 'n3':
-            res = '^[ \t' + ZENKAKU_SPACE + ']*' + cls.res_n3 + '(.*)$'
+            res = '^[ \t\u3000]*' + cls.res_n3 + '(.*)$'
             head = re.sub(res, '\\1', line)
             text = re.sub(res, '\\6', line)
             numb = inverse_n_alph(re.sub(res, '\\2', line))
         elif type_and_depth == 'n4':
-            res = '^[ \t' + ZENKAKU_SPACE + ']*' + cls.res_n4 + '(.*)$'
+            res = '^[ \t\u3000]*' + cls.res_n4 + '(.*)$'
             head = re.sub(res, '\\1', line)
             text = re.sub(res, '\\6', line)
             numb = inverse_n_alph(re.sub(res, '\\2', line))
@@ -1657,20 +1683,6 @@ class Document:
             if i == 0:
                 continue
             sharps = '#' * p.section_depth + '=' + str(p.section_states[i])
-            # if section_states[i] != p.section_states[i]:
-            #     p.warning_messages += '<!-- ' \
-            #         + 'セクション番号が間違っている可能性があります（' \
-            #         + '想定は' + str(section_states[i]) + '、' \
-            #         + '実際は' + str(p.section_states[i]) + '） ' \
-            #         + '-->\n' \
-            #         + sharps + '\n'
-            #     msg = '※ 警告: ' \
-            #         + 'セクション番号が間違っている可能性があります\n  ' \
-            #         + p.md_text
-            #     # msg = 'warning: ' \
-            #     #     + 'bad section number\n  ' + p.md_text
-            #     sys.stderr.write(msg + '\n\n')
-            #     section_states[i] = p.section_states[i]
 
     def open_md_file(self, md_file, docx_file):
         if md_file == '-':
@@ -2352,7 +2364,7 @@ class Paragraph:
         raw_text = self.raw_text
         beg_space = ''
         end_space = ''
-        res = '^([ \t' + ZENKAKU_SPACE + ']+)(.*)$'
+        res = '^([ \t\u3000]+)(.*)$'
         if re.match(res, raw_text):
             beg_space = re.sub(res, '\\1', raw_text)
             raw_text = re.sub(res, '\\2', raw_text)
@@ -2745,7 +2757,7 @@ class Paragraph:
                         numb, head, text = List.decompose(dd, tmp)
                         tmp = '1. ' + text
                     else:
-                        tmp = re.sub('^' + ZENKAKU_SPACE, '', tmp)
+                        tmp = re.sub('^\u3000', '', tmp)
                 raw_md_text += ':' + tmp + ':'
             raw_md_text += '\n'
         raw_md_text = re.sub('^:', '', raw_md_text)
