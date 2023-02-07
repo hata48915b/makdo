@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.02.08-07:28:04-JST>
+# Time-stamp:   <2023.02.08-08:15:43-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -583,15 +583,15 @@ class ParagraphChapter:
             states[height] = inverse_n_int(re.sub(res + '.*', '\\3', md_text)) - 1
             md_text = re.sub(res, '\\1\\2-$', md_text)
         cls.states[xdepth][height] += 1
+        ins = ''
         for h in range(len(states)):
             if cls.states[xdepth][h] != states[h]:
-                msg = '<!-- チャプター番号が間違っている可能性があります -->'
-                ins = '$' * (xdepth + 1) + '-$' * h + '=' + str(states[h])
-                md_text = msg + '\n' + ins + '\n\n' + md_text
+                ins += '<!-- チャプター番号が間違っている可能性があります -->\n'
+                ins += '$' * (xdepth + 1) + '-$' * h + '=' + str(states[h]) + '\n\n'
                 cls.states[xdepth][h] = states[h]
         res = cls.r0 + '(\\$+(?:-\\$)*)\\s'
         md_text = re.sub(res, '\\1\\2 ', md_text)
-        return md_text
+        return ins + md_text
 
     @classmethod
     def modify_length_ins(cls, depth, length_ins):
@@ -2357,6 +2357,10 @@ class Paragraph:
                     raw_text = re.sub(res, '\\1', raw_text)
                     continue
             break
+        if re.match('^\\s*(?:\\$+(?:\\-\\$)*|#+(?:\\-#)*)', raw_text):
+            raw_text = '\\' + raw_text
+        if re.match('^\\s*(v|V|X|<<|<|>)=\\s*[0-9]+', raw_text):
+            raw_text = '\\' + raw_text
         # self.raw_text = raw_text
         return raw_text
 
@@ -3198,8 +3202,6 @@ class Paragraph:
                 text_to_text = wm + text_to_text
             mf.write(text_to_write)
             return
-        if re.match('^\\s*(#+|v|V|X|<<|<)=\\s*[0-9]+', mt):
-            mt = '\\' + mt
         if mt == '':
             text_to_text = '  \n\n'
         elif fli == '':
