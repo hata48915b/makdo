@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.02.08-10:14:54-JST>
+# Time-stamp:   <2023.02.09-04:47:01-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -552,7 +552,7 @@ class ParagraphChapter:
         return -1
 
     @classmethod
-    def get_md_line(cls, raw_text):
+    def get_md_text(cls, raw_text):
         md_text = raw_text
         states = [0 for i in range(len(cls.states[0]))]
         if re.match(cls.r1, md_text):
@@ -581,18 +581,36 @@ class ParagraphChapter:
         res = cls.r0 + '(\\$+(?:-\\$)*)の([0-9０-９]+)'
         while re.match(res, md_text):
             height += 1
-            states[height] = inverse_n_int(re.sub(res + '.*', '\\3', md_text)) - 1
+            states[height] = \
+                inverse_n_int(re.sub(res + '.*', '\\3', md_text)) - 1
             md_text = re.sub(res, '\\1\\2-$', md_text)
-        cls.states[xdepth][height] += 1
+            cls.states[xdepth][height] += 1
+            cls.reset_after(xdepth, height)
         ins = ''
         for h in range(len(states)):
             if cls.states[xdepth][h] != states[h]:
-                ins += '<!-- チャプター番号が間違っている可能性があります -->\n'
-                ins += '$' * (xdepth + 1) + '-$' * h + '=' + str(states[h]) + '\n\n'
+                ins += \
+                    '<!-- チャプター番号が間違っている可能性があります -->\n'
+                ins += '$' * depth + '-$' * h + '=' + str(states[h]) + '\n\n'
                 cls.states[xdepth][h] = states[h]
+                cls.reset_after(xdepth, h)
         res = cls.r0 + '(\\$+(?:-\\$)*)\\s'
         md_text = re.sub(res, '\\1\\2 ', md_text)
-        return ins + md_text
+        return ins, md_text
+
+    @classmethod
+    def reset_after(cls, xdepth, height):
+        for i in range(len(cls.states)):
+            for j in range(len(cls.states[i])):
+                if i < xdepth:
+                    continue
+                elif i == xdepth:
+                    if j <= height:
+                        continue
+                    else:
+                        cls.states[i][j] = 0
+                else:
+                    cls.states[i][j] = 0
 
     @classmethod
     def modify_length_ins(cls, depth, length_ins):
@@ -613,6 +631,8 @@ class ParagraphSection:
               [0, 0, 0, 0, 0],  # (ｱ)
               [0, 0, 0, 0, 0],  # ａ
               [0, 0, 0, 0, 0]]  # (a)
+    depth_first = 0
+    depth = 0
     r0 = '((?:' + '|'.join(FONT_DECORATIONS) + ')*)'
     r1 = '(.*)'
     r2 = '(?:(第([0-9０-９]+)条?)((?:の[0-9０-９]+)*))'
@@ -660,8 +680,39 @@ class ParagraphSection:
         return -1
 
     @classmethod
-    def get_md_line(cls, raw_text):
-        pass
+    def get_md_text(cls, raw_text, alignment):
+        rt = raw_text
+        bi = ''
+        hs = ''
+        cdf = -1
+        cd = -1
+        for xd in range(len(cls.states)):
+            d = xd + 1
+            if cls.get_depth(rt, alignment) != d:
+                continue
+            if cdf == -1:
+                cdf = d
+            cd = d
+            fd, vs, rt = cls.decompose(d, rt)
+            hs += '#' * d + '-#' * (len(vs) - 1) + ' '
+            cls.states[xd][len(vs) - 1] += 1
+            cls.reset_after(xd, len(vs) - 1)
+            if d == 1:
+                continue
+            for h in range(len(vs)):
+                if cls.states[xd][h] == vs[h]:
+                    continue
+                bi += '<!-- セクション番号が間違っている可能性があります -->\n'
+                bi += '#' * d + '-#' * h + '=' + str(vs[h]) + '\n\n'
+                cls.states[xd][h] = vs[h]
+                cls.reset_after(xd, h)
+        if cdf > 0:
+            cls.depth_first = cdf
+        if cd > 0:
+            cls.depth = cd
+        before_instructions = bi
+        raw_md_text = hs + rt
+        return before_instructions, raw_md_text
 
     @classmethod
     def decompose(cls, depth, line):
@@ -680,7 +731,7 @@ class ParagraphSection:
             text = re.sub(res, '\\6', line)
             numb = []
             for n in re.sub(res, '\\4', line).split('の'):
-                numb.append(inverse_n_int(n))
+                numb.append(inverse_n_int(n) - 1)
             numb[0] = inverse_n_int(re.sub(res, '\\3', line))
         elif depth == 3:
             res = cls.res3 + '(.*)$'
@@ -690,7 +741,7 @@ class ParagraphSection:
             text = re.sub(res, '\\22', line)
             numb = []
             for n in re.sub(res, '\\4', line).split('の'):
-                numb.append(inverse_n_int(n))
+                numb.append(inverse_n_int(n) - 1)
             numb[0] = inverse_n_int(re.sub(res, '\\3', line))
         elif depth == 4:
             res = cls.res4 + '(.*)$'
@@ -702,7 +753,7 @@ class ParagraphSection:
             h2 = re.sub(res, '\\7', line)
             numb = []
             for n in re.sub(res, '\\8', line).split('の'):
-                numb.append(inverse_n_int(n))
+                numb.append(inverse_n_int(n) - 1)
             if re.match('^[⑴-⒇]$', h1):
                 numb[0] = ord(h1) - 9331
             else:
@@ -715,7 +766,7 @@ class ParagraphSection:
             text = re.sub(res, '\\22', line)
             numb = []
             for n in re.sub(res, '\\11', line).split('の'):
-                numb.append(inverse_n_int(n))
+                numb.append(inverse_n_int(n) - 1)
             numb[0] = inverse_n_kata(re.sub(res, '\\10', line))
         elif depth == 6:
             res = cls.res6 + '(.*)$'
@@ -725,7 +776,7 @@ class ParagraphSection:
             text = re.sub(res, '\\22', line)
             numb = []
             for n in re.sub(res, '\\14', line).split('の'):
-                numb.append(inverse_n_int(n))
+                numb.append(inverse_n_int(n) - 1)
             numb[0] = inverse_n_kata(re.sub(res, '\\13', line))
         else:
             comm = ''
@@ -745,6 +796,20 @@ class ParagraphSection:
         else:
             return comm, numb, text
             # return comm, numb, head, text
+
+    @classmethod
+    def reset_after(cls, xdepth, height):
+        for i in range(len(cls.states)):
+            for j in range(len(cls.states[i])):
+                if i < xdepth:
+                    continue
+                elif i == xdepth:
+                    if j <= height:
+                        continue
+                    else:
+                        cls.states[i][j] = 0
+                else:
+                    cls.states[i][j] = 0
 
 
 class List:
@@ -1463,16 +1528,16 @@ class Document:
 
     def modify_paragraphs(self):
         # LEFT ALIGNMENT
-        self.paragraphs = self._modpar_left_alignment()
+        #self.paragraphs = self._modpar_left_alignment()
         # SPACE BEFORE AND AFTER
-        self.paragraphs = self._modpar_section_space_before_and_after()
-        self.paragraphs = self._modpar_brank_paragraph_to_space_before()
+        #self.paragraphs = self._modpar_section_space_before_and_after()
+        #self.paragraphs = self._modpar_brank_paragraph_to_space_before()
         # LIST
         # self.paragraphs = self._modpar_section_3_to_list()
         # CENTERING
-        self.paragraphs = self._modpar_centering_with_section_1()
+        #self.paragraphs = self._modpar_centering_with_section_1()
         # INDENT
-        self.paragraphs = self._modpar_one_line_paragraph()
+        #self.paragraphs = self._modpar_one_line_paragraph()
         # RETURN
         return self.paragraphs
 
@@ -2011,6 +2076,7 @@ class Paragraph:
         self.raw_text = ''
         self.beg_space = ''
         self.end_space = ''
+        self.before_instructions = ''
         self.raw_md_text = ''
         self.md_text = ''
         self.warning_messages = ''
@@ -2042,9 +2108,9 @@ class Paragraph:
         self.style = self.get_and_apply_style()
         self.alignment = self.get_alignment()
         self.paragraph_class = self.get_paragraph_class()
-        self.section_states, self.section_depth_first, self.section_depth \
-            = self.get_section_data()
-        self.raw_md_text = self._get_raw_md_text()
+        #self.section_states, self.section_depth_first, self.section_depth \
+        #    = self.get_section_data()
+        self.before_instructions, self.raw_md_text = self._get_raw_md_text()
         self.length = self.get_length()
         self.length_sec = self.get_length_sec()
         self.length_spa = self.get_length_spa()
@@ -2464,88 +2530,90 @@ class Paragraph:
             return 'blank'
         return 'sentence'
 
-    def get_section_data(self):
-        rt = self.raw_text
-        aln = self.alignment
-        states = []
-        depth_first = 0
-        depth = 0
-        for i, ss in enumerate(Paragraph.section_states):
-            states.append(ss)
-            if ss != 0:
-                depth_first = i + 1
-                depth = i + 1
-        if self.paragraph_class == 'section':
-            depth_first = 0
-            depth = 0
-            for i, ss in enumerate(Paragraph.section_states):
-                dp = i + 1
-                if ParagraphSection.get_depth(rt, aln) == dp:
-                    comm, numb, rt = ParagraphSection.decompose(dp, rt)
-                    # comm, numb, head, rt = ParagraphSection.decompose(dp, rt)
-                    for j in range(i + 1, len(states)):
-                        states[j] = 0
-                    states[i] = numb[0]
-                    if depth_first == 0:
-                        depth_first = dp
-                    depth = dp
-        Paragraph.section_states = states
-        # self.section_states = section_states
-        # self.section_depth_first = section_depth_first
-        # self.section_depth = section_depth
-        return states, depth_first, depth
+    #def get_section_data(self):
+    #    rt = self.raw_text
+    #    aln = self.alignment
+    #    states = []
+    #    depth_first = 0
+    #    depth = 0
+    #    for i, ss in enumerate(Paragraph.section_states):
+    #        states.append(ss)
+    #        if ss != 0:
+    #            depth_first = i + 1
+    #            depth = i + 1
+    #    if self.paragraph_class == 'section':
+    #        depth_first = 0
+    #        depth = 0
+    #        for i, ss in enumerate(Paragraph.section_states):
+    #            dp = i + 1
+    #            if ParagraphSection.get_depth(rt, aln) == dp:
+    #                comm, numb, rt = ParagraphSection.decompose(dp, rt)
+    #                # comm, numb, head, rt = ParagraphSection.decompose(dp, rt)
+    #                for j in range(i + 1, len(states)):
+    #                    states[j] = 0
+    #                states[i] = numb[0]
+    #                if depth_first == 0:
+    #                    depth_first = dp
+    #                depth = dp
+    #    Paragraph.section_states = states
+    #    # self.section_states = section_states
+    #    # self.section_depth_first = section_depth_first
+    #    # self.section_depth = section_depth
+    #    return states, depth_first, depth
 
     def _get_raw_md_text(self):
         if self.paragraph_class == 'chapter':
-            return ParagraphChapter.get_md_line(self.raw_text)
+            return ParagraphChapter.get_md_text(self.raw_text)
         elif self.paragraph_class == 'section':
             return self._get_raw_md_text_of_section_paragraph()
         elif self.paragraph_class == 'list_system':
-            return self._get_raw_md_text_of_list_system_paragraph()
+            return '', self._get_raw_md_text_of_list_system_paragraph()
         elif self.paragraph_class == 'list':
-            return self._get_raw_md_text_of_list_paragraph()
+            return '', self._get_raw_md_text_of_list_paragraph()
         elif self.paragraph_class == 'alignment':
-            return self._get_raw_md_text_of_alignment_paragraph()
+            return '', self._get_raw_md_text_of_alignment_paragraph()
         elif self.paragraph_class == 'table':
-            return self._get_raw_md_text_of_table_paragraph()
+            return '', self._get_raw_md_text_of_table_paragraph()
         elif self.paragraph_class == 'image':
-            return self._get_raw_md_text_of_image_paragraph()
+            return '', self._get_raw_md_text_of_image_paragraph()
         elif self.paragraph_class == 'preformatted':
-            return self._get_raw_md_text_of_preformatted_paragraph()
+            return '', self._get_raw_md_text_of_preformatted_paragraph()
         elif self.paragraph_class == 'breakdown':
-            return self._get_raw_md_text_of_breakdown_paragraph()
+            return '', self._get_raw_md_text_of_breakdown_paragraph()
         elif self.paragraph_class == 'pagebreak':
-            return '<pgbr>'
+            return '', '<pgbr>'
             # return '<div style="break-after: page;"></div>'
-        return self.raw_text
+        return '', self.raw_text
 
     def _get_raw_md_text_of_section_paragraph(self):
-        rt = self.raw_text
-        aln = self.alignment
-        head = ''
-        for i in range(len(Paragraph.section_states)):
-            dp = i + 1
-            if ParagraphSection.get_depth(rt, aln) == dp:
-                c, n, rt = ParagraphSection.decompose(dp, rt)
-                # c, n, h, rt = ParagraphSection.decompose(dp, rt)
-                head += c + '#' * dp + '-#' * (len(n) - 1) + ' '
-        if re.match('\\s+', rt):
-            msg = '※ 警告: ' \
-                + '行頭の空白を削除しました\n  ' \
-                + head + self._split_into_lines(rt).rstrip()
-            # msg = 'warning: ' \
-            #     + 'removed spaces\n' \
-            #     + head + self._split_into_lines(rt).rstrip()
-            sys.stderr.write(msg + '\n\n')
-            rt = re.sub('\\s+', '', rt)
-        if re.match('^.*[．。].*$', rt):
-            raw_md_text = head + '\n' + rt
-        elif get_real_width(rt) >= 37 * 4:
-            raw_md_text = head + '\n' + rt
-        else:
-            raw_md_text = head + rt
-        # self.md_text = md_text
-        return raw_md_text
+        #rt = self.raw_text
+        #aln = self.alignment
+        #head = ''
+        #for i in range(len(Paragraph.section_states)):
+        #    dp = i + 1
+        #    if ParagraphSection.get_depth(rt, aln) == dp:
+        #        c, n, rt = ParagraphSection.decompose(dp, rt)
+        #        # c, n, h, rt = ParagraphSection.decompose(dp, rt)
+        #        head += c + '#' * dp + '-#' * (len(n) - 1) + ' '
+        #if re.match('\\s+', rt):
+        #    msg = '※ 警告: ' \
+        #        + '行頭の空白を削除しました\n  ' \
+        #        + head + self._split_into_lines(rt).rstrip()
+        #    # msg = 'warning: ' \
+        #    #     + 'removed spaces\n' \
+        #    #     + head + self._split_into_lines(rt).rstrip()
+        #    sys.stderr.write(msg + '\n\n')
+        #    rt = re.sub('\\s+', '', rt)
+        #if re.match('^.*[．。].*$', rt):
+        #    raw_md_text = head + '\n' + rt
+        #elif get_real_width(rt) >= 37 * 4:
+        #    raw_md_text = head + '\n' + rt
+        #else:
+        #    raw_md_text = head + rt
+        ## self.md_text = md_text
+        before_instructions, raw_md_text \
+            = ParagraphSection.get_md_text(self.raw_text, self.alignment)
+        return before_instructions, raw_md_text
 
     def _get_raw_md_text_of_list_system_paragraph(self):
         typ = ''
@@ -2827,9 +2895,9 @@ class Paragraph:
         return length
 
     def get_length_sec(self):
-        depth_first = self.section_depth_first
-        depth = self.section_depth
-        states = self.section_states
+        depth_first = ParagraphSection.depth_first
+        depth = ParagraphSection.depth
+        states = ParagraphSection.states
         pclass = self.paragraph_class
         length_sec \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
@@ -2838,29 +2906,29 @@ class Paragraph:
             if depth_first > 1:
                 length_sec['first indent'] = depth_first - depth - 1
                 length_sec['left indent'] = depth - 1
-            if depth_first > 2 and states[1] == 0:
+            if depth_first > 2 and states[1][0] == 0:
                 length_sec['left indent'] -= 1
             if doc.document_style == 'j':
-                if self.section_states[1] > 0 and self.section_depth >= 3:
+                if self.section_states[1][0] > 0 and self.section_depth >= 3:
                     length_sec['left indent'] -= 1
         elif re.match('^((list_system)|(list)|(breakdown))$', pclass):
             length_sec['first indent'] = 0
             if depth_first > 1:
                 length_sec['left indent'] = depth - 1
-            if depth_first == 3 and states[1] == 0:
+            if depth_first == 3 and states[1][0] == 0:
                 length_sec['left indent'] -= 1
             if doc.document_style == 'j':
-                if self.section_states[1] > 0 and self.section_depth >= 3:
+                if self.section_states[1][0] > 0 and self.section_depth >= 3:
                     length_sec['left indent'] -= 1
         elif pclass == 'sentence':
             if depth_first > 0:
                 length_sec['first indent'] = 1
             if depth_first > 1:
                 length_sec['left indent'] = depth - 1
-            if depth_first == 3 and states[1] == 0:
+            if depth_first == 3 and states[1][0] == 0:
                 length_sec['left indent'] -= 1
             if doc.document_style == 'j':
-                if self.section_states[1] > 0 and self.section_depth >= 3:
+                if self.section_states[1][0] > 0 and self.section_depth >= 3:
                     length_sec['left indent'] -= 1
         if pclass == 'breakdown':
             length_sec['first indent'] += 1
@@ -3258,7 +3326,7 @@ if __name__ == '__main__':
     doc.paragraphs = doc.get_paragraphs(doc.raw_paragraphs)
     doc.paragraphs = doc.modify_paragraphs()
 
-    doc.check_section_consistency()
+    #doc.check_section_consistency()
 
     mf = doc.open_md_file(args.md_file, args.docx_file)
     doc.write_configurations(mf)

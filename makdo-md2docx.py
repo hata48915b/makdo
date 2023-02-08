@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.02.08-06:35:00-JST>
+# Time-stamp:   <2023.02.09-05:02:35-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -489,7 +489,8 @@ class ParagraphSection:
               [0, 0, 0, 0, 0],  # (ｱ)  H
               [0, 0, 0, 0, 0],  # ａ   |
               [0, 0, 0, 0, 0]]  # (a)  |
-
+    depth_first = 0
+    depth = 0
     res_par = '^(#+)((?:-#+)*)\\s*(.*)$'
     res_ins = '^(#+)((?:-#+)*)=\\s*([0-9]+)$'
 
@@ -520,6 +521,10 @@ class ParagraphSection:
                     #     + 'section symbol is too deep\n' \
                     #     + '  s'
                     sys.stderr.write(msg + '\n\n')
+        if depth_first > 0:
+            cls.depth_first =  depth_first
+        if depth > 0:
+            cls.depth =  depth
         return depth_first, depth
 
     @classmethod
@@ -1826,12 +1831,11 @@ class Paragraph:
     def get_section_depths(self):
         depth_first = 0
         depth = 0
-        for i, pss in enumerate(ParagraphSection.states):
-            if pss[0] > 0:
-                depth_first = i + 1
-                depth = i + 1
         if self.paragraph_class == 'section':
             depth_first, depth = ParagraphSection.get_depths(self.full_text)
+        elif self.paragraph_class == 'sentence':
+            depth_first = ParagraphSection.depth
+            depth = ParagraphSection.depth
         # self.section_depth_first = depth_first
         # self.section_depth = depth
         return depth_first, depth
@@ -1858,11 +1862,11 @@ class Paragraph:
             if depth_first >= 3 and states[1] == 0:
                 length_sec['left indent'] -= 1.0
         elif par_class == 'sentence':
-            if depth_first > 0:
+            if depth > 0:
                 length_sec['first indent'] = 1.0
-            if depth_first > 1:
+            if depth > 1:
                 length_sec['left indent'] = depth - 1.0
-            if depth_first >= 3 and states[1] == 0:
+            if depth >= 3 and states[1] == 0:
                 length_sec['left indent'] -= 1.0
         return length_sec
 
@@ -1895,11 +1899,12 @@ class Paragraph:
         length_sec = self.get_length_sec()
         for s in self.length:
             self.length[s] += length_sec[s]
-        depth_first, depth = self.get_section_depths()
-        if self.paragraph_class == 'sentence':
-            if ParagraphSection.states[0][0] > 0:
-                self.length['first indent'] += 1
-                self.length['left indent'] += depth - 1
+        depth_first = self.section_depth_first
+        depth = self.section_depth
+        #if self.paragraph_class == 'sentence':
+        #    if ParagraphSection.states[0][0] > 0:
+        #        self.length['first indent'] += 1
+        #        self.length['left indent'] += depth - 1
         if self.paragraph_class == 'section' or \
            self.paragraph_class == 'sentence':
             if ParagraphSection.states[1][0] == 0 and depth > 2:
