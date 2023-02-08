@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.02.08-10:06:22-JST>
+# Time-stamp:   <2023.02.08-10:14:54-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -532,7 +532,7 @@ class ParagraphChapter:
 
     @classmethod
     def is_this_class(cls, raw_text):
-        if cls.get_depth(raw_text) >= 0:
+        if cls.get_depth(raw_text) > 0:
             return True
         else:
             return False
@@ -540,42 +540,42 @@ class ParagraphChapter:
     @classmethod
     def get_depth(cls, raw_text):
         if re.match(cls.r1 + '(の[0-9０-９]+)*\\s', raw_text):
-            return 0
-        elif re.match(cls.r2 + '(の[0-9０-９]+)*\\s', raw_text):
             return 1
-        elif re.match(cls.r3 + '(の[0-9０-９]+)*\\s', raw_text):
+        if re.match(cls.r2 + '(の[0-9０-９]+)*\\s', raw_text):
             return 2
-        elif re.match(cls.r4 + '(の[0-9０-９]+)*\\s', raw_text):
+        if re.match(cls.r3 + '(の[0-9０-９]+)*\\s', raw_text):
             return 3
-        elif re.match(cls.r5 + '(の[0-9０-９]+)*\\s', raw_text):
+        if re.match(cls.r4 + '(の[0-9０-９]+)*\\s', raw_text):
             return 4
-        else:
-            return -1
+        if re.match(cls.r5 + '(の[0-9０-９]+)*\\s', raw_text):
+            return 5
+        return -1
 
     @classmethod
     def get_md_line(cls, raw_text):
         md_text = raw_text
         states = [0 for i in range(len(cls.states[0]))]
         if re.match(cls.r1, md_text):
-            xdepth = 0
+            depth = 1
             value = re.sub(cls.r1 + '.*', '\\2', md_text)
             md_text = re.sub(cls.r1, '\\1$', md_text)
         elif re.match(cls.r2, md_text):
-            xdepth = 1
+            depth = 2
             value = re.sub(cls.r2 + '.*', '\\2', md_text)
             md_text = re.sub(cls.r2, '\\1$$', md_text)
         elif re.match(cls.r3, md_text):
-            xdepth = 2
+            depth = 3
             value = re.sub(cls.r3 + '.*', '\\2', md_text)
             md_text = re.sub(cls.r3, '\\1$$$', md_text)
         elif re.match(cls.r4, md_text):
-            xdepth = 3
+            depth = 4
             value = re.sub(cls.r4 + '.*', '\\2', md_text)
             md_text = re.sub(cls.r4, '\\1$$$$', md_text)
         elif re.match(cls.r5, md_text):
-            xdepth = 4
+            depth = 5
             value = re.sub(cls.r5 + '.*', '\\2', md_text)
             md_text = re.sub(cls.r5, '\\1$$$$$', md_text)
+        xdepth = depth - 1
         height = 0
         states[0] = inverse_n_int(value)
         res = cls.r0 + '(\\$+(?:-\\$)*)の([0-9０-９]+)'
@@ -596,9 +596,10 @@ class ParagraphChapter:
 
     @classmethod
     def modify_length_ins(cls, depth, length_ins):
+        xdepth = depth - 1
         length_ins['space before'] -= 0.5
         length_ins['space after'] -= 0.5
-        length_ins['left indent'] -= depth
+        length_ins['left indent'] -= xdepth
         return length_ins
 
 
@@ -652,7 +653,15 @@ class ParagraphSection:
             return 5
         if re.match(cls.res6, line):
             return 6
+        if re.match(cls.res7, line):
+            return 7
+        if re.match(cls.res8, line):
+            return 8
         return -1
+
+    @classmethod
+    def get_md_line(cls, raw_text):
+        pass
 
     @classmethod
     def decompose(cls, depth, line):
