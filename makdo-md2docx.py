@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.02.09-06:16:10-JST>
+# Time-stamp:   <2023.02.09-06:19:45-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2509,7 +2509,7 @@ class Paragraph:
                     text_to_write += '\n'
                 text_to_write += ml.raw_text
         # REMOVE SMALL HEIGHT
-        text_to_write = re.sub('\n*$', '', text_to_write)
+        # text_to_write = re.sub('\n*$', '', text_to_write)
         text_to_write = '`' + text_to_write + '`'
         self._write_text(text_to_write, ms_par)
 
