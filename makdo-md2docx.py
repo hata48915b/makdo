@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.02.09-06:19:45-JST>
+# Time-stamp:   <2023.02.09-08:45:35-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -24,6 +24,35 @@
 # 2022.08.24 v02 Shin-Hakushima
 # 2022.12.25 v03 Yokogawa
 # 2023.01.07 v04 Mitaki
+
+
+############################################################
+# TERMS
+
+
+# ^$$ / 第１章: chapter
+# ^$$-$ / 第１章の２: branch
+# 第１章 -> 第２章 -> 第３章 -> ...: value
+# 編 -> 章 -> 節 -> 款 -> 目: depth(1-5) / xdepth(0-4)
+# -> の２ -> の２の２ -> の２の２の２ -> ...: ydepth(0-4)
+
+# ^## / 第１:  section
+# ^##-# / 第１の２: branch
+# 第１ -> 第２ -> 第３ -> ...: value
+# -> 第１ -> １ -> ⑴ -> ア -> (ｱ) -> ａ -> (a): depth(1-5) / xdepth(0-4)
+# -> の２ -> の２の２ -> の２の２の２ -> ...: ydepth(0-4)
+
+# head_depth / tail_depth
+
+# length_adjr / length_sect / length_docx
+
+# ^($+(-$)*|#+(-#)*)=x\n\n: pre_adjuster
+
+# ^($+(-$)*|#+(-#)*|v|V|X|<<|<|>)=x: head_adjuster
+
+# head_depth / tail_depth
+# (*|**|***|~~|//|__|--|++|^.*^|_.+_)*: decorator
+# ^(*|**|***|~~|//|__|--|++|^.*^|_.+_)*: head_decorator
 
 
 ############################################################
