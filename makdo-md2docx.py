@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v04 Mitaki
-# Time-stamp:   <2023.02.09-05:02:35-JST>
+# Time-stamp:   <2023.02.09-06:16:10-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1026,21 +1026,26 @@ class Document:
         raw_paragraphs = []
         i = 0
         block = []
+        res = '(?:\\$+(?:\\-\\$)*|#+(?:\\-#)*)\\s+'
         for ml in md_lines:
-            if ml.raw_text != '':
-                block.append(ml)
-                continue
-            if len(block) == 0:
-                continue
-            if len(block) >= 2:
-                if re.match('^\\`\\`\\`', block[0].raw_text):
-                    if not re.match('^```', block[-1].raw_text):
+            if ml.raw_text == '' or re.match(res, ml.raw_text):
+                if len(block) == 0:
+                    if ml.raw_text != '':
+                        block.append(ml)
+                    continue
+                if re.match('^```', block[0].raw_text):
+                    if len(block) == 1:
                         block.append(ml)
                         continue
-            p = Paragraph(i + 1, block)
-            raw_paragraphs.append(p)
-            i += 1
-            block = []
+                    elif not re.match('^```', block[-1].raw_text):
+                        block.append(ml)
+                        continue
+                p = Paragraph(i + 1, block)
+                raw_paragraphs.append(p)
+                i += 1
+                block = []
+            if ml.raw_text != '':
+                block.append(ml)
         if len(block) > 0:
             p = Paragraph(i + 1, block)
             raw_paragraphs.append(p)
@@ -1817,7 +1822,7 @@ class Paragraph:
                       '(! ?\\[[^\\[\\]]*\\] ?\\([^\\(\\)]+\\)|\\+\\+|\\-\\-)' +
                       ')+\\s*$', full_text):
             paragraph_class = 'image'
-        elif re.match('^```.*$', full_text):
+        elif re.match('^```.*$', decoration):
             paragraph_class = 'preformatted'
         elif re.match('^<div style="break-.*: page;"></div>$', full_text):
             paragraph_class = 'pagebreak'
@@ -2503,6 +2508,8 @@ class Paragraph:
                 if text_to_write != '':
                     text_to_write += '\n'
                 text_to_write += ml.raw_text
+        # REMOVE SMALL HEIGHT
+        text_to_write = re.sub('\n*$', '', text_to_write)
         text_to_write = '`' + text_to_write + '`'
         self._write_text(text_to_write, ms_par)
 
