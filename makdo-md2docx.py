@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.13-01:32:55-JST>
+# Time-stamp:   <2023.02.13-07:08:58-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1640,11 +1640,11 @@ class Paragraph:
             elif re.match(res_cx, lr):
                 length_revi['line spacing'] += float(re.sub(res_cx, '\\1', lr))
             elif re.match(res_gg, lr):
-                length_revi['first indent'] += float(re.sub(res_gg, '\\1', lr))
+                length_revi['first indent'] -= float(re.sub(res_gg, '\\1', lr))
             elif re.match(res_g, lr):
-                length_revi['left indent'] += float(re.sub(res_g, '\\1', lr))
+                length_revi['left indent'] -= float(re.sub(res_g, '\\1', lr))
             elif re.match(res_l, lr):
-                length_revi['right indent'] += float(re.sub(res_l, '\\1', lr))
+                length_revi['right indent'] -= float(re.sub(res_l, '\\1', lr))
         # self.length_revi = length_revi
         return length_revi
 
@@ -1812,9 +1812,21 @@ class Paragraph:
                     head_strings += self._get_head_string(xdepth, ydepth, ml)
                 if mlt != ml.text:
                     title = mlt
+                    if re.match('^\\s+', title):
+                        msg = '※ 警告: ' + paragraph_class_ja \
+                            + 'のタイトルの行頭に空白があります'
+                        # msg = 'warning: ' + paragraph_class \
+                        #     + ' title has spaces at beginning'
+                        ml.append_warning_message(msg)
                     ml.text = ''
                 if mlt != '':
                     is_in_body = True
+            if body == '' and re.match('^\\s+', ml.text):
+                msg = '※ 警告: ' + paragraph_class_ja \
+                    + 'の本文の行頭に空白があります'
+                # msg = 'warning: ' + paragraph_class \
+                #     + ' body has spaces at beginning'
+                ml.append_warning_message(msg)
             body += ml.text
         if title + body == '':
             return
@@ -2158,8 +2170,8 @@ class ParagraphChapter(Paragraph):
 
     paragraph_class = 'chapter'
     paragraph_class_ja = 'チャプター'
-    res_symbol = '(\\$+)((?:-\\$+)*)'
-    res_feature = '^' + res_symbol + '\\s*(.*)$'
+    res_symbol = '(\\$+)((?:\\-\\$+)*)'
+    res_feature = '^' + res_symbol + '(?: (.*(?:.*\n*)*))?$'
     res_reviser = res_symbol + '=([0-9]+)'
     states = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # 第１編
               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # 第１章
@@ -2207,8 +2219,8 @@ class ParagraphSection(Paragraph):
 
     paragraph_class = 'section'
     paragraph_class_ja = 'セクション'
-    res_symbol = '(#+)((?:-#+)*)'
-    res_feature = '^' + res_symbol + '\\s*(.*)$'
+    res_symbol = '(#+)((?:\\-#+)*)'
+    res_feature = '^' + res_symbol + '(?: (.*(?:.*\n*)*))?$'
     res_reviser = res_symbol + '=([0-9]+)'
     head_depth = 0
     tail_depth = 0
@@ -2549,9 +2561,9 @@ class ParagraphAlignment(Paragraph):
         md_lines = self.md_lines
         for ml in md_lines:
             if self.alignment == 'left' or self.alignment == 'center':
-                ml.text = re.sub('^:\\s*', '', ml.text)
+                ml.text = re.sub('^: ', '', ml.text)
             if self.alignment == 'center' or self.alignment == 'right':
-                ml.text = re.sub('\\s*:$', '', ml.text)
+                ml.text = re.sub(' :$', '', ml.text)
 
     def _get_text_to_write(self):
         md_lines = self.md_lines
