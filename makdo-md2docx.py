@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
-# Version:      v04 Mitaki
-# Time-stamp:   <2023.02.09-08:45:35-JST>
+# Version:      v05a Aki-Nagatsuka
+# Time-stamp:   <2023.02.13-01:32:55-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -24,35 +24,7 @@
 # 2022.08.24 v02 Shin-Hakushima
 # 2022.12.25 v03 Yokogawa
 # 2023.01.07 v04 Mitaki
-
-
-############################################################
-# TERMS
-
-
-# ^$$ / 第１章: chapter
-# ^$$-$ / 第１章の２: branch
-# 第１章 -> 第２章 -> 第３章 -> ...: value
-# 編 -> 章 -> 節 -> 款 -> 目: depth(1-5) / xdepth(0-4)
-# -> の２ -> の２の２ -> の２の２の２ -> ...: ydepth(0-4)
-
-# ^## / 第１:  section
-# ^##-# / 第１の２: branch
-# 第１ -> 第２ -> 第３ -> ...: value
-# -> 第１ -> １ -> ⑴ -> ア -> (ｱ) -> ａ -> (a): depth(1-5) / xdepth(0-4)
-# -> の２ -> の２の２ -> の２の２の２ -> ...: ydepth(0-4)
-
-# head_depth / tail_depth
-
-# length_adjr / length_sect / length_docx
-
-# ^($+(-$)*|#+(-#)*)=x\n\n: pre_adjuster
-
-# ^($+(-$)*|#+(-#)*|v|V|X|<<|<|>)=x: head_adjuster
-
-# head_depth / tail_depth
-# (*|**|***|~~|//|__|--|++|^.*^|_.+_)*: decorator
-# ^(*|**|***|~~|//|__|--|++|^.*^|_.+_)*: head_decorator
+# 20XX.XX.XX v05 Aki-Nagatsuka
 
 
 ############################################################
@@ -83,7 +55,7 @@ import socket   # host
 import getpass  # user
 
 
-__version__ = 'v04 Mitaki'
+__version__ = 'v05 Aki-Nagatsuka'
 
 
 def get_arguments():
@@ -235,7 +207,6 @@ HELP_EPILOG = '''Markdownの記法:
     [\\\\]で"\\"が表示されます
 '''
 
-
 DEFAULT_DOCUMENT_TITLE = ''
 
 DEFAULT_DOCUMENT_STYLE = 'n'
@@ -260,6 +231,42 @@ DEFAULT_LINE_NUMBER = False
 DEFAULT_MINCHO_FONT = 'ＭＳ 明朝'
 DEFAULT_GOTHIC_FONT = 'ＭＳ ゴシック'
 DEFAULT_FONT_SIZE = 12.0
+
+DEFAULT_LINE_SPACING = 2.14  # (2.0980+2.1812)/2=2.1396
+
+DEFAULT_SPACE_BEFORE = ''
+DEFAULT_SPACE_AFTER = ''
+
+DEFAULT_AUTO_SPACE = False
+
+NOT_ESCAPED = '^((?:(?:.*\n)*.*[^\\\\])?(?:\\\\\\\\)*)?'
+
+RES_NUMBER = '(?:[-\\+]?(?:(?:[0-9]+(?:\\.[0-9]+)?)|(?:\\.[0-9]+)))'
+RES_NUMBER6 = '(?:' + RES_NUMBER + '?,){,5}' + RES_NUMBER + '?,?'
+
+FONT_DECORATORS = [
+    '\\*\\*\\*',           # italic and bold
+    '\\*\\*',              # bold
+    '\\*',                 # italic
+    '~~',                  # strikethrough
+    '`',                   # preformatted
+    '//',                  # italic
+    '__',                  # underline
+    '\\-\\-',              # small
+    '\\+\\+',              # large
+    '\\^[0-9A-Za-z]*\\^',  # font color
+    '_[0-9A-Za-z]+_',      # higilight color
+]
+
+RES_IMAGE = '! *\\[([^\\[\\]]*)\\] *\\(([^\\(\\)]+)\\)'
+
+RELAX_SYMBOL = '<>'
+
+ORIGINAL_COMMENT_SYMBOL = ';;'
+
+COMMENT_SEPARATE_SYMBOL = ' / '
+
+HORIZONTAL_BAR = '[ー−—－―‐]'
 
 FONT_COLOR = {
     'red':         'FF0000',
@@ -363,396 +370,6 @@ HIGHLIGHT_COLOR = {
     'BK':          WD_COLOR_INDEX.BLACK,
 }
 
-DEFAULT_AUTO_SPACE = False
-
-DEFAULT_LINE_SPACING = 2.14  # (2.0980+2.1812)/2=2.1396
-
-DEFAULT_SPACE_BEFORE = ''
-DEFAULT_SPACE_AFTER = ''
-
-RES_NUMBER = '([-\\+]?(([0-9]+(\\.[0-9]+)?)|(\\.[0-9]+)))'
-RES_NUMBER6 = '(' + RES_NUMBER + '?,){,5}' + RES_NUMBER + '?,?'
-
-RELAX_SYMBOL = '<>'
-ORIGINAL_COMMENT_SYMBOL = ';;'
-COMMENT_SEPARATE_SYMBOL = ' / '
-
-NOT_ESCAPED = '^((?:(?:.*\n)*.*[^\\\\])?(?:\\\\\\\\)*)?'
-
-HORIZONTAL_BAR = '[ー−—－―‐]'
-
-
-class ParagraphChapter:
-
-    """A class to handle chapter paragraph"""
-
-    #          ---HEIGHT----
-    states = [[0, 0, 0, 0, 0],  # 第１編 D
-              [0, 0, 0, 0, 0],  # 第１章 E
-              [0, 0, 0, 0, 0],  # 第１節 P
-              [0, 0, 0, 0, 0],  # 第１款 T
-              [0, 0, 0, 0, 0]]  # 第１目 H
-    post_char = ['編', '章', '節', '款', '目']
-
-    res_par = '^(\\$+)((?:-\\$+)*)\\s*(.*)$'
-    res_ins = '^(\\$+)((?:-\\$+)*)=\\s*([0-9]+)$'
-
-    @classmethod
-    def is_this_class(cls, full_text):
-        if re.match(cls.res_par, full_text):
-            return True
-        else:
-            return False
-
-    @classmethod
-    def get_depth(cls, md_text):
-        if not re.match(cls.res_par, md_text):
-            return 0
-        head = re.sub(cls.res_par, '\\1', md_text)
-        depth = len(head)
-        return depth
-
-    @classmethod
-    def set_states(cls, ins):
-        if not re.match(cls.res_ins, ins):
-            return
-        head = re.sub(cls.res_ins, '\\1', ins)
-        bran = re.sub(cls.res_ins, '\\2', ins)
-        stat = re.sub(cls.res_ins, '\\3', ins)
-        xdepth = len(head) - 1
-        height = len(bran.replace('$', ''))
-        cls.check_xdepth_and_height(xdepth, height, ins)
-        if height == 0:
-            cls.states[xdepth][height] = int(stat) - 1
-        else:
-            cls.states[xdepth][height] = int(stat) - 2
-        cls.reset_after(xdepth, height, ins)
-
-    @classmethod
-    def update_states(cls, md_text):
-        if not re.match(cls.res_par, md_text):
-            return
-        head = re.sub(cls.res_par, '\\1', md_text)
-        bran = re.sub(cls.res_par, '\\2', md_text)
-        titl = re.sub(cls.res_par, '\\3', md_text)
-        xdepth = len(head) - 1
-        height = len(bran.replace('$', ''))
-        cls.check_xdepth_and_height(xdepth, height, md_text)
-        cls.states[xdepth][height] += 1
-        cls.reset_after(xdepth, height, md_text)
-
-    @classmethod
-    def check_xdepth_and_height(cls, xdepth, height, md_text):
-        if xdepth >= len(cls.states):
-            msg = '※ 警告: ' \
-                + 'チャプターの深さが上限を超えています' \
-                + '\n  ' + md_text
-            # msg = 'warning: ' \
-            #     + 'chapter has too many branches' \
-            #     + '\n  ' + md_text
-            sys.stderr.write(msg + '\n\n')
-        if height >= len(cls.states[xdepth]):
-            msg = '※ 警告: ' \
-                + 'チャプターの枝が上限を超えています' \
-                + '\n  ' + md_text
-            # msg = 'warning: ' \
-            #     + 'chapter has too many branches' \
-            #     + '\n  ' + md_text
-            sys.stderr.write(msg + '\n\n')
-
-    @classmethod
-    def reset_after(cls, xdepth, height, md_text):
-        for i in range(len(cls.states)):
-            for j in range(len(cls.states[i])):
-                if i < xdepth:
-                    pass
-                elif i == xdepth:
-                    if j <= height:
-                        if cls.states[i][j] == 0:
-                            msg = '※ 警告: ' \
-                                + 'チャプターの枝番が1以下を含んでいます' \
-                                + '\n  ' + md_text
-                            # msg = 'warning: ' \
-                            #     + 'chapter has "0" branch' \
-                            #     + '\n  ' + md_text
-                            sys.stderr.write(msg + '\n\n')
-                    else:
-                        cls.states[i][j] = 0
-                else:
-                    cls.states[i][j] = 0
-
-    @classmethod
-    def get_docx_text(cls, md_text):
-        if not re.match(cls.res_par, md_text):
-            return
-        head = re.sub(cls.res_par, '\\1', md_text)
-        bran = re.sub(cls.res_par, '\\2', md_text)
-        titl = re.sub(cls.res_par, '\\3', md_text)
-        depth = len(head) - 1
-        heigh = len(bran.replace('$', ''))
-        docx_text = '第' + n_int(cls.states[depth][0]) + cls.post_char[depth]
-        for j in range(1, heigh + 1):
-            docx_text += 'の' + n_int(cls.states[depth][j] + 1)
-        docx_text += '\u3000' + titl
-        return docx_text
-
-    @classmethod
-    def modify_length(cls, depth, length_docx):
-        length_docx['space before'] += 0.5
-        length_docx['space after'] += 0.5
-        if depth > 0:
-            length_docx['left indent'] += depth - 1
-        return length_docx
-
-
-class ParagraphSection:
-
-    """A class to handle section paragraph"""
-
-    #          ---HEIGHT----
-    states = [[0, 0, 0, 0, 0],  # -    |
-              [0, 0, 0, 0, 0],  # 第１ D
-              [0, 0, 0, 0, 0],  # １   E
-              [0, 0, 0, 0, 0],  # (1)  P
-              [0, 0, 0, 0, 0],  # ア   T
-              [0, 0, 0, 0, 0],  # (ｱ)  H
-              [0, 0, 0, 0, 0],  # ａ   |
-              [0, 0, 0, 0, 0]]  # (a)  |
-    depth_first = 0
-    depth = 0
-    res_par = '^(#+)((?:-#+)*)\\s*(.*)$'
-    res_ins = '^(#+)((?:-#+)*)=\\s*([0-9]+)$'
-
-    @classmethod
-    def is_this_class(cls, full_text):
-        if re.match(cls.res_par, full_text):
-            return True
-        else:
-            return False
-
-    @classmethod
-    def get_depths(cls, full_text):
-        depth_first = -1
-        depth = -1
-        head = re.sub('[^\\-# ].*', '', full_text)
-        for s in head.split(' '):
-            if s == '':
-                continue
-            if re.match(cls.res_par, s):
-                depth = len(re.sub('\\-.*', '', s))
-                if depth_first == -1:
-                    depth_first = depth
-                if depth > 6:
-                    msg = '※ 警告: ' \
-                        + 'セクションの深さが上限を超えています\n' \
-                        + '  s'
-                    # msg = 'warning: ' \
-                    #     + 'section symbol is too deep\n' \
-                    #     + '  s'
-                    sys.stderr.write(msg + '\n\n')
-        if depth_first > 0:
-            cls.depth_first =  depth_first
-        if depth > 0:
-            cls.depth =  depth
-        return depth_first, depth
-
-    @classmethod
-    def set_states(cls, ins):
-        if not re.match(cls.res_ins, ins):
-            return
-        head = re.sub(cls.res_ins, '\\1', ins)
-        bran = re.sub(cls.res_ins, '\\2', ins)
-        stat = re.sub(cls.res_ins, '\\3', ins)
-        xdepth = len(head) - 1
-        height = len(bran.replace('#', ''))
-        cls.check_xdepth_and_height(xdepth, height, ins)
-        if height == 0:
-            cls.states[xdepth][height] = int(stat) - 1
-        else:
-            cls.states[xdepth][height] = int(stat) - 2
-        cls.reset_after(xdepth, height, ins)
-
-    @classmethod
-    def update_states(cls, md_text):
-        if md_text == '':
-            return
-        head = re.sub(cls.res_par, '\\1', md_text)
-        bran = re.sub(cls.res_par, '\\2', md_text)
-        titl = re.sub(cls.res_par, '\\3', md_text)
-        xdepth = len(head) - 1
-        height = len(bran.replace('#', ''))
-        if height >= len(cls.states[xdepth]):
-            msg = '※ 警告: ' \
-                + 'セクションの枝番が上限を超えています' \
-                + '\n  ' + md_text
-            # msg = 'warning: ' \
-            #     + 'section has too many branches' \
-            #     + '\n  ' + md_text
-            sys.stderr.write(msg + '\n\n')
-        cls.check_xdepth_and_height(xdepth, height, md_text)
-        cls.states[xdepth][height] += 1
-        cls.reset_after(xdepth, height, md_text)
-
-    @classmethod
-    def check_xdepth_and_height(cls, xdepth, height, md_text):
-        if xdepth >= len(cls.states):
-            msg = '※ 警告: ' \
-                + 'セクションの深さが上限を超えています' \
-                + '\n  ' + md_text
-            # msg = 'warning: ' \
-            #     + 'seciton has too many branches' \
-            #     + '\n  ' + md_text
-            sys.stderr.write(msg + '\n\n')
-        if height >= len(cls.states[xdepth]):
-            msg = '※ 警告: ' \
-                + 'セクションの枝が上限を超えています' \
-                + '\n  ' + md_text
-            # msg = 'warning: ' \
-            #     + 'section has too many branches' \
-            #     + '\n  ' + md_text
-            sys.stderr.write(msg + '\n\n')
-
-    @classmethod
-    def reset_after(cls, xdepth, height, md_text):
-        for i in range(len(cls.states)):
-            for j in range(len(cls.states[i])):
-                if i < xdepth:
-                    pass
-                elif i == xdepth:
-                    if j <= height:
-                        if cls.states[i][j] == 0:
-                            msg = '※ 警告: ' \
-                                + 'セクションの枝番が1以下を含んでいます' \
-                                + '\n  ' + md_text
-                            # msg = 'warning: ' \
-                            #     + 'section has "0" branch' \
-                            #     + '\n  ' + md_text
-                            sys.stderr.write(msg + '\n\n')
-                    else:
-                        cls.states[i][j] = 0
-                else:
-                    cls.states[i][j] = 0
-
-    @classmethod
-    def get_head_string(cls, md_text):
-        if not re.match(cls.res_par, md_text):
-            return ''
-        head = re.sub(cls.res_par, '\\1', md_text)
-        bran = re.sub(cls.res_par, '\\2', md_text)
-        titl = re.sub(cls.res_par, '\\3', md_text)
-        xdepth = len(head) - 1
-        height = len(bran.replace('#', ''))
-        head_string = ''
-        if xdepth == 0:
-            head_string = cls.get_head_1(cls.states[0][0])
-        elif xdepth == 1:
-            if doc.document_style == 'n':
-                head_string = cls.get_head_2(cls.states[1][0])
-            else:
-                head_string = cls.get_head_2_j_or_J(cls.states[1][0])
-        elif xdepth == 2:
-            if doc.document_style != 'j' or cls.states[1][0] == 0:
-                head_string = cls.get_head_3(cls.states[2][0])
-            else:
-                head_string = cls.get_head_3(cls.states[2][0] + 1)
-        elif xdepth == 3:
-            head_string = cls.get_head_4(cls.states[3][0])
-        elif xdepth == 4:
-            head_string = cls.get_head_5(cls.states[4][0])
-        elif xdepth == 5:
-            head_string = cls.get_head_6(cls.states[5][0])
-        elif xdepth == 6:
-            head_string = cls.get_head_7(cls.states[6][0])
-        elif xdepth == 7:
-            head_string = cls.get_head_8(cls.states[7][0])
-        for j in range(1, height + 1):
-            head_string += 'の' + n_int(cls.states[xdepth][j] + 1)
-        return head_string
-
-    @classmethod
-    def get_head_space(cls, depth, head_string):
-        if depth == 1:
-            return ''
-        elif re.match('^.*\\(.*\\)$', head_string):
-            return ' '
-        else:
-            return '\u3000'
-
-    @staticmethod
-    def get_head_1(n):
-        return ''
-
-    @staticmethod
-    def get_head_2(n):
-        return '第' + n_int(n)
-
-    @staticmethod
-    def get_head_2_j_or_J(n):
-        return '第' + n_int(n) + '条'
-
-    @staticmethod
-    def get_head_3(n):
-        return n_int(n)
-
-    @staticmethod
-    def get_head_4(n):
-        return n_paren_int(n)
-
-    # @staticmethod
-    # def get_head_4_J(n):
-    #     return n_kanji(n)
-
-    @staticmethod
-    def get_head_5(n):
-        return n_kata(n)
-
-    @staticmethod
-    def get_head_6(n):
-        return n_paren_kata(n)
-
-    @staticmethod
-    def get_head_7(n):
-        return n_alph(n)
-
-    @staticmethod
-    def get_head_8(n):
-        return n_paren_alph(n)
-
-
-class List:
-
-    @staticmethod
-    def get_bullet_head_1(n):
-        return '• '  # U+2022 Bullet
-
-    @staticmethod
-    def get_bullet_head_2(n):
-        return '◦ '  # U+25E6 White Bullet
-
-    @staticmethod
-    def get_bullet_head_3(n):
-        return '‣ '  # U+2023 Triangular Bullet
-
-    @staticmethod
-    def get_bullet_head_4(n):
-        return '⁃ '  # U+2043 Hyphen Bullet
-
-    @staticmethod
-    def get_number_head_1(n):
-        return n_int(n) + '．'
-
-    @staticmethod
-    def get_number_head_2(n):
-        return n_int(n) + '）'
-
-    @staticmethod
-    def get_number_head_3(n):
-        return n_alph(n) + '．'
-
-    @staticmethod
-    def get_number_head_4(n):
-        return n_alph(n) + '）'
-
 
 ############################################################
 # FUNCTION
@@ -826,15 +443,19 @@ def get_real_width(s):
     return wid
 
 
-def n_int(n):
-    if n < 10:
+def i2c_n_arab(n, md_line=None):
+    if n < 0:
+        return '△' + str(-n)
+    elif n < 10:
         return chr(65296 + n)
     else:
         return str(n)
 
 
-def n_paren_int(n):
-    if n == 0:
+def i2c_p_arab(n, md_line=None):
+    if n < 0:
+        return '△(' + str(-n) + ')'
+    elif n == 0:
         return '(0)'
     elif n <= 20:
         return chr(9331 + n)
@@ -842,30 +463,28 @@ def n_paren_int(n):
         return '(' + str(n) + ')'
 
 
-def n_kanji(n):
-    k = str(n)
-    if n >= 100:
-        k = re.sub('^(.+)(..)$', '\\1百\\2', k)
-    if n >= 10:
-        k = re.sub('^(.+)(.)$', '\\1十\\2', k)
-    k = re.sub('0', '零', k)
-    k = re.sub('1', '一', k)
-    k = re.sub('2', '二', k)
-    k = re.sub('3', '三', k)
-    k = re.sub('4', '四', k)
-    k = re.sub('5', '五', k)
-    k = re.sub('6', '六', k)
-    k = re.sub('7', '七', k)
-    k = re.sub('8', '八', k)
-    k = re.sub('9', '九', k)
-    k = re.sub('(.+)零$', '\\1', k)
-    k = re.sub('零十', '', k)
-    k = re.sub('一十', '十', k)
-    k = re.sub('一百', '百', k)
-    return k
+def i2c_c_arab(n, md_line=None):
+    if n == 0:
+        return chr(9450)
+    elif n <= 20:
+        return chr(9311 + n)
+    elif n <= 35:
+        return chr(12860 + n)
+    elif n <= 50:
+        return chr(12941 + n)
+    else:
+        msg = '※ 警告: ' \
+            + '丸付き数字番号は上限を超えています'
+        # msg = 'warning: ' \
+        #     + 'overflowed circled number'
+        if md_line is None:
+            sys.stderr.write(msg + '\n\n')
+        else:
+            md_line.append_warning_message(msg)
+        return '●'
 
 
-def n_kata(n):
+def i2c_n_kata(n, md_line=None):
     if n == 0:
         return chr(12448 + 83)
     elif n <= 5:
@@ -890,16 +509,17 @@ def n_kata(n):
         return chr(12448 + (1 * n) + 37)
     else:
         msg = '※ 警告: ' \
-            + 'カタカナ番号"' \
-            + str(n) \
-            + '"は上限46を超えています'
+            + 'カタカナ番号は上限を超えています'
         # msg = 'warning: ' \
-        #     + 'overflowed katakana "' + str(n) + '"'
-        sys.stderr.write(msg + '\n\n')
-        return '？'
+        #     + 'overflowed katakana'
+        if md_line is None:
+            sys.stderr.write(msg + '\n\n')
+        else:
+            md_line.append_warning_message(msg)
+        return '●'
 
 
-def n_paren_kata(n):
+def i2c_p_kata(n, md_line=None):
     if n == 0:
         return '(' + chr(65392 + 45) + ')'
     elif n <= 44:
@@ -910,45 +530,151 @@ def n_paren_kata(n):
         return '(' + chr(65392 + n - 1) + ')'
     else:
         msg = '※ 警告: ' \
-            + '括弧付きカタカナ番号"' \
-            + str(n) \
-            + '"は上限46を超えています'
+            + '括弧付きカタカナ番号は上限を超えています'
         # msg = 'warning: ' \
-        #     + 'overflowed parenthesis katakata "' + str(n) + '"'
-        sys.stderr.write(msg + '\n\n')
-        return '(?)'
+        #     + 'overflowed parenthesis katakata'
+        if md_line is None:
+            sys.stderr.write(msg + '\n\n')
+        else:
+            md_line.append_warning_message(msg)
+        return '●'
 
 
-def n_alph(n):
+def i2c_c_kata(n, md_line=None):
+    if n == 0:
+        return chr(13007 + 47)
+    elif n <= 47:
+        return chr(13007 + n)
+    else:
+        msg = '※ 警告: ' \
+            + '丸付きカタカナ番号は上限を超えています'
+        # msg = 'warning: ' \
+        #     + 'overflowed circled katakana'
+        if md_line is None:
+            sys.stderr.write(msg + '\n\n')
+        else:
+            md_line.append_warning_message(msg)
+        return '●'
+
+
+def i2c_n_alph(n, md_line=None):
     if n == 0:
         return chr(65344 + 26)
     elif n <= 26:
         return chr(65344 + n)
     else:
         msg = '※ 警告: ' \
-            + 'アルファベット番号"' \
-            + str(n) \
-            + '"は上限26を超えています'
+            + 'アルファベット番号は上限を超えています'
         # msg = 'warning: ' \
-        #     + 'overflowed alphabet "' + str(n) + '"'
-        sys.stderr.write(msg + '\n\n')
-        return '？'
+        #     + 'overflowed alphabet'
+        if md_line is None:
+            sys.stderr.write(msg + '\n\n')
+        else:
+            md_line.append_warning_message(msg)
+        return '●'
 
 
-def n_paren_alph(n):
+def i2c_p_alph(n, md_line=None):
     if n == 0:
         return chr(9371 + 26)
     elif n <= 26:
         return chr(9371 + n)
     else:
         msg = '※ 警告: ' \
-            + '括弧付きアルファベット番号"' \
-            + str(n) \
-            + '"は上限26を超えています'
+            + '括弧付きアルファベット番号は上限を超えています'
         # msg = 'warning: ' \
-        #     + 'overflowed parenthesis alphabet "' + str(n) + '"'
-        sys.stderr.write(msg + '\n\n')
-        return '(?)'
+        #     + 'overflowed parenthesis alphabet'
+        if md_line is None:
+            sys.stderr.write(msg + '\n\n')
+        else:
+            md_line.append_warning_message(msg)
+        return '●'
+
+
+def i2c_c_alph(n, md_line=None):
+    if n == 0:
+        return chr(9423 + 26)
+    elif n <= 26:
+        return chr(9423 + n)
+    else:
+        msg = '※ 警告: ' \
+            + '丸付きアルファベット番号は上限を超えています'
+        # msg = 'warning: ' \
+        #     + 'overflowed circled alphabet'
+        if md_line is None:
+            sys.stderr.write(msg + '\n\n')
+        else:
+            md_line.append_warning_message(msg)
+        return '●'
+
+
+def i2c_n_kanj(n, md_line=None):
+    k = str(n)
+    if n >= 1000:
+        k = re.sub('^(.+)(...)$', '\\1千\\2', k)
+    if n >= 100:
+        k = re.sub('^(.+)(..)$', '\\1百\\2', k)
+    if n >= 10:
+        k = re.sub('^(.+)(.)$', '\\1十\\2', k)
+    k = re.sub('0', '〇', k)
+    k = re.sub('1', '一', k)
+    k = re.sub('2', '二', k)
+    k = re.sub('3', '三', k)
+    k = re.sub('4', '四', k)
+    k = re.sub('5', '五', k)
+    k = re.sub('6', '六', k)
+    k = re.sub('7', '七', k)
+    k = re.sub('8', '八', k)
+    k = re.sub('9', '九', k)
+    k = re.sub('〇$', '', k)
+    k = re.sub('〇十', '', k)
+    k = re.sub('〇百', '', k)
+    k = re.sub('〇千', '', k)
+    k = re.sub('一十', '十', k)
+    k = re.sub('一百', '百', k)
+    k = re.sub('一千', '千', k)
+    return k
+
+
+def i2c_p_kanj(n, md_line=None):
+    if n == 0:
+        return chr(12831 + 10)
+    elif n <= 10:
+        return chr(12831 + n)
+        msg = '※ 警告: ' \
+            + '括弧付き漢数字番号は上限を超えています'
+        # msg = 'warning: ' \
+        #     + 'overflowed parenthesis kansuji'
+        if md_line is None:
+            sys.stderr.write(msg + '\n\n')
+        else:
+            md_line.append_warning_message(msg)
+        return '●'
+
+
+def i2c_c_kanj(n, md_line=None):
+    if n == 0:
+        return chr(12927 + 10)
+    elif n <= 10:
+        return chr(12927 + n)
+    else:
+        msg = '※ 警告: ' \
+            + '括弧付き漢数字番号は上限を超えています'
+        # msg = 'warning: ' \
+        #     + 'overflowed parenthesis kansuji'
+        if md_line is None:
+            sys.stderr.write(msg + '\n\n')
+        else:
+            md_line.append_warning_message(msg)
+        return '●'
+
+
+def concatenate_string(str1, str2):
+    res = '[0-9A-Za-z,\\.\\)}\\]]'
+    if re.match('^.*' + res + '$', str1) and re.match('^' + res + '.*$', str2):
+        return str1 + ' ' + str2
+    else:
+        return str1 + str2
 
 
 ############################################################
@@ -959,31 +685,32 @@ class Document:
 
     """A class to handle document"""
 
+    document_title = DEFAULT_DOCUMENT_TITLE
+    document_style = DEFAULT_DOCUMENT_STYLE
+    paper_size = DEFAULT_PAPER_SIZE
+    top_margin = DEFAULT_TOP_MARGIN
+    bottom_margin = DEFAULT_BOTTOM_MARGIN
+    left_margin = DEFAULT_LEFT_MARGIN
+    right_margin = DEFAULT_RIGHT_MARGIN
+    header_string = DEFAULT_HEADER_STRING
+    page_number = DEFAULT_PAGE_NUMBER
+    line_number = DEFAULT_LINE_NUMBER
+    mincho_font = DEFAULT_MINCHO_FONT
+    gothic_font = DEFAULT_GOTHIC_FONT
+    font_size = DEFAULT_FONT_SIZE
+    line_spacing = DEFAULT_LINE_SPACING
+    space_before = DEFAULT_SPACE_BEFORE
+    space_after = DEFAULT_SPACE_AFTER
+    auto_space = DEFAULT_AUTO_SPACE
+    original_file = ''
+
     def __init__(self):
         self.md_file = ''
         self.docx_file = ''
         self.raw_md_lines = []
         self.md_lines = []
-        self.raw_paragraphs = []
+        self.all_paragraphs = []
         self.paragraphs = []
-        self.document_title = DEFAULT_DOCUMENT_TITLE
-        self.document_style = DEFAULT_DOCUMENT_STYLE
-        self.paper_size = DEFAULT_PAPER_SIZE
-        self.top_margin = DEFAULT_TOP_MARGIN
-        self.bottom_margin = DEFAULT_BOTTOM_MARGIN
-        self.left_margin = DEFAULT_LEFT_MARGIN
-        self.right_margin = DEFAULT_RIGHT_MARGIN
-        self.header_string = DEFAULT_HEADER_STRING
-        self.page_number = DEFAULT_PAGE_NUMBER
-        self.line_number = DEFAULT_LINE_NUMBER
-        self.mincho_font = DEFAULT_MINCHO_FONT
-        self.gothic_font = DEFAULT_GOTHIC_FONT
-        self.font_size = DEFAULT_FONT_SIZE
-        self.line_spacing = DEFAULT_LINE_SPACING
-        self.space_before = DEFAULT_SPACE_BEFORE
-        self.space_after = DEFAULT_SPACE_AFTER
-        self.auto_space = DEFAULT_AUTO_SPACE
-        self.original_file = ''
 
     def get_raw_md_lines(self, md_file):
         self.md_file = md_file
@@ -1044,7 +771,6 @@ class Document:
 
     def get_md_lines(self, raw_md_lines):
         md_lines = []
-        is_in_comment = False
         for i, rml in enumerate(raw_md_lines):
             ml = MdLine(i + 1, rml)
             md_lines.append(ml)
@@ -1055,9 +781,18 @@ class Document:
         raw_paragraphs = []
         i = 0
         block = []
-        res = '(?:\\$+(?:\\-\\$)*|#+(?:\\-#)*)\\s+'
         for ml in md_lines:
-            if ml.raw_text == '' or re.match(res, ml.raw_text):
+            is_block_end = False
+            if ml.raw_text == '':
+                is_block_end = True
+            if len(block) > 0:
+                pre_text = block[-1].raw_text
+                cur_text = ml.raw_text
+                for pc in [ParagraphChapter, ParagraphSection, ParagraphList]:
+                    res = '^\\s*' + pc.res_symbol + '\\s+\\S+.*$'
+                    if re.match(res, pre_text) and re.match(res, cur_text):
+                        is_block_end = True
+            if is_block_end:
                 if len(block) == 0:
                     if ml.raw_text != '':
                         block.append(ml)
@@ -1069,15 +804,15 @@ class Document:
                     elif not re.match('^```', block[-1].raw_text):
                         block.append(ml)
                         continue
-                p = Paragraph(i + 1, block)
-                raw_paragraphs.append(p)
+                rp = RawParagraph(i + 1, block)
+                raw_paragraphs.append(rp)
                 i += 1
                 block = []
             if ml.raw_text != '':
                 block.append(ml)
         if len(block) > 0:
-            p = Paragraph(i + 1, block)
-            raw_paragraphs.append(p)
+            rp = RawParagraph(i + 1, block)
+            raw_paragraphs.append(rp)
             i += 1
             block = []
         # self.raw_paragraphs = raw_paragraphs
@@ -1085,24 +820,31 @@ class Document:
 
     def get_paragraphs(self, raw_paragraphs):
         paragraphs = []
-        chapter_instructions = []
-        section_instructions = []
+        cr = []
+        sr = []
+        lr = []
+        hr = []
+        tr = []
         for rp in raw_paragraphs:
             if rp.paragraph_class == 'empty':
-                if len(rp.chapter_instructions) > 0:
-                    chapter_instructions += rp.chapter_instructions
-                if len(rp.section_instructions) > 0:
-                    section_instructions += rp.section_instructions
+                cr += rp.chapter_revisers
+                sr += rp.section_revisers
+                lr += rp.length_revisers
+                hr += rp.head_font_revisers
+                tr += rp.tail_font_revisers
             else:
-                paragraphs.append(rp)
-                # CHAPTER INSTRUCTIONS
-                if len(chapter_instructions) > 0:
-                    paragraphs[-1].chapter_instructions += chapter_instructions
-                    chapter_instructions = []
-                # SECITON INSTRUCTIONS
-                if len(section_instructions) > 0:
-                    paragraphs[-1].section_instructions += section_instructions
-                    section_instructions = []
+                rp.chapter_revisers = cr + rp.chapter_revisers
+                rp.section_revisers = sr + rp.section_revisers
+                rp.length_revisers = lr + rp.length_revisers
+                rp.head_font_revisers = hr + rp.head_font_revisers
+                rp.tail_font_revisers = tr + rp.tail_font_revisers
+                cr = []
+                sr = []
+                lr = []
+                hr = []
+                tr = []
+                p = rp.get_paragraph()
+                paragraphs.append(p)
         # self.paragraphs = paragraphs
         return paragraphs
 
@@ -1114,47 +856,48 @@ class Document:
             if i < m:
                 p_next = paragraphs[i + 1]
             if p.paragraph_class == 'section' and \
-               p.section_depth == 1 and \
+               p.head_depth == 1 and \
                re.match('^# .*\\S+.*$', p.full_text):
-                if (p.length['space after'] >= 0.2) or \
-                   (i < m and p_next.length['space before'] >= 0.2):
+                if (p.length_docx['space after'] >= 0.2) or \
+                   (i < m and p_next.length_docx['space before'] >= 0.2):
                     if i > 0:
-                        p_prev.length['space after'] += 0.1
+                        p_prev.length_docx['space after'] += 0.1
                     if True:
-                        p.length['space before'] += 0.1
-                    if p.length['space after'] >= 0.2:
-                        p.length['space after'] -= 0.1
-                    if i < m and p_next.length['space before'] >= 0.2:
-                        p_next.length['space before'] -= 0.1
-            if p.paragraph_class == 'table' or \
-               p.paragraph_class == 'breakdown':
-                sb = p.length['space before']
+                        p.length_docx['space before'] += 0.1
+                    if p.length_docx['space after'] >= 0.2:
+                        p.length_docx['space after'] -= 0.1
+                    if i < m and p_next.length_docx['space before'] >= 0.2:
+                        p_next.length_docx['space before'] -= 0.1
+            if p.paragraph_class == 'table':
+                sb = p.length_docx['space before']
                 if i > 0:
-                    if p_prev.length['space after'] < sb:
-                        p_prev.length['space after'] = sb
-                sa = p.length['space after']
+                    if p_prev.length_docx['space after'] < sb:
+                        p_prev.length_docx['space after'] = sb
+                sa = p.length_docx['space after']
                 if i < m:
-                    if p_next.length['space before'] < sa:
-                        p_next.length['space before'] = sa
-            if i > 0 and \
-               p_prev.paragraph_class == 'section' and \
-               p_prev.section_depth == 1 and \
-               re.match('^# *$', p_prev.full_text):
-                if p.paragraph_class == 'section':
-                    sb = (doc.space_before + ',,,,,').split(',')
-                    df = self.section_depth_first
-                    if sb[df - 1] != '':
-                        p.length['space before'] -= float(sb[df - 1])
-                p.length['space before'] += p_prev.length['space before']
-                p.length['space before'] += p_prev.length['space after']
+                    if p_next.length_docx['space before'] < sa:
+                        p_next.length_docx['space before'] = sa
+            # if i > 0 and \
+            #    p_prev.paragraph_class == 'section' and \
+            #    p_prev.tail_depth == 1 and \
+            #    re.match('^# *$', p_prev.full_text):
+            #     if p.paragraph_class == 'section':
+            #         sb = (doc.space_before + ',,,,,').split(',')
+            #         df = self.section_depth_first
+            #         if sb[df - 1] != '':
+            #             p.length['space before'] -= float(sb[df - 1])
+            #     p.length_docx['space before'] \
+            #         += p_prev.length_docx['space before']
+            #     p.length_docx['space before'] \
+            #        += p_prev.length_docx['space after']
         return self.paragraphs
 
     def configure(self, md_lines, args):
         self._configure_by_md_file(md_lines)
         self._configure_by_args(args)
-        Paragraph.mincho_font = self.mincho_font
-        Paragraph.gothic_font = self.gothic_font
-        Paragraph.font_size = self.font_size
+        Paragraph.mincho_font = Document.mincho_font
+        Paragraph.gothic_font = Document.gothic_font
+        Paragraph.font_size = Document.font_size
 
     def _configure_by_md_file(self, md_lines):
         for ml in md_lines:
@@ -1171,14 +914,14 @@ class Document:
             if False:
                 pass
             elif nam == 'document_title' or nam == '書題名':
-                self.document_title = val
+                Document.document_title = val
             elif nam == 'document_style' or nam == '文書式':
                 if val == 'n' or val == '普通' or val == '-':
-                    self.document_style = 'n'
+                    Document.document_style = 'n'
                 elif val == 'k' or val == '契約':
-                    self.document_style = 'k'
+                    Document.document_style = 'k'
                 elif val == 'j' or val == '条文':
-                    self.document_style = 'j'
+                    Document.document_style = 'j'
                 else:
                     msg = '※ 警告: ' \
                         + '「' + nam + '」の値は"普通"、"契約"又は"条文"で' \
@@ -1189,17 +932,17 @@ class Document:
             elif nam == 'paper_size' or nam == '用紙サ':
                 val = unicodedata.normalize('NFKC', val)
                 if val == 'A3':
-                    self.paper_size = 'A3'
+                    Document.paper_size = 'A3'
                 elif val == 'A3L' or val == 'A3横':
-                    self.paper_size = 'A3L'
+                    Document.paper_size = 'A3L'
                 elif val == 'A3P' or val == 'A3縦':
-                    self.paper_size = 'A3P'
+                    Document.paper_size = 'A3P'
                 elif val == 'A4':
-                    self.paper_size = 'A4'
+                    Document.paper_size = 'A4'
                 elif val == 'A4L' or val == 'A4横':
-                    self.paper_size = 'A4L'
+                    Document.paper_size = 'A4L'
                 elif val == 'A4P' or val == 'A4縦':
-                    self.paper_size = 'A4P'
+                    Document.paper_size = 'A4P'
                 else:
                     msg = '※ 警告: ' \
                         + '「' + nam + '」の値は' \
@@ -1214,13 +957,13 @@ class Document:
                 val = re.sub('\\s*cm$', '', val)
                 if re.match('^' + RES_NUMBER + '$', val):
                     if nam == 'top_margin' or nam == '上余白':
-                        self.top_margin = float(val)
+                        Document.top_margin = float(val)
                     elif nam == 'bottom_margin' or nam == '下余白':
-                        self.bottom_margin = float(val)
+                        Document.bottom_margin = float(val)
                     elif nam == 'left_margin' or nam == '左余白':
-                        self.left_margin = float(val)
+                        Document.left_margin = float(val)
                     elif nam == 'right_margin' or nam == '右余白':
-                        self.right_margin = float(val)
+                        Document.right_margin = float(val)
                 else:
                     msg = '※ 警告: ' \
                         + '「' + nam + '」の値は整数又は小数で' \
@@ -1229,21 +972,21 @@ class Document:
                     #     + '"' + nam + '" must be an integer or a decimal'
                     sys.stderr.write(msg + '\n\n')
             elif nam == 'header_string' or nam == '頭書き':
-                self.header_string = val
+                Document.header_string = val
             elif nam == 'page_number' or nam == '頁番号':
                 val = unicodedata.normalize('NFKC', val)
                 if val == 'True' or val == '有':
-                    self.page_number = DEFAULT_PAGE_NUMBER
+                    Document.page_number = DEFAULT_PAGE_NUMBER
                 elif val == 'False' or val == '無' or val == '-':
-                    self.page_number = ''
+                    Document.page_number = ''
                 else:
-                    self.page_number = val
+                    Document.page_number = val
             elif nam == 'line_number' or nam == '行番号':
                 val = unicodedata.normalize('NFKC', val)
                 if val == 'True' or val == '有':
-                    self.line_number = True
+                    Document.line_number = True
                 elif val == 'False' or val == '無':
-                    self.line_number = False
+                    Document.line_number = False
                 else:
                     msg = '※ 警告: ' \
                         + '「' + nam + '」の値は"有"又は"無"で' \
@@ -1252,14 +995,14 @@ class Document:
                     #     + '"' + nam + '" must be "True" or "False"'
                     sys.stderr.write(msg + '\n\n')
             elif nam == 'mincho_font' or nam == '明朝体':
-                self.mincho_font = val
+                Document.mincho_font = val
             elif nam == 'gothic_font' or nam == 'ゴシ体':
-                self.gothic_font = val
+                Document.gothic_font = val
             elif nam == 'font_size' or nam == '文字サ':
                 val = unicodedata.normalize('NFKC', val)
                 val = re.sub('\\s*pt$', '', val)
                 if re.match('^' + RES_NUMBER + '$', val):
-                    self.font_size = float(val)
+                    Document.font_size = float(val)
                 else:
                     msg = '※ 警告: ' \
                         + '「' + nam + '」の値は整数又は小数で' \
@@ -1271,7 +1014,7 @@ class Document:
                 val = unicodedata.normalize('NFKC', val)
                 val = re.sub('\\s*倍$', '', val)
                 if re.match('^' + RES_NUMBER + '$', val):
-                    self.line_spacing = float(val)
+                    Document.line_spacing = float(val)
                 else:
                     msg = '※ 警告: ' \
                         + '「' + nam + '」の値は整数又は小数で' \
@@ -1287,9 +1030,9 @@ class Document:
                 val = val.replace(' ', '')
                 if re.match('^' + RES_NUMBER6 + '$', val):
                     if nam == 'space_before' or nam == '前余白':
-                        self.space_before = val
+                        Document.space_before = val
                     elif nam == 'space_after'or nam == '後余白':
-                        self.space_after = val
+                        Document.space_after = val
                 else:
                     msg = '※ 警告: ' \
                         + '「' + nam + '」の値は' \
@@ -1301,9 +1044,9 @@ class Document:
             elif nam == 'auto_space' or nam == '字間整':
                 val = unicodedata.normalize('NFKC', val)
                 if val == 'True' or val == '有':
-                    self.auto_space = True
+                    Document.auto_space = True
                 elif val == 'False' or val == '無':
-                    self.auto_space = False
+                    Document.auto_space = False
                 else:
                     msg = '※ 警告: ' \
                         + '「' + nam + '」の値は"有"又は"無"で' \
@@ -1312,7 +1055,7 @@ class Document:
                     #     + '"' + nam + '" must be "True" or "False"'
                     sys.stderr.write(msg + '\n\n')
             elif nam == 'original_file' or nam == '元原稿':
-                self.original_file = val
+                Document.original_file = val
             else:
                 msg = '※ 警告: ' \
                     + '「' + nam + '」という設定項目は存在しません'
@@ -1322,50 +1065,50 @@ class Document:
 
     def _configure_by_args(self, args):
         if args.document_title is not None:
-            self.document_title = args.document_title
+            Document.document_title = args.document_title
         if args.paper_size is not None:
-            self.paper_size = args.paper_size
+            Document.paper_size = args.paper_size
         if args.top_margin is not None:
-            self.top_margin = args.top_margin
+            Document.top_margin = args.top_margin
         if args.bottom_margin is not None:
-            self.bottom_margin = args.bottom_margin
+            Document.bottom_margin = args.bottom_margin
         if args.left_margin is not None:
-            self.left_margin = args.left_margin
+            Document.left_margin = args.left_margin
         if args.right_margin is not None:
-            self.right_margin = args.right_margin
+            Document.right_margin = args.right_margin
         if args.mincho_font is not None:
-            self.mincho_font = args.mincho_font
+            Document.mincho_font = args.mincho_font
         if args.gothic_font is not None:
-            self.gothic_font = args.gothic_font
+            Document.gothic_font = args.gothic_font
         if args.font_size is not None:
-            self.font_size = args.font_size
+            Document.font_size = args.font_size
         if args.document_style is not None:
-            self.document_style = args.document_style
+            Document.document_style = args.document_style
         if args.header_string is not None:
-            self.header_string = args.header_string
+            Document.header_string = args.header_string
         if args.page_number is not None:
-            self.page_number = args.page_number
+            Document.page_number = args.page_number
         if args.line_number:
-            self.line_number = True
+            Document.line_number = True
         if args.line_spacing is not None:
-            self.line_spacing = args.line_spacing
+            Document.line_spacing = args.line_spacing
         if args.space_before is not None:
-            self.space_before = args.space_before
+            Document.space_before = args.space_before
         if args.space_after is not None:
-            self.space_after = args.space_after
+            Document.space_after = args.space_after
         if args.auto_space:
-            self.auto_space = True
+            Document.auto_space = True
 
     def get_ms_doc(self):
-        size = self.font_size
+        size = Document.font_size
         ms_doc = docx.Document()
         ms_sec = ms_doc.sections[0]
-        ms_sec.page_height = Cm(PAPER_HEIGHT[self.paper_size])
-        ms_sec.page_width = Cm(PAPER_WIDTH[self.paper_size])
-        ms_sec.top_margin = Cm(self.top_margin)
-        ms_sec.bottom_margin = Cm(self.bottom_margin)
-        ms_sec.left_margin = Cm(self.left_margin)
-        ms_sec.right_margin = Cm(self.right_margin)
+        ms_sec.page_height = Cm(PAPER_HEIGHT[Document.paper_size])
+        ms_sec.page_width = Cm(PAPER_WIDTH[Document.paper_size])
+        ms_sec.top_margin = Cm(Document.top_margin)
+        ms_sec.bottom_margin = Cm(Document.bottom_margin)
+        ms_sec.left_margin = Cm(Document.left_margin)
+        ms_sec.right_margin = Cm(Document.right_margin)
         ms_sec.header_distance = Cm(1.0)
         ms_sec.footer_distance = Cm(1.0)
         ms_doc.styles['Footer'].font.size = Pt(size)      # page number
@@ -1377,8 +1120,8 @@ class Document:
         ms_doc.styles['List Number 2'].font.size = Pt(size)
         ms_doc.styles['List Number 3'].font.size = Pt(size)
         # HEADER
-        if self.header_string != '':
-            hs = self.header_string
+        if Document.header_string != '':
+            hs = Document.header_string
             ms_par = ms_doc.sections[0].header.paragraphs[0]
             ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
             if re.match('^: (.*) :$', hs):
@@ -1400,11 +1143,11 @@ class Document:
                    re.match(NOT_ESCAPED + '\0$', tex):
                     ms_run = ms_par.add_run()
                     if is_small:
-                        ms_run.font.size = Pt(self.font_size * 0.8)
+                        ms_run.font.size = Pt(Document.font_size * 0.8)
                     elif is_large:
-                        ms_run.font.size = Pt(self.font_size * 1.2)
+                        ms_run.font.size = Pt(Document.font_size * 1.2)
                     else:
-                        ms_run.font.size = Pt(self.font_size * 1.0)
+                        ms_run.font.size = Pt(Document.font_size * 1.0)
                     oe = OxmlElement('w:t')
                     oe.set(ns.qn('xml:space'), 'preserve')
                     if re.match(NOT_ESCAPED + '\\-\\-$', tex):
@@ -1420,8 +1163,8 @@ class Document:
                     tex = ''
                     ms_run._r.append(oe)
         # FOOTER
-        if self.page_number != '':
-            pn = self.page_number
+        if Document.page_number != '':
+            pn = Document.page_number
             ms_par = ms_doc.sections[0].footer.paragraphs[0]
             ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
             if re.match('^: (.*) :$', pn):
@@ -1467,7 +1210,7 @@ class Document:
                 oe.set(ns.qn('w:fldCharType'), 'end')
                 ms_run._r.append(oe)
         # LINE NUMBER
-        if self.line_number:
+        if Document.line_number:
             ms_scp = ms_doc.sections[0]._sectPr
             oe = OxmlElement('w:lnNumType')
             oe.set(ns.qn('w:countBy'), '5')
@@ -1478,15 +1221,15 @@ class Document:
         return ms_doc
 
     def make_styles(self, ms_doc):
-        size = self.font_size
-        line_spacing = self.line_spacing
+        size = Document.font_size
+        line_spacing = Document.line_spacing
         # NORMAL
         ms_doc.styles.add_style('makdo', WD_STYLE_TYPE.PARAGRAPH)
-        ms_doc.styles['makdo'].font.name = self.mincho_font
+        ms_doc.styles['makdo'].font.name = Document.mincho_font
         ms_doc.styles['makdo'].font.size = Pt(size)
         ms_doc.styles['makdo'].paragraph_format.line_spacing \
             = Pt(line_spacing * size)
-        if not doc.auto_space:
+        if not Document.auto_space:
             pPr = ms_doc.styles['makdo']._element.get_or_add_pPr()
             # KANJI<->ENGLISH
             oe = OxmlElement('w:autoSpaceDE')
@@ -1498,12 +1241,14 @@ class Document:
             pPr.append(oe)
         # GOTHIC
         ms_doc.styles.add_style('makdo-g', WD_STYLE_TYPE.PARAGRAPH)
-        ms_doc.styles['makdo-g'].font.name = self.gothic_font
+        ms_doc.styles['makdo-g'].font.name = Document.gothic_font
+        # TABLE
+        ms_doc.styles.add_style('makdo-t', WD_STYLE_TYPE.PARAGRAPH)
         # ALIGNMENT
         ms_doc.styles.add_style('makdo-a', WD_STYLE_TYPE.PARAGRAPH)
         # SPACE
-        sb = self.space_before.split(',')
-        sa = self.space_after.split(',')
+        sb = Document.space_before.split(',')
+        sa = Document.space_after.split(',')
         for i in range(6):
             n = 'makdo-' + str(i + 1)
             ms_doc.styles.add_style(n, WD_STYLE_TYPE.PARAGRAPH)
@@ -1523,12 +1268,12 @@ class Document:
         if user is None:
             user = '='
         hu = self._get_hash(user)
-        tt = self.document_title
-        if self.document_style == 'n':
+        tt = Document.document_title
+        if Document.document_style == 'n':
             ct = '（普通）'
-        elif self.document_style == 'k':
+        elif Document.document_style == 'k':
             ct = '（契約）'
-        elif self.document_style == 'j':
+        elif Document.document_style == 'j':
             ct = '（条文）'
         at = hu + '@' + hh + ' (makdo ' + __version__ + ')'
         dt = datetime.datetime.utcnow()
@@ -1622,12 +1367,181 @@ class Document:
             p.print_warning_messages()
 
 
+class RawParagraph:
+
+    """A class to handle raw paragraph"""
+
+    def __init__(self, paragraph_number, md_lines):
+        # DECLARATION
+        self.md_lines = []
+        self.paragraph_number = -1
+        self.chapter_revisers = []
+        self.section_revisers = []
+        self.length_revisers = []
+        self.head_font_revisers = []
+        self.tail_font_revisers = []
+        self.full_text = ''
+        self.paragraph_class = ''
+        # SUBSTITUTION
+        self.md_lines = md_lines
+        self.paragraph_number = paragraph_number
+        self.chapter_revisers, \
+            self.section_revisers, \
+            self.length_revisers, \
+            self.head_font_revisers, \
+            self.tail_font_revisers, \
+            self.md_lines \
+            = self._get_head_revisers(self.md_lines)
+        self.full_text = self._get_full_text(self.md_lines)
+        self.paragraph_class = self._get_paragraph_class()
+
+    @staticmethod
+    def _get_head_revisers(md_lines):
+        chapter_revisers = []
+        section_revisers = []
+        length_revisers = []
+        head_font_revisers = []
+        tail_font_revisers = []
+        res_cr = '^(' + ParagraphChapter.res_reviser + ')(.*)'
+        res_sr = '^(' + ParagraphSection.res_reviser + ')(.*)'
+        res_lr = '^\\s*((?:v|V|X|<<|<|>)=' + RES_NUMBER + ')(.*)$'
+        res_fr = '^\\s*(' + '|'.join(FONT_DECORATORS) + ')(.*)$'
+        for ml in md_lines:
+            # FOR BREAKDOWN
+            if re.match('^-+::-*(::-+)?$', ml.text):
+                break
+            while True:
+                if False:
+                    pass
+                elif re.match(res_cr, ml.text):
+                    reviser = re.sub(res_cr, '\\1', ml.text)
+                    ml.text = re.sub(res_cr, '\\5', ml.text)
+                    chapter_revisers.append(reviser)
+                elif re.match(res_sr, ml.text):
+                    reviser = re.sub(res_sr, '\\1', ml.text)
+                    ml.text = re.sub(res_sr, '\\5', ml.text)
+                    section_revisers.append(reviser)
+                elif re.match(res_lr, ml.text):
+                    reviser = re.sub(res_lr, '\\1', ml.text)
+                    ml.text = re.sub(res_lr, '\\2', ml.text)
+                    length_revisers.append(reviser)
+                elif re.match(res_fr, ml.text):
+                    reviser = re.sub(res_fr, '\\1', ml.text)
+                    ml.text = re.sub(res_fr, '\\2', ml.text)
+                    head_font_revisers.append(reviser)
+                else:
+                    break
+            if ml.text != '':
+                break
+        res_fr = '(.*)(' + '|'.join(FONT_DECORATORS) + ')\\s*$'
+        for ml in reversed(md_lines):
+            while True:
+                if False:
+                    pass
+                elif re.match(res_fr, ml.text):
+                    reviser = re.sub(res_fr, '\\2', ml.text)
+                    ml.text = re.sub(res_fr, '\\1', ml.text)
+                    tail_font_revisers.insert(0, reviser)
+                else:
+                    break
+            if ml.text != '':
+                break
+        # self.chapter_revisers = chapter_revisers
+        # self.section_revisers = section_revisers
+        # self.length_revisers = length_revisers
+        # self.head_font_revisers = head_font_revisers
+        # self.tail_font_revisers = tail_font_revisers
+        # self.md_lines = md_lines
+        return chapter_revisers, section_revisers, \
+            length_revisers, head_font_revisers, tail_font_revisers, md_lines
+
+    @staticmethod
+    def _get_full_text(md_lines):
+        full_text = ''
+        for ml in md_lines:
+            full_text += ml.text + ' '
+        full_text = re.sub('\t', ' ', full_text)
+        full_text = re.sub(' +', ' ', full_text)
+        full_text = re.sub('^ ', '', full_text)
+        full_text = re.sub(' $', '', full_text)
+        # self.full_text = full_text
+        return full_text
+
+    def _get_paragraph_class(self):
+        ft = self.full_text
+        hfrs = self.head_font_revisers
+        tfrs = self.tail_font_revisers
+        if False:
+            pass
+        elif ParagraphEmpty.is_this_class(ft, hfrs, tfrs):
+            return 'empty'
+        elif ParagraphBlank.is_this_class(ft, hfrs, tfrs):
+            return 'blank'
+        elif ParagraphChapter.is_this_class(ft, hfrs, tfrs):
+            return 'chapter'
+        elif ParagraphSection.is_this_class(ft, hfrs, tfrs):
+            return 'section'
+        elif ParagraphList.is_this_class(ft, hfrs, tfrs):
+            return 'list'
+        elif ParagraphTable.is_this_class(ft, hfrs, tfrs):
+            return 'table'
+        elif ParagraphImage.is_this_class(ft, hfrs, tfrs):
+            return 'image'
+        elif ParagraphAlignment.is_this_class(ft, hfrs, tfrs):
+            return 'alignment'
+        elif ParagraphPreformatted.is_this_class(ft, hfrs, tfrs):
+            return 'preformatted'
+        elif ParagraphPagebreak.is_this_class(ft, hfrs, tfrs):
+            return 'pagebreak'
+        elif ParagraphBreakdown.is_this_class(ft, hfrs, tfrs):
+            return 'breakdown'
+        else:
+            return 'sentence'
+
+    def get_paragraph(self):
+        paragraph_class = self.paragraph_class
+        if False:
+            pass
+        elif paragraph_class == 'empty':
+            return ParagraphEmpty(self)
+        elif paragraph_class == 'blank':
+            return ParagraphBlank(self)
+        elif paragraph_class == 'chapter':
+            return ParagraphChapter(self)
+        elif paragraph_class == 'section':
+            return ParagraphSection(self)
+        elif paragraph_class == 'list':
+            return ParagraphList(self)
+        elif paragraph_class == 'table':
+            return ParagraphTable(self)
+        elif paragraph_class == 'image':
+            return ParagraphImage(self)
+        elif paragraph_class == 'alignment':
+            return ParagraphAlignment(self)
+        elif paragraph_class == 'preformatted':
+            return ParagraphPreformatted(self)
+        elif paragraph_class == 'pagebreak':
+            return ParagraphPagebreak(self)
+        elif paragraph_class == 'breakdown':
+            return ParagraphBreakdown(self)
+        else:
+            return ParagraphSentence(self)
+
+
 class Paragraph:
 
-    """A class to handle paragraph"""
+    """A class to handle empty paragraph"""
 
-    mincho_font = None
-    font_size = None
+    paragraph_class = None
+    class_name = None
+    res_feature = None
+
+    mincho_font = ''
+    gothic_font = ''
+    font_size = -1
+
+    previous_head_depth = 0
+    previous_tail_depth = 0
     is_preformatted = False
     is_large = False
     is_small = False
@@ -1638,941 +1552,337 @@ class Paragraph:
     font_color = ''
     highlight_color = None
 
-    def __init__(self, paragraph_number, md_lines):
-        self.paragraph_number = paragraph_number
-        self.md_lines = md_lines
-        self.full_text = ''
-        self.paragraph_class = None
-        self.decoration_instruction = ''
-        self.chapter_instructions = []
-        self.section_instructions = []
-        self.section_states = []
-        self.section_depth_first = 0
-        self.section_depth = 0
-        self.alignment = None
-        self.length \
-            = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
-               'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
-        self.length_ins \
-            = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
-               'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
-        self.chapter_instructions, \
-            self.section_instructions, \
-            self.decoration_instruction, \
-            self.length_ins, \
-            self.md_lines \
-            = self.read_first_line_instructions()
-        self.full_text = self.get_full_text()
-        self.paragraph_class \
-            = self.get_paragraph_class()
-        self.section_depth_first, \
-            self.section_depth \
-            = self.get_section_depths()
-        self.length \
-            = self.get_length()
-
-    def read_first_line_instructions(self):
-        chapter_instructions = []
-        section_instructions = []
-        decoration_instruction = ''
-        length_ins \
-            = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
-               'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
-        md_lines = self.md_lines
-        res_cn = '^\\s*(\\$+(?:-\\$)*=\\s*[0-9]+)(.*)$'
-        res_sn = '^\\s*(#+(?:-#)*=\\s*[0-9]+)(.*)$'
-        res_de = ('^\\s*((?:'
-                  + '(?:\\*{1,3})'             # italic, bold
-                  + '|(?:~~)'                  # strikethrough
-                  + '|(?:`)'                   # preformatted
-                  + '|(?://)'                  # italic
-                  + '|(?:\\-\\-)'              # small
-                  + '|(?:\\+\\+)'              # large
-                  + '|(?:\\^[0-9A-Za-z]*\\^)'  # font color
-                  + '|(?:_[0-9A-Za-z]*_)'      # highlight color
-                  + ')+)(.*)$')
-        res_sb = '^\\s*v=\\s*' + RES_NUMBER + '(.*)$'
-        res_sa = '^\\s*V=\\s*' + RES_NUMBER + '(.*)$'
-        res_ls = '^\\s*X=\\s*' + RES_NUMBER + '(.*)$'
-        res_fi = '^\\s*<<=\\s*' + RES_NUMBER + '(.*)$'
-        res_li = '^\\s*<=\\s*' + RES_NUMBER + '(.*)$'
-        res_ri = '^\\s*>=\\s*' + RES_NUMBER + '(.*)$'
-        for ml in md_lines:
-            # FOR BREAKDOWN
-            if re.match('^-+::-*(::-+)?$', ml.text):
-                break
-            while True:
-                if False:
-                    pass
-                elif re.match(res_cn, ml.text):
-                    chap_ins = re.sub(res_cn, '\\1', ml.text)
-                    ml.text = re.sub(res_cn, '\\2', ml.text)
-                    chapter_instructions.append(chap_ins)
-                elif re.match(res_sn, ml.text):
-                    sect_ins = re.sub(res_cn, '\\1', ml.text)
-                    ml.text = re.sub(res_sn, '\\2', ml.text)
-                    section_instructions.append(sect_ins)
-                elif re.match(res_de, ml.text):
-                    deco = re.sub(res_de, '\\1', ml.text)
-                    ml.text = re.sub(res_de, '\\2', ml.text)
-                    decoration_instruction += deco
-                elif re.match(res_sb, ml.text):
-                    deci = re.sub(res_sb, '\\1', ml.text)
-                    ml.text = re.sub(res_sb, '\\6', ml.text)
-                    length_ins['space before'] += float(deci)
-                elif re.match(res_sa, ml.text):
-                    deci = re.sub(res_sa, '\\1', ml.text)
-                    ml.text = re.sub(res_sa, '\\6', ml.text)
-                    length_ins['space after'] += float(deci)
-                elif re.match(res_ls, ml.text):
-                    deci = re.sub(res_ls, '\\1', ml.text)
-                    ml.text = re.sub(res_ls, '\\6', ml.text)
-                    length_ins['line spacing'] += float(deci)
-                elif re.match(res_fi, ml.text):
-                    deci = re.sub(res_fi, '\\1', ml.text)
-                    ml.text = re.sub(res_fi, '\\6', ml.text)
-                    length_ins['first indent'] = -float(deci)
-                elif re.match(res_li, ml.text):
-                    deci = re.sub(res_li, '\\1', ml.text)
-                    ml.text = re.sub(res_li, '\\6', ml.text)
-                    length_ins['left indent'] = -float(deci)
-                elif re.match(res_ri, ml.text):
-                    deci = re.sub(res_ri, '\\1', ml.text)
-                    ml.text = re.sub(res_ri, '\\6', ml.text)
-                    length_ins['right indent'] = -float(deci)
-                else:
-                    break
-            # ml_rawt = ml.raw_text
-            # while True:
-            #     if False:
-            #         pass
-            #     elif re.match(res_cn, ml_rawt) and re.match(res_cn, ml.text):
-            #         chap_ins = re.sub(res_cn, '\\1', ml_text)
-            #         ml_rawt = re.sub(res_cn, '\\2', ml_rawt)
-            #         ml.text = re.sub(res_cn, '\\2', ml.text)
-            #         chapter_instructions.append(chap_ins)
-            #     elif re.match(res_sn, ml_rawt) and re.match(res_sn, ml.text):
-            #         sect_ins = re.sub(res_cn, '\\1', ml_text)
-            #         ml_rawt = re.sub(res_sn, '\\2', ml_rawt)
-            #         ml.text = re.sub(res_sn, '\\2', ml.text)
-            #         section_instructions.append(sect_ins)
-            #     elif re.match(res_de, ml_rawt) and re.match(res_de, ml.text):
-            #         deco = re.sub(res_de, '\\1', ml.text)
-            #         ml_rawt = re.sub(res_de, '\\2', ml_rawt)
-            #         ml.text = re.sub(res_de, '\\2', ml.text)
-            #         decoration_instruction += deco
-            #     elif re.match(res_sb, ml_rawt) and re.match(res_sb, ml.text):
-            #         deci = re.sub(res_sb, '\\1', ml.text)
-            #         ml_rawt = re.sub(res_sb, '\\6', ml_rawt)
-            #         ml.text = re.sub(res_sb, '\\6', ml.text)
-            #         length_ins['space before'] += float(deci)
-            #     elif re.match(res_sa, ml_rawt) and re.match(res_sa, ml.text):
-            #         deci = re.sub(res_sa, '\\1', ml.text)
-            #         ml_rawt = re.sub(res_sa, '\\6', ml_rawt)
-            #         ml.text = re.sub(res_sa, '\\6', ml.text)
-            #         length_ins['space after'] += float(deci)
-            #     elif re.match(res_ls, ml_rawt) and re.match(res_ls, ml.text):
-            #         deci = re.sub(res_ls, '\\1', ml.text)
-            #         ml_rawt = re.sub(res_ls, '\\6', ml_rawt)
-            #         ml.text = re.sub(res_ls, '\\6', ml.text)
-            #         length_ins['line spacing'] += float(deci)
-            #     elif re.match(res_fi, ml_rawt) and re.match(res_fi, ml.text):
-            #         deci = re.sub(res_fi, '\\1', ml.text)
-            #         ml_rawt = re.sub(res_fi, '\\6', ml_rawt)
-            #         ml.text = re.sub(res_fi, '\\6', ml.text)
-            #         length_ins['first indent'] = -float(deci)
-            #     elif re.match(res_li, ml_rawt) and re.match(res_li, ml.text):
-            #         deci = re.sub(res_li, '\\1', ml.text)
-            #         ml_rawt = re.sub(res_li, '\\6', ml_rawt)
-            #         ml.text = re.sub(res_li, '\\6', ml.text)
-            #         length_ins['left indent'] = -float(deci)
-            #     elif re.match(res_ri, ml_rawt) and re.match(res_ri, ml.text):
-            #         deci = re.sub(res_ri, '\\1', ml.text)
-            #         ml_rawt = re.sub(res_ri, '\\6', ml_rawt)
-            #         ml.text = re.sub(res_ri, '\\6', ml.text)
-            #         length_ins['right indent'] = -float(deci)
-            #     else:
-            #        break
-            if ml.text != '':
-                break
-        if length_ins['line spacing'] < 0:
-            length_ins['space before'] -= length_ins['line spacing'] * .75
-            length_ins['space after'] -= length_ins['line spacing'] * .25
-        elif length_ins['line spacing'] > 0:
-            if length_ins['space before'] > length_ins['line spacing'] * .75:
-                length_ins['space before'] -= length_ins['line spacing'] * .75
-            else:
-                length_ins['space before'] = 0
-            if length_ins['space after'] > length_ins['line spacing'] * .25:
-                length_ins['space after'] -= length_ins['line spacing'] * .25
-            else:
-                length_ins['space after'] = 0
-        # self.chapter_instructions = chapter_instructions
-        # self.section_instructions = section_instructions
-        # self.decoration_instruction = decoration_instruction
-        # self.length_ins = length_ins
-        # self.md_lines = md_lines
-        return chapter_instructions, section_instructions, \
-            decoration_instruction, length_ins, md_lines
-
-    def get_full_text(self):
-        full_text = ''
-        for ml in self.md_lines:
-            full_text += ml.text + ' '
-        full_text = re.sub('\t', ' ', full_text)
-        full_text = re.sub(' +', ' ', full_text)
-        full_text = re.sub('^ ', '', full_text)
-        full_text = re.sub(' $', '', full_text)
-        # self.full_text = full_text
-        return full_text
-
-    def get_paragraph_class(self):
-        decoration = self.decoration_instruction
-        full_text = self.full_text
-        paragraph_class = None
-        if decoration + full_text == '':
-            paragraph_class = 'empty'
-        elif re.match('^\n$', decoration + full_text):
-            paragraph_class = 'blank'
-        elif ParagraphChapter.is_this_class(full_text):
-            paragraph_class = 'chapter'
-        elif ParagraphSection.is_this_class(full_text):
-            paragraph_class = 'section'
-        elif re.match(NOT_ESCAPED + '::', full_text):
-            paragraph_class = 'breakdown'
-        elif re.match('^ *([-\\+\\*]|([0-9]+\\.)) ', full_text):
-            paragraph_class = 'list'
-        elif (re.match('^: (.*\n)*.*$', full_text) or
-              re.match('^(.*\n)*.* :$', full_text)):
-            paragraph_class = 'alignment'
-        elif re.match('^\\|.*\\|$', full_text):
-            paragraph_class = 'table'
-        elif re.match('^(\\s*' +
-                      '(! ?\\[[^\\[\\]]*\\] ?\\([^\\(\\)]+\\)|\\+\\+|\\-\\-)' +
-                      ')+\\s*$', full_text):
-            paragraph_class = 'image'
-        elif re.match('^```.*$', decoration):
-            paragraph_class = 'preformatted'
-        elif re.match('^<div style="break-.*: page;"></div>$', full_text):
-            paragraph_class = 'pagebreak'
-        elif re.match('^<pgbr/?>$', full_text):
-            paragraph_class = 'pagebreak'
+    @classmethod
+    def is_this_class(cls, full_text,
+                      head_font_revisers=[], tail_font_revisers=[]):
+        if re.match(cls.res_feature, full_text):
+            return True
         else:
-            paragraph_class = 'sentence'
-        # self.paragraph_class = paragraph_class
-        return paragraph_class
+            return False
 
-    def get_section_depths(self):
-        depth_first = 0
-        depth = 0
-        if self.paragraph_class == 'section':
-            depth_first, depth = ParagraphSection.get_depths(self.full_text)
-        elif self.paragraph_class == 'sentence':
-            depth_first = ParagraphSection.depth
-            depth = ParagraphSection.depth
-        # self.section_depth_first = depth_first
-        # self.section_depth = depth
-        return depth_first, depth
+    def __init__(self, raw_paragraph):
+        # RECEIVED
+        self.md_lines = raw_paragraph.md_lines
+        self.paragraph_number = raw_paragraph.paragraph_number
+        self.chapter_revisers = raw_paragraph.chapter_revisers
+        self.section_revisers = raw_paragraph.section_revisers
+        self.length_revisers = raw_paragraph.length_revisers
+        self.head_font_revisers = raw_paragraph.head_font_revisers
+        self.tail_font_revisers = raw_paragraph.tail_font_revisers
+        self.full_text = raw_paragraph.full_text
+        # DECLARATION
+        self.head_depth = -1
+        self.tail_depth = -1
+        self.length_revi = {}
+        self.length_sect = {}
+        self.length_dept = {}
+        self.length_docx = {}
+        self.alignment = ''
+        self.text_to_write = ''
+        self.text_to_write_with_reviser = ''
+        # SUBSTITUTION
+        self.head_depth, self.tail_depth = self._get_depths(self.full_text)
+        self.alignment = self._get_alignment()
+        self.length_revi = self._get_length_revi()
+        self.length_sect = self._get_length_sect()
+        self.length_dept = self._get_length_dept()
+        self.length_docx = self._get_length_docx()
+        # EXECUTIEN
+        ParagraphChapter._transact_revisers(self.chapter_revisers,
+                                            self.md_lines)
+        ParagraphSection._transact_revisers(self.section_revisers,
+                                            self.md_lines)
+        ParagraphList.reset_states(self.paragraph_class)
+        self._edit_data()
+        self.text_to_write = self._get_text_to_write()
+        self.text_to_write_with_reviser \
+            = ''.join(self.head_font_revisers) \
+            + self.text_to_write \
+            + ''.join(self.tail_font_revisers)
 
-    def get_length_sec(self):
-        length_sec \
+    @classmethod
+    def _get_depths(cls, full_text):
+        return 0, 0
+
+    def _get_alignment(self):
+        paragraph_class = self.paragraph_class
+        head_depth = self.head_depth
+        full_text = self.full_text
+        alignment = ''
+        if paragraph_class == 'section' and head_depth == 1:
+            alignment = 'center'
+        if paragraph_class == 'alignment':
+            if re.match('^:\\s.*\\s:$', full_text):
+                alignment = 'center'
+            elif re.match('^:\\s.*$', full_text):
+                alignment = 'left'
+            elif re.match('^.*\\s:$', full_text):
+                alignment = 'right'
+        # self.alignment = alignment
+        return alignment
+
+    def _get_length_revi(self):
+        length_revisers = self.length_revisers
+        length_revi \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
-        par_class = self.paragraph_class
-        states = ParagraphSection.states
-        depth_first = self.section_depth_first
-        depth = self.section_depth
-        if par_class == 'section':
-            if depth_first > 1:
-                length_sec['first indent'] = depth_first - depth - 1.0
-            if depth_first > 1:
-                length_sec['left indent'] = depth - 1.0
-            if depth_first >= 3 and states[1] == 0:
-                length_sec['left indent'] -= 1.0
-        elif par_class == 'list' or par_class == 'breakdown':
-            length_sec['first indent'] = 0
-            if depth_first > 1:
-                length_sec['left indent'] = depth - 1.0
-            if depth_first >= 3 and states[1] == 0:
-                length_sec['left indent'] -= 1.0
-        elif par_class == 'sentence':
-            if depth > 0:
-                length_sec['first indent'] = 1.0
-            if depth > 1:
-                length_sec['left indent'] = depth - 1.0
-            if depth >= 3 and states[1] == 0:
-                length_sec['left indent'] -= 1.0
-        return length_sec
+        res_v = '^v=(' + RES_NUMBER + ')$'
+        res_cv = '^V=(' + RES_NUMBER + ')$'
+        res_cx = '^X=(' + RES_NUMBER + ')$'
+        res_gg = '^<<=(' + RES_NUMBER + ')$'
+        res_g = '^<=(' + RES_NUMBER + ')$'
+        res_l = '^>=(' + RES_NUMBER + ')$'
+        for lr in length_revisers:
+            if re.match(res_v, lr):
+                length_revi['space before'] += float(re.sub(res_v, '\\1', lr))
+            elif re.match(res_cv, lr):
+                length_revi['space after'] += float(re.sub(res_cv, '\\1', lr))
+            elif re.match(res_cx, lr):
+                length_revi['line spacing'] += float(re.sub(res_cx, '\\1', lr))
+            elif re.match(res_gg, lr):
+                length_revi['first indent'] += float(re.sub(res_gg, '\\1', lr))
+            elif re.match(res_g, lr):
+                length_revi['left indent'] += float(re.sub(res_g, '\\1', lr))
+            elif re.match(res_l, lr):
+                length_revi['right indent'] += float(re.sub(res_l, '\\1', lr))
+        # self.length_revi = length_revi
+        return length_revi
 
-    def get_length(self):
-        length \
+    def _get_length_sect(self):
+        hd = self.head_depth
+        td = self.tail_depth
+        length_sect \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
-        for s in length:
-            length[s] = self.length_ins[s]
         if self.paragraph_class == 'section':
-            sb = (doc.space_before + ',,,,,').split(',')
-            sa = (doc.space_after + ',,,,,').split(',')
-            df = self.section_depth_first
-            dl = self.section_depth
-            if sb[df - 1] != '':
-                length['space before'] += float(sb[df - 1])
-            if sa[dl - 1] != '':
-                length['space after'] += float(sa[dl - 1])
-        # self.length = length
-        return length
+            sb = (Document.space_before + ',,,,,,,').split(',')
+            sa = (Document.space_after + ',,,,,,,').split(',')
+            if hd <= len(sb) and sb[hd - 1] != '':
+                length['space before'] += float(sb[hd - 1])
+            if td <= len(sa) and sa[td - 1] != '':
+                length['space after'] += float(sa[td - 1])
+        return length_sect
+
+    def _get_length_dept(self):
+        paragraph_class = self.paragraph_class
+        head_depth = self.head_depth
+        tail_depth = self.tail_depth
+        length_dept \
+            = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
+               'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
+        if paragraph_class == 'chapter':
+            length_dept['first indent'] = -1.0
+            length_dept['left indent'] = tail_depth + 0.0
+        elif paragraph_class == 'section':
+            if head_depth > 1:
+                length_dept['first indent'] = head_depth - tail_depth - 1.0
+            if tail_depth > 1:
+                length_dept['left indent'] = tail_depth - 1.0
+        elif paragraph_class == 'list':
+            length_dept['first indent'] = -1.0
+            length_dept['left indent'] = tail_depth + 0.0
+        elif paragraph_class == 'sentence':
+            if tail_depth > 0:
+                length_dept['first indent'] = 1.0
+                length_dept['left indent'] = tail_depth - 1.0
+        if paragraph_class == 'section' or paragraph_class == 'sentence':
+            if tail_depth > 1 and ParagraphSection.states[1][0] == 0:
+                length_dept['left indent'] -= 1.0
+        # self.length_dept = length_dept
+        return length_dept
+
+    def _get_length_docx(self):
+        length_revi = self.length_revi
+        length_sect = self.length_sect
+        length_dept = self.length_dept
+        length_docx \
+            = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
+               'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
+        for ln in length_docx:
+            length_docx[ln] \
+                = length_revi[ln] + length_sect[ln] + length_dept[ln]
+        # self.length_docx = length_docx
+        return length_docx
+
+    @classmethod
+    def _transact_revisers(cls, revisers, md_lines):
+        res = '^' + cls.res_reviser + '$'
+        if cls.paragraph_class == 'chapter':
+            char = '$'
+        elif cls.paragraph_class == 'section':
+            char = '#'
+        else:
+            return
+        for rev in revisers:
+            md_line = md_lines[0]
+            res_line = '^(.*\\s)?' \
+                + rev.replace(char, '\\' + char) \
+                + '(\\s.*)?$'
+            for ml in md_lines:
+                if re.match(res_line, ml.raw_text):
+                    md_line = ml
+                    break
+            if re.match(res, rev):
+                trunk = re.sub(res, '\\1', rev)
+                branc = re.sub(res, '\\2', rev)
+                chval = re.sub(res, '\\3', rev)
+                xdepth = len(trunk) - 1
+                ydepth = len(branc.replace(char, ''))
+                value = int(chval)
+                cls._set_state(xdepth, ydepth, value, md_line)
+
+    @classmethod
+    def _set_state(cls, xdepth, ydepth, value, md_line):
+        paragraph_class_ja = cls.paragraph_class_ja
+        paragraph_class = cls.paragraph_class
+        states = cls.states
+        if xdepth >= len(states):
+            msg = '※ 警告: ' + paragraph_class_ja \
+                + 'の深さが上限を超えています'
+            # msg = 'warning: ' + paragraph_class \
+            #     + ' depth exceeds limit'
+            md_line.append_warning_message(msg)
+        elif ydepth >= len(states[xdepth]):
+            msg = '※ 警告: ' + paragraph_class_ja \
+                + 'の枝が上限を超えています'
+            # msg = 'warning: ' + paragraph_class \
+            #     + ' branch exceeds limit'
+            md_line.append_warning_message(msg)
+        for x in range(len(states)):
+            for y in range(len(states[x])):
+                if x < xdepth:
+                    continue
+                elif x == xdepth:
+                    if y < ydepth:
+                        if states[x][y] == 0:
+                            msg = '※ 警告: ' + paragraph_class_ja \
+                                + 'の枝が"0"を含んでいます'
+                            # msg = 'warning: ' + paragraph_class \
+                            #     + ' branch has "0"'
+                            md_line.append_warning_message(msg)
+                    elif y == ydepth:
+                        if value is None:
+                            states[x][y] += 1
+                        else:
+                            states[x][y] = value
+                    else:
+                        states[x][y] = 0
+                else:
+                    states[x][y] = 0
+
+    def _edit_data(self):
+        return
+
+    def _edit_data_of_chapter_and_section(self):
+        paragraph_class = self.paragraph_class
+        paragraph_class_ja = self.paragraph_class_ja
+        res = self.res_feature
+        md_lines = self.md_lines
+        head_depth = self.head_depth
+        tail_depth = self.tail_depth
+        if paragraph_class == 'chapter':
+            char = '$'
+            states = ParagraphChapter.states
+        elif paragraph_class == 'section':
+            char = '#'
+            states = ParagraphSection.states
+        else:
+            return
+        head_strings = ''
+        body = ''
+        pdepth = -1
+        is_in_body = False
+        for ml in md_lines:
+            mlt = ml.text
+            if not is_in_body:
+                while re.match(res, mlt):
+                    trunk = re.sub(res, '\\1', mlt)
+                    branc = re.sub(res, '\\2', mlt)
+                    mlt = re.sub(res, '\\3', mlt)
+                    xdepth = len(trunk) - 1
+                    ydepth = len(branc.replace(char, ''))
+                    if pdepth > 0 and xdepth != pdepth + 1:
+                        msg = '※ 警告: ' + paragraph_class_ja \
+                            + 'の深さが飛んでいます'
+                        # msg = 'warning: ' + paragraph_class \
+                        #     + ' depth is not continuous'
+                        ml.append_warning_message(msg)
+                    pdepth = xdepth
+                    self._step_state(xdepth, ydepth, ml)
+                    head_strings += self._get_head_string(xdepth, ydepth, ml)
+                if mlt != ml.text:
+                    title = mlt
+                    ml.text = ''
+                if mlt != '':
+                    is_in_body = True
+            body += ml.text
+        if title + body == '':
+            return
+        if paragraph_class == 'section' and tail_depth == 1:
+            md_lines[0].text = title
+        elif re.match('^.*\\(.*\\)$', head_strings):
+            md_lines[0].text = head_strings + ' ' + title
+        else:
+            md_lines[0].text = head_strings + '\u3000' + title
+        return
+
+    @classmethod
+    def _step_state(cls, xdepth, ydepth, md_line):
+        cls._set_state(xdepth, ydepth, None, md_line)
+
+    def _get_text_to_write(self):
+        md_lines = self.md_lines
+        text_to_write = ''
+        for ml in md_lines:
+            text_to_write = concatenate_string(text_to_write, ml.text)
+        # self.text_to_write = text_to_write
+        return text_to_write
 
     def write_paragraph(self, ms_doc):
-        for ci in self.chapter_instructions:
-            ParagraphChapter.set_states(ci)
-        for si in self.section_instructions:
-            ParagraphSection.set_states(si)
-        if self.paragraph_class == 'chapter':
-            depth = ParagraphChapter.get_depth(self.full_text)
-            self.length = ParagraphChapter.modify_length(depth, self.length)
-        length_sec = self.get_length_sec()
-        for s in self.length:
-            self.length[s] += length_sec[s]
-        depth_first = self.section_depth_first
-        depth = self.section_depth
-        #if self.paragraph_class == 'sentence':
-        #    if ParagraphSection.states[0][0] > 0:
-        #        self.length['first indent'] += 1
-        #        self.length['left indent'] += depth - 1
-        if self.paragraph_class == 'section' or \
-           self.paragraph_class == 'sentence':
-            if ParagraphSection.states[1][0] == 0 and depth > 2:
-                self.length['left indent'] += -1
-        if doc.document_style == 'j':
-            if self.paragraph_class == 'section' or \
-               self.paragraph_class == 'sentence':
-                if ParagraphSection.states[1][0] > 0 and \
-                   self.section_depth_first >= 3:
-                    self.length['left indent'] -= 1
         paragraph_class = self.paragraph_class
-        if paragraph_class == 'empty':
-            self._write_empty_paragraph(ms_doc)
-        elif paragraph_class == 'blank':
-            self._write_blank_paragraph(ms_doc)
-        elif paragraph_class == 'chapter':
-            self._write_chapter_paragraph(ms_doc)
-        elif paragraph_class == 'section':
-            self._write_section_paragraph(ms_doc)
-        elif paragraph_class == 'breakdown':
-            self._write_breakdown_paragraph(ms_doc)
-        elif paragraph_class == 'list':
-            self._write_list_paragraph(ms_doc)
-        elif paragraph_class == 'alignment':
-            self._write_alignment_paragraph(ms_doc)
-        elif paragraph_class == 'table':
-            self._write_table_paragraph(ms_doc)
-        elif paragraph_class == 'image':
-            self._write_image_paragraph(ms_doc)
-        elif paragraph_class == 'preformatted':
-            self._write_preformatted_paragraph(ms_doc)
-        elif paragraph_class == 'pagebreak':
-            self._write_pagebreak_paragraph(ms_doc)
-        else:
-            self._write_sentence_paragraph(ms_doc)
-
-    def _write_empty_paragraph(self, ms_doc):
-        text_to_write = self.decoration_instruction
-        for ml in self.md_lines:
-            text_to_write += ml.text
-        if text_to_write != '':
-            ms_par = self._get_ms_par(ms_doc)
-            self._write_text(text_to_write, ms_par)
-            msg = '※ 警告: ' \
-                + '空段落が「' + text_to_write + '」を' \
-                + '含んでいます'
-            # msg = 'warning: ' \
-            #     + 'unexpected state (empty paragraph)' + '\n  ' \
-            #     + text_to_write
-            sys.stderr.write(msg + '\n\n')
-
-    def _write_blank_paragraph(self, ms_doc):
-        text_to_write = self.decoration_instruction
-        for ml in self.md_lines:
-            text_to_write += ml.text
-        ms_par = self._get_ms_par(ms_doc)
-        if text_to_write != '\n':
-            self._write_text(text_to_write, ms_par)
-            msg = '※ 警告: ' \
-                + '改行段落が「' + re.sub('\n$', '', text_to_write) + '」を' \
-                + '含んでいます'
-            # msg = 'warning: ' \
-            #     + 'unexpected state (blank paragraph)' + '\n  ' \
-            #     + text_to_write
-            sys.stderr.write(msg + '\n\n')
-
-    def _write_chapter_paragraph(self, ms_doc):
-        for i, ml in enumerate(self.md_lines):
-            text_to_write = ''
-            if i == 0:
-                text_to_write += self.decoration_instruction
-            ParagraphChapter.update_states(ml.text)
-            text_to_write += ParagraphChapter.get_docx_text(ml.text)
-            ms_par = self._get_ms_par(ms_doc)
-            self._write_text(text_to_write, ms_par)
-
-    def _write_section_paragraph(self, ms_doc):
+        tail_depth = self.tail_depth
+        alignment = self.alignment
         md_lines = self.md_lines
-        size = self.font_size
-        ll_size = size * 1.4
-        depth = self.section_depth
-        text_to_write = self.decoration_instruction
-        head_symbol, title, text = self._split_section_paragraph(md_lines)
-        head_string = ''
-        for hs in head_symbol.split(' '):
-            ParagraphSection.update_states(hs)
-            head_string += ParagraphSection.get_head_string(hs)
-        head_string += ParagraphSection.get_head_space(depth, head_string)
-        if title + text == '':
+        text_to_write_with_reviser = self.text_to_write_with_reviser
+        size = Paragraph.font_size
+        xl_size = size * 1.4
+        if text_to_write_with_reviser == '':
             return
-        ms_par = self._get_ms_par(ms_doc)
-        ms_fmt = ms_par.paragraph_format
-        if depth == 1:
-            Paragraph.font_size = ll_size
-            ms_par.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        elif title == '' and text != '':
-            ms_par.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-        text_to_write += head_string + title + text
-        self._write_text(text_to_write, ms_par)
-        if depth == 1:
-            Paragraph.font_size = size
-
-    @staticmethod
-    def _split_section_paragraph(md_lines):
-        head = ''
-        title = ''
-        text = ''
-        is_in_head = True
-        res = '(#+(?:\\-#+)*(?:\\s+#+(?:\\-#+)*)*)'
-        for ml in md_lines:
-            if ml.text == '':
-                continue
-            if is_in_head:
-                if re.match('^' + res + '\\s*$', ml.text):
-                    head += ml.text
-                    head += ' '
-                elif re.match('^' + res + '\\s+(.*)$', ml.text):
-                    head += re.sub('^' + res + '\\s+(.*)$', '\\1', ml.text)
-                    head += ' '
-                    title = re.sub('^' + res + '\\s+(.*)$', '\\2', ml.text)
-                else:
-                    is_in_head = False
-                    text += ml.text
-            else:
-                text += ml.text
-        return head, title, text
-
-    @staticmethod
-    def _is_consistent_with_depth(md_line, pre_dep, dep):
-        if pre_dep > 0:
-            if (pre_dep <= 2) or (pre_dep + 1 != dep):
-                msg = '警告: ' \
-                    + 'セクションの深さが「' + str(pre_dep) + '」から「' \
-                    + str(dep) + '」に飛んでいます'
-                # msg = 'warning: bad depth ' + str(pre_dep) \
-                #     + ' to ' + str(dep)
-                md_line.append_warning_message(msg)
-                return False
-        return True
-
-    def _write_breakdown_paragraph(self, ms_doc):
-        size = self.font_size
-        bds = self._get_breakdown_data()
-        conf_row, wid_list, hei_list \
-            = self._get_breakdown_width_and_height(bds)
-        if conf_row >= 0:
-            bds.pop(conf_row)
-        row = len(bds)
-        ms_tab = ms_doc.add_table(row, 3, style='Normal Table')
-        ind = self.length['left indent'] * size * 20
-        oe = OxmlElement('w:tblInd')
-        oe.set(qn('w:w'), str(ind))
-        oe.set(qn('w:type'), 'dxa')
-        tblpr = ms_tab._element.xpath('w:tblPr')
-        tblpr[0].append(oe)
-        for i in range(len(bds)):
-            ms_tab.rows[i].height_rule = WD_ROW_HEIGHT_RULE.AUTO
-            # ms_tab.rows[i].height_rule = WD_ROW_HEIGHT_RULE.EXACTLY
-            ms_tab.rows[i].height = Pt(doc.line_spacing * size * hei_list[i])
-        for j in range(len(bds[0])):
-            ms_tab.columns[j].width = Pt((wid_list[j] + 2) * size)
-        # ms_tab.alignment = WD_TABLE_ALIGNMENT.CENTER
-        for i in range(len(bds)):
-            for j in range(len(bds[i])):
-                cell = bds[i][j]
-                if j == 1:
-                    cell = re.sub('^\\s+', '', cell)
-                else:
-                    cell = re.sub('\\s+$', '', cell)
-                ms_cell = ms_tab.cell(i, j)
-                ms_cell.width = Pt((wid_list[j] + 2) * size)
-                ms_par = ms_cell.paragraphs[0]
-                self._write_text(cell, ms_par)
-                ms_cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
-                ms_fmt = ms_par.paragraph_format
-                ms_fmt.space_before = Pt(0)
-                ms_fmt.space_after = Pt(0)
-                ms_fmt.line_spacing = Pt(doc.line_spacing * size)
-                if i < conf_row:
-                    ms_fmt.alignment = WD_TABLE_ALIGNMENT.CENTER
-                elif j == 1:
-                    ms_fmt.alignment = WD_TABLE_ALIGNMENT.RIGHT
-                else:
-                    ms_fmt.alignment = WD_TABLE_ALIGNMENT.LEFT
-
-    def _get_breakdown_data(self):
-        bds = []
-        list_states = 0
-        for i, ml in enumerate(self.md_lines):
-            if ml.text == '':
-                continue
-            bd = ml.text.split('::', 2)
-            if not re.match('^-+::-*(::-+)?$', self.md_lines[0].text):
-                if i == 0:
-                    bd[0] = self.decoration_instruction + bd[0]
-            else:
-                if i == 1:
-                    bd[0] = self.decoration_instruction + bd[0]
-            while len(bd) < 3:
-                bd.append('')
-            res_b = '^ *[-\\+\\*] '
-            res_n = '^ *[0-9]+\\. '
-            if re.match(res_b, bd[0]):
-                item = re.sub(res_b, '', bd[0])
-                bd[0] = List.get_bullet_head_1(0) + item
-            elif re.match(res_n, bd[0]):
-                item = re.sub(res_n, '', bd[0])
-                list_states += 1
-                bd[0] = List.get_number_head_1(list_states) + item
-            else:
-                bd[0] = '\u3000' + bd[0]
-            bds.append(bd)
-        return bds
-
-    def _get_breakdown_width_and_height(self, bds):
-        # CONFIGURATION ROW
-        conf_row = -1
-        for i, ml in enumerate(self.md_lines):
-            if re.match('^-+::-*(::-+)?$', ml.text):
-                conf_row = i
-                break
-        # WIDTH
-        wid_list = []
-        if conf_row >= 0:
-            for s in bds[conf_row]:
-                wid_list.append(float(len(s)) / 2)
+        if paragraph_class == 'alignment':
+            ms_par = self._get_ms_par(ms_doc, 'makdo-a')
+            oe = OxmlElement('w:wordWrap')
+            oe.set(ns.qn('w:val'), '0')
+            pPr = ms_par._p.get_or_add_pPr()
+            pPr.append(oe)
+        elif paragraph_class == 'preformatted':
+            ms_par = self._get_ms_par(ms_doc, 'makdo-g')
         else:
-            wid_list = [0, 0, 0]
-            for i, bd in enumerate(bds):
-                for j, s in enumerate(bd):
-                    s = re.sub('<br/>', '<br>', s)
-                    lns = s.split('<br>')
-                    for ln in lns:
-                        w = float(get_real_width(ln)) / 2
-                        if wid_list[j] < w:
-                            wid_list[j] = w
-        # HEIGHT
-        hei_list = []
-        for i, bd in enumerate(bds):
-            if i == conf_row:
-                continue
-            h = 0
-            for s in bd:
-                s = re.sub('<br/>', '<br>', s)
-                lns = s.split('<br>')
-                if h < len(lns):
-                    h = len(lns)
-            hei_list.append(h)
-        # RETURN
-        return conf_row, wid_list, hei_list
-
-    # def _write_breakdown_paragraph(self, ms_doc):
-    #     size = self.font_size
-    #     bds = []
-    #     list_states = 0
-    #     hei_list = []
-    #     wid_list = [0, 0, 0]
-    #     for ml in self.md_lines:
-    #         if ml.text == '':
-    #             continue
-    #         bd = ml.text.split('::', 2)
-    #         # for i, b in enumerate(bd):
-    #         #     if (i % 2) == 0:
-    #         #         bd[i] = re.sub('\\s+$', '', bd[i])
-    #         #     else:
-    #         #         bd[i] = re.sub('^\\s+', '', bd[i])
-    #         res_b = '^ *[-\\+\\*] '
-    #         res_n = '^ *[0-9]+\\. '
-    #         if re.match(res_b, bd[0]):
-    #             item = re.sub(res_b, '', bd[0])
-    #             bd[0] = List.get_bullet_head_1(0) + item
-    #         elif re.match(res_n, bd[0]):
-    #             item = re.sub(res_n, '', bd[0])
-    #             list_states += 1
-    #             bd[0] = List.get_number_head_1(list_states) + item
-    #         else:
-    #             bd[0] = '\u3000' + bd[0]
-    #         while len(bd) < 3:
-    #             bd.append('')
-    #         bds.append(bd)
-    #         h = 0
-    #         wl = [0, 0, 0]
-    #         for i, b in enumerate(bd):
-    #             bd[i] = re.sub('<br/>', '<br>', bd[i])
-    #             lns = b.split('<br>')
-    #             if h < len(lns):
-    #                 h = len(lns)
-    #             for ln in lns:
-    #                 wl[i] = float(get_real_width(ln)) / 2
-    #                 if wid_list[i] < wl[i]:
-    #                     wid_list[i] = wl[i]
-    #         hei_list.append(h)
-    #     ms_tab = ms_doc.add_table(len(bds), 3, style='Normal Table')
-    #     ind = self.length['left indent'] * size * 20
-    #     oe = OxmlElement('w:tblInd')
-    #     oe.set(qn('w:w'), str(ind))
-    #     oe.set(qn('w:type'), 'dxa')
-    #     tblpr = ms_tab._element.xpath('w:tblPr')
-    #     tblpr[0].append(oe)
-    #     for i in range(len(bds)):
-    #         ms_tab.rows[i].height_rule = WD_ROW_HEIGHT_RULE.EXACTLY
-    #         ms_tab.rows[i].height = Pt(doc.line_spacing * size * hei_list[i])
-    #     ms_tab.autofit = True
-    #     for j in range(len(bds[0])):
-    #         ms_tab.columns[j].width = Pt((wid_list[j] + 2) * size)
-    #     for i in range(len(bds)):
-    #         for j in range(len(bds[i])):
-    #             ms_cell = ms_tab.cell(i, j)
-    #             ms_cell.hight = ms_tab.rows[i].height
-    #             ms_cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
-    #             ms_cell.width = Pt((wid_list[j] + 2) * size)
-    #             ms_par = ms_cell.paragraphs[0]
-    #             self._write_text(bds[i][j] + '\n', ms_par)
-    #             ms_fmt = ms_par.paragraph_format
-    #             ms_fmt.space_before = Pt(0)
-    #             ms_fmt.space_after = Pt(0)
-    #             ms_fmt.line_spacing = Pt(doc.line_spacing * size)
-    #             if j == 1:
-    #                 ms_fmt.alignment = WD_TABLE_ALIGNMENT.RIGHT
-    #             else:
-    #                 ms_fmt.alignment = WD_TABLE_ALIGNMENT.LEFT
-
-    def _write_list_paragraph(self, ms_doc):
-        size = self.font_size
-        list_states = [0, 0, 0, 0]
-        list_depth = -1
-        text_to_write = self.decoration_instruction
-        for i, ml in enumerate(self.md_lines):
-            text = ml.text
-            text = re.sub('^\t', ' ' * 4, text)
-            res = '^ *([-\\+\\*]|([0-9]+\\.)) '
-            if not re.match(res, text):
-                text = re.sub('^[ \t]*', '', text)
-                text_to_write = self._join_string(text_to_write, text)
-                continue
-            text_to_write += '\n'
-            list_depth = int(len(re.sub('\\S.*$', '', text)) / 2) + 1
-            if re.match('^ *[0-9]+\\. ', text):
-                list_states[list_depth - 1] += 1
-                for dep in range(list_depth, 4):
-                    list_states[list_depth] = 0
-            n = list_states[list_depth - 1]
-            item = re.sub(res, '', text)
-            if re.match('^ *[-\\+\\*] ', text):
-                if list_depth == 1:
-                    text_to_write \
-                        += '\u3000' * 0 + List.get_bullet_head_1(n) + item
-                elif list_depth == 2:
-                    text_to_write \
-                        += '\u3000' * 2 + List.get_bullet_head_2(n) + item
-                elif list_depth == 3:
-                    text_to_write \
-                        += '\u3000' * 4 + List.get_bullet_head_3(n) + item
-                else:
-                    text_to_write \
-                        += '\u3000' * 6 + List.get_bullet_head_4(n) + item
-            else:
-                if list_depth == 1:
-                    text_to_write \
-                        += '\u3000' * 0 + List.get_number_head_1(n) + item
-                elif list_depth == 2:
-                    text_to_write \
-                        += '\u3000' * 2 + List.get_number_head_2(n) + item
-                elif list_depth == 3:
-                    text_to_write \
-                        += '\u3000' * 4 + List.get_number_head_3(n) + item
-                else:
-                    text_to_write \
-                        += '\u3000' * 6 + number_list_head_4(n) + item
-        text_to_write = re.sub('^\n*', '', text_to_write)
-        text_to_write = re.sub('\n*$', '', text_to_write)
-        ms_par = self._get_ms_par(ms_doc)
-        self._write_text(text_to_write, ms_par)
-        text_to_write = ''
-
-    def _write_alignment_paragraph(self, ms_doc):
-        size = self.font_size
-        decoration = self.decoration_instruction
-        indent = self.length['first indent'] + self.length['left indent']
-        ms_par = self._get_ms_par(ms_doc, 'makdo-a')
-        ms_fmt = ms_par.paragraph_format
-        ms_fmt.first_line_indent = Pt(0 * size)
-        oe = OxmlElement('w:wordWrap')
-        oe.set(ns.qn('w:val'), '0')
-        pPr = ms_par._p.get_or_add_pPr()
-        pPr.append(oe)
-        text_to_write = ''
-        first_line = self.md_lines[-1].text
-        if re.match('^: .* :$', first_line):
-            alignment = 'center'
-            for ml in self.md_lines:
-                if ml.text == '':
-                    continue
-                text_to_write += '\n' + re.sub('^: (.*) :$', '\\1', ml.text)
-                if indent > 0:
-                    ms_fmt.left_indent = Pt(indent * 2 * size)
-                elif indent < 0:
-                    ms_fmt.right_indent = Pt(-indent * 2 * size)
-            ms_par.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        elif re.match('^.* :$', first_line):
-            alignment = 'right'
-            for ml in self.md_lines:
-                if ml.text == '':
-                    continue
-                text_to_write += '\n' + re.sub('^(.*) :$', '\\1', ml.text)
-                ms_fmt.right_indent = Pt(-indent * size)
-            ms_par.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-        else:
-            alignment = 'left'
-            for ml in self.md_lines:
-                if ml.text == '':
-                    continue
-                text_to_write += '\n' + re.sub('^:(?: (.*))?$', '\\1', ml.text)
-                # text_to_write += '\n' + re.sub('^: (.*)$', '\\1', ml.text)
-                ms_fmt.left_indent = Pt(+indent * size)
+            ms_par = self._get_ms_par(ms_doc)
+        if alignment == 'left':
             ms_par.alignment = WD_ALIGN_PARAGRAPH.LEFT
-        text_to_write = re.sub('^\n*', '', text_to_write)
-        self._write_text(decoration + text_to_write, ms_par)
-
-    def _write_table_paragraph(self, ms_doc):
-        size = self.font_size
-        s_size = 0.8 * size
-        Paragraph.font_size = s_size
-        tab = self._get_table_data()
-        conf_row, ali_list, wid_list = self._get_table_alignment_and_width(tab)
-        if conf_row >= 0:
-            tab.pop(conf_row)
-        row = len(tab)
-        col = len(tab[0])
-        ms_tab = ms_doc.add_table(row, col, style='Table Grid')
-        # ms_tab.autofit = True
-        for i in range(len(tab)):
-            ms_tab.rows[i].height_rule = WD_ROW_HEIGHT_RULE.AUTO
-        for j in range(len(tab[0])):
-            ms_tab.columns[j].width = Pt((wid_list[j] + 2) * s_size)
-        ms_tab.alignment = WD_TABLE_ALIGNMENT.CENTER
-        for i in range(len(tab)):
-            # ms_tab.rows[i].height = Pt(1.5 * size)
-            for j in range(len(tab[i])):
-                cell = tab[i][j]
-                if ali_list[j] != WD_TABLE_ALIGNMENT.LEFT:
-                    cell = re.sub('^\\s+', '', cell)
-                if ali_list[j] != WD_TABLE_ALIGNMENT.RIGHT:
-                    cell = re.sub('\\s+$', '', cell)
-                ms_cell = ms_tab.cell(i, j)
-                ms_cell.width = Pt((wid_list[j] + 2) * s_size)
-                ms_par = ms_cell.paragraphs[0]
-                self._write_text(cell, ms_par)
-                ms_cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
-                ms_fmt = ms_par.paragraph_format
-                if i < conf_row:
-                    ms_fmt.alignment = WD_TABLE_ALIGNMENT.CENTER
-                else:
-                    ms_fmt.alignment = ali_list[j]
-        Paragraph.font_size = size
-
-    def _get_table_data(self):
-        tab = []
-        for ml in self.md_lines:
-            if ml.text == '':
-                continue
-            tab.append(ml.text.split('|'))
-        m = 0
-        for rw in tab:
-            if m < len(rw) - 1:
-                m = len(rw) - 1
-        for rw in tab:
-            while len(rw) - 1 < m:
-                rw.append('')
-        # for i in range(len(tab)):
-        #     for j in range(len(tab[i])):
-        #         tab[i][j] = re.sub('^\\s+', '', tab[i][j])
-        #         tab[i][j] = re.sub('\\s+$', '', tab[i][j])
-        is_empty_r = True
-        is_empty_l = True
-        for rw in tab:
-            if rw[m] != '':
-                is_empty_r = False
-            if rw[0] != '':
-                is_empty_l = False
-        for rw in tab:
-            if is_empty_r:
-                rw.pop(m)
-            if is_empty_l:
-                rw.pop(0)
-        return tab
-
-    def _get_table_alignment_and_width(self, tab):
-        conf_row = -1
-        for i in range(len(tab)):
-            for j in range(len(tab[i])):
-                if not re.match('^ *:?-*:? *$', tab[i][j]):
-                    break
-            else:
-                conf_row = i
-                break
-        ali_list = []
-        wid_list = []
-        if conf_row >= 0:
-            for s in tab[conf_row]:
-                s = s.replace(' ', '')
-                if re.match('^:-*:$', s):
-                    ali_list.append(WD_TABLE_ALIGNMENT.CENTER)
-                elif re.match('^-+:$', s):
-                    ali_list.append(WD_TABLE_ALIGNMENT.RIGHT)
-                else:
-                    ali_list.append(WD_TABLE_ALIGNMENT.LEFT)
-                wid_list.append(float(len(s)) / 2)
-        else:
-            for i in range(len(tab)):
-                while len(ali_list) < len(tab[i]):
-                    ali_list.append(WD_TABLE_ALIGNMENT.LEFT)
-                while len(wid_list) < len(tab[i]):
-                    wid_list.append(0.0)
-                for j in range(len(tab[i])):
-                    s = tab[i][j]
-                    w = float(get_real_width(s)) / 2
-                    if wid_list[j] < w:
-                        wid_list[j] = w
-        return conf_row, ali_list, wid_list
-
-    def _write_image_paragraph(self, ms_doc):
-        full_text = self.decoration_instruction
-        for ml in self.md_lines:
-            full_text += ml.text
-        image_res = '! *\\[([^\\[\\]]*)\\] *\\(([^\\(\\)]+)\\)'
-        full_text = re.sub('\\s*(' + image_res + ')\\s*', '\n\\1\n', full_text)
-        full_text = re.sub('\\s*\\+\\+\\s*', '\n++\n', full_text)
-        full_text = re.sub('\\s*\\-\\-\\s*', '\n--\n', full_text)
-        full_text = re.sub('\n+', '\n', full_text)
-        full_text = re.sub('^\n+', '', full_text)
-        full_text = re.sub('\n+$', '', full_text)
-        is_large = False
-        is_small = False
-        text_height \
-            = PAPER_HEIGHT[doc.paper_size] - doc.top_margin - doc.bottom_margin
-        text_width \
-            = PAPER_WIDTH[doc.paper_size] - doc.left_margin - doc.right_margin
-        for text in full_text.split('\n'):
-            if re.match(image_res, text):
-                comm = re.sub(image_res, '\\1', text)
-                path = re.sub(image_res, '\\2', text)
-                try:
-                    if is_large:
-                        if text_height > text_width:
-                            ms_doc.add_picture(path, height=Cm(text_height))
-                        else:
-                            ms_doc.add_picture(path, width=Cm(text_width))
-                    elif is_small:
-                        if text_height > text_width:
-                            ms_doc.add_picture(path, width=Cm(text_width))
-                        else:
-                            ms_doc.add_picture(path, height=Cm(text_height))
-                    else:
-                        ms_doc.add_picture(path)
-                    ms_doc.paragraphs[-1].alignment \
-                        = WD_ALIGN_PARAGRAPH.CENTER
-                except BaseException:
-                    e = ms_doc.paragraphs[-1]._element
-                    e.getparent().remove(e)
-                    ms_par = ms_doc.add_paragraph()
-                    ms_par.add_run(text)
-                    ms_par.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                    msg = '警告: ' \
-                        + '画像「' + path + '」が読み込めません'
-                    # msg = 'warning: can\'t open "' + path + '"'
-                    r = '^.*! *\\[.*\\] *\\(' + path + '\\).*$'
-                    for ml in self.md_lines:
-                        if re.match(r, ml.text):
-                            if msg not in ml.warning_messages:
-                                ml.append_warning_message(msg)
-            elif text == '++':
-                is_large = not is_large
-                if is_small:
-                    is_small = False
-            elif text == '--':
-                is_small = not is_small
-                if is_large:
-                    is_large = False
-
-    def _write_preformatted_paragraph(self, ms_doc):
-        ms_par = ms_doc.add_paragraph(style='makdo-g')
-        text_to_write = ''
-        md_lines = self.md_lines
-        m = len(md_lines) - 1
-        for i, ml in enumerate(md_lines):
-            if i == 0:
-                res = '^``` (\\s*)(.*)?$'
-                if re.match(res, ml.raw_text):
-                    text_to_write \
-                        += re.sub(res, '\\1[\\2]', ml.raw_text)
-            elif i == m:
-                if re.match('^```( .*)?$', ml.raw_text):
-                    continue
-            else:
-                if text_to_write != '':
-                    text_to_write += '\n'
-                text_to_write += ml.raw_text
-        # REMOVE SMALL HEIGHT
-        # text_to_write = re.sub('\n*$', '', text_to_write)
-        text_to_write = '`' + text_to_write + '`'
-        self._write_text(text_to_write, ms_par)
-
-    def _write_pagebreak_paragraph(self, ms_doc):
-        ms_doc.add_page_break()
-
-    def _write_sentence_paragraph(self, ms_doc):
-        size = self.font_size
-        text_to_write = self.decoration_instruction
-        for ml in self.md_lines:
-            text = re.sub('^ *', '', ml.text)
-            text_to_write = self._join_string(text_to_write, text)
-        ms_par = self._get_ms_par(ms_doc)
+        elif alignment == 'center':
+            ms_par.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        elif alignment == 'right':
+            ms_par.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        elif (paragraph_class == 'section' and
+              re.sub('^\\S*\\s*', '', md_lines[0].text) == ''):
+            ms_par.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+        elif (paragraph_class == 'sentence' and
+              not re.match('^.*\n', text_to_write_with_reviser)):
+            ms_par.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         ms_fmt = ms_par.paragraph_format
-        if not re.match('^.*\n', text_to_write):
-            ms_fmt.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
-        self._write_text(text_to_write, ms_par)
-
-    @staticmethod
-    def _join_string(string_a, string_b):
-        string_joined = string_a + string_b
-        if re.match('^.*[0-9A-Za-z,\\.\\)}\\]]$', string_a):
-            if re.match('^[0-9A-Za-z\\({\\]].*$', string_b):
-                string_joined = string_a + ' ' + string_b
-        return string_joined
-
-    def _get_ms_par(self, ms_doc, style=''):
-        length = self.length
-        size = self.font_size
-        if style == '':
-            ms_par = ms_doc.add_paragraph(style='makdo')
+        if paragraph_class == 'section' and tail_depth == 1:
+            Paragraph.font_size = xl_size
+            self._write_text(text_to_write_with_reviser, ms_par)
+            Paragraph.font_size = size
         else:
-            ms_par = ms_doc.add_paragraph(style=style)
-        if not doc.auto_space:
+            self._write_text(text_to_write_with_reviser, ms_par)
+
+    def _get_ms_par(self, ms_doc, par_style='makdo'):
+        length_docx = self.length_docx
+        size = Paragraph.font_size
+        ms_par = ms_doc.add_paragraph(style=par_style)
+        if not Document.auto_space:
             pPr = ms_par._p.get_or_add_pPr()
             oe = OxmlElement('w:autoSpaceDE')
             oe.set(ns.qn('w:val'), '0')
@@ -2582,9 +1892,9 @@ class Paragraph:
             pPr.append(oe)
         ms_fmt = ms_par.paragraph_format
         ms_fmt.widow_control = False
-        if length['space before'] >= 0:
-            ms_fmt.space_before \
-                = Pt(length['space before'] * doc.line_spacing * size)
+        if length_docx['space before'] >= 0:
+            pt = length_docx['space before'] * Document.line_spacing * size
+            ms_fmt.space_before = Pt(pt)
         else:
             ms_fmt.space_before = Pt(0)
             msg = '警告: ' \
@@ -2592,9 +1902,9 @@ class Paragraph:
             # msg = 'warning: ' \
             #     + '"space before" must be positive'
             self.md_lines[0].append_warning_message(msg)
-        if length['space after'] >= 0:
-            ms_fmt.space_after \
-                = Pt(length['space after'] * doc.line_spacing * size)
+        if length_docx['space after'] >= 0:
+            pt = length_docx['space after'] * Document.line_spacing * size
+            ms_fmt.space_after = Pt(pt)
         else:
             ms_fmt.space_after = Pt(0)
             msg = '警告: ' \
@@ -2602,18 +1912,21 @@ class Paragraph:
             # msg = 'warning: ' \
             #     + '"space after" must be positive'
             self.md_lines[0].append_warning_message(msg)
-        ms_fmt.first_line_indent = Pt(length['first indent'] * size)
-        ms_fmt.left_indent = Pt(length['left indent'] * size)
-        ms_fmt.right_indent = Pt(length['right indent'] * size)
+        ms_fmt.first_line_indent = Pt(length_docx['first indent'] * size)
+        ms_fmt.left_indent = Pt(length_docx['left indent'] * size)
+        ms_fmt.right_indent = Pt(length_docx['right indent'] * size)
         # ms_fmt.line_spacing_rule = WD_LINE_SPACING.ONE_POINT_FIVE
-        ls = doc.line_spacing * (1 + length['line spacing'])
-        ms_fmt.line_spacing = Pt(ls * size)
-        if ls < 1.0:
+        ls = Document.line_spacing * (1 + length_docx['line spacing'])
+        if ls >= 1.0:
+            ms_fmt.line_spacing = Pt(ls * size)
+        else:
+            ms_fmt.line_spacing = Pt(1.0 * size)
             msg = '警告: ' \
                 + '段落後の余白「X」の値が少な過ぎます'
             # msg = 'warning: ' \
             #     + 'too small line spacing'
             self.md_lines[0].append_warning_message(msg)
+        ms_fmt.line_spacing = Pt(ls * size)
         return ms_par
 
     def _write_text(self, text, ms_par):
@@ -2626,7 +1939,7 @@ class Paragraph:
             text += ln + '\n'
         text = re.sub('\n$', '', text)
         text = Paragraph._remove_relax_symbol(text)
-        res_img = '(.*(?:\n.*)*)! ?\\[([^\\[\\]]*)\\] ?\\(([^\\(\\)]+)\\)'
+        res_img = '(.*(?:\n.*)*)' + RES_IMAGE
         tex = ''
         for c in text + '\0':
             if False:
@@ -2727,6 +2040,7 @@ class Paragraph:
                 tex = re.sub(res_img, '\\1', tex + c)
                 tex = self._write_string(tex, ms_par)
                 self._write_image(comm, path, ms_par)
+                continue
             tex += c
         tex = re.sub('\0$', '', tex)
         if tex != '':
@@ -2747,7 +2061,7 @@ class Paragraph:
         string = re.sub('\\\\', '-\\\\', string)
         string = re.sub('-\\\\-\\\\', '-\\\\\\\\', string)
         string = re.sub('-\\\\', '', string)
-        size = cls.font_size
+        size = Paragraph.font_size
         l_size = 1.2 * size
         s_size = 0.8 * size
         ms_run = ms_par.add_run(string)
@@ -2788,7 +2102,7 @@ class Paragraph:
         return ''
 
     def _write_image(self, comm, path, ms_par):
-        size = self.font_size
+        size = Paragraph.font_size
         l_size = 1.2 * size
         s_size = 0.8 * size
         ms_run = ms_par.add_run()
@@ -2815,6 +2129,511 @@ class Paragraph:
             ml.print_warning_messages()
 
 
+class ParagraphEmpty(Paragraph):
+
+    """A class to handle empty paragraph"""
+
+    paragraph_class = 'empty'
+
+    @classmethod
+    def is_this_class(cls, full_text,
+                      head_font_revisers=[], tail_font_revisers=[]):
+        if full_text == '':
+            return True
+        else:
+            return False
+
+
+class ParagraphBlank(Paragraph):
+
+    """A class to handle blank paragraph"""
+
+    paragraph_class = 'blank'
+    res_feature = '^\n+$'
+
+
+class ParagraphChapter(Paragraph):
+
+    """A class to handle chapter paragraph"""
+
+    paragraph_class = 'chapter'
+    paragraph_class_ja = 'チャプター'
+    res_symbol = '(\\$+)((?:-\\$+)*)'
+    res_feature = '^' + res_symbol + '\\s*(.*)$'
+    res_reviser = res_symbol + '=([0-9]+)'
+    states = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # 第１編
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # 第１章
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # 第１節
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # 第１款
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]  # 第１目
+    unit_chars = ['編', '章', '節', '款', '目']
+
+    @classmethod
+    def _get_depths(cls, full_text):
+        if not re.match(cls.res_feature, full_text):
+            return 0
+        trunk = re.sub(cls.res_feature, '\\1', full_text)
+        head_depth = len(trunk)
+        tail_depth = head_depth
+        return head_depth, tail_depth
+
+    def _edit_data(self):
+        self._edit_data_of_chapter_and_section()
+        return
+
+    @classmethod
+    def _get_head_string(cls, xdepth, ydepth, md_line):
+        xvalue_char = '●'
+        unit_char = '●'
+        if xdepth < len(cls.states):
+            if ydepth < len(cls.states[xdepth]):
+                value = cls.states[xdepth][ydepth]
+                xvalue_char = i2c_n_arab(value, md_line)
+            unit_char = cls.unit_chars[xdepth]
+        head_string = '第' + xvalue_char + unit_char
+        for y in range(1, ydepth + 1):
+            if y < len(cls.states[xdepth]):
+                value = cls.states[xdepth][y] + 1
+                yvalue_char = i2c_n_arab(value, md_line)
+            else:
+                yvalue_char = '●'
+            head_string += 'の' + yvalue_char
+        return head_string
+
+
+class ParagraphSection(Paragraph):
+
+    """A class to handle section paragraph"""
+
+    paragraph_class = 'section'
+    paragraph_class_ja = 'セクション'
+    res_symbol = '(#+)((?:-#+)*)'
+    res_feature = '^' + res_symbol + '\\s*(.*)$'
+    res_reviser = res_symbol + '=([0-9]+)'
+    head_depth = 0
+    tail_depth = 0
+    states = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # -
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # 第１
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # １
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # (1)
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # ア
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # (ｱ)
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # ａ
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]  # (a)
+
+    @classmethod
+    def _get_depths(cls, full_text):
+        ft = full_text
+        head_depth = 0
+        tail_depth = 0
+        while re.match(cls.res_feature, ft):
+            trunk = re.sub(cls.res_feature, '\\1', ft)
+            depth = len(trunk)
+            if head_depth == 0:
+                head_depth = depth
+            tail_depth = depth
+            ft = re.sub(cls.res_feature, '\\3', ft)
+        Paragraph.previous_head_depth = head_depth
+        Paragraph.previous_tail_depth = tail_depth
+        return head_depth, tail_depth
+
+    def _edit_data(self):
+        self._edit_data_of_chapter_and_section()
+        return
+
+    @classmethod
+    def _get_head_string(cls, xdepth, ydepth, md_line):
+        # TRUNK
+        if xdepth < len(cls.states) and ydepth < len(cls.states[xdepth]):
+            value = cls.states[xdepth][ydepth]
+            if xdepth == 0:
+                head_string = ''
+            elif xdepth == 1:
+                if Document.document_style == 'n':
+                    head_string = '第' + i2c_n_arab(value, md_line)
+                else:
+                    head_string = '第' + i2c_n_arab(value, md_line) + '条'
+            elif xdepth == 2:
+                if Document.document_style != 'j' or cls.states[1][0] == 0:
+                    head_string = i2c_n_arab(value, md_line)
+                else:
+                    head_string = i2c_n_arab(value + 1, md_line)
+            elif xdepth == 3:
+                head_string = i2c_p_arab(value, md_line)
+            elif xdepth == 4:
+                head_string = i2c_n_kata(value, md_line)
+            elif xdepth == 5:
+                head_string = i2c_p_kata(value, md_line)
+            elif xdepth == 6:
+                head_string = i2c_n_alph(value, md_line)
+            elif xdepth == 7:
+                head_string = i2c_p_alph(value, md_line)
+            else:
+                head_string = '●'
+        else:
+            head_string = '●'
+        # BRANCH
+        for y in range(1, ydepth + 1):
+            if y < len(cls.states[xdepth]):
+                value = cls.states[xdepth][y] + 1
+                yvalue_char = i2c_n_arab(value, md_line)
+            else:
+                yvalue_char = '●'
+            head_string += 'の' + yvalue_char
+        return head_string
+
+
+class ParagraphList(Paragraph):
+
+    """A class to handle list paragraph"""
+
+    paragraph_class = 'list'
+    paragraph_class_ja = 'リスト'
+    res_symbol = '([-\\+\\*]|[0-9]+\\.)()'
+    res_feature = '^' + res_symbol + '\\s*(.*)$'
+    states = [[0],  # ①
+              [0],  # ㋐
+              [0],  # ⓐ
+              [0]]  # ㊀
+
+    @classmethod
+    def reset_states(cls, paragraph_class):
+        if paragraph_class != 'list':
+            for s in cls.states:
+                s[0] = 0
+        return
+
+    def _get_depths(self, full_text):
+        line = self.md_lines[0].text
+        self.list_depth = self._get_list_depth(line)
+        head_depth = self.list_depth
+        prev_depth = Paragraph.previous_tail_depth
+        if prev_depth > 0:
+            head_depth += prev_depth - 1.0
+        tail_depth = head_depth
+        return head_depth, tail_depth
+
+    @staticmethod
+    def _get_list_depth(line):
+        line = re.sub('\t', '  ', line)
+        line = re.sub('  ', ' ', line)
+        spaces = re.sub('^( *).*', '\\1', line)
+        list_depth = len(spaces) + 1
+        # self.list_depth = list_depth
+        return list_depth
+
+    def _edit_data(self):
+        res = '^\\s*' + ParagraphList.res_symbol + '\\s*'
+        states = ParagraphList.states
+        line = self.md_lines[0].text
+        list_depth = self.list_depth
+        is_numbering = False
+        if re.match('\\s*[0-9].\\s', line):
+            is_numbering = True
+        line = re.sub(res, '', line)
+        if not is_numbering:
+            if list_depth == 1:
+                head_strings = '・'
+                # head_strings = '• '  # U+2022 Bullet
+            elif list_depth == 2:
+                head_strings = '○'
+                # head_strings = '◦ '  # U+25E6 White Bullet
+            elif list_depth == 3:
+                head_strings = '△'
+                # head_strings = '‣ '  # U+2023 Triangular Bullet
+            elif list_depth == 4:
+                head_strings = '◇'
+                # head_strings = '⁃ '  # U+2043 Hyphen Bullet
+            else:
+                head_strings = '●'
+        else:
+            if list_depth <= len(states):
+                states[list_depth - 1][0] += 1
+                for d in range(list_depth, len(states)):
+                    states[d][0] = 0
+            if list_depth == 1:
+                head_strings = i2c_c_arab(states[0][0])
+            elif list_depth == 2:
+                head_strings = i2c_c_kata(states[1][0])
+            elif list_depth == 3:
+                head_strings = i2c_c_alph(states[2][0])
+            elif list_depth == 4:
+                head_strings = i2c_c_kanj(states[3][0])
+            else:
+                head_strings = '●'
+        self.md_lines[0].text = head_strings + '\u3000' + line
+
+
+class ParagraphTable(Paragraph):
+
+    """A class to handle table paragraph"""
+
+    paragraph_class = 'table'
+    res_feature = '^\\|.*\\|$'
+
+    def write_paragraph(self, ms_doc):
+        size = Paragraph.font_size
+        s_size = 0.8 * size
+        tab = self._get_table_data(self.md_lines)
+        conf_row, ali_list, wid_list = self._get_table_alignment_and_width(tab)
+        if conf_row >= 0:
+            tab.pop(conf_row)
+        row = len(tab)
+        col = len(tab[0])
+        ms_tab = ms_doc.add_table(row, col, style='Table Grid')
+        # ms_tab.autofit = True
+        for i in range(len(tab)):
+            ms_tab.rows[i].height_rule = WD_ROW_HEIGHT_RULE.AUTO
+        for j in range(len(tab[0])):
+            ms_tab.columns[j].width = Pt((wid_list[j] + 2) * s_size)
+        ms_tab.alignment = WD_TABLE_ALIGNMENT.CENTER
+        for i in range(len(tab)):
+            # ms_tab.rows[i].height = Pt(1.5 * size)
+            for j in range(len(tab[i])):
+                cell = tab[i][j]
+                if ali_list[j] != WD_TABLE_ALIGNMENT.LEFT:
+                    cell = re.sub('^\\s+', '', cell)
+                if ali_list[j] != WD_TABLE_ALIGNMENT.RIGHT:
+                    cell = re.sub('\\s+$', '', cell)
+                ms_cell = ms_tab.cell(i, j)
+                ms_cell.width = Pt((wid_list[j] + 2) * s_size)
+                ms_cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
+                ms_par = ms_cell.paragraphs[0]
+                ms_par.style = 'makdo-t'
+                Paragraph.font_size = s_size
+                self._write_text(cell, ms_par)
+                Paragraph.font_size = size
+                ms_fmt = ms_par.paragraph_format
+                if i < conf_row:
+                    ms_fmt.alignment = WD_TABLE_ALIGNMENT.CENTER
+                else:
+                    ms_fmt.alignment = ali_list[j]
+
+    @staticmethod
+    def _get_table_data(md_lines):
+        tab = []
+        line = ''
+        for ml in md_lines:
+            if ml.text == '' or re.match('^(?:<>)+$', ml.text):
+                continue
+            line += ml.text
+            if re.match('^.*\\\\$', line):
+                line = re.sub('\\\\$', '', line)
+                continue
+            line = re.sub('^\\|', '', line)
+            line = re.sub('\\|$', '', line)
+            tab.append(line.split('|'))
+            line = ''
+        m = 0
+        for rw in tab:
+            if m < len(rw) - 1:
+                m = len(rw) - 1
+        for rw in tab:
+            while len(rw) - 1 < m:
+                rw.append('')
+        # for i in range(len(tab)):
+        #     for j in range(len(tab[i])):
+        #         tab[i][j] = re.sub('^\\s+', '', tab[i][j])
+        #         tab[i][j] = re.sub('\\s+$', '', tab[i][j])
+        return tab
+
+    @staticmethod
+    def _get_table_alignment_and_width(tab):
+        conf_row = -1
+        for i in range(len(tab)):
+            for j in range(len(tab[i])):
+                if not re.match('^ *:?-*:? *$', tab[i][j]):
+                    break
+            else:
+                conf_row = i
+                break
+        ali_list = []
+        wid_list = []
+        if conf_row >= 0:
+            for s in tab[conf_row]:
+                s = s.replace(' ', '')
+                if re.match('^:-*:$', s):
+                    ali_list.append(WD_TABLE_ALIGNMENT.CENTER)
+                elif re.match('^-+:$', s):
+                    ali_list.append(WD_TABLE_ALIGNMENT.RIGHT)
+                else:
+                    ali_list.append(WD_TABLE_ALIGNMENT.LEFT)
+                wid_list.append(float(len(s)) / 2)
+        else:
+            for i in range(len(tab)):
+                while len(ali_list) < len(tab[i]):
+                    ali_list.append(WD_TABLE_ALIGNMENT.LEFT)
+                while len(wid_list) < len(tab[i]):
+                    wid_list.append(0.0)
+                for j in range(len(tab[i])):
+                    s = tab[i][j]
+                    w = float(get_real_width(s)) / 2
+                    if wid_list[j] < w:
+                        wid_list[j] = w
+        return conf_row, ali_list, wid_list
+
+
+class ParagraphImage(Paragraph):
+
+    """A class to handle image paragraph"""
+
+    paragraph_class = 'image'
+    res_feature = '^(?:' \
+        + '(?:\\-\\-|\\+\\+|\\s+)*' + RES_IMAGE + '(?:\\-\\-|\\+\\+|\\s+)*' \
+        + ')+$'
+
+    def write_paragraph(self, ms_doc):
+        ttwwr = self.text_to_write_with_reviser
+        ttwwr = re.sub('\\s*(' + RES_IMAGE + ')\\s*', '\n\\1\n', ttwwr)
+        ttwwr = re.sub('\\s*\\+\\+\\s*', '\n++\n', ttwwr)
+        ttwwr = re.sub('\\s*\\-\\-\\s*', '\n--\n', ttwwr)
+        ttwwr = re.sub('\n+', '\n', ttwwr)
+        ttwwr = re.sub('^\n+', '', ttwwr)
+        ttwwr = re.sub('\n+$', '', ttwwr)
+        is_large = False
+        is_small = False
+        text_height = PAPER_HEIGHT[Document.paper_size] \
+            - Document.top_margin - Document.bottom_margin
+        text_width = PAPER_WIDTH[Document.paper_size] \
+            - Document.left_margin - Document.right_margin
+        for text in ttwwr.split('\n'):
+            if re.match(RES_IMAGE, text):
+                comm = re.sub(RES_IMAGE, '\\1', text)
+                path = re.sub(RES_IMAGE, '\\2', text)
+                try:
+                    if is_large:
+                        if text_height > text_width:
+                            ms_doc.add_picture(path, height=Cm(text_height))
+                        else:
+                            ms_doc.add_picture(path, width=Cm(text_width))
+                    elif is_small:
+                        if text_height > text_width:
+                            ms_doc.add_picture(path, width=Cm(text_width))
+                        else:
+                            ms_doc.add_picture(path, height=Cm(text_height))
+                    else:
+                        ms_doc.add_picture(path)
+                    ms_doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
+                except BaseException:
+                    e = ms_doc.paragraphs[-1]._element
+                    e.getparent().remove(e)
+                    ms_par = ms_doc.add_paragraph()
+                    ms_par.add_run(text)
+                    ms_par.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                    msg = '警告: ' \
+                        + '画像「' + path + '」が読み込めません'
+                    # msg = 'warning: can\'t open "' + path + '"'
+                    r = '^.*! *\\[.*\\] *\\(' + path + '\\).*$'
+                    for ml in self.md_lines:
+                        if re.match(r, ml.text):
+                            if msg not in ml.warning_messages:
+                                ml.append_warning_message(msg)
+            elif text == '++':
+                is_large = not is_large
+                if is_small:
+                    is_small = False
+            elif text == '--':
+                is_small = not is_small
+                if is_large:
+                    is_large = False
+
+
+class ParagraphAlignment(Paragraph):
+
+    """A class to handle alignment paragraph"""
+
+    paragraph_class = 'alignment'
+    res_feature = '^(?:: .*|.* :)$'
+
+    def _edit_data(self):
+        md_lines = self.md_lines
+        for ml in md_lines:
+            if self.alignment == 'left' or self.alignment == 'center':
+                ml.text = re.sub('^:\\s*', '', ml.text)
+            if self.alignment == 'center' or self.alignment == 'right':
+                ml.text = re.sub('\\s*:$', '', ml.text)
+
+    def _get_text_to_write(self):
+        md_lines = self.md_lines
+        text_to_write = ''
+        for ml in md_lines:
+            if ml.text != '':
+                text_to_write += ml.text + '\n'
+        text_to_write = re.sub('\n$', '', text_to_write)
+        return text_to_write
+
+
+class ParagraphPreformatted(Paragraph):
+
+    """A class to handle preformatted paragraph"""
+
+    paragraph_class = 'preformatted'
+
+    @classmethod
+    def is_this_class(cls, full_text,
+                      head_font_revisers, tail_font_revisers):
+        if re.match('^```.*$', ''.join(head_font_revisers)) and \
+           re.match('^.*```$', ''.join(tail_font_revisers)):
+            return True
+        else:
+            return False
+
+    def _edit_data(self):
+        self.head_font_revisers.pop(0)
+        self.head_font_revisers.pop(0)
+        self.head_font_revisers.pop(0)
+        self.tail_font_revisers.pop(-1)
+        self.tail_font_revisers.pop(-1)
+        self.tail_font_revisers.pop(-1)
+        self.md_lines[0].text = re.sub('\\s', '', self.md_lines[0].text)
+        return
+
+    def _get_text_to_write(self):
+        md_lines = self.md_lines
+        text_to_write = ''
+        for i in range(len(md_lines)):
+            if i == 0:
+                if md_lines[i].text != '':
+                    text_to_write += '[' + md_lines[i].text + ']\n'
+            else:
+                text_to_write += md_lines[i].text + '\n'
+        text_to_write = re.sub('\n$', '', text_to_write)
+        text_to_write = '`' + text_to_write + '`'
+        return text_to_write
+
+
+class ParagraphPagebreak(Paragraph):
+
+    """A class to handle preformatted paragraph"""
+
+    paragraph_class = 'pagebreak'
+    res_feature = '^(?:<div style="break-.*: page;"></div>|<pgbr/?>)$'
+
+    def write_paragraph(self, ms_doc):
+        ms_doc.add_page_break()
+
+
+class ParagraphBreakdown(Paragraph):
+
+    """A class to handle breakdown paragraph"""
+
+    paragraph_class = 'breakdown'
+    res_feature = NOT_ESCAPED + '::.*$'
+
+
+class ParagraphSentence(Paragraph):
+
+    """A class to handle sentence paragraph"""
+
+    paragraph_class = 'sentence'
+
+    @classmethod
+    def _get_depths(cls, full_text):
+        head_depth = Paragraph.previous_tail_depth
+        tail_depth = Paragraph.previous_tail_depth
+        return head_depth, tail_depth
+
+
 class MdLine:
 
     """A class to handle markdown line"""
@@ -2824,10 +2643,9 @@ class MdLine:
     def __init__(self, line_number, raw_text):
         self.line_number = line_number
         self.raw_text = raw_text
-        self.text = ''
-        self.comment = ''
+        self.md_text, self.comment = self.separate_comment()
+        self.text = self.md_text
         self.warning_messages = []
-        self.text, self.comment = self.separate_comment()
 
     def separate_comment(self):
         ori_sym = ORIGINAL_COMMENT_SYMBOL
@@ -2891,8 +2709,8 @@ class MdLine:
 
     def print_warning_messages(self):
         for wm in self.warning_messages:
-            msg = wm + ' (line ' + str(self.line_number) + ')' + '\n  ' \
-                + self.raw_text
+            msg = wm + '\n' \
+                + '  (line ' + str(self.line_number) + ') ' + self.raw_text
             sys.stderr.write(msg + '\n\n')
 
 
@@ -2900,7 +2718,7 @@ class MdLine:
 # MAIN
 
 
-if __name__ == '__main__':
+def main():
 
     args = get_arguments()
 
@@ -2927,3 +2745,7 @@ if __name__ == '__main__':
     doc.print_warning_messages()
 
     sys.exit(0)
+
+
+if __name__ == '__main__':
+    main()

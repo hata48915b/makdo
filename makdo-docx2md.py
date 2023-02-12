@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
-# Version:      v04 Mitaki
-# Time-stamp:   <2023.02.09-08:45:34-JST>
+# Version:      v05a Aki-Nagatsuka
+# Time-stamp:   <2023.02.13-01:19:22-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -24,35 +24,7 @@
 # 2022.08.24 v02 Shin-Hakushima
 # 2022.12.25 v03 Yokogawa
 # 2023.01.07 v04 Mitaki
-
-
-############################################################
-# TERMS
-
-
-# ^$$ / 第１章: chapter
-# ^$$-$ / 第１章の２: branch
-# 第１章 -> 第２章 -> 第３章 -> ...: value
-# 編 -> 章 -> 節 -> 款 -> 目: depth(1-5) / xdepth(0-4)
-# -> の２ -> の２の２ -> の２の２の２ -> ...: ydepth(0-4)
-
-# ^## / 第１:  section
-# ^##-# / 第１の２: branch
-# 第１ -> 第２ -> 第３ -> ...: value
-# -> 第１ -> １ -> ⑴ -> ア -> (ｱ) -> ａ -> (a): depth(1-5) / xdepth(0-4)
-# -> の２ -> の２の２ -> の２の２の２ -> ...: ydepth(0-4)
-
-# head_depth / tail_depth
-
-# length_adjr / length_sect / length_docx
-
-# ^($+(-$)*|#+(-#)*)=x\n\n: pre_adjuster
-
-# ^($+(-$)*|#+(-#)*|v|V|X|<<|<|>)=x: head_adjuster
-
-# head_depth / tail_depth
-# (*|**|***|~~|//|__|--|++|^.*^|_.+_)*: decorator
-# ^(*|**|***|~~|//|__|--|++|^.*^|_.+_)*: head_decorator
+# 20XX.XX.XX v05 Aki-Nagatsuka
 
 
 ############################################################
@@ -69,7 +41,7 @@ import unicodedata
 import datetime
 
 
-__version__ = 'v04 Mitaki'
+__version__ = 'v05 Aki-Nagatsuka'
 
 
 def get_arguments():
@@ -100,18 +72,22 @@ def get_arguments():
     parser.add_argument(
         '-t', '--top-margin',
         type=float,
+        metavar='NUMBER',
         help='上余白（単位cm）')
     parser.add_argument(
         '-b', '--bottom-margin',
         type=float,
+        metavar='NUMBER',
         help='下余白（単位cm）')
     parser.add_argument(
         '-l', '--left-margin',
         type=float,
+        metavar='NUMBER',
         help='左余白（単位cm）')
     parser.add_argument(
         '-r', '--right-margin',
         type=float,
+        metavar='NUMBER',
         help='右余白（単位cm）')
     parser.add_argument(
         '-d', '--document-style',
@@ -133,14 +109,17 @@ def get_arguments():
     parser.add_argument(
         '-m', '--mincho-font',
         type=str,
+        metavar='FONT_NAME',
         help='明朝フォント')
     parser.add_argument(
         '-g', '--gothic-font',
         type=str,
+        metavar='FONT_NAME',
         help='ゴシックフォント')
     parser.add_argument(
         '-f', '--font-size',
         type=float,
+        metavar='NUMBER',
         help='フォントサイズ（単位pt）')
     parser.add_argument(
         '-s', '--line-spacing',
@@ -173,7 +152,7 @@ def get_arguments():
 
 
 def floats6(s):
-    if not re.match('^(' + RES_NUMBER + '?,){,5}' + RES_NUMBER + '?,?$', s):
+    if not re.match('^' + RES_NUMBER6 + '$', s):
         raise argparse.ArgumentTypeError
     return s
 
@@ -186,11 +165,13 @@ DEFAULT_DOCUMENT_TITLE = ''
 DEFAULT_DOCUMENT_STYLE = 'n'
 
 DEFAULT_PAPER_SIZE = 'A4'
-PAPER_HEIGHT = {'A3': 29.7, 'A3P': 42.0, 'A4': 29.7, 'A4L': 21.0}
-PAPER_WIDTH = {'A3': 42.0, 'A3P': 29.7, 'A4': 21.0, 'A4L': 29.7}
+PAPER_HEIGHT = {'A3': 29.7, 'A3L': 29.7, 'A3P': 42.0,
+                'A4': 29.7, 'A4L': 21.0, 'A4P': 29.7}
+PAPER_WIDTH = {'A3': 42.0, 'A3L': 42.0, 'A3P': 29.7,
+               'A4': 21.0, 'A4L': 29.7, 'A4P': 21.0}
 
 DEFAULT_TOP_MARGIN = 3.5
-DEFAULT_BOTTOM_MARGIN = 2.0
+DEFAULT_BOTTOM_MARGIN = 2.2
 DEFAULT_LEFT_MARGIN = 3.0
 DEFAULT_RIGHT_MARGIN = 2.0
 
@@ -213,9 +194,10 @@ DEFAULT_AUTO_SPACE = False
 
 NOT_ESCAPED = '^((?:(?:.*\n)*.*[^\\\\])?(?:\\\\\\\\)*)?'
 
-MD_TEXT_WIDTH = 68
+RES_NUMBER = '(?:[-\\+]?(?:(?:[0-9]+(?:\\.[0-9]+)?)|(?:\\.[0-9]+)))'
+RES_NUMBER6 = '(?:' + RES_NUMBER + '?,){,5}' + RES_NUMBER + '?,?'
 
-FONT_DECORATIONS = [
+FONT_DECORATORS = [
     '\\*\\*\\*',           # italic and bold
     '\\*\\*',              # bold
     '\\*',                 # italic
@@ -228,6 +210,8 @@ FONT_DECORATIONS = [
     '\\^[0-9A-Za-z]*\\^',  # font color
     '_[0-9A-Za-z]+_',      # higilight color
 ]
+
+MD_TEXT_WIDTH = 68
 
 FONT_COLOR = {
     'FF0000': 'red',
@@ -545,14 +529,13 @@ CONJUNCTIONS = [
 
 class ParagraphChapter:
 
-    #          ---HEIGHT----
-    states = [[0, 0, 0, 0, 0],  # 第１編 D
-              [0, 0, 0, 0, 0],  # 第１章 E
-              [0, 0, 0, 0, 0],  # 第１節 P
-              [0, 0, 0, 0, 0],  # 第１款 T
-              [0, 0, 0, 0, 0]]  # 第１目 H
+    states = [[0, 0, 0, 0, 0],  # 第１編
+              [0, 0, 0, 0, 0],  # 第１章
+              [0, 0, 0, 0, 0],  # 第１節
+              [0, 0, 0, 0, 0],  # 第１款
+              [0, 0, 0, 0, 0]]  # 第１目
     post_char = ['編', '章', '節', '款', '目']
-    r0 = '^((?:' + '|'.join(FONT_DECORATIONS) + ')*)'
+    r0 = '^((?:' + '|'.join(FONT_DECORATORS) + ')*)'
     r1 = r0 + '第([0-9０-９])+' + post_char[0]
     r2 = r0 + '第([0-9０-９])+' + post_char[1]
     r3 = r0 + '第([0-9０-９])+' + post_char[2]
@@ -606,12 +589,12 @@ class ParagraphChapter:
             md_text = re.sub(cls.r5, '\\1$$$$$', md_text)
         xdepth = depth - 1
         height = 0
-        states[0] = inverse_n_int(value)
+        states[0] = c2i_n_arab(value)
         res = cls.r0 + '(\\$+(?:-\\$)*)の([0-9０-９]+)'
         while re.match(res, md_text):
             height += 1
             states[height] = \
-                inverse_n_int(re.sub(res + '.*', '\\3', md_text)) - 1
+                c2i_n_arab(re.sub(res + '.*', '\\3', md_text)) - 1
             md_text = re.sub(res, '\\1\\2-$', md_text)
             cls.states[xdepth][height] += 1
             cls.reset_after(xdepth, height)
@@ -662,7 +645,7 @@ class ParagraphSection:
               [0, 0, 0, 0, 0]]  # (a)
     depth_first = 0
     depth = 0
-    r0 = '((?:' + '|'.join(FONT_DECORATIONS) + ')*)'
+    r0 = '((?:' + '|'.join(FONT_DECORATORS) + ')*)'
     r1 = '(.*)'
     r2 = '(?:(第([0-9０-９]+)条?)((?:の[0-9０-９]+)*))'
     r3 = '(?:(([0-9０-９]+))((?:の[0-9０-９]+)*))'
@@ -760,8 +743,8 @@ class ParagraphSection:
             text = re.sub(res, '\\6', line)
             numb = []
             for n in re.sub(res, '\\4', line).split('の'):
-                numb.append(inverse_n_int(n) - 1)
-            numb[0] = inverse_n_int(re.sub(res, '\\3', line))
+                numb.append(c2i_n_arab(n) - 1)
+            numb[0] = c2i_n_arab(re.sub(res, '\\3', line))
         elif depth == 3:
             res = cls.res3 + '(.*)$'
             comm = re.sub(res, '\\1', line)
@@ -770,8 +753,8 @@ class ParagraphSection:
             text = re.sub(res, '\\22', line)
             numb = []
             for n in re.sub(res, '\\4', line).split('の'):
-                numb.append(inverse_n_int(n) - 1)
-            numb[0] = inverse_n_int(re.sub(res, '\\3', line))
+                numb.append(c2i_n_arab(n) - 1)
+            numb[0] = c2i_n_arab(re.sub(res, '\\3', line))
         elif depth == 4:
             res = cls.res4 + '(.*)$'
             comm = re.sub(res, '\\1', line)
@@ -782,11 +765,11 @@ class ParagraphSection:
             h2 = re.sub(res, '\\7', line)
             numb = []
             for n in re.sub(res, '\\8', line).split('の'):
-                numb.append(inverse_n_int(n) - 1)
+                numb.append(c2i_n_arab(n) - 1)
             if re.match('^[⑴-⒇]$', h1):
                 numb[0] = ord(h1) - 9331
             else:
-                numb[0] = inverse_n_int(h2)
+                numb[0] = c2i_n_arab(h2)
         elif depth == 5:
             res = cls.res5 + '(.*)$'
             comm = re.sub(res, '\\1', line)
@@ -795,8 +778,8 @@ class ParagraphSection:
             text = re.sub(res, '\\22', line)
             numb = []
             for n in re.sub(res, '\\11', line).split('の'):
-                numb.append(inverse_n_int(n) - 1)
-            numb[0] = inverse_n_kata(re.sub(res, '\\10', line))
+                numb.append(c2i_n_arab(n) - 1)
+            numb[0] = c2i_n_kata(re.sub(res, '\\10', line))
         elif depth == 6:
             res = cls.res6 + '(.*)$'
             comm = re.sub(res, '\\1', line)
@@ -805,8 +788,8 @@ class ParagraphSection:
             text = re.sub(res, '\\22', line)
             numb = []
             for n in re.sub(res, '\\14', line).split('の'):
-                numb.append(inverse_n_int(n) - 1)
-            numb[0] = inverse_n_kata(re.sub(res, '\\13', line))
+                numb.append(c2i_n_arab(n) - 1)
+            numb[0] = c2i_n_kata(re.sub(res, '\\13', line))
         else:
             comm = ''
             head = ''
@@ -843,77 +826,92 @@ class ParagraphSection:
 
 class List:
 
-    res_b1 = '(•((  ?)|(\t)|(\u3000)))'  # U+2022 Bullet
-    res_b2 = '(◦((  ?)|(\t)|(\u3000)))'  # U+25E6 White Bullet
-    res_b3 = '(‣((  ?)|(\t)|(\u3000)))'  # U+2023 Triangular Bul
-    res_b4 = '(⁃((  ?)|(\t)|(\u3000)))'  # U+2043 Hyphen Bullet
-    res_n1 = '(([0-9０-９]+)((\\. ?)|(．)))'
-    res_n2 = '(([0-9０-９]+)((\\) ?)|(）)))'
-    res_n3 = '(([a-zａ-ｚ]+)((\\. ?)|(．)))'
-    res_n4 = '(([a-zａ-ｚ]+)((\\) ?)|(）)))'
+    res_b1 = '(・)'
+    res_b2 = '(○)'
+    res_b3 = '(△)'
+    res_b4 = '(◇)'
+    # res_b1 = '(•)'  # U+2022 Bullet
+    # res_b2 = '(◦)'  # U+25E6 White Bullet
+    # res_b3 = '(‣)'  # U+2023 Triangular Bul
+    # res_b4 = '(⁃)'  # U+2043 Hyphen Bullet
+    res_n1 = ('(' + chr(9450) +                             # 0
+              '|[' + chr(9312) + '-' + chr(9331) + ']' +    # 1-20
+              '|[' + chr(12881) + '-' + chr(12895) + ']' +  # 21-35
+              '|[' + chr(12977) + '-' + chr(12991) + ']' +  # 36-50
+              '|' + chr(127243) +                           # 0
+              '|[' + chr(10112) + '-' + chr(10121) + ']' +  # 1-10
+              ')')
+    res_n2 = '([' + chr(13008) + '-' + chr(13054) + '])'
+    res_n3 = '([' + chr(9424) + '-' + chr(9449) + '])'
+    res_n4 = '([' + chr(12928) + '-' + chr(12937) + '])'
+    # res_n1 = '(([0-9０-９]+)((\\. ?)|(．)))'
+    # res_n2 = '(([0-9０-９]+)((\\) ?)|(）)))'
+    # res_n3 = '(([a-zａ-ｚ]+)((\\. ?)|(．)))'
+    # res_n4 = '(([a-zａ-ｚ]+)((\\) ?)|(）)))'
+    res_sp = '(?:  ?|\t|\u3000|. ?|．)'
 
     @classmethod
     def get_division_and_depth(cls, line):
-        if re.match(cls.res_b1, line):
+        if re.match('^[ \t\u3000]*' + cls.res_b1 + cls.res_sp, line):
             return 'b1'
-        if re.match(cls.res_b2, line):
+        if re.match('^[ \t\u3000]*' + cls.res_b2 + cls.res_sp, line):
             return 'b2'
-        if re.match(cls.res_b3, line):
+        if re.match('^[ \t\u3000]*' + cls.res_b3 + cls.res_sp, line):
             return 'b3'
-        if re.match(cls.res_b4, line):
+        if re.match('^[ \t\u3000]*' + cls.res_b4 + cls.res_sp, line):
             return 'b4'
-        if re.match(cls.res_n1, line):
+        if re.match('^[ \t\u3000]*' + cls.res_n1 + cls.res_sp, line):
             return 'n1'
-        if re.match(cls.res_n2, line):
+        if re.match('^[ \t\u3000]*' + cls.res_n2 + cls.res_sp, line):
             return 'n2'
-        if re.match(cls.res_n3, line):
+        if re.match('^[ \t\u3000]*' + cls.res_n3 + cls.res_sp, line):
             return 'n3'
-        if re.match(cls.res_n4, line):
+        if re.match('^[ \t\u3000]*' + cls.res_n4 + cls.res_sp, line):
             return 'n4'
         return ''
 
     @classmethod
     def decompose(cls, type_and_depth, line):
         if type_and_depth == 'b1':
-            res = '^[ \t\u3000]*' + cls.res_b1 + '(.*)$'
+            res = '^[ \t\u3000]*' + cls.res_b1 + cls.res_sp + '(.*)$'
             head = re.sub(res, '\\1', line)
-            text = re.sub(res, '\\6', line)
+            text = re.sub(res, '\\2', line)
             numb = -1
         elif type_and_depth == 'b2':
-            res = '^[ \t\u3000]*' + cls.res_b2 + '(.*)$'
+            res = '^[ \t\u3000]*' + cls.res_b2 + cls.res_sp + '(.*)$'
             head = re.sub(res, '\\1', line)
-            text = re.sub(res, '\\6', line)
+            text = re.sub(res, '\\2', line)
             numb = -1
         elif type_and_depth == 'b3':
-            res = '^[ \t\u3000]*' + cls.res_b3 + '(.*)$'
+            res = '^[ \t\u3000]*' + cls.res_b3 + cls.res_sp + '(.*)$'
             head = re.sub(res, '\\1', line)
-            text = re.sub(res, '\\6', line)
+            text = re.sub(res, '\\2', line)
             numb = -1
         elif type_and_depth == 'b4':
-            res = '^[ \t\u3000]*' + cls.res_b4 + '(.*)$'
+            res = '^[ \t\u3000]*' + cls.res_b4 + cls.res_sp + '(.*)$'
             head = re.sub(res, '\\1', line)
-            text = re.sub(res, '\\6', line)
+            text = re.sub(res, '\\2', line)
             numb = -1
         elif type_and_depth == 'n1':
-            res = '^[ \t\u3000]*' + cls.res_n1 + '(.*)$'
+            res = '^[ \t\u3000]*' + cls.res_n1 + cls.res_sp + '(.*)$'
             head = re.sub(res, '\\1', line)
-            text = re.sub(res, '\\6', line)
-            numb = inverse_n_int(re.sub(res, '\\2', line))
+            text = re.sub(res, '\\2', line)
+            numb = c2i_c_arab(re.sub(res, '\\1', line))
         elif type_and_depth == 'n2':
-            res = '^[ \t\u3000]*' + cls.res_n2 + '(.*)$'
+            res = '^[ \t\u3000]*' + cls.res_n2 + cls.res_sp + '(.*)$'
             head = re.sub(res, '\\1', line)
-            text = re.sub(res, '\\6', line)
-            numb = inverse_n_int(re.sub(res, '\\2', line))
+            text = re.sub(res, '\\2', line)
+            numb = c2i_c_kata(re.sub(res, '\\1', line))
         elif type_and_depth == 'n3':
-            res = '^[ \t\u3000]*' + cls.res_n3 + '(.*)$'
+            res = '^[ \t\u3000]*' + cls.res_n3 + cls.res_sp + '(.*)$'
             head = re.sub(res, '\\1', line)
-            text = re.sub(res, '\\6', line)
-            numb = inverse_n_alph(re.sub(res, '\\2', line))
+            text = re.sub(res, '\\2', line)
+            numb = c2i_c_alph(re.sub(res, '\\1', line))
         elif type_and_depth == 'n4':
-            res = '^[ \t\u3000]*' + cls.res_n4 + '(.*)$'
+            res = '^[ \t\u3000]*' + cls.res_n4 + cls.res_sp + '(.*)$'
             head = re.sub(res, '\\1', line)
-            text = re.sub(res, '\\6', line)
-            numb = inverse_n_alph(re.sub(res, '\\2', line))
+            text = re.sub(res, '\\2', line)
+            numb = c2i_c_kanj(re.sub(res, '\\1', line))
         else:
             head = ''
             text = ''
@@ -1015,7 +1013,7 @@ def get_real_width(s):
     return wid
 
 
-def inverse_n_int(s):
+def c2i_n_arab(s):
     n = 0
     for c in s:
         n *= 10
@@ -1028,7 +1026,7 @@ def inverse_n_int(s):
     return n
 
 
-def inverse_n_kata(s):
+def c2i_n_kata(s):
     c = s
     if re.match('^[ｱ-ﾜ]$', c):
         return ord(c) - 65392
@@ -1059,13 +1057,46 @@ def inverse_n_kata(s):
     return -1
 
 
-def inverse_n_alph(s):
+def c2i_n_alph(s):
     c = s
     if re.match('^[a-z]$', c):
         return ord(c) - 96
     elif re.match('^[ａ-ｚ]$', c):
         return ord(c) - 65344
     return -1
+
+
+def c2i_c_arab(s):
+    c = s
+    n = ord(c)
+    if n == 9450:
+        return n - 9450        # 0
+    elif n >= 9312 and n <= 9331:
+        return n - 9312 + 1    # 1-20
+    elif n >= 12881 and n <= 12895:
+        return n - 12881 + 21  # 21-35
+    elif n >= 12977 and n <= 12991:
+        return n - 12977 + 36  # 36-50
+    elif n == 127243:
+        return n - 127243 + 0  # 0
+    elif n >= 10112 and n <= 10121:
+        return n - 10112 + 1   # 1-10
+    return -1
+
+
+def c2i_c_kata(s):
+    c = s
+    return ord(c) - 13007
+
+
+def c2i_c_alph(s):
+    c = s
+    return ord(c) - 9423
+
+
+def c2i_c_kanj(s):
+    c = s
+    return ord(c) - 12927
 
 
 def get_xml_value(tag_name, value_name, init_value, tag):
@@ -1721,7 +1752,7 @@ class Document:
     def _modpar_one_line_paragraph(self):
         for p in self.paragraphs:
             rt = p.raw_text
-            for fd in FONT_DECORATIONS:
+            for fd in FONT_DECORATORS:
                 while re.match(NOT_ESCAPED + fd, rt):
                     rt = re.sub(NOT_ESCAPED + fd, '\\1', rt)
             while re.match(NOT_ESCAPED + '\\\\', rt):
@@ -1761,7 +1792,7 @@ class Document:
             ln = p.md_text
             ln = re.sub('\n', ' ', ln)
             ln = re.sub(' +', ' ', ln)
-            res = '^((?:' + '|'.join(FONT_DECORATIONS) + ')*)((?:#+ )*).*$'
+            res = '^((?:' + '|'.join(FONT_DECORATORS) + ')*)((?:#+ )*).*$'
             head = re.sub(res, '\\2', ln + ' ')
             head = re.sub(' $', '', head)
             for sharps in head.split(' '):
@@ -2456,7 +2487,7 @@ class Paragraph:
                '\\^[0-9A-Za-z]+\\^',  # font color
                '_[0-9A-Za-z]+_']      # highlight color
         while True:
-            for fd in FONT_DECORATIONS:
+            for fd in FONT_DECORATORS:
                 res = fd + '(\\s+)' + fd
                 if re.match('^.*' + res, raw_text):
                     raw_text = re.sub(res, '\\1', raw_text)
