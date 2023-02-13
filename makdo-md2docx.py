@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.13-09:00:04-JST>
+# Time-stamp:   <2023.02.13-12:28:52-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1588,7 +1588,7 @@ class Paragraph:
         self.head_depth = -1
         self.tail_depth = -1
         self.length_revi = {}
-        self.length_sect = {}
+        self.length_conf = {}
         self.length_dept = {}
         self.length_docx = {}
         self.alignment = ''
@@ -1599,7 +1599,7 @@ class Paragraph:
         self.head_depth, self.tail_depth = self._get_depths(self.full_text)
         self.alignment = self._get_alignment()
         self.length_revi = self._get_length_revi()
-        self.length_sect = self._get_length_sect()
+        self.length_conf = self._get_length_conf()
         self.length_dept = self._get_length_dept()
         self.length_docx = self._get_length_docx()
         # EXECUTIEN
@@ -1671,20 +1671,20 @@ class Paragraph:
         # self.length_revi = length_revi
         return length_revi
 
-    def _get_length_sect(self):
+    def _get_length_conf(self):
         hd = self.head_depth
         td = self.tail_depth
-        length_sect \
+        length_conf \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
         if self.paragraph_class == 'section':
             sb = (Document.space_before + ',,,,,,,').split(',')
             sa = (Document.space_after + ',,,,,,,').split(',')
             if hd <= len(sb) and sb[hd - 1] != '':
-                length['space before'] += float(sb[hd - 1])
+                length_conf['space before'] += float(sb[hd - 1])
             if td <= len(sa) and sa[td - 1] != '':
-                length['space after'] += float(sa[td - 1])
-        return length_sect
+                length_conf['space after'] += float(sa[td - 1])
+        return length_conf
 
     def _get_length_dept(self):
         paragraph_class = self.paragraph_class
@@ -1708,7 +1708,9 @@ class Paragraph:
             if tail_depth > 0:
                 length_dept['first indent'] = 1.0
                 length_dept['left indent'] = tail_depth - 1.0
-        if paragraph_class == 'section' or paragraph_class == 'sentence':
+        if paragraph_class == 'section' or \
+           paragraph_class == 'list' or \
+           paragraph_class == 'sentence':
             if tail_depth > 2 and ParagraphSection.states[1][0] == 0:
                 length_dept['left indent'] -= 1.0
         # self.length_dept = length_dept
@@ -1716,14 +1718,14 @@ class Paragraph:
 
     def _get_length_docx(self):
         length_revi = self.length_revi
-        length_sect = self.length_sect
+        length_conf = self.length_conf
         length_dept = self.length_dept
         length_docx \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
         for ln in length_docx:
             length_docx[ln] \
-                = length_revi[ln] + length_sect[ln] + length_dept[ln]
+                = length_revi[ln] + length_conf[ln] + length_dept[ln]
         # self.length_docx = length_docx
         return length_docx
 
