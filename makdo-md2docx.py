@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.13-07:08:58-JST>
+# Time-stamp:   <2023.02.13-09:00:04-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -824,25 +824,25 @@ class Document:
         sr = []
         lr = []
         hr = []
-        tr = []
+        ds = []
         for rp in raw_paragraphs:
             if rp.paragraph_class == 'empty':
                 cr += rp.chapter_revisers
                 sr += rp.section_revisers
                 lr += rp.length_revisers
-                hr += rp.head_font_revisers
-                tr += rp.tail_font_revisers
+                hr += rp.head_font_revisers + rp.tail_font_revisers
+                ds += rp.depth_setters
             else:
                 rp.chapter_revisers = cr + rp.chapter_revisers
                 rp.section_revisers = sr + rp.section_revisers
                 rp.length_revisers = lr + rp.length_revisers
                 rp.head_font_revisers = hr + rp.head_font_revisers
-                rp.tail_font_revisers = tr + rp.tail_font_revisers
+                rp.depth_setters = ds + rp.depth_setters
                 cr = []
                 sr = []
                 lr = []
                 hr = []
-                tr = []
+                ds = []
                 p = rp.get_paragraph()
                 paragraphs.append(p)
         # self.paragraphs = paragraphs
@@ -1381,6 +1381,7 @@ class RawParagraph:
         self.head_font_revisers = []
         self.tail_font_revisers = []
         self.full_text = ''
+        self.depth_setters = []
         self.paragraph_class = ''
         # SUBSTITUTION
         self.md_lines = md_lines
@@ -1393,6 +1394,8 @@ class RawParagraph:
             self.md_lines \
             = self._get_head_revisers(self.md_lines)
         self.full_text = self._get_full_text(self.md_lines)
+        self.depth_setters, self.full_text \
+            = self._get_depth_setters(self.full_text)
         self.paragraph_class = self._get_paragraph_class()
 
     @staticmethod
@@ -1402,10 +1405,10 @@ class RawParagraph:
         length_revisers = []
         head_font_revisers = []
         tail_font_revisers = []
-        res_cr = '^(' + ParagraphChapter.res_reviser + ')(.*)'
-        res_sr = '^(' + ParagraphSection.res_reviser + ')(.*)'
-        res_lr = '^\\s*((?:v|V|X|<<|<|>)=' + RES_NUMBER + ')(.*)$'
-        res_fr = '^\\s*(' + '|'.join(FONT_DECORATORS) + ')(.*)$'
+        res_cr = '^\\s*(' + ParagraphChapter.res_reviser + ') ?(.*)'
+        res_sr = '^\\s*(' + ParagraphSection.res_reviser + ') ?(.*)'
+        res_lr = '^\\s*((?:v|V|X|<<|<|>)=' + RES_NUMBER + ') ?(.*)$'
+        res_fr = '^\\s*(' + '|'.join(FONT_DECORATORS) + ') ?(.*)$'
         for ml in md_lines:
             # FOR BREAKDOWN
             if re.match('^-+::-*(::-+)?$', ml.text):
@@ -1466,6 +1469,16 @@ class RawParagraph:
         full_text = re.sub(' $', '', full_text)
         # self.full_text = full_text
         return full_text
+
+    @staticmethod
+    def _get_depth_setters(full_text):
+        depth_setters = []
+        if re.match('^#+$', full_text):
+            depth_setters = [full_text]
+            full_text = ''
+        # self.depth_setters = depth_setters
+        # self.full_text = full_text
+        return depth_setters, full_text
 
     def _get_paragraph_class(self):
         ft = self.full_text
@@ -1570,6 +1583,7 @@ class Paragraph:
         self.head_font_revisers = raw_paragraph.head_font_revisers
         self.tail_font_revisers = raw_paragraph.tail_font_revisers
         self.full_text = raw_paragraph.full_text
+        self.depth_setters = raw_paragraph.depth_setters
         # DECLARATION
         self.head_depth = -1
         self.tail_depth = -1
@@ -1581,6 +1595,7 @@ class Paragraph:
         self.text_to_write = ''
         self.text_to_write_with_reviser = ''
         # SUBSTITUTION
+        self._set_depths(self.depth_setters)
         self.head_depth, self.tail_depth = self._get_depths(self.full_text)
         self.alignment = self._get_alignment()
         self.length_revi = self._get_length_revi()
@@ -1599,6 +1614,14 @@ class Paragraph:
             = ''.join(self.head_font_revisers) \
             + self.text_to_write \
             + ''.join(self.tail_font_revisers)
+
+    @classmethod
+    def _set_depths(cls, depth_setters):
+        for ds in depth_setters:
+            d = len(ds)
+            if d > 0:
+                Paragraph.previous_head_depth = d
+                Paragraph.previous_tail_depth = d
 
     @classmethod
     def _get_depths(cls, full_text):
@@ -1686,7 +1709,7 @@ class Paragraph:
                 length_dept['first indent'] = 1.0
                 length_dept['left indent'] = tail_depth - 1.0
         if paragraph_class == 'section' or paragraph_class == 'sentence':
-            if tail_depth > 1 and ParagraphSection.states[1][0] == 0:
+            if tail_depth > 2 and ParagraphSection.states[1][0] == 0:
                 length_dept['left indent'] -= 1.0
         # self.length_dept = length_dept
         return length_dept
@@ -1789,6 +1812,7 @@ class Paragraph:
         else:
             return
         head_strings = ''
+        title = ''
         body = ''
         pdepth = -1
         is_in_body = False
