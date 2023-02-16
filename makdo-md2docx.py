@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.16-11:12:50-JST>
+# Time-stamp:   <2023.02.16-20:07:30-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1732,8 +1732,10 @@ class Paragraph:
            paragraph_class == 'list' or \
            paragraph_class == 'sentence':
             if ParagraphSection.states[1][0] == 0 and \
-               ParagraphSection.states[2][0] > 0:
+               ParagraphSection.states[2][0] >= 0:
                 length_dept['left indent'] -= 1.0
+        print(length_dept)
+        print(self.full_text)
         # self.length_dept = length_dept
         return length_dept
 

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.16-12:56:46-JST>
+# Time-stamp:   <2023.02.16-19:12:29-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1814,20 +1814,55 @@ class RawParagraph:
         has_deleted = False   # TRACK CHANGES
         has_inserted = False  # TRACK CHANGES
         is_in_text = False
-        res_img_ms = \
-            '^<v:imagedata r:id=[\'"](.+)[\'"] o:title=[\'"](.+)[\'"]/>$'
-        res_img_py_name = \
-            '^<pic:cNvPr id=[\'"](.+)[\'"] name=[\'"](.+)[\'"]/>$'
-        res_img_py_id = \
-            '^<a:blip r:embed=[\'"](.+)[\'"]/>$'
+        res_img_ms \
+            = '^<v:imagedata r:id=[\'"](.+)[\'"] o:title=[\'"](.+)[\'"]/>$'
+        res_img_py_name \
+            = '^<pic:cNvPr id=[\'"](.+)[\'"] name=[\'"](.+)[\'"]/>$'
+        res_img_py_id \
+            = '^<a:blip r:embed=[\'"](.+)[\'"]/>$'
+        img_size = 'medium'
+        res_img_size \
+            = '<wp:extent cx=[\'"]([0-9]+)[\'"] cy=[\'"]([0-9]+)[\'"]/>'
         for rxl in raw_xml_lines:
+            if re.match(res_img_size, rxl):
+                # IMAGE SIZE
+                sz_w = re.sub(res_img_size, '\\1', rxl)
+                sz_h = re.sub(res_img_size, '\\2', rxl)
+                cm_w = round(float(sz_w) / 12700, 1)
+                cm_h = round(float(sz_h) / 12700, 1)
+                if cm_h > size * 1.1:
+                    img_size = 'large'
+                elif cm_h < size * 0.9:
+                    img_size = 'small'
+                else:
+                    img_size = 'medium'
             if re.match(res_img_ms, rxl):
                 # IMAGE MS WORD
-                xml_lines.append(rxl)
+                if img_size == 'small':
+                    xml_lines.append('--')
+                    xml_lines.append(rxl)
+                    xml_lines.append('--')
+                elif img_size == 'large':
+                    xml_lines.append('++')
+                    xml_lines.append(rxl)
+                    xml_lines.append('++')
+                else:
+                    xml_lines.append(rxl)
+                img_size = 'medium'
                 continue
             if re.match(res_img_py_name, rxl) or re.match(res_img_py_id, rxl):
                 # IMAGE PYTHON-DOCX
-                xml_lines.append(rxl)
+                if img_size == 'small':
+                    xml_lines.append('--')
+                    xml_lines.append(rxl)
+                    xml_lines.append('--')
+                elif img_size == 'large':
+                    xml_lines.append('++')
+                    xml_lines.append(rxl)
+                    xml_lines.append('++')
+                else:
+                    xml_lines.append(rxl)
+                img_size = 'medium'
                 continue
             if re.match('^<w:r( .*)?>$', rxl):
                 text = ''
@@ -1980,12 +2015,12 @@ class RawParagraph:
         img_rels = Document.rels
         raw_text = ''
         images = {}
-        res_img_ms = \
-            '^<v:imagedata r:id=[\'"](.+)[\'"] o:title=[\'"](.+)[\'"]/>$'
-        res_img_py_name = \
-            '^<pic:cNvPr id=[\'"](.+)[\'"] name=[\'"](.+)[\'"]/>$'
-        res_img_py_id = \
-            '^<a:blip r:embed=[\'"](.+)[\'"]/>$'
+        res_img_ms \
+            = '^<v:imagedata r:id=[\'"](.+)[\'"] o:title=[\'"](.+)[\'"]/>$'
+        res_img_py_name \
+            = '^<pic:cNvPr id=[\'"](.+)[\'"] name=[\'"](.+)[\'"]/>$'
+        res_img_py_id \
+            = '^<a:blip r:embed=[\'"](.+)[\'"]/>$'
         for xl in xml_lines:
             if re.match(res_img_ms, xl):
                 img_id = re.sub(res_img_ms, '\\1', xl)
@@ -3308,13 +3343,34 @@ class ParagraphImage(Paragraph):
 
     def _get_md_text(self, raw_text):
         raw_xml_lines = self.raw_xml_lines
-        image = ''
-        res = '^<pic:cNvPr id=[\'"].+[\'"] name=[\'"](.*)[\'"]/>$'
+        size_w = -1
+        size_h = -1
         for rxl in raw_xml_lines:
-            if re.match(res, rxl):
-                image = re.sub(res, '\\1', rxl)
-        md_text = '![' + image + '](' + image + ')'
-        # サイズ調整が必要
+            size_w = get_xml_value('wp:extent', 'cx', size_w, rxl)
+            size_h = get_xml_value('wp:extent', 'cy', size_h, rxl)
+        cm_w = float(size_w) / 360000
+        cm_h = float(size_h) / 360000
+        text_w = PAPER_WIDTH[Document.paper_size] \
+            - Document.left_margin - Document.right_margin
+        text_h = PAPER_HEIGHT[Document.paper_size] \
+            - Document.top_margin - Document.bottom_margin
+        if text_w * 0.99 < cm_w and text_w * 1.01 > cm_w:
+            if text_w > text_h:
+                md_text = '++' + raw_text + '++'
+            else:
+                md_text = '--' + raw_text + '--'
+        if text_h * 0.99 < cm_h and text_h * 1.01 > cm_h:
+            if text_w > text_h:
+                md_text = '--' + raw_text + '--'
+            else:
+                md_text = '++' + raw_text + '++'
+        # COMMENTOUTED 23.02.16
+        # image = ''
+        # res = '^<pic:cNvPr id=[\'"].+[\'"] name=[\'"](.*)[\'"]/>$'
+        # for rxl in raw_xml_lines:
+        #     if re.match(res, rxl):
+        #         image = re.sub(res, '\\1', rxl)
+        # md_text = '![' + image + '](' + image + ')'
         return md_text
 
 
