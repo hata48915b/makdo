@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.13-12:28:52-JST>
+# Time-stamp:   <2023.02.16-11:12:50-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -785,13 +785,16 @@ class Document:
             is_block_end = False
             if ml.raw_text == '':
                 is_block_end = True
+            pre_text = ''
             if len(block) > 0:
                 pre_text = block[-1].raw_text
                 cur_text = ml.raw_text
                 for pc in [ParagraphChapter, ParagraphSection, ParagraphList]:
-                    res = '^\\s*' + pc.res_symbol + '\\s+\\S+.*$'
-                    if re.match(res, pre_text) and re.match(res, cur_text):
-                        is_block_end = True
+                    res_s = '^\\s*' + pc.res_symbol + '\\s+\\S+.*$'
+                    res_r = '^\\s*' + pc.res_reviser + '(\\s.*)?$'
+                    if re.match(res_s + '|' + res_r, pre_text):
+                        if re.match(res_s + '|' + res_r, cur_text):
+                            is_block_end = True
             if is_block_end:
                 if len(block) == 0:
                     if ml.raw_text != '':
@@ -823,24 +826,28 @@ class Document:
         cr = []
         sr = []
         lr = []
+        er = []
         hr = []
         ds = []
         for rp in raw_paragraphs:
             if rp.paragraph_class == 'empty':
                 cr += rp.chapter_revisers
                 sr += rp.section_revisers
-                lr += rp.length_revisers
+                lr += rp.list_revisers
+                er += rp.length_revisers
                 hr += rp.head_font_revisers + rp.tail_font_revisers
                 ds += rp.depth_setters
             else:
                 rp.chapter_revisers = cr + rp.chapter_revisers
                 rp.section_revisers = sr + rp.section_revisers
-                rp.length_revisers = lr + rp.length_revisers
+                rp.list_revisers = lr + rp.list_revisers
+                rp.length_revisers = er + rp.length_revisers
                 rp.head_font_revisers = hr + rp.head_font_revisers
                 rp.depth_setters = ds + rp.depth_setters
                 cr = []
                 sr = []
                 lr = []
+                er = []
                 hr = []
                 ds = []
                 p = rp.get_paragraph()
@@ -1373,10 +1380,11 @@ class RawParagraph:
 
     def __init__(self, paragraph_number, md_lines):
         # DECLARATION
-        self.md_lines = []
         self.paragraph_number = -1
+        self.md_lines = []
         self.chapter_revisers = []
         self.section_revisers = []
+        self.list_revisers = []
         self.length_revisers = []
         self.head_font_revisers = []
         self.tail_font_revisers = []
@@ -1384,30 +1392,33 @@ class RawParagraph:
         self.depth_setters = []
         self.paragraph_class = ''
         # SUBSTITUTION
-        self.md_lines = md_lines
         self.paragraph_number = paragraph_number
+        self.md_lines = md_lines
         self.chapter_revisers, \
             self.section_revisers, \
+            self.list_revisers, \
             self.length_revisers, \
             self.head_font_revisers, \
             self.tail_font_revisers, \
             self.md_lines \
-            = self._get_head_revisers(self.md_lines)
+            = self._get_revisers(self.md_lines)
         self.full_text = self._get_full_text(self.md_lines)
         self.depth_setters, self.full_text \
             = self._get_depth_setters(self.full_text)
         self.paragraph_class = self._get_paragraph_class()
 
     @staticmethod
-    def _get_head_revisers(md_lines):
+    def _get_revisers(md_lines):
         chapter_revisers = []
         section_revisers = []
+        list_revisers = []
         length_revisers = []
         head_font_revisers = []
         tail_font_revisers = []
         res_cr = '^\\s*(' + ParagraphChapter.res_reviser + ') ?(.*)'
         res_sr = '^\\s*(' + ParagraphSection.res_reviser + ') ?(.*)'
-        res_lr = '^\\s*((?:v|V|X|<<|<|>)=' + RES_NUMBER + ') ?(.*)$'
+        res_lr = '^(\\s*' + ParagraphList.res_reviser + ') ?(.*)'
+        res_er = '^\\s*((?:v|V|X|<<|<|>)=' + RES_NUMBER + ') ?(.*)$'
         res_fr = '^\\s*(' + '|'.join(FONT_DECORATORS) + ') ?(.*)$'
         for ml in md_lines:
             # FOR BREAKDOWN
@@ -1426,7 +1437,11 @@ class RawParagraph:
                     section_revisers.append(reviser)
                 elif re.match(res_lr, ml.text):
                     reviser = re.sub(res_lr, '\\1', ml.text)
-                    ml.text = re.sub(res_lr, '\\2', ml.text)
+                    ml.text = re.sub(res_lr, '\\3', ml.text)
+                    list_revisers.append(reviser)
+                elif re.match(res_er, ml.text):
+                    reviser = re.sub(res_er, '\\1', ml.text)
+                    ml.text = re.sub(res_er, '\\2', ml.text)
                     length_revisers.append(reviser)
                 elif re.match(res_fr, ml.text):
                     reviser = re.sub(res_fr, '\\1', ml.text)
@@ -1455,7 +1470,7 @@ class RawParagraph:
         # self.head_font_revisers = head_font_revisers
         # self.tail_font_revisers = tail_font_revisers
         # self.md_lines = md_lines
-        return chapter_revisers, section_revisers, \
+        return chapter_revisers, section_revisers, list_revisers, \
             length_revisers, head_font_revisers, tail_font_revisers, md_lines
 
     @staticmethod
@@ -1546,7 +1561,6 @@ class Paragraph:
     """A class to handle empty paragraph"""
 
     paragraph_class = None
-    class_name = None
     res_feature = None
 
     mincho_font = ''
@@ -1575,10 +1589,11 @@ class Paragraph:
 
     def __init__(self, raw_paragraph):
         # RECEIVED
-        self.md_lines = raw_paragraph.md_lines
         self.paragraph_number = raw_paragraph.paragraph_number
+        self.md_lines = raw_paragraph.md_lines
         self.chapter_revisers = raw_paragraph.chapter_revisers
         self.section_revisers = raw_paragraph.section_revisers
+        self.list_revisers = raw_paragraph.list_revisers
         self.length_revisers = raw_paragraph.length_revisers
         self.head_font_revisers = raw_paragraph.head_font_revisers
         self.tail_font_revisers = raw_paragraph.tail_font_revisers
@@ -1607,6 +1622,8 @@ class Paragraph:
                                             self.md_lines)
         ParagraphSection._transact_revisers(self.section_revisers,
                                             self.md_lines)
+        ParagraphList._transact_revisers(self.list_revisers,
+                                         self.md_lines)
         ParagraphList.reset_states(self.paragraph_class)
         self._edit_data()
         self.text_to_write = self._get_text_to_write()
@@ -1625,7 +1642,9 @@ class Paragraph:
 
     @classmethod
     def _get_depths(cls, full_text):
-        return 0, 0
+        head_depth = 0
+        tail_depth = 0
+        return head_depth, tail_depth
 
     def _get_alignment(self):
         paragraph_class = self.paragraph_class
@@ -1684,6 +1703,7 @@ class Paragraph:
                 length_conf['space before'] += float(sb[hd - 1])
             if td <= len(sa) and sa[td - 1] != '':
                 length_conf['space after'] += float(sa[td - 1])
+        # self.length_conf = length_conf
         return length_conf
 
     def _get_length_dept(self):
@@ -1711,7 +1731,8 @@ class Paragraph:
         if paragraph_class == 'section' or \
            paragraph_class == 'list' or \
            paragraph_class == 'sentence':
-            if tail_depth > 2 and ParagraphSection.states[1][0] == 0:
+            if ParagraphSection.states[1][0] == 0 and \
+               ParagraphSection.states[2][0] > 0:
                 length_dept['left indent'] -= 1.0
         # self.length_dept = length_dept
         return length_dept
@@ -1753,7 +1774,7 @@ class Paragraph:
                 chval = re.sub(res, '\\3', rev)
                 xdepth = len(trunk) - 1
                 ydepth = len(branc.replace(char, ''))
-                value = int(chval)
+                value = int(chval) - 1
                 cls._set_state(xdepth, ydepth, value, md_line)
 
     @classmethod
@@ -1807,10 +1828,8 @@ class Paragraph:
         tail_depth = self.tail_depth
         if paragraph_class == 'chapter':
             char = '$'
-            states = ParagraphChapter.states
         elif paragraph_class == 'section':
             char = '#'
-            states = ParagraphSection.states
         else:
             return
         head_strings = ''
@@ -1834,8 +1853,8 @@ class Paragraph:
                         #     + ' depth is not continuous'
                         ml.append_warning_message(msg)
                     pdepth = xdepth
-                    self._step_state(xdepth, ydepth, ml)
                     head_strings += self._get_head_string(xdepth, ydepth, ml)
+                    self._step_state(xdepth, ydepth, ml)
                 if mlt != ml.text:
                     title = mlt
                     if re.match('^\\s+', title):
@@ -2197,7 +2216,7 @@ class ParagraphChapter(Paragraph):
     paragraph_class = 'chapter'
     paragraph_class_ja = 'チャプター'
     res_symbol = '(\\$+)((?:\\-\\$+)*)'
-    res_feature = '^' + res_symbol + '(?: (.*(?:.*\n*)*))?$'
+    res_feature = '^' + res_symbol + '(?:\\s+(.*(?:.*\n*)*))?$'
     res_reviser = res_symbol + '=([0-9]+)'
     states = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # 第１編
               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # 第１章
@@ -2225,13 +2244,17 @@ class ParagraphChapter(Paragraph):
         unit_char = '●'
         if xdepth < len(cls.states):
             if ydepth < len(cls.states[xdepth]):
-                value = cls.states[xdepth][ydepth]
+                value = cls.states[xdepth][0]
+                if ydepth == 0:
+                    value += 1
                 xvalue_char = i2c_n_arab(value, md_line)
             unit_char = cls.unit_chars[xdepth]
         head_string = '第' + xvalue_char + unit_char
         for y in range(1, ydepth + 1):
             if y < len(cls.states[xdepth]):
                 value = cls.states[xdepth][y] + 1
+                if y == ydepth:
+                    value += 1
                 yvalue_char = i2c_n_arab(value, md_line)
             else:
                 yvalue_char = '●'
@@ -2246,7 +2269,7 @@ class ParagraphSection(Paragraph):
     paragraph_class = 'section'
     paragraph_class_ja = 'セクション'
     res_symbol = '(#+)((?:\\-#+)*)'
-    res_feature = '^' + res_symbol + '(?: (.*(?:.*\n*)*))?$'
+    res_feature = '^' + res_symbol + '(?:\\s+(.*(?:.*\n*)*))?$'
     res_reviser = res_symbol + '=([0-9]+)'
     head_depth = 0
     tail_depth = 0
@@ -2282,8 +2305,10 @@ class ParagraphSection(Paragraph):
     @classmethod
     def _get_head_string(cls, xdepth, ydepth, md_line):
         # TRUNK
-        if xdepth < len(cls.states) and ydepth < len(cls.states[xdepth]):
-            value = cls.states[xdepth][ydepth]
+        if xdepth < len(cls.states):
+            value = cls.states[xdepth][0]
+            if ydepth == 0:
+                value += 1
             if xdepth == 0:
                 head_string = ''
             elif xdepth == 1:
@@ -2314,6 +2339,8 @@ class ParagraphSection(Paragraph):
         for y in range(1, ydepth + 1):
             if y < len(cls.states[xdepth]):
                 value = cls.states[xdepth][y] + 1
+                if y == ydepth:
+                    value += 1
                 yvalue_char = i2c_n_arab(value, md_line)
             else:
                 yvalue_char = '●'
@@ -2329,6 +2356,7 @@ class ParagraphList(Paragraph):
     paragraph_class_ja = 'リスト'
     res_symbol = '([-\\+\\*]|[0-9]+\\.)()'
     res_feature = '^' + res_symbol + '\\s*(.*)$'
+    res_reviser = '[0-9]+\\.=([0-9]+)'
     states = [[0],  # ①
               [0],  # ㋐
               [0],  # ⓐ
@@ -2342,7 +2370,11 @@ class ParagraphList(Paragraph):
         return
 
     def _get_depths(self, full_text):
-        line = self.md_lines[0].text
+        ml = self.md_lines
+        n = 0
+        while n < len(ml) and ml[n].text == '':
+            n += 1
+        line = ml[n].text
         self.list_depth = self._get_list_depth(line)
         head_depth = self.list_depth
         prev_depth = Paragraph.previous_tail_depth
@@ -2360,11 +2392,28 @@ class ParagraphList(Paragraph):
         # self.list_depth = list_depth
         return list_depth
 
+    @classmethod
+    def _transact_revisers(cls, revisers, md_lines):
+        for rev in revisers:
+            res = '(\\s*).*=([0-9]+)'
+            if re.match(res, rev):
+                str_d = re.sub(res, '\\1', rev)
+                str_v = re.sub(res, '\\2', rev)
+                depth = len(re.sub('\\s\\s', ' ', str_d))
+                value = int(str_v)
+                cls.states[depth][0] = value - 1
+                for d in range(depth + 1, len(cls.states)):
+                    cls.states[d][0] = 0
+
     def _edit_data(self):
         res = '^\\s*' + ParagraphList.res_symbol + '\\s*'
         states = ParagraphList.states
-        line = self.md_lines[0].text
+        ml = self.md_lines
         list_depth = self.list_depth
+        n = 0
+        while n < len(ml) and ml[n].text == '':
+            n += 1
+        line = self.md_lines[n].text
         is_numbering = False
         if re.match('\\s*[0-9].\\s', line):
             is_numbering = True
@@ -2385,21 +2434,21 @@ class ParagraphList(Paragraph):
             else:
                 head_strings = '●'
         else:
+            if list_depth == 1:
+                head_strings = i2c_c_arab(states[0][0] + 1)
+            elif list_depth == 2:
+                head_strings = i2c_c_kata(states[1][0] + 1)
+            elif list_depth == 3:
+                head_strings = i2c_c_alph(states[2][0] + 1)
+            elif list_depth == 4:
+                head_strings = i2c_c_kanj(states[3][0] + 1)
+            else:
+                head_strings = '●'
             if list_depth <= len(states):
                 states[list_depth - 1][0] += 1
                 for d in range(list_depth, len(states)):
                     states[d][0] = 0
-            if list_depth == 1:
-                head_strings = i2c_c_arab(states[0][0])
-            elif list_depth == 2:
-                head_strings = i2c_c_kata(states[1][0])
-            elif list_depth == 3:
-                head_strings = i2c_c_alph(states[2][0])
-            elif list_depth == 4:
-                head_strings = i2c_c_kanj(states[3][0])
-            else:
-                head_strings = '●'
-        self.md_lines[0].text = head_strings + '\u3000' + line
+        self.md_lines[n].text = head_strings + '\u3000' + line
 
 
 class ParagraphTable(Paragraph):
@@ -2581,7 +2630,7 @@ class ParagraphAlignment(Paragraph):
     """A class to handle alignment paragraph"""
 
     paragraph_class = 'alignment'
-    res_feature = '^(?:: .*|.* :)$'
+    res_feature = '^(?::|: .*|.* :)$'
 
     def _edit_data(self):
         md_lines = self.md_lines
@@ -2590,6 +2639,8 @@ class ParagraphAlignment(Paragraph):
                 ml.text = re.sub('^: ', '', ml.text)
             if self.alignment == 'center' or self.alignment == 'right':
                 ml.text = re.sub(' :$', '', ml.text)
+            if ml.text == ':':
+                ml.text = ''
 
     def _get_text_to_write(self):
         md_lines = self.md_lines

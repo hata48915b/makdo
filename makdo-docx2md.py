@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.13-01:19:22-JST>
+# Time-stamp:   <2023.02.16-12:56:46-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -210,6 +210,7 @@ FONT_DECORATORS = [
     '\\^[0-9A-Za-z]*\\^',  # font color
     '_[0-9A-Za-z]+_',      # higilight color
 ]
+RES_FONT_DECORATORS = '((?:' + '|'.join(FONT_DECORATORS) + ')*)'
 
 MD_TEXT_WIDTH = 68
 
@@ -527,422 +528,8 @@ CONJUNCTIONS = [
 ]
 
 
-class ParagraphChapter:
-
-    states = [[0, 0, 0, 0, 0],  # 第１編
-              [0, 0, 0, 0, 0],  # 第１章
-              [0, 0, 0, 0, 0],  # 第１節
-              [0, 0, 0, 0, 0],  # 第１款
-              [0, 0, 0, 0, 0]]  # 第１目
-    post_char = ['編', '章', '節', '款', '目']
-    r0 = '^((?:' + '|'.join(FONT_DECORATORS) + ')*)'
-    r1 = r0 + '第([0-9０-９])+' + post_char[0]
-    r2 = r0 + '第([0-9０-９])+' + post_char[1]
-    r3 = r0 + '第([0-9０-９])+' + post_char[2]
-    r4 = r0 + '第([0-9０-９])+' + post_char[3]
-    r5 = r0 + '第([0-9０-９])+' + post_char[4]
-
-    @classmethod
-    def is_this_class(cls, raw_text):
-        if cls.get_depth(raw_text) > 0:
-            return True
-        else:
-            return False
-
-    @classmethod
-    def get_depth(cls, raw_text):
-        if re.match(cls.r1 + '(の[0-9０-９]+)*\\s', raw_text):
-            return 1
-        if re.match(cls.r2 + '(の[0-9０-９]+)*\\s', raw_text):
-            return 2
-        if re.match(cls.r3 + '(の[0-9０-９]+)*\\s', raw_text):
-            return 3
-        if re.match(cls.r4 + '(の[0-9０-９]+)*\\s', raw_text):
-            return 4
-        if re.match(cls.r5 + '(の[0-9０-９]+)*\\s', raw_text):
-            return 5
-        return -1
-
-    @classmethod
-    def get_md_text(cls, raw_text):
-        md_text = raw_text
-        states = [0 for i in range(len(cls.states[0]))]
-        if re.match(cls.r1, md_text):
-            depth = 1
-            value = re.sub(cls.r1 + '.*', '\\2', md_text)
-            md_text = re.sub(cls.r1, '\\1$', md_text)
-        elif re.match(cls.r2, md_text):
-            depth = 2
-            value = re.sub(cls.r2 + '.*', '\\2', md_text)
-            md_text = re.sub(cls.r2, '\\1$$', md_text)
-        elif re.match(cls.r3, md_text):
-            depth = 3
-            value = re.sub(cls.r3 + '.*', '\\2', md_text)
-            md_text = re.sub(cls.r3, '\\1$$$', md_text)
-        elif re.match(cls.r4, md_text):
-            depth = 4
-            value = re.sub(cls.r4 + '.*', '\\2', md_text)
-            md_text = re.sub(cls.r4, '\\1$$$$', md_text)
-        elif re.match(cls.r5, md_text):
-            depth = 5
-            value = re.sub(cls.r5 + '.*', '\\2', md_text)
-            md_text = re.sub(cls.r5, '\\1$$$$$', md_text)
-        xdepth = depth - 1
-        height = 0
-        states[0] = c2i_n_arab(value)
-        res = cls.r0 + '(\\$+(?:-\\$)*)の([0-9０-９]+)'
-        while re.match(res, md_text):
-            height += 1
-            states[height] = \
-                c2i_n_arab(re.sub(res + '.*', '\\3', md_text)) - 1
-            md_text = re.sub(res, '\\1\\2-$', md_text)
-            cls.states[xdepth][height] += 1
-            cls.reset_after(xdepth, height)
-        ins = ''
-        for h in range(len(states)):
-            if cls.states[xdepth][h] != states[h]:
-                ins += \
-                    '<!-- チャプター番号が間違っている可能性があります -->\n'
-                ins += '$' * depth + '-$' * h + '=' + str(states[h]) + '\n\n'
-                cls.states[xdepth][h] = states[h]
-                cls.reset_after(xdepth, h)
-        res = cls.r0 + '(\\$+(?:-\\$)*)\\s'
-        md_text = re.sub(res, '\\1\\2 ', md_text)
-        return ins, md_text
-
-    @classmethod
-    def reset_after(cls, xdepth, height):
-        for i in range(len(cls.states)):
-            for j in range(len(cls.states[i])):
-                if i < xdepth:
-                    continue
-                elif i == xdepth:
-                    if j <= height:
-                        continue
-                    else:
-                        cls.states[i][j] = 0
-                else:
-                    cls.states[i][j] = 0
-
-    @classmethod
-    def modify_length_ins(cls, depth, length_ins):
-        xdepth = depth - 1
-        length_ins['space before'] -= 0.5
-        length_ins['space after'] -= 0.5
-        length_ins['left indent'] -= xdepth
-        return length_ins
-
-
-class ParagraphSection:
-
-    states = [[0, 0, 0, 0, 0],  # -
-              [0, 0, 0, 0, 0],  # 第１
-              [0, 0, 0, 0, 0],  # １
-              [0, 0, 0, 0, 0],  # (1)
-              [0, 0, 0, 0, 0],  # ア
-              [0, 0, 0, 0, 0],  # (ｱ)
-              [0, 0, 0, 0, 0],  # ａ
-              [0, 0, 0, 0, 0]]  # (a)
-    depth_first = 0
-    depth = 0
-    r0 = '((?:' + '|'.join(FONT_DECORATORS) + ')*)'
-    r1 = '(.*)'
-    r2 = '(?:(第([0-9０-９]+)条?)((?:の[0-9０-９]+)*))'
-    r3 = '(?:(([0-9０-９]+))((?:の[0-9０-９]+)*))'
-    r4 = '(?:(([⑴-⒇])|[\\(（]([0-9０-９]+)[\\)）])((?:の[0-9０-９]+)*))'
-    r5 = '(?:(([ｱ-ﾝア-ン]))((?:の[0-9０-９]+)*))'
-    r6 = '(?:([(\\(（]([ｱ-ﾝア-ン])[\\)）])((?:の[0-9０-９]+)*))'
-    r7 = '(?:(([a-zａ-ｚ]))((?:の[0-9０-９]+)*))'
-    r8 = '(?:([(\\(（]([a-zａ-ｚ])[\\)）])((?:の[0-9０-９]+)*))'
-    r9 = '(?:  ?|\t|\u3000|\\. ?|．)'
-    res1 = '^' + r0 + '\\+\\+' + r0 + r1 + r0 + '\\+\\+' + r0
-    res2 = '^' + r0 + r2 + '()' + r9
-    res3 = '^' + r0 + r3 + '(' + r4 + '?' + r5 + '?' \
-        + r6 + '?' + r7 + '?' + r8 + '?)' + r9
-    res4 = '^' + r0 + r3 + '?' + r4 + '(' + r5 + '?' \
-        + r6 + '?' + r7 + '?' + r8 + '?)' + r9
-    res5 = '^' + r0 + r3 + '?' + r4 + '?' + r5 + '(' \
-        + r6 + '?' + r7 + '?' + r8 + '?)' + r9
-    res6 = '^' + r0 + r3 + '?' + r4 + '?' + r5 + '?' \
-        + r6 + '(' + r7 + '?' + r8 + '?)' + r9
-    res7 = '^' + r0 + r3 + '?' + r4 + '?' + r5 + '?' \
-        + r6 + '?' + r7 + '(' + r8 + '?)' + r9
-    res8 = '^' + r0 + r3 + '?' + r4 + '?' + r5 + '?' \
-        + r6 + '?' + r7 + '?' + r8 + '()' + r9
-    not3 = '^[0-9０-９]+(?:, ?|\\. ?|，|．)[0-9０-９]+'
-
-    @classmethod
-    def get_depth(cls, line, alignment):
-        if re.match(cls.res1, line) and alignment == 'center':
-            return 1
-        if re.match(cls.res2, line):
-            return 2
-        if re.match(cls.res3, line) and not re.match(cls.not3, line):
-            return 3
-        if re.match(cls.res4, line):
-            return 4
-        if re.match(cls.res5, line):
-            return 5
-        if re.match(cls.res6, line):
-            return 6
-        if re.match(cls.res7, line):
-            return 7
-        if re.match(cls.res8, line):
-            return 8
-        return -1
-
-    @classmethod
-    def get_md_text(cls, raw_text, alignment):
-        rt = raw_text
-        bi = ''
-        hs = ''
-        cdf = -1
-        cd = -1
-        for xd in range(len(cls.states)):
-            d = xd + 1
-            if cls.get_depth(rt, alignment) != d:
-                continue
-            if cdf == -1:
-                cdf = d
-            cd = d
-            fd, vs, rt = cls.decompose(d, rt)
-            hs += '#' * d + '-#' * (len(vs) - 1) + ' '
-            cls.states[xd][len(vs) - 1] += 1
-            cls.reset_after(xd, len(vs) - 1)
-            if d == 1:
-                continue
-            for h in range(len(vs)):
-                if cls.states[xd][h] == vs[h]:
-                    continue
-                bi += '<!-- セクション番号が間違っている可能性があります -->\n'
-                bi += '#' * d + '-#' * h + '=' + str(vs[h]) + '\n\n'
-                cls.states[xd][h] = vs[h]
-                cls.reset_after(xd, h)
-        if cdf > 0:
-            cls.depth_first = cdf
-        if cd > 0:
-            cls.depth = cd
-        before_instructions = bi
-        raw_md_text = hs + rt
-        return before_instructions, raw_md_text
-
-    @classmethod
-    def decompose(cls, depth, line):
-        if depth == 1:
-            res = cls.res1 + '$'
-            comm = ''
-            head = ''
-            rest = ''
-            text = re.sub(res, '\\1\\2\\3\\4\\5', line)
-            numb = [-1]
-        elif depth == 2:
-            res = cls.res2 + '(.*)$'
-            comm = re.sub(res, '\\1', line)
-            head = re.sub(res, '\\2\\4', line)
-            rest = re.sub(res, '\\5', line)
-            text = re.sub(res, '\\6', line)
-            numb = []
-            for n in re.sub(res, '\\4', line).split('の'):
-                numb.append(c2i_n_arab(n) - 1)
-            numb[0] = c2i_n_arab(re.sub(res, '\\3', line))
-        elif depth == 3:
-            res = cls.res3 + '(.*)$'
-            comm = re.sub(res, '\\1', line)
-            head = re.sub(res, '\\2\\4', line)
-            rest = re.sub(res, '\\5', line)
-            text = re.sub(res, '\\22', line)
-            numb = []
-            for n in re.sub(res, '\\4', line).split('の'):
-                numb.append(c2i_n_arab(n) - 1)
-            numb[0] = c2i_n_arab(re.sub(res, '\\3', line))
-        elif depth == 4:
-            res = cls.res4 + '(.*)$'
-            comm = re.sub(res, '\\1', line)
-            head = re.sub(res, '\\5\\8', line)
-            rest = re.sub(res, '\\9', line)
-            text = re.sub(res, '\\22', line)
-            h1 = re.sub(res, '\\6', line)
-            h2 = re.sub(res, '\\7', line)
-            numb = []
-            for n in re.sub(res, '\\8', line).split('の'):
-                numb.append(c2i_n_arab(n) - 1)
-            if re.match('^[⑴-⒇]$', h1):
-                numb[0] = ord(h1) - 9331
-            else:
-                numb[0] = c2i_n_arab(h2)
-        elif depth == 5:
-            res = cls.res5 + '(.*)$'
-            comm = re.sub(res, '\\1', line)
-            head = re.sub(res, '\\9\\11', line)
-            rest = re.sub(res, '\\12', line)
-            text = re.sub(res, '\\22', line)
-            numb = []
-            for n in re.sub(res, '\\11', line).split('の'):
-                numb.append(c2i_n_arab(n) - 1)
-            numb[0] = c2i_n_kata(re.sub(res, '\\10', line))
-        elif depth == 6:
-            res = cls.res6 + '(.*)$'
-            comm = re.sub(res, '\\1', line)
-            head = re.sub(res, '\\12\\14', line)
-            rest = re.sub(res, '\\15', line)
-            text = re.sub(res, '\\22', line)
-            numb = []
-            for n in re.sub(res, '\\14', line).split('の'):
-                numb.append(c2i_n_arab(n) - 1)
-            numb[0] = c2i_n_kata(re.sub(res, '\\13', line))
-        else:
-            comm = ''
-            head = ''
-            rest = ''
-            text = ''
-            numb = [-1]
-        if comm == line:
-            comm = ''
-        if head == line:
-            head = ''
-        if rest == line:
-            rest = ''
-        if rest != '':
-            return comm, numb, rest + '\u3000' + text
-            # return comm, numb, head, rest + '\u3000' + text
-        else:
-            return comm, numb, text
-            # return comm, numb, head, text
-
-    @classmethod
-    def reset_after(cls, xdepth, height):
-        for i in range(len(cls.states)):
-            for j in range(len(cls.states[i])):
-                if i < xdepth:
-                    continue
-                elif i == xdepth:
-                    if j <= height:
-                        continue
-                    else:
-                        cls.states[i][j] = 0
-                else:
-                    cls.states[i][j] = 0
-
-
-class List:
-
-    res_b1 = '(・)'
-    res_b2 = '(○)'
-    res_b3 = '(△)'
-    res_b4 = '(◇)'
-    # res_b1 = '(•)'  # U+2022 Bullet
-    # res_b2 = '(◦)'  # U+25E6 White Bullet
-    # res_b3 = '(‣)'  # U+2023 Triangular Bul
-    # res_b4 = '(⁃)'  # U+2043 Hyphen Bullet
-    res_n1 = ('(' + chr(9450) +                             # 0
-              '|[' + chr(9312) + '-' + chr(9331) + ']' +    # 1-20
-              '|[' + chr(12881) + '-' + chr(12895) + ']' +  # 21-35
-              '|[' + chr(12977) + '-' + chr(12991) + ']' +  # 36-50
-              '|' + chr(127243) +                           # 0
-              '|[' + chr(10112) + '-' + chr(10121) + ']' +  # 1-10
-              ')')
-    res_n2 = '([' + chr(13008) + '-' + chr(13054) + '])'
-    res_n3 = '([' + chr(9424) + '-' + chr(9449) + '])'
-    res_n4 = '([' + chr(12928) + '-' + chr(12937) + '])'
-    # res_n1 = '(([0-9０-９]+)((\\. ?)|(．)))'
-    # res_n2 = '(([0-9０-９]+)((\\) ?)|(）)))'
-    # res_n3 = '(([a-zａ-ｚ]+)((\\. ?)|(．)))'
-    # res_n4 = '(([a-zａ-ｚ]+)((\\) ?)|(）)))'
-    res_sp = '(?:  ?|\t|\u3000|. ?|．)'
-
-    @classmethod
-    def get_division_and_depth(cls, line):
-        if re.match('^[ \t\u3000]*' + cls.res_b1 + cls.res_sp, line):
-            return 'b1'
-        if re.match('^[ \t\u3000]*' + cls.res_b2 + cls.res_sp, line):
-            return 'b2'
-        if re.match('^[ \t\u3000]*' + cls.res_b3 + cls.res_sp, line):
-            return 'b3'
-        if re.match('^[ \t\u3000]*' + cls.res_b4 + cls.res_sp, line):
-            return 'b4'
-        if re.match('^[ \t\u3000]*' + cls.res_n1 + cls.res_sp, line):
-            return 'n1'
-        if re.match('^[ \t\u3000]*' + cls.res_n2 + cls.res_sp, line):
-            return 'n2'
-        if re.match('^[ \t\u3000]*' + cls.res_n3 + cls.res_sp, line):
-            return 'n3'
-        if re.match('^[ \t\u3000]*' + cls.res_n4 + cls.res_sp, line):
-            return 'n4'
-        return ''
-
-    @classmethod
-    def decompose(cls, type_and_depth, line):
-        if type_and_depth == 'b1':
-            res = '^[ \t\u3000]*' + cls.res_b1 + cls.res_sp + '(.*)$'
-            head = re.sub(res, '\\1', line)
-            text = re.sub(res, '\\2', line)
-            numb = -1
-        elif type_and_depth == 'b2':
-            res = '^[ \t\u3000]*' + cls.res_b2 + cls.res_sp + '(.*)$'
-            head = re.sub(res, '\\1', line)
-            text = re.sub(res, '\\2', line)
-            numb = -1
-        elif type_and_depth == 'b3':
-            res = '^[ \t\u3000]*' + cls.res_b3 + cls.res_sp + '(.*)$'
-            head = re.sub(res, '\\1', line)
-            text = re.sub(res, '\\2', line)
-            numb = -1
-        elif type_and_depth == 'b4':
-            res = '^[ \t\u3000]*' + cls.res_b4 + cls.res_sp + '(.*)$'
-            head = re.sub(res, '\\1', line)
-            text = re.sub(res, '\\2', line)
-            numb = -1
-        elif type_and_depth == 'n1':
-            res = '^[ \t\u3000]*' + cls.res_n1 + cls.res_sp + '(.*)$'
-            head = re.sub(res, '\\1', line)
-            text = re.sub(res, '\\2', line)
-            numb = c2i_c_arab(re.sub(res, '\\1', line))
-        elif type_and_depth == 'n2':
-            res = '^[ \t\u3000]*' + cls.res_n2 + cls.res_sp + '(.*)$'
-            head = re.sub(res, '\\1', line)
-            text = re.sub(res, '\\2', line)
-            numb = c2i_c_kata(re.sub(res, '\\1', line))
-        elif type_and_depth == 'n3':
-            res = '^[ \t\u3000]*' + cls.res_n3 + cls.res_sp + '(.*)$'
-            head = re.sub(res, '\\1', line)
-            text = re.sub(res, '\\2', line)
-            numb = c2i_c_alph(re.sub(res, '\\1', line))
-        elif type_and_depth == 'n4':
-            res = '^[ \t\u3000]*' + cls.res_n4 + cls.res_sp + '(.*)$'
-            head = re.sub(res, '\\1', line)
-            text = re.sub(res, '\\2', line)
-            numb = c2i_c_kanj(re.sub(res, '\\1', line))
-        else:
-            head = ''
-            text = ''
-            numb = -1
-        return numb, head, text
-
-
 ############################################################
 # FUNCTION
-
-
-def get_ideal_width(s):
-    wid = 0
-    for c in s:
-        if (c == '\t'):
-            wid = (wid + 8) // 8 * 8
-            continue
-        w = unicodedata.east_asian_width(c)
-        if (w == 'F'):    # Full alphabet ...
-            wid += 2
-        elif(w == 'H'):   # Half katakana ...
-            wid += 1
-        elif(w == 'W'):   # Chinese character ...
-            wid += 2
-        elif(w == 'Na'):  # Half alphabet ...
-            wid += 1
-        elif(w == 'A'):   # Greek character ...
-            wid += 1
-        elif(w == 'N'):   # Arabic character ...
-            wid += 1
-    return wid
 
 
 def get_real_width(s):
@@ -1013,6 +600,28 @@ def get_real_width(s):
     return wid
 
 
+def get_ideal_width(s):
+    wid = 0
+    for c in s:
+        if (c == '\t'):
+            wid = (wid + 8) // 8 * 8
+            continue
+        w = unicodedata.east_asian_width(c)
+        if (w == 'F'):    # Full alphabet ...
+            wid += 2
+        elif(w == 'H'):   # Half katakana ...
+            wid += 1
+        elif(w == 'W'):   # Chinese character ...
+            wid += 2
+        elif(w == 'Na'):  # Half alphabet ...
+            wid += 1
+        elif(w == 'A'):   # Greek character ...
+            wid += 1
+        elif(w == 'N'):   # Arabic character ...
+            wid += 1
+    return wid
+
+
 def c2i_n_arab(s):
     n = 0
     for c in s:
@@ -1024,6 +633,32 @@ def c2i_n_arab(s):
         else:
             return -1
     return n
+
+
+def c2i_p_arab(s):
+    c = s
+    if re.match('^[⑴-⒇]$', c):
+        return ord(c) - 9331
+    else:
+        return c2i_p_arab(s)
+
+
+def c2i_c_arab(s):
+    c = s
+    n = ord(c)
+    if n == 9450:
+        return n - 9450        # 0
+    elif n >= 9312 and n <= 9331:
+        return n - 9312 + 1    # 1-20
+    elif n >= 12881 and n <= 12895:
+        return n - 12881 + 21  # 21-35
+    elif n >= 12977 and n <= 12991:
+        return n - 12977 + 36  # 36-50
+    elif n == 127243:
+        return n - 127243 + 0  # 0
+    elif n >= 10112 and n <= 10121:
+        return n - 10112 + 1   # 1-10
+    return -1
 
 
 def c2i_n_kata(s):
@@ -1057,6 +692,11 @@ def c2i_n_kata(s):
     return -1
 
 
+def c2i_c_kata(s):
+    c = s
+    return ord(c) - 13007
+
+
 def c2i_n_alph(s):
     c = s
     if re.match('^[a-z]$', c):
@@ -1064,29 +704,6 @@ def c2i_n_alph(s):
     elif re.match('^[ａ-ｚ]$', c):
         return ord(c) - 65344
     return -1
-
-
-def c2i_c_arab(s):
-    c = s
-    n = ord(c)
-    if n == 9450:
-        return n - 9450        # 0
-    elif n >= 9312 and n <= 9331:
-        return n - 9312 + 1    # 1-20
-    elif n >= 12881 and n <= 12895:
-        return n - 12881 + 21  # 21-35
-    elif n >= 12977 and n <= 12991:
-        return n - 12977 + 36  # 36-50
-    elif n == 127243:
-        return n - 127243 + 0  # 0
-    elif n >= 10112 and n <= 10121:
-        return n - 10112 + 1   # 1-10
-    return -1
-
-
-def c2i_c_kata(s):
-    c = s
-    return ord(c) - 13007
 
 
 def c2i_c_alph(s):
@@ -1125,8 +742,31 @@ class Document:
 
     """A class to handle document"""
 
+    document_title = DEFAULT_DOCUMENT_TITLE
+    document_style = DEFAULT_DOCUMENT_STYLE
+    paper_size = DEFAULT_PAPER_SIZE
+    top_margin = DEFAULT_TOP_MARGIN
+    bottom_margin = DEFAULT_BOTTOM_MARGIN
+    left_margin = DEFAULT_LEFT_MARGIN
+    right_margin = DEFAULT_RIGHT_MARGIN
+    header_string = DEFAULT_HEADER_STRING
+    page_number = DEFAULT_PAGE_NUMBER
+    line_number = DEFAULT_LINE_NUMBER
+    mincho_font = DEFAULT_MINCHO_FONT
+    gothic_font = DEFAULT_GOTHIC_FONT
+    font_size = DEFAULT_FONT_SIZE
+    line_spacing = DEFAULT_LINE_SPACING
+    space_before = DEFAULT_SPACE_BEFORE
+    space_after = DEFAULT_SPACE_AFTER
+    auto_space = DEFAULT_AUTO_SPACE
+    original_file = ''
+
+    tmpdir = ''
+    media_dir = ''
+    styles = []
+    rels = {}
+
     def __init__(self):
-        self.tmpdir = None
         self.media_dir = None
         self.docx_file = None
         self.md_file = None
@@ -1136,36 +776,17 @@ class Document:
         self.styles_raw_xml_lines = None
         self.rels_raw_xml_lines = None
         self.document_raw_xml_lines = None
-        self.styles = None
-        self.rels = None
-        self.images = {}
         self.raw_paragraphs = None
         self.paragraphs = None
-        self.document_title = DEFAULT_DOCUMENT_TITLE
-        self.document_style = DEFAULT_DOCUMENT_STYLE
-        self.paper_size = DEFAULT_PAPER_SIZE
-        self.top_margin = DEFAULT_TOP_MARGIN
-        self.bottom_margin = DEFAULT_BOTTOM_MARGIN
-        self.left_margin = DEFAULT_LEFT_MARGIN
-        self.right_margin = DEFAULT_RIGHT_MARGIN
-        self.header_string = DEFAULT_HEADER_STRING
-        self.page_number = DEFAULT_PAGE_NUMBER
-        self.line_number = DEFAULT_LINE_NUMBER
-        self.mincho_font = DEFAULT_MINCHO_FONT
-        self.gothic_font = DEFAULT_GOTHIC_FONT
-        self.font_size = DEFAULT_FONT_SIZE
-        self.line_spacing = DEFAULT_LINE_SPACING
-        self.space_before = DEFAULT_SPACE_BEFORE
-        self.space_after = DEFAULT_SPACE_AFTER
-        self.auto_space = DEFAULT_AUTO_SPACE
-        self.original_file = ''
 
-    def make_tmpdir(self):
+    @staticmethod
+    def make_tmpdir():
         tmpdir = tempfile.TemporaryDirectory()
-        # self.tmpdir = tmpdir
+        # Document.tmpdir = tmpdir
         return tmpdir
 
-    def get_media_dir_name(self, md_file, docx_file):
+    @staticmethod
+    def get_media_dir_name(md_file, docx_file):
         if md_file != '':
             if md_file == '-':
                 media_dir = ''
@@ -1178,12 +799,12 @@ class Document:
                 media_dir = re.sub('\\.docx$', '', docx_file, re.I)
             else:
                 media_dir = docx_file + '.dir'
-        # self.media_dir = media_dir
+        # Document.media_dir = media_dir
         return media_dir
 
     def extract_docx_file(self, docx_file):
         self.docx_file = docx_file
-        tmpdir = self.tmpdir.name
+        tmpdir = Document.tmpdir.name
         try:
             shutil.unpack_archive(docx_file, tmpdir, 'zip')
         except BaseException:
@@ -1472,37 +1093,46 @@ class Document:
         csa = re.sub('^,', '', csa)
         csa = re.sub(',$', '', csa)
         if csb != '':
-            self.space_before = csb
+            Document.space_before = csb
         if csa != '':
-            self.space_after = csa
+            Document.space_after = csa
 
-    def _configure_by_args(self, args):
+    @staticmethod
+    def _configure_by_args(args):
         if args.document_title is not None:
-            self.document_title = args.document_title
+            Document.document_title = args.document_title
         if args.document_style is not None:
-            self.document_style = args.document_style
+            Document.document_style = args.document_style
         if args.paper_size is not None:
-            self.paper_size = args.paper_size
+            Document.paper_size = args.paper_size
         if args.top_margin is not None:
-            self.top_margin = args.top_margin
+            Document.top_margin = args.top_margin
         if args.bottom_margin is not None:
-            self.bottom_margin = args.bottom_margin
+            Document.bottom_margin = args.bottom_margin
         if args.left_margin is not None:
-            self.left_margin = args.left_margin
+            Document.left_margin = args.left_margin
         if args.right_margin is not None:
-            self.right_margin = args.right_margin
+            Document.right_margin = args.right_margin
         if args.header_string is not None:
-            self.header_string = args.header_string
+            Document.header_string = args.header_string
         if args.page_number is not None:
-            self.page_number = args.page_number
+            Document.page_number = args.page_number
         if args.line_number:
-            self.line_number = True
+            Document.line_number = True
         if args.mincho_font is not None:
-            self.mincho_font = args.mincho_font
+            Document.mincho_font = args.mincho_font
         if args.gothic_font is not None:
-            self.gothic_font = args.gothic_font
+            Document.gothic_font = args.gothic_font
         if args.font_size is not None:
-            self.font_size = args.font_size
+            Document.font_size = args.font_size
+        if args.line_spacing is not None:
+            Document.line_spacing = args.line_spacing
+        if args.space_before is not None:
+            Document.space_before = args.space_before
+        if args.space_after is not None:
+            Document.space_after = args.space_after
+        if args.auto_space is not None:
+            Document.auto_space = args.auto_space
 
     def get_styles(self, raw_xml_lines):
         styles = []
@@ -1530,16 +1160,18 @@ class Document:
         xml_body = self._get_xml_body('w:body', raw_xml_lines)
         xml_blocks = self._get_xml_blocks(xml_body)
         for n, xb in enumerate(xml_blocks):
-            p = Paragraph(n + 1, xb)
-            raw_paragraphs.append(p)
+            rp = RawParagraph(n + 1, xb)
+            raw_paragraphs.append(rp)
         # self.raw_paragraphs = raw_paragraphs
         return raw_paragraphs
 
     def get_paragraphs(self, raw_paragraphs):
         paragraphs = []
         for rp in raw_paragraphs:
-            if rp.paragraph_class != 'configuration':
-                paragraphs.append(rp)
+            if rp.paragraph_class == 'configuration':
+                continue
+            p = rp.get_paragraph()
+            paragraphs.append(p)
         # self.paragraphs = paragraphs
         return paragraphs
 
@@ -1820,6 +1452,7 @@ class Document:
             sharps = '#' * p.section_depth + '=' + str(p.section_states[i])
 
     def open_md_file(self, md_file, docx_file):
+        self.mdi_file = md_file
         if md_file == '-':
             mf = sys.stdout
         else:
@@ -2021,33 +1654,39 @@ class Document:
         mf.write('元原稿: ' + self.original_file + '\n')
         mf.write('\n')
 
-    def write_md_lines(self, mf):
+    def write_document(self, mf):
         ps = self.paragraphs
         for i, p in enumerate(ps):
-            p.write_md_lines(mf)
+            p.write_paragraph(mf)
 
     def make_media_dir(self, media_dir):
-        if len(self.images) == 0:
-            return
+        paragraphs = self.paragraphs
         if media_dir == '':
             return
-        if os.path.exists(media_dir):
-            if os.path.isdir(media_dir):
-                shutil.rmtree(media_dir)
-            else:
-                msg = '※ 警告: ' \
-                    + '画像の保存先と同じ名前のファイル「' + media_dir \
-                    + '」が存在します'
-                # msg = 'warning: ' \
-                #     + 'non-directory "' + media_dir + '"'
-                sys.stderr.write(msg + '\n\n')
-                return
-        os.mkdir(media_dir)
-        for rel_img in self.images:
-            if rel_img == '':
+        for p in paragraphs:
+            if len(p.images) == 0:
                 continue
-            shutil.copy(self.tmpdir.name + '/word/' + rel_img,
-                        media_dir + '/' + self.images[rel_img])
+            if os.path.exists(media_dir):
+                if not os.path.isdir(media_dir):
+                    msg = '※ 警告: ' \
+                        + '画像の保存先「' + media_dir + '」' \
+                        + 'と同名のファイルが存在します'
+                    # msg = 'warning: ' \
+                    #     + 'non-directory "' + media_dir + '"'
+                    sys.stderr.write(msg + '\n\n')
+                    return
+            else:
+                try:
+                    os.mkdir(media_dir)
+                except BaseException:
+                    msg = '※ 警告: ' \
+                        + '画像の保存先「' + media_dir + '」' \
+                        + 'を作成できません'
+                    # msg = 'warning: ' \
+                    #     + 'cannot make "' + media_dir + '"'
+                    sys.stderr.write(msg + '\n\n')
+                    return
+            p.save_images()
         return
 
 
@@ -2118,78 +1757,50 @@ class Style:
             self.raw_length['right indent'] = float(rl['ri'])
 
 
-class Paragraph:
+class RawParagraph:
 
-    """A class to handle paragraph"""
-
-    mincho_font = None
-    gothic_font = None
-    font_size = None
-    section_states = [0, 0, 0, 0, 0, 0]
+    """A class to handle raw paragraph"""
 
     def __init__(self, paragraph_number, raw_xml_lines):
-        self.paragraph_number = paragraph_number
-        self.raw_xml_lines = raw_xml_lines
-        self.raw_class = None
-        self.paragraph_class = None
+        # DECLARATION
+        self.paragraph_number = -1
+        self.raw_xml_lines = []
+        self.raw_class = ''
         self.xml_lines = []
         self.raw_text = ''
+        self.images = {}
         self.beg_space = ''
         self.end_space = ''
-        self.before_instructions = ''
-        self.raw_md_text = ''
-        self.md_text = ''
-        self.warning_messages = ''
-        self.first_line_instructions = ''
-        self.section_states = []
-        self.section_depth_first = 0
-        self.section_depth = 0
-        self.style = None
-        self.alignment = None
-        self.length \
-            = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
-               'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
-        self.length_ins \
-            = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
-               'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
-        self.length_sec \
-            = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
-               'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
-        self.length_spa \
-            = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
-               'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
-        self.substitute_values()
+        self.style = ''
+        self.alignment = ''
+        self.paragraph_class = ''
+        # SUBSTITUTION
+        self.paragraph_number = paragraph_number
+        self.raw_xml_lines = raw_xml_lines
+        self.raw_class = self._get_raw_class(self.raw_xml_lines)
+        self.xml_lines \
+            = self._get_xml_lines(self.raw_class, self.raw_xml_lines)
+        self.raw_text, self.images \
+            = self._get_raw_text_and_images(self.xml_lines)
+        self.beg_space, self.raw_text, self.end_space \
+            = self._separate_space(self.raw_text)
+        self.style = self._get_style(raw_xml_lines)
+        self.alignment = self._get_alignment(self.raw_xml_lines)
+        self.paragraph_class = self._get_paragraph_class()
 
-    def substitute_values(self):
-        self.raw_class = self._get_raw_class()
-        self.xml_lines = self._get_xml_lines()
-        self.raw_text = self._get_raw_text()
-        self.beg_space, self.raw_text, self.end_space = self.separate_space()
-        self.style = self.get_and_apply_style()
-        self.alignment = self.get_alignment()
-        self.paragraph_class = self.get_paragraph_class()
-        #self.section_states, self.section_depth_first, self.section_depth \
-        #    = self.get_section_data()
-        self.before_instructions, self.raw_md_text = self._get_raw_md_text()
-        self.length = self.get_length()
-        self.length_sec = self.get_length_sec()
-        self.length_spa = self.get_length_spa()
-        self.length_ins = self.get_length_ins()
-        self.first_line_instructions = self.get_first_line_instructions()
-        self.md_text = self.get_md_text()
-
-    def _get_raw_class(self):
+    @staticmethod
+    def _get_raw_class(raw_xml_lines):
         res = '^<(\\S+)( .*)?>$'
-        rxlz = self.raw_xml_lines[0]
+        rxlz = raw_xml_lines[0]
         if re.match(res, rxlz):
             return re.sub(res, '\\1', rxlz)
         else:
             return None
 
-    def _get_xml_lines(self):
+    @staticmethod
+    def _get_xml_lines(raw_class, raw_xml_lines):
         size = Paragraph.font_size
         s_size = 0.9 * size  # not 0.8
-        raw_xml_lines = self.raw_xml_lines
         xml_lines = []
         is_large = False
         is_small = False
@@ -2295,7 +1906,7 @@ class Paragraph:
             s = get_xml_value('w:sz', 'w:val', -1.0, rxl) / 2
             w = get_xml_value('w:w', 'w:val', -1.0, rxl)
             if s > 0:
-                if not self._is_table():
+                if not RawParagraph._is_table(raw_class, raw_xml_lines):
                     if s > size:
                         is_large = True
                     if s < size:
@@ -2348,12 +1959,13 @@ class Paragraph:
         # self.xml_lines = xml_lines
         return xml_lines
 
-    def _is_table(self):
-        if self.raw_class != 'w:tbl':
+    @staticmethod
+    def _is_table(raw_class, raw_xml_lines):
+        if raw_class != 'w:tbl':
             return False
         tbl_type = ''
         col = 0
-        for rxl in self.raw_xml_lines:
+        for rxl in raw_xml_lines:
             if re.match('<w:tblStyle w:val=[\'"].+[\'"]/>', rxl):
                 return True
             if re.match('<w:gridCol w:w=[\'"][0-9]+[\'"]/>', rxl):
@@ -2362,9 +1974,12 @@ class Paragraph:
             return True
         return False
 
-    def _get_raw_text(self):
-        xml_lines = self.xml_lines
+    @staticmethod
+    def _get_raw_text_and_images(xml_lines):
+        media_dir = Document.media_dir
+        img_rels = Document.rels
         raw_text = ''
+        images = {}
         res_img_ms = \
             '^<v:imagedata r:id=[\'"](.+)[\'"] o:title=[\'"](.+)[\'"]/>$'
         res_img_py_name = \
@@ -2375,19 +1990,19 @@ class Paragraph:
             if re.match(res_img_ms, xl):
                 img_id = re.sub(res_img_ms, '\\1', xl)
                 img_name = re.sub(res_img_ms, '\\2', xl)
-                img_rel_name = doc.rels[img_id]
+                img_rel_name = img_rels[img_id]
                 img_ext = re.sub('^.*\\.', '', img_rel_name)
                 img = img_name + '.' + img_ext
-                doc.images[img_rel_name] = img
-                raw_text += '![' + img + '](' + doc.media_dir + '/' + img + ')'
+                images[img_rel_name] = img
+                raw_text += '![' + img + '](' + media_dir + '/' + img + ')'
             if re.match(res_img_py_name, xl):
                 img = re.sub(res_img_py_name, '\\2', xl)
-                doc.images[''] = img
-                raw_text += '![' + img + '](' + doc.media_dir + '/' + img + ')'
+                images[''] = img
+                raw_text += '![' + img + '](' + media_dir + '/' + img + ')'
             if re.match(res_img_py_id, xl):
                 img_id = re.sub(res_img_py_id, '\\1', xl)
-                img_rel_name = doc.rels[img_id]
-                doc.images[img_rel_name] = doc.images['']
+                img_rel_name = img_rels[img_id]
+                images[img_rel_name] = images['']
             if re.match('^<.*>$', xl):
                 continue
             while True:
@@ -2476,16 +2091,6 @@ class Paragraph:
         raw_text = raw_text.replace('&lt;', '<')
         raw_text = raw_text.replace('&gt;', '>')
         raw_text = raw_text.replace('&amp;', '&')
-        com = ['\\*\\*\\*',           # italic and bold
-               '\\*\\*',              # bold
-               '\\*',                 # italice
-               '~~',                  # strikethroug
-               '`',                   # preformatted
-               '//',                  # italic
-               '\\-\\-',              # small
-               '\\+\\+',              # large
-               '\\^[0-9A-Za-z]+\\^',  # font color
-               '_[0-9A-Za-z]+_']      # highlight color
         while True:
             for fd in FONT_DECORATORS:
                 res = fd + '(\\s+)' + fd
@@ -2497,11 +2102,14 @@ class Paragraph:
             raw_text = '\\' + raw_text
         if re.match('^\\s*(v|V|X|<<|<|>)=\\s*[0-9]+', raw_text):
             raw_text = '\\' + raw_text
+        if '' in images:
+            images.pop('')
         # self.raw_text = raw_text
-        return raw_text
+        # self.images = images
+        return raw_text, images
 
-    def separate_space(self):
-        raw_text = self.raw_text
+    @staticmethod
+    def _separate_space(raw_text):
         beg_space = ''
         end_space = ''
         res = '^([ \t\u3000]+)(.*)$'
@@ -2516,609 +2124,427 @@ class Paragraph:
         # self.end_space = end_space
         return beg_space, raw_text, end_space
 
-    def get_and_apply_style(self):
+    @staticmethod
+    def _get_style(raw_xml_lines):
         style = None
-        for rxl in self.raw_xml_lines:
+        for rxl in raw_xml_lines:
             style = get_xml_value('w:pStyle', 'w:val', style, rxl)
-        for ds in doc.styles:
+        for ds in Document.styles:
             if style != ds.name:
                 continue
-            self.alignment = ds.alignment
-            for s in self.length:
-                if ds.raw_length[s] is not None:
-                    self.length[s] = ds.raw_length[s]
+            #self.alignment = ds.alignment
+            #for s in self.length:
+            #    if ds.raw_length[s] is not None:
+            #        self.length[s] = ds.raw_length[s]
         # self.style = style
         return style
 
-    def get_alignment(self):
-        alignment = None
-        for rxl in self.raw_xml_lines:
+    @staticmethod
+    def _get_alignment(raw_xml_lines):
+        alignment = ''
+        for rxl in raw_xml_lines:
             alignment = get_xml_value('w:jc', 'w:val', alignment, rxl)
-            if alignment is not None:
-                if not re.match('^((left)|(center)|(right))$', alignment):
-                    alignment = None
+            if not re.match('^(left|center|right)$', alignment):
+                alignment = ''
         # self.alignment = alignment
         return alignment
 
-    def get_paragraph_class(self):
-        rt = self.raw_text
-        stl = self.style
-        aln = self.alignment
-        size = Paragraph.font_size
-        fs = -1.0
-        for rxl in self.raw_xml_lines:
-            if fs < 0:
-                fs = get_xml_value('w:sz', 'w:val', fs, rxl) / size / 2
-        sd = ParagraphSection.get_depth(rt, aln)
-        if self.raw_class == 'w:sectPr':
-            return 'configuration'
-        if self.raw_class == 'w:tbl':
-            col = 0
-            for rxl in self.raw_xml_lines:
-                if re.match('<w:tblStyle w:val=[\'"].+[\'"]/>', rxl):
-                    return 'table'
-                if re.match('<w:gridCol w:w=[\'"][0-9]+[\'"]/>', rxl):
-                    col += 1
-            if col != 3:
-                return 'table'
-            return 'breakdown'
-        if rt == '':
-            for rxl in self.raw_xml_lines:
-                if re.match('^<w:drawing>$', rxl):
-                    return 'image'
-        if ParagraphChapter.is_this_class(rt):
-            return 'chapter'
-        if (sd == 1 and fs > 1.2) or sd > 1:
-            return 'section'
-        if stl is not None and stl == 'makdo-g':
-            return 'preformatted'
-        if (stl is not None and stl == 'makdo-a') or (aln is not None):
-            return 'alignment'
-        for rxl in self.raw_xml_lines:
-            if re.match('<w:pStyle w:val=[\'"]ListBullet([0-9]?)[\'"]/>', rxl):
-                return 'list'
-            if re.match('<w:pStyle w:val=[\'"]ListNumber([0-9]?)[\'"]/>', rxl):
-                return 'list'
-            if re.match('<w:ilvl w:val=[\'"]([0-9]?)[\'"]/>', rxl):
-                return 'list_system'
-        if List.get_division_and_depth(rt) != '':
-            return 'list'
-        for rxl in self.raw_xml_lines:
-            if re.match('^<w:br w:type="page"/>$', rxl):
-                return 'pagebreak'
-        if rt == '':
+    def _get_paragraph_class(self):
+        if False:
+            pass
+        elif ParagraphEmpty.is_this_class(self):
+            return 'empty'
+        elif ParagraphBlank.is_this_class(self):
             return 'blank'
-        return 'sentence'
-
-    #def get_section_data(self):
-    #    rt = self.raw_text
-    #    aln = self.alignment
-    #    states = []
-    #    depth_first = 0
-    #    depth = 0
-    #    for i, ss in enumerate(Paragraph.section_states):
-    #        states.append(ss)
-    #        if ss != 0:
-    #            depth_first = i + 1
-    #            depth = i + 1
-    #    if self.paragraph_class == 'section':
-    #        depth_first = 0
-    #        depth = 0
-    #        for i, ss in enumerate(Paragraph.section_states):
-    #            dp = i + 1
-    #            if ParagraphSection.get_depth(rt, aln) == dp:
-    #                comm, numb, rt = ParagraphSection.decompose(dp, rt)
-    #                # comm, numb, head, rt = ParagraphSection.decompose(dp, rt)
-    #                for j in range(i + 1, len(states)):
-    #                    states[j] = 0
-    #                states[i] = numb[0]
-    #                if depth_first == 0:
-    #                    depth_first = dp
-    #                depth = dp
-    #    Paragraph.section_states = states
-    #    # self.section_states = section_states
-    #    # self.section_depth_first = section_depth_first
-    #    # self.section_depth = section_depth
-    #    return states, depth_first, depth
-
-    def _get_raw_md_text(self):
-        if self.paragraph_class == 'chapter':
-            return ParagraphChapter.get_md_text(self.raw_text)
-        elif self.paragraph_class == 'section':
-            return self._get_raw_md_text_of_section_paragraph()
-        elif self.paragraph_class == 'list_system':
-            return '', self._get_raw_md_text_of_list_system_paragraph()
-        elif self.paragraph_class == 'list':
-            return '', self._get_raw_md_text_of_list_paragraph()
-        elif self.paragraph_class == 'alignment':
-            return '', self._get_raw_md_text_of_alignment_paragraph()
-        elif self.paragraph_class == 'table':
-            return '', self._get_raw_md_text_of_table_paragraph()
-        elif self.paragraph_class == 'image':
-            return '', self._get_raw_md_text_of_image_paragraph()
-        elif self.paragraph_class == 'preformatted':
-            return '', self._get_raw_md_text_of_preformatted_paragraph()
-        elif self.paragraph_class == 'breakdown':
-            return '', self._get_raw_md_text_of_breakdown_paragraph()
-        elif self.paragraph_class == 'pagebreak':
-            return '', '<pgbr>'
-            # return '<div style="break-after: page;"></div>'
-        return '', self.raw_text
-
-    def _get_raw_md_text_of_section_paragraph(self):
-        #rt = self.raw_text
-        #aln = self.alignment
-        #head = ''
-        #for i in range(len(Paragraph.section_states)):
-        #    dp = i + 1
-        #    if ParagraphSection.get_depth(rt, aln) == dp:
-        #        c, n, rt = ParagraphSection.decompose(dp, rt)
-        #        # c, n, h, rt = ParagraphSection.decompose(dp, rt)
-        #        head += c + '#' * dp + '-#' * (len(n) - 1) + ' '
-        #if re.match('\\s+', rt):
-        #    msg = '※ 警告: ' \
-        #        + '行頭の空白を削除しました\n  ' \
-        #        + head + self._split_into_lines(rt).rstrip()
-        #    # msg = 'warning: ' \
-        #    #     + 'removed spaces\n' \
-        #    #     + head + self._split_into_lines(rt).rstrip()
-        #    sys.stderr.write(msg + '\n\n')
-        #    rt = re.sub('\\s+', '', rt)
-        #if re.match('^.*[．。].*$', rt):
-        #    raw_md_text = head + '\n' + rt
-        #elif get_real_width(rt) >= 37 * 4:
-        #    raw_md_text = head + '\n' + rt
-        #else:
-        #    raw_md_text = head + rt
-        ## self.md_text = md_text
-        before_instructions, raw_md_text \
-            = ParagraphSection.get_md_text(self.raw_text, self.alignment)
-        return before_instructions, raw_md_text
-
-    def _get_raw_md_text_of_list_system_paragraph(self):
-        typ = ''
-        dep = 1
-        for rxl in self.raw_xml_lines:
-            res = '^<w:pStyle w:val=[\'"]ListBullet([0-9]?)[\'"]/>$'
-            if re.match(res, rxl):
-                typ = 'bullet'
-                n = re.sub(res, '\\1', rxl)
-                if n != '':
-                    dep = int(n)
-            res = '^<w:pStyle w:val=[\'"]ListNumber([0-9]?)[\'"]/>$'
-            if re.match(res, rxl):
-                typ = 'number'
-                n = re.sub(res, '\\1', rxl)
-                if n != '':
-                    dep = int(n)
-            res = '^<w:ilvl w:val=[\'"]([0-9]+)[\'"]/>$'
-            if re.match(res, rxl):
-                n = re.sub(res, '\\1', rxl)
-                dep = int(n) + 1
-            res = '^<w:numId w:val=[\'"]([0-9]+)[\'"]/>$'
-            if re.match(res, rxl):
-                n = re.sub(res, '\\1', rxl)
-                if n == '10':
-                    typ = 'bullet'
-                else:
-                    typ = 'number'
-        if typ == '':
-            return ''
-        raw_md_text = '  ' * (dep - 1)
-        rt = self.raw_text
-        if typ == 'bullet':
-            raw_md_text += '- ' + rt
+        elif ParagraphChapter.is_this_class(self):
+            return 'chapter'
+        elif ParagraphSection.is_this_class(self):
+            return 'section'
+        elif ParagraphSystemlist.is_this_class(self):
+            return 'systemlist'
+        elif ParagraphList.is_this_class(self):
+            return 'list'
+        elif ParagraphTable.is_this_class(self):
+            return 'table'
+        elif ParagraphImage.is_this_class(self):
+            return 'image'
+        elif ParagraphAlignment.is_this_class(self):
+            return 'alignment'
+        elif ParagraphPreformatted.is_this_class(self):
+            return 'preformatted'
+        elif ParagraphPagebreak.is_this_class(self):
+            return 'pagebreak'
+        elif ParagraphBreakdown.is_this_class(self):
+            return 'breakdown'
+        elif ParagraphConfiguration.is_this_class(self):
+            return 'configuration'
         else:
-            raw_md_text += '1. ' + rt
-        # self.raw_md_text = raw_md_text
-        return raw_md_text
+            return 'sentence'
 
-    def _get_raw_md_text_of_list_paragraph(self):
-        raw_md_text = ''
-        for ln in self.raw_text.split('\n'):
-            dd = List.get_division_and_depth(ln)
-            numb, head, text = List.decompose(dd, ln)
-            if dd == 'b1':
-                raw_md_text += '\n' + ' ' * 0 + '- ' + text
-            elif dd == 'b2':
-                raw_md_text += '\n' + ' ' * 2 + '- ' + text
-            elif dd == 'b3':
-                raw_md_text += '\n' + ' ' * 4 + '- ' + text
-            elif dd == 'b4':
-                raw_md_text += '\n' + ' ' * 6 + '- ' + text
-            elif dd == 'n1':
-                raw_md_text += '\n' + ' ' * 0 + '1. ' + text
-            elif dd == 'n2':
-                raw_md_text += '\n' + ' ' * 2 + '1. ' + text
-            elif dd == 'n3':
-                raw_md_text += '\n' + ' ' * 4 + '1. ' + text
-            elif dd == 'n4':
-                raw_md_text += '\n' + ' ' * 6 + '1. ' + text
-            else:
-                raw_md_text += rt
-        raw_md_text = re.sub('^\n', '', raw_md_text)
-        # self.raw_md_text = raw_md_text
-        return raw_md_text
-
-    def _get_raw_md_text_of_alignment_paragraph(self):
-        aln = self.alignment
-        raw_md_text = ''
-        for ln in self.raw_text.split('\n'):
-            if ln == '':
-                continue
-            if aln == 'right':
-                raw_md_text += ln + ' :\n'
-            elif aln == 'center':
-                raw_md_text += ': ' + ln + ' :\n'
-            else:
-                if re.match('^.*  +$', ln):
-                    raw_md_text += ': ' + ln + '\\\n'
-                else:
-                    raw_md_text += ': ' + ln + '\n'
-        raw_md_text = re.sub('\n$', '', raw_md_text)
-        # self.raw_md_text = raw_md_text
-        return raw_md_text
-
-    def _get_raw_md_text_of_table_paragraph(self):
-        s_size = 0.8 * self.font_size
-        is_in_row = False
-        is_in_cel = False
-        tab = []
-        wid = []
-        for xl in self.xml_lines:
-            res = '^<w:gridCol w:w=[\'"]([0-9]+)[\'"]/>$'
-            if re.match(res, xl):
-                w = round((float(re.sub(res, '\\1', xl)) / s_size / 10) - 4)
-                wid.append(w)
-            if is_in_cel:
-                cell.append(xl)
-            if re.match('<w:tr(.*)?>', xl):
-                row = []
-                is_in_row = True
-            elif xl == '<w:tc>':
-                cell = []
-                is_in_cel = True
-            elif xl == '</w:tc>':
-                row.append(cell)
-                is_in_cel = True
-            elif xl == '</w:tr>':
-                tab.append(row)
-                is_in_row = False
-        ali = []
-        for row in tab:
-            tmp = []
-            for j, cell in enumerate(row):
-                for xml in cell:
-                    if re.match('<w:jc w:val=[\'"]left[\'"]/>', xml):
-                        tmp.append(':' + '-' * (wid[j] - 1))
-                    elif re.match('<w:jc w:val=[\'"]center[\'"]/>', xml):
-                        tmp.append(':' + '-' * (wid[j] - 2) + ':')
-                    elif re.match('<w:jc w:val=[\'"]right[\'"]/>', xml):
-                        tmp.append('-' * (wid[j] - 1) + ':')
-            ali.append(tmp)
-        raw_md_text = ''
-        half_row = int(len(tab) / 2)
-        is_in_head = True
-        for i, row in enumerate(tab):
-            if is_in_head:
-                if ali[i] == ali[half_row]:
-                    for cell in ali[half_row]:
-                        raw_md_text += '|' + cell + '|'
-                    is_in_head = False
-                    raw_md_text += '\n'
-            for cell in row:
-                tmp = ''
-                for lin in cell:
-                    if not re.match('<.*>', lin):
-                        tmp += lin
-                tmp = re.sub('\n', '<br>', tmp)
-                raw_md_text += '|' + tmp + '|'
-            raw_md_text += '\n'
-        raw_md_text = raw_md_text.replace('||', '|')
-        raw_md_text = raw_md_text.replace('&lt;', '<')
-        raw_md_text = raw_md_text.replace('&gt;', '>')
-        raw_md_text = re.sub('\n$', '', raw_md_text)
-        # self.raw_md_text = raw_md_text
-        return raw_md_text
-
-    def _get_raw_md_text_of_image_paragraph(self):
-        image = ''
-        res = '^<pic:cNvPr id=[\'"].+[\'"] name=[\'"](.*)[\'"]/>$'
-        for rxl in self.raw_xml_lines:
-            if re.match(res, rxl):
-                image = re.sub(res, '\\1', rxl)
-        raw_md_text = '![' + image + '](' + image + ')'
-        # self.raw_md_text = raw_md_text
-        return raw_md_text
-
-    def _get_raw_md_text_of_preformatted_paragraph(self):
-        raw_text = self.raw_text
-        raw_text = re.sub('^`', '', raw_text)
-        raw_text = re.sub('`$', '', raw_text)
-        res = '^(\\s+)\\[(.*)\\]'
-        if re.match(res, raw_text):
-            raw_text = re.sub(res, '\\1\\2', raw_text)
+    def get_paragraph(self):
+        paragraph_class = self.paragraph_class
+        if False:
+            pass
+        elif paragraph_class == 'empty':
+            return ParagraphEmpty(self)
+        elif paragraph_class == 'blank':
+            return ParagraphBlank(self)
+        elif paragraph_class == 'chapter':
+            return ParagraphChapter(self)
+        elif paragraph_class == 'section':
+            return ParagraphSection(self)
+        elif paragraph_class == 'systemlist':
+            return ParagraphSystemlist(self)
+        elif paragraph_class == 'list':
+            return ParagraphList(self)
+        elif paragraph_class == 'table':
+            return ParagraphTable(self)
+        elif paragraph_class == 'image':
+            return ParagraphImage(self)
+        elif paragraph_class == 'alignment':
+            return ParagraphAlignment(self)
+        elif paragraph_class == 'preformatted':
+            return ParagraphPreformatted(self)
+        elif paragraph_class == 'pagebreak':
+            return ParagraphPagebreak(self)
+        elif paragraph_class == 'breakdown':
+            return ParagraphBreakdown(self)
         else:
-            raw_text = '\n' + raw_text
-        raw_md_text = '``` ' + raw_text + '\n```'
-        # self.raw_md_text = raw_md_text
-        return raw_md_text
+            return ParagraphSentence(self)
 
-    def _get_raw_md_text_of_breakdown_paragraph(self):
-        size = self.font_size
-        is_in_row = False
-        is_in_cel = False
-        tab = []
-        wid = []
-        for xl in self.xml_lines:
-            res = '^<w:gridCol w:w=[\'"]([0-9]+)[\'"]/>$'
-            if re.match(res, xl):
-                w = round((float(re.sub(res, '\\1', xl)) / size / 10) - 4)
-                wid.append(w)
-            if is_in_cel:
-                cell.append(xl)
-            if re.match('<w:tr(.*)?>', xl):
-                row = []
-                is_in_row = True
-            elif xl == '<w:tc>':
-                cell = []
-                is_in_cel = True
-            elif xl == '</w:tc>':
-                row.append(cell)
-                is_in_cel = True
-            elif xl == '</w:tr>':
-                tab.append(row)
-                is_in_row = False
-        raw_md_text = ''
-        for i, row in enumerate(tab):
-            if len(wid) > 0:
-                is_header = True
-                for j, cell in enumerate(row):
-                    for xml in cell:
-                        if re.match('<w:jc w:val=[\'"]left[\'"]/>', xml):
-                            is_header = False
-                        if re.match('<w:jc w:val=[\'"]rigth[\'"]/>', xml):
-                            is_header = False
-                if not is_header:
-                    for w in wid:
-                        raw_md_text += ':' + '-' * w + ':'
-                    raw_md_text += '\n'
-                    wid = []
-            for j, cell in enumerate(row):
-                tmp = ''
-                for lin in cell:
-                    if not re.match('<.*>', lin):
-                        tmp += lin
-                tmp = re.sub('\n', '<br>', tmp)
-                if j == 0:
-                    dd = List.get_division_and_depth(tmp)
-                    if re.match('^b', dd):
-                        numb, head, text = List.decompose(dd, tmp)
-                        tmp = '- ' + text
-                    elif re.match('^n', dd):
-                        numb, head, text = List.decompose(dd, tmp)
-                        tmp = '1. ' + text
+
+class Paragraph:
+
+    """A class to handle paragraph"""
+
+    paragraph_class = None
+
+    mincho_font = None
+    gothic_font = None
+    font_size = None
+
+    previous_head_depth = 0
+    previous_tail_depth = 0
+    #is_preformatted = False
+    #is_large = False
+    #is_small = False
+    #is_italic = False
+    #is_bold = False
+    #has_strike = False
+    #has_underline = False
+    #font_color = ''
+    #highlight_color = None
+
+    @classmethod
+    def is_this_class(cls, raw_paragraph):
+        # rp = raw_paragraph
+        # rp_rxl = rp.raw_xml_lines
+        # rp_rcl = rp.raw_class
+        # rp_rtx = rp.raw_text
+        # rp_img = rp.images
+        # rp_sty = rp.style
+        # rp_alg = rp.alignment
+        # rp_fsz = Document.font_size
+        return False
+
+    def __init__(self, raw_paragraph):
+        # RECEIVED
+        self.paragraph_number = raw_paragraph.paragraph_number
+        self.raw_xml_lines = raw_paragraph.raw_xml_lines
+        self.raw_class = raw_paragraph.raw_class
+        self.xml_lines = raw_paragraph.xml_lines
+        self.raw_text = raw_paragraph.raw_text
+        self.images = raw_paragraph.images
+        self.beg_space = raw_paragraph.beg_space
+        self.end_space = raw_paragraph.end_space
+        self.style = raw_paragraph.style
+        self.alignment = raw_paragraph.alignment
+        self.paragraph_class = raw_paragraph.paragraph_class
+        # DECLARATION
+        self.head_depth = -1
+        self.tail_depth = -1
+        self.head_font_revisers = []
+        self.tail_font_revisers = []
+        self.md_text = []
+        self.length_docx = {}
+        self.length_dept = {}
+        self.length_conf = {}
+        self.length_revi = {}
+        self.length_revisers = []
+        # SUBSTITUTION
+        self.head_depth, self.tail_depth = self._get_depths(self.raw_text)
+        self.numbering_revisers, \
+            self.head_font_revisers, \
+            self.tail_font_revisers, \
+            self.md_text \
+            = self._get_revisers_and_md_text(self.raw_text)
+        self.length_docx = self._get_length_docx()
+        self.length_dept = self._get_length_dept()
+        self.length_conf = self._get_length_conf()
+        self.length_revi = self._get_length_revi()
+        self.length_revisers = self._get_length_revisers(self.length_revi)
+        self.md_lines = self._get_md_lines(self.md_text)
+        self.text_to_write = self.get_text_to_write()
+        # self.write_paragraph()
+
+
+    @classmethod
+    def _get_depths(cls, raw_text):
+        head_depth = 0
+        tail_depth = 0
+        return head_depth, tail_depth
+
+    def _get_revisers_and_md_text(self, raw_text):
+        numbering_revisers = []
+        head_font_revisers, tail_font_revisers, raw_text \
+            = Paragraph._get_font_revisers_and_md_text(raw_text)
+        md_text = self._get_md_text(raw_text)
+        return numbering_revisers, head_font_revisers, tail_font_revisers, \
+            md_text
+
+    @staticmethod
+    def _get_font_revisers_and_md_text(raw_text):
+        head_font_revisers = []
+        tail_font_revisers = []
+        while True:
+            for fd in FONT_DECORATORS:
+                res = '^(' + fd + ')(.*(?:.*\n)*)$'
+                if re.match(res, raw_text):
+                    t1 = re.sub(res, '\\1', raw_text)
+                    t2 = re.sub(res, '\\2', raw_text)
+                    head_font_revisers.append(t1)
+                    raw_text = t2
+                    break
+            else:
+                break
+        while True:
+            for fd in FONT_DECORATORS:
+                res = '^(.*(?:.*\n)*)(' + fd + ')$'
+                if re.match(res, raw_text):
+                    t1 = re.sub(res, '\\1', raw_text)
+                    t2 = re.sub(res, '\\2', raw_text)
+                    raw_text = t1
+                    tail_font_revisers.append(t2)
+                    break
+            else:
+                break
+        return head_font_revisers, tail_font_revisers, raw_text
+
+    @classmethod
+    def _get_numbering_revisers(cls, xdepth, state):
+        paragraph_class = cls.paragraph_class
+        numbering_revisers = []
+        for ydepth, value in enumerate(state):
+            cvalue = cls.states[xdepth][ydepth]
+            if value != cvalue:
+                if paragraph_class == 'chapter':
+                    rev = '$' * (xdepth + 1) + '-$' * ydepth + '=' + str(value)
+                elif paragraph_class == 'section':
+                    rev = '#' * (xdepth + 1) + '-#' * ydepth + '=' + str(value)
+                elif paragraph_class == 'list':
+                    rev = '  ' * xdepth + '1.=' + str(value)
+                numbering_revisers.append(rev)
+                cls.states[xdepth][ydepth] = value
+        return numbering_revisers
+
+    def _get_md_text(self, raw_text):
+        md_text = raw_text
+        return md_text
+
+    @classmethod
+    def _set_states(cls, xdepth, ydepth, value, text=''):
+        paragraph_class_ja = cls.paragraph_class_ja
+        paragraph_class = cls.paragraph_class
+        states = cls.states
+        if xdepth >= len(states):
+            msg = '※ 警告: ' + paragraph_class_ja \
+                + 'の深さが上限を超えています'
+            # msg = 'warning: ' + paragraph_class \
+            #     + ' depth exceeds limit'
+            sys.stderr.write(msg + '\n\n')
+            md_line.append_warning_message(msg)
+        elif ydepth >= len(states[xdepth]):
+            msg = '※ 警告: ' + paragraph_class_ja \
+                + 'の枝が上限を超えています'
+            # msg = 'warning: ' + paragraph_class \
+            #     + ' branch exceeds limit'
+            sys.stderr.write(msg + '\n\n')
+        for x in range(len(states)):
+            for y in range(len(states[x])):
+                if x < xdepth:
+                    continue
+                elif x == xdepth:
+                    if y < ydepth:
+                        if states[x][y] == 0:
+                            msg = '※ 警告: ' + paragraph_class_ja \
+                                + 'の枝が"0"を含んでいます'
+                            # msg = 'warning: ' + paragraph_class \
+                            #     + ' branch has "0"'
+                            sys.stderr.write(msg + '\n\n')
+                    elif y == ydepth:
+                        if value is None:
+                            states[x][y] += 1
+                        else:
+                            states[x][y] = value
                     else:
-                        tmp = re.sub('^\u3000', '', tmp)
-                raw_md_text += ':' + tmp + ':'
-            raw_md_text += '\n'
-        raw_md_text = re.sub('^:', '', raw_md_text)
-        raw_md_text = re.sub('(::)?:\n:', '\n', raw_md_text)
-        raw_md_text = re.sub('(::)?:$', '', raw_md_text)
-        raw_md_text = raw_md_text.replace('&lt;', '<')
-        raw_md_text = raw_md_text.replace('&gt;', '>')
-        raw_md_text = re.sub('\n$', '', raw_md_text)
-        # self.raw_md_text = raw_md_text
-        return raw_md_text
+                        states[x][y] = 0
+                else:
+                    states[x][y] = 0
 
-    def get_length(self):
-        size = Paragraph.font_size
-        lnsp = doc.line_spacing
-        length \
+    @classmethod
+    def _step_states(cls, xdepth, ydepth):
+        value = cls.states[xdepth][ydepth] + 1
+        cls._set_states(xdepth, ydepth, value)
+
+    def _get_length_docx(self):
+        size = Document.font_size
+        lnsp = Document.line_spacing
+        rxls = self.raw_xml_lines
+        length_docx \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
-        sb_x = 0.0
-        sa_x = 0.0
-        ls_x = 0.0
-        fi_x = 0.0
-        hi_x = 0.0
-        li_x = 0.0
-        ri_x = 0.0
-        ti_x = 0.0
-        for rxl in self.raw_xml_lines:
-            sb_x = get_xml_value('w:spacing', 'w:before', sb_x, rxl)
-            sa_x = get_xml_value('w:spacing', 'w:after', sa_x, rxl)
-            ls_x = get_xml_value('w:spacing', 'w:line', ls_x, rxl)
-            fi_x = get_xml_value('w:ind', 'w:firstLine', fi_x, rxl)
-            hi_x = get_xml_value('w:ind', 'w:hanging', hi_x, rxl)
-            li_x = get_xml_value('w:ind', 'w:left', li_x, rxl)
-            ri_x = get_xml_value('w:ind', 'w:right', ri_x, rxl)
-            ti_x = get_xml_value('w:tblInd', 'w:w', ti_x, rxl)
-        length['space before'] = sb_x / 20 / size / lnsp
-        length['space after'] = sa_x / 20 / size / lnsp
+        sb_xml = 0.0
+        sa_xml = 0.0
+        ls_xml = 0.0
+        fi_xml = 0.0
+        hi_xml = 0.0
+        li_xml = 0.0
+        ri_xml = 0.0
+        ti_xml = 0.0
+        for rxl in rxls:
+            sb_xml = get_xml_value('w:spacing', 'w:before', sb_xml, rxl)
+            sa_xml = get_xml_value('w:spacing', 'w:after', sa_xml, rxl)
+            ls_xml = get_xml_value('w:spacing', 'w:line', ls_xml, rxl)
+            fi_xml = get_xml_value('w:ind', 'w:firstLine', fi_xml, rxl)
+            hi_xml = get_xml_value('w:ind', 'w:hanging', hi_xml, rxl)
+            li_xml = get_xml_value('w:ind', 'w:left', li_xml, rxl)
+            ri_xml = get_xml_value('w:ind', 'w:right', ri_xml, rxl)
+            ti_xml = get_xml_value('w:tblInd', 'w:w', ti_xml, rxl)
+        length_docx['space before'] = round(sb_xml / 20 / size / lnsp, 2)
+        length_docx['space after'] = round(sa_xml / 20 / size / lnsp, 2)
         ls = 0.0
-        if ls_x > 0.0:
-            ls = (ls_x / 20 / size / lnsp) - 1
-        length['space before'] += ls * .75
-        length['space after'] += ls * .25
+        if ls_xml > 0.0:
+            ls = (ls_xml / 20 / size / lnsp) - 1
+        length_docx['space before'] += round(ls * .75, 2)
+        length_docx['space after'] += round(ls * .25, 2)
+        length_docx['line spacing'] = round(ls, 1)
+        # COMMENTOUTED 23.02.14
         # if round(ls, 1) < 0:
         #     length['space before'] += ls * .75
         #     length['space after'] += ls * .25
         # elif round(ls, 1) > 0:
         #     length['space before'] -= ls * .25
         #     length['space after'] -= ls * .75
-        length['line spacing'] = ls
-        length['first indent'] = (fi_x - hi_x) / 20 / size
-        length['left indent'] = (li_x + ti_x) / 20 / size
-        length['right indent'] = ri_x / 20 / size
-        # self.length = length
-        return length
+        length_docx['first indent'] = round((fi_xml - hi_xml) / 20 / size, 2)
+        length_docx['left indent'] = round((li_xml + ti_xml) / 20 / size, 2)
+        length_docx['right indent'] = round(ri_xml / 20 / size, 2)
+       # self.length_docx = length_docx
+        return length_docx
 
-    def get_length_sec(self):
-        depth_first = ParagraphSection.depth_first
-        depth = ParagraphSection.depth
-        states = ParagraphSection.states
-        pclass = self.paragraph_class
-        length_sec \
+    def _get_length_dept(self):
+        paragraph_class = self.paragraph_class
+        head_depth = self.head_depth
+        tail_depth = self.tail_depth
+        length_dept \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
-        if pclass == 'section':
-            if depth_first > 1:
-                length_sec['first indent'] = depth_first - depth - 1
-                length_sec['left indent'] = depth - 1
-            if depth_first > 2 and states[1][0] == 0:
-                length_sec['left indent'] -= 1
-            if doc.document_style == 'j':
-                if self.section_states[1][0] > 0 and self.section_depth >= 3:
-                    length_sec['left indent'] -= 1
-        elif re.match('^((list_system)|(list)|(breakdown))$', pclass):
-            length_sec['first indent'] = 0
-            if depth_first > 1:
-                length_sec['left indent'] = depth - 1
-            if depth_first == 3 and states[1][0] == 0:
-                length_sec['left indent'] -= 1
-            if doc.document_style == 'j':
-                if self.section_states[1][0] > 0 and self.section_depth >= 3:
-                    length_sec['left indent'] -= 1
-        elif pclass == 'sentence':
-            if depth_first > 0:
-                length_sec['first indent'] = 1
-            if depth_first > 1:
-                length_sec['left indent'] = depth - 1
-            if depth_first == 3 and states[1][0] == 0:
-                length_sec['left indent'] -= 1
-            if doc.document_style == 'j':
-                if self.section_states[1][0] > 0 and self.section_depth >= 3:
-                    length_sec['left indent'] -= 1
-        if pclass == 'breakdown':
-            length_sec['first indent'] += 1
-        # self.length_sec = length_sec
-        return length_sec
+        if paragraph_class == 'chapter':
+            length_dept['first indent'] = -1.0
+            length_dept['left indent'] = tail_depth + 0.0
+        elif paragraph_class == 'section':
+            if head_depth > 1:
+                length_dept['first indent'] = head_depth - tail_depth - 1.0
+            if tail_depth > 1:
+                length_dept['left indent'] = tail_depth - 1.0
+        elif paragraph_class == 'list':
+            length_dept['first indent'] = -1.0
+            length_dept['left indent'] = tail_depth + 0.0
+        elif paragraph_class == 'sentence':
+            if tail_depth > 0:
+                length_dept['first indent'] = 1.0
+                length_dept['left indent'] = tail_depth - 1.0
+        if paragraph_class == 'section' or \
+           paragraph_class == 'list' or \
+           paragraph_class == 'sentence':
+            if tail_depth > 2 and ParagraphSection.states[1][0] == 0:
+                length_dept['left indent'] -= 1.0
+        # self.length_dept = length_dept
+        return length_dept
 
-    def get_length_spa(self):
-        length_spa \
+    def _get_length_conf(self):
+        hd = self.head_depth
+        td = self.tail_depth
+        length_conf \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
-        length_spa['first indent'] = float(get_real_width(self.beg_space)) / 2
-        # self.length_spa = length_spa
-        return length_spa
+        if self.paragraph_class == 'section':
+            sb = (Document.space_before + ',,,,,,,').split(',')
+            sa = (Document.space_after + ',,,,,,,').split(',')
+            if hd <= len(sb) and sb[hd - 1] != '':
+                length_conf['space before'] += float(sb[hd - 1])
+            if td <= len(sa) and sa[td - 1] != '':
+                length_conf['space after'] += float(sa[td - 1])
+        # self.length_conf = length_conf
+        return length_conf
 
-    def get_length_ins(self):
-        length_ins \
+    def _get_length_revi(self):
+        length_docx = self.length_docx
+        length_conf = self.length_conf
+        length_dept = self.length_dept
+        length_revi \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
-        for s in length_ins:
-            length_ins[s] \
-                = self.length[s] - self.length_sec[s] + self.length_spa[s]
-        if self.paragraph_class == 'chapter':
-            depth = ParagraphChapter.get_depth(self.raw_text)
-            length_ins = ParagraphChapter.modify_length_ins(depth, length_ins)
-        if self.paragraph_class == 'section':
-            d = self.section_depth_first
-            sb = (doc.space_before + ',,,,,').split(',')[d - 1]
-            if sb != '':
-                length_ins['space before'] -= float(sb)
-            d = self.section_depth
-            sa = (doc.space_after + ',,,,,').split(',')[d - 1]
-            if sa != '':
-                length_ins['space after'] -= float(sa)
-        # self.length_ins = length_ins
-        return length_ins
+        for ln in length_revi:
+            length_revi[ln] \
+                = round(length_docx[ln] - length_conf[ln] - length_dept[ln], 2)
+         # self.length_revi = length_revi
+        return length_revi
 
-    def get_first_line_instructions(self):
-        sb = self.length_ins['space before']
-        sa = self.length_ins['space after']
-        ls = self.length_ins['line spacing']
-        fi = self.length_ins['first indent']
-        li = self.length_ins['left indent']
-        ri = self.length_ins['right indent']
-        if self.paragraph_class == 'alignment':
-            if self.alignment == 'center':
-                if li > 0:
-                    fi = li / 2
-                else:
-                    fi = ri / 2
-            if self.alignment == 'right':
-                fi = -self.length_ins['right indent']
-        rsb = round(sb, 1)
-        rsa = round(sa, 1)
-        rls = round(ls, 1)
-        # rsb = float(round(sb * 2)) / 2
-        # rsa = float(round(sa * 2)) / 2
-        # rls = float(round(ls * 2)) / 2
-        rfi = float(round(fi * 2)) / 2
-        rli = float(round(li * 2)) / 2
-        rri = float(round(ri * 2)) / 2
-        ins = ''
-        if rsb < 0:
-            ins += 'v=' + str(rsb) + ' '
-        elif rsb > 0:
-            ins += 'v=+' + str(rsb) + ' '
-        if rsa < 0:
-            ins += 'V=' + str(rsa) + ' '
-        elif rsa > 0:
-            ins += 'V=+' + str(rsa) + ' '
-        if rls < 0:
-            ins += 'X=' + str(rls) + ' '
-        if rls > 0:
-            ins += 'X=+' + str(rls) + ' '
-        if rfi != 0:
-            ins += '<<=' + str(-rfi) + ' '
-        if rli != 0:
-            ins += '<=' + str(-rli) + ' '
-        if rri != 0:
-            ins += '>=' + str(-rri) + ' '
-        ins = re.sub(' $', '', ins)
-        fli = self.first_line_instructions
-        fli = re.sub('(v|V|X|<<|<|>)=[\\+\\-]?[\\.0-9]+\\s*', '', fli)
-        first_line_instructions = fli + ins
-        # first_line_instructions = ins
-        # self.first_line_instructions = ins
-        return first_line_instructions
+    @staticmethod
+    def _get_length_revisers(length_revi):
+        length_revisers = []
+        if length_revi['space before'] != 0.0:
+            length_revisers.append('v=' + str(length_revi['space before']))
+        if length_revi['space after'] != 0.0:
+            length_revisers.append('V=' + str(length_revi['space after']))
+        if length_revi['line spacing'] != 0.0:
+            length_revisers.append('X=' + str(length_revi['line spacing']))
+        if length_revi['first indent'] != 0.0:
+            length_revisers.append('<<=' + str(-length_revi['first indent']))
+        if length_revi['left indent'] != 0.0:
+            length_revisers.append('<=' + str(-length_revi['left indent']))
+        if length_revi['right indent'] != 0.0:
+            length_revisers.append('>=' + str(-length_revi['right indent']))
+        # self.length_revisers = length_revisers
+        return length_revisers
 
-    def get_md_text(self):
-        rmt = self.raw_md_text
-        if self.paragraph_class == 'section':
-            if len(rmt.split('\n')) == 1:
-                return rmt
-        if self.paragraph_class == 'list':
-            return rmt
-        if self.paragraph_class == 'alignment':
-            return rmt
-        if self.paragraph_class == 'table':
-            return rmt
-        if self.paragraph_class == 'image':
-            return rmt
-        if self.paragraph_class == 'preformatted':
-            return rmt
-        if self.paragraph_class == 'pagebreak':
-            return rmt
-        if self.paragraph_class == 'section':
-            res = '^((#+ \n)*#+ )(#+ .*)$'
-            while re.match(res, rmt):
-                rmt = re.sub(res, '\\1\n\\3', rmt)
-        md_text = ''
-        lines = rmt.split('\n')
-        for i in range(len(lines)):
-            line = lines[i]
-            if re.match('^.* {2:}$', line):
-                line += '\\'
-            if i < len(lines) - 1:
-                if not (i == 0 and re.match('^#+ ?$', line)):
-                    line += ' ' * 2
-            md_text += self._split_into_lines(line)
-        md_text = re.sub('\n$', '', md_text)
-        return md_text
+    def _get_md_lines(self, md_text):
+        paragraph_class = self.paragraph_class
+        # FOR TRAILING WHITE SPACE
+        md_text = re.sub('  \n', '  \\\n', md_text)
+        if False:
+            pass
+        # elif paragraph_class == 'chapter':
+        #     md_lines = Paragraph._split_into_lines(md_text)
+        elif paragraph_class == 'section':
+            md_lines = Paragraph._split_into_lines(md_text)
+        # elif paragraph_class == 'list':
+        #     md_lines = Paragraph._split_into_lines(md_text)
+        elif paragraph_class == 'sentence':
+            md_lines = Paragraph._split_into_lines(md_text)
+        else:
+            md_lines = md_text
+        return md_lines
 
     @classmethod
-    def _split_into_lines(cls, line):
-        phrases = cls._split_into_phrases(line)
-        splited = cls._concatenate_phrases(phrases)
-        # FOR TRAILING WHITE SPACE
-        splited = re.sub('\n$', '-\n', splited)
-        splited = re.sub('  \n', '  \\\n', splited)
-        splited = re.sub('-\n$', '\n', splited)
-        return splited
+    def _split_into_lines(cls, md_text):
+        md_lines = ''
+        for line in md_text.split('\n'):
+            phrases = cls._split_into_phrases(line)
+            splited = cls._concatenate_phrases(phrases)
+            md_lines += splited + '<br>\n'
+        md_lines = re.sub('<br>\n$', '', md_lines)
+        return md_lines
 
     @staticmethod
     def _split_into_phrases(line):
@@ -3194,6 +2620,14 @@ class Paragraph:
         tex = ''
         tmp = ''
         for p in phrases:
+            res = '(?:#+(?:\\-#)* )+'
+            if tex == '':
+                if re.match('^' + res + '$', tmp):
+                    if not re.match('^' + res + '.*$', p):
+                        if re.match('^.*[.．。]$', phrases[-1]):
+                            tex += tmp + '\n'
+                            tmp = p
+                            continue
             if get_ideal_width(tmp) <= MD_TEXT_WIDTH:
                 if re.match('^.*[．。]$', tmp):
                     if tmp != '':
@@ -3304,66 +2738,713 @@ class Paragraph:
         if tmp != '':
             tex += tmp + '\n'
             tmp = ''
+        tex = re.sub('\n$', '', tex)
         return tex
 
-    def write_md_lines(self, mf):
-        pc = self.paragraph_class
-        wm = self.warning_messages
-        fli = self.first_line_instructions
-        mt = self.md_text
-        n = self.paragraph_number - 1
-        m = len(doc.paragraphs) - 1
-        if n > 0:
-            p_prev = doc.paragraphs[n - 1]
-        if n < m:
-            p_next = doc.paragraphs[n + 1]
-        if pc == 'empty':
-            return
-        if pc == 'blank':
-            for i in range(n + 1, m + 1):
-                if doc.paragraphs[i].paragraph_class != 'blank' and \
-                   doc.paragraphs[i].paragraph_class != 'configuration':
-                    break
-            else:
-                return
-        if pc == 'configuration':
-            return
-        if pc == 'list_system':
-            text_to_write = ''
-            if n == 0 or p_prev.paragraph_class != 'list_system':
-                if fli != '':
-                    text_to_write += fli + '\n'
-            text_to_write += mt + '\n'
-            if n == m or p_next.paragraph_class != 'list_system':
-                text_to_write += '\n'
-            if wm != '':
-                text_to_text = wm + text_to_text
-            mf.write(text_to_write)
-            return
-        if mt == '':
-            text_to_text = '  \n\n'
-        elif fli == '':
-            text_to_text = mt + '\n\n'
+    def get_text_to_write(self):
+        numbering_revisers = self.numbering_revisers
+        length_revisers = self.length_revisers
+        head_font_revisers = self.head_font_revisers
+        tail_font_revisers = self.tail_font_revisers
+        md_lines = self.md_lines
+        res = '^((?:.*\n)*.*) $'
+        text_to_write = ''
+        for rev in numbering_revisers:
+            text_to_write += rev + ' '
+        if re.match(res, text_to_write):
+            text_to_write = re.sub(res, '\\1\n', text_to_write)
+        for rev in length_revisers:
+            text_to_write += rev + ' '
+        if re.match(res, text_to_write):
+            text_to_write = re.sub(res, '\\1\n', text_to_write)
+        for rev in head_font_revisers:
+            text_to_write += rev
+        text_to_write += md_lines
+        for rev in tail_font_revisers:
+            text_to_write += rev
+        return text_to_write
+
+    def write_paragraph(self, mf):
+        text_to_write = self.text_to_write
+        if text_to_write != '':
+            mf.write(text_to_write + '\n')
+
+    def save_images(self):
+        tmpdir = Document.tmpdir.name
+        media_dir = Document.media_dir
+        images = self.images
+        for img in images:
+            try:
+                shutil.copy(tmpdir + '/word/' + img,
+                            media_dir + '/' + images[img])
+            except BaseException:
+                msg = '※ 警告: ' \
+                    + '画像「' + images[img] + '」' \
+                    + 'を保存できません'
+                # msg = 'warning: ' \
+                #     + 'cannot make "' + media_dir + '"'
+                sys.stderr.write(msg + '\n\n')
+
+
+class ParagraphEmpty(Paragraph):
+
+    """A class to handle empty paragraph"""
+
+    paragraph_class = 'empty'
+
+    @classmethod
+    def is_this_class(cls, raw_paragraph):
+        return False
+
+
+class ParagraphBlank(Paragraph):
+
+    """A class to handle blank paragraph"""
+
+    paragraph_class = 'blank'
+
+    @classmethod
+    def is_this_class(cls, raw_paragraph):
+        rp = raw_paragraph
+        rp_rxl = rp.raw_xml_lines
+        rp_rcl = rp.raw_class
+        rp_rtx = rp.raw_text
+        if rp_rtx != '':
+            return False
+        if rp_rcl == 'w:tbl':
+            return False  # table
+        if rp_rcl == 'w:sectPr':
+            return False  # configuration
+        for rxl in rp_rxl:
+            if re.match('^<w:drawing>$', rxl):
+                return False  # image
+            if re.match('^<w:br w:type="page"/>$', rxl):
+                return False  # pagebreak
+        return True
+
+
+class ParagraphChapter(Paragraph):
+
+    """A class to handle chapter paragraph"""
+
+    paragraph_class = 'chapter'
+    paragraph_class_ja = 'チャプター'
+
+    res_branch = '(の[0-9０-９]+)*'
+    unit_chars = ['編', '章', '節', '款', '目']
+    res_separator = '(?:  ?|\t|\u3000)'
+    res_symbols = ['(第([0-9０-９]+)' + unit_chars[0] + ')' \
+                   + res_branch + res_separator,
+                   '(第([0-9０-９]+)' + unit_chars[1] + ')' \
+                   + res_branch + res_separator,
+                   '(第([0-9０-９]+)' + unit_chars[2] + ')' \
+                   + res_branch + res_separator,
+                   '(第([0-9０-９]+)' + unit_chars[3] + ')' \
+                   + res_branch + res_separator,
+                   '(第([0-9０-９]+)' + unit_chars[4] + ')' \
+                   + res_branch + res_separator]
+    res_rest = '(.*\\S(?:.*\n*)*)'
+    states = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # 第１編
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # 第１章
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # 第１節
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # 第１款
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]  # 第１目
+
+    @classmethod
+    def is_this_class(cls, raw_paragraph):
+        rp = raw_paragraph
+        rp_rtx = rp.raw_text
+        for i in range(len(cls.res_symbols)):
+            res = '^' \
+                + RES_FONT_DECORATORS \
+                + cls.res_symbols[i] \
+                + cls.res_rest + '$'
+            if re.match(res, rp_rtx):
+                return True
+        return False
+
+    @classmethod
+    def _get_depths(cls, raw_text):
+        rss = cls.res_symbols
+        xdepth = 0
+        for i, rs in enumerate(rss):
+            if re.match(rs, raw_text):
+                xdepth = i
+        head_depth = xdepth + 1
+        tail_depth = head_depth
+        return head_depth, tail_depth
+
+    def _get_revisers_and_md_text(self, raw_text):
+        rss = self.res_symbols
+        rre = self.res_rest
+        numbering_revisers = []
+        head_font_revisers, tail_font_revisers, raw_text \
+            = Paragraph._get_font_revisers_and_md_text(raw_text)
+        head_symbol = ''
+        for xdepth in range(len(rss)):
+            res = '^' + rss[xdepth] + rre + '$'
+            if re.match(res, raw_text):
+                head_string, raw_text, state \
+                    = self._decompose_text(res, raw_text, -1, -1)
+                ydepth = len(state) - 1
+                self._step_states(xdepth, ydepth)
+                numbering_revisers \
+                    = self._get_numbering_revisers(xdepth, state)
+                head_symbol = '$' * (xdepth + 1) + '-$' * ydepth + ' '
+                break
+        return numbering_revisers, head_font_revisers, tail_font_revisers, \
+                head_symbol + raw_text
+
+    @staticmethod
+    def _decompose_text(res, raw_text, num1, num2):
+        hdstr = re.sub(res, '\\1', raw_text)
+        nmsym = re.sub(res, '\\2', raw_text)
+        branc = re.sub(res, '\\3', raw_text)
+        rtext = re.sub(res, '\\4', raw_text)
+        state = []
+        for b in branc.split('の'):
+            state.append(c2i_n_arab(b) - 1)
+        if re.match('[0-9０-９]+', nmsym):
+            state[0] = c2i_n_arab(nmsym)
+        return hdstr, rtext, state
+
+
+class ParagraphSection(Paragraph):
+
+    """A class to handle section paragraph"""
+
+    paragraph_class = 'section'
+    paragraph_class_ja = 'セクション'
+
+    #r0 = '((?:' + '|'.join(FONT_DECORATORS) + ')*)'
+    r1 = '\\+\\+(.*)\\+\\+'
+    r2 = '(?:(第([0-9０-９]+)条?)((?:の[0-9０-９]+)*))'
+    r3 = '(?:(([0-9０-９]+))((?:の[0-9０-９]+)*))'
+    r4 = '(?:([⑴-⒇]|[\\(（]([0-9０-９]+)[\\)）])((?:の[0-9０-９]+)*))'
+    r5 = '(?:(([ｱ-ﾝア-ン]))((?:の[0-9０-９]+)*))'
+    r6 = '(?:([(\\(（]([ｱ-ﾝア-ン])[\\)）])((?:の[0-9０-９]+)*))'
+    r7 = '(?:(([a-zａ-ｚ]))((?:の[0-9０-９]+)*))'
+    r8 = '(?:([(\\(（]([a-zａ-ｚ])[\\)）])((?:の[0-9０-９]+)*))'
+    r9 = '(?:  ?|\t|\u3000|\\. ?|．)'
+    res_symbols = [
+        r1,
+        r2 + '()' + r9,
+        r3 + '(' + r4 + '?' + r5 + '?' + r6 + '?' + r7 + '?' + r8 + '?)' + r9,
+        r3 + '?' + r4 + '(' + r5 + '?' + r6 + '?' + r7 + '?' + r8 + '?)' + r9,
+        r3 + '?' + r4 + '?' + r5 + '(' + r6 + '?' + r7 + '?' + r8 + '?)' + r9,
+        r3 + '?' + r4 + '?' + r5 + '?' + r6 + '(' + r7 + '?' + r8 + '?)' + r9,
+        r3 + '?' + r4 + '?' + r5 + '?' + r6 + '?' + r7 + '(' + r8 + '?)' + r9,
+        r3 + '?' + r4 + '?' + r5 + '?' + r6 + '?' + r7 + '?' + r8 + '()' + r9]
+    res_number = '^[0-9０-９]+(?:, ?|\\. ?|，|．)[0-9０-９]+'
+    res_rest = '(.*\\S(?:.*\n*)*)'
+    states = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # -
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # 第１
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # １
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # (1)
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # ア
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # (ｱ)
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # ａ
+              [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]  # (a)
+
+    @classmethod
+    def is_this_class(cls, raw_paragraph):
+        raw_text = raw_paragraph.raw_text
+        alignment = raw_paragraph.alignment
+        head_depth, tail_depth = cls._get_depths(raw_text)
+        if tail_depth == 1 and alignment == 'center':
+            return True
+        elif tail_depth > 1:
+            return True
+        return False
+
+    @classmethod
+    def _get_depths(cls, raw_text):
+        rss = cls.res_symbols
+        rfd = RES_FONT_DECORATORS
+        rre = cls.res_rest
+        rnm = cls.res_number
+        head_depth = 0
+        tail_depth = 0
+        for xdepth in range(1, len(rss)):
+            res = '^' + rfd + rss[xdepth] + rre + '$'
+            if re.match(res, raw_text) and not re.match(rnm, raw_text):
+                if head_depth == 0:
+                    head_depth = xdepth + 1
+                tail_depth = xdepth + 1
+            if head_depth == 0 and tail_depth == 0:
+                res = '^' + rfd + rss[0] + rfd + '$'
+                if re.match(res, raw_text):
+                    head_depth = 1
+                    tail_depth = 1
+        return head_depth, tail_depth
+
+    def _get_revisers_and_md_text(self, raw_text):
+        rss = self.res_symbols
+        rre = self.res_rest
+        rnm = self.res_number
+        numbering_revisers = []
+        head_font_revisers, tail_font_revisers, raw_text \
+            = Paragraph._get_font_revisers_and_md_text(raw_text)
+        head_symbol = ''
+        for xdepth in range(1, len(rss)):
+            res = '^' + rss[xdepth] + rre + '$'
+            if re.match(res, raw_text) and not re.match(rnm, raw_text):
+                if xdepth == 1:
+                    beg_num = 1
+                    end_num = 5
+                else:
+                    beg_num = (3 * xdepth) - 5
+                    end_num = 20
+                head_string, raw_text, state \
+                    = self._decompose_text(res, raw_text, beg_num, end_num)
+                ydepth = len(state) - 1
+                self._step_states(xdepth, ydepth)
+                numbering_revisers \
+                    = self._get_numbering_revisers(xdepth, state)
+                head_symbol += '#' * (xdepth + 1) + '-#' * ydepth + ' '
+        raw_text = re.sub('^\u3000', '', raw_text)
+        if head_symbol == '':
+            head_font_revisers.remove('++')
+            tail_font_revisers.remove('++')
+            return numbering_revisers, head_font_revisers, tail_font_revisers, \
+                '# ' + raw_text
         else:
-            text_to_text = fli + '\n' + mt + '\n\n'
-        if wm != '':
-            text_to_text = wm + text_to_text
-        mf.write(text_to_text)
+            return numbering_revisers, head_font_revisers, tail_font_revisers, \
+                head_symbol + raw_text
+
+    @staticmethod
+    def _decompose_text(res, raw_text, beg_num, end_num):
+        hdstr_rep = '\\' + str(beg_num) + '\\' + str(beg_num + 2)
+        nmsym_rep = '\\' + str(beg_num + 1)
+        branc_rep = '\\' + str(beg_num + 2)
+        rtext_rep = '\\' + str(beg_num + 3) + '\u3000\\' + str(end_num)
+        hdstr = re.sub(res, hdstr_rep, raw_text)
+        nmsym = re.sub(res, nmsym_rep, raw_text)
+        branc = re.sub(res, branc_rep, raw_text)
+        rtext = re.sub(res, rtext_rep, raw_text)
+        state = []
+        for b in branc.split('の'):
+            state.append(c2i_n_arab(b) - 1)
+        if nmsym == '':
+            nmsym = hdstr
+        if re.match('[0-9０-９]+', nmsym):
+            state[0] = c2i_n_arab(nmsym)
+        elif re.match('[⑴-⒇]+', nmsym):
+            state[0] = c2i_p_arab(nmsym)
+        elif re.match('[ｱ-ﾝア-ン]+', nmsym):
+            state[0] = c2i_n_kata(nmsym)
+        elif re.match('[a-zａ-ｚ]+', nmsym):
+            state[0] = c2i_n_alph(nmsym)
+        return hdstr, rtext, state
+
+
+class ParagraphSystemlist(Paragraph):
+
+    """A class to handle systemlist paragraph"""
+
+    paragraph_class = 'systemlist'
+
+    res_xml_bullet_ms = '^<w:ilvl w:val=[\'"]([0-9]+)[\'"]/>$'
+    res_xml_number_ms = '^<w:numId w:val=[\'"]([0-9]+)[\'"]/>$'
+    res_xml_bullet_lo = '^<w:pStyle w:val=[\'"]ListBullet([0-9]?)[\'"]/>$'
+    res_xml_number_lo = '^<w:pStyle w:val=[\'"]ListNumber([0-9]?)[\'"]/>$'
+
+    @classmethod
+    def is_this_class(cls, raw_paragraph):
+        rp = raw_paragraph
+        raw_xml_lines = rp.raw_xml_lines
+        res_xml_bullet_ms = cls.res_xml_bullet_ms
+        res_xml_number_ms = cls.res_xml_number_ms
+        res_xml_bullet_lo = cls.res_xml_bullet_lo
+        res_xml_number_lo = cls.res_xml_number_lo
+        for rxl in raw_xml_lines:
+            if re.match(res_xml_bullet_ms, rxl):
+                return True
+            if re.match(res_xml_number_ms, rxl):
+                return True
+            if re.match(res_xml_bullet_lo, rxl):
+                return True
+            if re.match(res_xml_number_lo, rxl):
+                return True
+        return False
+
+    def _get_md_text(self, raw_text):
+        res_xml_bullet_ms = self.res_xml_bullet_ms
+        res_xml_number_ms = self.res_xml_number_ms
+        res_xml_bullet_lo = self.res_xml_bullet_lo
+        res_xml_number_lo = self.res_xml_number_lo
+        raw_xml_lines = self.raw_xml_lines
+        raw_text = self.raw_text
+        list_type = ''
+        depth = 1
+        for rxl in raw_xml_lines:
+            if re.match(res_xml_bullet_ms, rxl):
+                n = re.sub(res_xml_bullet_ms, '\\1', rxl)
+                depth = int(n) + 1
+            if re.match(res_xml_number_ms, rxl):
+                n = re.sub(res_xml_number_ms, '\\1', rxl)
+                if n == '10':
+                    list_type = 'bullet'
+                else:
+                    list_type = 'number'
+            if re.match(res_xml_bullet_lo, rxl):
+                list_type = 'bullet'
+                n = re.sub(res_xml_bullet_lo, '\\1', rxl)
+                if n != '':
+                    depth = int(n)
+            if re.match(res_xml_number_lo, rxl):
+                list_type = 'number'
+                n = re.sub(res_xml_number_lo, '\\1', rxl)
+                if n != '':
+                    depth = int(n)
+        if list_type == 'bullet':
+            md_text = '  ' * (depth - 1) + '- ' + raw_text
+        else:
+            md_text = '  ' * (depth - 1) + '1. ' + raw_text
+        return md_text
+
+
+class ParagraphList(Paragraph):
+
+    """A class to handle list paragraph"""
+
+    paragraph_class = 'list'
+    paragraph_class_ja = 'リスト'
+
+    res_separator = '(?:  ?|\t|\u3000)'
+    res_symbols_b = ['((・))' + '()' +  res_separator,
+                     '((○))' + '()' +  res_separator,
+                     '((△))' + '()' +  res_separator,
+                     '((◇))' + '()' +  res_separator]
+    # res_symbols_b = ['(•)' + res_separator,  #  U+2022 Bullet
+    #                  '(◦)' + res_separator,  #  U+25E6 White Bullet
+    #                  '(‣)' + res_separator,  #  U+2023 Triangular Bullet
+    #                  '(⁃)' + res_separator]  #  U+2043 Hyphen Bullet
+    res_symbols_n = [('((' + chr(9450+ 0) + '|'
+                      + '[' + chr(9311 + 1) + '-' + chr(9311 + 20) + ']|'
+                      + '[' + chr(12860 + 21) + '-' + chr(12860 + 35) + ']|'
+                      + '[' + chr(12941 + 36) + '-' + chr(12941 + 50) + ']|'
+                      + chr(127243) + '|'
+                      + '[' + chr(10111 + 1) + '-' + chr(10111 + 10) + ']))'
+                      + '()' + res_separator),
+                     ('(([' + chr(13007 + 1) + '-' + chr(13007 + 47) + ']))'
+                      + '()' +  res_separator),
+                     ('(([' + chr(9423 + 1) + '-' + chr(9423 + 26) + ']))'
+                      + '()' +  res_separator),
+                     ('(([' + chr(12927 + 1) + '-' + chr(12927 + 10) + ']))'
+                      + '()' +  res_separator)]
+    res_rest = '(.*\\S(?:.*\n*)*)'
+    states = [[0],  # ①
+              [0],  # ㋐
+              [0],  # ⓐ
+              [0]]  # ㊀
+
+    @classmethod
+    def is_this_class(cls, raw_paragraph):
+        rp = raw_paragraph
+        raw_text = rp.raw_text
+        head_depth, tail_depth = cls._get_depths(raw_text)
+        if tail_depth > 0:
+            return True
+        return False
+
+    @classmethod
+    def _get_depths(cls, raw_text):
+        rsbs = cls.res_symbols_b
+        rsns = cls.res_symbols_n
+        rss = rsbs + rsns
+        rfd = RES_FONT_DECORATORS
+        rre = cls.res_rest
+        head_depth = 0
+        tail_depth = 0
+        for i in range(len(rss)):
+            res = '^' + rfd + rss[i] + rre + '$'
+            if re.match(res, raw_text):
+                xdepth = i % 4
+                head_depth = xdepth + 1
+                tail_depth = head_depth
+                break
+        return head_depth, tail_depth
+
+    def _get_revisers_and_md_text(self, raw_text):
+        rsbs = self.res_symbols_b
+        rsns = self.res_symbols_n
+        rre = self.res_rest
+        rss = rsbs + rsns
+        numbering_revisers = []
+        head_font_revisers, tail_font_revisers, raw_text \
+            = Paragraph._get_font_revisers_and_md_text(raw_text)
+        head_symbol = ''
+        for i in range(len(rss)):
+            res = '^' + rss[i] + rre + '$'
+            if re.match(res, raw_text):
+                xdepth = i % 4
+                if i < 4:
+                    head_string = re.sub(res, '\\1', raw_text)
+                    raw_text = re.sub(res, '\\4', raw_text)
+                    head_symbol = '  ' * xdepth + '- '
+                else:
+                    head_string, raw_text, state \
+                        = self._decompose_text(res, raw_text, xdepth, -1)
+                    head_symbol = '  ' * xdepth + '1. '
+                    self._step_states(xdepth, 0)
+                    numbering_revisers \
+                        = self._get_numbering_revisers(xdepth, state)
+                break
+        return numbering_revisers, head_font_revisers, tail_font_revisers, \
+                head_symbol + raw_text
+
+    @staticmethod
+    def _decompose_text(res, raw_text, xdepth, num):
+        hdstr = re.sub(res, '\\1', raw_text)
+        nmsym = re.sub(res, '\\2', raw_text)
+        branc = re.sub(res, '\\3', raw_text)
+        rtext = re.sub(res, '\\4', raw_text)
+        if xdepth == 0:
+            state = [c2i_c_arab(nmsym)]
+        elif xdepth == 1:
+            state = [c2i_c_kata(nmsym)]
+        elif xdepth == 2:
+            state = [c2i_c_alph(nmsym)]
+        elif xdepth == 3:
+            state = [c2i_c_kanj(nmsym)]
+        else:
+            state = [-1]
+        return hdstr, rtext, state
+
+
+class ParagraphTable(Paragraph):
+
+    """A class to handle table paragraph"""
+
+    paragraph_class = 'table'
+
+    @classmethod
+    def is_this_class(cls, raw_paragraph):
+        rp = raw_paragraph
+        rp_cls = rp.raw_class
+        if rp_cls == 'w:tbl':
+            return True
+        return False
+
+    def _get_md_text(self, raw_text):
+        s_size = 0.8 * Document.font_size
+        xml_lines = self.xml_lines
+        is_in_row = False
+        is_in_cel = False
+        tab = []
+        wid = []
+        for xl in xml_lines:
+            res = '^<w:gridCol w:w=[\'"]([0-9]+)[\'"]/>$'
+            if re.match(res, xl):
+                w = round((float(re.sub(res, '\\1', xl)) / s_size / 10) - 4)
+                wid.append(w)
+            if is_in_cel:
+                cell.append(xl)
+            if re.match('<w:tr(.*)?>', xl):
+                row = []
+                is_in_row = True
+            elif xl == '<w:tc>':
+                cell = []
+                is_in_cel = True
+            elif xl == '</w:tc>':
+                row.append(cell)
+                is_in_cel = True
+            elif xl == '</w:tr>':
+                tab.append(row)
+                is_in_row = False
+        ali = []
+        for row in tab:
+            tmp = []
+            for j, cell in enumerate(row):
+                for xml in cell:
+                    if re.match('<w:jc w:val=[\'"]left[\'"]/>', xml):
+                        tmp.append(':' + '-' * (wid[j] - 1))
+                    elif re.match('<w:jc w:val=[\'"]center[\'"]/>', xml):
+                        tmp.append(':' + '-' * (wid[j] - 2) + ':')
+                    elif re.match('<w:jc w:val=[\'"]right[\'"]/>', xml):
+                        tmp.append('-' * (wid[j] - 1) + ':')
+            ali.append(tmp)
+        md_text = ''
+        half_row = int(len(tab) / 2)
+        is_in_head = True
+        for i, row in enumerate(tab):
+            if is_in_head:
+                if ali[i] == ali[half_row]:
+                    for cell in ali[half_row]:
+                        md_text += '|' + cell + '|'
+                    is_in_head = False
+                    md_text += '\n'
+            for cell in row:
+                tmp = ''
+                for lin in cell:
+                    if not re.match('<.*>', lin):
+                        tmp += lin
+                tmp = re.sub('\n', '<br>', tmp)
+                md_text += '|' + tmp + '|'
+            md_text += '\n'
+        md_text = md_text.replace('||', '|')
+        md_text = md_text.replace('&lt;', '<')
+        md_text = md_text.replace('&gt;', '>')
+        md_text = re.sub('\n$', '', md_text)
+        return md_text
+
+
+class ParagraphImage(Paragraph):
+
+    """A class to handle image paragraph"""
+
+    paragraph_class = 'image'
+
+    @classmethod
+    def is_this_class(cls, raw_paragraph):
+        rp = raw_paragraph
+        rp_rtx = rp.raw_text
+        rp_img = rp.images
+        rp_rtx = re.sub('!\\[[^\\[\\]]+\\]\\([^\\(\\)]+\\)', '', rp_rtx)
+        if rp_rtx == '' and len(rp_img) > 0:
+            return True
+        return False
+
+    def _get_md_text(self, raw_text):
+        raw_xml_lines = self.raw_xml_lines
+        image = ''
+        res = '^<pic:cNvPr id=[\'"].+[\'"] name=[\'"](.*)[\'"]/>$'
+        for rxl in raw_xml_lines:
+            if re.match(res, rxl):
+                image = re.sub(res, '\\1', rxl)
+        md_text = '![' + image + '](' + image + ')'
+        # サイズ調整が必要
+        return md_text
+
+
+class ParagraphAlignment(Paragraph):
+
+    """A class to handle alignment paragraph"""
+
+    paragraph_class = 'alignment'
+
+    @classmethod
+    def is_this_class(cls, raw_paragraph):
+        rp = raw_paragraph
+        rp_sty = rp.style
+        rp_alg = rp.alignment
+        if rp.raw_class == 'w:sectPr':
+            return False
+        if rp_sty == 'makdo-a' or rp.alignment != '':
+            return True
+        return False
+
+    def _get_md_text(self, raw_text):
+        alignment = self.alignment
+        md_text = ''
+        for ln in raw_text.split('\n'):
+            if ln == '':
+                continue
+            if alignment == 'right':
+                md_text += ln + ' :\n'
+            elif alignment == 'center':
+                md_text += ': ' + ln + ' :\n'
+            else:
+                if re.match('^.*  +$', ln):
+                    md_text += ': ' + ln + '\\\n'
+                else:
+                    md_text += ': ' + ln + '\n'
+        md_text = re.sub('\n$', '', md_text)
+        return md_text
+
+
+class ParagraphPreformatted(Paragraph):
+
+    """A class to handle preformatted paragraph"""
+
+    paragraph_class = 'preformatted'
+
+    @classmethod
+    def is_this_class(cls, raw_paragraph):
+        rp = raw_paragraph
+        rp_sty = rp.style
+        if rp_sty == 'makdo-g':
+            return True
+        return False
+
+    def _get_md_text(self, raw_text):
+        md_text = raw_text
+        md_text = re.sub('^`', '', md_text)
+        md_text = re.sub('`$', '', md_text)
+        res = '^(\\s+)\\[(.*)\\]'
+        if re.match(res, md_text):
+            md_text = re.sub(res, '\\1\\2', md_text)
+        else:
+            md_text = '\n' + md_text
+        md_text = '``` ' + md_text + '\n```'
+        return md_text
+
+
+class ParagraphPagebreak(Paragraph):
+
+    """A class to handle pagebreak paragraph"""
+
+    paragraph_class = 'pagebreak'
+
+    @classmethod
+    def is_this_class(cls, raw_paragraph):
+        rp = raw_paragraph
+        rp_rxl = rp.raw_xml_lines
+        for rxl in rp_rxl:
+            if re.match('^<w:br w:type="page"/>$', rxl):
+                return True
+        return False
+
+    def _get_md_text(self, raw_text):
+        md_text = '<pgbr>'
+        return md_text
+
+
+class ParagraphBreakdown(Paragraph):
+
+    """A class to handle breakdown paragraph"""
+
+    paragraph_class = 'breakdown'
+
+    @classmethod
+    def is_this_class(cls, raw_paragraph):
+        return False
+
+
+class ParagraphSentence(Paragraph):
+
+    """A class to handle sentence paragraph"""
+
+    paragraph_class = 'sentence'
+
+
+class ParagraphConfiguration(Paragraph):
+
+    """A class to handle configuration paragraph"""
+
+    paragraph_class = 'configuration'
+
+    @classmethod
+    def is_this_class(cls, raw_paragraph):
+        rp = raw_paragraph
+        if rp.raw_class == 'w:sectPr':
+            return 'configuration'
 
 
 ############################################################
 # MAIN
 
 
-if __name__ == '__main__':
+def main():
 
     args = get_arguments()
 
     doc = Document()
 
-    doc.tmpdir = doc.make_tmpdir()
+    Document.tmpdir = doc.make_tmpdir()
 
-    doc.media_dir = doc.get_media_dir_name(args.md_file, args.docx_file)
+    Document.media_dir = doc.get_media_dir_name(args.md_file, args.docx_file)
 
     doc.extract_docx_file(args.docx_file)
 
@@ -3379,22 +3460,27 @@ if __name__ == '__main__':
 
     doc.configure(args)
 
-    doc.styles = doc.get_styles(doc.styles_raw_xml_lines)
-    doc.rels = doc.get_rels(doc.rels_raw_xml_lines)
+    Document.styles = doc.get_styles(doc.styles_raw_xml_lines)
+    Document.rels = doc.get_rels(doc.rels_raw_xml_lines)
 
     doc.raw_paragraphs = doc.get_raw_paragraphs(doc.document_raw_xml_lines)
     doc.paragraphs = doc.get_paragraphs(doc.raw_paragraphs)
-    doc.paragraphs = doc.modify_paragraphs()
+    #doc.paragraphs = doc.modify_paragraphs()
 
     #doc.check_section_consistency()
 
     mf = doc.open_md_file(args.md_file, args.docx_file)
     doc.write_configurations(mf)
-    doc.write_md_lines(mf)
+    doc.write_document(mf)
     mf.close()
 
-    doc.make_media_dir(doc.media_dir)
+    doc.make_media_dir(Document.media_dir)
 
     # print(Paragraph._split_into_lines(''))
 
     sys.exit(0)
+
+
+if __name__ == '__main__':
+
+    main()
