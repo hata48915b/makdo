@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.17-22:32:33-JST>
+# Time-stamp:   <2023.02.18-07:25:35-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -836,7 +836,7 @@ class Document:
         lr = []
         er = []
         hr = []
-        ds = []
+        sd = []
         for rp in raw_paragraphs:
             full_text = rp.full_text
             if rp.paragraph_class == 'empty' or rp.paragraph_class == 'blank':
@@ -845,7 +845,7 @@ class Document:
                 lr += rp.list_revisers
                 er += rp.length_revisers
                 hr += rp.head_font_revisers + rp.tail_font_revisers
-                ds += rp.depth_setters
+                sd += rp.section_depth_setters
                 if rp.paragraph_class == 'blank':
                     nl = len(re.sub(' ', '', full_text))
                     er += ['v=' + str(nl)]
@@ -855,13 +855,13 @@ class Document:
                 rp.list_revisers = lr + rp.list_revisers
                 rp.length_revisers = er + rp.length_revisers
                 rp.head_font_revisers = hr + rp.head_font_revisers
-                rp.depth_setters = ds + rp.depth_setters
+                rp.section_depth_setters = sd + rp.section_depth_setters
                 cr = []
                 sr = []
                 lr = []
                 er = []
                 hr = []
-                ds = []
+                sd = []
                 p = rp.get_paragraph()
                 paragraphs.append(p)
         # self.paragraphs = paragraphs
@@ -876,7 +876,7 @@ class Document:
                 p_next = paragraphs[i + 1]
             # TITLE
             if p.paragraph_class == 'section' and \
-               ParagraphSection._get_depths(p.full_text) == (1, 1):
+               ParagraphSection._get_section_depths(p.full_text) == (1, 1):
                 # BEFORE
                 if i > 0:
                     if p_prev.length_docx['space after'] >= 0.1:
@@ -1264,9 +1264,9 @@ class Document:
         ms_doc.styles.add_style('makdo-g', WD_STYLE_TYPE.PARAGRAPH)
         ms_doc.styles['makdo-g'].font.name = Document.gothic_font
         # TABLE
-        ms_doc.styles.add_style('makdo-t', WD_STYLE_TYPE.PARAGRAPH)
+        # ms_doc.styles.add_style('makdo-t', WD_STYLE_TYPE.PARAGRAPH)
         # ALIGNMENT
-        ms_doc.styles.add_style('makdo-a', WD_STYLE_TYPE.PARAGRAPH)
+        # ms_doc.styles.add_style('makdo-a', WD_STYLE_TYPE.PARAGRAPH)
         # SPACE
         sb = Document.space_before.split(',')
         sa = Document.space_after.split(',')
@@ -1405,7 +1405,7 @@ class RawParagraph:
         self.head_font_revisers = []
         self.tail_font_revisers = []
         self.full_text = ''
-        self.depth_setters = []
+        self.section_depth_setters = []
         self.paragraph_class = ''
         # SUBSTITUTION
         RawParagraph.raw_paragraph_number += 1
@@ -1420,8 +1420,8 @@ class RawParagraph:
             self.md_lines \
             = self._get_revisers(self.md_lines)
         self.full_text = self._get_full_text(self.md_lines)
-        self.depth_setters, self.full_text \
-            = self._get_depth_setters(self.full_text)
+        self.section_depth_setters, self.full_text \
+            = self._get_section_depth_setters(self.full_text)
         self.paragraph_class = self._get_paragraph_class()
 
     @staticmethod
@@ -1503,14 +1503,14 @@ class RawParagraph:
         return full_text
 
     @staticmethod
-    def _get_depth_setters(full_text):
-        depth_setters = []
+    def _get_section_depth_setters(full_text):
+        section_depth_setters = []
         if re.match('^#+$', full_text):
-            depth_setters = [full_text]
+            section_depth_setters = [full_text]
             full_text = ''
-        # self.depth_setters = depth_setters
+        # self.section_depth_setters = depth_setters
         # self.full_text = full_text
-        return depth_setters, full_text
+        return section_depth_setters, full_text
 
     def _get_paragraph_class(self):
         ft = self.full_text
@@ -1586,8 +1586,8 @@ class Paragraph:
     gothic_font = ''
     font_size = -1
 
-    previous_head_depth = 0
-    previous_tail_depth = 0
+    previous_head_section_depth = 0
+    previous_tail_section_depth = 0
     is_preformatted = False
     is_large = False
     is_small = False
@@ -1617,11 +1617,12 @@ class Paragraph:
         self.head_font_revisers = raw_paragraph.head_font_revisers
         self.tail_font_revisers = raw_paragraph.tail_font_revisers
         self.full_text = raw_paragraph.full_text
-        self.depth_setters = raw_paragraph.depth_setters
+        self.section_depth_setters = raw_paragraph.section_depth_setters
         # DECLARATION
         self.paragraph_number = -1
-        self.head_depth = -1
-        self.tail_depth = -1
+        self.head_section_depth = -1
+        self.tail_section_depth = -1
+        self.proper_depth = -1
         self.length_revi = {}
         self.length_conf = {}
         self.length_dept = {}
@@ -1632,14 +1633,16 @@ class Paragraph:
         # SUBSTITUTION
         Paragraph.paragraph_number += 1
         self.paragraph_number = Paragraph.paragraph_number
-        self._set_depths(self.depth_setters)
-        self.head_depth, self.tail_depth = self._get_depths(self.full_text)
+        self._apply_section_depths_setters(self.section_depth_setters)
+        self.head_section_depth, self.tail_section_depth \
+            = self._get_section_depths(self.full_text)
+        self.proper_depth = self._get_proper_depth(self.full_text)
         self.alignment = self._get_alignment()
         self.length_revi = self._get_length_revi()
         self.length_conf = self._get_length_conf()
         self.length_dept = self._get_length_dept()
         self.length_docx = self._get_length_docx()
-        # EXECUTIEN
+        # EXECUTION
         ParagraphChapter._transact_revisers(self.chapter_revisers,
                                             self.md_lines)
         ParagraphSection._transact_revisers(self.section_revisers,
@@ -1655,25 +1658,33 @@ class Paragraph:
             + ''.join(self.tail_font_revisers)
 
     @classmethod
-    def _set_depths(cls, depth_setters):
-        for ds in depth_setters:
-            d = len(ds)
-            if d > 0:
-                Paragraph.previous_head_depth = d
-                Paragraph.previous_tail_depth = d
+    def _apply_section_depths_setters(cls, section_depth_setters):
+        for sds in section_depth_setters:
+            depth = len(sds)
+            if depth > 0:
+                Paragraph.previous_head_section_depth = depth
+                Paragraph.previous_tail_section_depth = depth
 
     @classmethod
-    def _get_depths(cls, full_text):
-        head_depth = 0
-        tail_depth = 0
-        return head_depth, tail_depth
+    def _get_section_depths(cls, full_text):
+        head_section_depth = 0
+        tail_section_depth = 0
+        # self.head_section_depth = head_section_depth
+        # self.tail_section_depth = tail_section_depth
+        return head_section_depth, tail_section_depth
+
+    @classmethod
+    def _get_proper_depth(cls, full_text):
+        proper_depth = 0
+        # self.proper_depth = proper_depth
+        return proper_depth
 
     def _get_alignment(self):
         paragraph_class = self.paragraph_class
-        head_depth = self.head_depth
+        head_section_depth = self.head_section_depth
         full_text = self.full_text
         alignment = ''
-        if paragraph_class == 'section' and head_depth == 1:
+        if paragraph_class == 'section' and head_section_depth == 1:
             alignment = 'center'
         if paragraph_class == 'alignment':
             if re.match('^:\\s.*\\s:$', full_text):
@@ -1713,8 +1724,8 @@ class Paragraph:
         return length_revi
 
     def _get_length_conf(self):
-        hd = self.head_depth
-        td = self.tail_depth
+        hd = self.head_section_depth
+        td = self.tail_section_depth
         length_conf \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
@@ -1730,30 +1741,39 @@ class Paragraph:
 
     def _get_length_dept(self):
         paragraph_class = self.paragraph_class
-        head_depth = self.head_depth
-        tail_depth = self.tail_depth
+        head_section_depth = self.head_section_depth
+        tail_section_depth = self.tail_section_depth
+        proper_depth = self.proper_depth
         length_dept \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
         if paragraph_class == 'chapter':
             length_dept['first indent'] = -1.0
-            length_dept['left indent'] = tail_depth + 0.0
+            length_dept['left indent'] = proper_depth + 0.0
         elif paragraph_class == 'section':
-            if head_depth > 1:
-                length_dept['first indent'] = head_depth - tail_depth - 1.0
-            if tail_depth > 1:
-                length_dept['left indent'] = tail_depth - 1.0
+            if head_section_depth > 1:
+                length_dept['first indent'] \
+                    = head_section_depth - tail_section_depth - 1.0
+            if tail_section_depth > 1:
+                length_dept['left indent'] = tail_section_depth - 1.0
         elif paragraph_class == 'list':
             length_dept['first indent'] = -1.0
-            length_dept['left indent'] = tail_depth + 0.0
+            length_dept['left indent'] = proper_depth + 0.0
+            if tail_section_depth > 0:
+                length_dept['left indent'] += tail_section_depth - 1.0
+        elif paragraph_class == 'preformatted':
+            if tail_section_depth > 0:
+                length_dept['first indent'] = 0.0
+                length_dept['left indent'] = tail_section_depth - 0.0
         elif paragraph_class == 'sentence':
-            if tail_depth > 0:
+            if tail_section_depth > 0:
                 length_dept['first indent'] = 1.0
-                length_dept['left indent'] = tail_depth - 1.0
+                length_dept['left indent'] = tail_section_depth - 1.0
         if paragraph_class == 'section' or \
            paragraph_class == 'list' or \
+           paragraph_class == 'preformatted' or \
            paragraph_class == 'sentence':
-            if ParagraphSection.states[1][0] == 0 and tail_depth > 2:
+            if ParagraphSection.states[1][0] == 0 and tail_section_depth > 2:
                 length_dept['left indent'] -= 1.0
         # self.length_dept = length_dept
         return length_dept
@@ -1763,14 +1783,33 @@ class Paragraph:
         length_revi = self.length_revi
         length_conf = self.length_conf
         length_dept = self.length_dept
-        head_depth = self.head_depth
-        tail_depth = self.tail_depth
         length_docx \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
         for ln in length_docx:
             length_docx[ln] \
                 = length_revi[ln] + length_conf[ln] + length_dept[ln]
+        # LINE SPACING
+        ls75 = length_docx['line spacing'] * .75
+        ls25 = length_docx['line spacing'] * .25
+        if length_docx['line spacing'] <= 0:
+            if length_docx['space before'] >= ls75:
+                length_docx['space before'] -= ls75
+            elif length_docx['space before'] >= 0:
+                length_docx['space before'] *= 2
+            if length_docx['space after'] >= ls25:
+                length_docx['space after'] -= ls25
+            elif length_docx['space after'] >= 0:
+                length_docx['space after'] *= 2
+        else:
+            if length_docx['space before'] >= ls75 * 2:
+                length_docx['space before'] -= ls75
+            elif length_docx['space before'] >= 0:
+                length_docx['space before'] /= 2
+            if length_docx['space after'] >= ls25 * 2:
+                length_docx['space after'] -= ls25
+            elif length_docx['space after'] >= 0:
+                length_docx['space after'] /= 2
         # self.length_docx = length_docx
         return length_docx
 
@@ -1848,12 +1887,12 @@ class Paragraph:
         paragraph_class_ja = self.paragraph_class_ja
         res = self.res_feature
         md_lines = self.md_lines
-        head_depth = self.head_depth
-        tail_depth = self.tail_depth
         if paragraph_class == 'chapter':
             char = '$'
+            paragraph_depth = self.proper_depth
         elif paragraph_class == 'section':
             char = '#'
+            paragraph_depth = self.tail_section_depth
         else:
             return
         head_strings = ''
@@ -1899,7 +1938,7 @@ class Paragraph:
             body += ml.text
         if title + body == '':
             return
-        if paragraph_class == 'section' and tail_depth == 1:
+        if paragraph_class == 'section' and paragraph_depth == 1:
             md_lines[0].text = title
         elif re.match('^.*\\(.*\\)$', head_strings):
             md_lines[0].text = head_strings + ' ' + title
@@ -1921,7 +1960,7 @@ class Paragraph:
 
     def write_paragraph(self, ms_doc):
         paragraph_class = self.paragraph_class
-        tail_depth = self.tail_depth
+        tail_section_depth = self.tail_section_depth
         alignment = self.alignment
         md_lines = self.md_lines
         text_to_write_with_reviser = self.text_to_write_with_reviser
@@ -1930,7 +1969,8 @@ class Paragraph:
         if text_to_write_with_reviser == '':
             return
         if paragraph_class == 'alignment':
-            ms_par = self._get_ms_par(ms_doc, 'makdo-a')
+            ms_par = self._get_ms_par(ms_doc)
+            # ms_par = self._get_ms_par(ms_doc, 'makdo-a')
             oe = OxmlElement('w:wordWrap')
             oe.set(ns.qn('w:val'), '0')
             pPr = ms_par._p.get_or_add_pPr()
@@ -1952,7 +1992,7 @@ class Paragraph:
               not re.match('^.*\n', text_to_write_with_reviser)):
             ms_par.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         ms_fmt = ms_par.paragraph_format
-        if paragraph_class == 'section' and tail_depth == 1:
+        if paragraph_class == 'section' and tail_section_depth == 1:
             Paragraph.font_size = xl_size
             self._write_text(text_to_write_with_reviser, ms_par)
             Paragraph.font_size = size
@@ -2250,13 +2290,13 @@ class ParagraphChapter(Paragraph):
     unit_chars = ['編', '章', '節', '款', '目']
 
     @classmethod
-    def _get_depths(cls, full_text):
+    def _get_proper_depth(cls, full_text):
         if not re.match(cls.res_feature, full_text):
             return 0
         trunk = re.sub(cls.res_feature, '\\1', full_text)
-        head_depth = len(trunk)
-        tail_depth = head_depth
-        return head_depth, tail_depth
+        proper_depth = len(trunk)
+        # self.proper_depth = proper_depth
+        return proper_depth
 
     def _edit_data(self):
         self._edit_data_of_chapter_and_section()
@@ -2295,8 +2335,6 @@ class ParagraphSection(Paragraph):
     res_symbol = '(#+)((?:\\-#+)*)'
     res_feature = '^' + res_symbol + '(?:\\s+(.*(?:.*\n*)*))?$'
     res_reviser = res_symbol + '=([0-9]+)'
-    head_depth = 0
-    tail_depth = 0
     states = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # -
               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # 第１
               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # １
@@ -2307,20 +2345,22 @@ class ParagraphSection(Paragraph):
               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]  # (a)
 
     @classmethod
-    def _get_depths(cls, full_text):
+    def _get_section_depths(cls, full_text):
         ft = full_text
-        head_depth = 0
-        tail_depth = 0
+        head_section_depth = 0
+        tail_section_depth = 0
         while re.match(cls.res_feature, ft):
             trunk = re.sub(cls.res_feature, '\\1', ft)
             depth = len(trunk)
-            if head_depth == 0:
-                head_depth = depth
-            tail_depth = depth
+            if head_section_depth == 0:
+                head_section_depth = depth
+            tail_section_depth = depth
             ft = re.sub(cls.res_feature, '\\3', ft)
-        Paragraph.previous_head_depth = head_depth
-        Paragraph.previous_tail_depth = tail_depth
-        return head_depth, tail_depth
+        Paragraph.previous_head_section_depth = head_section_depth
+        Paragraph.previous_tail_section_depth = tail_section_depth
+        # self.head_section_depth = head_section_depth
+        # self.head_section_depth = tail_section_depth
+        return head_section_depth, tail_section_depth
 
     def _edit_data(self):
         self._edit_data_of_chapter_and_section()
@@ -2387,34 +2427,21 @@ class ParagraphList(Paragraph):
               [0]]  # ㊀
 
     @classmethod
-    def reset_states(cls, paragraph_class):
-        if paragraph_class != 'list':
-            for s in cls.states:
-                s[0] = 0
-        return
-
-    def _get_depths(self, full_text):
-        ml = self.md_lines
-        n = 0
-        while n < len(ml) and ml[n].text == '':
-            n += 1
-        line = ml[n].text
-        self.list_depth = self._get_list_depth(line)
-        head_depth = self.list_depth
-        prev_depth = Paragraph.previous_tail_depth
-        if prev_depth > 0:
-            head_depth += prev_depth - 1.0
-        tail_depth = head_depth
-        return head_depth, tail_depth
+    def _get_section_depths(cls, full_text):
+        head_section_depth = Paragraph.previous_tail_section_depth
+        tail_section_depth = Paragraph.previous_tail_section_depth
+        # self.head_section_depth = head_section_depth
+        # self.tail_section_depth = tail_section_depth
+        return head_section_depth, tail_section_depth
 
     @staticmethod
-    def _get_list_depth(line):
+    def _get_proper_depth(line):
         line = re.sub('\t', '  ', line)
         line = re.sub('  ', ' ', line)
         spaces = re.sub('^( *).*', '\\1', line)
-        list_depth = len(spaces) + 1
-        # self.list_depth = list_depth
-        return list_depth
+        proper_depth = len(spaces) + 1
+        # self.proper_depth = proper_depth
+        return proper_depth
 
     @classmethod
     def _transact_revisers(cls, revisers, md_lines):
@@ -2433,7 +2460,7 @@ class ParagraphList(Paragraph):
         res = '^\\s*' + ParagraphList.res_symbol + '\\s*'
         states = ParagraphList.states
         ml = self.md_lines
-        list_depth = self.list_depth
+        proper_depth = self.proper_depth
         n = 0
         while n < len(ml) and ml[n].text == '':
             n += 1
@@ -2443,36 +2470,43 @@ class ParagraphList(Paragraph):
             is_numbering = True
         line = re.sub(res, '', line)
         if not is_numbering:
-            if list_depth == 1:
+            if proper_depth == 1:
                 head_strings = '・'
                 # head_strings = '• '  # U+2022 Bullet
-            elif list_depth == 2:
+            elif proper_depth == 2:
                 head_strings = '○'
                 # head_strings = '◦ '  # U+25E6 White Bullet
-            elif list_depth == 3:
+            elif proper_depth == 3:
                 head_strings = '△'
                 # head_strings = '‣ '  # U+2023 Triangular Bullet
-            elif list_depth == 4:
+            elif proper_depth == 4:
                 head_strings = '◇'
                 # head_strings = '⁃ '  # U+2043 Hyphen Bullet
             else:
                 head_strings = '●'
         else:
-            if list_depth == 1:
+            if proper_depth == 1:
                 head_strings = i2c_c_arab(states[0][0] + 1)
-            elif list_depth == 2:
+            elif proper_depth == 2:
                 head_strings = i2c_c_kata(states[1][0] + 1)
-            elif list_depth == 3:
+            elif proper_depth == 3:
                 head_strings = i2c_c_alph(states[2][0] + 1)
-            elif list_depth == 4:
+            elif proper_depth == 4:
                 head_strings = i2c_c_kanj(states[3][0] + 1)
             else:
                 head_strings = '●'
-            if list_depth <= len(states):
-                states[list_depth - 1][0] += 1
-                for d in range(list_depth, len(states)):
+            if proper_depth <= len(states):
+                states[proper_depth - 1][0] += 1
+                for d in range(proper_depth, len(states)):
                     states[d][0] = 0
         self.md_lines[n].text = head_strings + '\u3000' + line
+
+    @classmethod
+    def reset_states(cls, paragraph_class):
+        if paragraph_class != 'list':
+            for s in cls.states:
+                s[0] = 0
+        return
 
 
 class ParagraphTable(Paragraph):
@@ -2510,7 +2544,8 @@ class ParagraphTable(Paragraph):
                 ms_cell.width = Pt((wid_list[j] + 2) * s_size)
                 ms_cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
                 ms_par = ms_cell.paragraphs[0]
-                ms_par.style = 'makdo-t'
+                ms_par.style = 'makdo'
+                # ms_par.style = 'makdo-t'
                 Paragraph.font_size = s_size
                 self._write_text(cell, ms_par)
                 Paragraph.font_size = size
@@ -2694,6 +2729,14 @@ class ParagraphPreformatted(Paragraph):
         else:
             return False
 
+    @classmethod
+    def _get_section_depths(cls, full_text):
+        head_section_depth = Paragraph.previous_tail_section_depth
+        tail_section_depth = Paragraph.previous_tail_section_depth
+        # self.head_section_depth = head_section_depth
+        # self.tail_section_depth = tail_section_depth
+        return head_section_depth, tail_section_depth
+
     def _edit_data(self):
         self.head_font_revisers.pop(0)
         self.head_font_revisers.pop(0)
@@ -2744,10 +2787,12 @@ class ParagraphSentence(Paragraph):
     paragraph_class = 'sentence'
 
     @classmethod
-    def _get_depths(cls, full_text):
-        head_depth = Paragraph.previous_tail_depth
-        tail_depth = Paragraph.previous_tail_depth
-        return head_depth, tail_depth
+    def _get_section_depths(cls, full_text):
+        head_section_depth = Paragraph.previous_tail_section_depth
+        tail_section_depth = Paragraph.previous_tail_section_depth
+        # self.head_section_depth = head_section_depth
+        # self.tail_section_depth = tail_section_depth
+        return head_section_depth, tail_section_depth
 
 
 class MdLine:
