@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.16-20:07:30-JST>
+# Time-stamp:   <2023.02.17-22:32:33-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -425,6 +425,16 @@ def get_real_width(s):
             wid += 2.0
         elif re.match('^[ⒶⒷⒸⒹⒺⒻⒼⒽⒾⒿⓀⓁⓂⓃⓄⓅⓆⓇⓈⓉⓊⓋⓌⓍⓎⓏ]$', c):
             wid += 2.0
+        elif re.match('^[㉑㉒㉓㉔㉕㉖㉗㉘㉙㉚㉛㉜㉝㉞㉟㊱㊲㊳㊴㊵㊶㊷㊸㊹㊺㊻㊼㊽㊾㊿]$', c):
+            wid += 2.0
+        elif re.match('^[🄋➀➁➂➃➄➅➆➇➈➉]$', c):
+            wid += 2.0
+        elif re.match('^[㋐㋑㋒㋓㋔㋕㋖㋗㋘㋙㋚㋛㋜㋝㋞㋟㋠㋡㋢㋣㋤㋥㋦㋧㋨]$', c):
+            wid += 2.0
+        elif re.match('^[㋩㋪㋫㋬㋭㋮㋯㋰㋱㋲㋳㋴㋵㋶㋷㋸㋹㋺㋻㋼㋽㋾]$', c):
+            wid += 2.0
+        elif re.match('^㊀㊁㊂㊃㊄㊅㊆㊇㊈㊉$', c):
+            wid += 2.0
         elif (w == 'F'):  # Full alphabet ...
             wid += 2.0
         elif(w == 'H'):   # Half katakana ...
@@ -779,7 +789,6 @@ class Document:
 
     def get_raw_paragraphs(self, md_lines):
         raw_paragraphs = []
-        i = 0
         block = []
         for ml in md_lines:
             is_block_end = False
@@ -807,9 +816,8 @@ class Document:
                     elif not re.match('^```', block[-1].raw_text):
                         block.append(ml)
                         continue
-                rp = RawParagraph(i + 1, block)
+                rp = RawParagraph(block)
                 raw_paragraphs.append(rp)
-                i += 1
                 block = []
             if ml.raw_text != '':
                 block.append(ml)
@@ -830,13 +838,17 @@ class Document:
         hr = []
         ds = []
         for rp in raw_paragraphs:
-            if rp.paragraph_class == 'empty':
+            full_text = rp.full_text
+            if rp.paragraph_class == 'empty' or rp.paragraph_class == 'blank':
                 cr += rp.chapter_revisers
                 sr += rp.section_revisers
                 lr += rp.list_revisers
                 er += rp.length_revisers
                 hr += rp.head_font_revisers + rp.tail_font_revisers
                 ds += rp.depth_setters
+                if rp.paragraph_class == 'blank':
+                    nl = len(re.sub(' ', '', full_text))
+                    er += ['v=' + str(nl)]
             else:
                 rp.chapter_revisers = cr + rp.chapter_revisers
                 rp.section_revisers = sr + rp.section_revisers
@@ -862,41 +874,43 @@ class Document:
                 p_prev = paragraphs[i - 1]
             if i < m:
                 p_next = paragraphs[i + 1]
+            # TITLE
             if p.paragraph_class == 'section' and \
-               p.head_depth == 1 and \
-               re.match('^# .*\\S+.*$', p.full_text):
-                if (p.length_docx['space after'] >= 0.2) or \
-                   (i < m and p_next.length_docx['space before'] >= 0.2):
-                    if i > 0:
+               ParagraphSection._get_depths(p.full_text) == (1, 1):
+                # BEFORE
+                if i > 0:
+                    if p_prev.length_docx['space after'] >= 0.1:
                         p_prev.length_docx['space after'] += 0.1
-                    if True:
+                    elif p_prev.length_docx['space after'] >= 0.0:
+                        p_prev.length_docx['space after'] *= 2
+                if True:
+                    if p.length_docx['space before'] >= 0.1:
                         p.length_docx['space before'] += 0.1
+                    elif p.length_docx['space before'] >= 0.0:
+                        p.length_docx['space before'] *= 2
+                # AFTER
+                if True:
                     if p.length_docx['space after'] >= 0.2:
                         p.length_docx['space after'] -= 0.1
-                    if i < m and p_next.length_docx['space before'] >= 0.2:
+                    elif p.length_docx['space after'] >= 0.0:
+                        p.length_docx['space after'] /= 2
+                if i < m:
+                    if p_next.length_docx['space before'] >= 0.2:
                         p_next.length_docx['space before'] -= 0.1
+                    elif p_next.length_docx['space before'] >= 0.0:
+                        p_next.length_docx['space before'] /= 2
+            # TABLE
             if p.paragraph_class == 'table':
-                sb = p.length_docx['space before']
                 if i > 0:
+                    sb = p.length_docx['space before']
                     if p_prev.length_docx['space after'] < sb:
                         p_prev.length_docx['space after'] = sb
-                sa = p.length_docx['space after']
+                    p.length_docx['space before'] = 0.0
                 if i < m:
+                    sa = p.length_docx['space after']
                     if p_next.length_docx['space before'] < sa:
                         p_next.length_docx['space before'] = sa
-            # if i > 0 and \
-            #    p_prev.paragraph_class == 'section' and \
-            #    p_prev.tail_depth == 1 and \
-            #    re.match('^# *$', p_prev.full_text):
-            #     if p.paragraph_class == 'section':
-            #         sb = (doc.space_before + ',,,,,').split(',')
-            #         df = self.section_depth_first
-            #         if sb[df - 1] != '':
-            #             p.length['space before'] -= float(sb[df - 1])
-            #     p.length_docx['space before'] \
-            #         += p_prev.length_docx['space before']
-            #     p.length_docx['space before'] \
-            #        += p_prev.length_docx['space after']
+                    p.length_docx['space after'] = 0.0
         return self.paragraphs
 
     def configure(self, md_lines, args):
@@ -1378,9 +1392,11 @@ class RawParagraph:
 
     """A class to handle raw paragraph"""
 
-    def __init__(self, paragraph_number, md_lines):
+    raw_paragraph_number = 0
+
+    def __init__(self, md_lines):
         # DECLARATION
-        self.paragraph_number = -1
+        self.raw_paragraph_number = -1
         self.md_lines = []
         self.chapter_revisers = []
         self.section_revisers = []
@@ -1392,7 +1408,8 @@ class RawParagraph:
         self.depth_setters = []
         self.paragraph_class = ''
         # SUBSTITUTION
-        self.paragraph_number = paragraph_number
+        RawParagraph.raw_paragraph_number += 1
+        self.raw_paragraph_number = RawParagraph.raw_paragraph_number
         self.md_lines = md_lines
         self.chapter_revisers, \
             self.section_revisers, \
@@ -1560,6 +1577,8 @@ class Paragraph:
 
     """A class to handle empty paragraph"""
 
+    paragraph_number = 0
+
     paragraph_class = None
     res_feature = None
 
@@ -1589,7 +1608,7 @@ class Paragraph:
 
     def __init__(self, raw_paragraph):
         # RECEIVED
-        self.paragraph_number = raw_paragraph.paragraph_number
+        self.raw_paragraph_number = raw_paragraph.raw_paragraph_number
         self.md_lines = raw_paragraph.md_lines
         self.chapter_revisers = raw_paragraph.chapter_revisers
         self.section_revisers = raw_paragraph.section_revisers
@@ -1600,6 +1619,7 @@ class Paragraph:
         self.full_text = raw_paragraph.full_text
         self.depth_setters = raw_paragraph.depth_setters
         # DECLARATION
+        self.paragraph_number = -1
         self.head_depth = -1
         self.tail_depth = -1
         self.length_revi = {}
@@ -1610,6 +1630,8 @@ class Paragraph:
         self.text_to_write = ''
         self.text_to_write_with_reviser = ''
         # SUBSTITUTION
+        Paragraph.paragraph_number += 1
+        self.paragraph_number = Paragraph.paragraph_number
         self._set_depths(self.depth_setters)
         self.head_depth, self.tail_depth = self._get_depths(self.full_text)
         self.alignment = self._get_alignment()
@@ -1731,18 +1753,18 @@ class Paragraph:
         if paragraph_class == 'section' or \
            paragraph_class == 'list' or \
            paragraph_class == 'sentence':
-            if ParagraphSection.states[1][0] == 0 and \
-               ParagraphSection.states[2][0] >= 0:
+            if ParagraphSection.states[1][0] == 0 and tail_depth > 2:
                 length_dept['left indent'] -= 1.0
-        print(length_dept)
-        print(self.full_text)
         # self.length_dept = length_dept
         return length_dept
 
     def _get_length_docx(self):
+        paragraph_number = self.paragraph_number
         length_revi = self.length_revi
         length_conf = self.length_conf
         length_dept = self.length_dept
+        head_depth = self.head_depth
+        tail_depth = self.tail_depth
         length_docx \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
@@ -2208,7 +2230,7 @@ class ParagraphBlank(Paragraph):
     """A class to handle blank paragraph"""
 
     paragraph_class = 'blank'
-    res_feature = '^\n+$'
+    res_feature = '^\n( \n)*$'
 
 
 class ParagraphChapter(Paragraph):
@@ -2503,11 +2525,14 @@ class ParagraphTable(Paragraph):
         tab = []
         line = ''
         for ml in md_lines:
-            if ml.text == '' or re.match('^(?:<>)+$', ml.text):
+            if re.match('^\\\\?$', ml.text):
                 continue
-            line += ml.text
             if re.match('^.*\\\\$', line):
                 line = re.sub('\\\\$', '', line)
+                line += re.sub('^\\s*', '', ml.text)
+            else:
+                line += ml.text
+            if re.match('^.*\\\\$', line):
                 continue
             line = re.sub('^\\|', '', line)
             line = re.sub('\\|$', '', line)
