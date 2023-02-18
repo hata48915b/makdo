@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.18-07:25:35-JST>
+# Time-stamp:   <2023.02.18-11:31:47-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -874,7 +874,7 @@ class Document:
                 p_prev = paragraphs[i - 1]
             if i < m:
                 p_next = paragraphs[i + 1]
-            # TITLE
+            # SECTION DEPTH 1
             if p.paragraph_class == 'section' and \
                ParagraphSection._get_section_depths(p.full_text) == (1, 1):
                 # BEFORE
@@ -1724,12 +1724,19 @@ class Paragraph:
         return length_revi
 
     def _get_length_conf(self):
+        paragraph_class = self.paragraph_class
         hd = self.head_section_depth
         td = self.tail_section_depth
+        sds = self.section_depth_setters
+        has_section_depth_setters = False
+        if paragraph_class != 'section' and len(sds) > 0:
+            has_section_depth_setters = True
+            hd = len(sds[0])
+            td = len(sds[-1])
         length_conf \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
-        if self.paragraph_class == 'section':
+        if paragraph_class == 'section' or has_section_depth_setters:
             sb = (Document.space_before + ',,,,,,,').split(',')
             sa = (Document.space_after + ',,,,,,,').split(',')
             if hd <= len(sb) and sb[hd - 1] != '':

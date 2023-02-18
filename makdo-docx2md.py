@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.18-08:27:10-JST>
+# Time-stamp:   <2023.02.18-08:37:04-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1301,7 +1301,7 @@ class Document:
             p.length_dept = p._get_length_dept()
             p.length_revi = p._get_length_revi()
             p.length_revisers = p._get_length_revisers(p.length_revi)
-            p.md_lines = p._get_md_lines(p.md_text)
+            # p.md_lines = p._get_md_lines(p.md_text)
             p.text_to_write = p.get_text_to_write()
         return self.paragraphs
 
@@ -1351,7 +1351,7 @@ class Document:
             # RENEW
             p.length_revi = p._get_length_revi()
             p.length_revisers = p._get_length_revisers(p.length_revi)
-            p.md_lines = p._get_md_lines(p.md_text)
+            # p.md_lines = p._get_md_lines(p.md_text)
             p.text_to_write = p.get_text_to_write()
         return self.paragraphs
 
@@ -1404,18 +1404,18 @@ class Document:
                 p_prev.length_revi = p_prev._get_length_revi()
                 p_prev.length_revisers \
                     = p_prev._get_length_revisers(p_prev.length_revi)
-                p_prev.md_lines = p_prev._get_md_lines(p_prev.md_text)
+                # p_prev.md_lines = p_prev._get_md_lines(p_prev.md_text)
                 p_prev.text_to_write = p_prev.get_text_to_write()
             if True:
                 p.length_revi = p._get_length_revi()
                 p.length_revisers = p._get_length_revisers(p.length_revi)
-                p.md_lines = p._get_md_lines(p.md_text)
+                # p.md_lines = p._get_md_lines(p.md_text)
                 p.text_to_write = p.get_text_to_write()
             if i < m:
                 p_next.length_revi = p_next._get_length_revi()
                 p_next.length_revisers \
                     = p_next._get_length_revisers(p_next.length_revi)
-                p_next.md_lines = p_next._get_md_lines(p_next.md_text)
+                # p_next.md_lines = p_next._get_md_lines(p_next.md_text)
                 p_next.text_to_write = p_next.get_text_to_write()
         return self.paragraphs
 
