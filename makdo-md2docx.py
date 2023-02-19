@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.18-11:31:47-JST>
+# Time-stamp:   <2023.02.19-09:48:27-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2234,8 +2234,25 @@ class Paragraph:
         l_size = 1.2 * size
         s_size = 0.8 * size
         ms_run = ms_par.add_run()
+        res = '^(.*):(' + RES_NUMBER + ')?(?:x(' + RES_NUMBER + ')?)?$'
+        cm_w = -1.0
+        cm_h = -1.0
+        if re.match(res, comm):
+            st_w = re.sub(res, '\\2', comm)
+            if st_w != '':
+                cm_w = float(st_w)
+            st_h = re.sub(res, '\\3', comm)
+            if st_h != '':
+                cm_h = float(st_h)
+            comm = re.sub(res, '\\1', comm)
         try:
-            if self.is_large and not self.is_small:
+            if cm_w > 0 and cm_h > 0:
+                ms_run.add_picture(path, width=Cm(cm_w) ,height=Cm(cm_h))
+            elif cm_w > 0:
+                ms_run.add_picture(path, width=Cm(cm_w))
+            elif cm_h > 0:
+                ms_run.add_picture(path, height=Cm(cm_h))
+            elif self.is_large and not self.is_small:
                 ms_run.add_picture(path, height=Pt(l_size))
             elif not self.is_large and self.is_small:
                 ms_run.add_picture(path, height=Pt(s_size))
@@ -2656,8 +2673,26 @@ class ParagraphImage(Paragraph):
             if re.match(RES_IMAGE, text):
                 comm = re.sub(RES_IMAGE, '\\1', text)
                 path = re.sub(RES_IMAGE, '\\2', text)
+                res = '^(.*):(' + RES_NUMBER + ')?(?:x(' + RES_NUMBER + ')?)?$'
+                cm_w = -1.0
+                cm_h = -1.0
+                if re.match(res, comm):
+                    st_w = re.sub(res, '\\2', comm)
+                    if st_w != '':
+                        cm_w = float(st_w)
+                        st_h = re.sub(res, '\\3', comm)
+                    if st_h != '':
+                        cm_h = float(st_h)
+                        comm = re.sub(res, '\\1', comm)
                 try:
-                    if is_large:
+                    if cm_w > 0 and cm_h > 0:
+                        ms_doc.add_picture(path,
+                                           width=Cm(cm_w) ,height=Cm(cm_h))
+                    elif cm_w > 0:
+                        ms_doc.add_picture(path, width=Cm(cm_w))
+                    elif cm_h > 0:
+                        ms_doc.add_picture(path, height=Cm(cm_h))
+                    elif is_large:
                         if text_height > text_width:
                             ms_doc.add_picture(path, height=Cm(text_height))
                         else:
