@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.20-10:06:58-JST>
+# Time-stamp:   <2023.02.21-05:35:08-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -837,6 +837,8 @@ class Document:
         er = []
         hr = []
         sd = []
+        res_v = '^v=(' + RES_NUMBER + ')$'
+        res_cv = '^V=(' + RES_NUMBER + ')$'
         for rp in raw_paragraphs:
             full_text = rp.full_text
             if rp.paragraph_class == 'empty' or rp.paragraph_class == 'blank':
@@ -847,13 +849,18 @@ class Document:
                 hr += rp.head_font_revisers + rp.tail_font_revisers
                 sd += rp.section_depth_setters
                 if rp.paragraph_class == 'blank':
-                    nl = len(re.sub(' ', '', full_text))
+                    nl = full_text.count('\n')
                     er += ['v=' + str(nl)]
             else:
                 rp.chapter_revisers = cr + rp.chapter_revisers
                 rp.section_revisers = sr + rp.section_revisers
                 rp.list_revisers = lr + rp.list_revisers
-                rp.length_revisers = er + rp.length_revisers
+                for rev in er:
+                    if re.match(res_v, rev):
+                        rp.length_revisers = [rev] + rp.length_revisers
+                    if re.match(res_cv, rev):
+                        rev = re.sub('^V=', 'v=', rev)
+                        rp.length_revisers = [rev] + rp.length_revisers
                 rp.head_font_revisers = hr + rp.head_font_revisers
                 rp.section_depth_setters = sd + rp.section_depth_setters
                 cr = []
