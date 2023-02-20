@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.20-20:08:52-JST>
+# Time-stamp:   <2023.02.20-20:28:16-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2024,8 +2024,16 @@ class RawParagraph:
                 # IMAGE SIZE
                 sz_w = re.sub(res_img_size, '\\1', xl)
                 sz_h = re.sub(res_img_size, '\\2', xl)
-                cm_w = round(float(sz_w) * 2.54 / 72 / 12700, 2)
-                cm_h = round(float(sz_h) * 2.54 / 72 / 12700, 2)
+                cm_w = float(sz_w) * 2.54 / 72 / 12700
+                cm_h = float(sz_h) * 2.54 / 72 / 12700
+                if cm_w >= 1:
+                    cm_w = round(cm_w, 1)
+                else:
+                    cm_w = round(cm_w, 2)
+                if cm_h >= 1:
+                    cm_h = round(cm_h, 1)
+                else:
+                    cm_h = round(cm_h, 2)
                 img_size = str(cm_w) + 'x' + str(cm_h)
             if img != '' and img_size != '':
                 img_text = '!' \
@@ -2322,6 +2330,7 @@ class Paragraph:
         self.length_revisers = []
         self.pre_text_to_write = ''
         self.post_text_to_write = ''
+        self.text_to_write_with_reviser = ''
         # SUBSTITUTION
         Paragraph.paragraph_number += 1
         self.paragraph_number = Paragraph.paragraph_number
@@ -2911,10 +2920,10 @@ class Paragraph:
 
     def write_paragraph(self, mf):
         paragraph_class = self.paragraph_class
-        text_to_write = self.text_to_write
+        ttwwr = self.text_to_write_with_reviser
         if paragraph_class != 'empty':
-            if text_to_write != '':
-                mf.write(text_to_write + '\n')
+            if ttwwr != '':
+                mf.write(ttwwr + '\n')
 
     def save_images(self):
         tmpdir = Document.tmpdir.name
