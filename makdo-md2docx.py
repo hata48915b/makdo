@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.20-09:18:22-JST>
+# Time-stamp:   <2023.02.20-10:06:58-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1735,13 +1735,17 @@ class Paragraph:
         length_conf \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
+        sb = (Document.space_before + ',,,,,,,').split(',')
+        sa = (Document.space_after + ',,,,,,,').split(',')
         if paragraph_class == 'section' or has_section_depth_setters:
-            sb = (Document.space_before + ',,,,,,,').split(',')
-            sa = (Document.space_after + ',,,,,,,').split(',')
             if hd <= len(sb) and sb[hd - 1] != '':
                 length_conf['space before'] += float(sb[hd - 1])
+        if paragraph_class == 'section':
             if td <= len(sa) and sa[td - 1] != '':
                 length_conf['space after'] += float(sa[td - 1])
+        if has_section_depth_setters:
+            if td <= len(sa) and sa[td - 1] != '':
+                length_conf['space before'] += float(sa[td - 1])
         # self.length_conf = length_conf
         return length_conf
 

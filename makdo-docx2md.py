@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.20-09:44:40-JST>
+# Time-stamp:   <2023.02.20-20:08:52-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2024,27 +2024,32 @@ class RawParagraph:
                 # IMAGE SIZE
                 sz_w = re.sub(res_img_size, '\\1', xl)
                 sz_h = re.sub(res_img_size, '\\2', xl)
-                cm_w = round(float(sz_w) * 2.54 / 72 / 12700, 1)
-                cm_h = round(float(sz_h) * 2.54 / 72 / 12700, 1)
+                cm_w = round(float(sz_w) * 2.54 / 72 / 12700, 2)
+                cm_h = round(float(sz_h) * 2.54 / 72 / 12700, 2)
                 img_size = str(cm_w) + 'x' + str(cm_h)
             if img != '' and img_size != '':
-                if cm_w > size_cm * .95 and cm_w < size_cm * 1.05:
-                    raw_text += '!' \
-                        + '[' + img + ']' \
-                        + '(' + media_dir + '/' + img + ')'
-                elif cm_w > s_size_cm * .95 and cm_w < s_size_cm * 1.05:
-                    raw_text += '--!' \
-                        + '[' + img + ']' \
-                        + '(' + media_dir + '/' + img + ')--'
-                    raw_text = re.sub('\\-\\-\\-\\-(' + RES_IMAGE + ')\\-\\-$',
-                                      '\\1', raw_text)
-                elif cm_w > l_size_cm * .95 and cm_w < l_size_cm * 1.05:
-                    raw_text += '++!' \
-                        + '[' + img + ']' \
-                        + '(' + media_dir + '/' + img + ')++'
-                    raw_text = re.sub('\\+\\+\\+\\+(' + RES_IMAGE + ')\\+\\+$',
-                                      '\\1', raw_text)
+                img_text = '!' \
+                    + '[' + img + ']' \
+                    + '(' + media_dir + '/' + img + ')'
+                if cm_w >= size_cm * 0.98 and cm_w <= size_cm * 1.02:
+                    # MEDIUM
+                    raw_text += img_text
+                elif cm_w >= s_size_cm * 0.98 and cm_w <= s_size_cm * 1.02:
+                    # SMALL
+                    if re.match('^.*(\n.*)*\\-\\-$', raw_text):
+                        raw_text = re.sub('\\-\\-$', '', raw_text)
+                        raw_text += img_text + '--'
+                    else:
+                        raw_text += '--' + img_text + '--'
+                elif cm_w >= l_size_cm * 0.98 and cm_w <= l_size_cm * 1.02:
+                    # LARGE
+                    if re.match('^.*(\n.*)*\\+\\+$', raw_text):
+                        raw_text = re.sub('\\+\\+$', '', raw_text)
+                        raw_text += img_text + '++'
+                    else:
+                        raw_text += '++' + img_text + '++'
                 else:
+                    # FREE SIZE
                     raw_text += '!' \
                         + '[' + img + ':' + img_size + ']' \
                         + '(' + media_dir + '/' + img + ')'
@@ -2628,9 +2633,30 @@ class Paragraph:
         return md_lines
 
     def get_text_to_write(self):
+        paper_size = Document.paper_size
+        top_margin = Document.top_margin
+        bottom_margin = Document.bottom_margin
+        left_margin = Document.left_margin
+        right_margin = Document.right_margin
         md_lines = self.md_lines
-        # TODO INLINE IMAGE SIZE
-        text_to_write = md_lines
+        length_docx = self.length_docx
+        indent = length_docx['first indent'] \
+            + length_docx['left indent'] \
+            + length_docx['right indent']
+        unit = 12 * 2.54 / 72 / 2
+        width_cm = PAPER_WIDTH[paper_size] - left_margin - right_margin \
+            - (indent * unit)
+        height_cm = PAPER_HEIGHT[paper_size] - top_margin - bottom_margin
+        region_cm = (width_cm, height_cm)
+        res = '^((?:.*\n)*.*)(' + RES_IMAGE_WITH_SIZE + ')((?:.*\n)*.*)$'
+        text_to_write = ''
+        while re.match(res, md_lines):
+           text_to_write += re.sub(res, '\\1', md_lines) 
+           img_text = re.sub(res, '\\2', md_lines) 
+           text_to_write \
+               += ParagraphImage.replace_with_fixed_size(img_text, region_cm)
+           md_lines = re.sub(res, '\\7', md_lines)
+        text_to_write += md_lines
         # self.text_to_write = text_to_write
         return text_to_write
 
@@ -3406,7 +3432,8 @@ class ParagraphTable(Paragraph):
         return False
 
     def _get_md_text(self, raw_text):
-        s_size = 0.8 * Document.font_size
+        size = Paragraph.font_size
+        s_size = size * 0.8
         xml_lines = self.xml_lines
         is_in_row = False
         is_in_cel = False
@@ -3454,13 +3481,11 @@ class ParagraphTable(Paragraph):
                     is_in_head = False
                     md_text += '\n'
             for cell in row:
-                tmp = ''
-                for lin in cell:
-                    # TODO INLINE IMAGE
-                    if not re.match('<.*>', lin):
-                        tmp += lin
-                tmp = re.sub('\n', '<br>', tmp)
-                md_text += '|' + tmp + '|'
+                Paragraph.font_size = size * 0.8
+                raw_text, images = RawParagraph._get_raw_text_and_images(cell)
+                Paragraph.font_size = size
+                raw_text = re.sub('\n', '<br>', raw_text)
+                md_text += '|' + raw_text + '|'
             md_text += '\n'
         md_text = md_text.replace('||', '|')
         md_text = md_text.replace('&lt;', '<')
@@ -3499,27 +3524,39 @@ class ParagraphImage(Paragraph):
             - Document.left_margin - Document.right_margin
         text_h = PAPER_HEIGHT[Document.paper_size] \
             - Document.top_margin - Document.bottom_margin
+        text_size = (text_w, text_h)
+        md_text = ParagraphImage.replace_with_fixed_size(raw_text, text_size)
+        return md_text
+
+    @staticmethod
+    def replace_with_fixed_size(img_text, fixed):
         res = RES_IMAGE_WITH_SIZE
-        if re.match(res, raw_text):
-            alte = re.sub(res, '\\1', raw_text)
-            cm_w = float(re.sub(res, '\\2', raw_text))
-            cm_h = float(re.sub(res, '\\3', raw_text))
-            path = re.sub(res, '\\4', raw_text)
-            if cm_w > text_w * 0.950 and cm_w < text_w * 1.050:
+        if re.match(res, img_text):
+            alte = re.sub(res, '\\1', img_text)
+            cm_w = float(re.sub(res, '\\2', img_text))
+            cm_h = float(re.sub(res, '\\3', img_text))
+            path = re.sub(res, '\\4', img_text)
+            if cm_w >= fixed[0] * 0.98 and cm_w <= fixed[0] * 1.02:
                 cm_w = -1
-            if cm_w > text_w * 0.475 and cm_w < text_w * 0.525:
+            if cm_w >= fixed[0] * 0.48 and cm_w <= fixed[0] * 0.52:
                 cm_w = -0.5
-            if cm_h > text_h * 0.950 and cm_h < text_h * 1.050:
+            if cm_h >= fixed[1] * 0.98 and cm_h <= fixed[1] * 1.02:
                 cm_h = -1
-            if cm_h > text_h * 0.475 and cm_h < text_h * 0.525:
+            if cm_h >= fixed[1] * 0.48 and cm_h <= fixed[1] * 0.52:
                 cm_h = -0.5
-            if cm_w < 0 or cm_h < 0:
-                md_text = '!' \
+            if cm_w < 0 and cm_h < 0:
+                img_text = '!' \
                     + '['+ alte + ':' + str(cm_w) + 'x' + str(cm_h) + ']' \
                     + '(' + path + ')'
-            else:
-                md_text = raw_text
-        return md_text
+            elif cm_w < 0:
+                img_text = '!' \
+                    + '['+ alte + ':' + str(cm_w) + 'x' + ']' \
+                    + '(' + path + ')'
+            elif cm_h < 0:
+                img_text = '!' \
+                    + '['+ alte + ':' + 'x' + str(cm_h) + ']' \
+                    + '(' + path + ')'
+        return img_text
 
 
 class ParagraphAlignment(Paragraph):
