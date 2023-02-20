@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.18-08:37:04-JST>
+# Time-stamp:   <2023.02.20-09:44:40-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -196,6 +196,14 @@ NOT_ESCAPED = '^((?:(?:.*\n)*.*[^\\\\])?(?:\\\\\\\\)*)?'
 
 RES_NUMBER = '(?:[-\\+]?(?:(?:[0-9]+(?:\\.[0-9]+)?)|(?:\\.[0-9]+)))'
 RES_NUMBER6 = '(?:' + RES_NUMBER + '?,){,5}' + RES_NUMBER + '?,?'
+
+RES_IMAGE = '! *\\[([^\\[\\]]*)\\] *\\(([^\\(\\)]+)\\)'
+RES_IMAGE_WITH_SIZE \
+    = '!' \
+    + ' *' \
+    + '\\[([^\\[\\]]+):(' + RES_NUMBER + ')x(' + RES_NUMBER + ')\\]' \
+    + ' *' \
+    + '\\(([^\\(\\)]+)\\)'
 
 FONT_DECORATORS = [
     '\\*\\*\\*',           # italic and bold
@@ -1259,7 +1267,9 @@ class Document:
                 p.length_revi = p._get_length_revi()
                 p.length_revisers = p._get_length_revisers(p.length_revi)
                 # p.md_lines = p._get_md_lines(p.md_text)
-                p.text_to_write = p.get_text_to_write()
+                # p.text_to_write = p.get_text_to_write()
+                p.text_to_write_with_reviser \
+                    = p.get_text_to_write_with_reviser()
                 p.paragraph_class = 'empty'
             if p.paragraph_class == 'empty' and i < m:
                 if i == m:
@@ -1277,12 +1287,16 @@ class Document:
                 p.length_revi = p._get_length_revi()
                 p.length_revisers = p._get_length_revisers(p.length_revi)
                 # p.md_lines = p._get_md_lines(p.md_text)
-                p.text_to_write = p.get_text_to_write()
+                # p.text_to_write = p.get_text_to_write()
+                p.text_to_write_with_reviser \
+                    = p.get_text_to_write_with_reviser()
                 p_next.length_revi = p_next._get_length_revi()
                 p_next.length_revisers \
                     = p_next._get_length_revisers(p_next.length_revi)
                 # p_next.md_lines = p_next._get_md_lines(p_next.md_text)
-                p_next.text_to_write = p_next.get_text_to_write()
+                # p_next.text_to_write = p_next.get_text_to_write()
+                p_next.text_to_write_with_reviser \
+                    = p_next.get_text_to_write_with_reviser()
         return self.paragraphs
 
     def _modpar_spaced_and_centered(self):
@@ -1302,7 +1316,9 @@ class Document:
             p.length_revi = p._get_length_revi()
             p.length_revisers = p._get_length_revisers(p.length_revi)
             # p.md_lines = p._get_md_lines(p.md_text)
-            p.text_to_write = p.get_text_to_write()
+            # p.text_to_write = p.get_text_to_write()
+            p.text_to_write_with_reviser \
+                = p.get_text_to_write_with_reviser()
         return self.paragraphs
 
     def _modpar_one_line_paragraph(self):
@@ -1323,7 +1339,9 @@ class Document:
                     p.length_revi = p._get_length_revi()
                     p.length_revisers = p._get_length_revisers(p.length_revi)
                     p.md_lines = p._get_md_lines(p.md_text)
-                    p.text_to_write = p.get_text_to_write()
+                    # p.text_to_write = p.get_text_to_write()
+                    p.text_to_write_with_reviser \
+                        = p.get_text_to_write_with_reviser()
                 continue
             rt = p.raw_text
             for fd in FONT_DECORATORS:
@@ -1352,7 +1370,9 @@ class Document:
             p.length_revi = p._get_length_revi()
             p.length_revisers = p._get_length_revisers(p.length_revi)
             # p.md_lines = p._get_md_lines(p.md_text)
-            p.text_to_write = p.get_text_to_write()
+            # p.text_to_write = p.get_text_to_write()
+            p.text_to_write_with_reviser \
+                = p.get_text_to_write_with_reviser()
         return self.paragraphs
 
     def _modpar_section_space_before_and_after(self):
@@ -1405,18 +1425,24 @@ class Document:
                 p_prev.length_revisers \
                     = p_prev._get_length_revisers(p_prev.length_revi)
                 # p_prev.md_lines = p_prev._get_md_lines(p_prev.md_text)
-                p_prev.text_to_write = p_prev.get_text_to_write()
+                # p_prev.text_to_write = p_prev.get_text_to_write()
+                p_prev.text_to_write_with_reviser \
+                    = p_prev.get_text_to_write_with_reviser()
             if True:
                 p.length_revi = p._get_length_revi()
                 p.length_revisers = p._get_length_revisers(p.length_revi)
                 # p.md_lines = p._get_md_lines(p.md_text)
-                p.text_to_write = p.get_text_to_write()
+                # p.text_to_write = p.get_text_to_write()
+                p.text_to_write_with_reviser \
+                    = p.get_text_to_write_with_reviser()
             if i < m:
                 p_next.length_revi = p_next._get_length_revi()
                 p_next.length_revisers \
                     = p_next._get_length_revisers(p_next.length_revi)
                 # p_next.md_lines = p_next._get_md_lines(p_next.md_text)
-                p_next.text_to_write = p_next.get_text_to_write()
+                # p_next.text_to_write = p_next.get_text_to_write()
+                p_next.text_to_write_with_reviser \
+                    = p_next.get_text_to_write_with_reviser()
         return self.paragraphs
 
     def open_md_file(self, md_file, docx_file):
@@ -1789,53 +1815,28 @@ class RawParagraph:
         is_in_text = False
         res_img_ms \
             = '^<v:imagedata r:id=[\'"](.+)[\'"] o:title=[\'"](.+)[\'"]/>$'
-        res_img_py_name \
-            = '^<pic:cNvPr id=[\'"](.+)[\'"] name=[\'"](.+)[\'"]/>$'
         res_img_py_id \
             = '^<a:blip r:embed=[\'"](.+)[\'"]/>$'
-        img_size = 'medium'
+        res_img_py_name \
+            = '^<pic:cNvPr id=[\'"](.+)[\'"] name=[\'"](.+)[\'"]/>$'
         res_img_size \
             = '<wp:extent cx=[\'"]([0-9]+)[\'"] cy=[\'"]([0-9]+)[\'"]/>'
         for rxl in raw_xml_lines:
-            if re.match(res_img_size, rxl):
-                # IMAGE SIZE
-                sz_w = re.sub(res_img_size, '\\1', rxl)
-                sz_h = re.sub(res_img_size, '\\2', rxl)
-                cm_w = round(float(sz_w) / 12700, 1)
-                cm_h = round(float(sz_h) / 12700, 1)
-                if cm_h > size * 1.1:
-                    img_size = 'large'
-                elif cm_h < size * 0.9:
-                    img_size = 'small'
-                else:
-                    img_size = 'medium'
             if re.match(res_img_ms, rxl):
                 # IMAGE MS WORD
-                if img_size == 'small':
-                    xml_lines.append('--')
-                    xml_lines.append(rxl)
-                    xml_lines.append('--')
-                elif img_size == 'large':
-                    xml_lines.append('++')
-                    xml_lines.append(rxl)
-                    xml_lines.append('++')
-                else:
-                    xml_lines.append(rxl)
-                img_size = 'medium'
+                xml_lines.append(rxl)
                 continue
-            if re.match(res_img_py_name, rxl) or re.match(res_img_py_id, rxl):
-                # IMAGE PYTHON-DOCX
-                if img_size == 'small':
-                    xml_lines.append('--')
-                    xml_lines.append(rxl)
-                    xml_lines.append('--')
-                elif img_size == 'large':
-                    xml_lines.append('++')
-                    xml_lines.append(rxl)
-                    xml_lines.append('++')
-                else:
-                    xml_lines.append(rxl)
-                img_size = 'medium'
+            if re.match(res_img_py_id, rxl):
+                # IMAGE PYTHON-DOCX ID
+                xml_lines.append(rxl)
+                continue
+            if re.match(res_img_py_name, rxl):
+                # IMAGE PYTHON-DOCX NAME
+                xml_lines.append(rxl)
+                continue
+            if re.match(res_img_size, rxl):
+                # IMAGE SIZE
+                xml_lines.append(rxl)
                 continue
             if re.match('^<w:r( .*)?>$', rxl):
                 text = ''
@@ -1986,31 +1987,69 @@ class RawParagraph:
     def _get_raw_text_and_images(xml_lines):
         media_dir = Document.media_dir
         img_rels = Document.rels
+        size_cm = Paragraph.font_size * 2.54 / 72
+        s_size_cm = size_cm * 0.8
+        l_size_cm = size_cm * 1.2
         raw_text = ''
         images = {}
         res_img_ms \
             = '^<v:imagedata r:id=[\'"](.+)[\'"] o:title=[\'"](.+)[\'"]/>$'
-        res_img_py_name \
-            = '^<pic:cNvPr id=[\'"](.+)[\'"] name=[\'"](.+)[\'"]/>$'
         res_img_py_id \
             = '^<a:blip r:embed=[\'"](.+)[\'"]/>$'
+        res_img_py_name \
+            = '^<pic:cNvPr id=[\'"](.+)[\'"] name=[\'"](.+)[\'"]/>$'
+        res_img_size \
+            = '<wp:extent cx=[\'"]([0-9]+)[\'"] cy=[\'"]([0-9]+)[\'"]/>'
+        img = ''
+        img_size = ''
         for xl in xml_lines:
             if re.match(res_img_ms, xl):
+                # IMAGE MS WORD
                 img_id = re.sub(res_img_ms, '\\1', xl)
                 img_name = re.sub(res_img_ms, '\\2', xl)
                 img_rel_name = img_rels[img_id]
                 img_ext = re.sub('^.*\\.', '', img_rel_name)
                 img = img_name + '.' + img_ext
                 images[img_rel_name] = img
-                raw_text += '![' + img + '](' + media_dir + '/' + img + ')'
-            if re.match(res_img_py_name, xl):
-                img = re.sub(res_img_py_name, '\\2', xl)
-                images[''] = img
-                raw_text += '![' + img + '](' + media_dir + '/' + img + ')'
             if re.match(res_img_py_id, xl):
+                # IMAGE PYTHON-DOCX ID
                 img_id = re.sub(res_img_py_id, '\\1', xl)
                 img_rel_name = img_rels[img_id]
                 images[img_rel_name] = images['']
+            if re.match(res_img_py_name, xl):
+                # IMAGE PYTHON-DOCX NAME
+                img = re.sub(res_img_py_name, '\\2', xl)
+                images[''] = img
+            if re.match(res_img_size, xl):
+                # IMAGE SIZE
+                sz_w = re.sub(res_img_size, '\\1', xl)
+                sz_h = re.sub(res_img_size, '\\2', xl)
+                cm_w = round(float(sz_w) * 2.54 / 72 / 12700, 1)
+                cm_h = round(float(sz_h) * 2.54 / 72 / 12700, 1)
+                img_size = str(cm_w) + 'x' + str(cm_h)
+            if img != '' and img_size != '':
+                if cm_w > size_cm * .95 and cm_w < size_cm * 1.05:
+                    raw_text += '!' \
+                        + '[' + img + ']' \
+                        + '(' + media_dir + '/' + img + ')'
+                elif cm_w > s_size_cm * .95 and cm_w < s_size_cm * 1.05:
+                    raw_text += '--!' \
+                        + '[' + img + ']' \
+                        + '(' + media_dir + '/' + img + ')--'
+                    raw_text = re.sub('\\-\\-\\-\\-(' + RES_IMAGE + ')\\-\\-$',
+                                      '\\1', raw_text)
+                elif cm_w > l_size_cm * .95 and cm_w < l_size_cm * 1.05:
+                    raw_text += '++!' \
+                        + '[' + img + ']' \
+                        + '(' + media_dir + '/' + img + ')++'
+                    raw_text = re.sub('\\+\\+\\+\\+(' + RES_IMAGE + ')\\+\\+$',
+                                      '\\1', raw_text)
+                else:
+                    raw_text += '!' \
+                        + '[' + img + ':' + img_size + ']' \
+                        + '(' + media_dir + '/' + img + ')'
+                img = ''
+                img_size = ''
             if re.match('^<.*>$', xl):
                 continue
             while True:
@@ -2299,6 +2338,8 @@ class Paragraph:
         ParagraphList.reset_states(self.paragraph_class)
         self.md_lines = self._get_md_lines(self.md_text)
         self.text_to_write = self.get_text_to_write()
+        self.text_to_write_with_reviser \
+            = self.get_text_to_write_with_reviser()
         # self.write_paragraph()
 
     @classmethod
@@ -2586,11 +2627,57 @@ class Paragraph:
             md_lines = md_text
         return md_lines
 
+    def get_text_to_write(self):
+        md_lines = self.md_lines
+        # TODO INLINE IMAGE SIZE
+        text_to_write = md_lines
+        # self.text_to_write = text_to_write
+        return text_to_write
+
+    def get_text_to_write_with_reviser(self):
+        numbering_revisers = self.numbering_revisers
+        length_revisers = self.length_revisers
+        head_font_revisers = self.head_font_revisers
+        tail_font_revisers = self.tail_font_revisers
+        text_to_write = self.text_to_write
+        pre_text_to_write = self.pre_text_to_write
+        post_text_to_write = self.post_text_to_write
+        res = '^((?:.*\n)*.*) $'
+        ttwwr = ''
+        if pre_text_to_write != '':
+            ttwwr += pre_text_to_write
+        for rev in numbering_revisers:
+            ttwwr += rev + ' '
+        if re.match(res, text_to_write):
+            ttwwr = re.sub(res, '\\1\n', text_to_write)
+        for rev in length_revisers:
+            ttwwr += rev + ' '
+        if re.match(res, text_to_write):
+            ttwwr = re.sub(res, '\\1\n', text_to_write)
+        for rev in head_font_revisers:
+            ttwwr += rev
+        ttwwr += text_to_write
+        for rev in tail_font_revisers:
+            ttwwr += rev
+        if post_text_to_write != '':
+            ttwwr += post_text_to_write
+        text_to_write_with_reviser = ttwwr
+        # self.text_to_write_with_reviser = text_to_write_with_reviser
+        return text_to_write_with_reviser
+
     @classmethod
     def _split_into_lines(cls, md_text):
         md_lines = ''
         for line in md_text.split('\n'):
-            phrases = cls._split_into_phrases(line)
+            res = '^(.*)(' + RES_IMAGE + ')(.*)$'
+            line = re.sub(res, '\\1\n\\2\n\\5', line)
+            line = re.sub('\n+', '\n', line)
+            phrases = []
+            for text in line.split('\n'):
+                if re.match(RES_IMAGE, text):
+                    phrases.append(text)
+                else:
+                    phrases += cls._split_into_phrases(text)
             splited = cls._concatenate_phrases(phrases)
             md_lines += splited + '<br>\n'
         md_lines = re.sub('<br>\n$', '', md_lines)
@@ -2678,6 +2765,11 @@ class Paragraph:
                             tex += tmp + '\n'
                             tmp = p
                             continue
+            if re.match(RES_IMAGE, p):
+                # IMAGE
+                tex += tmp + '\n' + p + '\n'
+                tmp = ''
+                continue
             if get_ideal_width(tmp) <= MD_TEXT_WIDTH:
                 if re.match('^.*[．。]$', tmp):
                     if tmp != '':
@@ -2790,35 +2882,6 @@ class Paragraph:
             tmp = ''
         tex = re.sub('\n$', '', tex)
         return tex
-
-    def get_text_to_write(self):
-        numbering_revisers = self.numbering_revisers
-        length_revisers = self.length_revisers
-        head_font_revisers = self.head_font_revisers
-        tail_font_revisers = self.tail_font_revisers
-        md_lines = self.md_lines
-        pre_text_to_write = self.pre_text_to_write
-        post_text_to_write = self.post_text_to_write
-        res = '^((?:.*\n)*.*) $'
-        text_to_write = ''
-        if pre_text_to_write != '':
-            text_to_write += pre_text_to_write
-        for rev in numbering_revisers:
-            text_to_write += rev + ' '
-        if re.match(res, text_to_write):
-            text_to_write = re.sub(res, '\\1\n', text_to_write)
-        for rev in length_revisers:
-            text_to_write += rev + ' '
-        if re.match(res, text_to_write):
-            text_to_write = re.sub(res, '\\1\n', text_to_write)
-        for rev in head_font_revisers:
-            text_to_write += rev
-        text_to_write += md_lines
-        for rev in tail_font_revisers:
-            text_to_write += rev
-        if post_text_to_write != '':
-            text_to_write += post_text_to_write
-        return text_to_write
 
     def write_paragraph(self, mf):
         paragraph_class = self.paragraph_class
@@ -3393,6 +3456,7 @@ class ParagraphTable(Paragraph):
             for cell in row:
                 tmp = ''
                 for lin in cell:
+                    # TODO INLINE IMAGE
                     if not re.match('<.*>', lin):
                         tmp += lin
                 tmp = re.sub('\n', '<br>', tmp)
@@ -3425,43 +3489,36 @@ class ParagraphImage(Paragraph):
         rp = raw_paragraph
         rp_rtx = rp.raw_text
         rp_img = rp.images
-        rp_rtx = re.sub('!\\[[^\\[\\]]+\\]\\([^\\(\\)]+\\)', '', rp_rtx)
-        rp_rtx = re.sub('(\\-\\-|\\+\\+)', '', rp_rtx)
+        rp_rtx = re.sub(RES_IMAGE, '', rp_rtx)
         if rp_rtx == '' and len(rp_img) > 0:
             return True
         return False
 
     def _get_md_text(self, raw_text):
-        raw_xml_lines = self.raw_xml_lines
-        md_text = raw_text
-        size_w = -1
-        size_h = -1
-        for rxl in raw_xml_lines:
-            size_w = get_xml_value('wp:extent', 'cx', size_w, rxl)
-            size_h = get_xml_value('wp:extent', 'cy', size_h, rxl)
-        cm_w = float(size_w) / 360000
-        cm_h = float(size_h) / 360000
         text_w = PAPER_WIDTH[Document.paper_size] \
             - Document.left_margin - Document.right_margin
         text_h = PAPER_HEIGHT[Document.paper_size] \
             - Document.top_margin - Document.bottom_margin
-        if text_w * 0.99 < cm_w and text_w * 1.01 > cm_w:
-            if text_w > text_h:
-                md_text = '++' + raw_text + '++'
+        res = RES_IMAGE_WITH_SIZE
+        if re.match(res, raw_text):
+            alte = re.sub(res, '\\1', raw_text)
+            cm_w = float(re.sub(res, '\\2', raw_text))
+            cm_h = float(re.sub(res, '\\3', raw_text))
+            path = re.sub(res, '\\4', raw_text)
+            if cm_w > text_w * 0.950 and cm_w < text_w * 1.050:
+                cm_w = -1
+            if cm_w > text_w * 0.475 and cm_w < text_w * 0.525:
+                cm_w = -0.5
+            if cm_h > text_h * 0.950 and cm_h < text_h * 1.050:
+                cm_h = -1
+            if cm_h > text_h * 0.475 and cm_h < text_h * 0.525:
+                cm_h = -0.5
+            if cm_w < 0 or cm_h < 0:
+                md_text = '!' \
+                    + '['+ alte + ':' + str(cm_w) + 'x' + str(cm_h) + ']' \
+                    + '(' + path + ')'
             else:
-                md_text = '--' + raw_text + '--'
-        if text_h * 0.99 < cm_h and text_h * 1.01 > cm_h:
-            if text_w > text_h:
-                md_text = '--' + raw_text + '--'
-            else:
-                md_text = '++' + raw_text + '++'
-        # COMMENTOUTED 23.02.16
-        # image = ''
-        # res = '^<pic:cNvPr id=[\'"].+[\'"] name=[\'"](.*)[\'"]/>$'
-        # for rxl in raw_xml_lines:
-        #     if re.match(res, rxl):
-        #         image = re.sub(res, '\\1', rxl)
-        # md_text = '![' + image + '](' + image + ')'
+                md_text = raw_text
         return md_text
 
 

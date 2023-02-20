@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.19-09:48:27-JST>
+# Time-stamp:   <2023.02.20-09:18:22-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -244,6 +244,8 @@ NOT_ESCAPED = '^((?:(?:.*\n)*.*[^\\\\])?(?:\\\\\\\\)*)?'
 RES_NUMBER = '(?:[-\\+]?(?:(?:[0-9]+(?:\\.[0-9]+)?)|(?:\\.[0-9]+)))'
 RES_NUMBER6 = '(?:' + RES_NUMBER + '?,){,5}' + RES_NUMBER + '?,?'
 
+RES_IMAGE = '! *\\[([^\\[\\]]*)\\] *\\(([^\\(\\)]+)\\)'
+
 FONT_DECORATORS = [
     '\\*\\*\\*',           # italic and bold
     '\\*\\*',              # bold
@@ -257,8 +259,6 @@ FONT_DECORATORS = [
     '\\^[0-9A-Za-z]*\\^',  # font color
     '_[0-9A-Za-z]+_',      # higilight color
 ]
-
-RES_IMAGE = '! *\\[([^\\[\\]]*)\\] *\\(([^\\(\\)]+)\\)'
 
 RELAX_SYMBOL = '<>'
 
@@ -1264,7 +1264,8 @@ class Document:
         ms_doc.styles.add_style('makdo-g', WD_STYLE_TYPE.PARAGRAPH)
         ms_doc.styles['makdo-g'].font.name = Document.gothic_font
         # TABLE
-        # ms_doc.styles.add_style('makdo-t', WD_STYLE_TYPE.PARAGRAPH)
+        ms_doc.styles.add_style('makdo-t', WD_STYLE_TYPE.PARAGRAPH)
+        ms_doc.styles['makdo-t'].paragraph_format.line_spacing = Pt(size * 1.2)
         # ALIGNMENT
         # ms_doc.styles.add_style('makdo-a', WD_STYLE_TYPE.PARAGRAPH)
         # SPACE
@@ -1653,9 +1654,7 @@ class Paragraph:
         self._edit_data()
         self.text_to_write = self._get_text_to_write()
         self.text_to_write_with_reviser \
-            = ''.join(self.head_font_revisers) \
-            + self.text_to_write \
-            + ''.join(self.tail_font_revisers)
+            = self._get_text_to_write_with_reviser()
 
     @classmethod
     def _apply_section_depths_setters(cls, section_depth_setters):
@@ -1965,6 +1964,16 @@ class Paragraph:
         # self.text_to_write = text_to_write
         return text_to_write
 
+    def _get_text_to_write_with_reviser(self):
+        text_to_write = self.text_to_write
+        head_font_revisers = self.head_font_revisers
+        tail_font_revisers = self.tail_font_revisers
+        text_to_write_with_reviser \
+            = ''.join(head_font_revisers) \
+            + text_to_write \
+            + ''.join(tail_font_revisers)
+        return text_to_write_with_reviser
+
     def write_paragraph(self, ms_doc):
         paragraph_class = self.paragraph_class
         tail_section_depth = self.tail_section_depth
@@ -2229,25 +2238,38 @@ class Paragraph:
             ms_run.font.highlight_color = cls.highlight_color
         return ''
 
-    def _write_image(self, comm, path, ms_par):
+    def _write_image(self, alte, path, ms_par):
         size = Paragraph.font_size
         l_size = 1.2 * size
         s_size = 0.8 * size
+        indent \
+            = self.length_docx['first indent'] \
+            + self.length_docx['left indent'] \
+            + self.length_docx['right indent']
+        text_width = PAPER_WIDTH[Document.paper_size] \
+            - Document.left_margin - Document.right_margin \
+            - (indent * 2.54 / 72)
+        text_height = PAPER_HEIGHT[Document.paper_size] \
+            - Document.top_margin - Document.bottom_margin
         ms_run = ms_par.add_run()
         res = '^(.*):(' + RES_NUMBER + ')?(?:x(' + RES_NUMBER + ')?)?$'
-        cm_w = -1.0
-        cm_h = -1.0
-        if re.match(res, comm):
-            st_w = re.sub(res, '\\2', comm)
+        cm_w = 0
+        cm_h = 0
+        if re.match(res, alte):
+            st_w = re.sub(res, '\\2', alte)
             if st_w != '':
                 cm_w = float(st_w)
-            st_h = re.sub(res, '\\3', comm)
+                if cm_w < 0:
+                    cm_w = text_width * (-1 * cm_w)
+            st_h = re.sub(res, '\\3', alte)
             if st_h != '':
                 cm_h = float(st_h)
-            comm = re.sub(res, '\\1', comm)
+                if cm_h < 0:
+                    cm_h = text_height * (-1 * cm_h)
+            alte = re.sub(res, '\\1', alte)
         try:
             if cm_w > 0 and cm_h > 0:
-                ms_run.add_picture(path, width=Cm(cm_w) ,height=Cm(cm_h))
+                ms_run.add_picture(path, width=Cm(cm_w), height=Cm(cm_h))
             elif cm_w > 0:
                 ms_run.add_picture(path, width=Cm(cm_w))
             elif cm_h > 0:
@@ -2259,7 +2281,7 @@ class Paragraph:
             else:
                 ms_run.add_picture(path, height=Pt(size))
         except BaseException:
-            ms_run.text = '![' + comm + '](' + path + ')'
+            ms_run.text = '![' + alte + '](' + path + ')'
             msg = '警告: ' \
                 + 'インライン画像「' + path + '」が読み込めません'
             # msg = 'warning: can\'t open "' + path + '"'
@@ -2268,6 +2290,9 @@ class Paragraph:
                 if re.match(r, ml.text):
                     if msg not in ml.warning_messages:
                         ml.append_warning_message(msg)
+                        break
+            else:
+                self.md_lines[0].append_warning_message(msg)
 
     def print_warning_messages(self):
         for ml in self.md_lines:
@@ -2568,8 +2593,7 @@ class ParagraphTable(Paragraph):
                 ms_cell.width = Pt((wid_list[j] + 2) * s_size)
                 ms_cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
                 ms_par = ms_cell.paragraphs[0]
-                ms_par.style = 'makdo'
-                # ms_par.style = 'makdo-t'
+                ms_par.style = 'makdo-t'
                 Paragraph.font_size = s_size
                 self._write_text(cell, ms_par)
                 Paragraph.font_size = size
@@ -2651,82 +2675,65 @@ class ParagraphImage(Paragraph):
     """A class to handle image paragraph"""
 
     paragraph_class = 'image'
-    res_feature = '^(?:' \
-        + '(?:\\-\\-|\\+\\+|\\s+)*' + RES_IMAGE + '(?:\\-\\-|\\+\\+|\\s+)*' \
-        + ')+$'
+    res_feature = '^(?:\\s*' + RES_IMAGE + '\\s*)+$'
 
     def write_paragraph(self, ms_doc):
         ttwwr = self.text_to_write_with_reviser
-        ttwwr = re.sub('\\s*(' + RES_IMAGE + ')\\s*', '\n\\1\n', ttwwr)
-        ttwwr = re.sub('\\s*\\+\\+\\s*', '\n++\n', ttwwr)
-        ttwwr = re.sub('\\s*\\-\\-\\s*', '\n--\n', ttwwr)
+        ttwwr = re.sub('\\s*(' + RES_IMAGE + ')\\s*', '\\1\n', ttwwr)
         ttwwr = re.sub('\n+', '\n', ttwwr)
         ttwwr = re.sub('^\n+', '', ttwwr)
         ttwwr = re.sub('\n+$', '', ttwwr)
         is_large = False
         is_small = False
-        text_height = PAPER_HEIGHT[Document.paper_size] \
-            - Document.top_margin - Document.bottom_margin
         text_width = PAPER_WIDTH[Document.paper_size] \
             - Document.left_margin - Document.right_margin
+        text_height = PAPER_HEIGHT[Document.paper_size] \
+            - Document.top_margin - Document.bottom_margin
+        res = '^(.*):(' + RES_NUMBER + ')?(?:x(' + RES_NUMBER + ')?)?$'
         for text in ttwwr.split('\n'):
-            if re.match(RES_IMAGE, text):
-                comm = re.sub(RES_IMAGE, '\\1', text)
-                path = re.sub(RES_IMAGE, '\\2', text)
-                res = '^(.*):(' + RES_NUMBER + ')?(?:x(' + RES_NUMBER + ')?)?$'
-                cm_w = -1.0
-                cm_h = -1.0
-                if re.match(res, comm):
-                    st_w = re.sub(res, '\\2', comm)
-                    if st_w != '':
-                        cm_w = float(st_w)
-                        st_h = re.sub(res, '\\3', comm)
-                    if st_h != '':
-                        cm_h = float(st_h)
-                        comm = re.sub(res, '\\1', comm)
-                try:
-                    if cm_w > 0 and cm_h > 0:
-                        ms_doc.add_picture(path,
-                                           width=Cm(cm_w) ,height=Cm(cm_h))
-                    elif cm_w > 0:
-                        ms_doc.add_picture(path, width=Cm(cm_w))
-                    elif cm_h > 0:
-                        ms_doc.add_picture(path, height=Cm(cm_h))
-                    elif is_large:
-                        if text_height > text_width:
-                            ms_doc.add_picture(path, height=Cm(text_height))
-                        else:
-                            ms_doc.add_picture(path, width=Cm(text_width))
-                    elif is_small:
-                        if text_height > text_width:
-                            ms_doc.add_picture(path, width=Cm(text_width))
-                        else:
-                            ms_doc.add_picture(path, height=Cm(text_height))
-                    else:
-                        ms_doc.add_picture(path)
-                    ms_doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
-                except BaseException:
-                    e = ms_doc.paragraphs[-1]._element
-                    e.getparent().remove(e)
-                    ms_par = ms_doc.add_paragraph()
-                    ms_par.add_run(text)
-                    ms_par.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                    msg = '警告: ' \
-                        + '画像「' + path + '」が読み込めません'
-                    # msg = 'warning: can\'t open "' + path + '"'
-                    r = '^.*! *\\[.*\\] *\\(' + path + '\\).*$'
-                    for ml in self.md_lines:
-                        if re.match(r, ml.text):
-                            if msg not in ml.warning_messages:
-                                ml.append_warning_message(msg)
-            elif text == '++':
-                is_large = not is_large
-                if is_small:
-                    is_small = False
-            elif text == '--':
-                is_small = not is_small
-                if is_large:
-                    is_large = False
+            alte = re.sub(RES_IMAGE, '\\1', text)
+            path = re.sub(RES_IMAGE, '\\2', text)
+            cm_w = 0
+            cm_h = 0
+            if re.match(res, alte):
+                st_w = re.sub(res, '\\2', alte)
+                if st_w != '':
+                    cm_w = float(st_w)
+                    if cm_w < 0:
+                        cm_w = text_width * (-1 * cm_w)
+                st_h = re.sub(res, '\\3', alte)
+                if st_h != '':
+                    cm_h = float(st_h)
+                    if cm_h < 0:
+                        cm_h = text_height * (-1 * cm_h)
+                alte = re.sub(res, '\\1', alte)
+            try:
+                if cm_w > 0 and cm_h > 0:
+                    ms_doc.add_picture(path, width=Cm(cm_w), height=Cm(cm_h))
+                elif cm_w > 0:
+                    ms_doc.add_picture(path, width=Cm(cm_w))
+                elif cm_h > 0:
+                    ms_doc.add_picture(path, height=Cm(cm_h))
+                else:
+                    ms_doc.add_picture(path)
+                ms_doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
+            except BaseException:
+                e = ms_doc.paragraphs[-1]._element
+                e.getparent().remove(e)
+                ms_par = self._get_ms_par(ms_doc)
+                ms_par.add_run(text)
+                ms_par.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                msg = '警告: ' \
+                    + '画像「' + path + '」が読み込めません'
+                # msg = 'warning: can\'t open "' + path + '"'
+                r = '^.*! *\\[.*\\] *\\(' + path + '\\).*$'
+                for ml in self.md_lines:
+                    if re.match(r, ml.text):
+                        if msg not in ml.warning_messages:
+                            ml.append_warning_message(msg)
+                            break
+                else:
+                    self.md_lines[0].append_warning_message(msg)
 
 
 class ParagraphAlignment(Paragraph):
