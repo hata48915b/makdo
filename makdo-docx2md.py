@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.22-04:02:55-JST>
+# Time-stamp:   <2023.02.22-04:40:16-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -860,6 +860,14 @@ class Document:
             ln = re.sub('\n', '', ln)
             ln = re.sub('\r', '', ln)
             tmp += ln
+        # LIBREOFFICE
+        res = '<wp:align>[a-z]+</wp:align>'
+        if re.match('^.*' + res, tmp):
+            tmp = re.sub(res, '', tmp)
+        # LIBREOFFICE
+        res = '<wp:posOffset>[0-9]+</wp:posOffset>'
+        if re.match('^.*' + res, tmp):
+            tmp = re.sub(res, '', tmp)
         tmp = re.sub('<', '\n<', tmp)
         tmp = re.sub('>', '>\n', tmp)
         tmp = re.sub('\n+', '\n', tmp)
@@ -2017,11 +2025,16 @@ class RawParagraph:
                 # IMAGE PYTHON-DOCX ID
                 img_id = re.sub(RES_XML_IMG_PY_ID, '\\1', xl)
                 img_rel_name = img_rels[img_id]
-                images[img_rel_name] = images['']
+                img_ext = re.sub('^.*\\.', '', img_rel_name)
+                img = images['']
+                if not re.match(img_ext + '$', img):
+                    # LIBREOFFICE
+                    img += '.' + img_ext
+                images[img_rel_name] = img
             if re.match(RES_XML_IMG_PY_NAME, xl):
                 # IMAGE PYTHON-DOCX NAME
-                img = re.sub(RES_XML_IMG_PY_NAME, '\\2', xl)
-                images[''] = img
+                img_name = re.sub(RES_XML_IMG_PY_NAME, '\\2', xl)
+                images[''] = img_name
             if re.match(RES_XML_IMG_SIZE, xl):
                 # IMAGE SIZE
                 sz_w = re.sub(RES_XML_IMG_SIZE, '\\1', xl)
