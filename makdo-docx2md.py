@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.22-04:40:16-JST>
+# Time-stamp:   <2023.02.22-04:49:20-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2026,10 +2026,13 @@ class RawParagraph:
                 img_id = re.sub(RES_XML_IMG_PY_ID, '\\1', xl)
                 img_rel_name = img_rels[img_id]
                 img_ext = re.sub('^.*\\.', '', img_rel_name)
-                img = images['']
-                if not re.match(img_ext + '$', img):
+                img_name = images['']
+                if re.match(img_ext + '$', img):
+                    # PYTHON
+                    img = img_name
+                else:
                     # LIBREOFFICE
-                    img += '.' + img_ext
+                    img = img_name + '.' + img_ext
                 images[img_rel_name] = img
             if re.match(RES_XML_IMG_PY_NAME, xl):
                 # IMAGE PYTHON-DOCX NAME
