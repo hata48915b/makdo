@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.22-04:49:20-JST>
+# Time-stamp:   <2023.02.22-04:51:52-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -205,8 +205,10 @@ RES_IMAGE_WITH_SIZE \
     + ' *' \
     + '\\(([^\\(\\)]+)\\)'
 
+# MS OFFICE
 RES_XML_IMG_MS \
     = '^<v:imagedata r:id=[\'"](.+)[\'"] o:title=[\'"](.+)[\'"]/>$'
+# PYTHON-DOCX AND LIBREOFFICE
 RES_XML_IMG_PY_ID \
     = '^<a:blip r:embed=[\'"](.+)[\'"]/?>$'
 RES_XML_IMG_PY_NAME \
