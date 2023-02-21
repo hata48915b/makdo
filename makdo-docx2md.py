@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.21-16:00:09-JST>
+# Time-stamp:   <2023.02.22-04:02:55-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -204,6 +204,15 @@ RES_IMAGE_WITH_SIZE \
     + '\\[([^\\[\\]]+):(' + RES_NUMBER + ')x(' + RES_NUMBER + ')\\]' \
     + ' *' \
     + '\\(([^\\(\\)]+)\\)'
+
+RES_XML_IMG_MS \
+    = '^<v:imagedata r:id=[\'"](.+)[\'"] o:title=[\'"](.+)[\'"]/>$'
+RES_XML_IMG_PY_ID \
+    = '^<a:blip r:embed=[\'"](.+)[\'"]/?>$'
+RES_XML_IMG_PY_NAME \
+    = '^<pic:cNvPr id=[\'"](.+)[\'"] name=[\'"]([^\'"]+)[\'"](?: .*)?/?>$'
+RES_XML_IMG_SIZE \
+    = '<wp:extent cx=[\'"]([0-9]+)[\'"] cy=[\'"]([0-9]+)[\'"]/>'
 
 FONT_DECORATORS = [
     '\\*\\*\\*',           # italic and bold
@@ -1822,28 +1831,20 @@ class RawParagraph:
         has_deleted = False   # TRACK CHANGES
         has_inserted = False  # TRACK CHANGES
         is_in_text = False
-        res_img_ms \
-            = '^<v:imagedata r:id=[\'"](.+)[\'"] o:title=[\'"](.+)[\'"]/>$'
-        res_img_py_id \
-            = '^<a:blip r:embed=[\'"](.+)[\'"]/>$'
-        res_img_py_name \
-            = '^<pic:cNvPr id=[\'"](.+)[\'"] name=[\'"](.+)[\'"]/>$'
-        res_img_size \
-            = '<wp:extent cx=[\'"]([0-9]+)[\'"] cy=[\'"]([0-9]+)[\'"]/>'
         for rxl in raw_xml_lines:
-            if re.match(res_img_ms, rxl):
+            if re.match(RES_XML_IMG_MS, rxl):
                 # IMAGE MS WORD
                 xml_lines.append(rxl)
                 continue
-            if re.match(res_img_py_id, rxl):
+            if re.match(RES_XML_IMG_PY_ID, rxl):
                 # IMAGE PYTHON-DOCX ID
                 xml_lines.append(rxl)
                 continue
-            if re.match(res_img_py_name, rxl):
+            if re.match(RES_XML_IMG_PY_NAME, rxl):
                 # IMAGE PYTHON-DOCX NAME
                 xml_lines.append(rxl)
                 continue
-            if re.match(res_img_size, rxl):
+            if re.match(RES_XML_IMG_SIZE, rxl):
                 # IMAGE SIZE
                 xml_lines.append(rxl)
                 continue
@@ -2001,38 +2002,30 @@ class RawParagraph:
         l_size_cm = size_cm * 1.2
         raw_text = ''
         images = {}
-        res_img_ms \
-            = '^<v:imagedata r:id=[\'"](.+)[\'"] o:title=[\'"](.+)[\'"]/>$'
-        res_img_py_id \
-            = '^<a:blip r:embed=[\'"](.+)[\'"]/>$'
-        res_img_py_name \
-            = '^<pic:cNvPr id=[\'"](.+)[\'"] name=[\'"](.+)[\'"]/>$'
-        res_img_size \
-            = '<wp:extent cx=[\'"]([0-9]+)[\'"] cy=[\'"]([0-9]+)[\'"]/>'
         img = ''
         img_size = ''
         for xl in xml_lines:
-            if re.match(res_img_ms, xl):
+            if re.match(RES_XML_IMG_MS, xl):
                 # IMAGE MS WORD
-                img_id = re.sub(res_img_ms, '\\1', xl)
-                img_name = re.sub(res_img_ms, '\\2', xl)
+                img_id = re.sub(RES_XML_IMG_MS, '\\1', xl)
+                img_name = re.sub(RES_XML_IMG_MS, '\\2', xl)
                 img_rel_name = img_rels[img_id]
                 img_ext = re.sub('^.*\\.', '', img_rel_name)
                 img = img_name + '.' + img_ext
                 images[img_rel_name] = img
-            if re.match(res_img_py_id, xl):
+            if re.match(RES_XML_IMG_PY_ID, xl):
                 # IMAGE PYTHON-DOCX ID
-                img_id = re.sub(res_img_py_id, '\\1', xl)
+                img_id = re.sub(RES_XML_IMG_PY_ID, '\\1', xl)
                 img_rel_name = img_rels[img_id]
                 images[img_rel_name] = images['']
-            if re.match(res_img_py_name, xl):
+            if re.match(RES_XML_IMG_PY_NAME, xl):
                 # IMAGE PYTHON-DOCX NAME
-                img = re.sub(res_img_py_name, '\\2', xl)
+                img = re.sub(RES_XML_IMG_PY_NAME, '\\2', xl)
                 images[''] = img
-            if re.match(res_img_size, xl):
+            if re.match(RES_XML_IMG_SIZE, xl):
                 # IMAGE SIZE
-                sz_w = re.sub(res_img_size, '\\1', xl)
-                sz_h = re.sub(res_img_size, '\\2', xl)
+                sz_w = re.sub(RES_XML_IMG_SIZE, '\\1', xl)
+                sz_h = re.sub(RES_XML_IMG_SIZE, '\\2', xl)
                 cm_w = float(sz_w) * 2.54 / 72 / 12700
                 cm_h = float(sz_h) * 2.54 / 72 / 12700
                 if cm_w >= 1:
@@ -2669,11 +2662,11 @@ class Paragraph:
         res = '^((?:.*\n)*.*)(' + RES_IMAGE_WITH_SIZE + ')((?:.*\n)*.*)$'
         text_to_write = ''
         while re.match(res, md_lines):
-           text_to_write += re.sub(res, '\\1', md_lines) 
-           img_text = re.sub(res, '\\2', md_lines) 
-           text_to_write \
-               += ParagraphImage.replace_with_fixed_size(img_text, region_cm)
-           md_lines = re.sub(res, '\\7', md_lines)
+            text_to_write += re.sub(res, '\\1', md_lines)
+            img_text = re.sub(res, '\\2', md_lines)
+            text_to_write \
+                += ParagraphImage.replace_with_fixed_size(img_text, region_cm)
+            md_lines = re.sub(res, '\\7', md_lines)
         text_to_write += md_lines
         # self.text_to_write = text_to_write
         return text_to_write
@@ -3565,15 +3558,15 @@ class ParagraphImage(Paragraph):
                 cm_h = -0.5
             if cm_w < 0 and cm_h < 0:
                 img_text = '!' \
-                    + '['+ alte + ':' + str(cm_w) + 'x' + str(cm_h) + ']' \
+                    + '[' + alte + ':' + str(cm_w) + 'x' + str(cm_h) + ']' \
                     + '(' + path + ')'
             elif cm_w < 0:
                 img_text = '!' \
-                    + '['+ alte + ':' + str(cm_w) + 'x' + ']' \
+                    + '[' + alte + ':' + str(cm_w) + 'x' + ']' \
                     + '(' + path + ')'
             elif cm_h < 0:
                 img_text = '!' \
-                    + '['+ alte + ':' + 'x' + str(cm_h) + ']' \
+                    + '[' + alte + ':' + 'x' + str(cm_h) + ']' \
                     + '(' + path + ')'
         return img_text
 
