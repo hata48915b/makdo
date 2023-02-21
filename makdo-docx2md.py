@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.20-20:28:16-JST>
+# Time-stamp:   <2023.02.21-16:00:09-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1029,9 +1029,9 @@ class Document:
                 alg = 'R'
             elif re.match('^<.*>$', rxl):
                 continue
-            elif re.match('^PAGE( .*)?', rxl):
+            elif re.match('^PAGE( .*)?', rxl, re.I):
                 pn += 'n'
-            elif re.match('^NUMPAGES( .*)?', rxl):
+            elif re.match('^NUMPAGES( .*)?', rxl, re.I):
                 pn += 'N'
             else:
                 pn += rxl
@@ -1252,6 +1252,15 @@ class Document:
                     if p.length_docx['left indent'] == 0:
                         p.paragraph_class = 'alignment'
                         p.alignment = 'left'
+                        mt = ''
+                        for text in p.md_text.split('\n'):
+                            mt += ': ' + re.sub('<br>$', '', text) + '\n'
+                        mt = re.sub('\n+$', '', mt)
+                        p.md_text = mt
+                        p.md_lines = p._get_md_lines(p.md_text)
+                        p.text_to_write = p.get_text_to_write()
+                        p.text_to_write_with_reviser \
+                            = p.get_text_to_write_with_reviser()
         return self.paragraphs
 
     def _modpar_blank_paragraph_to_space_before(self):
@@ -2677,25 +2686,26 @@ class Paragraph:
         text_to_write = self.text_to_write
         pre_text_to_write = self.pre_text_to_write
         post_text_to_write = self.post_text_to_write
-        res = '^((?:.*\n)*.*) $'
         ttwwr = ''
         if pre_text_to_write != '':
-            ttwwr += pre_text_to_write
+            ttwwr += pre_text_to_write + '\n'
         for rev in numbering_revisers:
             ttwwr += rev + ' '
-        if re.match(res, text_to_write):
-            ttwwr = re.sub(res, '\\1\n', text_to_write)
+        if re.match(' $', text_to_write):
+            ttwwr = re.sub(' $', '\n', text_to_write)
         for rev in length_revisers:
             ttwwr += rev + ' '
-        if re.match(res, text_to_write):
-            ttwwr = re.sub(res, '\\1\n', text_to_write)
+        if re.match(' $', text_to_write):
+            ttwwr = re.sub(' $', '\n', text_to_write)
+        if ttwwr != '':
+            ttwwr += '\n'
+        ttwwr += text_to_write
         for rev in head_font_revisers:
             ttwwr += rev
-        ttwwr += text_to_write
         for rev in tail_font_revisers:
             ttwwr += rev
         if post_text_to_write != '':
-            ttwwr += post_text_to_write
+            ttwwr += '\n' + post_text_to_write
         text_to_write_with_reviser = ttwwr
         # self.text_to_write_with_reviser = text_to_write_with_reviser
         return text_to_write_with_reviser
