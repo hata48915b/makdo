@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.21-05:35:08-JST>
+# Time-stamp:   <2023.02.23-06:44:43-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1512,8 +1512,10 @@ class RawParagraph:
 
     @staticmethod
     def _get_section_depth_setters(full_text):
+        max_depth = len(ParagraphSection.states)
         section_depth_setters = []
-        if re.match('^#+$', full_text):
+        res = '^#{1,' + str(max_depth) + '}$'
+        if re.match(res, full_text):
             section_depth_setters = [full_text]
             full_text = ''
         # self.section_depth_setters = depth_setters
@@ -1611,8 +1613,7 @@ class Paragraph:
                       head_font_revisers=[], tail_font_revisers=[]):
         if re.match(cls.res_feature, full_text):
             return True
-        else:
-            return False
+        return False
 
     def __init__(self, raw_paragraph):
         # RECEIVED
@@ -1626,6 +1627,7 @@ class Paragraph:
         self.tail_font_revisers = raw_paragraph.tail_font_revisers
         self.full_text = raw_paragraph.full_text
         self.section_depth_setters = raw_paragraph.section_depth_setters
+        self.paragraph_class = raw_paragraph.paragraph_class
         # DECLARATION
         self.paragraph_number = -1
         self.head_section_depth = -1
@@ -2315,14 +2317,7 @@ class ParagraphEmpty(Paragraph):
     """A class to handle empty paragraph"""
 
     paragraph_class = 'empty'
-
-    @classmethod
-    def is_this_class(cls, full_text,
-                      head_font_revisers=[], tail_font_revisers=[]):
-        if full_text == '':
-            return True
-        else:
-            return False
+    res_feature = '^$'
 
 
 class ParagraphBlank(Paragraph):
@@ -2403,6 +2398,14 @@ class ParagraphSection(Paragraph):
               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # (ｱ)
               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # ａ
               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]  # (a)
+
+    @classmethod
+    def is_this_class(cls, full_text,
+                      head_font_revisers=[], tail_font_revisers=[]):
+        if re.match(cls.res_feature, full_text):
+            if not re.match('^#{15,}', full_text):
+                return True
+        return False
 
     @classmethod
     def _get_section_depths(cls, full_text):
