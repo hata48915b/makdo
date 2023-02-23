@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.24-05:50:39-JST>
+# Time-stamp:   <2023.02.24-07:24:19-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -236,32 +236,32 @@ MD_TEXT_WIDTH = 68
 FONT_COLOR = {
     'FF0000': 'red',
     # 'FF0000': 'R',
-    '7F0000': 'darkRed',
-    # '7F0000': 'DR',
+    '770000': 'darkRed',
+    # '770000': 'DR',
     'FFFF00': 'yellow',
     # 'FFFF00': 'Y',
-    '7F7F00': 'darkYellow',
-    # '7F7F00': 'DY',
+    '777700': 'darkYellow',
+    # '777700': 'DY',
     '00FF00': 'green',
     # '00FF00': 'G',
-    '007F00': 'darkGreen',
-    # '007F00': 'DG',
+    '007700': 'darkGreen',
+    # '007700': 'DG',
     '00FFFF': 'cyan',
     # '00FFFF': 'C',
-    '007F7F': 'darkCyan',
-    # '007F7F': 'DC',
+    '007777': 'darkCyan',
+    # '007777': 'DC',
     '0000FF': 'blue',
     # '0000FF': 'B',
-    '00007F': 'darkBlue',
-    # '00007F': 'DB',
+    '000077': 'darkBlue',
+    # '000077': 'DB',
     'FF00FF': 'magenta',
     # 'FF00FF': 'M',
-    '7F007F': 'darkMagenta',
-    # '7F007F': 'DM',
-    'BFBFBF': 'lightGray',
-    # 'BFBFBF': 'G1',
-    '7F7F7F': 'darkGray',
-    # '7F7F7F': 'G2',
+    '770077': 'darkMagenta',
+    # '770077': 'DM',
+    'BBBBBB': 'lightGray',
+    # 'BBBBBB': 'G1',
+    '777777': 'darkGray',
+    # '777777': 'G2',
     '000000': 'black',
     # '000000': 'BK',
     'FF5D5D': 'a000',
