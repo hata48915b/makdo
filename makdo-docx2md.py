@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.22-04:51:52-JST>
+# Time-stamp:   <2023.02.23-09:09:16-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -397,6 +397,7 @@ CONJUNCTIONS = [
     'さて',
     'さもないと',
     'さらに', '更に',
+    'さらにいえば',
     'しかし',
     'しかしながら',
     'しかも',
