@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.23-09:09:16-JST>
+# Time-stamp:   <2023.02.24-05:50:39-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2796,14 +2796,14 @@ class Paragraph:
                 if tmp != '':
                     phrases.append(tmp)
                     tmp = ''
-            # '<!--' or '<!+>' (TRACK CHANGES)
+            # '<!--' or '-->' or '<!+>' or '<+>' (TRACK CHANGES)
+            res = '(?:<!\\-\\-|\\-\\->|<!\\+>|<\\+>)'
             if re.match(NOT_ESCAPED + 'x$', tmp + 'x') and \
-               re.match('^(<!\\-\\-|<!\\+>).*$', tmp2):
+               re.match('^' + res + '.*$', tmp2):
                 if tmp != '':
                     phrases.append(tmp)
                     tmp = ''
-            # '-->' or '<+>' (TRACK CHANGES)
-            if re.match('^.*(\\-\\->|<\\+>)$', tmp):
+            if re.match('^.*' + res + '$', tmp):
                 if tmp != '':
                     phrases.append(tmp)
                     tmp = ''
