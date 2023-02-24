@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.24-07:24:19-JST>
+# Time-stamp:   <2023.02.24-18:36:41-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2698,24 +2698,34 @@ class Paragraph:
         text_to_write = self.text_to_write
         pre_text_to_write = self.pre_text_to_write
         post_text_to_write = self.post_text_to_write
+        has_left_colon = False
+        if re.match('^: .*$', text_to_write):
+            text_to_write = re.sub('^: ', '', text_to_write)
+            has_left_colon = True
+        has_right_colon = False
+        if re.match('^.* :$', text_to_write):
+            text_to_write = re.sub(' :$', '', text_to_write)
+            has_right_colon = True
         ttwwr = ''
         if pre_text_to_write != '':
             ttwwr += pre_text_to_write + '\n'
         for rev in numbering_revisers:
             ttwwr += rev + ' '
-        if re.match(' $', text_to_write):
-            ttwwr = re.sub(' $', '\n', text_to_write)
+        if re.match('.* $', ttwwr):
+            ttwwr = re.sub(' $', '\n', ttwwr)
         for rev in length_revisers:
             ttwwr += rev + ' '
-        if re.match(' $', text_to_write):
-            ttwwr = re.sub(' $', '\n', text_to_write)
-        if ttwwr != '':
-            ttwwr += '\n'
-        ttwwr += text_to_write
+        if re.match('.* $', ttwwr):
+            ttwwr = re.sub(' $', '\n', ttwwr)
+        if has_left_colon:
+            ttwwr += ': '
         for rev in head_font_revisers:
             ttwwr += rev
+        ttwwr += text_to_write
         for rev in tail_font_revisers:
             ttwwr += rev
+        if has_right_colon:
+            ttwwr += ' :'
         if post_text_to_write != '':
             ttwwr += '\n' + post_text_to_write
         text_to_write_with_reviser = ttwwr
