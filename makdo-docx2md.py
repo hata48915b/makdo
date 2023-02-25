@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.25-08:58:03-JST>
+# Time-stamp:   <2023.02.25-09:26:43-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2740,6 +2740,7 @@ class Paragraph:
         text_to_write = self.text_to_write
         pre_text_to_write = self.pre_text_to_write
         post_text_to_write = self.post_text_to_write
+        # FOR PARAGRAPH ALIGNMENT
         has_left_colon = False
         if re.match('^: .*$', text_to_write):
             text_to_write = re.sub('^: ', '', text_to_write)
@@ -2759,6 +2760,7 @@ class Paragraph:
             ttwwr += rev + ' '
         if re.match('.* $', ttwwr):
             ttwwr = re.sub(' $', '\n', ttwwr)
+        # FOR PARAGRAPH ALIGNMENT
         if has_left_colon:
             ttwwr += ': '
         for rev in head_font_revisers:
@@ -2766,6 +2768,7 @@ class Paragraph:
         ttwwr += text_to_write
         for rev in tail_font_revisers:
             ttwwr += rev
+        # FOR PARAGRAPH ALIGNMENT
         if has_right_colon:
             ttwwr += ' :'
         if post_text_to_write != '':

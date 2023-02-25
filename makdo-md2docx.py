@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.25-09:22:59-JST>
+# Time-stamp:   <2023.02.25-09:27:17-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1503,7 +1503,7 @@ class RawParagraph:
         full_text = ''
         for ml in md_lines:
             full_text += ml.text + ' '
-        # FOR LIST
+        # FOR PARAGRAPH LIST
         list_head_spaces = ''
         res = '^( +)' + ParagraphList.res_symbol + '\\s+(.*)$'
         if re.match(res, full_text):
@@ -1512,7 +1512,7 @@ class RawParagraph:
         full_text = re.sub(' +', ' ', full_text)
         full_text = re.sub('^ ', '', full_text)
         full_text = re.sub(' $', '', full_text)
-        # FOR LIST
+        # FOR PARAGRAPH LIST
         full_text = list_head_spaces + full_text
         # self.full_text = full_text
         return full_text
