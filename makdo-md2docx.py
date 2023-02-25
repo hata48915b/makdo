@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.23-06:44:43-JST>
+# Time-stamp:   <2023.02.25-09:22:59-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1503,10 +1503,17 @@ class RawParagraph:
         full_text = ''
         for ml in md_lines:
             full_text += ml.text + ' '
+        # FOR LIST
+        list_head_spaces = ''
+        res = '^( +)' + ParagraphList.res_symbol + '\\s+(.*)$'
+        if re.match(res, full_text):
+            list_head_spaces = re.sub(res, '\\1', full_text)
         full_text = re.sub('\t', ' ', full_text)
         full_text = re.sub(' +', ' ', full_text)
         full_text = re.sub('^ ', '', full_text)
         full_text = re.sub(' $', '', full_text)
+        # FOR LIST
+        full_text = list_head_spaces + full_text
         # self.full_text = full_text
         return full_text
 
@@ -2482,7 +2489,7 @@ class ParagraphList(Paragraph):
     paragraph_class = 'list'
     paragraph_class_ja = 'リスト'
     res_symbol = '([-\\+\\*]|[0-9]+\\.)()'
-    res_feature = '^' + res_symbol + '\\s*(.*)$'
+    res_feature = '^\\s*' + res_symbol + '\\s+(.*)$'
     res_reviser = '[0-9]+\\.=([0-9]+)'
     states = [[0],  # ①
               [0],  # ㋐
@@ -2498,10 +2505,11 @@ class ParagraphList(Paragraph):
         return head_section_depth, tail_section_depth
 
     @staticmethod
-    def _get_proper_depth(line):
-        line = re.sub('\t', '  ', line)
-        line = re.sub('  ', ' ', line)
-        spaces = re.sub('^( *).*', '\\1', line)
+    def _get_proper_depth(full_text):
+        full_text = re.sub('\u3000', '  ', full_text)
+        full_text = re.sub('\t', '  ', full_text)
+        full_text = re.sub('  ', ' ', full_text)
+        spaces = re.sub('^( *).*$', '\\1', full_text)
         proper_depth = len(spaces) + 1
         # self.proper_depth = proper_depth
         return proper_depth
