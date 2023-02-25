@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.25-09:27:17-JST>
+# Time-stamp:   <2023.02.25-09:50:59-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1502,7 +1502,8 @@ class RawParagraph:
     def _get_full_text(md_lines):
         full_text = ''
         for ml in md_lines:
-            full_text += ml.text + ' '
+            if ml.text != '':
+                full_text += ml.text + ' '
         # FOR PARAGRAPH LIST
         list_head_spaces = ''
         res = '^( +)' + ParagraphList.res_symbol + '\\s+(.*)$'
