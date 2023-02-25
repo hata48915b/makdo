@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.24-18:36:41-JST>
+# Time-stamp:   <2023.02.25-08:58:03-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1257,12 +1257,15 @@ class Document:
         return xml_blocks
 
     def modify_paragraphs(self):
-        # ORDER IS IMPORTANT
+        # CHANGE PARAGRAPH CLASS
         self.paragraphs = self._modpar_left_alignment()
         self.paragraphs = self._modpar_blank_paragraph_to_space_before()
+        # CHANGE VIRTUAL LENGTH
         self.paragraphs = self._modpar_section_space_before_and_after()
-        self.paragraphs = self._modpar_one_line_paragraph()
         self.paragraphs = self._modpar_spaced_and_centered()
+        self.paragraphs = self._modpar_length_reviser_to_depth_setter()
+        # CHANGE HORIZONTAL LENGTH
+        self.paragraphs = self._modpar_one_line_paragraph()
         return self.paragraphs
 
     def _modpar_left_alignment(self):
@@ -1326,82 +1329,6 @@ class Document:
                 # p_next.text_to_write = p_next.get_text_to_write()
                 p_next.text_to_write_with_reviser \
                     = p_next.get_text_to_write_with_reviser()
-        return self.paragraphs
-
-    def _modpar_spaced_and_centered(self):
-        # self.paragraphs = self._modpar_blank_paragraph_to_space_before()
-        m = len(self.paragraphs) - 1
-        for i, p in enumerate(self.paragraphs):
-            if p.paragraph_class == 'alignment':
-                if p.alignment == 'center':
-                    if p.length_revi['space before'] == 1.0:
-                        Paragraph.previous_head_section_depth = 1
-                        Paragraph.previous_tail_section_depth = 1
-                        p.pre_text_to_write = 'v=+1.0\n# \n\n'
-                        p.length_supp['space before'] -= 1.0
-            p.head_section_depth, p.tail_section_depth \
-                = p._get_section_depths(p.raw_text)
-            p.length_dept = p._get_length_dept()
-            p.length_revi = p._get_length_revi()
-            p.length_revisers = p._get_length_revisers(p.length_revi)
-            # p.md_lines = p._get_md_lines(p.md_text)
-            # p.text_to_write = p.get_text_to_write()
-            p.text_to_write_with_reviser \
-                = p.get_text_to_write_with_reviser()
-        return self.paragraphs
-
-    def _modpar_one_line_paragraph(self):
-        paper_size = Document.paper_size
-        left_margin = Document.left_margin
-        right_margin = Document.right_margin
-        font_size = Document.font_size
-        for p in self.paragraphs:
-            if p.paragraph_class == 'table' or p.paragraph_class == 'image':
-                indent = p.length_revi['first indent'] \
-                    + p.length_revi['left indent']
-                if indent == 0:
-                    p.length_supp['first indent'] \
-                        -= p.length_revi['first indent']
-                    p.length_supp['left indent'] \
-                        -= p.length_revi['left indent']
-                    # RENEW
-                    p.length_revi = p._get_length_revi()
-                    p.length_revisers = p._get_length_revisers(p.length_revi)
-                    p.md_lines = p._get_md_lines(p.md_text)
-                    # p.text_to_write = p.get_text_to_write()
-                    p.text_to_write_with_reviser \
-                        = p.get_text_to_write_with_reviser()
-                continue
-            rt = p.raw_text
-            for fd in FONT_DECORATORS:
-                res = NOT_ESCAPED + fd
-                while re.match(res, rt):
-                    rt = re.sub(res, '\\1', rt)
-            while re.match(NOT_ESCAPED + '\\\\', rt):
-                rt = re.sub(NOT_ESCAPED + '\\\\', '\\1', rt)
-            unit = 12 * 2.54 / 72 / 2
-            line_width_cm = float(get_real_width(rt)) * unit
-            indent = p.length_docx['first indent'] \
-                + p.length_docx['left indent'] \
-                + p.length_docx['right indent']
-            region_width_cm = PAPER_WIDTH[paper_size] \
-                - left_margin - right_margin \
-                - (indent * unit)
-            if line_width_cm > region_width_cm:
-                continue
-            indent \
-                = p.length_revi['first indent'] + p.length_revi['left indent']
-            if indent != 0:
-                continue
-            p.length_supp['first indent'] -= p.length_revi['first indent']
-            p.length_supp['left indent'] -= p.length_revi['left indent']
-            # RENEW
-            p.length_revi = p._get_length_revi()
-            p.length_revisers = p._get_length_revisers(p.length_revi)
-            # p.md_lines = p._get_md_lines(p.md_text)
-            # p.text_to_write = p.get_text_to_write()
-            p.text_to_write_with_reviser \
-                = p.get_text_to_write_with_reviser()
         return self.paragraphs
 
     def _modpar_section_space_before_and_after(self):
@@ -1472,6 +1399,121 @@ class Document:
                 # p_next.text_to_write = p_next.get_text_to_write()
                 p_next.text_to_write_with_reviser \
                     = p_next.get_text_to_write_with_reviser()
+        return self.paragraphs
+
+    def _modpar_spaced_and_centered(self):
+        # self.paragraphs = self._modpar_blank_paragraph_to_space_before()
+        m = len(self.paragraphs) - 1
+        for i, p in enumerate(self.paragraphs):
+            if p.paragraph_class == 'alignment':
+                if p.alignment == 'center':
+                    if p.length_revi['space before'] == 1.0:
+                        Paragraph.previous_head_section_depth = 1
+                        Paragraph.previous_tail_section_depth = 1
+                        p.pre_text_to_write = 'v=+1.0\n# \n'
+                        p.length_supp['space before'] -= 1.0
+            p.head_section_depth, p.tail_section_depth \
+                = p._get_section_depths(p.raw_text)
+            p.length_dept = p._get_length_dept()
+            p.length_revi = p._get_length_revi()
+            p.length_revisers = p._get_length_revisers(p.length_revi)
+            # p.md_lines = p._get_md_lines(p.md_text)
+            # p.text_to_write = p.get_text_to_write()
+            p.text_to_write_with_reviser \
+                = p.get_text_to_write_with_reviser()
+        return self.paragraphs
+
+    def _modpar_length_reviser_to_depth_setter(self):
+        # self.paragraphs = self._modpar_spaced_and_centered()
+        res_gg = '^<<=(' + RES_NUMBER + ')$'
+        res_g = '^<=(' + RES_NUMBER + ')$'
+        res_l = '^>=(' + RES_NUMBER + ')$'
+        for i, p in enumerate(self.paragraphs):
+            if i == 0:
+                continue
+            p_prev = self.paragraphs[i - 1]
+            if p.paragraph_class != 'sentence':
+                continue
+            if p.length_revi['first indent'] != 0.0:
+                continue
+            if p.length_revi['right indent'] != 0.0:
+                continue
+            if p.length_revi['left indent'] >= 0.0:
+                continue
+            if not p.length_revi['left indent'].is_integer():
+                continue
+            left_indent = int(p.length_revi['left indent'])
+            if p.head_section_depth + left_indent < 1:
+                continue
+            p.head_section_depth += left_indent
+            p.tail_section_depth += left_indent
+            if p_prev.tail_section_depth != p.tail_section_depth:
+                p.pre_text_to_write = '#' * p.head_section_depth + ' \n'
+            # RENEW
+            p.length_dept = p._get_length_dept()
+            # p.length_conf = p._get_length_conf()
+            # p.length_supp = p._get_length_supp()
+            p.length_revi = p._get_length_revi()
+            p.length_revisers = p._get_length_revisers(p.length_revi)
+            # ParagraphList.reset_states(p.paragraph_class)
+            # p.md_lines = p._get_md_lines(p.md_text)
+            # p.text_to_write = p.get_text_to_write()
+            p.text_to_write_with_reviser \
+                = p.get_text_to_write_with_reviser()
+        return self.paragraphs
+
+    def _modpar_one_line_paragraph(self):
+        paper_size = Document.paper_size
+        left_margin = Document.left_margin
+        right_margin = Document.right_margin
+        font_size = Document.font_size
+        for p in self.paragraphs:
+            if p.paragraph_class == 'table' or p.paragraph_class == 'image':
+                indent = p.length_revi['first indent'] \
+                    + p.length_revi['left indent']
+                if indent == 0:
+                    p.length_supp['first indent'] \
+                        -= p.length_revi['first indent']
+                    p.length_supp['left indent'] \
+                        -= p.length_revi['left indent']
+                    # RENEW
+                    p.length_revi = p._get_length_revi()
+                    p.length_revisers = p._get_length_revisers(p.length_revi)
+                    p.md_lines = p._get_md_lines(p.md_text)
+                    # p.text_to_write = p.get_text_to_write()
+                    p.text_to_write_with_reviser \
+                        = p.get_text_to_write_with_reviser()
+                continue
+            rt = p.raw_text
+            for fd in FONT_DECORATORS:
+                res = NOT_ESCAPED + fd
+                while re.match(res, rt):
+                    rt = re.sub(res, '\\1', rt)
+            while re.match(NOT_ESCAPED + '\\\\', rt):
+                rt = re.sub(NOT_ESCAPED + '\\\\', '\\1', rt)
+            unit = 12 * 2.54 / 72 / 2
+            line_width_cm = float(get_real_width(rt)) * unit
+            indent = p.length_docx['first indent'] \
+                + p.length_docx['left indent'] \
+                + p.length_docx['right indent']
+            region_width_cm = PAPER_WIDTH[paper_size] \
+                - left_margin - right_margin \
+                - (indent * unit)
+            if line_width_cm > region_width_cm:
+                continue
+            indent \
+                = p.length_revi['first indent'] + p.length_revi['left indent']
+            if indent != 0:
+                continue
+            p.length_supp['first indent'] -= p.length_revi['first indent']
+            p.length_supp['left indent'] -= p.length_revi['left indent']
+            # RENEW
+            p.length_revi = p._get_length_revi()
+            p.length_revisers = p._get_length_revisers(p.length_revi)
+            # p.md_lines = p._get_md_lines(p.md_text)
+            # p.text_to_write = p.get_text_to_write()
+            p.text_to_write_with_reviser \
+                = p.get_text_to_write_with_reviser()
         return self.paragraphs
 
     def open_md_file(self, md_file, docx_file):
