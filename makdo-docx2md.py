@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.28-07:32:53-JST>
+# Time-stamp:   <2023.02.28-08:04:56-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -3712,9 +3712,9 @@ class ParagraphPreformatted(Paragraph):
         md_text = raw_text
         md_text = re.sub('^`', '', md_text)
         md_text = re.sub('`$', '', md_text)
-        res = '^(\\s+)\\[(.*)\\]'
+        res = '^\\[(.*)\\]'
         if re.match(res, md_text):
-            md_text = re.sub(res, '\\1\\2', md_text)
+            md_text = re.sub(res, '\\1', md_text)
         else:
             md_text = '\n' + md_text
         md_text = '``` ' + md_text + '\n```'

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.28-07:28:47-JST>
+# Time-stamp:   <2023.02.28-07:56:50-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -809,11 +809,11 @@ class Document:
                     if ml.raw_text != '':
                         block.append(ml)
                     continue
-                if re.match('^```', block[0].raw_text):
+                if re.match('^```.*$', block[0].raw_text):
                     if len(block) == 1:
                         block.append(ml)
                         continue
-                    elif not re.match('^```', block[-1].raw_text):
+                    elif not re.match('^.*```$', block[-1].raw_text):
                         block.append(ml)
                         continue
                 rp = RawParagraph(block)
@@ -822,9 +822,8 @@ class Document:
             if ml.raw_text != '':
                 block.append(ml)
         if len(block) > 0:
-            rp = RawParagraph(i + 1, block)
+            rp = RawParagraph(block)
             raw_paragraphs.append(rp)
-            i += 1
             block = []
         # self.raw_paragraphs = raw_paragraphs
         return raw_paragraphs
@@ -2801,8 +2800,7 @@ class ParagraphPreformatted(Paragraph):
         if re.match('^```.*$', ''.join(head_font_revisers)) and \
            re.match('^.*```$', ''.join(tail_font_revisers)):
             return True
-        else:
-            return False
+        return False
 
     @classmethod
     def _get_section_depths(cls, full_text):
