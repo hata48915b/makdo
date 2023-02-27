@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.28-07:56:50-JST>
+# Time-stamp:   <2023.02.28-08:19:05-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2782,8 +2782,7 @@ class ParagraphAlignment(Paragraph):
         md_lines = self.md_lines
         text_to_write = ''
         for ml in md_lines:
-            if ml.text != '':
-                text_to_write += ml.text + '\n'
+            text_to_write += ml.text + '\n'
         text_to_write = re.sub('\n$', '', text_to_write)
         return text_to_write
 
