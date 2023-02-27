@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.25-09:50:59-JST>
+# Time-stamp:   <2023.02.28-07:16:25-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1643,7 +1643,7 @@ class Paragraph:
         self.proper_depth = -1
         self.length_revi = {}
         self.length_conf = {}
-        self.length_dept = {}
+        self.length_clas = {}
         self.length_docx = {}
         self.alignment = ''
         self.text_to_write = ''
@@ -1658,7 +1658,7 @@ class Paragraph:
         self.alignment = self._get_alignment()
         self.length_revi = self._get_length_revi()
         self.length_conf = self._get_length_conf()
-        self.length_dept = self._get_length_dept()
+        self.length_clas = self._get_length_clas()
         self.length_docx = self._get_length_docx()
         # EXECUTION
         ParagraphChapter._transact_revisers(self.chapter_revisers,
@@ -1766,56 +1766,58 @@ class Paragraph:
         # self.length_conf = length_conf
         return length_conf
 
-    def _get_length_dept(self):
+    def _get_length_clas(self):
         paragraph_class = self.paragraph_class
         head_section_depth = self.head_section_depth
         tail_section_depth = self.tail_section_depth
         proper_depth = self.proper_depth
-        length_dept \
+        length_clas \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
         if paragraph_class == 'chapter':
-            length_dept['first indent'] = -1.0
-            length_dept['left indent'] = proper_depth + 0.0
+            length_clas['first indent'] = -1.0
+            length_clas['left indent'] = proper_depth + 0.0
         elif paragraph_class == 'section':
             if head_section_depth > 1:
-                length_dept['first indent'] \
+                length_clas['first indent'] \
                     = head_section_depth - tail_section_depth - 1.0
             if tail_section_depth > 1:
-                length_dept['left indent'] = tail_section_depth - 1.0
+                length_clas['left indent'] = tail_section_depth - 1.0
         elif paragraph_class == 'list':
-            length_dept['first indent'] = -1.0
-            length_dept['left indent'] = proper_depth + 0.0
+            length_clas['first indent'] = -1.0
+            length_clas['left indent'] = proper_depth + 0.0
             if tail_section_depth > 0:
-                length_dept['left indent'] += tail_section_depth - 1.0
+                length_clas['left indent'] += tail_section_depth - 1.0
+        elif paragraph_class == 'table':
+            length_clas['space before'] += 0.2
         elif paragraph_class == 'preformatted':
             if tail_section_depth > 0:
-                length_dept['first indent'] = 0.0
-                length_dept['left indent'] = tail_section_depth - 0.0
+                length_clas['first indent'] = 0.0
+                length_clas['left indent'] = tail_section_depth - 0.0
         elif paragraph_class == 'sentence':
             if tail_section_depth > 0:
-                length_dept['first indent'] = 1.0
-                length_dept['left indent'] = tail_section_depth - 1.0
+                length_clas['first indent'] = 1.0
+                length_clas['left indent'] = tail_section_depth - 1.0
         if paragraph_class == 'section' or \
            paragraph_class == 'list' or \
            paragraph_class == 'preformatted' or \
            paragraph_class == 'sentence':
             if ParagraphSection.states[1][0] == 0 and tail_section_depth > 2:
-                length_dept['left indent'] -= 1.0
-        # self.length_dept = length_dept
-        return length_dept
+                length_clas['left indent'] -= 1.0
+        # self.length_clas = length_clas
+        return length_clas
 
     def _get_length_docx(self):
         paragraph_number = self.paragraph_number
         length_revi = self.length_revi
         length_conf = self.length_conf
-        length_dept = self.length_dept
+        length_clas = self.length_clas
         length_docx \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
         for ln in length_docx:
             length_docx[ln] \
-                = length_revi[ln] + length_conf[ln] + length_dept[ln]
+                = length_revi[ln] + length_conf[ln] + length_clas[ln]
         # LINE SPACING
         ls75 = length_docx['line spacing'] * .75
         ls25 = length_docx['line spacing'] * .25

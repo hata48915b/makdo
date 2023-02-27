@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.25-09:26:43-JST>
+# Time-stamp:   <2023.02.28-07:17:53-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1414,7 +1414,7 @@ class Document:
                         p.length_supp['space before'] -= 1.0
             p.head_section_depth, p.tail_section_depth \
                 = p._get_section_depths(p.raw_text)
-            p.length_dept = p._get_length_dept()
+            p.length_clas = p._get_length_clas()
             p.length_revi = p._get_length_revi()
             p.length_revisers = p._get_length_revisers(p.length_revi)
             # p.md_lines = p._get_md_lines(p.md_text)
@@ -1450,7 +1450,7 @@ class Document:
             if p_prev.tail_section_depth != p.tail_section_depth:
                 p.pre_text_to_write = '#' * p.head_section_depth + ' \n'
             # RENEW
-            p.length_dept = p._get_length_dept()
+            p.length_clas = p._get_length_clas()
             # p.length_conf = p._get_length_conf()
             # p.length_supp = p._get_length_supp()
             p.length_revi = p._get_length_revi()
@@ -2386,7 +2386,7 @@ class Paragraph:
         self.tail_font_revisers = []
         self.md_text = ''
         self.length_docx = {}
-        self.length_dept = {}
+        self.length_clas = {}
         self.length_conf = {}
         self.length_supp = {}
         self.length_revi = {}
@@ -2406,7 +2406,7 @@ class Paragraph:
             self.md_text \
             = self._get_revisers_and_md_text(self.raw_text)
         self.length_docx = self._get_length_docx()
-        self.length_dept = self._get_length_dept()
+        self.length_clas = self._get_length_clas()
         self.length_conf = self._get_length_conf()
         self.length_supp = self._get_length_supp()
         self.length_revi = self._get_length_revi()
@@ -2591,44 +2591,46 @@ class Paragraph:
         # self.length_docx = length_docx
         return length_docx
 
-    def _get_length_dept(self):
+    def _get_length_clas(self):
         paragraph_class = self.paragraph_class
         head_section_depth = self.head_section_depth
         tail_section_depth = self.tail_section_depth
         proper_depth = self.proper_depth
-        length_dept \
+        length_clas \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
         if paragraph_class == 'chapter':
-            length_dept['first indent'] = -1.0
-            length_dept['left indent'] = proper_depth + 0.0
+            length_clas['first indent'] = -1.0
+            length_clas['left indent'] = proper_depth + 0.0
         elif paragraph_class == 'section':
             if head_section_depth > 1:
-                length_dept['first indent'] \
+                length_clas['first indent'] \
                     = head_section_depth - tail_section_depth - 1.0
             if tail_section_depth > 1:
-                length_dept['left indent'] = tail_section_depth - 1.0
+                length_clas['left indent'] = tail_section_depth - 1.0
         elif paragraph_class == 'list':
-            length_dept['first indent'] = -1.0
-            length_dept['left indent'] = proper_depth + 0.0
+            length_clas['first indent'] = -1.0
+            length_clas['left indent'] = proper_depth + 0.0
             if tail_section_depth > 0:
-                length_dept['left indent'] += tail_section_depth - 1.0
+                length_clas['left indent'] += tail_section_depth - 1.0
+        elif paragraph_class == 'table':
+            length_clas['space before'] += 0.2
         elif paragraph_class == 'preformatted':
             if tail_section_depth > 0:
-                length_dept['first indent'] = 0.0
-                length_dept['left indent'] = tail_section_depth - 0.0
+                length_clas['first indent'] = 0.0
+                length_clas['left indent'] = tail_section_depth - 0.0
         elif paragraph_class == 'sentence':
             if tail_section_depth > 0:
-                length_dept['first indent'] = 1.0
-                length_dept['left indent'] = tail_section_depth - 1.0
+                length_clas['first indent'] = 1.0
+                length_clas['left indent'] = tail_section_depth - 1.0
         if paragraph_class == 'section' or \
            paragraph_class == 'list' or \
            paragraph_class == 'preformatted' or \
            paragraph_class == 'sentence':
             if ParagraphSection.states[1][0] == 0 and tail_section_depth > 2:
-                length_dept['left indent'] -= 1.0
-        # self.length_dept = length_dept
-        return length_dept
+                length_clas['left indent'] -= 1.0
+        # self.length_clas = length_clas
+        return length_clas
 
     def _get_length_conf(self):
         hd = self.head_section_depth
@@ -2657,12 +2659,12 @@ class Paragraph:
         length_docx = self.length_docx
         length_conf = self.length_conf
         length_supp = self.length_supp
-        length_dept = self.length_dept
+        length_clas = self.length_clas
         length_revi \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
         for ln in length_revi:
-            lg = length_docx[ln] - length_dept[ln] \
+            lg = length_docx[ln] - length_clas[ln] \
                 - length_conf[ln] + length_supp[ln]
             length_revi[ln] = round(lg, 2)
         # self.length_revi = length_revi
