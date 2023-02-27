@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.28-07:17:53-JST>
+# Time-stamp:   <2023.02.28-07:32:53-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2614,7 +2614,8 @@ class Paragraph:
             if tail_section_depth > 0:
                 length_clas['left indent'] += tail_section_depth - 1.0
         elif paragraph_class == 'table':
-            length_clas['space before'] += 0.2
+            length_clas['space before'] += 0.45
+            length_clas['space after'] += 0.2
         elif paragraph_class == 'preformatted':
             if tail_section_depth > 0:
                 length_clas['first indent'] = 0.0
