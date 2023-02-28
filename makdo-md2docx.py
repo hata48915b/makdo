@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.28-08:59:18-JST>
+# Time-stamp:   <2023.02.28-18:05:38-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2796,8 +2796,18 @@ class ParagraphAlignment(Paragraph):
 
     def _get_text_to_write(self):
         md_lines = self.md_lines
+        alignment = self.alignment
         text_to_write = ''
         for ml in md_lines:
+            if alignment == 'left':
+                if not re.match('^: .*$', ml.raw_text):
+                    continue
+            elif alignment == 'center':
+                if not re.match('^: .* :$', ml.raw_text):
+                    continue
+            elif alignment == 'right':
+                if not re.match('^.* :$', ml.raw_text):
+                    continue
             text_to_write += ml.text + '\n'
         text_to_write = re.sub('\n$', '', text_to_write)
         return text_to_write
