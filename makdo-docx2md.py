@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.28-08:41:28-JST>
+# Time-stamp:   <2023.03.01-06:54:18-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2759,11 +2759,11 @@ class Paragraph:
             ttwwr += pre_text_to_write + '\n'
         for rev in numbering_revisers:
             ttwwr += rev + ' '
-        if re.match('.* $', ttwwr):
+        if re.match('^(.|\n)* $', ttwwr):
             ttwwr = re.sub(' $', '\n', ttwwr)
         for rev in length_revisers:
             ttwwr += rev + ' '
-        if re.match('.* $', ttwwr):
+        if re.match('^(.|\n)* $', ttwwr):
             ttwwr = re.sub(' $', '\n', ttwwr)
         # FOR PARAGRAPH ALIGNMENT
         if has_left_colon:
