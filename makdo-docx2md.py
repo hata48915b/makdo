@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.28-08:04:56-JST>
+# Time-stamp:   <2023.02.28-08:41:28-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -189,6 +189,8 @@ DEFAULT_LINE_SPACING = 2.14  # (2.0980+2.1812)/2=2.1396
 
 DEFAULT_SPACE_BEFORE = ''
 DEFAULT_SPACE_AFTER = ''
+TABLE_SPACE_BEFORE = 0.45
+TABLE_SPACE_AFTER = 0.2
 
 DEFAULT_AUTO_SPACE = False
 
@@ -2614,8 +2616,8 @@ class Paragraph:
             if tail_section_depth > 0:
                 length_clas['left indent'] += tail_section_depth - 1.0
         elif paragraph_class == 'table':
-            length_clas['space before'] += 0.45
-            length_clas['space after'] += 0.2
+            length_clas['space before'] += TABLE_SPACE_BEFORE
+            length_clas['space after'] += TABLE_SPACE_AFTER
         elif paragraph_class == 'preformatted':
             if tail_section_depth > 0:
                 length_clas['first indent'] = 0.0

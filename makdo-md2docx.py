@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.28-08:19:05-JST>
+# Time-stamp:   <2023.02.28-08:59:18-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -236,6 +236,8 @@ DEFAULT_LINE_SPACING = 2.14  # (2.0980+2.1812)/2=2.1396
 
 DEFAULT_SPACE_BEFORE = ''
 DEFAULT_SPACE_AFTER = ''
+TABLE_SPACE_BEFORE = 0.45
+TABLE_SPACE_AFTER = 0.2
 
 DEFAULT_AUTO_SPACE = False
 
@@ -909,12 +911,26 @@ class Document:
             if p.paragraph_class == 'table':
                 if i > 0:
                     sb = p.length_docx['space before']
-                    if p_prev.length_docx['space after'] < sb:
+                    if sb < 0:
+                        msg = '警告: ' \
+                            + '段落前の余白「v」の値が小さ過ぎます'
+                        # msg = 'warning: ' \
+                        #     + '"space before" is too small'
+                        p.md_lines[0].append_warning_message(msg)
+                    if p_prev.length_docx['space after'] \
+                       < sb + TABLE_SPACE_BEFORE:
                         p_prev.length_docx['space after'] = sb
                     p.length_docx['space before'] = 0.0
                 if i < m:
                     sa = p.length_docx['space after']
-                    if p_next.length_docx['space before'] < sa:
+                    if sa < 0:
+                        msg = '警告: ' \
+                            + '段落前の余白「V」の値が小さ過ぎます'
+                        # msg = 'warning: ' \
+                        #     + '"space after" is too small'
+                        p.md_lines[0].append_warning_message(msg)
+                    if p_next.length_docx['space before'] \
+                       < sa + TABLE_SPACE_AFTER:
                         p_next.length_docx['space before'] = sa
                     p.length_docx['space after'] = 0.0
         return self.paragraphs
@@ -1788,8 +1804,8 @@ class Paragraph:
             if tail_section_depth > 0:
                 length_clas['left indent'] += tail_section_depth - 1.0
         elif paragraph_class == 'table':
-            length_clas['space before'] += 0.45
-            length_clas['space after'] += 0.2
+            length_clas['space before'] += TABLE_SPACE_BEFORE
+            length_clas['space after'] += TABLE_SPACE_AFTER
         elif paragraph_class == 'preformatted':
             if tail_section_depth > 0:
                 length_clas['first indent'] = 0.0
@@ -2058,9 +2074,9 @@ class Paragraph:
         else:
             ms_fmt.space_before = Pt(0)
             msg = '警告: ' \
-                + '段落前の余白「v」の値が少な過ぎます'
+                + '段落前の余白「v」の値が小さ過ぎます'
             # msg = 'warning: ' \
-            #     + '"space before" must be positive'
+            #     + '"space before" is too small'
             self.md_lines[0].append_warning_message(msg)
         if length_docx['space after'] >= 0:
             pt = length_docx['space after'] * Document.line_spacing * size
@@ -2068,9 +2084,9 @@ class Paragraph:
         else:
             ms_fmt.space_after = Pt(0)
             msg = '警告: ' \
-                + '段落後の余白「V」の値が少な過ぎます'
+                + '段落後の余白「V」の値が小さ過ぎます'
             # msg = 'warning: ' \
-            #     + '"space after" must be positive'
+            #     + '"space after" is too small'
             self.md_lines[0].append_warning_message(msg)
         ms_fmt.first_line_indent = Pt(length_docx['first indent'] * size)
         ms_fmt.left_indent = Pt(length_docx['left indent'] * size)
