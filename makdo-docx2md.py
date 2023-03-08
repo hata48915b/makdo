@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.03.01-06:54:18-JST>
+# Time-stamp:   <2023.03.08-22:22:47-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1282,7 +1282,7 @@ class Document:
                             mt += ': ' + re.sub('<br>$', '', text) + '\n'
                         mt = re.sub('\n+$', '', mt)
                         p.md_text = mt
-                        p.md_lines = p._get_md_lines(p.md_text)
+                        p.md_lines_text = p._get_md_lines_text(p.md_text)
                         p.text_to_write = p.get_text_to_write()
                         p.text_to_write_with_reviser \
                             = p.get_text_to_write_with_reviser()
@@ -1300,7 +1300,7 @@ class Document:
                 # RENEW
                 p.length_revi = p._get_length_revi()
                 p.length_revisers = p._get_length_revisers(p.length_revi)
-                # p.md_lines = p._get_md_lines(p.md_text)
+                # p.md_lines_text = p._get_md_lines_text(p.md_text)
                 # p.text_to_write = p.get_text_to_write()
                 p.text_to_write_with_reviser \
                     = p.get_text_to_write_with_reviser()
@@ -1320,14 +1320,15 @@ class Document:
                 # RENEW
                 p.length_revi = p._get_length_revi()
                 p.length_revisers = p._get_length_revisers(p.length_revi)
-                # p.md_lines = p._get_md_lines(p.md_text)
+                # p.md_lines_text = p._get_md_lines_text(p.md_text)
                 # p.text_to_write = p.get_text_to_write()
                 p.text_to_write_with_reviser \
                     = p.get_text_to_write_with_reviser()
                 p_next.length_revi = p_next._get_length_revi()
                 p_next.length_revisers \
                     = p_next._get_length_revisers(p_next.length_revi)
-                # p_next.md_lines = p_next._get_md_lines(p_next.md_text)
+                # p_next.md_lines_text \
+                #     = p_next._get_md_lines_text(p_next.md_text)
                 # p_next.text_to_write = p_next.get_text_to_write()
                 p_next.text_to_write_with_reviser \
                     = p_next.get_text_to_write_with_reviser()
@@ -1382,14 +1383,15 @@ class Document:
                 p_prev.length_revi = p_prev._get_length_revi()
                 p_prev.length_revisers \
                     = p_prev._get_length_revisers(p_prev.length_revi)
-                # p_prev.md_lines = p_prev._get_md_lines(p_prev.md_text)
+                # p_prev.md_lines_text \
+                #     = p_prev._get_md_lines_text(p_prev.md_text)
                 # p_prev.text_to_write = p_prev.get_text_to_write()
                 p_prev.text_to_write_with_reviser \
                     = p_prev.get_text_to_write_with_reviser()
             if True:
                 p.length_revi = p._get_length_revi()
                 p.length_revisers = p._get_length_revisers(p.length_revi)
-                # p.md_lines = p._get_md_lines(p.md_text)
+                # p.md_lines_text = p._get_md_lines_text(p.md_text)
                 # p.text_to_write = p.get_text_to_write()
                 p.text_to_write_with_reviser \
                     = p.get_text_to_write_with_reviser()
@@ -1397,7 +1399,8 @@ class Document:
                 p_next.length_revi = p_next._get_length_revi()
                 p_next.length_revisers \
                     = p_next._get_length_revisers(p_next.length_revi)
-                # p_next.md_lines = p_next._get_md_lines(p_next.md_text)
+                # p_next.md_lines_text \
+                #     = p_next._get_md_lines_text(p_next.md_text)
                 # p_next.text_to_write = p_next.get_text_to_write()
                 p_next.text_to_write_with_reviser \
                     = p_next.get_text_to_write_with_reviser()
@@ -1419,7 +1422,7 @@ class Document:
             p.length_clas = p._get_length_clas()
             p.length_revi = p._get_length_revi()
             p.length_revisers = p._get_length_revisers(p.length_revi)
-            # p.md_lines = p._get_md_lines(p.md_text)
+            # p.md_lines_text = p._get_md_lines_text(p.md_text)
             # p.text_to_write = p.get_text_to_write()
             p.text_to_write_with_reviser \
                 = p.get_text_to_write_with_reviser()
@@ -1458,7 +1461,7 @@ class Document:
             p.length_revi = p._get_length_revi()
             p.length_revisers = p._get_length_revisers(p.length_revi)
             # ParagraphList.reset_states(p.paragraph_class)
-            # p.md_lines = p._get_md_lines(p.md_text)
+            # p.md_lines_text = p._get_md_lines_text(p.md_text)
             # p.text_to_write = p.get_text_to_write()
             p.text_to_write_with_reviser \
                 = p.get_text_to_write_with_reviser()
@@ -1481,7 +1484,7 @@ class Document:
                     # RENEW
                     p.length_revi = p._get_length_revi()
                     p.length_revisers = p._get_length_revisers(p.length_revi)
-                    p.md_lines = p._get_md_lines(p.md_text)
+                    p.md_lines_text = p._get_md_lines_text(p.md_text)
                     # p.text_to_write = p.get_text_to_write()
                     p.text_to_write_with_reviser \
                         = p.get_text_to_write_with_reviser()
@@ -1512,7 +1515,7 @@ class Document:
             # RENEW
             p.length_revi = p._get_length_revi()
             p.length_revisers = p._get_length_revisers(p.length_revi)
-            # p.md_lines = p._get_md_lines(p.md_text)
+            # p.md_lines_text = p._get_md_lines_text(p.md_text)
             # p.text_to_write = p.get_text_to_write()
             p.text_to_write_with_reviser \
                 = p.get_text_to_write_with_reviser()
@@ -2415,7 +2418,7 @@ class Paragraph:
         self.length_revisers = self._get_length_revisers(self.length_revi)
         # EXECUTION
         ParagraphList.reset_states(self.paragraph_class)
-        self.md_lines = self._get_md_lines(self.md_text)
+        self.md_lines_text = self._get_md_lines_text(self.md_text)
         self.text_to_write = self.get_text_to_write()
         self.text_to_write_with_reviser \
             = self.get_text_to_write_with_reviser()
@@ -2691,23 +2694,23 @@ class Paragraph:
         # self.length_revisers = length_revisers
         return length_revisers
 
-    def _get_md_lines(self, md_text):
+    def _get_md_lines_text(self, md_text):
         paragraph_class = self.paragraph_class
         # FOR TRAILING WHITE SPACE
         md_text = re.sub('  \n', '  \\\n', md_text)
         if False:
             pass
         # elif paragraph_class == 'chapter':
-        #     md_lines = Paragraph._split_into_lines(md_text)
+        #     md_lines_text = Paragraph._split_into_lines(md_text)
         elif paragraph_class == 'section':
-            md_lines = Paragraph._split_into_lines(md_text)
+            md_lines_text = Paragraph._split_into_lines(md_text)
         # elif paragraph_class == 'list':
-        #     md_lines = Paragraph._split_into_lines(md_text)
+        #     md_lines_text = Paragraph._split_into_lines(md_text)
         elif paragraph_class == 'sentence':
-            md_lines = Paragraph._split_into_lines(md_text)
+            md_lines_text = Paragraph._split_into_lines(md_text)
         else:
-            md_lines = md_text
-        return md_lines
+            md_lines_text = md_text
+        return md_lines_text
 
     def get_text_to_write(self):
         paper_size = Document.paper_size
@@ -2715,7 +2718,7 @@ class Paragraph:
         bottom_margin = Document.bottom_margin
         left_margin = Document.left_margin
         right_margin = Document.right_margin
-        md_lines = self.md_lines
+        md_lines_text = self.md_lines_text
         length_docx = self.length_docx
         indent = length_docx['first indent'] \
             + length_docx['left indent'] \
@@ -2727,13 +2730,13 @@ class Paragraph:
         region_cm = (width_cm, height_cm)
         res = '^((?:.*\n)*.*)(' + RES_IMAGE_WITH_SIZE + ')((?:.*\n)*.*)$'
         text_to_write = ''
-        while re.match(res, md_lines):
-            text_to_write += re.sub(res, '\\1', md_lines)
-            img_text = re.sub(res, '\\2', md_lines)
+        while re.match(res, md_lines_text):
+            text_to_write += re.sub(res, '\\1', md_lines_text)
+            img_text = re.sub(res, '\\2', md_lines_text)
             text_to_write \
                 += ParagraphImage.replace_with_fixed_size(img_text, region_cm)
-            md_lines = re.sub(res, '\\7', md_lines)
-        text_to_write += md_lines
+            md_lines_text = re.sub(res, '\\7', md_lines_text)
+        text_to_write += md_lines_text
         # self.text_to_write = text_to_write
         return text_to_write
 
@@ -2784,7 +2787,7 @@ class Paragraph:
 
     @classmethod
     def _split_into_lines(cls, md_text):
-        md_lines = ''
+        md_lines_text = ''
         for line in md_text.split('\n'):
             res = '^(.*)(' + RES_IMAGE + ')(.*)$'
             line = re.sub(res, '\\1\n\\2\n\\5', line)
@@ -2796,9 +2799,9 @@ class Paragraph:
                 else:
                     phrases += cls._split_into_phrases(text)
             splited = cls._concatenate_phrases(phrases)
-            md_lines += splited + '<br>\n'
-        md_lines = re.sub('<br>\n$', '', md_lines)
-        return md_lines
+            md_lines_text += splited + '<br>\n'
+        md_lines_text = re.sub('<br>\n$', '', md_lines_text)
+        return md_lines_text
 
     @staticmethod
     def _split_into_phrases(line):
