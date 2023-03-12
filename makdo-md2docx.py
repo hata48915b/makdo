@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.02.28-18:05:38-JST>
+# Time-stamp:   <2023.03.13-07:27:14-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1819,6 +1819,9 @@ class Paragraph:
            paragraph_class == 'preformatted' or \
            paragraph_class == 'sentence':
             if ParagraphSection.states[1][0] == 0 and tail_section_depth > 2:
+                length_clas['left indent'] -= 1.0
+        if Document.document_style == 'j':
+            if ParagraphSection.states[1][0] > 0 and tail_section_depth > 2:
                 length_clas['left indent'] -= 1.0
         # self.length_clas = length_clas
         return length_clas

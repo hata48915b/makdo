@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.03.08-22:22:47-JST>
+# Time-stamp:   <2023.03.13-07:50:36-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -959,9 +959,9 @@ class Document:
                 has_p1 = True
         if has_a1:
             if has_p1:
-                self.document_style = 'k'
+                Document.document_style = 'k'
             else:
-                self.document_style = 'j'
+                Document.document_style = 'j'
 
     def _configure_by_core_xml(self, raw_xml_lines):
         for i, rxl in enumerate(raw_xml_lines):
@@ -977,11 +977,11 @@ class Document:
             if i > 0 and re.match(resb, raw_xml_lines[i - 1], re.I):
                 if not re.match(rese, rxl, re.I):
                     if re.match('^.*（普通）.*$', rxl):
-                        self.document_style = 'n'
+                        Document.document_style = 'n'
                     elif re.match('^.*（契約）.*$', rxl):
-                        self.document_style = 'k'
+                        Document.document_style = 'k'
                     elif re.match('^.*（条文）.*$', rxl):
-                        self.document_style = 'j'
+                        Document.document_style = 'j'
             # ORIGINAL FILE
             resb = '^<dcterms:modified( .*)?>$'
             rese = '^</dcterms:modified>$'
@@ -2480,6 +2480,9 @@ class Paragraph:
         numbering_revisers = []
         for ydepth, value in enumerate(state):
             cvalue = cls.states[xdepth][ydepth]
+            if Document.document_style == 'j':
+                if xdepth == 2:
+                    cvalue += 1
             if value != cvalue:
                 if paragraph_class == 'chapter':
                     rev = '$' * (xdepth + 1) + '-$' * ydepth + '=' + str(value)
@@ -2634,6 +2637,9 @@ class Paragraph:
            paragraph_class == 'preformatted' or \
            paragraph_class == 'sentence':
             if ParagraphSection.states[1][0] == 0 and tail_section_depth > 2:
+                length_clas['left indent'] -= 1.0
+        if Document.document_style == 'j':
+            if ParagraphSection.states[1][0] > 0 and tail_section_depth > 2:
                 length_clas['left indent'] -= 1.0
         # self.length_clas = length_clas
         return length_clas
