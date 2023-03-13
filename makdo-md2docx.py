@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.03.13-19:38:57-JST>
+# Time-stamp:   <2023.03.13-20:02:19-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -876,6 +876,21 @@ class Document:
         return paragraphs
 
     def modify_paragraphs(self, paragraphs):
+        for i, p in enumerate(paragraphs):
+            if i > 0:
+                p_prev = paragraphs[i - 1]
+            # ARTICLE EAR
+            if Document.document_style == 'j' and \
+               p.paragraph_class == 'section' and \
+               p.head_section_depth == 2 and \
+               p.tail_section_depth == 2 and \
+               i > 0 and \
+               p_prev.paragraph_class == 'alignment' and \
+               p_prev.alignment == 'left':
+                p_prev.length_docx['space before'] \
+                    += p.length_conf['space before']
+                p.length_docx['space before'] \
+                    -= p.length_conf['space before']
         m = len(paragraphs) - 1
         for i, p in enumerate(paragraphs):
             if i > 0:
@@ -933,18 +948,6 @@ class Document:
                        < sa + TABLE_SPACE_AFTER:
                         p_next.length_docx['space before'] = sa
                     p.length_docx['space after'] = 0.0
-            # ARTICLE EAR
-            if Document.document_style == 'j' and \
-               p.paragraph_class == 'section' and \
-               p.head_section_depth == 2 and \
-               p.tail_section_depth == 2 and \
-               i > 0 and \
-               p_prev.paragraph_class == 'alignment' and \
-               p_prev.alignment == 'left':
-                p_prev.length_docx['space before'] \
-                    += p.length_conf['space before']
-                p.length_docx['space before'] \
-                    -= p.length_conf['space before']
         return self.paragraphs
 
     def configure(self, md_lines, args):
