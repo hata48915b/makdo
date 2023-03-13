@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.03.13-07:50:36-JST>
+# Time-stamp:   <2023.03.13-19:35:51-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1263,6 +1263,7 @@ class Document:
         self.paragraphs = self._modpar_left_alignment()
         self.paragraphs = self._modpar_blank_paragraph_to_space_before()
         # CHANGE VIRTUAL LENGTH
+        self.paragraphs = self._modpar_article_ear()
         self.paragraphs = self._modpar_section_space_before_and_after()
         self.paragraphs = self._modpar_spaced_and_centered()
         self.paragraphs = self._modpar_length_reviser_to_depth_setter()
@@ -1332,6 +1333,39 @@ class Document:
                 # p_next.text_to_write = p_next.get_text_to_write()
                 p_next.text_to_write_with_reviser \
                     = p_next.get_text_to_write_with_reviser()
+        return self.paragraphs
+
+    def _modpar_article_ear(self):
+        if Document.document_style != 'j':
+            return self.paragraphs
+        m = len(self.paragraphs) - 1
+        for i, p in enumerate(self.paragraphs):
+            if i > 0:
+                p_prev = self.paragraphs[i - 1]
+            if p.paragraph_class == 'section' and \
+               p.head_section_depth == 2 and \
+               p.tail_section_depth == 2 and \
+               i > 0 and \
+               p_prev.paragraph_class == 'alignment' and \
+               p_prev.alignment == 'left':
+                p_prev.length_conf['space before'] \
+                    = p.length_conf['space before']
+                p.length_conf['space before'] = 0.0
+                # RENEW
+                p_prev.length_revi = p_prev._get_length_revi()
+                p_prev.length_revisers \
+                    = p_prev._get_length_revisers(p_prev.length_revi)
+                # p_prev.md_lines_text \
+                #     = p_prev._get_md_lines_text(p_prev.md_text)
+                # p_prev.text_to_write = p_prev.get_text_to_write()
+                p_prev.text_to_write_with_reviser \
+                    = p_prev.get_text_to_write_with_reviser()
+                p.length_revi = p._get_length_revi()
+                p.length_revisers = p._get_length_revisers(p.length_revi)
+                # p.md_lines_text = p._get_md_lines_text(p.md_text)
+                # p.text_to_write = p.get_text_to_write()
+                p.text_to_write_with_reviser \
+                    = p.get_text_to_write_with_reviser()
         return self.paragraphs
 
     def _modpar_section_space_before_and_after(self):
