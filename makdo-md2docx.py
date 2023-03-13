@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.03.13-20:02:19-JST>
+# Time-stamp:   <2023.03.14-07:26:22-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -879,7 +879,7 @@ class Document:
         for i, p in enumerate(paragraphs):
             if i > 0:
                 p_prev = paragraphs[i - 1]
-            # ARTICLE EAR
+            # ARTICLE TITLE (MIMI=EAR)
             if Document.document_style == 'j' and \
                p.paragraph_class == 'section' and \
                p.head_section_depth == 2 and \

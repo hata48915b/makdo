@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.03.13-19:35:51-JST>
+# Time-stamp:   <2023.03.14-07:27:12-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1263,7 +1263,7 @@ class Document:
         self.paragraphs = self._modpar_left_alignment()
         self.paragraphs = self._modpar_blank_paragraph_to_space_before()
         # CHANGE VIRTUAL LENGTH
-        self.paragraphs = self._modpar_article_ear()
+        self.paragraphs = self._modpar_article_title()
         self.paragraphs = self._modpar_section_space_before_and_after()
         self.paragraphs = self._modpar_spaced_and_centered()
         self.paragraphs = self._modpar_length_reviser_to_depth_setter()
@@ -1335,7 +1335,8 @@ class Document:
                     = p_next.get_text_to_write_with_reviser()
         return self.paragraphs
 
-    def _modpar_article_ear(self):
+    # ARTICLE TITLE (MIMI=EAR)
+    def _modpar_article_title(self):
         if Document.document_style != 'j':
             return self.paragraphs
         m = len(self.paragraphs) - 1
