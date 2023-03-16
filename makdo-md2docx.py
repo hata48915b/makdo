@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
-# Version:      v05a Aki-Nagatsuka
-# Time-stamp:   <2023.03.14-07:26:22-JST>
+# Version:      v05 Aki-Nagatsuka
+# Time-stamp:   <2023.03.16-19:55:00-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -24,7 +24,7 @@
 # 2022.08.24 v02 Shin-Hakushima
 # 2022.12.25 v03 Yokogawa
 # 2023.01.07 v04 Mitaki
-# 20XX.XX.XX v05 Aki-Nagatsuka
+# 2023.03.16 v05 Aki-Nagatsuka
 
 
 ############################################################

@@ -1,4 +1,4 @@
-<!-- Time-stamp:   <2023.01.07-12:31:24-JST> -->
+<!-- Time-stamp:   <2023.03.16-19:56:16-JST> -->
 
 # MAKDO（魔苦怒）
 
@@ -409,4 +409,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ### 2023.01.07 v04 Mitaki リリース
 
 日本語対応を強化しました。
+
+### 2023.03.16 v05 Aki-Nagatsuka リリース
 
