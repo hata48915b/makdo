@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v05 Aki-Nagatsuka
-# Time-stamp:   <2023.03.16-19:55:00-JST>
+# Time-stamp:   <2023.03.25-08:41:13-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1686,11 +1686,7 @@ class Paragraph:
             = self._get_section_depths(self.full_text)
         self.proper_depth = self._get_proper_depth(self.full_text)
         self.alignment = self._get_alignment()
-        self.length_revi = self._get_length_revi()
-        self.length_conf = self._get_length_conf()
-        self.length_clas = self._get_length_clas()
-        self.length_docx = self._get_length_docx()
-        # EXECUTION
+        # TRANSACT
         ParagraphChapter._transact_revisers(self.chapter_revisers,
                                             self.md_lines)
         ParagraphSection._transact_revisers(self.section_revisers,
@@ -1698,6 +1694,12 @@ class Paragraph:
         ParagraphList._transact_revisers(self.list_revisers,
                                          self.md_lines)
         ParagraphList.reset_states(self.paragraph_class)
+        # GET LENGTH
+        self.length_revi = self._get_length_revi()
+        self.length_conf = self._get_length_conf()
+        self.length_clas = self._get_length_clas()
+        self.length_docx = self._get_length_docx()
+        # GET TEXT
         self._edit_data()
         self.text_to_write = self._get_text_to_write()
         self.text_to_write_with_reviser \
@@ -1833,7 +1835,7 @@ class Paragraph:
            paragraph_class == 'list' or \
            paragraph_class == 'preformatted' or \
            paragraph_class == 'sentence':
-            if ParagraphSection.states[1][0] == 0 and tail_section_depth > 2:
+            if ParagraphSection.states[1][0] <= 0 and tail_section_depth > 2:
                 length_clas['left indent'] -= 1.0
         if Document.document_style == 'j':
             if ParagraphSection.states[1][0] > 0 and tail_section_depth > 2:
