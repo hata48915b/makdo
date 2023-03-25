@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v05 Aki-Nagatsuka
-# Time-stamp:   <2023.03.25-08:41:13-JST>
+# Time-stamp:   <2023.03.25-09:08:30-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1686,12 +1686,12 @@ class Paragraph:
             = self._get_section_depths(self.full_text)
         self.proper_depth = self._get_proper_depth(self.full_text)
         self.alignment = self._get_alignment()
-        # TRANSACT
-        ParagraphChapter._transact_revisers(self.chapter_revisers,
+        # APPLY REVISERS
+        ParagraphChapter._apply_revisers(self.chapter_revisers,
                                             self.md_lines)
-        ParagraphSection._transact_revisers(self.section_revisers,
+        ParagraphSection._apply_revisers(self.section_revisers,
                                             self.md_lines)
-        ParagraphList._transact_revisers(self.list_revisers,
+        ParagraphList._apply_revisers(self.list_revisers,
                                          self.md_lines)
         ParagraphList.reset_states(self.paragraph_class)
         # GET LENGTH
@@ -1879,7 +1879,7 @@ class Paragraph:
         return length_docx
 
     @classmethod
-    def _transact_revisers(cls, revisers, md_lines):
+    def _apply_revisers(cls, revisers, md_lines):
         res = '^' + cls.res_reviser + '$'
         if cls.paragraph_class == 'chapter':
             char = '$'
@@ -2554,7 +2554,7 @@ class ParagraphList(Paragraph):
         return proper_depth
 
     @classmethod
-    def _transact_revisers(cls, revisers, md_lines):
+    def _apply_revisers(cls, revisers, md_lines):
         for rev in revisers:
             res = '(\\s*).*=([0-9]+)'
             if re.match(res, rev):
