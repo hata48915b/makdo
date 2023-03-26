@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v05 Aki-Nagatsuka
-# Time-stamp:   <2023.03.26-10:48:19-JST>
+# Time-stamp:   <2023.03.26-10:55:18-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1688,11 +1688,11 @@ class Paragraph:
         self.alignment = self._get_alignment()
         # APPLY REVISERS
         ParagraphChapter._apply_revisers(self.chapter_revisers,
-                                            self.md_lines)
-        ParagraphSection._apply_revisers(self.section_revisers,
-                                            self.md_lines)
-        ParagraphList._apply_revisers(self.list_revisers,
                                          self.md_lines)
+        ParagraphSection._apply_revisers(self.section_revisers,
+                                         self.md_lines)
+        ParagraphList._apply_revisers(self.list_revisers,
+                                      self.md_lines)
         ParagraphList.reset_states(self.paragraph_class)
         # GET LENGTH
         self.length_revi = self._get_length_revi()
