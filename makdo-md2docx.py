@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v05 Aki-Nagatsuka
-# Time-stamp:   <2023.03.26-08:23:34-JST>
+# Time-stamp:   <2023.03.26-10:48:19-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1654,7 +1654,7 @@ class Paragraph:
         return False
 
     def __init__(self, raw_paragraph):
-        # RECEIVED
+        # RECEIVE
         self.raw_paragraph_number = raw_paragraph.raw_paragraph_number
         self.md_lines = raw_paragraph.md_lines
         self.chapter_revisers = raw_paragraph.chapter_revisers
@@ -1666,7 +1666,7 @@ class Paragraph:
         self.full_text = raw_paragraph.full_text
         self.section_depth_setters = raw_paragraph.section_depth_setters
         self.paragraph_class = raw_paragraph.paragraph_class
-        # DECLARATION
+        # DECLARE
         self.paragraph_number = -1
         self.head_section_depth = -1
         self.tail_section_depth = -1
@@ -1678,7 +1678,7 @@ class Paragraph:
         self.alignment = ''
         self.text_to_write = ''
         self.text_to_write_with_reviser = ''
-        # SUBSTITUTION
+        # SUBSTITUTE
         Paragraph.paragraph_number += 1
         self.paragraph_number = Paragraph.paragraph_number
         self._apply_section_depths_setters(self.section_depth_setters)
@@ -1743,6 +1743,72 @@ class Paragraph:
                 alignment = 'right'
         # self.alignment = alignment
         return alignment
+
+    @classmethod
+    def _apply_revisers(cls, revisers, md_lines):
+        res = '^' + cls.res_reviser + '$'
+        if cls.paragraph_class == 'chapter':
+            char = '$'
+        elif cls.paragraph_class == 'section':
+            char = '#'
+        else:
+            return
+        for rev in revisers:
+            md_line = md_lines[0]
+            res_line = '^(.*\\s)?' \
+                + rev.replace(char, '\\' + char) \
+                + '(\\s.*)?$'
+            for ml in md_lines:
+                if re.match(res_line, ml.raw_text):
+                    md_line = ml
+                    break
+            if re.match(res, rev):
+                trunk = re.sub(res, '\\1', rev)
+                branc = re.sub(res, '\\2', rev)
+                chval = re.sub(res, '\\3', rev)
+                xdepth = len(trunk) - 1
+                ydepth = len(branc.replace(char, ''))
+                value = int(chval) - 1
+                cls._set_state(xdepth, ydepth, value, md_line)
+
+    @classmethod
+    def _set_state(cls, xdepth, ydepth, value, md_line):
+        paragraph_class_ja = cls.paragraph_class_ja
+        paragraph_class = cls.paragraph_class
+        states = cls.states
+        if xdepth >= len(states):
+            msg = '※ 警告: ' + paragraph_class_ja \
+                + 'の深さが上限を超えています'
+            # msg = 'warning: ' + paragraph_class \
+            #     + ' depth exceeds limit'
+            md_line.append_warning_message(msg)
+        elif ydepth >= len(states[xdepth]):
+            msg = '※ 警告: ' + paragraph_class_ja \
+                + 'の枝が上限を超えています'
+            # msg = 'warning: ' + paragraph_class \
+            #     + ' branch exceeds limit'
+            md_line.append_warning_message(msg)
+        for x in range(len(states)):
+            for y in range(len(states[x])):
+                if x < xdepth:
+                    continue
+                elif x == xdepth:
+                    if y < ydepth:
+                        if states[x][y] == 0:
+                            msg = '※ 警告: ' + paragraph_class_ja \
+                                + 'の枝が"0"を含んでいます'
+                            # msg = 'warning: ' + paragraph_class \
+                            #     + ' branch has "0"'
+                            md_line.append_warning_message(msg)
+                    elif y == ydepth:
+                        if value is None:
+                            states[x][y] += 1
+                        else:
+                            states[x][y] = value
+                    else:
+                        states[x][y] = 0
+                else:
+                    states[x][y] = 0
 
     def _get_length_revi(self):
         length_revisers = self.length_revisers
@@ -1877,72 +1943,6 @@ class Paragraph:
                 length_docx['space after'] /= 2
         # self.length_docx = length_docx
         return length_docx
-
-    @classmethod
-    def _apply_revisers(cls, revisers, md_lines):
-        res = '^' + cls.res_reviser + '$'
-        if cls.paragraph_class == 'chapter':
-            char = '$'
-        elif cls.paragraph_class == 'section':
-            char = '#'
-        else:
-            return
-        for rev in revisers:
-            md_line = md_lines[0]
-            res_line = '^(.*\\s)?' \
-                + rev.replace(char, '\\' + char) \
-                + '(\\s.*)?$'
-            for ml in md_lines:
-                if re.match(res_line, ml.raw_text):
-                    md_line = ml
-                    break
-            if re.match(res, rev):
-                trunk = re.sub(res, '\\1', rev)
-                branc = re.sub(res, '\\2', rev)
-                chval = re.sub(res, '\\3', rev)
-                xdepth = len(trunk) - 1
-                ydepth = len(branc.replace(char, ''))
-                value = int(chval) - 1
-                cls._set_state(xdepth, ydepth, value, md_line)
-
-    @classmethod
-    def _set_state(cls, xdepth, ydepth, value, md_line):
-        paragraph_class_ja = cls.paragraph_class_ja
-        paragraph_class = cls.paragraph_class
-        states = cls.states
-        if xdepth >= len(states):
-            msg = '※ 警告: ' + paragraph_class_ja \
-                + 'の深さが上限を超えています'
-            # msg = 'warning: ' + paragraph_class \
-            #     + ' depth exceeds limit'
-            md_line.append_warning_message(msg)
-        elif ydepth >= len(states[xdepth]):
-            msg = '※ 警告: ' + paragraph_class_ja \
-                + 'の枝が上限を超えています'
-            # msg = 'warning: ' + paragraph_class \
-            #     + ' branch exceeds limit'
-            md_line.append_warning_message(msg)
-        for x in range(len(states)):
-            for y in range(len(states[x])):
-                if x < xdepth:
-                    continue
-                elif x == xdepth:
-                    if y < ydepth:
-                        if states[x][y] == 0:
-                            msg = '※ 警告: ' + paragraph_class_ja \
-                                + 'の枝が"0"を含んでいます'
-                            # msg = 'warning: ' + paragraph_class \
-                            #     + ' branch has "0"'
-                            md_line.append_warning_message(msg)
-                    elif y == ydepth:
-                        if value is None:
-                            states[x][y] += 1
-                        else:
-                            states[x][y] = value
-                    else:
-                        states[x][y] = 0
-                else:
-                    states[x][y] = 0
 
     def _edit_data(self):
         return
