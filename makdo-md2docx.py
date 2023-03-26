@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v05 Aki-Nagatsuka
-# Time-stamp:   <2023.03.25-09:08:30-JST>
+# Time-stamp:   <2023.03.26-08:23:34-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -493,7 +493,7 @@ def i2c_c_arab(n, md_line=None):
             sys.stderr.write(msg + '\n\n')
         else:
             md_line.append_warning_message(msg)
-        return '●'
+        return '〓'
 
 
 def i2c_n_kata(n, md_line=None):
@@ -528,7 +528,7 @@ def i2c_n_kata(n, md_line=None):
             sys.stderr.write(msg + '\n\n')
         else:
             md_line.append_warning_message(msg)
-        return '●'
+        return '〓'
 
 
 def i2c_p_kata(n, md_line=None):
@@ -549,7 +549,7 @@ def i2c_p_kata(n, md_line=None):
             sys.stderr.write(msg + '\n\n')
         else:
             md_line.append_warning_message(msg)
-        return '●'
+        return '〓'
 
 
 def i2c_c_kata(n, md_line=None):
@@ -566,7 +566,7 @@ def i2c_c_kata(n, md_line=None):
             sys.stderr.write(msg + '\n\n')
         else:
             md_line.append_warning_message(msg)
-        return '●'
+        return '〓'
 
 
 def i2c_n_alph(n, md_line=None):
@@ -583,7 +583,7 @@ def i2c_n_alph(n, md_line=None):
             sys.stderr.write(msg + '\n\n')
         else:
             md_line.append_warning_message(msg)
-        return '●'
+        return '〓'
 
 
 def i2c_p_alph(n, md_line=None):
@@ -600,7 +600,7 @@ def i2c_p_alph(n, md_line=None):
             sys.stderr.write(msg + '\n\n')
         else:
             md_line.append_warning_message(msg)
-        return '●'
+        return '〓'
 
 
 def i2c_c_alph(n, md_line=None):
@@ -617,7 +617,7 @@ def i2c_c_alph(n, md_line=None):
             sys.stderr.write(msg + '\n\n')
         else:
             md_line.append_warning_message(msg)
-        return '●'
+        return '〓'
 
 
 def i2c_n_kanj(n, md_line=None):
@@ -661,7 +661,7 @@ def i2c_p_kanj(n, md_line=None):
             sys.stderr.write(msg + '\n\n')
         else:
             md_line.append_warning_message(msg)
-        return '●'
+        return '〓'
 
 
 def i2c_c_kanj(n, md_line=None):
@@ -678,7 +678,7 @@ def i2c_c_kanj(n, md_line=None):
             sys.stderr.write(msg + '\n\n')
         else:
             md_line.append_warning_message(msg)
-        return '●'
+        return '〓'
 
 
 def concatenate_string(str1, str2):
@@ -2405,8 +2405,8 @@ class ParagraphChapter(Paragraph):
 
     @classmethod
     def _get_head_string(cls, xdepth, ydepth, md_line):
-        xvalue_char = '●'
-        unit_char = '●'
+        xvalue_char = '〓'
+        unit_char = '〓'
         if xdepth < len(cls.states):
             if ydepth < len(cls.states[xdepth]):
                 value = cls.states[xdepth][0]
@@ -2422,7 +2422,7 @@ class ParagraphChapter(Paragraph):
                     value += 1
                 yvalue_char = i2c_n_arab(value, md_line)
             else:
-                yvalue_char = '●'
+                yvalue_char = '〓'
             head_string += 'の' + yvalue_char
         return head_string
 
@@ -2505,9 +2505,9 @@ class ParagraphSection(Paragraph):
             elif xdepth == 7:
                 head_string = i2c_p_alph(value, md_line)
             else:
-                head_string = '●'
+                head_string = '〓'
         else:
-            head_string = '●'
+            head_string = '〓'
         # BRANCH
         for y in range(1, ydepth + 1):
             if y < len(cls.states[xdepth]):
@@ -2516,7 +2516,7 @@ class ParagraphSection(Paragraph):
                     value += 1
                 yvalue_char = i2c_n_arab(value, md_line)
             else:
-                yvalue_char = '●'
+                yvalue_char = '〓'
             head_string += 'の' + yvalue_char
         return head_string
 
@@ -2593,7 +2593,7 @@ class ParagraphList(Paragraph):
                 head_strings = '◇'
                 # head_strings = '⁃ '  # U+2043 Hyphen Bullet
             else:
-                head_strings = '●'
+                head_strings = '〓'
         else:
             if proper_depth == 1:
                 head_strings = i2c_c_arab(states[0][0] + 1)
@@ -2604,7 +2604,7 @@ class ParagraphList(Paragraph):
             elif proper_depth == 4:
                 head_strings = i2c_c_kanj(states[3][0] + 1)
             else:
-                head_strings = '●'
+                head_strings = '〓'
             if proper_depth <= len(states):
                 states[proper_depth - 1][0] += 1
                 for d in range(proper_depth, len(states)):
