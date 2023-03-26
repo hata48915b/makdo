@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v05 Aki-Nagatsuka
-# Time-stamp:   <2023.03.26-10:55:18-JST>
+# Time-stamp:   <2023.03.26-11:43:25-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -469,7 +469,7 @@ def i2c_p_arab(n, md_line=None):
         return '△(' + str(-n) + ')'
     elif n == 0:
         return '(0)'
-    elif n <= 20:
+    elif n > 0 and n <= 20:
         return chr(9331 + n)
     else:
         return '(' + str(n) + ')'
@@ -478,15 +478,15 @@ def i2c_p_arab(n, md_line=None):
 def i2c_c_arab(n, md_line=None):
     if n == 0:
         return chr(9450)
-    elif n <= 20:
+    elif n > 0 and n <= 20:
         return chr(9311 + n)
-    elif n <= 35:
+    elif n > 0 and n <= 35:
         return chr(12860 + n)
-    elif n <= 50:
+    elif n > 0 and n <= 50:
         return chr(12941 + n)
     else:
         msg = '※ 警告: ' \
-            + '丸付き数字番号は上限を超えています'
+            + '丸付き数字番号は範囲を超えています'
         # msg = 'warning: ' \
         #     + 'overflowed circled number'
         if md_line is None:
@@ -499,29 +499,29 @@ def i2c_c_arab(n, md_line=None):
 def i2c_n_kata(n, md_line=None):
     if n == 0:
         return chr(12448 + 83)
-    elif n <= 5:
+    elif n > 0 and n <= 5:
         return chr(12448 + (2 * n))
-    elif n <= 17:
+    elif n > 0 and n <= 17:
         return chr(12448 + (2 * n) - 1)
-    elif n <= 20:
+    elif n > 0 and n <= 20:
         return chr(12448 + (2 * n))
-    elif n <= 25:
+    elif n > 0 and n <= 25:
         return chr(12448 + (1 * n) + 21)
-    elif n <= 30:
+    elif n > 0 and n <= 30:
         return chr(12448 + (3 * n) - 31)
-    elif n <= 35:
+    elif n > 0 and n <= 35:
         return chr(12448 + (1 * n) + 31)
-    elif n <= 38:
+    elif n > 0 and n <= 38:
         return chr(12448 + (2 * n) - 4)
-    elif n <= 43:
+    elif n > 0 and n <= 43:
         return chr(12448 + (1 * n) + 34)
-    elif n <= 45:
+    elif n > 0 and n <= 45:
         return chr(12448 + (3 * n) - 53)
-    elif n <= 46:
+    elif n > 0 and n <= 46:
         return chr(12448 + (1 * n) + 37)
     else:
         msg = '※ 警告: ' \
-            + 'カタカナ番号は上限を超えています'
+            + 'カタカナ番号は範囲を超えています'
         # msg = 'warning: ' \
         #     + 'overflowed katakana'
         if md_line is None:
@@ -534,15 +534,15 @@ def i2c_n_kata(n, md_line=None):
 def i2c_p_kata(n, md_line=None):
     if n == 0:
         return '(' + chr(65392 + 45) + ')'
-    elif n <= 44:
+    elif n > 0 and n <= 44:
         return '(' + chr(65392 + n) + ')'
-    elif n <= 45:
+    elif n > 0 and n <= 45:
         return '(' + chr(65392 + n - 55) + ')'
-    elif n <= 46:
+    elif n > 0 and n <= 46:
         return '(' + chr(65392 + n - 1) + ')'
     else:
         msg = '※ 警告: ' \
-            + '括弧付きカタカナ番号は上限を超えています'
+            + '括弧付きカタカナ番号は範囲を超えています'
         # msg = 'warning: ' \
         #     + 'overflowed parenthesis katakata'
         if md_line is None:
@@ -555,11 +555,11 @@ def i2c_p_kata(n, md_line=None):
 def i2c_c_kata(n, md_line=None):
     if n == 0:
         return chr(13007 + 47)
-    elif n <= 47:
+    elif n > 0 and n <= 47:
         return chr(13007 + n)
     else:
         msg = '※ 警告: ' \
-            + '丸付きカタカナ番号は上限を超えています'
+            + '丸付きカタカナ番号は範囲を超えています'
         # msg = 'warning: ' \
         #     + 'overflowed circled katakana'
         if md_line is None:
@@ -572,11 +572,11 @@ def i2c_c_kata(n, md_line=None):
 def i2c_n_alph(n, md_line=None):
     if n == 0:
         return chr(65344 + 26)
-    elif n <= 26:
+    elif n > 0 and n <= 26:
         return chr(65344 + n)
     else:
         msg = '※ 警告: ' \
-            + 'アルファベット番号は上限を超えています'
+            + 'アルファベット番号は範囲を超えています'
         # msg = 'warning: ' \
         #     + 'overflowed alphabet'
         if md_line is None:
@@ -589,11 +589,11 @@ def i2c_n_alph(n, md_line=None):
 def i2c_p_alph(n, md_line=None):
     if n == 0:
         return chr(9371 + 26)
-    elif n <= 26:
+    elif n > 0 and n <= 26:
         return chr(9371 + n)
     else:
         msg = '※ 警告: ' \
-            + '括弧付きアルファベット番号は上限を超えています'
+            + '括弧付きアルファベット番号は範囲を超えています'
         # msg = 'warning: ' \
         #     + 'overflowed parenthesis alphabet'
         if md_line is None:
@@ -606,11 +606,11 @@ def i2c_p_alph(n, md_line=None):
 def i2c_c_alph(n, md_line=None):
     if n == 0:
         return chr(9423 + 26)
-    elif n <= 26:
+    elif n > 0 and n <= 26:
         return chr(9423 + n)
     else:
         msg = '※ 警告: ' \
-            + '丸付きアルファベット番号は上限を超えています'
+            + '丸付きアルファベット番号は範囲を超えています'
         # msg = 'warning: ' \
         #     + 'overflowed circled alphabet'
         if md_line is None:
@@ -621,40 +621,51 @@ def i2c_c_alph(n, md_line=None):
 
 
 def i2c_n_kanj(n, md_line=None):
-    k = str(n)
-    if n >= 1000:
-        k = re.sub('^(.+)(...)$', '\\1千\\2', k)
-    if n >= 100:
-        k = re.sub('^(.+)(..)$', '\\1百\\2', k)
-    if n >= 10:
-        k = re.sub('^(.+)(.)$', '\\1十\\2', k)
-    k = re.sub('0', '〇', k)
-    k = re.sub('1', '一', k)
-    k = re.sub('2', '二', k)
-    k = re.sub('3', '三', k)
-    k = re.sub('4', '四', k)
-    k = re.sub('5', '五', k)
-    k = re.sub('6', '六', k)
-    k = re.sub('7', '七', k)
-    k = re.sub('8', '八', k)
-    k = re.sub('9', '九', k)
-    k = re.sub('〇$', '', k)
-    k = re.sub('〇十', '', k)
-    k = re.sub('〇百', '', k)
-    k = re.sub('〇千', '', k)
-    k = re.sub('一十', '十', k)
-    k = re.sub('一百', '百', k)
-    k = re.sub('一千', '千', k)
-    return k
-
+    if n >= 0:
+        k = str(n)
+        if n >= 1000:
+            k = re.sub('^(.+)(...)$', '\\1千\\2', k)
+        if n >= 100:
+            k = re.sub('^(.+)(..)$', '\\1百\\2', k)
+        if n >= 10:
+            k = re.sub('^(.+)(.)$', '\\1十\\2', k)
+        k = re.sub('0', '〇', k)
+        k = re.sub('1', '一', k)
+        k = re.sub('2', '二', k)
+        k = re.sub('3', '三', k)
+        k = re.sub('4', '四', k)
+        k = re.sub('5', '五', k)
+        k = re.sub('6', '六', k)
+        k = re.sub('7', '七', k)
+        k = re.sub('8', '八', k)
+        k = re.sub('9', '九', k)
+        k = re.sub('〇$', '', k)
+        k = re.sub('〇十', '', k)
+        k = re.sub('〇百', '', k)
+        k = re.sub('〇千', '', k)
+        k = re.sub('一十', '十', k)
+        k = re.sub('一百', '百', k)
+        k = re.sub('一千', '千', k)
+        return k
+    else:
+        msg = '※ 警告: ' \
+            + '漢数字番号は範囲を超えています'
+        # msg = 'warning: ' \
+        #     + 'overflowed kansuji'
+        if md_line is None:
+            sys.stderr.write(msg + '\n\n')
+        else:
+            md_line.append_warning_message(msg)
+        return '〓'
 
 def i2c_p_kanj(n, md_line=None):
     if n == 0:
         return chr(12831 + 10)
-    elif n <= 10:
+    elif n > 0 and n <= 10:
         return chr(12831 + n)
+    else:
         msg = '※ 警告: ' \
-            + '括弧付き漢数字番号は上限を超えています'
+            + '括弧付き漢数字番号は範囲を超えています'
         # msg = 'warning: ' \
         #     + 'overflowed parenthesis kansuji'
         if md_line is None:
@@ -667,13 +678,13 @@ def i2c_p_kanj(n, md_line=None):
 def i2c_c_kanj(n, md_line=None):
     if n == 0:
         return chr(12927 + 10)
-    elif n <= 10:
+    elif n > 0 and n <= 10:
         return chr(12927 + n)
     else:
         msg = '※ 警告: ' \
-            + '括弧付き漢数字番号は上限を超えています'
+            + '丸付き漢数字番号は範囲を超えています'
         # msg = 'warning: ' \
-        #     + 'overflowed parenthesis kansuji'
+        #     + 'overflowed circled kansuji'
         if md_line is None:
             sys.stderr.write(msg + '\n\n')
         else:
