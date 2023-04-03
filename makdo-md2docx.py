@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
-# Version:      v05 Aki-Nagatsuka
-# Time-stamp:   <2023.03.26-11:43:25-JST>
+# Version:      v06a Shimo-Gion
+# Time-stamp:   <2023.04.03-16:32:56-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -25,6 +25,7 @@
 # 2022.12.25 v03 Yokogawa
 # 2023.01.07 v04 Mitaki
 # 2023.03.16 v05 Aki-Nagatsuka
+# 20XX.XX.XX v06 Shimo-Gion
 
 
 ############################################################
@@ -55,7 +56,7 @@ import socket   # host
 import getpass  # user
 
 
-__version__ = 'v05 Aki-Nagatsuka'
+__version__ = 'v06a Shimo-Gion'
 
 
 def get_arguments():
@@ -1863,15 +1864,12 @@ class Paragraph:
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
         sb = (Document.space_before + ',,,,,,,').split(',')
         sa = (Document.space_after + ',,,,,,,').split(',')
-        if paragraph_class == 'section' or has_section_depth_setters:
+        if paragraph_class == 'section':
             if hd <= len(sb) and sb[hd - 1] != '':
                 length_conf['space before'] += float(sb[hd - 1])
         if paragraph_class == 'section':
             if td <= len(sa) and sa[td - 1] != '':
                 length_conf['space after'] += float(sa[td - 1])
-        if has_section_depth_setters:
-            if td <= len(sa) and sa[td - 1] != '':
-                length_conf['space before'] += float(sa[td - 1])
         # self.length_conf = length_conf
         return length_conf
 
