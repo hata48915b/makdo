@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.04.03-16:32:56-JST>
+# Time-stamp:   <2023.04.18-08:23:30-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1531,6 +1531,23 @@ class RawParagraph:
                     break
             if ml.text != '':
                 break
+        # EXAMPLE "# ###=1"
+        full_text = ''
+        for ml in md_lines:
+            if re.match('^.*\\S.*$', ml.text):
+                full_text += ml.text
+        res = '^' + \
+            '(' + ParagraphSection.res_symbol + ')' + \
+            '((\\s+' + ParagraphSection.res_reviser + ')+)' + \
+            '\\s*$'
+        if re.match(res, full_text):
+            symbol = re.sub(res, '\\1', full_text)
+            revisers = re.sub(res, '\\4', full_text)
+            for ml in md_lines:
+                ml.text = ''
+            md_lines[0].text = symbol
+            for r in revisers.split():
+                section_revisers.append(r)
         # self.chapter_revisers = chapter_revisers
         # self.section_revisers = section_revisers
         # self.length_revisers = length_revisers
