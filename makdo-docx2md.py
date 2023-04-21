@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.04.03-16:33:08-JST>
+# Time-stamp:   <2023.04.21-10:50:37-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2268,6 +2268,19 @@ class RawParagraph:
             raw_text = '\\' + raw_text
         if '' in images:
             images.pop('')
+        # IVS (IDEOGRAPHIC VARIATION SEQUENCE)
+        res = '^(.*[^\\\\0-9])([0-9]+);'
+        while re.match(res, raw_text, flags=re.DOTALL):
+            raw_text = re.sub(res, '\\1\\\\\\2;', raw_text, flags=re.DOTALL)
+        ivs_beg = int('0xE0100', 16)
+        ivs_end = int('0xE01EF', 16)
+        res = '^(.*)([' + chr(ivs_beg) + '-' + chr(ivs_end) + '])(.*)$'
+        while re.match(res, raw_text, flags=re.DOTALL):
+            t1 = re.sub(res, '\\1', raw_text, flags=re.DOTALL)
+            t2 = re.sub(res, '\\2', raw_text, flags=re.DOTALL)
+            t3 = re.sub(res, '\\3', raw_text, flags=re.DOTALL)
+            ivs_n = ord(t2) - ivs_beg
+            raw_text = t1 + str(ivs_n) + ';' + t3
         # self.raw_text = raw_text
         # self.images = images
         return raw_text, images

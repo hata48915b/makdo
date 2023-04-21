@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.04.18-08:23:30-JST>
+# Time-stamp:   <2023.04.21-11:26:22-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -203,6 +203,7 @@ HELP_EPILOG = '''Markdownの記法:
       red(R) darkRed(DR) yellow(Y) darkYellow(DY) green(G) darkGreen(DG)
       cyan(C) darkCyan(DC) blue(B) darkBlue(DB) magenta(M) darkMagenta(DM)
       lightGray(G1) darkGray(G2) black(BK)
+    [字N;]（N=0-239）で"字"の異字体セレクタ（IVS）が使えます（独自）
   エスケープ記号
     [\\]をコマンドの前に書くとコマンドが文字列になります
     [\\\\]で"\\"が表示されます
@@ -232,6 +233,8 @@ DEFAULT_LINE_NUMBER = False
 DEFAULT_MINCHO_FONT = 'ＭＳ 明朝'
 DEFAULT_GOTHIC_FONT = 'ＭＳ ゴシック'
 DEFAULT_FONT_SIZE = 12.0
+
+IVS_FONT = 'IPAmj明朝'  # IPAmjMincho
 
 DEFAULT_LINE_SPACING = 2.14  # (2.0980+2.1812)/2=2.1396
 
@@ -658,6 +661,7 @@ def i2c_n_kanj(n, md_line=None):
         else:
             md_line.append_warning_message(msg)
         return '〓'
+
 
 def i2c_p_kanj(n, md_line=None):
     if n == 0:
@@ -2162,6 +2166,7 @@ class Paragraph:
         text = re.sub('\n$', '', text)
         text = Paragraph._remove_relax_symbol(text)
         res_img = '(.*(?:\n.*)*)' + RES_IMAGE
+        res_ivs = '^(.*)([^\\\\])([0-9]+);$'
         tex = ''
         for c in text + '\0':
             if False:
@@ -2263,6 +2268,19 @@ class Paragraph:
                 tex = self._write_string(tex, ms_par)
                 self._write_image(comm, path, ms_par)
                 continue
+            elif re.match(res_ivs, tex + c, flags=re.DOTALL):
+                # .[0-9]+; (IVS (IDEOGRAPHIC VARIATION SEQUENCE))
+                tmp_t = re.sub(res_ivs, '\\1', tex + c, flags=re.DOTALL)
+                ivs_c = re.sub(res_ivs, '\\2', tex + c, flags=re.DOTALL)
+                ivs_n = re.sub(res_ivs, '\\3', tex + c, flags=re.DOTALL)
+                ivs_u = int('0xE0100', 16) + int(ivs_n)
+                if int(ivs_n) <= int('0xE01EF', 16):
+                    tex = self._write_string(tmp_t, ms_par)
+                    pmf = Paragraph.mincho_font
+                    Paragraph.mincho_font = IVS_FONT
+                    self._write_string(ivs_c + chr(ivs_u), ms_par)
+                    Paragraph.mincho_font = pmf
+                    continue
             tex += c
         tex = re.sub('\0$', '', tex)
         if tex != '':
