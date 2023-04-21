@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.04.21-10:50:37-JST>
+# Time-stamp:   <2023.04.21-17:53:49-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -118,6 +118,11 @@ def get_arguments():
         metavar='FONT_NAME',
         help='ゴシックフォント')
     parser.add_argument(
+        '-i', '--ivs-font',
+        type=str,
+        metavar='FONT_NAME',
+        help='異字体（IVS）フォント')
+    parser.add_argument(
         '-f', '--font-size',
         type=float,
         metavar='NUMBER',
@@ -184,6 +189,8 @@ DEFAULT_LINE_NUMBER = False
 
 DEFAULT_MINCHO_FONT = 'ＭＳ 明朝'
 DEFAULT_GOTHIC_FONT = 'ＭＳ ゴシック'
+DEFAULT_IVS_FONT = 'IPAmj明朝'  # IPAmjMincho
+
 DEFAULT_FONT_SIZE = 12.0
 
 DEFAULT_LINE_SPACING = 2.14  # (2.0980+2.1812)/2=2.1396
@@ -787,6 +794,7 @@ class Document:
     line_number = DEFAULT_LINE_NUMBER
     mincho_font = DEFAULT_MINCHO_FONT
     gothic_font = DEFAULT_GOTHIC_FONT
+    ivs_font = DEFAULT_IVS_FONT
     font_size = DEFAULT_FONT_SIZE
     line_spacing = DEFAULT_LINE_SPACING
     space_before = DEFAULT_SPACE_BEFORE
@@ -898,6 +906,7 @@ class Document:
         # PARAGRAPH
         Paragraph.mincho_font = self.mincho_font
         Paragraph.gothic_font = self.gothic_font
+        Paragraph.ivs_font = self.ivs_font
         Paragraph.font_size = self.font_size
 
     def _configure_by_document_xml(self, raw_xml_lines):
@@ -1105,6 +1114,9 @@ class Document:
             elif name == 'makdo-g':
                 # GOTHIC FONT
                 self.gothic_font = font
+            elif name == 'makdo-i':
+                # IVS FONT
+                self.ivs_font = font
             else:
                 for i in range(6):
                     if name != 'makdo-' + str(i + 1):
@@ -1164,6 +1176,8 @@ class Document:
             Document.mincho_font = args.mincho_font
         if args.gothic_font is not None:
             Document.gothic_font = args.gothic_font
+        if args.ivs_font is not None:
+            Document.ivs_font = args.ivs_font
         if args.font_size is not None:
             Document.font_size = args.font_size
         if args.line_spacing is not None:
@@ -1636,6 +1650,8 @@ class Document:
                  + self.mincho_font + '\n')
         mf.write('gothic_font:    '
                  + self.gothic_font + '\n')
+        mf.write('ivs_font:       '
+                 + self.ivs_font + '\n')
         mf.write('font_size:      '
                  + str(round(self.font_size, 1)) + '\n')
         mf.write('line_spacing:   '
@@ -1720,10 +1736,11 @@ class Document:
         mf.write('\n')
 
         mf.write(
-            '# 明朝体とゴシック体のフォントを指定できます。'
+            '# 明朝体とゴシック体と異字体（IVS）のフォントを指定できます。'
             + '\n')
         mf.write('明朝体: ' + self.mincho_font + '\n')
         mf.write('ゴシ体: ' + self.gothic_font + '\n')
+        mf.write('異字体: ' + self.ivs_font + '\n')
         mf.write('\n')
 
         mf.write(

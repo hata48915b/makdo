@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.04.21-11:26:22-JST>
+# Time-stamp:   <2023.04.21-18:05:51-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -132,6 +132,11 @@ def get_arguments():
         metavar='FONT_NAME',
         help='ゴシックフォント')
     parser.add_argument(
+        '-i', '--ivs-font',
+        type=str,
+        metavar='FONT_NAME',
+        help='異字体（IVS）フォント')
+    parser.add_argument(
         '-f', '--font-size',
         type=float,
         metavar='NUMBER',
@@ -203,7 +208,8 @@ HELP_EPILOG = '''Markdownの記法:
       red(R) darkRed(DR) yellow(Y) darkYellow(DY) green(G) darkGreen(DG)
       cyan(C) darkCyan(DC) blue(B) darkBlue(DB) magenta(M) darkMagenta(DM)
       lightGray(G1) darkGray(G2) black(BK)
-    [字N;]（N=0-239）で"字"の異字体セレクタ（IVS）が使えます（独自）
+    [字N;]（N=0-239）で"字"の異字体（IVS）が使えます（独自）
+      ただし、IPAmj明朝フォント等がインストールされている必要があります。
   エスケープ記号
     [\\]をコマンドの前に書くとコマンドが文字列になります
     [\\\\]で"\\"が表示されます
@@ -232,9 +238,8 @@ DEFAULT_LINE_NUMBER = False
 
 DEFAULT_MINCHO_FONT = 'ＭＳ 明朝'
 DEFAULT_GOTHIC_FONT = 'ＭＳ ゴシック'
+DEFAULT_IVS_FONT = 'IPAmj明朝'  # IPAmjMincho
 DEFAULT_FONT_SIZE = 12.0
-
-IVS_FONT = 'IPAmj明朝'  # IPAmjMincho
 
 DEFAULT_LINE_SPACING = 2.14  # (2.0980+2.1812)/2=2.1396
 
@@ -725,6 +730,7 @@ class Document:
     line_number = DEFAULT_LINE_NUMBER
     mincho_font = DEFAULT_MINCHO_FONT
     gothic_font = DEFAULT_GOTHIC_FONT
+    ivs_font = DEFAULT_IVS_FONT
     font_size = DEFAULT_FONT_SIZE
     line_spacing = DEFAULT_LINE_SPACING
     space_before = DEFAULT_SPACE_BEFORE
@@ -971,6 +977,7 @@ class Document:
         self._configure_by_args(args)
         Paragraph.mincho_font = Document.mincho_font
         Paragraph.gothic_font = Document.gothic_font
+        Paragraph.ivs_font = Document.ivs_font
         Paragraph.font_size = Document.font_size
 
     def _configure_by_md_file(self, md_lines):
@@ -1072,6 +1079,8 @@ class Document:
                 Document.mincho_font = val
             elif nam == 'gothic_font' or nam == 'ゴシ体':
                 Document.gothic_font = val
+            elif nam == 'ivs_font' or nam == '異字体':
+                Document.ivs_font = val
             elif nam == 'font_size' or nam == '文字サ':
                 val = unicodedata.normalize('NFKC', val)
                 val = re.sub('\\s*pt$', '', val)
@@ -1154,6 +1163,8 @@ class Document:
             Document.mincho_font = args.mincho_font
         if args.gothic_font is not None:
             Document.gothic_font = args.gothic_font
+        if args.ivs_font is not None:
+            Document.ivs_font = args.ivs_font
         if args.font_size is not None:
             Document.font_size = args.font_size
         if args.document_style is not None:
@@ -1316,6 +1327,9 @@ class Document:
         # GOTHIC
         ms_doc.styles.add_style('makdo-g', WD_STYLE_TYPE.PARAGRAPH)
         ms_doc.styles['makdo-g'].font.name = Document.gothic_font
+        # IVS
+        ms_doc.styles.add_style('makdo-i', WD_STYLE_TYPE.PARAGRAPH)
+        ms_doc.styles['makdo-i'].font.name = Document.ivs_font
         # TABLE
         ms_doc.styles.add_style('makdo-t', WD_STYLE_TYPE.PARAGRAPH)
         ms_doc.styles['makdo-t'].paragraph_format.line_spacing = Pt(size * 1.2)
@@ -1665,6 +1679,7 @@ class Paragraph:
 
     mincho_font = ''
     gothic_font = ''
+    ivs_font = ''
     font_size = -1
 
     previous_head_section_depth = 0
@@ -2277,7 +2292,7 @@ class Paragraph:
                 if int(ivs_n) <= int('0xE01EF', 16):
                     tex = self._write_string(tmp_t, ms_par)
                     pmf = Paragraph.mincho_font
-                    Paragraph.mincho_font = IVS_FONT
+                    Paragraph.mincho_font = Paragraph.ivs_font
                     self._write_string(ivs_c + chr(ivs_u), ms_par)
                     Paragraph.mincho_font = pmf
                     continue
