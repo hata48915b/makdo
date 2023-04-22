@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.04.21-18:05:51-JST>
+# Time-stamp:   <2023.04.22-08:08:04-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -210,6 +210,8 @@ HELP_EPILOG = '''Markdownの記法:
       lightGray(G1) darkGray(G2) black(BK)
     [字N;]（N=0-239）で"字"の異字体（IVS）が使えます（独自）
       ただし、IPAmj明朝フォント等がインストールされている必要があります。
+      参考：https://moji.or.jp/mojikiban/font/
+            https://moji.or.jp/mojikibansearch/basic
   エスケープ記号
     [\\]をコマンドの前に書くとコマンドが文字列になります
     [\\\\]で"\\"が表示されます
