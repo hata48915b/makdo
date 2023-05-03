@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.04.21-17:53:49-JST>
+# Time-stamp:   <2023.05.03-07:59:41-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -899,7 +899,7 @@ class Document:
         # PAGE NUMBER
         self._configure_by_footerX_xml(self.footer1_raw_xml_lines)
         self._configure_by_footerX_xml(self.footer2_raw_xml_lines)
-        # FONT, LINE SPACING, AUTOSPACE, SAPCE BEFORE AND AFTER
+        # FONT, LINE SPACING, AUTO SPACE, SAPCE BEFORE AND AFTER
         self._configure_by_styles_xml(self.styles_raw_xml_lines)
         # REVISE
         self._configure_by_args(args)
@@ -925,31 +925,31 @@ class Document:
             right_x = get_xml_value('w:pgMar', 'w:right', right_x, rxl)
             # LINE NUMBER
             if re.match('^<w:lnNumType( .*)?>$', rxl):
-                self.line_number = True
+                Document.line_number = True
         # PAPER SIZE
         width = width_x / 567
         height = height_x / 567
         if 41.9 <= width and width <= 42.1:
             if 29.6 <= height and height <= 29.8:
-                self.paper_size = 'A3'
+                Document.paper_size = 'A3'
         if 29.6 <= width and width <= 29.8:
             if 41.9 <= height and height <= 42.1:
-                self.paper_size = 'A3P'
+                Document.paper_size = 'A3P'
         if 20.9 <= width and width <= 21.1:
             if 29.6 <= height and height <= 29.8:
-                self.paper_size = 'A4'
+                Document.paper_size = 'A4'
         if 29.6 <= width and width <= 29.8:
             if 20.9 <= height and height <= 21.1:
-                self.paper_size = 'A4L'
+                Document.paper_size = 'A4L'
         # MARGIN
         if top_x > 0:
-            self.top_margin = round(top_x / 567, 1)
+            Document.top_margin = round(top_x / 567, 1)
         if bottom_x > 0:
-            self.bottom_margin = round(bottom_x / 567, 1)
+            Document.bottom_margin = round(bottom_x / 567, 1)
         if left_x > 0:
-            self.left_margin = round(left_x / 567, 1)
+            Document.left_margin = round(left_x / 567, 1)
         if right_x > 0:
-            self.right_margin = round(right_x / 567, 1)
+            Document.right_margin = round(right_x / 567, 1)
         # DOCUMENT STYLE
         xml_body = self._get_xml_body('w:body', raw_xml_lines)
         xml_blocks = self._get_xml_blocks(xml_body)
@@ -980,7 +980,7 @@ class Document:
             rese = '^</dc:title>$'
             if i > 0 and re.match(resb, raw_xml_lines[i - 1], re.I):
                 if not re.match(rese, rxl, re.I):
-                    self.document_title = rxl
+                    Document.document_title = rxl
             # DOCUMENT STYLE
             resb = '^<cp:category>$'
             rese = '^</cp:category>$'
@@ -1002,7 +1002,8 @@ class Document:
                         dt += datetime.timedelta(hours=9)
                         jst = datetime.timezone(datetime.timedelta(hours=9))
                         dt = dt.replace(tzinfo=jst)
-                    self.original_file = dt.strftime('%Y-%m-%dT%H:%M:%S+09:00')
+                    Document.original_file \
+                        = dt.strftime('%Y-%m-%dT%H:%M:%S+09:00')
 
     def _configure_by_headerX_xml(self, raw_xml_lines):
         # HEADER STRING
@@ -1039,7 +1040,7 @@ class Document:
                 hs = ': ' + hs
             elif alg == 'R':
                 hs = hs + ' :'
-            self.header_string = hs
+            Document.header_string = hs
 
     def _configure_by_footerX_xml(self, raw_xml_lines):
         # PAGE NUMBER
@@ -1076,7 +1077,7 @@ class Document:
                 pn = ': ' + pn
             elif alg == 'R':
                 pn = pn + ' :'
-            self.page_number = pn
+            Document.page_number = pn
 
     def _configure_by_styles_xml(self, raw_xml_lines):
         xml_body = self._get_xml_body('w:styles', raw_xml_lines)
@@ -1099,24 +1100,25 @@ class Document:
                 asn = get_xml_value('w:autoSpaceDN', 'w:val', asn, xl)
             if name == 'makdo':
                 # MINCHO FONT
-                self.mincho_font = font
+                Document.mincho_font = font
                 # FONT SIZE
                 if sz_x > 0:
-                    self.font_size = round(sz_x / 2, 1)
+                    Document.font_size = round(sz_x / 2, 1)
                 # LINE SPACING
                 if ls_x > 0:
-                    self.line_spacing = round(ls_x / 20 / self.font_size, 2)
-                # AUTOSPACE
+                    Document.line_spacing \
+                        = round(ls_x / 20 / self.font_size, 2)
+                # AUTO SPACE
                 if ase == 0 and asn == 0:
-                    self.auto_space = False
+                    Document.auto_space = False
                 else:
-                    self.auto_space = True
+                    Document.auto_space = True
             elif name == 'makdo-g':
                 # GOTHIC FONT
-                self.gothic_font = font
+                Document.gothic_font = font
             elif name == 'makdo-i':
                 # IVS FONT
-                self.ivs_font = font
+                Document.ivs_font = font
             else:
                 for i in range(6):
                     if name != 'makdo-' + str(i + 1):
@@ -1186,7 +1188,7 @@ class Document:
             Document.space_before = args.space_before
         if args.space_after is not None:
             Document.space_after = args.space_after
-        if args.auto_space is not None:
+        if args.auto_space:
             Document.auto_space = args.auto_space
 
     def get_styles(self, raw_xml_lines):
@@ -1941,6 +1943,9 @@ class RawParagraph:
         highlight_color = ''
         has_deleted = False   # TRACK CHANGES
         has_inserted = False  # TRACK CHANGES
+        has_top_line = False      # HORIZONTAL LINE
+        has_bottom_line = False   # HORIZONTAL LINE
+        has_textbox_line = False  # HORIZONTAL LINE
         is_in_text = False
         for rxl in raw_xml_lines:
             if re.match(RES_XML_IMG_MS, rxl):
@@ -1958,6 +1963,19 @@ class RawParagraph:
             if re.match(RES_XML_IMG_SIZE, rxl):
                 # IMAGE SIZE
                 xml_lines.append(rxl)
+                continue
+            if re.match('^<w:top( .*)?>$', rxl):
+                # HORIZONTAL LINE (TOPLINE)
+                has_top_line = True
+                continue
+            if re.match('^<w:bottom( .*)?>$', rxl):
+                # HORIZONTAL LINE (BOTTOMLINE)
+                has_bottom_line = True
+                continue
+            res = '^<v:rect( .*)? style="width:0;height:1.5pt"( .*)?>$'
+            if re.match(res, rxl):
+                # HORIZONTAL LINE (TEXTBOX)
+                has_textbox_line = True
                 continue
             if re.match('^<w:r( .*)?>$', rxl):
                 text = ''
@@ -2026,6 +2044,7 @@ class RawParagraph:
                 # TRACK CHANGES (INSERTED)
                 elif has_inserted:
                     text = '&lt;!+&gt;' + text + '&lt;+&gt;'
+                    has_inserted = False
                 xml_lines.append(text)
                 text = ''
                 is_in_text = False
@@ -2086,6 +2105,12 @@ class RawParagraph:
                 rxl = rxl.replace('&lt;', '\\&lt;')
                 rxl = rxl.replace('&gt;', '\\&gt;')
                 text += rxl
+        if has_top_line:
+            xml_lines.append('<horizontalLine:top>')
+        if has_bottom_line:
+            xml_lines.append('<horizontalLine:bottom>')
+        if has_textbox_line:
+            xml_lines.append('<horizontalLine:textbox>')
         # self.xml_lines = xml_lines
         return xml_lines
 
@@ -2279,9 +2304,43 @@ class RawParagraph:
                     raw_text = re.sub(res, '\\1', raw_text)
                     continue
             break
-        if re.match('^\\s*(?:\\$+(?:\\-\\$)*|#+(?:\\-#)*)', raw_text):
+        # SPACE
+        if re.match('^\\s+.*?$', raw_text):
             raw_text = '\\' + raw_text
-        if re.match('^\\s*(v|V|X|<<|<|>)=\\s*[0-9]+', raw_text):
+        if re.match('^.*?\\s+$', raw_text):
+            raw_text = raw_text + '\\'
+        # LENGTH REVISER
+        if re.match('^(v|V|X|<<|<|>)=\\s*[0-9]+', raw_text):
+            raw_text = '\\' + raw_text
+        # CHAPTER AND SECTION
+        if re.match('^(\\$+(\\-\\$)*|#+(\\-#)*)=[0-9]+(\\s*.*)?$', raw_text):
+            raw_text = '\\' + raw_text
+        if re.match('^(\\$+(\\-\\$)*|#+(\\-#)*)(\\s*.*)?$', raw_text):
+            raw_text = '\\' + raw_text
+        # LIST
+        if re.match('^(\\-|\\+|\\*|[0-9]+\\.|[0-9]+\\))\\s+', raw_text):
+            raw_text = '\\' + raw_text
+        # Table
+        if re.match('^\\|(.*)\\|$', raw_text):
+            raw_text = re.sub('^\\|(.*)\\|$', '\\\\|\\1\\\\|', raw_text)
+        # IMAGE
+        if re.match(RES_IMAGE, raw_text):
+            raw_text = '\\' + raw_text
+        # ALIGNMENT
+        if re.match('^:(\\s*.*\\s*):$', raw_text):
+            raw_text = re.sub('^:(\\s*.*\\s*):$', '\\\\:\\1\\\\:', raw_text)
+        if re.match('^:(\\s*.*)$', raw_text):
+            raw_text = re.sub('^:(\\s*.*)$', '\\\\:\\1', raw_text)
+        if re.match('^(.*\\s*):$', raw_text):
+            raw_text = re.sub('^(.*\\s*):$', '\\1\\\\:', raw_text)
+        # PREFORMATTED
+        if re.match('^```(.*)```$', raw_text):
+            raw_text = re.sub('^(.*\\s*):$', '\\\\```\\1\\\\```', raw_text)
+        # PAGEBREAK
+        if re.match('^<pgbr>$', raw_text):
+            raw_text = '\\' + raw_text
+        # HORIZONTAL LINE
+        if re.match('^((\\s*-\\s*)|(\\s*\\*\\s*)){3,}$', raw_text):
             raw_text = '\\' + raw_text
         if '' in images:
             images.pop('')
@@ -2326,11 +2385,12 @@ class RawParagraph:
         for ds in Document.styles:
             if style != ds.name:
                 continue
-            # COMMENTOUTED 23.02.18
+            # REMOVED 23.02.18 >
             # self.alignment = ds.alignment
             # for s in self.length:
             #     if ds.raw_length[s] is not None:
             #         self.length[s] = ds.raw_length[s]
+            # <
         # self.style = style
         return style
 
@@ -2367,6 +2427,8 @@ class RawParagraph:
             return 'alignment'
         elif ParagraphPreformatted.is_this_class(self):
             return 'preformatted'
+        elif ParagraphHorizontalLine.is_this_class(self):
+            return 'horizontalline'
         elif ParagraphPagebreak.is_this_class(self):
             return 'pagebreak'
         elif ParagraphBreakdown.is_this_class(self):
@@ -2400,6 +2462,8 @@ class RawParagraph:
             return ParagraphAlignment(self)
         elif paragraph_class == 'preformatted':
             return ParagraphPreformatted(self)
+        elif paragraph_class == 'horizontalline':
+            return ParagraphHorizontalLine(self)
         elif paragraph_class == 'pagebreak':
             return ParagraphPagebreak(self)
         elif paragraph_class == 'breakdown':
@@ -2488,7 +2552,6 @@ class Paragraph:
         self.text_to_write = self.get_text_to_write()
         self.text_to_write_with_reviser \
             = self.get_text_to_write_with_reviser()
-        # self.write_paragraph()
 
     @classmethod
     def _get_section_depths(cls, raw_text):
@@ -2861,7 +2924,7 @@ class Paragraph:
     def _split_into_lines(cls, md_text):
         md_lines_text = ''
         for line in md_text.split('\n'):
-            res = '^(.*)(' + RES_IMAGE + ')(.*)$'
+            res = NOT_ESCAPED + '(' + RES_IMAGE + ')(.*)$'
             line = re.sub(res, '\\1\n\\2\n\\5', line)
             line = re.sub('\n+', '\n', line)
             phrases = []
@@ -3121,6 +3184,7 @@ class ParagraphBlank(Paragraph):
         rp = raw_paragraph
         rp_rxl = rp.raw_xml_lines
         rp_rcl = rp.raw_class
+        rp_xl = rp.xml_lines
         rp_rtx = rp.raw_text
         if ParagraphTable.is_this_class(raw_paragraph):
             return False
@@ -3129,6 +3193,8 @@ class ParagraphBlank(Paragraph):
         if ParagraphPagebreak.is_this_class(raw_paragraph):
             return False
         if ParagraphConfiguration.is_this_class(raw_paragraph):
+            return False
+        if ParagraphHorizontalLine.is_this_class(raw_paragraph):
             return False
         if re.match('^\\s*$', rp_rtx):
             return True
@@ -3798,6 +3864,91 @@ class ParagraphPreformatted(Paragraph):
         return md_text
 
 
+class ParagraphHorizontalLine(Paragraph):
+
+    """A class to handle horizontalline paragraph"""
+
+    paragraph_class = 'horizontalline'
+
+    @classmethod
+    def is_this_class(cls, raw_paragraph):
+        rp = raw_paragraph
+        rp_xl = rp.xml_lines
+        if rp_xl[-1] == '<horizontalLine:top>':
+            return True
+        if rp_xl[-1] == '<horizontalLine:bottom>':
+            return True
+        if rp_xl[-1] == '<horizontalLine:textbox>':
+            return True
+        return False
+
+    def _get_length_docx(self):
+        if self.xml_lines[-1] == '<horizontalLine:textbox>':
+            return super()._get_length_docx()
+        size = Document.font_size
+        lnsp = Document.line_spacing
+        rxls = self.raw_xml_lines
+        length_docx \
+            = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
+               'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
+        sb_xml = 0.0
+        sa_xml = 0.0
+        ls_xml = 0.0
+        fi_xml = 0.0
+        hi_xml = 0.0
+        li_xml = 0.0
+        ri_xml = 0.0
+        ti_xml = 0.0
+        for rxl in rxls:
+            sb_xml = get_xml_value('w:spacing', 'w:before', sb_xml, rxl)
+            sa_xml = get_xml_value('w:spacing', 'w:after', sa_xml, rxl)
+            ls_xml = get_xml_value('w:spacing', 'w:line', ls_xml, rxl)
+            fi_xml = get_xml_value('w:ind', 'w:firstLine', fi_xml, rxl)
+            hi_xml = get_xml_value('w:ind', 'w:hanging', hi_xml, rxl)
+            li_xml = get_xml_value('w:ind', 'w:left', li_xml, rxl)
+            ri_xml = get_xml_value('w:ind', 'w:right', ri_xml, rxl)
+            ti_xml = get_xml_value('w:tblInd', 'w:w', ti_xml, rxl)
+        # VERTICAL SPACE
+        tmp_ls = 0.0
+        tmp_sb = (sb_xml / 20)
+        tmp_sa = (sa_xml / 20)
+        tmp_sb = tmp_sb - ((lnsp - 1) * 0.75 + 0.5) * size
+        tmp_sa = tmp_sa - ((lnsp - 1) * 0.25 + 0.5) * size
+        tmp_sb = tmp_sb / lnsp / size
+        tmp_sa = tmp_sa / lnsp / size
+        tmp_sb = round(tmp_sb, 2)
+        tmp_sa = round(tmp_sa, 2)
+        if tmp_sb == tmp_sa:
+            tmp_ls = tmp_sb + tmp_sa
+            tmp_sb = 0.0
+            tmp_sa = 0.0
+        length_docx['line spacing'] = tmp_ls
+        length_docx['space before'] = tmp_sb
+        length_docx['space after'] = tmp_sa
+        # HORIZONTAL SPACE
+        length_docx['first indent'] = round((fi_xml - hi_xml) / 20 / size, 2)
+        length_docx['left indent'] = round((li_xml + ti_xml) / 20 / size, 2)
+        length_docx['right indent'] = round(ri_xml / 20 / size, 2)
+        # length_docx = self.length_docx
+        return length_docx
+
+    def get_text_to_write_with_reviser(self):
+        xml_lines = self.xml_lines
+        tmp_ttw = self.text_to_write
+        self.text_to_write = '----------------'
+        ttwwr = super().get_text_to_write_with_reviser()
+        self.text_to_write = tmp_ttw
+        if xml_lines[-1] == '<horizontalLine:top>':
+            if tmp_ttw != '':
+                ttwwr = ttwwr + '\n\n' + tmp_ttw
+        else:
+            if tmp_ttw != '':
+                ttwwr = tmp_ttw + '\n\n' + ttwwr
+        text_to_write_with_reviser = ttwwr
+        # self.text_to_write_with_reviser = text_to_write_with_reviser
+        return text_to_write_with_reviser
+
+
 class ParagraphPagebreak(Paragraph):
 
     """A class to handle pagebreak paragraph"""
@@ -3898,8 +4049,6 @@ def main():
     mf.close()
 
     doc.make_media_dir(Document.media_dir)
-
-    # print(Paragraph._split_into_lines(''))
 
     sys.exit(0)
 

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.04.22-08:08:04-JST>
+# Time-stamp:   <2023.05.03-11:57:13-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -797,10 +797,7 @@ class Document:
         sd = re.sub('^' + chr(65279), '', sd)  # remove BOM / unnecessary?
         sd = re.sub('\r\n', '\n', sd)  # unnecessary?
         sd = re.sub('\r', '\n', sd)  # unnecessary?
-        for rml in sd.split('\n'):
-            rml = re.sub('  $', '\n', rml)
-            rml = re.sub('[ \t\u3000]*$', '', rml)
-            raw_md_lines.append(rml)
+        raw_md_lines = sd.split('\n')
         raw_md_lines.append('')
         # self.raw_md_lines = raw_md_lines
         return raw_md_lines
@@ -825,10 +822,10 @@ class Document:
                 pre_text = block[-1].raw_text
                 cur_text = ml.raw_text
                 for pc in [ParagraphChapter, ParagraphSection, ParagraphList]:
-                    res_s = '^\\s*' + pc.res_symbol + '\\s+\\S+.*$'
                     res_r = '^\\s*' + pc.res_reviser + '(\\s.*)?$'
-                    if re.match(res_s + '|' + res_r, pre_text):
-                        if re.match(res_s + '|' + res_r, cur_text):
+                    res_s = '^\\s*' + pc.res_symbol + '\\s+\\S+.*$'
+                    if re.match(res_r + '|' + res_s, pre_text):
+                        if re.match(res_r + '|' + res_s, cur_text):
                             is_block_end = True
             if is_block_end:
                 if len(block) == 0:
@@ -1337,7 +1334,7 @@ class Document:
         ms_doc.styles['makdo-t'].paragraph_format.line_spacing = Pt(size * 1.2)
         # ALIGNMENT
         # ms_doc.styles.add_style('makdo-a', WD_STYLE_TYPE.PARAGRAPH)
-        # SPACE
+        # SECTION
         sb = Document.space_before.split(',')
         sa = Document.space_after.split(',')
         for i in range(6):
@@ -1349,6 +1346,10 @@ class Document:
             if len(sa) > i and sa[i] != '':
                 ms_doc.styles[n].paragraph_format.space_after \
                     = Pt(float(sa[i]) * line_spacing * size)
+        # HORIZONTAL LINE
+        ms_doc.styles.add_style('makdo-h', WD_STYLE_TYPE.PARAGRAPH)
+        ms_doc.styles['makdo-h'].paragraph_format.line_spacing = 0
+        ms_doc.styles['makdo-h'].font.size = Pt(size * 0.5)
 
     def write_property(self, ms_doc):
         host = socket.gethostname()
@@ -1502,15 +1503,19 @@ class RawParagraph:
         length_revisers = []
         head_font_revisers = []
         tail_font_revisers = []
-        res_cr = '^\\s*(' + ParagraphChapter.res_reviser + ') ?(.*)'
-        res_sr = '^\\s*(' + ParagraphSection.res_reviser + ') ?(.*)'
-        res_lr = '^(\\s*' + ParagraphList.res_reviser + ') ?(.*)'
-        res_er = '^\\s*((?:v|V|X|<<|<|>)=' + RES_NUMBER + ') ?(.*)$'
-        res_fr = '^\\s*(' + '|'.join(FONT_DECORATORS) + ') ?(.*)$'
+        res_cr = '^\\s*(' + ParagraphChapter.res_reviser + ')(?:\\s*(.*))?$'
+        res_sr = '^\\s*(' + ParagraphSection.res_reviser + ')(?:\\s*(.*))?$'
+        res_lr = '^(\\s*' + ParagraphList.res_reviser + ')(?:\\s*(.*))?$'
+        res_er = '^\\s*((?:v|V|X|<<|<|>)=' + RES_NUMBER + ')(?:\\s*(.*))?$'
+        res_fr = '^(' + '|'.join(FONT_DECORATORS) + ')(.*)$'
+        res_tr = '^(.*)(' + '|'.join(FONT_DECORATORS) + ')$'
+        res_hl = '^' + ParagraphHorizontalLine.res_feature + '$'
+        # HEAD REVISERS
         for ml in md_lines:
-            # FOR BREAKDOWN
-            if re.match('^-+::-*(::-+)?$', ml.text):
-                break
+            if re.match('^' + res_lr, ml.text):
+                ml.text = ml.beg_space + ml.text
+            if re.match('^.*(  |\t|\u3000)$', ml.body):
+                ml.text = re.sub('<br>$', '  ', ml.text)
             while True:
                 if False:
                     pass
@@ -1530,33 +1535,40 @@ class RawParagraph:
                     reviser = re.sub(res_er, '\\1', ml.text)
                     ml.text = re.sub(res_er, '\\2', ml.text)
                     length_revisers.append(reviser)
-                elif re.match(res_fr, ml.text):
+                elif (re.match(res_fr, ml.text) and
+                      not re.match(res_hl, ml.text)):
                     reviser = re.sub(res_fr, '\\1', ml.text)
                     ml.text = re.sub(res_fr, '\\2', ml.text)
                     head_font_revisers.append(reviser)
                 else:
                     break
             if ml.text != '':
+                if re.match('.*  $', ml.text):
+                    ml.text = re.sub('  $', '<br>', ml.text)
                 break
-        res_fr = '(.*)(' + '|'.join(FONT_DECORATORS) + ')\\s*$'
+        # TAIL REVISERS
         for ml in reversed(md_lines):
+            if re.match('^.*(  |\t|\u3000)$', ml.body):
+                ml.text = re.sub('<br>$', '  ', ml.text)
             while True:
                 if False:
                     pass
-                elif re.match(res_fr, ml.text):
-                    reviser = re.sub(res_fr, '\\2', ml.text)
-                    ml.text = re.sub(res_fr, '\\1', ml.text)
+                elif (re.match(res_tr, ml.text) and
+                      not re.match(res_hl, ml.text)):
+                    reviser = re.sub(res_tr, '\\2', ml.text)
+                    ml.text = re.sub(res_tr, '\\1', ml.text)
                     tail_font_revisers.insert(0, reviser)
                 else:
                     break
             if ml.text != '':
+                if re.match('.*  $', ml.text):
+                    ml.text = re.sub('  $', '<br>', ml.text)
                 break
         # EXAMPLE "# ###=1"
         full_text = ''
         for ml in md_lines:
-            if re.match('^.*\\S.*$', ml.text):
-                full_text += ml.text
-        res = '^' + \
+            full_text += ml.text + ' '
+        res = '^\\s*' + \
             '(' + ParagraphSection.res_symbol + ')' + \
             '((\\s+' + ParagraphSection.res_reviser + ')+)' + \
             '\\s*$'
@@ -1583,17 +1595,16 @@ class RawParagraph:
         for ml in md_lines:
             if ml.text != '':
                 full_text += ml.text + ' '
-        # FOR PARAGRAPH LIST
-        list_head_spaces = ''
-        res = '^( +)' + ParagraphList.res_symbol + '\\s+(.*)$'
-        if re.match(res, full_text):
-            list_head_spaces = re.sub(res, '\\1', full_text)
         full_text = re.sub('\t', ' ', full_text)
         full_text = re.sub(' +', ' ', full_text)
         full_text = re.sub('^ ', '', full_text)
         full_text = re.sub(' $', '', full_text)
         # FOR PARAGRAPH LIST
-        full_text = list_head_spaces + full_text
+        res = '^' + ParagraphList.res_symbol
+        if re.match(res, full_text):
+            for ml in md_lines:
+                if re.match(res, ml.text):
+                    full_text = ml.beg_space + full_text
         # self.full_text = full_text
         return full_text
 
@@ -1635,6 +1646,8 @@ class RawParagraph:
             return 'preformatted'
         elif ParagraphPagebreak.is_this_class(ft, hfrs, tfrs):
             return 'pagebreak'
+        elif ParagraphHorizontalLine.is_this_class(ft, hfrs, tfrs):
+            return 'horizontalline'
         elif ParagraphBreakdown.is_this_class(ft, hfrs, tfrs):
             return 'breakdown'
         else:
@@ -1664,6 +1677,8 @@ class RawParagraph:
             return ParagraphPreformatted(self)
         elif paragraph_class == 'pagebreak':
             return ParagraphPagebreak(self)
+        elif paragraph_class == 'horizontalline':
+            return ParagraphHorizontalLine(self)
         elif paragraph_class == 'breakdown':
             return ParagraphBreakdown(self)
         else:
@@ -1749,6 +1764,8 @@ class Paragraph:
         self.length_conf = self._get_length_conf()
         self.length_clas = self._get_length_clas()
         self.length_docx = self._get_length_docx()
+        # CHECK
+        self._check_format()
         # GET TEXT
         self._edit_data()
         self.text_to_write = self._get_text_to_write()
@@ -1916,6 +1933,9 @@ class Paragraph:
         head_section_depth = self.head_section_depth
         tail_section_depth = self.tail_section_depth
         proper_depth = self.proper_depth
+        length_revi = self.length_revi
+        size = self.font_size
+        line_spacing = Document.line_spacing
         length_clas \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
@@ -1957,7 +1977,6 @@ class Paragraph:
         return length_clas
 
     def _get_length_docx(self):
-        paragraph_number = self.paragraph_number
         length_revi = self.length_revi
         length_conf = self.length_conf
         length_clas = self.length_clas
@@ -1990,6 +2009,23 @@ class Paragraph:
                 length_docx['space after'] /= 2
         # self.length_docx = length_docx
         return length_docx
+
+    def _check_format(self):
+        md_lines = self.md_lines
+        for ml in md_lines:
+            if re.match('^\\s+$', ml.end_space):
+                msg = '※ 警告: ' \
+                    + '行末に無意味な空白があります'
+                # msg = 'warning: ' \
+                #     + 'white spaces at the end of the line'
+                ml.append_warning_message(msg)
+        if True:
+            if re.match('^.*<br>$', md_lines[-1].text):
+                msg = '※ 警告: ' \
+                    + '最終行に無意味な改行があります'
+                # msg = 'warning: ' \
+                #     + 'breaking line at the end of the last line'
+                ml.append_warning_message(msg)
 
     def _edit_data(self):
         return
@@ -2034,18 +2070,18 @@ class Paragraph:
                     title = mlt
                     if re.match('^\\s+', title):
                         msg = '※ 警告: ' + paragraph_class_ja \
-                            + 'のタイトルの行頭に空白があります'
+                            + 'のタイトルの最初に空白があります'
                         # msg = 'warning: ' + paragraph_class \
-                        #     + ' title has spaces at beginning'
+                        #     + ' title has spaces at the beginning'
                         ml.append_warning_message(msg)
                     ml.text = ''
                 if mlt != '':
                     is_in_body = True
             if body == '' and re.match('^\\s+', ml.text):
                 msg = '※ 警告: ' + paragraph_class_ja \
-                    + 'の本文の行頭に空白があります'
+                    + 'の本文の最初に空白があります'
                 # msg = 'warning: ' + paragraph_class \
-                #     + ' body has spaces at beginning'
+                #     + ' body has spaces at the beginning'
                 ml.append_warning_message(msg)
             body += ml.text
         if title + body == '':
@@ -2442,7 +2478,9 @@ class ParagraphChapter(Paragraph):
     paragraph_class = 'chapter'
     paragraph_class_ja = 'チャプター'
     res_symbol = '(\\$+)((?:\\-\\$+)*)'
-    res_feature = '^' + res_symbol + '(?:\\s+(.*(?:.*\n*)*))?$'
+    res_feature = '^' + res_symbol + '(?:\\s(.*(?:.*\n*)*))?$'
+    # SPACE POLICY
+    # res_feature = '^' + res_symbol + '(?:\\s+(.*(?:.*\n*)*))?$'
     res_reviser = res_symbol + '=([0-9]+)'
     states = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # 第１編
               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # 第１章
@@ -2495,7 +2533,9 @@ class ParagraphSection(Paragraph):
     paragraph_class = 'section'
     paragraph_class_ja = 'セクション'
     res_symbol = '(#+)((?:\\-#+)*)'
-    res_feature = '^' + res_symbol + '(?:\\s+(.*(?:.*\n*)*))?$'
+    res_feature = '^' + res_symbol + '(?:\\s(.*(?:.*\n*)*))?$'
+    # SPACE POLICY
+    # res_feature = '^' + res_symbol + '(?:\\s+(.*(?:.*\n*)*))?$'
     res_reviser = res_symbol + '=([0-9]+)'
     states = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # -
               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # 第１
@@ -2588,9 +2628,11 @@ class ParagraphList(Paragraph):
 
     paragraph_class = 'list'
     paragraph_class_ja = 'リスト'
-    res_symbol = '([-\\+\\*]|[0-9]+\\.)()'
-    res_feature = '^\\s*' + res_symbol + '\\s+(.*)$'
-    res_reviser = '[0-9]+\\.=([0-9]+)'
+    res_symbol = '(\\-|\\+|\\*|[0-9]+\\.|[0-9]+\\))()'
+    res_feature = '^\\s*' + res_symbol + '\\s(.*)$'
+    # SPACE POLICY
+    # res_feature = '^\\s*' + res_symbol + '\\s+(.*)$'
+    res_reviser = '\\s*(?:[0-9]+\\.|[0-9]+\\))=([0-9]+)'
     states = [[0],  # ①
               [0],  # ㋐
               [0],  # ⓐ
@@ -2628,6 +2670,7 @@ class ParagraphList(Paragraph):
                     cls.states[d][0] = 0
 
     def _edit_data(self):
+        full_text = self.full_text
         res = '^\\s*' + ParagraphList.res_symbol + '\\s*'
         states = ParagraphList.states
         ml = self.md_lines
@@ -2637,7 +2680,7 @@ class ParagraphList(Paragraph):
             n += 1
         line = self.md_lines[n].text
         is_numbering = False
-        if re.match('\\s*[0-9].\\s', line):
+        if re.match('\\s*[0-9]+\\.\\s', full_text):
             is_numbering = True
         line = re.sub(res, '', line)
         if not is_numbering:
@@ -2863,15 +2906,60 @@ class ParagraphAlignment(Paragraph):
     """A class to handle alignment paragraph"""
 
     paragraph_class = 'alignment'
-    res_feature = '^(?::|: .*|.* :)$'
+    res_feature = '^(?::|:\\s+.*|.*\\s+:)$'
+
+    def _check_format(self):
+        super()._check_format()
+        md_lines = self.md_lines
+        alignment = self.alignment
+        for ml in md_lines:
+            if alignment == 'left':
+                if ml.text != '' and not re.match('^:\\s.*$', ml.text):
+                    msg = '※ 警告: ' \
+                        + '左寄せでない行が含まれています'
+                    # msg = 'warning: ' \
+                    #     + ' not left alignment'
+                    ml.append_warning_message(msg)
+            if alignment == 'center':
+                if ml.text != '' and not re.match('^:\\s.*\\s:$', ml.text):
+                    msg = '※ 警告: ' \
+                        + '中寄せでない行が含まれています'
+                    # msg = 'warning: ' \
+                    #     + ' not center alignment'
+                    ml.append_warning_message(msg)
+            if alignment == 'right':
+                if ml.text != '' and not re.match('^.*\\s:$', ml.text):
+                    msg = '※ 警告: ' \
+                        + '右寄せでない行が含まれています'
+                    # msg = 'warning: ' \
+                    #     + ' not right alignment'
+                    ml.append_warning_message(msg)
+            if alignment == 'left' or alignment == 'center':
+                if re.match('^:\\s{2,}.*$', ml.text):
+                    msg = '※ 警告: ' \
+                        + 'テキストの最初に空白があります'
+                    # msg = 'warning: ' \
+                    #     + ' spaces at the beginning'
+                    ml.append_warning_message(msg)
+            if alignment == 'center' or alignment == 'right':
+                if re.match('^.*\\s{2,}:$', ml.text):
+                    msg = '※ 警告: ' \
+                        + 'テキストの最後に空白があります'
+                    # msg = 'warning: ' \
+                    #     + ' spaces at the end'
+                    ml.append_warning_message(msg)
 
     def _edit_data(self):
         md_lines = self.md_lines
         for ml in md_lines:
             if self.alignment == 'left' or self.alignment == 'center':
-                ml.text = re.sub('^: ', '', ml.text)
+                ml.text = re.sub('^:\\s', '', ml.text)
+                # SPACE POLICY
+                # ml.text = re.sub('^:\\s*', '', ml.text)
             if self.alignment == 'center' or self.alignment == 'right':
-                ml.text = re.sub(' :$', '', ml.text)
+                ml.text = re.sub('\\s:$', '', ml.text)
+                # SPACE POLICY
+                # ml.text = re.sub('\\s*:$', '', ml.text)
             if ml.text == ':':
                 ml.text = ''
 
@@ -2880,15 +2968,19 @@ class ParagraphAlignment(Paragraph):
         alignment = self.alignment
         text_to_write = ''
         for ml in md_lines:
-            if alignment == 'left':
-                if not re.match('^: .*$', ml.raw_text):
-                    continue
-            elif alignment == 'center':
-                if not re.match('^: .* :$', ml.raw_text):
-                    continue
-            elif alignment == 'right':
-                if not re.match('^.* :$', ml.raw_text):
-                    continue
+            if ml.text == '':
+                continue
+            # REMOVED 23.05.03 >
+            # if alignment == 'left':
+            #     if not re.match('^:\\s+.*$', ml.raw_text):
+            #         continue
+            # elif alignment == 'center':
+            #     if not re.match('^:\\s+.*\\s+:$', ml.raw_text):
+            #         continue
+            # elif alignment == 'right':
+            #     if not re.match('^.*\\s+:$', ml.raw_text):
+            #         continue
+            # <
             text_to_write += ml.text + '\n'
         text_to_write = re.sub('\n$', '', text_to_write)
         return text_to_write
@@ -2951,12 +3043,57 @@ class ParagraphPagebreak(Paragraph):
         ms_doc.add_page_break()
 
 
+class ParagraphHorizontalLine(Paragraph):
+
+    """A class to handle Horizontalline paragraph"""
+
+    paragraph_class = 'horizontalline'
+    res_feature = '^(?:\\s*(?:\\-|\\*)\\s*){3,}$'
+
+    def write_paragraph(self, ms_doc):
+        length_revi = self.length_revi
+        length_conf = self.length_conf
+        length_clas = self.length_clas
+        line_spacing = Document.line_spacing
+        length_docx = self.length_docx
+        size = self.font_size
+        ms_par = ms_doc.add_paragraph(style='makdo-h')
+        length_docx \
+            = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
+               'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
+        for ln in length_docx:
+            length_docx[ln] \
+                = length_revi[ln] + length_conf[ln] + length_clas[ln]
+        ms_fmt = ms_par.paragraph_format
+        ms_fmt.line_spacing = 0
+        ms_fmt.first_line_indent = Pt(length_docx['first indent'] * size)
+        ms_fmt.left_indent = Pt(length_docx['left indent'] * size)
+        ms_fmt.right_indent = Pt(length_docx['right indent'] * size)
+        sb = (((line_spacing - 1) * 0.75 + 0.5) * size) \
+            + (0.5 * length_docx['line spacing'] * line_spacing * size) \
+            + length_docx['space before'] * line_spacing * size
+        sa = (((line_spacing - 1) * 0.25 + 0.5) * size) \
+            + (0.5 * length_docx['line spacing'] * line_spacing * size) \
+            + length_docx['space after'] * line_spacing * size
+        ms_fmt.space_before = Pt(sb)
+        ms_fmt.space_after = Pt(sa)
+        pPr = ms_par._p.get_or_add_pPr()
+        pBdr = OxmlElement('w:pBdr')
+        pPr.insert_element_before(pBdr)
+        oe = OxmlElement('w:bottom')
+        oe.set(qn('w:val'), 'single')
+        oe.set(qn('w:sz'), '6')
+        # oe.set(qn('w:space'), '1')
+        # oe.set(qn('w:color'), 'auto')
+        pBdr.append(oe)
+
+
 class ParagraphBreakdown(Paragraph):
 
     """A class to handle breakdown paragraph"""
 
     paragraph_class = 'breakdown'
-    res_feature = NOT_ESCAPED + '::.*$'
+    res_feature = NOT_ESCAPED + '!.*!$'
 
 
 class ParagraphSentence(Paragraph):
@@ -2983,15 +3120,15 @@ class MdLine:
     def __init__(self, line_number, raw_text):
         self.line_number = line_number
         self.raw_text = raw_text
-        self.md_text, self.comment = self.separate_comment()
-        self.text = self.md_text
+        self.body, self.comment = self.separate_comment()
+        self.beg_space, self.text, self.end_space = self.separate_spaces()
         self.warning_messages = []
 
     def separate_comment(self):
         ori_sym = ORIGINAL_COMMENT_SYMBOL
         com_sep = COMMENT_SEPARATE_SYMBOL
         rt = self.raw_text
-        text = ''
+        body = ''
         comment = None
         if MdLine.is_in_comment:
             comment = ''
@@ -3001,7 +3138,7 @@ class MdLine:
             if not MdLine.is_in_comment:
                 if re.match(NOT_ESCAPED + '<!--$', tmp):
                     tmp = re.sub('<!--$', '', tmp)
-                    text += tmp
+                    body += tmp
                     tmp = ''
                     if comment is None:
                         comment = ''
@@ -3015,7 +3152,7 @@ class MdLine:
             if not MdLine.is_in_comment:
                 if re.match(NOT_ESCAPED + ori_sym + '$', tmp):
                     tmp = re.sub(ori_sym + '$', '', tmp)
-                    text += tmp
+                    body += tmp
                     tmp = ''
                     if comment is None:
                         comment = ''
@@ -3024,7 +3161,7 @@ class MdLine:
         else:
             if tmp != '':
                 if not MdLine.is_in_comment:
-                    text += tmp
+                    body += tmp
                     tmp = ''
                 else:
                     if comment is None:
@@ -3033,16 +3170,37 @@ class MdLine:
                     tmp = ''
         if comment is not None:
             comment = re.sub(com_sep + '$', '', comment)
-        text = re.sub(NOT_ESCAPED + '<br/?>$', '\\1\n', text)
         # TRACK CHANGES
         res = NOT_ESCAPED + '<!?\\+>'
-        while re.match(res, text):
-            text = re.sub(res, '\\1', text)
-        text = re.sub('  $', '\n', text)
-        text = re.sub(' *$', '', text)
-        # self.text = text
+        while re.match(res, body):
+            body = re.sub(res, '\\1', body)
+        # self.body = body
         # self.comment = comment
-        return text, comment
+        return body, comment
+
+    def separate_spaces(self):
+        body = self.body
+        text = body
+        res = '^(\\s+)(.*?)$'
+        beg_space = ''
+        if re.match(res, text):
+            beg_space = re.sub(res, '\\1', text)
+            text = re.sub(res, '\\2', text)
+        res = '^(.*?)(\\s+)$'
+        end_space = ''
+        if re.match(res, text):
+            end_space = re.sub(res, '\\2', text)
+            text = re.sub(res, '\\1', text)
+        if text == ':' and re.match('^( |\t|\u3000)$', end_space):
+            text += end_space
+            end_space = ''
+        if re.match('^.*(  |\t|\u3000)$', end_space):
+            text += '<br>'
+            end_space = re.sub('(  |\t|\u3000)$', '', end_space)
+        # self.beg_space = beg_space
+        # self.text = text
+        # self.end_space = end_space
+        return beg_space, text, end_space
 
     def append_warning_message(self, warning_message):
         self.warning_messages.append(warning_message)
