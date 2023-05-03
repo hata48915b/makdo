@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.03-11:57:13-JST>
+# Time-stamp:   <2023.05.04-04:30:09-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1514,7 +1514,7 @@ class RawParagraph:
         for ml in md_lines:
             if re.match('^' + res_lr, ml.text):
                 ml.text = ml.beg_space + ml.text
-            if re.match('^.*(  |\t|\u3000)$', ml.body):
+            if re.match('^.*(  |\t|\u3000)$', ml.spaced_text):
                 ml.text = re.sub('<br>$', '  ', ml.text)
             while True:
                 if False:
@@ -1548,7 +1548,7 @@ class RawParagraph:
                 break
         # TAIL REVISERS
         for ml in reversed(md_lines):
-            if re.match('^.*(  |\t|\u3000)$', ml.body):
+            if re.match('^.*(  |\t|\u3000)$', ml.spaced_text):
                 ml.text = re.sub('<br>$', '  ', ml.text)
             while True:
                 if False:
@@ -3120,7 +3120,7 @@ class MdLine:
     def __init__(self, line_number, raw_text):
         self.line_number = line_number
         self.raw_text = raw_text
-        self.body, self.comment = self.separate_comment()
+        self.spaced_text, self.comment = self.separate_comment()
         self.beg_space, self.text, self.end_space = self.separate_spaces()
         self.warning_messages = []
 
@@ -3128,7 +3128,7 @@ class MdLine:
         ori_sym = ORIGINAL_COMMENT_SYMBOL
         com_sep = COMMENT_SEPARATE_SYMBOL
         rt = self.raw_text
-        body = ''
+        spaced_text = ''
         comment = None
         if MdLine.is_in_comment:
             comment = ''
@@ -3138,7 +3138,7 @@ class MdLine:
             if not MdLine.is_in_comment:
                 if re.match(NOT_ESCAPED + '<!--$', tmp):
                     tmp = re.sub('<!--$', '', tmp)
-                    body += tmp
+                    spaced_text += tmp
                     tmp = ''
                     if comment is None:
                         comment = ''
@@ -3152,7 +3152,7 @@ class MdLine:
             if not MdLine.is_in_comment:
                 if re.match(NOT_ESCAPED + ori_sym + '$', tmp):
                     tmp = re.sub(ori_sym + '$', '', tmp)
-                    body += tmp
+                    spaced_text += tmp
                     tmp = ''
                     if comment is None:
                         comment = ''
@@ -3161,7 +3161,7 @@ class MdLine:
         else:
             if tmp != '':
                 if not MdLine.is_in_comment:
-                    body += tmp
+                    spaced_text += tmp
                     tmp = ''
                 else:
                     if comment is None:
@@ -3172,15 +3172,15 @@ class MdLine:
             comment = re.sub(com_sep + '$', '', comment)
         # TRACK CHANGES
         res = NOT_ESCAPED + '<!?\\+>'
-        while re.match(res, body):
-            body = re.sub(res, '\\1', body)
-        # self.body = body
+        while re.match(res, spaced_text):
+            spaced_text = re.sub(res, '\\1', spaced_text)
+        # self.spaced_text = spaced_text
         # self.comment = comment
-        return body, comment
+        return spaced_text, comment
 
     def separate_spaces(self):
-        body = self.body
-        text = body
+        spaced_text = self.spaced_text
+        text = spaced_text
         res = '^(\\s+)(.*?)$'
         beg_space = ''
         if re.match(res, text):
