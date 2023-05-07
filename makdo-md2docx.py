@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.04-04:30:09-JST>
+# Time-stamp:   <2023.05.06-12:32:33-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -466,7 +466,7 @@ def get_real_width(s):
     return wid
 
 
-def i2c_n_arab(n, md_line=None):
+def n2c_n_arab(n, md_line=None):
     if n < 0:
         return '△' + str(-n)
     elif n < 10:
@@ -475,7 +475,7 @@ def i2c_n_arab(n, md_line=None):
         return str(n)
 
 
-def i2c_p_arab(n, md_line=None):
+def n2c_p_arab(n, md_line=None):
     if n < 0:
         return '△(' + str(-n) + ')'
     elif n == 0:
@@ -486,7 +486,7 @@ def i2c_p_arab(n, md_line=None):
         return '(' + str(n) + ')'
 
 
-def i2c_c_arab(n, md_line=None):
+def n2c_c_arab(n, md_line=None):
     if n == 0:
         return chr(9450)
     elif n > 0 and n <= 20:
@@ -507,7 +507,7 @@ def i2c_c_arab(n, md_line=None):
         return '〓'
 
 
-def i2c_n_kata(n, md_line=None):
+def n2c_n_kata(n, md_line=None):
     if n == 0:
         return chr(12448 + 83)
     elif n > 0 and n <= 5:
@@ -542,7 +542,7 @@ def i2c_n_kata(n, md_line=None):
         return '〓'
 
 
-def i2c_p_kata(n, md_line=None):
+def n2c_p_kata(n, md_line=None):
     if n == 0:
         return '(' + chr(65392 + 45) + ')'
     elif n > 0 and n <= 44:
@@ -563,7 +563,7 @@ def i2c_p_kata(n, md_line=None):
         return '〓'
 
 
-def i2c_c_kata(n, md_line=None):
+def n2c_c_kata(n, md_line=None):
     if n == 0:
         return chr(13007 + 47)
     elif n > 0 and n <= 47:
@@ -580,7 +580,7 @@ def i2c_c_kata(n, md_line=None):
         return '〓'
 
 
-def i2c_n_alph(n, md_line=None):
+def n2c_n_alph(n, md_line=None):
     if n == 0:
         return chr(65344 + 26)
     elif n > 0 and n <= 26:
@@ -597,7 +597,7 @@ def i2c_n_alph(n, md_line=None):
         return '〓'
 
 
-def i2c_p_alph(n, md_line=None):
+def n2c_p_alph(n, md_line=None):
     if n == 0:
         return chr(9371 + 26)
     elif n > 0 and n <= 26:
@@ -614,7 +614,7 @@ def i2c_p_alph(n, md_line=None):
         return '〓'
 
 
-def i2c_c_alph(n, md_line=None):
+def n2c_c_alph(n, md_line=None):
     if n == 0:
         return chr(9423 + 26)
     elif n > 0 and n <= 26:
@@ -631,7 +631,7 @@ def i2c_c_alph(n, md_line=None):
         return '〓'
 
 
-def i2c_n_kanj(n, md_line=None):
+def n2c_n_kanj(n, md_line=None):
     if n >= 0:
         k = str(n)
         if n >= 1000:
@@ -670,7 +670,7 @@ def i2c_n_kanj(n, md_line=None):
         return '〓'
 
 
-def i2c_p_kanj(n, md_line=None):
+def n2c_p_kanj(n, md_line=None):
     if n == 0:
         return chr(12831 + 10)
     elif n > 0 and n <= 10:
@@ -687,7 +687,7 @@ def i2c_p_kanj(n, md_line=None):
         return '〓'
 
 
-def i2c_c_kanj(n, md_line=None):
+def n2c_c_kanj(n, md_line=None):
     if n == 0:
         return chr(12927 + 10)
     elif n > 0 and n <= 10:
@@ -716,9 +716,263 @@ def concatenate_string(str1, str2):
 # CLASS
 
 
-class Document:
+class IO:
 
-    """A class to handle document"""
+    """A class to handle input and output"""
+
+    def __init__(self, inputed_md_file, inputed_docx_file):
+        # DECLARE
+        self.inputed_md_file = None
+        self.inputed_docx_file = None
+        self.md_file = None
+        self.docx_file = None
+        # SUBSTITUTE
+        self.inputed_md_file = inputed_md_file
+        self.inputed_docx_file = inputed_docx_file
+        self.md_file = self.inputed_md_file
+        self.docx_file \
+            = self._get_docx_file(self.inputed_md_file, self.inputed_docx_file)
+        # VERIFY
+        self._verify_files(self.md_file, self.docx_file)
+
+    def read_md_file(self):
+        mf = MdFile(self.md_file)
+        self.formal_md_lines = mf.read_file()
+        return self.formal_md_lines
+
+    def write_docx_file(self, ms_doc):
+        df = DocxFile(self.docx_file)
+        df.write_file(ms_doc)
+        return
+
+    @staticmethod
+    def _get_docx_file(inputed_md_file, inputed_docx_file):
+        docx_file = inputed_docx_file
+        if docx_file == '':
+            if inputed_md_file == '-':
+                msg = '※ エラー: ' \
+                    + '出力ファイルの指定がありません'
+                # msg = 'error: ' \
+                #     + 'no output file name'
+                sys.stderr.write(msg + '\n\n')
+                sys.exit(1)
+            elif re.match('^.*\\.md$', inputed_md_file):
+                docx_file = re.sub('\\.md$', '.docx', inputed_md_file)
+            else:
+                docx_file = inputed_md_file + '.docx'
+        return docx_file
+
+    @staticmethod
+    def _verify_files(input_file, output_file):
+        # INPUT FILE
+        if input_file != '-':
+            if not os.path.exists(input_file):
+                msg = '※ エラー: ' \
+                    + '入力ファイル「' + input_file + '」がありません'
+                # msg = 'error: ' \
+                #     + 'no input file "' + input_file + '"'
+                sys.stderr.write(msg + '\n\n')
+                sys.exit(1)
+            if not os.path.isfile(input_file):
+                msg = '※ エラー: ' \
+                    + '入力「' + input_file + '」はファイルではありません'
+                # msg = 'error: ' \
+                #     + 'not a file "' + input_file + '"'
+                sys.stderr.write(msg + '\n\n')
+                sys.exit(1)
+            if not os.access(input_file, os.R_OK):
+                msg = '※ エラー: ' \
+                    + '入力ファイル「' + input_file + '」に読込権限が' \
+                    + 'ありません'
+                # msg = 'error: ' \
+                #     + 'unreadable "' + input_file + '"'
+                sys.stderr.write(msg + '\n\n')
+                sys.exit(1)
+        # OUTPUT FILE
+        if output_file != '-' and os.path.exists(output_file):
+            if not os.path.isfile(output_file):
+                msg = '※ エラー: ' \
+                    + '出力「' + output_file + '」はファイルではありません'
+                # msg = 'error: ' \
+                #     + 'not a file "' + output_file + '"'
+                sys.stderr.write(msg + '\n\n')
+                sys.exit(1)
+            if not os.access(output_file, os.W_OK):
+                msg = '※ エラー: ' \
+                    + '出力ファイル「' + output_file + '」に書込権限が' \
+                    + 'ありません'
+                # msg = 'error: ' \
+                #     + 'unwritable "' + output_file + '"'
+                sys.stderr.write(msg + '\n\n')
+                sys.exit(1)
+        # OLDER OR NEWER
+        if input_file != '-' and os.path.exists(input_file) and \
+           output_file != '-' and os.path.exists(output_file):
+            if os.path.getmtime(input_file) < os.path.getmtime(output_file):
+                msg = '※ エラー: ' \
+                    + '出力ファイルの方が入力ファイルよりも新しいです'
+                # msg = 'error: ' \
+                #     + 'overwriting newer file'
+                sys.stderr.write(msg + '\n\n')
+                sys.exit(1)
+
+
+class MdFile:
+
+    """A class to handle md file"""
+
+    def __init__(self, md_file):
+        # DECLARE
+        self.md_file = None
+        self.raw_data = None
+        self.encoding = None
+        self.decoded_data = None
+        self.cleansed_data = None
+        self.splited_data = None
+        self.formal_md_lines = None
+        # SUBSTITUTE
+        self.md_file = md_file
+        self.raw_data = self._get_raw_data(self.md_file)
+        self.encoding = self._get_encoding(self.raw_data)
+        self.decoded_data = self._decode_data(self.encoding, self.raw_data)
+        self.cleansed_data = self._cleanse_data(self.decoded_data)
+        self.splited_data = self._split_data(self.cleansed_data)
+        self.formal_md_lines = self.splited_data
+
+    def read_file(self):
+        return self.formal_md_lines
+
+    @staticmethod
+    def _get_raw_data(md_file):
+        try:
+            if md_file == '-':
+                raw_data = sys.stdin.buffer.read()
+            else:
+                raw_data = open(md_file, 'rb').read()
+        except BaseException:
+            msg = '※ エラー: ' \
+                + '入力ファイル「' + md_file + '」の読込みに失敗しました'
+            # msg = 'error: ' \
+            #     + 'failed to read input file "' + md_file + '"'
+            sys.stderr.write(msg + '\n\n')
+            sys.exit(0)
+        return raw_data
+
+    @staticmethod
+    def _get_encoding(raw_data):
+        encoding = chardet.detect(raw_data)['encoding']
+        if encoding is None:
+            encoding = 'SHIFT_JIS'
+        elif (re.match('^utf[-_]?.*$', encoding, re.I)) or \
+             (re.match('^shift[-_]?jis.*$', encoding, re.I)) or \
+             (re.match('^cp932.*$', encoding, re.I)) or \
+             (re.match('^euc[-_]?(jp|jis).*$', encoding, re.I)) or \
+             (re.match('^iso[-_]?2022[-_]?jp.*$', encoding, re.I)) or \
+             (re.match('^ascii.*$', encoding, re.I)):
+            pass
+        else:
+            # Windows-1252 (Western Europe)
+            # MacCyrillic (Macintosh Cyrillic)
+            # ...
+            encoding = 'SHIFT_JIS'
+            msg = '※ 警告: ' \
+                + '文字コードを「SHIFT_JIS」に修正しました'
+            # msg = 'warning: ' \
+            #     + 'changed encoding to "SHIFT_JIS"'
+            sys.stderr.write(msg + '\n\n')
+        return encoding
+
+    @staticmethod
+    def _decode_data(encoding, raw_data):
+        try:
+            decoded_data = raw_data.decode(encoding)
+        except BaseException:
+            msg = '※ エラー: ' \
+                + 'データを読みません（Markdownでないかも？）'
+            # msg = 'error: ' \
+            #     + 'can\'t read data (maybe not Markdown?)'
+            sys.stderr.write(msg + '\n\n')
+            sys.exit(0)
+        return decoded_data
+
+    @staticmethod
+    def _cleanse_data(decoded_data):
+        tmp_data = decoded_data
+        bom = chr(65279)  # BOM (byte order mark)
+        tmp_data = re.sub('^' + bom, '', tmp_data)  # unnecessary?
+        tmp_data = re.sub('\r\n', '\n', tmp_data)  # unnecessary?
+        tmp_data = re.sub('\r', '\n', tmp_data)  # unnecessary?
+        cleansed_data = tmp_data
+        return cleansed_data
+
+    @staticmethod
+    def _split_data(cleansed_data):
+        splited_data = cleansed_data.split('\n')
+        splited_data.append('')
+        return splited_data
+
+
+class DocxFile:
+
+    """A class to handle docx file"""
+
+    def __init__(self, docx_file):
+        # DECLARE
+        self.docx_file = None
+        self.ms_doc = None
+        # SUBSTITUTE
+        self.docx_file = docx_file
+
+    def write_file(self, ms_doc):
+        self.ms_doc = ms_doc
+        docx_file = self.docx_file
+        self._save_old_file(docx_file)
+        self._write_new_file(ms_doc, docx_file)
+
+    @staticmethod
+    def _save_old_file(output_file):
+        if output_file == '-':
+            return
+        old_file = output_file + '~'
+        if os.path.exists(output_file):
+            if os.path.exists(old_file):
+                os.remove(old_file)
+            if os.path.exists(old_file):
+                msg = '※ エラー: ' \
+                    + '古いファイル「' + old_file + '」を削除できません'
+                # msg = 'error: ' \
+                #     + 'can\'t remove "' + old_file + '"'
+                sys.stderr.write(msg + '\n\n')
+                sys.exit(1)
+            os.rename(output_file, old_file)
+        if os.path.exists(output_file):
+            msg = '※ エラー: ' \
+                + '古いファイル「' + output_file + '」を改名できません'
+            # msg = 'error: ' \
+            #     + 'can\'t rename "' + output_file + '"'
+            sys.stderr.write(msg + '\n\n')
+            sys.exit(1)
+
+    @staticmethod
+    def _write_new_file(ms_doc, docx_file):
+        if docx_file == '-':
+            output_file = '/dev/stdout'
+        else:
+            output_file = docx_file
+        try:
+            ms_doc.save(output_file)
+        except BaseException:
+            msg = '※ エラー: ' \
+                + '出力ファイル「' + docx_file + '」の書込みに失敗しました'
+            # msg = 'error: ' \
+            #     + 'failed to write output file "' + docx_file + '"'
+            sys.stderr.write(msg + '\n\n')
+            sys.exit(1)
+
+
+class Form:
+
+    """A class to handle form"""
 
     document_title = DEFAULT_DOCUMENT_TITLE
     document_style = DEFAULT_DOCUMENT_STYLE
@@ -741,70 +995,413 @@ class Document:
     original_file = ''
 
     def __init__(self):
-        self.md_file = ''
+        # DECLARE
+        self.md_lines = None
+        self.args = None
+
+    def configure(self):
+        # BY MD FILE
+        self._configure_by_md_file(self.md_lines)
+        # BY ARGUMENTS
+        self._configure_by_args(self.args)
+        # PARAGRPH
+        Paragraph.mincho_font = Form.mincho_font
+        Paragraph.gothic_font = Form.gothic_font
+        Paragraph.ivs_font = Form.ivs_font
+        Paragraph.font_size = Form.font_size
+
+    @staticmethod
+    def _configure_by_md_file(md_lines):
+        for ml in md_lines:
+            com = ml.comment
+            if com is None:
+                break
+            if re.match('^\\s*#', com):
+                continue
+            res = '^\\s*([^:：]+)[:：]\\s*(.*)$'
+            if not re.match(res, com):
+                continue
+            nam = re.sub(res, '\\1', com).rstrip()
+            val = re.sub(res, '\\2', com).rstrip()
+            if False:
+                pass
+            elif nam == 'document_title' or nam == '書題名':
+                Form.document_title = val
+            elif nam == 'document_style' or nam == '文書式':
+                if val == 'n' or val == '普通' or val == '-':
+                    Form.document_style = 'n'
+                elif val == 'k' or val == '契約':
+                    Form.document_style = 'k'
+                elif val == 'j' or val == '条文':
+                    Form.document_style = 'j'
+                else:
+                    msg = '※ 警告: ' \
+                        + '「' + nam + '」の値は"普通"、"契約"又は"条文"で' \
+                        + 'なければなりません'
+                    # msg = 'warning: ' \
+                    #     + '"' + nam + '" must be "-", "k" or "j"'
+                    sys.stderr.write(msg + '\n\n')
+            elif nam == 'paper_size' or nam == '用紙サ':
+                val = unicodedata.normalize('NFKC', val)
+                if val == 'A3':
+                    Form.paper_size = 'A3'
+                elif val == 'A3L' or val == 'A3横':
+                    Form.paper_size = 'A3L'
+                elif val == 'A3P' or val == 'A3縦':
+                    Form.paper_size = 'A3P'
+                elif val == 'A4':
+                    Form.paper_size = 'A4'
+                elif val == 'A4L' or val == 'A4横':
+                    Form.paper_size = 'A4L'
+                elif val == 'A4P' or val == 'A4縦':
+                    Form.paper_size = 'A4P'
+                else:
+                    msg = '※ 警告: ' \
+                        + '「' + nam + '」の値は' \
+                        + '"A3横"、"A3縦"、"A4横"又は"A4縦"で' \
+                        + 'なければなりません'
+                    # msg = 'warning: ' \
+                    #     + '"' + nam + '" must be "A3", "A3P", "A4" or "A4L"'
+                    sys.stderr.write(msg + '\n\n')
+            elif (re.match('^(top|bottom|left|right)_margin$', nam) or
+                  re.match('^(上|下|左|右)余白$', nam)):
+                val = unicodedata.normalize('NFKC', val)
+                val = re.sub('\\s*cm$', '', val)
+                if re.match('^' + RES_NUMBER + '$', val):
+                    if nam == 'top_margin' or nam == '上余白':
+                        Form.top_margin = float(val)
+                    elif nam == 'bottom_margin' or nam == '下余白':
+                        Form.bottom_margin = float(val)
+                    elif nam == 'left_margin' or nam == '左余白':
+                        Form.left_margin = float(val)
+                    elif nam == 'right_margin' or nam == '右余白':
+                        Form.right_margin = float(val)
+                else:
+                    msg = '※ 警告: ' \
+                        + '「' + nam + '」の値は整数又は小数で' \
+                        + 'なければなりません'
+                    # msg = 'warning: ' \
+                    #     + '"' + nam + '" must be an integer or a decimal'
+                    sys.stderr.write(msg + '\n\n')
+            elif nam == 'header_string' or nam == '頭書き':
+                Form.header_string = val
+            elif nam == 'page_number' or nam == '頁番号':
+                val = unicodedata.normalize('NFKC', val)
+                if val == 'True' or val == '有':
+                    Form.page_number = DEFAULT_PAGE_NUMBER
+                elif val == 'False' or val == '無' or val == '-':
+                    Form.page_number = ''
+                else:
+                    Form.page_number = val
+            elif nam == 'line_number' or nam == '行番号':
+                val = unicodedata.normalize('NFKC', val)
+                if val == 'True' or val == '有':
+                    Form.line_number = True
+                elif val == 'False' or val == '無':
+                    Form.line_number = False
+                else:
+                    msg = '※ 警告: ' \
+                        + '「' + nam + '」の値は"有"又は"無"で' \
+                        + 'なければなりません'
+                    # msg = 'warning: ' \
+                    #     + '"' + nam + '" must be "True" or "False"'
+                    sys.stderr.write(msg + '\n\n')
+            elif nam == 'mincho_font' or nam == '明朝体':
+                Form.mincho_font = val
+            elif nam == 'gothic_font' or nam == 'ゴシ体':
+                Form.gothic_font = val
+            elif nam == 'ivs_font' or nam == '異字体':
+                Form.ivs_font = val
+            elif nam == 'font_size' or nam == '文字サ':
+                val = unicodedata.normalize('NFKC', val)
+                val = re.sub('\\s*pt$', '', val)
+                if re.match('^' + RES_NUMBER + '$', val):
+                    Form.font_size = float(val)
+                else:
+                    msg = '※ 警告: ' \
+                        + '「' + nam + '」の値は整数又は小数で' \
+                        + 'なければなりません'
+                    # msg = 'warning: ' \
+                    #     + '"' + nam + '" must be an integer or a decimal'
+                    sys.stderr.write(msg + '\n\n')
+            elif nam == 'line_spacing' or nam == '行間高':
+                val = unicodedata.normalize('NFKC', val)
+                val = re.sub('\\s*倍$', '', val)
+                if re.match('^' + RES_NUMBER + '$', val):
+                    Form.line_spacing = float(val)
+                else:
+                    msg = '※ 警告: ' \
+                        + '「' + nam + '」の値は整数又は小数で' \
+                        + 'なければなりません'
+                    # msg = 'warning: ' \
+                    #     + '"' + nam + '" must be an integer or a decimal'
+                    sys.stderr.write(msg + '\n\n')
+            elif (re.match('^space_(before|after)$', nam) or
+                  re.match('^(前|後)余白$', nam)):
+                val = unicodedata.normalize('NFKC', val)
+                val = val.replace('、', ',')
+                val = val.replace('倍', '')
+                val = val.replace(' ', '')
+                if re.match('^' + RES_NUMBER6 + '$', val):
+                    if nam == 'space_before' or nam == '前余白':
+                        Form.space_before = val
+                    elif nam == 'space_after'or nam == '後余白':
+                        Form.space_after = val
+                else:
+                    msg = '※ 警告: ' \
+                        + '「' + nam + '」の値は' \
+                        + '整数又は小数をカンマで区切って並べたもので' \
+                        + 'なければなりません'
+                    # msg = 'warning: ' \
+                    #     + '"' + nam + '" must be 6 integers or decimals'
+                    sys.stderr.write(msg + '\n\n')
+            elif nam == 'auto_space' or nam == '字間整':
+                val = unicodedata.normalize('NFKC', val)
+                if val == 'True' or val == '有':
+                    Form.auto_space = True
+                elif val == 'False' or val == '無':
+                    Form.auto_space = False
+                else:
+                    msg = '※ 警告: ' \
+                        + '「' + nam + '」の値は"有"又は"無"で' \
+                        + 'なければなりません'
+                    # msg = 'warning: ' \
+                    #     + '"' + nam + '" must be "True" or "False"'
+                    sys.stderr.write(msg + '\n\n')
+            elif nam == 'original_file' or nam == '元原稿':
+                Form.original_file = val
+            else:
+                msg = '※ 警告: ' \
+                    + '「' + nam + '」という設定項目は存在しません'
+                # msg = 'warning: ' \
+                #     + 'configuration name "' + nam + '" does not exist'
+                sys.stderr.write(msg + '\n\n')
+
+    @staticmethod
+    def _configure_by_args(args):
+        if args.document_title is not None:
+            Form.document_title = args.document_title
+        if args.paper_size is not None:
+            Form.paper_size = args.paper_size
+        if args.top_margin is not None:
+            Form.top_margin = args.top_margin
+        if args.bottom_margin is not None:
+            Form.bottom_margin = args.bottom_margin
+        if args.left_margin is not None:
+            Form.left_margin = args.left_margin
+        if args.right_margin is not None:
+            Form.right_margin = args.right_margin
+        if args.mincho_font is not None:
+            Form.mincho_font = args.mincho_font
+        if args.gothic_font is not None:
+            Form.gothic_font = args.gothic_font
+        if args.ivs_font is not None:
+            Form.ivs_font = args.ivs_font
+        if args.font_size is not None:
+            Form.font_size = args.font_size
+        if args.document_style is not None:
+            Form.document_style = args.document_style
+        if args.header_string is not None:
+            Form.header_string = args.header_string
+        if args.page_number is not None:
+            Form.page_number = args.page_number
+        if args.line_number:
+            Form.line_number = True
+        if args.line_spacing is not None:
+            Form.line_spacing = args.line_spacing
+        if args.space_before is not None:
+            Form.space_before = args.space_before
+        if args.space_after is not None:
+            Form.space_after = args.space_after
+        if args.auto_space:
+            Form.auto_space = True
+
+    def get_ms_doc(self):
+        size = Form.font_size
+        ms_doc = docx.Document()
+        ms_sec = ms_doc.sections[0]
+        ms_sec.page_height = Cm(PAPER_HEIGHT[Form.paper_size])
+        ms_sec.page_width = Cm(PAPER_WIDTH[Form.paper_size])
+        ms_sec.top_margin = Cm(Form.top_margin)
+        ms_sec.bottom_margin = Cm(Form.bottom_margin)
+        ms_sec.left_margin = Cm(Form.left_margin)
+        ms_sec.right_margin = Cm(Form.right_margin)
+        ms_sec.header_distance = Cm(1.0)
+        ms_sec.footer_distance = Cm(1.0)
+        ms_doc.styles['Footer'].font.name = self.mincho_font  # page number
+        ms_doc.styles['Footer'].font.size = Pt(size)          # page number
+        ms_doc.styles['Normal'].font.size = Pt(size / 2)  # line number
+        ms_doc.styles['List Bullet'].font.size = Pt(size)
+        ms_doc.styles['List Bullet 2'].font.size = Pt(size)
+        ms_doc.styles['List Bullet 3'].font.size = Pt(size)
+        ms_doc.styles['List Number'].font.size = Pt(size)
+        ms_doc.styles['List Number 2'].font.size = Pt(size)
+        ms_doc.styles['List Number 3'].font.size = Pt(size)
+        # HEADER
+        if Form.header_string != '':
+            hs = Form.header_string
+            ms_par = ms_doc.sections[0].header.paragraphs[0]
+            ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+            if re.match('^: (.*) :$', hs):
+                hs = re.sub('^: (.*) :', '\\1', hs)
+                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+            elif re.match('^: (.*)$', hs):
+                hs = re.sub('^: (.*)', '\\1', hs)
+                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+            elif re.match('^(.*) :$', hs):
+                hs = re.sub('(.*) :$', '\\1', hs)
+                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
+            tex = ''
+            is_large = False
+            is_small = False
+            for c in hs + '\0':
+                tex += c
+                if re.match(NOT_ESCAPED + '\\-\\-$', tex) or \
+                   re.match(NOT_ESCAPED + '\\+\\+$', tex) or \
+                   re.match(NOT_ESCAPED + '\0$', tex):
+                    ms_run = ms_par.add_run()
+                    if is_small:
+                        ms_run.font.size = Pt(size * 0.8)
+                    elif is_large:
+                        ms_run.font.size = Pt(size * 1.2)
+                    else:
+                        ms_run.font.size = Pt(size * 1.0)
+                    oe = OxmlElement('w:t')
+                    oe.set(ns.qn('xml:space'), 'preserve')
+                    if re.match(NOT_ESCAPED + '\\-\\-$', tex):
+                        oe.text = re.sub('\\-\\-$', '', tex)
+                        is_small = not is_small
+                        is_large = False
+                    elif re.match(NOT_ESCAPED + '\\+\\+$', tex):
+                        oe.text = re.sub('\\+\\+$', '', tex)
+                        is_small = False
+                        is_large = not is_large
+                    elif re.match(NOT_ESCAPED + '\0$', tex):
+                        oe.text = re.sub('\0$', '', tex)
+                    tex = ''
+                    ms_run._r.append(oe)
+        # FOOTER
+        if Form.page_number != '':
+            pn = Form.page_number
+            ms_par = ms_doc.sections[0].footer.paragraphs[0]
+            # ms_par.style.font.name = self.mincho_font
+            # ms_par.style.font.size = Pt(size)
+            ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+            if re.match('^: (.*) :$', pn):
+                pn = re.sub('^: (.*) :', '\\1', pn)
+                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+            elif re.match('^: (.*)$', pn):
+                pn = re.sub('^: (.*)', '\\1', pn)
+                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+            elif re.match('^(.*) :$', pn):
+                pn = re.sub('(.*) :$', '\\1', pn)
+                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
+            tex = ''
+            for c in pn + '\0':
+                if c != 'n' and c != 'N' and c != '\0':
+                    tex += c
+                    continue
+                if not re.match(NOT_ESCAPED + 'x', tex + 'x') and c != '\0':
+                    tex = re.sub('\\\\$', '', tex) + c
+                    continue
+                # TEXT
+                ms_run = ms_par.add_run()
+                oe = OxmlElement('w:t')
+                oe.set(ns.qn('xml:space'), 'preserve')
+                oe.text = tex
+                ms_run._r.append(oe)
+                tex = ''
+                # PAGE OR NUMPAGES
+                if c == '\0':
+                    continue
+                pn = re.sub('^n', '', pn)
+                ms_run = ms_par.add_run()
+                oe = OxmlElement('w:fldChar')
+                oe.set(ns.qn('w:fldCharType'), 'begin')
+                ms_run._r.append(oe)
+                oe = OxmlElement('w:instrText')
+                oe.set(ns.qn('xml:space'), 'preserve')
+                if c == 'n':
+                    oe.text = 'PAGE'
+                elif c == 'N':
+                    oe.text = 'NUMPAGES'
+                ms_run._r.append(oe)
+                oe = OxmlElement('w:fldChar')
+                oe.set(ns.qn('w:fldCharType'), 'end')
+                ms_run._r.append(oe)
+        # LINE NUMBER
+        if Form.line_number:
+            ms_scp = ms_doc.sections[0]._sectPr
+            oe = OxmlElement('w:lnNumType')
+            oe.set(ns.qn('w:countBy'), '5')
+            oe.set(ns.qn('w:restart'), 'newPage')
+            oe.set(ns.qn('w:distance'), '567')  # 567≒20*72/2.54=1cm
+            ms_scp.append(oe)
+        self.make_styles(ms_doc)
+        return ms_doc
+
+    def make_styles(self, ms_doc):
+        size = Form.font_size
+        line_spacing = Form.line_spacing
+        # NORMAL
+        ms_doc.styles.add_style('makdo', WD_STYLE_TYPE.PARAGRAPH)
+        ms_doc.styles['makdo'].font.name = Form.mincho_font
+        ms_doc.styles['makdo'].font.size = Pt(size)
+        ms_doc.styles['makdo'].paragraph_format.line_spacing \
+            = Pt(line_spacing * size)
+        if not Form.auto_space:
+            pPr = ms_doc.styles['makdo']._element.get_or_add_pPr()
+            # KANJI<->ENGLISH
+            oe = OxmlElement('w:autoSpaceDE')
+            oe.set(ns.qn('w:val'), '0')
+            pPr.append(oe)
+            # KANJI<->NUMBER
+            oe = OxmlElement('w:autoSpaceDN')
+            oe.set(ns.qn('w:val'), '0')
+            pPr.append(oe)
+        # GOTHIC
+        ms_doc.styles.add_style('makdo-g', WD_STYLE_TYPE.PARAGRAPH)
+        ms_doc.styles['makdo-g'].font.name = Form.gothic_font
+        # IVS
+        ms_doc.styles.add_style('makdo-i', WD_STYLE_TYPE.PARAGRAPH)
+        ms_doc.styles['makdo-i'].font.name = Form.ivs_font
+        # TABLE
+        ms_doc.styles.add_style('makdo-t', WD_STYLE_TYPE.PARAGRAPH)
+        ms_doc.styles['makdo-t'].paragraph_format.line_spacing = Pt(size * 1.2)
+        # ALIGNMENT
+        # ms_doc.styles.add_style('makdo-a', WD_STYLE_TYPE.PARAGRAPH)
+        # SECTION
+        sb = Form.space_before.split(',')
+        sa = Form.space_after.split(',')
+        for i in range(6):
+            n = 'makdo-' + str(i + 1)
+            ms_doc.styles.add_style(n, WD_STYLE_TYPE.PARAGRAPH)
+            if len(sb) > i and sb[i] != '':
+                ms_doc.styles[n].paragraph_format.space_before \
+                    = Pt(float(sb[i]) * line_spacing * size)
+            if len(sa) > i and sa[i] != '':
+                ms_doc.styles[n].paragraph_format.space_after \
+                    = Pt(float(sa[i]) * line_spacing * size)
+        # HORIZONTAL LINE
+        ms_doc.styles.add_style('makdo-h', WD_STYLE_TYPE.PARAGRAPH)
+        ms_doc.styles['makdo-h'].paragraph_format.line_spacing = 0
+        ms_doc.styles['makdo-h'].font.size = Pt(size * 0.5)
+
+
+class Document:
+
+    """A class to handle document"""
+
+    def __init__(self):
         self.docx_file = ''
-        self.raw_md_lines = []
+        self.formal_md_lines = []
         self.md_lines = []
         self.all_paragraphs = []
         self.paragraphs = []
 
-    def get_raw_md_lines(self, md_file):
-        self.md_file = md_file
-        raw_md_lines = []
-        try:
-            if md_file == '-':
-                bd = sys.stdin.buffer.read()
-            else:
-                bd = open(md_file, 'rb').read()
-        except BaseException:
-            msg = '※ エラー: ' \
-                + '入力ファイル「' + md_file + '」を読み込めません'
-            # msg = 'error: ' \
-            #     + 'file "' + md_file + '" is not found'
-            sys.stderr.write(msg + '\n\n')
-            sys.exit(0)
-        enc = chardet.detect(bd)['encoding']
-        if enc is None:
-            enc = 'SHIFT_JIS'
-        elif (re.match('^utf[-_]?.*$', enc, re.I)) or \
-             (re.match('^shift[-_]?jis.*$', enc, re.I)) or \
-             (re.match('^cp932.*$', enc, re.I)) or \
-             (re.match('^euc[-_]?(jp|jis).*$', enc, re.I)) or \
-             (re.match('^iso[-_]?2022[-_]?jp.*$', enc, re.I)) or \
-             (re.match('^ascii.*$', enc, re.I)):
-            pass
-        else:
-            # Windows-1252 (Western Europe)
-            # MacCyrillic (Macintosh Cyrillic)
-            # ...
-            msg = '※ 警告: ' \
-                + '文字コード「' + enc + '」から「SHIFT_JIS」に修正しました'
-            # msg = 'warning: ' \
-            #     + 'detected encoding "' + enc + '" may be wrong'
-            sys.stderr.write(msg + '\n\n')
-            enc = 'SHIFT_JIS'
-        try:
-            sd = bd.decode(enc)
-        except BaseException:
-            msg = '※ エラー: ' \
-                + '正しい文字コードを取得できませんでした' \
-                + '（Markdownでない？）'
-            # msg = 'error: ' \
-            #     + 'could not detect correct character code '
-            #     + '(not markdown?)'
-            sys.stderr.write(msg + '\n\n')
-            sys.exit(0)
-        sd = re.sub('^' + chr(65279), '', sd)  # remove BOM / unnecessary?
-        sd = re.sub('\r\n', '\n', sd)  # unnecessary?
-        sd = re.sub('\r', '\n', sd)  # unnecessary?
-        raw_md_lines = sd.split('\n')
-        raw_md_lines.append('')
-        # self.raw_md_lines = raw_md_lines
-        return raw_md_lines
-
-    def get_md_lines(self, raw_md_lines):
+    def get_md_lines(self, formal_md_lines):
         md_lines = []
-        for i, rml in enumerate(raw_md_lines):
+        for i, rml in enumerate(formal_md_lines):
             ml = MdLine(i + 1, rml)
             md_lines.append(ml)
         # self.md_lines = md_lines
@@ -901,7 +1498,7 @@ class Document:
             if i > 0:
                 p_prev = paragraphs[i - 1]
             # ARTICLE TITLE (MIMI=EAR)
-            if Document.document_style == 'j' and \
+            if Form.document_style == 'j' and \
                p.paragraph_class == 'section' and \
                p.head_section_depth == 2 and \
                p.tail_section_depth == 2 and \
@@ -971,386 +1568,6 @@ class Document:
                     p.length_docx['space after'] = 0.0
         return self.paragraphs
 
-    def configure(self, md_lines, args):
-        self._configure_by_md_file(md_lines)
-        self._configure_by_args(args)
-        Paragraph.mincho_font = Document.mincho_font
-        Paragraph.gothic_font = Document.gothic_font
-        Paragraph.ivs_font = Document.ivs_font
-        Paragraph.font_size = Document.font_size
-
-    def _configure_by_md_file(self, md_lines):
-        for ml in md_lines:
-            com = ml.comment
-            if com is None:
-                break
-            if re.match('^\\s*#', com):
-                continue
-            res = '^\\s*([^:：]+)[:：]\\s*(.*)$'
-            if not re.match(res, com):
-                continue
-            nam = re.sub(res, '\\1', com).rstrip()
-            val = re.sub(res, '\\2', com).rstrip()
-            if False:
-                pass
-            elif nam == 'document_title' or nam == '書題名':
-                Document.document_title = val
-            elif nam == 'document_style' or nam == '文書式':
-                if val == 'n' or val == '普通' or val == '-':
-                    Document.document_style = 'n'
-                elif val == 'k' or val == '契約':
-                    Document.document_style = 'k'
-                elif val == 'j' or val == '条文':
-                    Document.document_style = 'j'
-                else:
-                    msg = '※ 警告: ' \
-                        + '「' + nam + '」の値は"普通"、"契約"又は"条文"で' \
-                        + 'なければなりません'
-                    # msg = 'warning: ' \
-                    #     + '"' + nam + '" must be "-", "k" or "j"'
-                    sys.stderr.write(msg + '\n\n')
-            elif nam == 'paper_size' or nam == '用紙サ':
-                val = unicodedata.normalize('NFKC', val)
-                if val == 'A3':
-                    Document.paper_size = 'A3'
-                elif val == 'A3L' or val == 'A3横':
-                    Document.paper_size = 'A3L'
-                elif val == 'A3P' or val == 'A3縦':
-                    Document.paper_size = 'A3P'
-                elif val == 'A4':
-                    Document.paper_size = 'A4'
-                elif val == 'A4L' or val == 'A4横':
-                    Document.paper_size = 'A4L'
-                elif val == 'A4P' or val == 'A4縦':
-                    Document.paper_size = 'A4P'
-                else:
-                    msg = '※ 警告: ' \
-                        + '「' + nam + '」の値は' \
-                        + '"A3横"、"A3縦"、"A4横"又は"A4縦"で' \
-                        + 'なければなりません'
-                    # msg = 'warning: ' \
-                    #     + '"' + nam + '" must be "A3", "A3P", "A4" or "A4L"'
-                    sys.stderr.write(msg + '\n\n')
-            elif (re.match('^(top|bottom|left|right)_margin$', nam) or
-                  re.match('^(上|下|左|右)余白$', nam)):
-                val = unicodedata.normalize('NFKC', val)
-                val = re.sub('\\s*cm$', '', val)
-                if re.match('^' + RES_NUMBER + '$', val):
-                    if nam == 'top_margin' or nam == '上余白':
-                        Document.top_margin = float(val)
-                    elif nam == 'bottom_margin' or nam == '下余白':
-                        Document.bottom_margin = float(val)
-                    elif nam == 'left_margin' or nam == '左余白':
-                        Document.left_margin = float(val)
-                    elif nam == 'right_margin' or nam == '右余白':
-                        Document.right_margin = float(val)
-                else:
-                    msg = '※ 警告: ' \
-                        + '「' + nam + '」の値は整数又は小数で' \
-                        + 'なければなりません'
-                    # msg = 'warning: ' \
-                    #     + '"' + nam + '" must be an integer or a decimal'
-                    sys.stderr.write(msg + '\n\n')
-            elif nam == 'header_string' or nam == '頭書き':
-                Document.header_string = val
-            elif nam == 'page_number' or nam == '頁番号':
-                val = unicodedata.normalize('NFKC', val)
-                if val == 'True' or val == '有':
-                    Document.page_number = DEFAULT_PAGE_NUMBER
-                elif val == 'False' or val == '無' or val == '-':
-                    Document.page_number = ''
-                else:
-                    Document.page_number = val
-            elif nam == 'line_number' or nam == '行番号':
-                val = unicodedata.normalize('NFKC', val)
-                if val == 'True' or val == '有':
-                    Document.line_number = True
-                elif val == 'False' or val == '無':
-                    Document.line_number = False
-                else:
-                    msg = '※ 警告: ' \
-                        + '「' + nam + '」の値は"有"又は"無"で' \
-                        + 'なければなりません'
-                    # msg = 'warning: ' \
-                    #     + '"' + nam + '" must be "True" or "False"'
-                    sys.stderr.write(msg + '\n\n')
-            elif nam == 'mincho_font' or nam == '明朝体':
-                Document.mincho_font = val
-            elif nam == 'gothic_font' or nam == 'ゴシ体':
-                Document.gothic_font = val
-            elif nam == 'ivs_font' or nam == '異字体':
-                Document.ivs_font = val
-            elif nam == 'font_size' or nam == '文字サ':
-                val = unicodedata.normalize('NFKC', val)
-                val = re.sub('\\s*pt$', '', val)
-                if re.match('^' + RES_NUMBER + '$', val):
-                    Document.font_size = float(val)
-                else:
-                    msg = '※ 警告: ' \
-                        + '「' + nam + '」の値は整数又は小数で' \
-                        + 'なければなりません'
-                    # msg = 'warning: ' \
-                    #     + '"' + nam + '" must be an integer or a decimal'
-                    sys.stderr.write(msg + '\n\n')
-            elif nam == 'line_spacing' or nam == '行間高':
-                val = unicodedata.normalize('NFKC', val)
-                val = re.sub('\\s*倍$', '', val)
-                if re.match('^' + RES_NUMBER + '$', val):
-                    Document.line_spacing = float(val)
-                else:
-                    msg = '※ 警告: ' \
-                        + '「' + nam + '」の値は整数又は小数で' \
-                        + 'なければなりません'
-                    # msg = 'warning: ' \
-                    #     + '"' + nam + '" must be an integer or a decimal'
-                    sys.stderr.write(msg + '\n\n')
-            elif (re.match('^space_(before|after)$', nam) or
-                  re.match('^(前|後)余白$', nam)):
-                val = unicodedata.normalize('NFKC', val)
-                val = val.replace('、', ',')
-                val = val.replace('倍', '')
-                val = val.replace(' ', '')
-                if re.match('^' + RES_NUMBER6 + '$', val):
-                    if nam == 'space_before' or nam == '前余白':
-                        Document.space_before = val
-                    elif nam == 'space_after'or nam == '後余白':
-                        Document.space_after = val
-                else:
-                    msg = '※ 警告: ' \
-                        + '「' + nam + '」の値は' \
-                        + '整数又は小数をカンマで区切って並べたもので' \
-                        + 'なければなりません'
-                    # msg = 'warning: ' \
-                    #     + '"' + nam + '" must be 6 integers or decimals'
-                    sys.stderr.write(msg + '\n\n')
-            elif nam == 'auto_space' or nam == '字間整':
-                val = unicodedata.normalize('NFKC', val)
-                if val == 'True' or val == '有':
-                    Document.auto_space = True
-                elif val == 'False' or val == '無':
-                    Document.auto_space = False
-                else:
-                    msg = '※ 警告: ' \
-                        + '「' + nam + '」の値は"有"又は"無"で' \
-                        + 'なければなりません'
-                    # msg = 'warning: ' \
-                    #     + '"' + nam + '" must be "True" or "False"'
-                    sys.stderr.write(msg + '\n\n')
-            elif nam == 'original_file' or nam == '元原稿':
-                Document.original_file = val
-            else:
-                msg = '※ 警告: ' \
-                    + '「' + nam + '」という設定項目は存在しません'
-                # msg = 'warning: ' \
-                #     + 'configuration name "' + nam + '" does not exist'
-                sys.stderr.write(msg + '\n\n')
-
-    def _configure_by_args(self, args):
-        if args.document_title is not None:
-            Document.document_title = args.document_title
-        if args.paper_size is not None:
-            Document.paper_size = args.paper_size
-        if args.top_margin is not None:
-            Document.top_margin = args.top_margin
-        if args.bottom_margin is not None:
-            Document.bottom_margin = args.bottom_margin
-        if args.left_margin is not None:
-            Document.left_margin = args.left_margin
-        if args.right_margin is not None:
-            Document.right_margin = args.right_margin
-        if args.mincho_font is not None:
-            Document.mincho_font = args.mincho_font
-        if args.gothic_font is not None:
-            Document.gothic_font = args.gothic_font
-        if args.ivs_font is not None:
-            Document.ivs_font = args.ivs_font
-        if args.font_size is not None:
-            Document.font_size = args.font_size
-        if args.document_style is not None:
-            Document.document_style = args.document_style
-        if args.header_string is not None:
-            Document.header_string = args.header_string
-        if args.page_number is not None:
-            Document.page_number = args.page_number
-        if args.line_number:
-            Document.line_number = True
-        if args.line_spacing is not None:
-            Document.line_spacing = args.line_spacing
-        if args.space_before is not None:
-            Document.space_before = args.space_before
-        if args.space_after is not None:
-            Document.space_after = args.space_after
-        if args.auto_space:
-            Document.auto_space = True
-
-    def get_ms_doc(self):
-        size = Document.font_size
-        ms_doc = docx.Document()
-        ms_sec = ms_doc.sections[0]
-        ms_sec.page_height = Cm(PAPER_HEIGHT[Document.paper_size])
-        ms_sec.page_width = Cm(PAPER_WIDTH[Document.paper_size])
-        ms_sec.top_margin = Cm(Document.top_margin)
-        ms_sec.bottom_margin = Cm(Document.bottom_margin)
-        ms_sec.left_margin = Cm(Document.left_margin)
-        ms_sec.right_margin = Cm(Document.right_margin)
-        ms_sec.header_distance = Cm(1.0)
-        ms_sec.footer_distance = Cm(1.0)
-        ms_doc.styles['Footer'].font.size = Pt(size)      # page number
-        ms_doc.styles['Normal'].font.size = Pt(size / 2)  # line number
-        ms_doc.styles['List Bullet'].font.size = Pt(size)
-        ms_doc.styles['List Bullet 2'].font.size = Pt(size)
-        ms_doc.styles['List Bullet 3'].font.size = Pt(size)
-        ms_doc.styles['List Number'].font.size = Pt(size)
-        ms_doc.styles['List Number 2'].font.size = Pt(size)
-        ms_doc.styles['List Number 3'].font.size = Pt(size)
-        # HEADER
-        if Document.header_string != '':
-            hs = Document.header_string
-            ms_par = ms_doc.sections[0].header.paragraphs[0]
-            ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-            if re.match('^: (.*) :$', hs):
-                hs = re.sub('^: (.*) :', '\\1', hs)
-                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-            elif re.match('^: (.*)$', hs):
-                hs = re.sub('^: (.*)', '\\1', hs)
-                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
-            elif re.match('^(.*) :$', hs):
-                hs = re.sub('(.*) :$', '\\1', hs)
-                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
-            tex = ''
-            is_large = False
-            is_small = False
-            for c in hs + '\0':
-                tex += c
-                if re.match(NOT_ESCAPED + '\\-\\-$', tex) or \
-                   re.match(NOT_ESCAPED + '\\+\\+$', tex) or \
-                   re.match(NOT_ESCAPED + '\0$', tex):
-                    ms_run = ms_par.add_run()
-                    if is_small:
-                        ms_run.font.size = Pt(Document.font_size * 0.8)
-                    elif is_large:
-                        ms_run.font.size = Pt(Document.font_size * 1.2)
-                    else:
-                        ms_run.font.size = Pt(Document.font_size * 1.0)
-                    oe = OxmlElement('w:t')
-                    oe.set(ns.qn('xml:space'), 'preserve')
-                    if re.match(NOT_ESCAPED + '\\-\\-$', tex):
-                        oe.text = re.sub('\\-\\-$', '', tex)
-                        is_small = not is_small
-                        is_large = False
-                    elif re.match(NOT_ESCAPED + '\\+\\+$', tex):
-                        oe.text = re.sub('\\+\\+$', '', tex)
-                        is_small = False
-                        is_large = not is_large
-                    elif re.match(NOT_ESCAPED + '\0$', tex):
-                        oe.text = re.sub('\0$', '', tex)
-                    tex = ''
-                    ms_run._r.append(oe)
-        # FOOTER
-        if Document.page_number != '':
-            pn = Document.page_number
-            ms_par = ms_doc.sections[0].footer.paragraphs[0]
-            ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-            if re.match('^: (.*) :$', pn):
-                pn = re.sub('^: (.*) :', '\\1', pn)
-                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-            elif re.match('^: (.*)$', pn):
-                pn = re.sub('^: (.*)', '\\1', pn)
-                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
-            elif re.match('^(.*) :$', pn):
-                pn = re.sub('(.*) :$', '\\1', pn)
-                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
-            tex = ''
-            for c in pn + '\0':
-                if c != 'n' and c != 'N' and c != '\0':
-                    tex += c
-                    continue
-                if not re.match(NOT_ESCAPED + 'x', tex + 'x') and c != '\0':
-                    tex = re.sub('\\\\$', '', tex) + c
-                    continue
-                # TEXT
-                ms_run = ms_par.add_run()
-                oe = OxmlElement('w:t')
-                oe.set(ns.qn('xml:space'), 'preserve')
-                oe.text = tex
-                ms_run._r.append(oe)
-                tex = ''
-                # PAGE OR NUMPAGES
-                if c == '\0':
-                    continue
-                pn = re.sub('^n', '', pn)
-                ms_run = ms_par.add_run()
-                oe = OxmlElement('w:fldChar')
-                oe.set(ns.qn('w:fldCharType'), 'begin')
-                ms_run._r.append(oe)
-                oe = OxmlElement('w:instrText')
-                oe.set(ns.qn('xml:space'), 'preserve')
-                if c == 'n':
-                    oe.text = 'PAGE'
-                elif c == 'N':
-                    oe.text = 'NUMPAGES'
-                ms_run._r.append(oe)
-                oe = OxmlElement('w:fldChar')
-                oe.set(ns.qn('w:fldCharType'), 'end')
-                ms_run._r.append(oe)
-        # LINE NUMBER
-        if Document.line_number:
-            ms_scp = ms_doc.sections[0]._sectPr
-            oe = OxmlElement('w:lnNumType')
-            oe.set(ns.qn('w:countBy'), '5')
-            oe.set(ns.qn('w:restart'), 'newPage')
-            oe.set(ns.qn('w:distance'), '567')  # 567≒20*72/2.54=1cm
-            ms_scp.append(oe)
-        self.make_styles(ms_doc)
-        return ms_doc
-
-    def make_styles(self, ms_doc):
-        size = Document.font_size
-        line_spacing = Document.line_spacing
-        # NORMAL
-        ms_doc.styles.add_style('makdo', WD_STYLE_TYPE.PARAGRAPH)
-        ms_doc.styles['makdo'].font.name = Document.mincho_font
-        ms_doc.styles['makdo'].font.size = Pt(size)
-        ms_doc.styles['makdo'].paragraph_format.line_spacing \
-            = Pt(line_spacing * size)
-        if not Document.auto_space:
-            pPr = ms_doc.styles['makdo']._element.get_or_add_pPr()
-            # KANJI<->ENGLISH
-            oe = OxmlElement('w:autoSpaceDE')
-            oe.set(ns.qn('w:val'), '0')
-            pPr.append(oe)
-            # KANJI<->NUMBER
-            oe = OxmlElement('w:autoSpaceDN')
-            oe.set(ns.qn('w:val'), '0')
-            pPr.append(oe)
-        # GOTHIC
-        ms_doc.styles.add_style('makdo-g', WD_STYLE_TYPE.PARAGRAPH)
-        ms_doc.styles['makdo-g'].font.name = Document.gothic_font
-        # IVS
-        ms_doc.styles.add_style('makdo-i', WD_STYLE_TYPE.PARAGRAPH)
-        ms_doc.styles['makdo-i'].font.name = Document.ivs_font
-        # TABLE
-        ms_doc.styles.add_style('makdo-t', WD_STYLE_TYPE.PARAGRAPH)
-        ms_doc.styles['makdo-t'].paragraph_format.line_spacing = Pt(size * 1.2)
-        # ALIGNMENT
-        # ms_doc.styles.add_style('makdo-a', WD_STYLE_TYPE.PARAGRAPH)
-        # SECTION
-        sb = Document.space_before.split(',')
-        sa = Document.space_after.split(',')
-        for i in range(6):
-            n = 'makdo-' + str(i + 1)
-            ms_doc.styles.add_style(n, WD_STYLE_TYPE.PARAGRAPH)
-            if len(sb) > i and sb[i] != '':
-                ms_doc.styles[n].paragraph_format.space_before \
-                    = Pt(float(sb[i]) * line_spacing * size)
-            if len(sa) > i and sa[i] != '':
-                ms_doc.styles[n].paragraph_format.space_after \
-                    = Pt(float(sa[i]) * line_spacing * size)
-        # HORIZONTAL LINE
-        ms_doc.styles.add_style('makdo-h', WD_STYLE_TYPE.PARAGRAPH)
-        ms_doc.styles['makdo-h'].paragraph_format.line_spacing = 0
-        ms_doc.styles['makdo-h'].font.size = Pt(size * 0.5)
-
     def write_property(self, ms_doc):
         host = socket.gethostname()
         if host is None:
@@ -1360,12 +1577,12 @@ class Document:
         if user is None:
             user = '='
         hu = self._get_hash(user)
-        tt = Document.document_title
-        if Document.document_style == 'n':
+        tt = Form.document_title
+        if Form.document_style == 'n':
             ct = '（普通）'
-        elif Document.document_style == 'k':
+        elif Form.document_style == 'k':
             ct = '（契約）'
-        elif Document.document_style == 'j':
+        elif Form.document_style == 'j':
             ct = '（条文）'
         at = hu + '@' + hh + ' (makdo ' + __version__ + ')'
         dt = datetime.datetime.utcnow()
@@ -1416,43 +1633,6 @@ class Document:
     def write_document(self, ms_doc):
         for p in self.paragraphs:
             p.write_paragraph(ms_doc)
-
-    def save_docx_file(self, ms_doc, docx_file, md_file):
-        if docx_file == '':
-            if re.match('^.*\\.md$', md_file):
-                docx_file = re.sub('\\.md$', '.docx', md_file)
-            else:
-                docx_file = md_file + '.docx'
-            self.docx_file = docx_file
-        if os.path.exists(docx_file):
-            if not os.access(docx_file, os.W_OK):
-                msg = '※ エラー: ' \
-                    + '出力ファイル「' + docx_file + '」に書き込み権限が' \
-                    + 'ありません'
-                # msg = 'error: ' \
-                #     + 'overwriting a unwritable file "' + docx_file + '"'
-                sys.stderr.write(msg + '\n\n')
-                sys.exit(1)
-            if os.path.getmtime(md_file) < os.path.getmtime(docx_file):
-                msg = '※ エラー: ' \
-                    + '出力ファイル「' + docx_file + '」の方が' \
-                    + '入力ファイル「' + md_file + '」よりも新しいです'
-                # msg = 'error: ' \
-                #     + 'overwriting a newer file "' + docx_file + '"'
-                sys.stderr.write(msg + '\n\n')
-                sys.exit(1)
-            if os.path.exists(docx_file + '~'):
-                os.remove(docx_file + '~')
-            os.rename(docx_file, docx_file + '~')
-        try:
-            ms_doc.save(docx_file)
-        except BaseException:
-            msg = '※ エラー: ' \
-                + '出力ファイル「' + docx_file + '」の書込みに失敗しました'
-            # msg = 'error: ' \
-            #     + 'failed to write output file "' + docx_file + '"'
-            sys.stderr.write(msg + '\n\n')
-            sys.exit(1)
 
     def print_warning_messages(self):
         for p in self.paragraphs:
@@ -1694,9 +1874,9 @@ class Paragraph:
     paragraph_class = None
     res_feature = None
 
-    mincho_font = ''
-    gothic_font = ''
-    ivs_font = ''
+    mincho_font = None
+    gothic_font = None
+    ivs_font = None
     font_size = -1
 
     previous_head_section_depth = 0
@@ -1917,8 +2097,8 @@ class Paragraph:
         length_conf \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
-        sb = (Document.space_before + ',,,,,,,').split(',')
-        sa = (Document.space_after + ',,,,,,,').split(',')
+        sb = (Form.space_before + ',,,,,,,').split(',')
+        sa = (Form.space_after + ',,,,,,,').split(',')
         if paragraph_class == 'section':
             if hd <= len(sb) and sb[hd - 1] != '':
                 length_conf['space before'] += float(sb[hd - 1])
@@ -1935,7 +2115,7 @@ class Paragraph:
         proper_depth = self.proper_depth
         length_revi = self.length_revi
         size = self.font_size
-        line_spacing = Document.line_spacing
+        line_spacing = Form.line_spacing
         length_clas \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
@@ -1970,7 +2150,7 @@ class Paragraph:
            paragraph_class == 'sentence':
             if ParagraphSection.states[1][0] <= 0 and tail_section_depth > 2:
                 length_clas['left indent'] -= 1.0
-        if Document.document_style == 'j':
+        if Form.document_style == 'j':
             if ParagraphSection.states[1][0] > 0 and tail_section_depth > 2:
                 length_clas['left indent'] -= 1.0
         # self.length_clas = length_clas
@@ -2161,7 +2341,7 @@ class Paragraph:
         length_docx = self.length_docx
         size = Paragraph.font_size
         ms_par = ms_doc.add_paragraph(style=par_style)
-        if not Document.auto_space:
+        if not Form.auto_space:
             pPr = ms_par._p.get_or_add_pPr()
             oe = OxmlElement('w:autoSpaceDE')
             oe.set(ns.qn('w:val'), '0')
@@ -2172,7 +2352,7 @@ class Paragraph:
         ms_fmt = ms_par.paragraph_format
         ms_fmt.widow_control = False
         if length_docx['space before'] >= 0:
-            pt = length_docx['space before'] * Document.line_spacing * size
+            pt = length_docx['space before'] * Form.line_spacing * size
             ms_fmt.space_before = Pt(pt)
         else:
             ms_fmt.space_before = Pt(0)
@@ -2182,7 +2362,7 @@ class Paragraph:
             #     + '"space before" is too small'
             self.md_lines[0].append_warning_message(msg)
         if length_docx['space after'] >= 0:
-            pt = length_docx['space after'] * Document.line_spacing * size
+            pt = length_docx['space after'] * Form.line_spacing * size
             ms_fmt.space_after = Pt(pt)
         else:
             ms_fmt.space_after = Pt(0)
@@ -2195,7 +2375,7 @@ class Paragraph:
         ms_fmt.left_indent = Pt(length_docx['left indent'] * size)
         ms_fmt.right_indent = Pt(length_docx['right indent'] * size)
         # ms_fmt.line_spacing_rule = WD_LINE_SPACING.ONE_POINT_FIVE
-        ls = Document.line_spacing * (1 + length_docx['line spacing'])
+        ls = Form.line_spacing * (1 + length_docx['line spacing'])
         if ls >= 1.0:
             ms_fmt.line_spacing = Pt(ls * size)
         else:
@@ -2218,8 +2398,8 @@ class Paragraph:
             text += ln + '\n'
         text = re.sub('\n$', '', text)
         text = Paragraph._remove_relax_symbol(text)
-        res_img = '(.*(?:\n.*)*)' + RES_IMAGE
-        res_ivs = '^(.*)([^\\\\])([0-9]+);$'
+        res_img = NOT_ESCAPED + RES_IMAGE
+        res_ivs = '^(.*?)([^0-9\\\\])([0-9]+);$'
         tex = ''
         for c in text + '\0':
             if False:
@@ -2327,7 +2507,7 @@ class Paragraph:
                 ivs_c = re.sub(res_ivs, '\\2', tex + c, flags=re.DOTALL)
                 ivs_n = re.sub(res_ivs, '\\3', tex + c, flags=re.DOTALL)
                 ivs_u = int('0xE0100', 16) + int(ivs_n)
-                if int(ivs_n) <= int('0xE01EF', 16):
+                if int(ivs_u) <= int('0xE01EF', 16):
                     tex = self._write_string(tmp_t, ms_par)
                     pmf = Paragraph.mincho_font
                     Paragraph.mincho_font = Paragraph.ivs_font
@@ -2402,11 +2582,11 @@ class Paragraph:
             = self.length_docx['first indent'] \
             + self.length_docx['left indent'] \
             + self.length_docx['right indent']
-        text_width = PAPER_WIDTH[Document.paper_size] \
-            - Document.left_margin - Document.right_margin \
+        text_width = PAPER_WIDTH[Form.paper_size] \
+            - Form.left_margin - Form.right_margin \
             - (indent * 2.54 / 72)
-        text_height = PAPER_HEIGHT[Document.paper_size] \
-            - Document.top_margin - Document.bottom_margin
+        text_height = PAPER_HEIGHT[Form.paper_size] \
+            - Form.top_margin - Form.bottom_margin
         ms_run = ms_par.add_run()
         res = '^(.*):(' + RES_NUMBER + ')?(?:x(' + RES_NUMBER + ')?)?$'
         cm_w = 0
@@ -2511,7 +2691,7 @@ class ParagraphChapter(Paragraph):
                 value = cls.states[xdepth][0]
                 if ydepth == 0:
                     value += 1
-                xvalue_char = i2c_n_arab(value, md_line)
+                xvalue_char = n2c_n_arab(value, md_line)
             unit_char = cls.unit_chars[xdepth]
         head_string = '第' + xvalue_char + unit_char
         for y in range(1, ydepth + 1):
@@ -2519,7 +2699,7 @@ class ParagraphChapter(Paragraph):
                 value = cls.states[xdepth][y] + 1
                 if y == ydepth:
                     value += 1
-                yvalue_char = i2c_n_arab(value, md_line)
+                yvalue_char = n2c_n_arab(value, md_line)
             else:
                 yvalue_char = '〓'
             head_string += 'の' + yvalue_char
@@ -2586,25 +2766,25 @@ class ParagraphSection(Paragraph):
             if xdepth == 0:
                 head_string = ''
             elif xdepth == 1:
-                if Document.document_style == 'n':
-                    head_string = '第' + i2c_n_arab(value, md_line)
+                if Form.document_style == 'n':
+                    head_string = '第' + n2c_n_arab(value, md_line)
                 else:
-                    head_string = '第' + i2c_n_arab(value, md_line) + '条'
+                    head_string = '第' + n2c_n_arab(value, md_line) + '条'
             elif xdepth == 2:
-                if Document.document_style != 'j' or cls.states[1][0] == 0:
-                    head_string = i2c_n_arab(value, md_line)
+                if Form.document_style != 'j' or cls.states[1][0] == 0:
+                    head_string = n2c_n_arab(value, md_line)
                 else:
-                    head_string = i2c_n_arab(value + 1, md_line)
+                    head_string = n2c_n_arab(value + 1, md_line)
             elif xdepth == 3:
-                head_string = i2c_p_arab(value, md_line)
+                head_string = n2c_p_arab(value, md_line)
             elif xdepth == 4:
-                head_string = i2c_n_kata(value, md_line)
+                head_string = n2c_n_kata(value, md_line)
             elif xdepth == 5:
-                head_string = i2c_p_kata(value, md_line)
+                head_string = n2c_p_kata(value, md_line)
             elif xdepth == 6:
-                head_string = i2c_n_alph(value, md_line)
+                head_string = n2c_n_alph(value, md_line)
             elif xdepth == 7:
-                head_string = i2c_p_alph(value, md_line)
+                head_string = n2c_p_alph(value, md_line)
             else:
                 head_string = '〓'
         else:
@@ -2615,7 +2795,7 @@ class ParagraphSection(Paragraph):
                 value = cls.states[xdepth][y] + 1
                 if y == ydepth:
                     value += 1
-                yvalue_char = i2c_n_arab(value, md_line)
+                yvalue_char = n2c_n_arab(value, md_line)
             else:
                 yvalue_char = '〓'
             head_string += 'の' + yvalue_char
@@ -2671,16 +2851,16 @@ class ParagraphList(Paragraph):
 
     def _edit_data(self):
         full_text = self.full_text
+        md_lines = self.md_lines
         res = '^\\s*' + ParagraphList.res_symbol + '\\s*'
         states = ParagraphList.states
-        ml = self.md_lines
         proper_depth = self.proper_depth
         n = 0
-        while n < len(ml) and ml[n].text == '':
+        while n < len(md_lines) and md_lines[n].text == '':
             n += 1
-        line = self.md_lines[n].text
+        line = md_lines[n].text
         is_numbering = False
-        if re.match('\\s*[0-9]+\\.\\s', full_text):
+        if re.match('\\s*[0-9]+(?:\\.|\\))\\s', full_text):
             is_numbering = True
         line = re.sub(res, '', line)
         if not is_numbering:
@@ -2700,13 +2880,13 @@ class ParagraphList(Paragraph):
                 head_strings = '〓'
         else:
             if proper_depth == 1:
-                head_strings = i2c_c_arab(states[0][0] + 1)
+                head_strings = n2c_c_arab(states[0][0] + 1, md_lines[n])
             elif proper_depth == 2:
-                head_strings = i2c_c_kata(states[1][0] + 1)
+                head_strings = n2c_c_kata(states[1][0] + 1, md_lines[n])
             elif proper_depth == 3:
-                head_strings = i2c_c_alph(states[2][0] + 1)
+                head_strings = n2c_c_alph(states[2][0] + 1, md_lines[n])
             elif proper_depth == 4:
-                head_strings = i2c_c_kanj(states[3][0] + 1)
+                head_strings = n2c_c_kanj(states[3][0] + 1, md_lines[n])
             else:
                 head_strings = '〓'
             if proper_depth <= len(states):
@@ -2784,7 +2964,18 @@ class ParagraphTable(Paragraph):
                 continue
             line = re.sub('^\\|', '', line)
             line = re.sub('\\|$', '', line)
-            tab.append(line.split('|'))
+            # SPLIT BY '|' NOT '\\|'
+            tmp_col = line.split('|')
+            col = []
+            for c in tmp_col:
+                if len(col) > 0 and re.match(NOT_ESCAPED + '\\\\$', col[-1]):
+                    col[-1] += '|' + c
+                else:
+                    col.append(c)
+            if len(col) > 0 and re.match(NOT_ESCAPED + '\\\\$', col[-1]):
+                col[-1] += '|'
+            tab.append(col)
+            #tab.append(line.split('|'))
             line = ''
         m = 0
         for rw in tab:
@@ -2850,10 +3041,10 @@ class ParagraphImage(Paragraph):
         ttwwr = re.sub('\n+$', '', ttwwr)
         is_large = False
         is_small = False
-        text_width = PAPER_WIDTH[Document.paper_size] \
-            - Document.left_margin - Document.right_margin
-        text_height = PAPER_HEIGHT[Document.paper_size] \
-            - Document.top_margin - Document.bottom_margin
+        text_width = PAPER_WIDTH[Form.paper_size] \
+            - Form.left_margin - Form.right_margin
+        text_height = PAPER_HEIGHT[Form.paper_size] \
+            - Form.top_margin - Form.bottom_margin
         res = '^(.*):(' + RES_NUMBER + ')?(?:x(' + RES_NUMBER + ')?)?$'
         for text in ttwwr.split('\n'):
             alte = re.sub(RES_IMAGE, '\\1', text)
@@ -3054,7 +3245,7 @@ class ParagraphHorizontalLine(Paragraph):
         length_revi = self.length_revi
         length_conf = self.length_conf
         length_clas = self.length_clas
-        line_spacing = Document.line_spacing
+        line_spacing = Form.line_spacing
         length_docx = self.length_docx
         size = self.font_size
         ms_par = ms_doc.add_paragraph(style='makdo-h')
@@ -3220,25 +3411,29 @@ def main():
 
     args = get_arguments()
 
+    io = IO(args.md_file, args.docx_file)
+
     doc = Document()
 
-    doc.raw_md_lines = doc.get_raw_md_lines(args.md_file)
+    formal_md_lines = io.read_md_file()
+    doc.md_lines = doc.get_md_lines(formal_md_lines)
 
-    doc.md_lines = doc.get_md_lines(doc.raw_md_lines)
-
-    doc.configure(doc.md_lines, args)
+    frm = Form()
+    frm.md_lines = doc.md_lines
+    frm.args = args
+    frm.configure()
 
     doc.raw_paragraphs = doc.get_raw_paragraphs(doc.md_lines)
     doc.paragraphs = doc.get_paragraphs(doc.raw_paragraphs)
     doc.paragraphs = doc.modify_paragraphs(doc.paragraphs)
 
-    ms_doc = doc.get_ms_doc()
+    ms_doc = frm.get_ms_doc()
 
     doc.write_property(ms_doc)
 
     doc.write_document(ms_doc)
 
-    doc.save_docx_file(ms_doc, args.docx_file, args.md_file)
+    io.write_docx_file(ms_doc)
 
     doc.print_warning_messages()
 
@@ -3246,4 +3441,5 @@ def main():
 
 
 if __name__ == '__main__':
+
     main()

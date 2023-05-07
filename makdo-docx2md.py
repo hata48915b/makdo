@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.03-07:59:41-JST>
+# Time-stamp:   <2023.05.06-03:14:01-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -662,7 +662,7 @@ def get_ideal_width(s):
     return wid
 
 
-def c2i_n_arab(s):
+def c2n_n_arab(s):
     n = 0
     for c in s:
         n *= 10
@@ -675,15 +675,18 @@ def c2i_n_arab(s):
     return n
 
 
-def c2i_p_arab(s):
-    c = s
-    if re.match('^[⑴-⒇]$', c):
+def c2n_p_arab(s):
+    res = '^[\\(（]([0-9０-９]+)[\\)）]$'
+    if re.match('^[⑴-⒇]$', s):
         return ord(c) - 9331
+    elif re.match(res, s):
+        c = re.sub(res, '\\1', s)
+        return c2n_n_arab(c)
     else:
-        return c2i_p_arab(s)
+        return -1
 
 
-def c2i_c_arab(s):
+def c2n_c_arab(s):
     c = s
     n = ord(c)
     if n == 9450:
@@ -701,7 +704,7 @@ def c2i_c_arab(s):
     return -1
 
 
-def c2i_n_kata(s):
+def c2n_n_kata(s):
     c = s
     if re.match('^[ｱ-ﾜ]$', c):
         return ord(c) - 65392
@@ -732,12 +735,24 @@ def c2i_n_kata(s):
     return -1
 
 
-def c2i_c_kata(s):
+def c2n_p_kata(s):
+    res = '^[\\(（]([ｱ-ﾝア-ン])[\\)）]$'
+    if re.match(res, s):
+        c = re.sub(res, '\\1', s)
+        return c2n_n_kata(c)
+    else:
+        return -1
+
+
+def c2n_c_kata(s):
     c = s
-    return ord(c) - 13007
+    if re.match('[㋐-㋾]', c):
+        return ord(c) - 13007
+    else:
+        return -1
 
 
-def c2i_n_alph(s):
+def c2n_n_alph(s):
     c = s
     if re.match('^[a-z]$', c):
         return ord(c) - 96
@@ -746,118 +761,338 @@ def c2i_n_alph(s):
     return -1
 
 
-def c2i_c_alph(s):
+def c2n_p_alph(s):
+    res = '^[\\(（]([a-zａ-ｚ])[\\)）]$'
+    if re.match('^[⒜-⒵]$', s):
+        return ord(s) - 9371
+    elif re.match(res, s):
+        c = re.sub(res, '\\1', s)
+        return c2n_n_alph(c)
+    else:
+        return -1
+
+
+def c2n_c_alph(s):
     c = s
-    return ord(c) - 9423
+    if re.match('^[ⓐ-ⓩ]$', c):
+        return ord(c) - 9423
+    else:
+        return -1
 
 
-def c2i_c_kanj(s):
+def c2n_c_kanj(s):
     c = s
-    return ord(c) - 12927
-
-
-def get_xml_value(tag_name, value_name, init_value, tag):
-    if re.match('<' + tag_name + ' .+>', tag):
-        res = '^.* ' + value_name + '=[\'"]([^\'"]*)[\'"].*$'
-        if re.match(res, tag):
-            value = re.sub(res, '\\1', tag)
-            if type(init_value) is int:
-                return int(value)
-            if type(init_value) is float:
-                return float(value)
-            if type(init_value) is bool:
-                if re.match('^true$', value, re.IGNORECASE):
-                    return True
-                else:
-                    return False
-            return value
-    return init_value
+    if re.match('^[㊀-㊉]$', c):
+        return ord(c) - 12927
+    else:
+        return -1
 
 
 ############################################################
 # CLASS
 
 
-class Document:
+class XML:
 
-    """A class to handle document"""
+    @staticmethod
+    def get_body(tag_name, xml_lines):
+        xml_body = []
+        is_in_body = False
+        for rxl in xml_lines:
+            if re.match('^</?' + tag_name + '( .*)?>$', rxl):
+                is_in_body = not is_in_body
+                continue
+            if is_in_body:
+                xml_body.append(rxl)
+        return xml_body
 
-    document_title = DEFAULT_DOCUMENT_TITLE
-    document_style = DEFAULT_DOCUMENT_STYLE
-    paper_size = DEFAULT_PAPER_SIZE
-    top_margin = DEFAULT_TOP_MARGIN
-    bottom_margin = DEFAULT_BOTTOM_MARGIN
-    left_margin = DEFAULT_LEFT_MARGIN
-    right_margin = DEFAULT_RIGHT_MARGIN
-    header_string = DEFAULT_HEADER_STRING
-    page_number = DEFAULT_PAGE_NUMBER
-    line_number = DEFAULT_LINE_NUMBER
-    mincho_font = DEFAULT_MINCHO_FONT
-    gothic_font = DEFAULT_GOTHIC_FONT
-    ivs_font = DEFAULT_IVS_FONT
-    font_size = DEFAULT_FONT_SIZE
-    line_spacing = DEFAULT_LINE_SPACING
-    space_before = DEFAULT_SPACE_BEFORE
-    space_after = DEFAULT_SPACE_AFTER
-    auto_space = DEFAULT_AUTO_SPACE
-    original_file = ''
+    @staticmethod
+    def get_blocks(xml_body):
+        xml_blocks = []
+        xml_class = None
+        res_oneline_tag = '<(\\S+)( .*)?/>'
+        res_beginning_tag = '<(\\S+)( .*)?>'
+        for xl in xml_body:
+            if xml_class == '':
+                if not re.match(res_beginning_tag, xl):
+                    xb.append(xl)
+                    continue
+                else:
+                    xml_blocks.append(xb)
+                    xml_class = None
+            if xml_class is None:
+                xb = []
+                xb.append(xl)
+                if re.match(res_oneline_tag, xl):
+                    xml_blocks.append(xb)
+                elif re.match(res_beginning_tag, xl):
+                    xml_class = re.sub(res_beginning_tag, '\\1', xl)
+                else:
+                    xml_class = ''
+            else:
+                xb.append(xl)
+                res_end_tag = '</' + xml_class + '>'
+                if re.match(res_end_tag, xl):
+                    xml_blocks.append(xb)
+                    xml_class = None
+        return xml_blocks
 
-    tmpdir = ''
+    @staticmethod
+    def get_value(tag_name, value_name, init_value, tag):
+        if re.match('<' + tag_name + ' .+>', tag):
+            res = '^.* ' + value_name + '=[\'"]([^\'"]*)[\'"].*$'
+            if re.match(res, tag):
+                value = re.sub(res, '\\1', tag)
+                if type(init_value) is int:
+                    return int(value)
+                if type(init_value) is float:
+                    return float(value)
+                if type(init_value) is bool:
+                    if re.match('^true$', value, re.IGNORECASE):
+                        return True
+                    else:
+                        return False
+                return value
+        return init_value
+
+
+class IO:
+
+    """A class to handle input and output"""
+
     media_dir = ''
-    styles = []
-    rels = {}
 
-    def __init__(self):
-        self.media_dir = None
+    def __init__(self, inputed_docx_file, inputed_md_file):
+        # DECLARE
+        self.inputed_docx_file = None
+        self.inputed_md_file = None
         self.docx_file = None
         self.md_file = None
-        self.core_raw_xml_lines = None
-        self.footer1_raw_xml_lines = None
-        self.footer2_raw_xml_lines = None
-        self.styles_raw_xml_lines = None
-        self.rels_raw_xml_lines = None
-        self.document_raw_xml_lines = None
-        self.raw_paragraphs = None
-        self.paragraphs = None
+        self.temp_dir_inst = None
+        self.temp_dir = None
+        self.docx_input = None
+        self.md_file_inst = None
+        # SUBSTITUTE
+        self.inputed_docx_file = inputed_docx_file
+        self.inputed_md_file = inputed_md_file
+        self.docx_file = self.inputed_docx_file
+        self.md_file = self._get_md_file(inputed_docx_file, inputed_md_file)
+        self.temp_dir_inst = tempfile.TemporaryDirectory()
+        self.temp_dir = self.temp_dir_inst.name
+        # VERIFY
+        self._verify_files(self.docx_file, self.md_file)
+        IO.media_dir = self._get_media_dir(self.md_file)
+
+    def unpack_docx_file(self):
+        self.docx_input = DocxFile(self.docx_file)
+        docx_input = self.docx_input
+        docx_input.unpack_docx_file(self.temp_dir)
+
+    def read_xml_file(self, xml_file):
+        xml_lines = self.docx_input.read_xml_file(xml_file)
+        return xml_lines
+
+    def open_md_file(self):
+        self.md_file_inst = MdFile(self.md_file)
+        self.md_file_inst.open()
+
+    def write_md_file(self, article):
+        self.md_file_inst.write(article)
+
+    def close_md_file(self):
+        self.md_file_inst.close()
+
+    def save_images(self, images):
+        media_dir = self.media_dir
+        if len(images) == 0:
+            return
+        if media_dir == '':
+            return
+        self._make_media_dir(media_dir)
+        self._copy_images(images)
 
     @staticmethod
-    def make_tmpdir():
-        tmpdir = tempfile.TemporaryDirectory()
-        # Document.tmpdir = tmpdir
-        return tmpdir
+    def _make_media_dir(media_dir):
+        if os.path.exists(media_dir):
+            if not os.path.isdir(media_dir):
+                msg = '※ 警告: ' \
+                    + '画像の保存先「' + media_dir + '」' \
+                    + 'と同名のファイルが存在します'
+                # msg = 'warning: ' \
+                #     + 'non-directory "' + media_dir + '"'
+                sys.stderr.write(msg + '\n\n')
+                return False
+        else:
+            try:
+                os.mkdir(media_dir)
+            except BaseException:
+                msg = '※ 警告: ' \
+                    + '画像の保存先「' + media_dir + '」' \
+                    + 'を作成できません'
+                # msg = 'warning: ' \
+                #     + 'can\'t make "' + media_dir + '"'
+                sys.stderr.write(msg + '\n\n')
+                return False
+
+    def _copy_images(self, images):
+        temp_dir = self.temp_dir
+        media_dir = self.media_dir
+        for img in images:
+            orig_img = temp_dir + '/word/' + img
+            targ_img = media_dir + '/' + images[img]
+            bkup_img = targ_img + '~'
+            if os.path.exists(targ_img) and os.path.exists(bkup_img):
+                os.remove(bkup_img)
+            if os.path.exists(targ_img) and os.path.exists(bkup_img):
+                msg = '※ 警告: ' \
+                    + '画像「' + images[img] + '~」' \
+                    + 'を削除できません'
+                # msg = 'warning: ' \
+                #     + 'can\'t remove "' + images[img] + '~"'
+                sys.stderr.write(msg + '\n\n')
+                continue
+            if os.path.exists(targ_img):
+                os.rename(targ_img, bkup_img)
+            if os.path.exists(targ_img):
+                msg = '※ 警告: ' \
+                    + '画像「' + images[img] + '」' \
+                    + 'をバックアップできません'
+                # msg = 'warning: ' \
+                #     + 'can\'t backup "' + images[img] + '"'
+                sys.stderr.write(msg + '\n\n')
+                continue
+            try:
+                shutil.copy(orig_img, targ_img)
+            except BaseException:
+                msg = '※ 警告: ' \
+                    + '画像「' + images[img] + '」' \
+                    + 'を保存できません'
+                # msg = 'warning: ' \
+                #     + 'can\'t save "' + images[img] + '"'
+                sys.stderr.write(msg + '\n\n')
+                continue
 
     @staticmethod
-    def get_media_dir_name(md_file, docx_file):
-        if md_file != '':
+    def _get_md_file(inputed_docx_file, inputed_md_file):
+        md_file = inputed_md_file
+        if md_file == '':
+            if inputed_docx_file == '-':
+                msg = '※ エラー: ' \
+                    + '出力ファイルの指定がありません'
+                # msg = 'error: ' \
+                #     + 'no output file name'
+                sys.stderr.write(msg + '\n\n')
+                sys.exit(1)
+            elif re.match('^.*\\.md$', inputed_docx_file):
+                md_file = re.sub('\\.md$', '.docx', inputed_docx_file)
+            else:
+                md_file = inputed_docx_file + '.docx'
+        # self.md_file = md_file
+        return md_file
+
+    @staticmethod
+    def _get_media_dir(md_file):
+        if md_file == '':
+            media_dir = ''
+        else:
             if md_file == '-':
                 media_dir = ''
             elif re.match('^.*\\.md$', md_file, re.I):
                 media_dir = re.sub('\\.md$', '', md_file, re.I)
             else:
                 media_dir = md_file + '.dir'
-        else:
-            if re.match('^.*\\.docx$', docx_file, re.I):
-                media_dir = re.sub('\\.docx$', '', docx_file, re.I)
-            else:
-                media_dir = docx_file + '.dir'
-        # Document.media_dir = media_dir
+        # self.media_dir = media_dir
         return media_dir
 
-    def extract_docx_file(self, docx_file):
+    @staticmethod
+    def _verify_files(input_file, output_file):
+        # INPUT FILE
+        if input_file != '-':
+            if not os.path.exists(input_file):
+                msg = '※ エラー: ' \
+                    + '入力ファイル「' + input_file + '」がありません'
+                # msg = 'error: ' \
+                #     + 'no input file "' + input_file + '"'
+                sys.stderr.write(msg + '\n\n')
+                sys.exit(1)
+            if not os.path.isfile(input_file):
+                msg = '※ エラー: ' \
+                    + '入力「' + input_file + '」はファイルではありません'
+                # msg = 'error: ' \
+                #     + 'not a file "' + input_file + '"'
+                sys.stderr.write(msg + '\n\n')
+                sys.exit(1)
+            if not os.access(input_file, os.R_OK):
+                msg = '※ エラー: ' \
+                    + '入力ファイル「' + input_file + '」に読込み権限が' \
+                    + 'ありません'
+                # msg = 'error: ' \
+                #     + 'unreadable "' + input_file + '"'
+                sys.stderr.write(msg + '\n\n')
+                sys.exit(1)
+        # OUTPUT FILE
+        if output_file != '-' and os.path.exists(output_file):
+            if not os.path.isfile(output_file):
+                msg = '※ エラー: ' \
+                    + '出力「' + output_file + '」はファイルではありません'
+                # msg = 'error: ' \
+                #     + 'not a file "' + output_file + '"'
+                sys.stderr.write(msg + '\n\n')
+                sys.exit(1)
+            if not os.access(output_file, os.W_OK):
+                msg = '※ エラー: ' \
+                    + '出力ファイル「' + output_file + '」に書込み権限が' \
+                    + 'ありません'
+                # msg = 'error: ' \
+                #     + 'unwritable "' + output_file + '"'
+                sys.stderr.write(msg + '\n\n')
+                sys.exit(1)
+        # OLDER OR NEWER
+        if input_file != '-' and os.path.exists(input_file) and \
+           output_file != '-' and os.path.exists(output_file):
+            if os.path.getmtime(input_file) < os.path.getmtime(output_file):
+                msg = '※ エラー: ' \
+                    + '出力ファイルの方が入力ファイルよりも新しいです'
+                # msg = 'error: ' \
+                #     + 'overwriting a newer file'
+                sys.stderr.write(msg + '\n\n')
+                sys.exit(1)
+
+
+class DocxFile:
+
+    """A class to handle docx file"""
+
+    def __init__(self, docx_file):
+        # DECLARE
+        self.docx_file = None
+        self.temp_dir = None
+        # SUBSTITUTE
         self.docx_file = docx_file
-        tmpdir = Document.tmpdir.name
+
+    def unpack_docx_file(self, temp_dir):
+        self.temp_dir = temp_dir
+        docx_file = self.docx_file
         try:
-            shutil.unpack_archive(docx_file, tmpdir, 'zip')
+            shutil.unpack_archive(docx_file, temp_dir, 'zip')
         except BaseException:
             msg = '※ エラー: ' \
                 + '入力ファイル「' + docx_file + '」を展開できません'
+            # msg = 'error: ' \
+            #     + 'can\'t unpack a input file "' + docx_file + '"'
+            sys.stderr.write(msg + '\n\n')
+            sys.exit(1)
+        if not os.path.exists(temp_dir + '/word/document.xml'):
+            msg = '※ エラー: ' \
+                + '入力ファイル「' + docx_file + '」はMS Wordのファイルでは' \
+                + 'ありません'
             # msg = 'error: ' \
             #     + 'not a ms word file "' + docx_file + '"'
             sys.stderr.write(msg + '\n\n')
             sys.exit(1)
 
-    def get_raw_xml_lines(self, xml_file):
-        path = self.tmpdir.name + '/' + xml_file
+    def read_xml_file(self, xml_file):
+        path = self.temp_dir + '/' + xml_file
         if not os.path.exists(path):
             return []
         try:
@@ -888,71 +1123,171 @@ class Document:
         raw_xml_lines = tmp.split('\n')
         return raw_xml_lines
 
-    def configure(self, args):
+
+class MdFile:
+
+    """A class to handle md file"""
+
+    def __init__(self, md_file):
+        # DECLARE
+        self.md_file = None
+        self.md_output = None
+        # SUBSTITUTE
+        self.md_file = md_file
+
+    def open(self):
+        md_file = self.md_file
+        # OPEN
+        if md_file == '-':
+            md_output = sys.stdout
+        else:
+            self._save_old_file(md_file)
+            try:
+                md_output = open(md_file, 'w', encoding='utf-8', newline='\n')
+            except BaseException:
+                msg = '※ エラー: ' \
+                    + '出力ファイル「' + md_file + '」の書き込みに失敗しました'
+                # msg = 'error: ' \
+                #     + 'can\'t write "' + md_file + '"'
+                sys.stderr.write(msg + '\n\n')
+                sys.exit(1)
+        self.md_output = md_output
+
+    def write(self, article):
+        self.md_output.write(article)
+
+    def close(self):
+        self.md_output.close()
+
+    @staticmethod
+    def _save_old_file(output_file):
+        if output_file == '-':
+            return
+        backup_file = output_file + '~'
+        if os.path.exists(output_file):
+            if os.path.exists(backup_file):
+                os.remove(backup_file)
+            if os.path.exists(backup_file):
+                msg = '※ エラー: ' \
+                    + '古いファイル「' + backup_file + '」を削除できません'
+                # msg = 'error: ' \
+                #     + 'can\'t remove "' + backup_file + '"'
+                sys.stderr.write(msg + '\n\n')
+                sys.exit(1)
+            os.rename(output_file, backup_file)
+        if os.path.exists(output_file):
+            msg = '※ エラー: ' \
+                + '古いファイル「' + output_file + '」を改名できません'
+            # msg = 'error: ' \
+            #     + 'can\'t rename "' + output_file + '"'
+            sys.stderr.write(msg + '\n\n')
+            sys.exit(1)
+
+
+class Form:
+
+    """A class to handle form"""
+
+    document_title = DEFAULT_DOCUMENT_TITLE
+    document_style = DEFAULT_DOCUMENT_STYLE
+    paper_size = DEFAULT_PAPER_SIZE
+    top_margin = DEFAULT_TOP_MARGIN
+    bottom_margin = DEFAULT_BOTTOM_MARGIN
+    left_margin = DEFAULT_LEFT_MARGIN
+    right_margin = DEFAULT_RIGHT_MARGIN
+    header_string = DEFAULT_HEADER_STRING
+    page_number = DEFAULT_PAGE_NUMBER
+    line_number = DEFAULT_LINE_NUMBER
+    mincho_font = DEFAULT_MINCHO_FONT
+    gothic_font = DEFAULT_GOTHIC_FONT
+    ivs_font = DEFAULT_IVS_FONT
+    font_size = DEFAULT_FONT_SIZE
+    line_spacing = DEFAULT_LINE_SPACING
+    space_before = DEFAULT_SPACE_BEFORE
+    space_after = DEFAULT_SPACE_AFTER
+    auto_space = DEFAULT_AUTO_SPACE
+    original_file = ''
+
+    styles = None
+    rels = None
+
+    def __init__(self):
+        # DECLARE
+        self.document_xml_lines = None
+        self.core_xml_lines = None
+        self.header1_xml_lines = None
+        self.header2_xml_lines = None
+        self.footer1_xml_lines = None
+        self.footer2_xml_lines = None
+        self.styles_xml_lines = None
+        self.rels_xml_lines = None
+        self.args = None
+
+    def configure(self):
         # PAPER SIZE, MARGIN, LINE NUMBER, DOCUMENT STYLE
-        self._configure_by_document_xml(self.document_raw_xml_lines)
+        self._configure_by_document_xml(self.document_xml_lines)
         # DOCUMENT TITLE, DOCUMENT STYLE, ORIGINAL FILE
-        self._configure_by_core_xml(self.core_raw_xml_lines)
+        self._configure_by_core_xml(self.core_xml_lines)
         # HEADER STRING
-        self._configure_by_headerX_xml(self.header1_raw_xml_lines)
-        self._configure_by_headerX_xml(self.header2_raw_xml_lines)
+        self._configure_by_headerX_xml(self.header1_xml_lines)
+        self._configure_by_headerX_xml(self.header2_xml_lines)
         # PAGE NUMBER
-        self._configure_by_footerX_xml(self.footer1_raw_xml_lines)
-        self._configure_by_footerX_xml(self.footer2_raw_xml_lines)
+        self._configure_by_footerX_xml(self.footer1_xml_lines)
+        self._configure_by_footerX_xml(self.footer2_xml_lines)
         # FONT, LINE SPACING, AUTO SPACE, SAPCE BEFORE AND AFTER
-        self._configure_by_styles_xml(self.styles_raw_xml_lines)
-        # REVISE
-        self._configure_by_args(args)
+        self._configure_by_styles_xml(self.styles_xml_lines)
+        # REVISE BY ARGUMENTS
+        self._configure_by_args(self.args)
         # PARAGRAPH
         Paragraph.mincho_font = self.mincho_font
         Paragraph.gothic_font = self.gothic_font
         Paragraph.ivs_font = self.ivs_font
         Paragraph.font_size = self.font_size
 
-    def _configure_by_document_xml(self, raw_xml_lines):
+    def _configure_by_document_xml(self, xml_lines):
         width_x = -1.0
         height_x = -1.0
         top_x = -1.0
         bottom_x = -1.0
         left_x = -1.0
         right_x = -1.0
-        for rxl in raw_xml_lines:
-            width_x = get_xml_value('w:pgSz', 'w:w', width_x, rxl)
-            height_x = get_xml_value('w:pgSz', 'w:h', height_x, rxl)
-            top_x = get_xml_value('w:pgMar', 'w:top', top_x, rxl)
-            bottom_x = get_xml_value('w:pgMar', 'w:bottom', bottom_x, rxl)
-            left_x = get_xml_value('w:pgMar', 'w:left', left_x, rxl)
-            right_x = get_xml_value('w:pgMar', 'w:right', right_x, rxl)
+        for rxl in xml_lines:
+            width_x = XML.get_value('w:pgSz', 'w:w', width_x, rxl)
+            height_x = XML.get_value('w:pgSz', 'w:h', height_x, rxl)
+            top_x = XML.get_value('w:pgMar', 'w:top', top_x, rxl)
+            bottom_x = XML.get_value('w:pgMar', 'w:bottom', bottom_x, rxl)
+            left_x = XML.get_value('w:pgMar', 'w:left', left_x, rxl)
+            right_x = XML.get_value('w:pgMar', 'w:right', right_x, rxl)
             # LINE NUMBER
             if re.match('^<w:lnNumType( .*)?>$', rxl):
-                Document.line_number = True
+                Form.line_number = True
         # PAPER SIZE
         width = width_x / 567
         height = height_x / 567
         if 41.9 <= width and width <= 42.1:
             if 29.6 <= height and height <= 29.8:
-                Document.paper_size = 'A3'
+                Form.paper_size = 'A3'
         if 29.6 <= width and width <= 29.8:
             if 41.9 <= height and height <= 42.1:
-                Document.paper_size = 'A3P'
+                Form.paper_size = 'A3P'
         if 20.9 <= width and width <= 21.1:
             if 29.6 <= height and height <= 29.8:
-                Document.paper_size = 'A4'
+                Form.paper_size = 'A4'
         if 29.6 <= width and width <= 29.8:
             if 20.9 <= height and height <= 21.1:
-                Document.paper_size = 'A4L'
+                Form.paper_size = 'A4L'
         # MARGIN
         if top_x > 0:
-            Document.top_margin = round(top_x / 567, 1)
+            Form.top_margin = round(top_x / 567, 1)
         if bottom_x > 0:
-            Document.bottom_margin = round(bottom_x / 567, 1)
+            Form.bottom_margin = round(bottom_x / 567, 1)
         if left_x > 0:
-            Document.left_margin = round(left_x / 567, 1)
+            Form.left_margin = round(left_x / 567, 1)
         if right_x > 0:
-            Document.right_margin = round(right_x / 567, 1)
+            Form.right_margin = round(right_x / 567, 1)
         # DOCUMENT STYLE
-        xml_body = self._get_xml_body('w:body', raw_xml_lines)
-        xml_blocks = self._get_xml_blocks(xml_body)
+        xml_body = XML.get_body('w:body', xml_lines)
+        xml_blocks = XML.get_blocks(xml_body)
         par_text = []
         for xb in xml_blocks:
             plain_text = ''
@@ -969,48 +1304,48 @@ class Document:
                 has_p1 = True
         if has_a1:
             if has_p1:
-                Document.document_style = 'k'
+                Form.document_style = 'k'
             else:
-                Document.document_style = 'j'
+                Form.document_style = 'j'
 
-    def _configure_by_core_xml(self, raw_xml_lines):
-        for i, rxl in enumerate(raw_xml_lines):
+    def _configure_by_core_xml(self, xml_lines):
+        for i, rxl in enumerate(xml_lines):
             # DOCUMUNT TITLE
             resb = '^<dc:title>$'
             rese = '^</dc:title>$'
-            if i > 0 and re.match(resb, raw_xml_lines[i - 1], re.I):
+            if i > 0 and re.match(resb, xml_lines[i - 1], re.I):
                 if not re.match(rese, rxl, re.I):
-                    Document.document_title = rxl
+                    Form.document_title = rxl
             # DOCUMENT STYLE
             resb = '^<cp:category>$'
             rese = '^</cp:category>$'
-            if i > 0 and re.match(resb, raw_xml_lines[i - 1], re.I):
+            if i > 0 and re.match(resb, xml_lines[i - 1], re.I):
                 if not re.match(rese, rxl, re.I):
                     if re.match('^.*（普通）.*$', rxl):
-                        Document.document_style = 'n'
+                        Form.document_style = 'n'
                     elif re.match('^.*（契約）.*$', rxl):
-                        Document.document_style = 'k'
+                        Form.document_style = 'k'
                     elif re.match('^.*（条文）.*$', rxl):
-                        Document.document_style = 'j'
+                        Form.document_style = 'j'
             # ORIGINAL FILE
             resb = '^<dcterms:modified( .*)?>$'
             rese = '^</dcterms:modified>$'
-            if i > 0 and re.match(resb, raw_xml_lines[i - 1], re.I):
+            if i > 0 and re.match(resb, xml_lines[i - 1], re.I):
                 if not re.match(rese, rxl, re.I):
                     dt = datetime.datetime.strptime(rxl, '%Y-%m-%dT%H:%M:%S%z')
                     if dt.tzname() == 'UTC':
                         dt += datetime.timedelta(hours=9)
                         jst = datetime.timezone(datetime.timedelta(hours=9))
                         dt = dt.replace(tzinfo=jst)
-                    Document.original_file \
+                    Form.original_file \
                         = dt.strftime('%Y-%m-%dT%H:%M:%S+09:00')
 
-    def _configure_by_headerX_xml(self, raw_xml_lines):
+    def _configure_by_headerX_xml(self, xml_lines):
         # HEADER STRING
         hs = ''
         is_in_paragraph = False
         alg = 'L'
-        for rxl in raw_xml_lines:
+        for rxl in xml_lines:
             if re.match('^<w:p( .*)?>$', rxl):
                 is_in_paragraph = True
                 continue
@@ -1040,14 +1375,14 @@ class Document:
                 hs = ': ' + hs
             elif alg == 'R':
                 hs = hs + ' :'
-            Document.header_string = hs
+            Form.header_string = hs
 
-    def _configure_by_footerX_xml(self, raw_xml_lines):
+    def _configure_by_footerX_xml(self, xml_lines):
         # PAGE NUMBER
         pn = ''
         is_in_paragraph = False
         alg = 'L'
-        for rxl in raw_xml_lines:
+        for rxl in xml_lines:
             if re.match('^<w:p( .*)?>$', rxl):
                 is_in_paragraph = True
                 continue
@@ -1077,11 +1412,13 @@ class Document:
                 pn = ': ' + pn
             elif alg == 'R':
                 pn = pn + ' :'
-            Document.page_number = pn
+            Form.page_number = pn
 
-    def _configure_by_styles_xml(self, raw_xml_lines):
-        xml_body = self._get_xml_body('w:styles', raw_xml_lines)
-        xml_blocks = self._get_xml_blocks(xml_body)
+    def _configure_by_styles_xml(self, xml_lines):
+        font_size = self.font_size
+        line_spacing = self.line_spacing
+        xml_body = XML.get_body('w:styles', xml_lines)
+        xml_blocks = XML.get_blocks(xml_body)
         sb = ['0.0', '0.0', '0.0', '0.0', '0.0', '0.0']
         sa = ['0.0', '0.0', '0.0', '0.0', '0.0', '0.0']
         for xb in xml_blocks:
@@ -1092,49 +1429,46 @@ class Document:
             ase = -1
             asn = -1
             for xl in xb:
-                name = get_xml_value('w:name', 'w:val', name, xl)
-                font = get_xml_value('w:rFonts', '*', font, xl)
-                sz_x = get_xml_value('w:sz', 'w:val', sz_x, xl)
-                ls_x = get_xml_value('w:spacing', 'w:line', ls_x, xl)
-                ase = get_xml_value('w:autoSpaceDE', 'w:val', ase, xl)
-                asn = get_xml_value('w:autoSpaceDN', 'w:val', asn, xl)
+                name = XML.get_value('w:name', 'w:val', name, xl)
+                font = XML.get_value('w:rFonts', '*', font, xl)
+                sz_x = XML.get_value('w:sz', 'w:val', sz_x, xl)
+                ls_x = XML.get_value('w:spacing', 'w:line', ls_x, xl)
+                ase = XML.get_value('w:autoSpaceDE', 'w:val', ase, xl)
+                asn = XML.get_value('w:autoSpaceDN', 'w:val', asn, xl)
             if name == 'makdo':
                 # MINCHO FONT
-                Document.mincho_font = font
+                Form.mincho_font = font
                 # FONT SIZE
                 if sz_x > 0:
-                    Document.font_size = round(sz_x / 2, 1)
+                    Form.font_size = round(sz_x / 2, 1)
                 # LINE SPACING
                 if ls_x > 0:
-                    Document.line_spacing \
-                        = round(ls_x / 20 / self.font_size, 2)
+                    Form.line_spacing = round(ls_x / 20 / self.font_size, 2)
                 # AUTO SPACE
                 if ase == 0 and asn == 0:
-                    Document.auto_space = False
+                    Form.auto_space = False
                 else:
-                    Document.auto_space = True
+                    Form.auto_space = True
             elif name == 'makdo-g':
                 # GOTHIC FONT
-                Document.gothic_font = font
+                Form.gothic_font = font
             elif name == 'makdo-i':
                 # IVS FONT
-                Document.ivs_font = font
+                Form.ivs_font = font
             else:
                 for i in range(6):
                     if name != 'makdo-' + str(i + 1):
                         continue
                     for xl in xb:
                         sb[i] \
-                            = get_xml_value('w:spacing', 'w:before', sb[i], xl)
+                            = XML.get_value('w:spacing', 'w:before', sb[i], xl)
                         sa[i] \
-                            = get_xml_value('w:spacing', 'w:after', sa[i], xl)
+                            = XML.get_value('w:spacing', 'w:after', sa[i], xl)
                     if sb[i] != '':
-                        f = float(sb[i])
-                        f = f / 20 / self.font_size / self.line_spacing
+                        f = float(sb[i]) / 20 / font_size / line_spacing
                         sb[i] = str(round(f, 2))
                     if sa[i] != '':
-                        f = float(sa[i])
-                        f = f / 20 / self.font_size / self.line_spacing
+                        f = float(sa[i]) / 20 / font_size / line_spacing
                         sa[i] = str(round(f, 2))
         # SPACE BEFORE, SPACE AFTER
         csb = ',' + ', '.join(sb) + ','
@@ -1148,74 +1482,247 @@ class Document:
         csa = re.sub('^,', '', csa)
         csa = re.sub(',$', '', csa)
         if csb != '':
-            Document.space_before = csb
+            Form.space_before = csb
         if csa != '':
-            Document.space_after = csa
+            Form.space_after = csa
 
     @staticmethod
     def _configure_by_args(args):
         if args.document_title is not None:
-            Document.document_title = args.document_title
+            Form.document_title = args.document_title
         if args.document_style is not None:
-            Document.document_style = args.document_style
+            Form.document_style = args.document_style
         if args.paper_size is not None:
-            Document.paper_size = args.paper_size
+            Form.paper_size = args.paper_size
         if args.top_margin is not None:
-            Document.top_margin = args.top_margin
+            Form.top_margin = args.top_margin
         if args.bottom_margin is not None:
-            Document.bottom_margin = args.bottom_margin
+            Form.bottom_margin = args.bottom_margin
         if args.left_margin is not None:
-            Document.left_margin = args.left_margin
+            Form.left_margin = args.left_margin
         if args.right_margin is not None:
-            Document.right_margin = args.right_margin
+            Form.right_margin = args.right_margin
         if args.header_string is not None:
-            Document.header_string = args.header_string
+            Form.header_string = args.header_string
         if args.page_number is not None:
-            Document.page_number = args.page_number
+            Form.page_number = args.page_number
         if args.line_number:
-            Document.line_number = True
+            Form.line_number = True
         if args.mincho_font is not None:
-            Document.mincho_font = args.mincho_font
+            Form.mincho_font = args.mincho_font
         if args.gothic_font is not None:
-            Document.gothic_font = args.gothic_font
+            Form.gothic_font = args.gothic_font
         if args.ivs_font is not None:
-            Document.ivs_font = args.ivs_font
+            Form.ivs_font = args.ivs_font
         if args.font_size is not None:
-            Document.font_size = args.font_size
+            Form.font_size = args.font_size
         if args.line_spacing is not None:
-            Document.line_spacing = args.line_spacing
+            Form.line_spacing = args.line_spacing
         if args.space_before is not None:
-            Document.space_before = args.space_before
+            Form.space_before = args.space_before
         if args.space_after is not None:
-            Document.space_after = args.space_after
+            Form.space_after = args.space_after
         if args.auto_space:
-            Document.auto_space = args.auto_space
+            Form.auto_space = args.auto_space
 
-    def get_styles(self, raw_xml_lines):
+    @classmethod
+    def get_configurations(cls):
+        return cls.get_configurations_in_japanese()
+        # return cls.get_configurations_in_english()
+
+    @classmethod
+    def get_configurations_in_english(cls):
+        cfgs = ''
+        cfgs += \
+            '<!-----------------------[CONFIGRATIONS]-------------------------'
+        cfgs += '\n'
+        cfgs += 'document_title: ' + cls.document_title + '\n'
+        cfgs += 'document_style: ' + cls.document_style + '\n'
+        cfgs += 'paper_size:     ' + str(cls.paper_size) + '\n'
+        cfgs += 'top_margin:     ' + str(round(cls.top_margin, 1)) + '\n'
+        cfgs += 'bottom_margin:  ' + str(round(cls.bottom_margin, 1)) + '\n'
+        cfgs += 'left_margin:    ' + str(round(cls.left_margin, 1)) + '\n'
+        cfgs += 'right_margin:   ' + str(round(cls.right_margin, 1)) + '\n'
+        cfgs += 'header_string:  ' + str(cls.header_string) + '\n'
+        cfgs += 'page_number:    ' + str(cls.page_number) + '\n'
+        cfgs += 'line_number:    ' + str(cls.line_number) + '\n'
+        cfgs += 'mincho_font:    ' + cls.mincho_font + '\n'
+        cfgs += 'gothic_font:    ' + cls.gothic_font + '\n'
+        cfgs += 'ivs_font:       ' + cls.ivs_font + '\n'
+        cfgs += 'font_size:      ' + str(round(cls.font_size, 1)) + '\n'
+        cfgs += 'line_spacing:   ' + str(round(cls.line_spacing, 2)) + '\n'
+        cfgs += 'space_before:   ' + cls.space_before + '\n'
+        cfgs += 'space_after:    ' + cls.space_after + '\n'
+        cfgs += 'auto_space:     ' + str(cls.auto_space) + '\n'
+        cfgs += 'original_file:  ' + cls.original_file + '\n'
+        cfgs += \
+            '---------------------------------------------------------------->'
+        cfgs += '\n'
+        cfgs += '\n'
+        return cfgs
+
+    @classmethod
+    def get_configurations_in_japanese(cls):
+        cfgs = ''
+
+        cfgs += \
+            '<!--------------------------【設定】-----------------------------'
+        cfgs += '\n\n'
+
+        cfgs += \
+            '# プロパティに表示される書面のタイトルを指定ください。'
+        cfgs += '\n'
+        cfgs += '書題名: ' + cls.document_title + '\n'
+        cfgs += '\n'
+
+        cfgs += \
+            '# 3つの書式（普通、契約、条文）を指定できます。'
+        cfgs += '\n'
+        if cls.document_style == 'k':
+            cfgs += '文書式: 契約\n'
+        elif cls.document_style == 'j':
+            cfgs += '文書式: 条文\n'
+        else:
+            cfgs += '文書式: 普通\n'
+        cfgs += '\n'
+
+        cfgs += \
+            '# 用紙のサイズ（A3横、A3縦、A4横、A4縦）を指定できます。'
+        cfgs += '\n'
+        if cls.paper_size == 'A3L' or cls.paper_size == 'A3':
+            cfgs += '用紙サ: A3横\n'
+        elif cls.paper_size == 'A3P':
+            cfgs += '用紙サ: A3縦\n'
+        elif cls.paper_size == 'A4L':
+            cfgs += '用紙サ: A4横\n'
+        else:
+            cfgs += '用紙サ: A4縦\n'
+        cfgs += '\n'
+
+        cfgs += \
+            '# 用紙の上下左右の余白をセンチメートル単位で指定できます。'
+        cfgs += '\n'
+        cfgs += '上余白: ' + str(round(cls.top_margin, 1)) + ' cm\n'
+        cfgs += '下余白: ' + str(round(cls.bottom_margin, 1)) + ' cm\n'
+        cfgs += '左余白: ' + str(round(cls.left_margin, 1)) + ' cm\n'
+        cfgs += '右余白: ' + str(round(cls.right_margin, 1)) + ' cm\n'
+        cfgs += '\n'
+
+        cfgs += \
+            '# ページのヘッダーに表示する文字列（別紙 :等）を指定できます。'
+        cfgs += '\n'
+        cfgs += '頭書き: ' + cls.header_string + '\n'
+        cfgs += '\n'
+
+        cfgs += \
+            '# ページ番号の書式（無、有、n :、-n-、n/N等）を指定できます。'
+        cfgs += '\n'
+        if cls.page_number == '':
+            cfgs += '頁番号: 無\n'
+        elif cls.page_number == DEFAULT_PAGE_NUMBER:
+            cfgs += '頁番号: 有\n'
+        else:
+            cfgs += '頁番号: ' + cls.page_number + '\n'
+        cfgs += '\n'
+
+        cfgs += \
+            '# 行番号の記載（無、有）を指定できます。'
+        cfgs += '\n'
+        if cls.line_number:
+            cfgs += '行番号: 有\n'
+        else:
+            cfgs += '行番号: 無\n'
+        cfgs += '\n'
+
+        cfgs += \
+            '# 明朝体とゴシック体と異字体（IVS）のフォントを指定できます。'
+        cfgs += '\n'
+        cfgs += '明朝体: ' + cls.mincho_font + '\n'
+        cfgs += 'ゴシ体: ' + cls.gothic_font + '\n'
+        cfgs += '異字体: ' + cls.ivs_font + '\n'
+        cfgs += '\n'
+
+        cfgs += \
+            '# 基本の文字の大きさをポイント単位で指定できます。'
+        cfgs += '\n'
+        cfgs += '文字サ: ' + str(round(cls.font_size, 1)) + ' pt\n'
+        cfgs += '\n'
+
+        cfgs += \
+            '# 行間の高さを基本の文字の高さの何倍にするかを指定できます。'
+        cfgs += '\n'
+        cfgs += '行間高: ' + str(round(cls.line_spacing, 2)) + ' 倍\n'
+        cfgs += '\n'
+
+        cfgs += \
+            '# セクションタイトル前後の余白を行間の高さの倍数で指定できます。'
+        cfgs += '\n'
+        cfgs += '前余白: ' + re.sub(',', ' 倍,', cls.space_before) + ' 倍\n'
+        cfgs += '後余白: ' + re.sub(',', ' 倍,', cls.space_after) + ' 倍\n'
+        cfgs += '\n'
+
+        cfgs += \
+            '# 半角文字と全角文字の間の間隔調整（無、有）を指定できます。'
+        cfgs += '\n'
+        if cls.auto_space:
+            cfgs += '字間整: 有\n'
+        else:
+            cfgs += '字間整: 無\n'
+        cfgs += '\n'
+
+        cfgs += \
+            '# 変換元のWordファイルの最終更新日時が自動で指定されます。'
+        cfgs += '\n'
+        cfgs += '元原稿: ' + cls.original_file + '\n'
+        cfgs += '\n'
+
+        cfgs += \
+            '---------------------------------------------------------------->'
+        cfgs += '\n\n'
+
+        return cfgs
+
+    @staticmethod
+    def get_styles(xml_lines):
         styles = []
-        xml_body = self._get_xml_body('w:styles', raw_xml_lines)
-        xml_blocks = self._get_xml_blocks(xml_body)
+        xml_body = XML.get_body('w:styles', xml_lines)
+        xml_blocks = XML.get_blocks(xml_body)
         for n, xb in enumerate(xml_blocks):
             s = Style(n + 1, xb)
             styles.append(s)
-        # self.styles = styles
+        # Form.styles = styles
         return styles
 
-    def get_rels(self, raw_xml_lines):
+    @staticmethod
+    def get_rels(xml_lines):
         rels = {}
         res = '^<Relationship Id=[\'"](.*)[\'"] .* Target=[\'"](.*)[\'"]/>$'
-        for rxl in raw_xml_lines:
+        for rxl in xml_lines:
             if re.match(res, rxl):
                 rel_id = re.sub(res, '\\1', rxl)
                 rel_tg = re.sub(res, '\\2', rxl)
                 rels[rel_id] = rel_tg
-        # self.rels = rels
+        # Form.rels = rels
         return rels
 
-    def get_raw_paragraphs(self, raw_xml_lines):
+
+class Document:
+
+    """A class to handle document"""
+
+    images = {}
+
+    def __init__(self):
+        self.docx_file = None
+        self.md_file = None
+        self.document_xml_lines = None
+        self.raw_paragraphs = None
+        self.paragraphs = None
+
+    def get_raw_paragraphs(self, xml_lines):
         raw_paragraphs = []
-        xml_body = self._get_xml_body('w:body', raw_xml_lines)
-        xml_blocks = self._get_xml_blocks(xml_body)
+        xml_body = XML.get_body('w:body', xml_lines)
+        xml_blocks = XML.get_blocks(xml_body)
         for xb in xml_blocks:
             rp = RawParagraph(xb)
             raw_paragraphs.append(rp)
@@ -1231,49 +1738,6 @@ class Document:
             paragraphs.append(p)
         # self.paragraphs = paragraphs
         return paragraphs
-
-    @staticmethod
-    def _get_xml_body(tag_name, raw_xml_lines):
-        xml_body = []
-        is_in_body = False
-        for rxl in raw_xml_lines:
-            if re.match('^</?' + tag_name + '( .*)?>$', rxl):
-                is_in_body = not is_in_body
-                continue
-            if is_in_body:
-                xml_body.append(rxl)
-        return xml_body
-
-    @staticmethod
-    def _get_xml_blocks(xml_body):
-        xml_blocks = []
-        xml_class = None
-        res_oneline_tag = '<(\\S+)( .*)?/>'
-        res_beginning_tag = '<(\\S+)( .*)?>'
-        for xl in xml_body:
-            if xml_class == '':
-                if not re.match(res_beginning_tag, xl):
-                    xb.append(xl)
-                    continue
-                else:
-                    xml_blocks.append(xb)
-                    xml_class = None
-            if xml_class is None:
-                xb = []
-                xb.append(xl)
-                if re.match(res_oneline_tag, xl):
-                    xml_blocks.append(xb)
-                elif re.match(res_beginning_tag, xl):
-                    xml_class = re.sub(res_beginning_tag, '\\1', xl)
-                else:
-                    xml_class = ''
-            else:
-                xb.append(xl)
-                res_end_tag = '</' + xml_class + '>'
-                if re.match(res_end_tag, xl):
-                    xml_blocks.append(xb)
-                    xml_class = None
-        return xml_blocks
 
     def modify_paragraphs(self):
         # CHANGE PARAGRAPH CLASS
@@ -1354,7 +1818,7 @@ class Document:
 
     # ARTICLE TITLE (MIMI=EAR)
     def _modpar_article_title(self):
-        if Document.document_style != 'j':
+        if Form.document_style != 'j':
             return self.paragraphs
         m = len(self.paragraphs) - 1
         for i, p in enumerate(self.paragraphs):
@@ -1420,11 +1884,15 @@ class Document:
                         p_next.length_docx['space before'] *= 2
             # TABLE
             elif p.paragraph_class == 'table':
-                if i > 0:
+                if i == 0:
+                    p.length_supp['space before'] += TABLE_SPACE_BEFORE
+                else:
                     p.length_docx['space before'] \
                         = p_prev.length_docx['space after']
                     p_prev.length_docx['space after'] = 0.0
-                if i < m:
+                if i == m:
+                    p.length_supp['space after'] += TABLE_SPACE_AFTER
+                else:
                     p.length_docx['space after'] \
                         = p_next.length_docx['space before']
                     p_next.length_docx['space before'] = 0.0
@@ -1460,6 +1928,8 @@ class Document:
 
     def _modpar_spaced_and_centered(self):
         # self.paragraphs = self._modpar_blank_paragraph_to_space_before()
+        Paragraph.previous_head_section_depth = 0
+        Paragraph.previous_tail_section_depth = 0
         m = len(self.paragraphs) - 1
         for i, p in enumerate(self.paragraphs):
             if p.paragraph_class == 'alignment':
@@ -1520,10 +1990,10 @@ class Document:
         return self.paragraphs
 
     def _modpar_one_line_paragraph(self):
-        paper_size = Document.paper_size
-        left_margin = Document.left_margin
-        right_margin = Document.right_margin
-        font_size = Document.font_size
+        paper_size = Form.paper_size
+        left_margin = Form.left_margin
+        right_margin = Form.right_margin
+        font_size = Form.font_size
         for p in self.paragraphs:
             if p.paragraph_class == 'table' or p.paragraph_class == 'image':
                 indent = p.length_revi['first indent'] \
@@ -1573,253 +2043,26 @@ class Document:
                 = p.get_text_to_write_with_reviser()
         return self.paragraphs
 
-    def open_md_file(self, md_file, docx_file):
-        self.mdi_file = md_file
-        if md_file == '-':
-            mf = sys.stdout
-        else:
-            if md_file == '':
-                if re.match('^.*\\.docx$', docx_file):
-                    md_file = re.sub('\\.docx$', '.md', docx_file)
-                else:
-                    md_file = docx_file + '.md'
-            if os.path.exists(md_file):
-                if not os.access(md_file, os.W_OK):
-                    msg = '※ エラー: ' \
-                        + '出力ファイル「' + md_file + '」に書き込み権限が' \
-                        + 'ありません'
-                    # msg = 'error: ' \
-                    #     + 'overwriting a unwritable file "' + md_file + '"'
-                    sys.stderr.write(msg + '\n\n')
-                    sys.exit(1)
-                if os.path.getmtime(docx_file) < os.path.getmtime(md_file):
-                    msg = '※ エラー: ' \
-                        + '出力ファイル「' + md_file + '」の方が' \
-                        + '入力ファイル「' + docx_file + '」よりも新しいです'
-                    # msg = 'error: ' \
-                    #     + 'overwriting a newer file "' + md_file + '"'
-                    sys.stderr.write(msg + '\n\n')
-                    sys.exit(1)
-                if os.path.exists(md_file + '~'):
-                    os.remove(md_file + '~')
-                os.rename(md_file, md_file + '~')
-            try:
-                mf = open(md_file, 'w', encoding='utf-8', newline='\n')
-            except BaseException:
-                msg = '※ エラー: ' \
-                    + '出力ファイル「' + md_file + '」の書き込みに失敗しました'
-                # msg = 'error: ' \
-                #     + 'can\'t write "' + md_file + '"'
-                sys.stderr.write(msg + '\n\n')
-                sys.exit(1)
-        return mf
-
-    def write_configurations(self, mf):
-        mf.write(
-            '<!---------------------------【設定】----------------------------'
-            + '\n')
-        mf.write('\n')
-        # self._write_configurations_in_english(mf)
-        self._write_configurations_in_japanese(mf)
-        mf.write(
-            '---------------------------------------------------------------->'
-            + '\n')
-        mf.write('\n')
-        return
-
-    def _write_configurations_in_english(self, mf):
-        mf.write('document_title: '
-                 + self.document_title + '\n')
-        mf.write('document_style: '
-                 + self.document_style + '\n')
-        mf.write('paper_size:     '
-                 + str(self.paper_size) + '\n')
-        mf.write('top_margin:     '
-                 + str(round(self.top_margin, 1)) + '\n')
-        mf.write('bottom_margin:  '
-                 + str(round(self.bottom_margin, 1)) + '\n')
-        mf.write('left_margin:    '
-                 + str(round(self.left_margin, 1)) + '\n')
-        mf.write('right_margin:   '
-                 + str(round(self.right_margin, 1)) + '\n')
-        mf.write('header_string:  '
-                 + str(self.header_string) + '\n')
-        mf.write('page_number:    '
-                 + str(self.page_number) + '\n')
-        mf.write('line_number:    '
-                 + str(self.line_number) + '\n')
-        mf.write('mincho_font:    '
-                 + self.mincho_font + '\n')
-        mf.write('gothic_font:    '
-                 + self.gothic_font + '\n')
-        mf.write('ivs_font:       '
-                 + self.ivs_font + '\n')
-        mf.write('font_size:      '
-                 + str(round(self.font_size, 1)) + '\n')
-        mf.write('line_spacing:   '
-                 + str(round(self.line_spacing, 2)) + '\n')
-        mf.write('space_before:   '
-                 + self.space_before + '\n')
-        mf.write('space_after:    '
-                 + self.space_after + '\n')
-        mf.write('auto_space:     '
-                 + str(self.auto_space) + '\n')
-        mf.write('original_file:  '
-                 + self.original_file + '\n')
-
-    def _write_configurations_in_japanese(self, mf):
-
-        mf.write(
-            '# プロパティに表示される書面のタイトルを指定ください。'
-            + '\n')
-        if self.document_title != '':
-            mf.write('書題名: ' + self.document_title + '\n')
-        else:
-            mf.write('書題名: -\n')
-        mf.write('\n')
-
-        mf.write(
-            '# 3つの書式（普通、契約、条文）を指定できます。'
-            + '\n')
-        if self.document_style == 'k':
-            mf.write('文書式: 契約\n')
-        elif self.document_style == 'j':
-            mf.write('文書式: 条文\n')
-        else:
-            mf.write('文書式: 普通\n')
-        mf.write('\n')
-
-        mf.write(
-            '# 用紙のサイズ（A3横、A3縦、A4横、A4縦）を指定できます。'
-            + '\n')
-        if self.paper_size == 'A3L' or self.paper_size == 'A3':
-            mf.write('用紙サ: A3横\n')
-        elif self.paper_size == 'A3P':
-            mf.write('用紙サ: A3縦\n')
-        elif self.paper_size == 'A4L':
-            mf.write('用紙サ: A4横\n')
-        else:
-            mf.write('用紙サ: A4縦\n')
-        mf.write('\n')
-
-        mf.write(
-            '# 用紙の上下左右の余白をセンチメートル単位で指定できます。'
-            + '\n')
-        mf.write('上余白: ' + str(round(self.top_margin, 1)) + ' cm\n')
-        mf.write('下余白: ' + str(round(self.bottom_margin, 1)) + ' cm\n')
-        mf.write('左余白: ' + str(round(self.left_margin, 1)) + ' cm\n')
-        mf.write('右余白: ' + str(round(self.right_margin, 1)) + ' cm\n')
-        mf.write('\n')
-
-        mf.write(
-            '# ページのヘッダーに表示する文字列（別紙 :等）を指定できます。'
-            + '\n')
-        mf.write('頭書き: ' + self.header_string + '\n')
-        mf.write('\n')
-
-        mf.write(
-            '# ページ番号の書式（無、有、n :、-n-、n/N等）を指定できます。'
-            + '\n')
-        if self.page_number == '':
-            mf.write('頁番号: 無\n')
-        elif self.page_number == DEFAULT_PAGE_NUMBER:
-            mf.write('頁番号: 有\n')
-        else:
-            mf.write('頁番号: ' + self.page_number + '\n')
-        mf.write('\n')
-
-        mf.write(
-            '# 行番号の記載（無、有）を指定できます。'
-            + '\n')
-        if self.line_number:
-            mf.write('行番号: 有\n')
-        else:
-            mf.write('行番号: 無\n')
-        mf.write('\n')
-
-        mf.write(
-            '# 明朝体とゴシック体と異字体（IVS）のフォントを指定できます。'
-            + '\n')
-        mf.write('明朝体: ' + self.mincho_font + '\n')
-        mf.write('ゴシ体: ' + self.gothic_font + '\n')
-        mf.write('異字体: ' + self.ivs_font + '\n')
-        mf.write('\n')
-
-        mf.write(
-            '# 基本の文字の大きさをポイント単位で指定できます。'
-            + '\n')
-        mf.write('文字サ: ' + str(round(self.font_size, 1)) + ' pt\n')
-        mf.write('\n')
-
-        mf.write(
-            '# 行間の高さを基本の文字の高さの何倍にするかを指定できます。'
-            + '\n')
-        mf.write('行間高: ' + str(round(self.line_spacing, 2)) + ' 倍\n')
-        mf.write('\n')
-
-        mf.write(
-            '# セクションタイトル前後の余白を行間の高さの倍数で指定できます。'
-            + '\n')
-        mf.write('前余白: ' + re.sub(',', ' 倍,', self.space_before) + ' 倍\n')
-        mf.write('後余白: ' + re.sub(',', ' 倍,', self.space_after) + ' 倍\n')
-        mf.write('\n')
-
-        mf.write(
-            '# 半角文字と全角文字の間の間隔調整（無、有）を指定できます。'
-            + '\n')
-        if self.auto_space:
-            mf.write('字間整: 有\n')
-        else:
-            mf.write('字間整: 無\n')
-        mf.write('\n')
-
-        mf.write(
-            '# 変換元のWordファイルの最終更新日時が自動で指定されます。'
-            + '\n')
-        mf.write('元原稿: ' + self.original_file + '\n')
-        mf.write('\n')
-
-    def write_document(self, mf):
-        ps = self.paragraphs
-        for i, p in enumerate(ps):
-            p.write_paragraph(mf)
+    def get_document(self):
+        dcmt = ''
+        for p in self.paragraphs:
+            dcmt += p.get_document()
             if p.paragraph_class != 'empty':
-                mf.write('\n')
+                dcmt += '\n'
+        return dcmt
 
-    def make_media_dir(self, media_dir):
-        paragraphs = self.paragraphs
-        if media_dir == '':
-            return
-        for p in paragraphs:
-            if len(p.images) == 0:
-                continue
-            if os.path.exists(media_dir):
-                if not os.path.isdir(media_dir):
-                    msg = '※ 警告: ' \
-                        + '画像の保存先「' + media_dir + '」' \
-                        + 'と同名のファイルが存在します'
-                    # msg = 'warning: ' \
-                    #     + 'non-directory "' + media_dir + '"'
-                    sys.stderr.write(msg + '\n\n')
-                    return
-            else:
-                try:
-                    os.mkdir(media_dir)
-                except BaseException:
-                    msg = '※ 警告: ' \
-                        + '画像の保存先「' + media_dir + '」' \
-                        + 'を作成できません'
-                    # msg = 'warning: ' \
-                    #     + 'cannot make "' + media_dir + '"'
-                    sys.stderr.write(msg + '\n\n')
-                    return
-            p.save_images()
-        return
+    def get_images(self):
+        return self.images
+        # imgs = {}
+        # for p in self.paragraphs:
+        #     tmp_imgs = p.get_images()
+        #     imgs.update(tmp_imgs)
+        # return imgs
 
 
 class Style:
 
-    """A class to handle styles"""
+    """A class to handle style"""
 
     def __init__(self, number, raw_xml_lines):
         self.number = number
@@ -1845,20 +2088,20 @@ class Style:
         rl = {'sb': None, 'sa': None, 'ls': None,
               'fi': None, 'hi': None, 'li': None, 'ri': None}
         for rxl in self.raw_xml_lines:
-            type = get_xml_value('w:style', 'w:type', type, rxl)
-            stid = get_xml_value('w:style', 'w:styleId', stid, rxl)
-            name = get_xml_value('w:name', 'w:val', name, rxl)
-            font = get_xml_value('w:rFonts', '*', font, rxl)
-            fs_x = get_xml_value('w:sz', 'w:val', fs_x, rxl)
-            alig = get_xml_value('w:jc', 'w:val', alig, rxl)
-            rl['sb'] = get_xml_value('w:spacing', 'w:before', rl['sb'], rxl)
-            rl['sa'] = get_xml_value('w:spacing', 'w:after', rl['sa'], rxl)
-            rl['ls'] = get_xml_value('w:spacing', 'w:line', rl['ls'], rxl)
-            rl['ls'] = get_xml_value('w:spacing', 'w:line', rl['ls'], rxl)
-            rl['fi'] = get_xml_value('w:ind', 'w:firstLine', rl['fi'], rxl)
-            rl['hi'] = get_xml_value('w:ind', 'w:hanging', rl['hi'], rxl)
-            rl['li'] = get_xml_value('w:ind', 'w:left', rl['li'], rxl)
-            rl['ri'] = get_xml_value('w:ind', 'w:right', rl['ri'], rxl)
+            type = XML.get_value('w:style', 'w:type', type, rxl)
+            stid = XML.get_value('w:style', 'w:styleId', stid, rxl)
+            name = XML.get_value('w:name', 'w:val', name, rxl)
+            font = XML.get_value('w:rFonts', '*', font, rxl)
+            fs_x = XML.get_value('w:sz', 'w:val', fs_x, rxl)
+            alig = XML.get_value('w:jc', 'w:val', alig, rxl)
+            rl['sb'] = XML.get_value('w:spacing', 'w:before', rl['sb'], rxl)
+            rl['sa'] = XML.get_value('w:spacing', 'w:after', rl['sa'], rxl)
+            rl['ls'] = XML.get_value('w:spacing', 'w:line', rl['ls'], rxl)
+            rl['ls'] = XML.get_value('w:spacing', 'w:line', rl['ls'], rxl)
+            rl['fi'] = XML.get_value('w:ind', 'w:firstLine', rl['fi'], rxl)
+            rl['hi'] = XML.get_value('w:ind', 'w:hanging', rl['hi'], rxl)
+            rl['li'] = XML.get_value('w:ind', 'w:left', rl['li'], rxl)
+            rl['ri'] = XML.get_value('w:ind', 'w:right', rl['ri'], rxl)
         self.type = type
         self.styleid = stid
         self.name = name
@@ -2052,8 +2295,8 @@ class RawParagraph:
             if not is_in_text:
                 xml_lines.append(rxl)
                 continue
-            s = get_xml_value('w:sz', 'w:val', -1.0, rxl) / 2
-            w = get_xml_value('w:w', 'w:val', -1.0, rxl)
+            s = XML.get_value('w:sz', 'w:val', -1.0, rxl) / 2
+            w = XML.get_value('w:w', 'w:val', -1.0, rxl)
             if s > 0:
                 if not RawParagraph._is_table(raw_class, raw_xml_lines):
                     if s > size:
@@ -2131,8 +2374,8 @@ class RawParagraph:
 
     @staticmethod
     def _get_raw_text_and_images(xml_lines):
-        media_dir = Document.media_dir
-        img_rels = Document.rels
+        media_dir = IO.media_dir
+        img_rels = Form.rels
         size_cm = Paragraph.font_size * 2.54 / 72
         s_size_cm = size_cm * 0.8
         l_size_cm = size_cm * 1.2
@@ -2144,10 +2387,24 @@ class RawParagraph:
             if re.match(RES_XML_IMG_MS, xl):
                 # IMAGE MS WORD
                 img_id = re.sub(RES_XML_IMG_MS, '\\1', xl)
-                img_name = re.sub(RES_XML_IMG_MS, '\\2', xl)
                 img_rel_name = img_rels[img_id]
                 img_ext = re.sub('^.*\\.', '', img_rel_name)
-                img = img_name + '.' + img_ext
+                img_name = re.sub(RES_XML_IMG_MS, '\\2', xl)
+                img_name = re.sub('\\s', '_', img_name)
+                i = 0
+                while True:
+                    if i == 0:
+                        img = img_name + '.' + img_ext
+                    else:
+                        img = img_name + str(i) + '.' + img_ext
+                    for j in Document.images:
+                        if j != img_rel_name:
+                            if Document.images[j] == img:
+                                break
+                    else:
+                        break
+                    i += 1
+                Document.images[img_rel_name] = img
                 images[img_rel_name] = img
             if re.match(RES_XML_IMG_PY_ID, xl):
                 # IMAGE PYTHON-DOCX ID
@@ -2155,12 +2412,22 @@ class RawParagraph:
                 img_rel_name = img_rels[img_id]
                 img_ext = re.sub('^.*\\.', '', img_rel_name)
                 img_name = images['']
-                if re.match(img_ext + '$', img):
-                    # PYTHON
-                    img = img_name
-                else:
-                    # LIBREOFFICE
-                    img = img_name + '.' + img_ext
+                img_name = re.sub('\\.' + img_ext + '$', '', img_name)
+                img_name = re.sub('\\s', '_', img_name)
+                i = 0
+                while True:
+                    if i == 0:
+                        img = img_name + '.' + img_ext
+                    else:
+                        img = img_name + str(i) + '.' + img_ext
+                    for j in Document.images:
+                        if j != img_rel_name:
+                            if Document.images[j] == img:
+                                break
+                    else:
+                        break
+                    i += 1
+                Document.images[img_rel_name] = img
                 images[img_rel_name] = img
             if re.match(RES_XML_IMG_PY_NAME, xl):
                 # IMAGE PYTHON-DOCX NAME
@@ -2182,7 +2449,7 @@ class RawParagraph:
                     cm_h = round(cm_h, 2)
                 img_size = str(cm_w) + 'x' + str(cm_h)
             if img != '' and img_size != '':
-                img_text = '!' \
+                img_text = '<>!' \
                     + '[' + img + ']' \
                     + '(' + media_dir + '/' + img + ')'
                 if cm_w >= size_cm * 0.98 and cm_w <= size_cm * 1.02:
@@ -2204,7 +2471,7 @@ class RawParagraph:
                         raw_text += '++' + img_text + '++'
                 else:
                     # FREE SIZE
-                    raw_text += '!' \
+                    raw_text += '<>!' \
                         + '[' + img + ':' + img_size + ']' \
                         + '(' + media_dir + '/' + img + ')'
                 img = ''
@@ -2294,16 +2561,6 @@ class RawParagraph:
                     continue
                 break
             raw_text += xl
-        raw_text = raw_text.replace('&lt;', '<')
-        raw_text = raw_text.replace('&gt;', '>')
-        raw_text = raw_text.replace('&amp;', '&')
-        while True:
-            for fd in FONT_DECORATORS:
-                res = fd + '(\\s+)' + fd
-                if re.match('^.*' + res, raw_text):
-                    raw_text = re.sub(res, '\\1', raw_text)
-                    continue
-            break
         # SPACE
         if re.match('^\\s+.*?$', raw_text):
             raw_text = '\\' + raw_text
@@ -2324,8 +2581,10 @@ class RawParagraph:
         if re.match('^\\|(.*)\\|$', raw_text):
             raw_text = re.sub('^\\|(.*)\\|$', '\\\\|\\1\\\\|', raw_text)
         # IMAGE
-        if re.match(RES_IMAGE, raw_text):
-            raw_text = '\\' + raw_text
+        if re.match('(.|\n)*(' + RES_IMAGE + ')', raw_text):
+            raw_text = re.sub('(' + RES_IMAGE + ')', '\\\\\\1', raw_text)
+        if re.match('(.|\n)*<>\\\\(' + RES_IMAGE + ')', raw_text):
+            raw_text = re.sub('<>\\\\(' + RES_IMAGE + ')', '\\1', raw_text)
         # ALIGNMENT
         if re.match('^:(\\s*.*\\s*):$', raw_text):
             raw_text = re.sub('^:(\\s*.*\\s*):$', '\\\\:\\1\\\\:', raw_text)
@@ -2357,6 +2616,21 @@ class RawParagraph:
             t3 = re.sub(res, '\\3', raw_text, flags=re.DOTALL)
             ivs_n = ord(t2) - ivs_beg
             raw_text = t1 + str(ivs_n) + ';' + t3
+        # CHARACTER
+        raw_text = raw_text.replace('&lt;', '<')
+        raw_text = raw_text.replace('&gt;', '>')
+        raw_text = raw_text.replace('&amp;', '&')
+        while True:
+            tmp_text = raw_text
+            for fd in FONT_DECORATORS:
+                if fd == '~~' or fd == '\\-\\-' or fd == '\\+\\+' or \
+                   fd == '_[0-9A-Za-z]+_':
+                    continue
+                res = fd + '((?:\\s+|~~|\\-\\-|\\+\\+|_[0-9A-Za-z]+_)+)' + fd
+                if re.match('^.*' + res, raw_text):
+                    raw_text = re.sub(res, '\\1', raw_text)
+            if tmp_text == raw_text:
+                break
         # self.raw_text = raw_text
         # self.images = images
         return raw_text, images
@@ -2381,8 +2655,8 @@ class RawParagraph:
     def _get_style(raw_xml_lines):
         style = None
         for rxl in raw_xml_lines:
-            style = get_xml_value('w:pStyle', 'w:val', style, rxl)
-        for ds in Document.styles:
+            style = XML.get_value('w:pStyle', 'w:val', style, rxl)
+        for ds in Form.styles:
             if style != ds.name:
                 continue
             # REMOVED 23.02.18 >
@@ -2398,7 +2672,7 @@ class RawParagraph:
     def _get_alignment(raw_xml_lines):
         alignment = ''
         for rxl in raw_xml_lines:
-            alignment = get_xml_value('w:jc', 'w:val', alignment, rxl)
+            alignment = XML.get_value('w:jc', 'w:val', alignment, rxl)
             if not re.match('^(left|center|right)$', alignment):
                 alignment = ''
         # self.alignment = alignment
@@ -2482,6 +2756,7 @@ class Paragraph:
 
     mincho_font = None
     gothic_font = None
+    ivs_font = None
     font_size = None
 
     previous_head_section_depth = 0
@@ -2609,7 +2884,7 @@ class Paragraph:
         numbering_revisers = []
         for ydepth, value in enumerate(state):
             cvalue = cls.states[xdepth][ydepth]
-            if Document.document_style == 'j':
+            if Form.document_style == 'j':
                 if xdepth == 2:
                     cvalue += 1
             if value != cvalue:
@@ -2673,8 +2948,8 @@ class Paragraph:
         cls._set_states(xdepth, ydepth, value)
 
     def _get_length_docx(self):
-        size = Document.font_size
-        lnsp = Document.line_spacing
+        size = Form.font_size
+        lnsp = Form.line_spacing
         rxls = self.raw_xml_lines
         length_docx \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
@@ -2688,14 +2963,14 @@ class Paragraph:
         ri_xml = 0.0
         ti_xml = 0.0
         for rxl in rxls:
-            sb_xml = get_xml_value('w:spacing', 'w:before', sb_xml, rxl)
-            sa_xml = get_xml_value('w:spacing', 'w:after', sa_xml, rxl)
-            ls_xml = get_xml_value('w:spacing', 'w:line', ls_xml, rxl)
-            fi_xml = get_xml_value('w:ind', 'w:firstLine', fi_xml, rxl)
-            hi_xml = get_xml_value('w:ind', 'w:hanging', hi_xml, rxl)
-            li_xml = get_xml_value('w:ind', 'w:left', li_xml, rxl)
-            ri_xml = get_xml_value('w:ind', 'w:right', ri_xml, rxl)
-            ti_xml = get_xml_value('w:tblInd', 'w:w', ti_xml, rxl)
+            sb_xml = XML.get_value('w:spacing', 'w:before', sb_xml, rxl)
+            sa_xml = XML.get_value('w:spacing', 'w:after', sa_xml, rxl)
+            ls_xml = XML.get_value('w:spacing', 'w:line', ls_xml, rxl)
+            fi_xml = XML.get_value('w:ind', 'w:firstLine', fi_xml, rxl)
+            hi_xml = XML.get_value('w:ind', 'w:hanging', hi_xml, rxl)
+            li_xml = XML.get_value('w:ind', 'w:left', li_xml, rxl)
+            ri_xml = XML.get_value('w:ind', 'w:right', ri_xml, rxl)
+            ti_xml = XML.get_value('w:tblInd', 'w:w', ti_xml, rxl)
         length_docx['space before'] = round(sb_xml / 20 / size / lnsp, 2)
         length_docx['space after'] = round(sa_xml / 20 / size / lnsp, 2)
         ls = 0.0
@@ -2767,7 +3042,7 @@ class Paragraph:
            paragraph_class == 'sentence':
             if ParagraphSection.states[1][0] == 0 and tail_section_depth > 2:
                 length_clas['left indent'] -= 1.0
-        if Document.document_style == 'j':
+        if Form.document_style == 'j':
             if ParagraphSection.states[1][0] > 0 and tail_section_depth > 2:
                 length_clas['left indent'] -= 1.0
         # self.length_clas = length_clas
@@ -2780,8 +3055,8 @@ class Paragraph:
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
         if self.paragraph_class == 'section':
-            sb = (Document.space_before + ',,,,,,,').split(',')
-            sa = (Document.space_after + ',,,,,,,').split(',')
+            sb = (Form.space_before + ',,,,,,,').split(',')
+            sa = (Form.space_after + ',,,,,,,').split(',')
             if hd <= len(sb) and sb[hd - 1] != '':
                 length_conf['space before'] += float(sb[hd - 1])
             if td <= len(sa) and sa[td - 1] != '':
@@ -2848,11 +3123,11 @@ class Paragraph:
         return md_lines_text
 
     def get_text_to_write(self):
-        paper_size = Document.paper_size
-        top_margin = Document.top_margin
-        bottom_margin = Document.bottom_margin
-        left_margin = Document.left_margin
-        right_margin = Document.right_margin
+        paper_size = Form.paper_size
+        top_margin = Form.top_margin
+        bottom_margin = Form.bottom_margin
+        left_margin = Form.left_margin
+        right_margin = Form.right_margin
         md_lines_text = self.md_lines_text
         length_docx = self.length_docx
         indent = length_docx['first indent'] \
@@ -3138,28 +3413,17 @@ class Paragraph:
         tex = re.sub('\n$', '', tex)
         return tex
 
-    def write_paragraph(self, mf):
+    def get_document(self):
         paragraph_class = self.paragraph_class
         ttwwr = self.text_to_write_with_reviser
+        dcmt = ''
         if paragraph_class != 'empty':
             if ttwwr != '':
-                mf.write(ttwwr + '\n')
+                dcmt = ttwwr + '\n'
+        return dcmt
 
-    def save_images(self):
-        tmpdir = Document.tmpdir.name
-        media_dir = Document.media_dir
-        images = self.images
-        for img in images:
-            try:
-                shutil.copy(tmpdir + '/word/' + img,
-                            media_dir + '/' + images[img])
-            except BaseException:
-                msg = '※ 警告: ' \
-                    + '画像「' + images[img] + '」' \
-                    + 'を保存できません'
-                # msg = 'warning: ' \
-                #     + 'cannot make "' + media_dir + '"'
-                sys.stderr.write(msg + '\n\n')
+    def get_images(self):
+        return self.images
 
 
 class ParagraphEmpty(Paragraph):
@@ -3281,9 +3545,9 @@ class ParagraphChapter(Paragraph):
         rtext = re.sub(res, '\\4', raw_text)
         state = []
         for b in branc.split('の'):
-            state.append(c2i_n_arab(b) - 1)
+            state.append(c2n_n_arab(b) - 1)
         if re.match('[0-9０-９]+', nmsym):
-            state[0] = c2i_n_arab(nmsym)
+            state[0] = c2n_n_arab(nmsym)
         return hdstr, rtext, state
 
 
@@ -3302,7 +3566,7 @@ class ParagraphSection(Paragraph):
     r5 = '(?:(([ｱ-ﾝア-ン]))((?:の[0-9０-９]+)*))'
     r6 = '(?:([(\\(（]([ｱ-ﾝア-ン])[\\)）])((?:の[0-9０-９]+)*))'
     r7 = '(?:(([a-zａ-ｚ]))((?:の[0-9０-９]+)*))'
-    r8 = '(?:([(\\(（]([a-zａ-ｚ])[\\)）])((?:の[0-9０-９]+)*))'
+    r8 = '(?:([⒜-⒵]|[(\\(（]([a-zａ-ｚ])[\\)）])((?:の[0-9０-９]+)*))'
     r9 = '(?:  ?|\t|\u3000|\\. ?|．)'
     res_symbols = [
         r1,
@@ -3405,18 +3669,22 @@ class ParagraphSection(Paragraph):
         branc = re.sub(res, branc_rep, raw_text)
         rtext = re.sub(res, rtext_rep, raw_text)
         state = []
+        if nmsym == '':
+            nmsym = hdstr
         for b in branc.split('の'):
-            state.append(c2i_n_arab(b) - 1)
+            state.append(c2n_n_arab(b) - 1)
         if nmsym == '':
             nmsym = hdstr
         if re.match('[0-9０-９]+', nmsym):
-            state[0] = c2i_n_arab(nmsym)
-        elif re.match('[⑴-⒇]+', nmsym):
-            state[0] = c2i_p_arab(nmsym)
-        elif re.match('[ｱ-ﾝア-ン]+', nmsym):
-            state[0] = c2i_n_kata(nmsym)
-        elif re.match('[a-zａ-ｚ]+', nmsym):
-            state[0] = c2i_n_alph(nmsym)
+            state[0] = c2n_n_arab(nmsym)
+        elif re.match('[⑴-⒇]', nmsym):
+            state[0] = c2n_p_arab(nmsym)
+        elif re.match('[ｱ-ﾝア-ン]', nmsym):
+            state[0] = c2n_n_kata(nmsym)
+        elif re.match('[a-zａ-ｚ]', nmsym):
+            state[0] = c2n_n_alph(nmsym)
+        elif re.match('[⒜-⒵]', nmsym):
+            state[0] = c2n_p_alph(nmsym)
         return hdstr, rtext, state
 
 
@@ -3630,13 +3898,13 @@ class ParagraphList(Paragraph):
         branc = re.sub(res, '\\3', raw_text)
         rtext = re.sub(res, '\\4', raw_text)
         if xdepth == 0:
-            state = [c2i_c_arab(nmsym)]
+            state = [c2n_c_arab(nmsym)]
         elif xdepth == 1:
-            state = [c2i_c_kata(nmsym)]
+            state = [c2n_c_kata(nmsym)]
         elif xdepth == 2:
-            state = [c2i_c_alph(nmsym)]
+            state = [c2n_c_alph(nmsym)]
         elif xdepth == 3:
-            state = [c2i_c_kanj(nmsym)]
+            state = [c2n_c_kanj(nmsym)]
         else:
             state = [-1]
         return hdstr, rtext, state
@@ -3752,10 +4020,10 @@ class ParagraphImage(Paragraph):
         return False
 
     def _get_md_text(self, raw_text):
-        text_w = PAPER_WIDTH[Document.paper_size] \
-            - Document.left_margin - Document.right_margin
-        text_h = PAPER_HEIGHT[Document.paper_size] \
-            - Document.top_margin - Document.bottom_margin
+        text_w = PAPER_WIDTH[Form.paper_size] \
+            - Form.left_margin - Form.right_margin
+        text_h = PAPER_HEIGHT[Form.paper_size] \
+            - Form.top_margin - Form.bottom_margin
         text_size = (text_w, text_h)
         md_text = ParagraphImage.replace_with_fixed_size(raw_text, text_size)
         return md_text
@@ -3800,6 +4068,8 @@ class ParagraphAlignment(Paragraph):
     @classmethod
     def is_this_class(cls, raw_paragraph):
         rp = raw_paragraph
+        if ParagraphImage(rp):
+            return False
         # rp_sty = rp.style
         rp_alg = rp.alignment
         if rp.raw_class == 'w:sectPr':
@@ -3885,8 +4155,8 @@ class ParagraphHorizontalLine(Paragraph):
     def _get_length_docx(self):
         if self.xml_lines[-1] == '<horizontalLine:textbox>':
             return super()._get_length_docx()
-        size = Document.font_size
-        lnsp = Document.line_spacing
+        size = Form.font_size
+        lnsp = Form.line_spacing
         rxls = self.raw_xml_lines
         length_docx \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
@@ -3900,14 +4170,14 @@ class ParagraphHorizontalLine(Paragraph):
         ri_xml = 0.0
         ti_xml = 0.0
         for rxl in rxls:
-            sb_xml = get_xml_value('w:spacing', 'w:before', sb_xml, rxl)
-            sa_xml = get_xml_value('w:spacing', 'w:after', sa_xml, rxl)
-            ls_xml = get_xml_value('w:spacing', 'w:line', ls_xml, rxl)
-            fi_xml = get_xml_value('w:ind', 'w:firstLine', fi_xml, rxl)
-            hi_xml = get_xml_value('w:ind', 'w:hanging', hi_xml, rxl)
-            li_xml = get_xml_value('w:ind', 'w:left', li_xml, rxl)
-            ri_xml = get_xml_value('w:ind', 'w:right', ri_xml, rxl)
-            ti_xml = get_xml_value('w:tblInd', 'w:w', ti_xml, rxl)
+            sb_xml = XML.get_value('w:spacing', 'w:before', sb_xml, rxl)
+            sa_xml = XML.get_value('w:spacing', 'w:after', sa_xml, rxl)
+            ls_xml = XML.get_value('w:spacing', 'w:line', ls_xml, rxl)
+            fi_xml = XML.get_value('w:ind', 'w:firstLine', fi_xml, rxl)
+            hi_xml = XML.get_value('w:ind', 'w:hanging', hi_xml, rxl)
+            li_xml = XML.get_value('w:ind', 'w:left', li_xml, rxl)
+            ri_xml = XML.get_value('w:ind', 'w:right', ri_xml, rxl)
+            ti_xml = XML.get_value('w:tblInd', 'w:w', ti_xml, rxl)
         # VERTICAL SPACE
         tmp_ls = 0.0
         tmp_sb = (sb_xml / 20)
@@ -4016,39 +4286,54 @@ def main():
 
     args = get_arguments()
 
+    io = IO(args.docx_file, args.md_file)
+
     doc = Document()
 
-    Document.tmpdir = doc.make_tmpdir()
+    io.unpack_docx_file()
+    document_xml_lines = io.read_xml_file('/word/document.xml')
+    core_xml_lines = io.read_xml_file('/docProps/core.xml')
+    header1_xml_lines = io.read_xml_file('/word/header1.xml')
+    header2_xml_lines = io.read_xml_file('/word/header2.xml')
+    footer1_xml_lines = io.read_xml_file('/word/footer1.xml')
+    footer2_xml_lines = io.read_xml_file('/word/footer2.xml')
+    styles_xml_lines = io.read_xml_file('/word/styles.xml')
+    rels_xml_lines = io.read_xml_file('/word/_rels/document.xml.rels')
 
-    Document.media_dir = doc.get_media_dir_name(args.md_file, args.docx_file)
+    frm = Form()
+    frm.document_xml_lines = document_xml_lines
+    frm.core_xml_lines = core_xml_lines
+    frm.header1_xml_lines = header1_xml_lines
+    frm.header2_xml_lines = header2_xml_lines
+    frm.footer1_xml_lines = footer1_xml_lines
+    frm.footer2_xml_lines = footer2_xml_lines
+    frm.styles_xml_lines = styles_xml_lines
+    frm.args = args
+    frm.configure()
 
-    doc.extract_docx_file(args.docx_file)
+    # frm.rels_xml_lines = rels_xml_lines
+    Form.rels = Form.get_rels(rels_xml_lines)
 
-    doc.core_raw_xml_lines = doc.get_raw_xml_lines('/docProps/core.xml')
-    doc.header1_raw_xml_lines = doc.get_raw_xml_lines('/word/header1.xml')
-    doc.header2_raw_xml_lines = doc.get_raw_xml_lines('/word/header2.xml')
-    doc.footer1_raw_xml_lines = doc.get_raw_xml_lines('/word/footer1.xml')
-    doc.footer2_raw_xml_lines = doc.get_raw_xml_lines('/word/footer2.xml')
-    doc.styles_raw_xml_lines = doc.get_raw_xml_lines('/word/styles.xml')
-    doc.rels_raw_xml_lines \
-        = doc.get_raw_xml_lines('/word/_rels/document.xml.rels')
-    doc.document_raw_xml_lines = doc.get_raw_xml_lines('/word/document.xml')
+    # frm.styles_xml_lines = styles_xml_lines
+    Form.styles = Form.get_styles(styles_xml_lines)
 
-    doc.configure(args)
-
-    Document.styles = doc.get_styles(doc.styles_raw_xml_lines)
-    Document.rels = doc.get_rels(doc.rels_raw_xml_lines)
-
-    doc.raw_paragraphs = doc.get_raw_paragraphs(doc.document_raw_xml_lines)
+    # doc.document_xml_lines = document_xml_lines
+    doc.raw_paragraphs = doc.get_raw_paragraphs(document_xml_lines)
     doc.paragraphs = doc.get_paragraphs(doc.raw_paragraphs)
     doc.paragraphs = doc.modify_paragraphs()
 
-    mf = doc.open_md_file(args.md_file, args.docx_file)
-    doc.write_configurations(mf)
-    doc.write_document(mf)
-    mf.close()
+    io.open_md_file()
 
-    doc.make_media_dir(Document.media_dir)
+    cfgs = frm.get_configurations()
+    io.write_md_file(cfgs)
+
+    dcmt = doc.get_document()
+    io.write_md_file(dcmt)
+
+    imgs = doc.get_images()
+    io.save_images(imgs)
+
+    io.close_md_file()
 
     sys.exit(0)
 
