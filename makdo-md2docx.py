@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.06-12:32:33-JST>
+# Time-stamp:   <2023.05.07-22:41:33-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2192,13 +2192,20 @@ class Paragraph:
 
     def _check_format(self):
         md_lines = self.md_lines
+        is_first_line = True
         for ml in md_lines:
+            if is_first_line:
+                if re.match('^#+(-#)*$', ml.text):
+                    if re.match('^\\s$', ml.end_space):
+                        continue
             if re.match('^\\s+$', ml.end_space):
                 msg = '※ 警告: ' \
                     + '行末に無意味な空白があります'
                 # msg = 'warning: ' \
                 #     + 'white spaces at the end of the line'
                 ml.append_warning_message(msg)
+            if ml.text != '':
+                is_first_line = False
         if True:
             if re.match('^.*<br>$', md_lines[-1].text):
                 msg = '※ 警告: ' \
@@ -3128,9 +3135,11 @@ class ParagraphAlignment(Paragraph):
             if alignment == 'left' or alignment == 'center':
                 if re.match('^:\\s{2,}.*$', ml.text):
                     msg = '※ 警告: ' \
-                        + 'テキストの最初に空白があります'
+                        + 'テキストの最初に空白があります' \
+                        + '（必要な場合は先頭に"\\"を入れてください）'
                     # msg = 'warning: ' \
-                    #     + ' spaces at the beginning'
+                    #     + ' spaces at the beginning' \
+                    #     + ' (if necessary, insert "\\")'
                     ml.append_warning_message(msg)
             if alignment == 'center' or alignment == 'right':
                 if re.match('^.*\\s{2,}:$', ml.text):
