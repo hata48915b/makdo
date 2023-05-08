@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.06-03:14:01-JST>
+# Time-stamp:   <2023.05.08-12:23:42-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -983,10 +983,10 @@ class IO:
                 #     + 'no output file name'
                 sys.stderr.write(msg + '\n\n')
                 sys.exit(1)
-            elif re.match('^.*\\.md$', inputed_docx_file):
-                md_file = re.sub('\\.md$', '.docx', inputed_docx_file)
+            elif re.match('^.*\\.docx$', inputed_docx_file):
+                md_file = re.sub('\\.docx$', '.md', inputed_docx_file)
             else:
-                md_file = inputed_docx_file + '.docx'
+                md_file = inputed_docx_file + '.md'
         # self.md_file = md_file
         return md_file
 
