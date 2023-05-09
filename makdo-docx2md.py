@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.08-12:23:42-JST>
+# Time-stamp:   <2023.05.09-19:40:28-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -809,32 +809,59 @@ class XML:
     @staticmethod
     def get_blocks(xml_body):
         xml_blocks = []
-        xml_class = None
         res_oneline_tag = '<(\\S+)( .*)?/>'
         res_beginning_tag = '<(\\S+)( .*)?>'
+        xb = []
+        xml_class = None
+        xml_depth = 0
         for xl in xml_body:
             if xml_class == '':
+                # ABNORMAL STATE (JUST TO MAKE SURE)
                 if not re.match(res_beginning_tag, xl):
+                    # ABNORMAL STATE CONTINUES
                     xb.append(xl)
                     continue
                 else:
+                    # SAVE AND RESET
                     xml_blocks.append(xb)
+                    xb = []
                     xml_class = None
+                    xml_depth = 0
+            # NORMAL STATE
+            xb.append(xl)
             if xml_class is None:
-                xb = []
-                xb.append(xl)
                 if re.match(res_oneline_tag, xl):
+                    # SAVE AND RESET
                     xml_blocks.append(xb)
+                    xb = []
+                    xml_class = None
+                    xml_depth = 0
                 elif re.match(res_beginning_tag, xl):
                     xml_class = re.sub(res_beginning_tag, '\\1', xl)
+                    xml_depth = 1
+                    res_class_tag = '<' + xml_class + '( .*)?>'
+                    res_end_tag = '</' + xml_class + '>'
                 else:
+                    # MOVE TO ABNORMAL STATE
                     xml_class = ''
-            else:
-                xb.append(xl)
-                res_end_tag = '</' + xml_class + '>'
-                if re.match(res_end_tag, xl):
+            elif re.match(res_class_tag, xl):
+                xml_depth += 1
+            elif re.match(res_end_tag, xl):
+                xml_depth -= 1
+                if xml_depth == 0:
+                    # SAVE AND RESET
                     xml_blocks.append(xb)
+                    xb = []
                     xml_class = None
+                    xml_depth = 0
+            else:
+                pass
+        if len(xb) > 0:
+            # SAVE AND RESET (JUST TO MAKE SURE)
+            xml_blocks.append(xb)
+            xb = []
+            xml_class = None
+            xml_depth = 0
         return xml_blocks
 
     @staticmethod
