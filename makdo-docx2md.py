@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.10-15:27:54-JST>
+# Time-stamp:   <2023.05.10-17:26:45-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -4098,7 +4098,7 @@ class ParagraphAlignment(Paragraph):
     @classmethod
     def is_this_class(cls, raw_paragraph):
         rp = raw_paragraph
-        if ParagraphImage(rp):
+        if ParagraphImage.is_this_class(rp):
             return False
         # rp_sty = rp.style
         rp_alg = rp.alignment
