@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.10-14:44:15-JST>
+# Time-stamp:   <2023.05.10-15:03:44-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2937,10 +2937,10 @@ class ParagraphTable(Paragraph):
             # ms_tab.rows[i].height = Pt(1.5 * size)
             for j in range(len(tab[i])):
                 cell = tab[i][j]
-                if ali_list[j] != WD_TABLE_ALIGNMENT.LEFT:
-                    cell = re.sub('^\\s+', '', cell)
-                if ali_list[j] != WD_TABLE_ALIGNMENT.RIGHT:
+                if ali_list[j] == WD_TABLE_ALIGNMENT.LEFT:
                     cell = re.sub('\\s+$', '', cell)
+                if ali_list[j] == WD_TABLE_ALIGNMENT.RIGHT:
+                    cell = re.sub('^\\s+', '', cell)
                 ms_cell = ms_tab.cell(i, j)
                 ms_cell.width = Pt((wid_list[j] + 2) * s_size)
                 ms_cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
