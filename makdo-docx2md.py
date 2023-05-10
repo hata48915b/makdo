@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.10-14:57:04-JST>
+# Time-stamp:   <2023.05.10-15:27:54-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -678,7 +678,7 @@ def c2n_n_arab(s):
 def c2n_p_arab(s):
     res = '^[\\(（]([0-9０-９]+)[\\)）]$'
     if re.match('^[⑴-⒇]$', s):
-        return ord(c) - 9331
+        return ord(s) - 9331
     elif re.match(res, s):
         c = re.sub(res, '\\1', s)
         return c2n_n_arab(c)
