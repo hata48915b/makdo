@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.10-12:46:38-JST>
+# Time-stamp:   <2023.05.10-14:57:04-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -4010,6 +4010,9 @@ class ParagraphTable(Paragraph):
             for cell in row:
                 Paragraph.font_size = size * 0.8
                 raw_text, images = RawParagraph._get_raw_text_and_images(cell)
+                raw_text = re.sub('\\|', '\\\\|', raw_text)
+                raw_text = re.sub('^(\\\\\\s+)', ' \\1', raw_text)
+                raw_text = re.sub('(\\s+\\\\)$', '\\1 ', raw_text)
                 Paragraph.font_size = size
                 raw_text = re.sub('\n', '<br>', raw_text)
                 md_text += '|' + raw_text + '|'
