@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.07-22:41:33-JST>
+# Time-stamp:   <2023.05.10-14:44:15-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2315,7 +2315,7 @@ class Paragraph:
             return
         if paragraph_class == 'alignment':
             ms_par = self._get_ms_par(ms_doc)
-            # ms_par = self._get_ms_par(ms_doc, 'makdo-a')
+            # WORD WRAP (英単語の途中で改行する)
             oe = OxmlElement('w:wordWrap')
             oe.set(ns.qn('w:val'), '0')
             pPr = ms_par._p.get_or_add_pPr()
@@ -2946,6 +2946,11 @@ class ParagraphTable(Paragraph):
                 ms_cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
                 ms_par = ms_cell.paragraphs[0]
                 ms_par.style = 'makdo-t'
+                # WORD WRAP (英単語の途中で改行する)
+                oe = OxmlElement('w:wordWrap')
+                oe.set(ns.qn('w:val'), '0')
+                pPr = ms_par._p.get_or_add_pPr()
+                pPr.append(oe)
                 Paragraph.font_size = s_size
                 self._write_text(cell, ms_par)
                 Paragraph.font_size = size
