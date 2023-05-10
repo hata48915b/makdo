@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.09-19:40:28-JST>
+# Time-stamp:   <2023.05.10-12:46:38-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2650,12 +2650,12 @@ class RawParagraph:
         while True:
             tmp_text = raw_text
             for fd in FONT_DECORATORS:
-                if fd == '~~' or fd == '\\-\\-' or fd == '\\+\\+' or \
+                if fd == '~~' or fd == '__' or \
+                   fd == '\\-\\-' or fd == '\\+\\+' or \
                    fd == '_[0-9A-Za-z]+_':
                     continue
-                res = fd + '((?:\\s+|~~|\\-\\-|\\+\\+|_[0-9A-Za-z]+_)+)' + fd
-                if re.match('^.*' + res, raw_text):
-                    raw_text = re.sub(res, '\\1', raw_text)
+                res = fd + '((?:\\s|~~|__|\\-\\-|\\+\\+|_[0-9A-Za-z]+_)+)' + fd
+                raw_text = re.sub(res, '\\1', raw_text)
             if tmp_text == raw_text:
                 break
         # self.raw_text = raw_text
