@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.10-17:26:45-JST>
+# Time-stamp:   <2023.05.13-03:31:31-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -206,6 +206,10 @@ NOT_ESCAPED = '^((?:(?:.*\n)*.*[^\\\\])?(?:\\\\\\\\)*)?'
 
 RES_NUMBER = '(?:[-\\+]?(?:(?:[0-9]+(?:\\.[0-9]+)?)|(?:\\.[0-9]+)))'
 RES_NUMBER6 = '(?:' + RES_NUMBER + '?,){,5}' + RES_NUMBER + '?,?'
+
+RES_KATAKANA = '[' + 'ｦｱ-ﾝ' + \
+    'アイウエオカキクケコサシスセソタチツテトナニヌネノ' + \
+    'ハヒフヘホマミムメモヤユヨラリルレロワヰヱヲン' + ']'
 
 RES_IMAGE = '! *\\[([^\\[\\]]*)\\] *\\(([^\\(\\)]+)\\)'
 RES_IMAGE_WITH_SIZE \
@@ -676,116 +680,223 @@ def c2n_n_arab(s):
 
 
 def c2n_p_arab(s):
+    i = -1
+    if len(s) == 1:
+        i = ord(s)
+    n = 9331
+    if i >= n + 1 and i <= n + 20:
+        # ⑴⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀⒁⒂⒃⒄⒅⒆⒇
+        return i - n
     res = '^[\\(（]([0-9０-９]+)[\\)）]$'
-    if re.match('^[⑴-⒇]$', s):
-        return ord(s) - 9331
-    elif re.match(res, s):
+    if re.match(res, s):
+        # (0)...
         c = re.sub(res, '\\1', s)
         return c2n_n_arab(c)
-    else:
-        return -1
+    return -1
 
 
 def c2n_c_arab(s):
-    c = s
-    n = ord(c)
-    if n == 9450:
-        return n - 9450        # 0
-    elif n >= 9312 and n <= 9331:
-        return n - 9312 + 1    # 1-20
-    elif n >= 12881 and n <= 12895:
-        return n - 12881 + 21  # 21-35
-    elif n >= 12977 and n <= 12991:
-        return n - 12977 + 36  # 36-50
-    elif n == 127243:
-        return n - 127243 + 0  # 0
-    elif n >= 10112 and n <= 10121:
-        return n - 10112 + 1   # 1-10
+    i = -1
+    if len(s) == 1:
+        i = ord(s)
+    n = 9450
+    if i == n:
+        # ⓪
+        return i - n
+    n = 9311
+    if i >= n + 1 and i <= n + 20:
+        # ①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳
+        return i - n
+    n = 12860
+    if i >= n + 21 and i <= n + 35:
+        # ㉑㉒㉓㉔㉕㉖㉗㉘㉙㉚㉛㉜㉝㉞㉟
+        return i - n
+    n = 12941
+    if i >= n + 36 and i <= n + 50:
+        # ㊱㊲㊳㊴㊵㊶㊷㊸㊹㊺㊻㊼㊽㊾㊿
+        return i - n
+    n = 127243
+    if i == n:
+        # 🄋
+        return i - n
+    n = 10111
+    if i >= n + 1 and i <= n + 10:
+        # ➀➁➂➃➄➅➆➇➈➉
+        return i - n
     return -1
 
 
 def c2n_n_kata(s):
-    c = s
-    if re.match('^[ｱ-ﾜ]$', c):
-        return ord(c) - 65392
-    elif c == 'ｦ':
-        return ord(c) - 65392 + 55
-    elif c == 'ﾝ':
-        return ord(c) - 65392 + 1
-    elif re.match('^[ア-オ]$', c):
-        return int((ord(c) - 12448) / 2)
-    elif re.match('^[カ-チ]$', c):
-        return int((ord(c) - 12448 + 1) / 2)
-    elif re.match('^[ツ-ト]$', c):
-        return int((ord(c) - 12448) / 2)
-    elif re.match('^[ナ-ノ]$', c):
-        return int((ord(c) - 12448 - 21) / 1)
-    elif re.match('^[ハ-ホ]$', c):
-        return int((ord(c) - 12448 + 31) / 3)
-    elif re.match('^[マ-モ]$', c):
-        return int((ord(c) - 12448 - 31) / 1)
-    elif re.match('^[ヤ-ヨ]$', c):
-        return int((ord(c) - 12448 + 4) / 2)
-    elif re.match('^[ラ-ロ]$', c):
-        return int((ord(c) - 12448 - 34) / 1)
-    elif re.match('^[ワヲ]$', c):
-        return int((ord(c) - 12448 + 53) / 3)
-    elif re.match('^[ン]$', c):
-        return int((ord(c) - 12448 - 37) / 1)
+    i = -1
+    if len(s) == 1:
+        i = ord(s)
+    n = 65392
+    if i >= n + 1 and i <= n + 44:
+        # ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜ
+        return i - n
+    n = 65337
+    if i == n + 45:
+        # ｦ
+        return i - n
+    n = 65391
+    if i == n + 46:
+        # ﾝ
+        return i - n
+    n = 12448
+    if i >= n + 2 * 1 and i <= n + 2 * 5:
+        # アイウエオ
+        return int((i - n) / 2)
+    n = 12447
+    if i >= n + 2 * 6 and i <= n + 2 * 17:
+        # カキクケコサシスセソタチ
+        return int((i - n) / 2)
+    n = 12448
+    if i >= n + 2 * 18 and i <= n + 2 * 20:
+        # ツテト
+        return int((i - n) / 2)
+    n = 12469
+    if i >= n + 1 * 21 and i <= n + 1 * 25:
+        # ナニヌネノ
+        return int((i - n) / 1)
+    n = 12417
+    if i >= n + 3 * 26 and i <= n + 3 * 30:
+        # ハヒフヘホ
+        return int((i - n) / 3)
+    n = 12479
+    if i >= n + 1 * 31 and i <= n + 1 * 35:
+        # マミムメモ
+        return int((i - n) / 1)
+    n = 12444
+    if i >= n + 2 * 36 and i <= n + 2 * 38:
+        # ヤユヨ
+        return int((i - n) / 2)
+    n = 12482
+    if i >= n + 1 * 39 and i <= n + 1 * 43:
+        # ラリルレロ
+        return int((i - n) / 1)
+    n = 12483
+    if i >= n + 1 * 44 and i <= n + 1 * 49:
+        # ワヰヱヲン
+        return int((i - n) / 1)
     return -1
 
 
 def c2n_p_kata(s):
-    res = '^[\\(（]([ｱ-ﾝア-ン])[\\)）]$'
+    res = '^[\\(（](' + RES_KATAKANA + ')[\\)）]$'
     if re.match(res, s):
+        # (ｱ)...(ﾝ)
         c = re.sub(res, '\\1', s)
         return c2n_n_kata(c)
-    else:
-        return -1
+    return -1
 
 
 def c2n_c_kata(s):
-    c = s
-    if re.match('[㋐-㋾]', c):
-        return ord(c) - 13007
-    else:
-        return -1
+    i = -1
+    if len(s) == 1:
+        i = ord(s)
+    n = 13007
+    if i >= n + 1 and i <= n + 47:
+        # ㋐㋑㋒㋓㋔㋕㋖㋗㋘㋙㋚㋛㋜㋝㋞㋟㋠㋡㋢㋣㋤㋥㋦㋧㋨
+        # ㋩㋪㋫㋬㋭㋮㋯㋰㋱㋲㋳㋴㋵㋶㋷㋸㋹㋺㋻㋼㋽㋾
+        return i - n
+    return -1
 
 
 def c2n_n_alph(s):
-    c = s
-    if re.match('^[a-z]$', c):
-        return ord(c) - 96
-    elif re.match('^[ａ-ｚ]$', c):
-        return ord(c) - 65344
+    i = -1
+    if len(s) == 1:
+        i = ord(s)
+    n = 96
+    if i >= n + 1 and i <= n + 26:
+        # a...z
+        return i - n
+    n = 65344
+    if i >= n + 1 and i <= n + 26:
+        # ａ...ｚ
+        return i - n
     return -1
 
 
 def c2n_p_alph(s):
+    i = -1
+    if len(s) == 1:
+        i = ord(s)
+    n = 9371
+    if i >= n + 1 and i <= n + 26:
+        # ⒜⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴⒵
+        return i - n
     res = '^[\\(（]([a-zａ-ｚ])[\\)）]$'
-    if re.match('^[⒜-⒵]$', s):
-        return ord(s) - 9371
-    elif re.match(res, s):
+    if re.match(res, s):
+        # (a)...(z)
         c = re.sub(res, '\\1', s)
         return c2n_n_alph(c)
-    else:
-        return -1
+    return -1
 
 
 def c2n_c_alph(s):
-    c = s
-    if re.match('^[ⓐ-ⓩ]$', c):
-        return ord(c) - 9423
-    else:
-        return -1
+    i = -1
+    if len(s) == 1:
+        i = ord(s)
+    n = 9423
+    if i >= n + 1 and i <= n + 26:
+        # ⓐⓑⓒⓓⓔⓕⓖⓗⓘⓙⓚⓛⓜⓝⓞⓟⓠⓡⓢⓣⓤⓥⓦⓧⓨⓩ
+        return i - n
+    return -1
+
+
+def c2n_n_kanj(s):
+    i = s
+    i = re.sub('[０〇零]', '0', i)
+    i = re.sub('[１一壱]', '1', i)
+    i = re.sub('[２二弐]', '2', i)
+    i = re.sub('[３三参]', '3', i)
+    i = re.sub('[４四]', '4', i)
+    i = re.sub('[５五伍]', '5', i)
+    i = re.sub('[６六]', '6', i)
+    i = re.sub('[７七]', '7', i)
+    i = re.sub('[８八]', '8', i)
+    i = re.sub('[９九]', '9', i)
+    #
+    i = re.sub('[拾]', '十', i)
+    i = re.sub('[佰陌]', '百', i)
+    i = re.sub('[仟阡]', '千', i)
+    i = re.sub('[萬]', '万', i)
+    #
+    i = re.sub('^([千百十])', '1\\1', i)
+    i = re.sub('([^0-9])([千百十])', '\\1 1\\2', i)
+    #
+    i = re.sub('(万)([^千]*)$', '\\1 0千\\2', i)
+    i = re.sub('(千)([^百]*)$', '\\1 0百\\2', i)
+    i = re.sub('(百)([^十]*)$', '\\1 0十\\2', i)
+    i = re.sub('(十)$', '\\1 0', i)
+    #
+    i = re.sub('[万千百十 ]', '', i)
+    #
+    if re.match('^[0-9]+$', i):
+        return i
+    return -1
+
+
+def c2n_p_kanj(s):
+    i = -1
+    if len(s) == 1:
+        i = ord(s)
+    n = 12831
+    if i >= n + 1 and i <= n + 10:
+        # ㈠㈡㈢㈣㈤㈥㈦㈧㈨㈩
+        return i - n
+    return -1
 
 
 def c2n_c_kanj(s):
-    c = s
-    if re.match('^[㊀-㊉]$', c):
-        return ord(c) - 12927
-    else:
-        return -1
+    i = -1
+    if len(s) == 1:
+        i = ord(s)
+    n = 12927
+    if i >= n + 1 and i <= n + 10:
+        # ㊀㊁㊂㊃㊄㊅㊆㊇㊈㊉
+        return i - n
+    return -1
 
 
 ############################################################
@@ -3590,8 +3701,8 @@ class ParagraphSection(Paragraph):
     r2 = '(?:(第([0-9０-９]+)条?)((?:の[0-9０-９]+)*))'
     r3 = '(?:(([0-9０-９]+))((?:の[0-9０-９]+)*))'
     r4 = '(?:([⑴-⒇]|[\\(（]([0-9０-９]+)[\\)）])((?:の[0-9０-９]+)*))'
-    r5 = '(?:(([ｱ-ﾝア-ン]))((?:の[0-9０-９]+)*))'
-    r6 = '(?:([(\\(（]([ｱ-ﾝア-ン])[\\)）])((?:の[0-9０-９]+)*))'
+    r5 = '(?:((' + RES_KATAKANA + '))((?:の[0-9０-９]+)*))'
+    r6 = '(?:([(\\(（](' + RES_KATAKANA + ')[\\)）])((?:の[0-9０-９]+)*))'
     r7 = '(?:(([a-zａ-ｚ]))((?:の[0-9０-９]+)*))'
     r8 = '(?:([⒜-⒵]|[(\\(（]([a-zａ-ｚ])[\\)）])((?:の[0-9０-９]+)*))'
     r9 = '(?:  ?|\t|\u3000|\\. ?|．)'
@@ -3706,7 +3817,7 @@ class ParagraphSection(Paragraph):
             state[0] = c2n_n_arab(nmsym)
         elif re.match('[⑴-⒇]', nmsym):
             state[0] = c2n_p_arab(nmsym)
-        elif re.match('[ｱ-ﾝア-ン]', nmsym):
+        elif re.match(RES_KATAKANA, nmsym):
             state[0] = c2n_n_kata(nmsym)
         elif re.match('[a-zａ-ｚ]', nmsym):
             state[0] = c2n_n_alph(nmsym)

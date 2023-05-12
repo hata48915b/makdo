@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.10-15:03:44-JST>
+# Time-stamp:   <2023.05.13-02:47:56-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -467,39 +467,64 @@ def get_real_width(s):
 
 
 def n2c_n_arab(n, md_line=None):
-    if n < 0:
-        return '△' + str(-n)
-    elif n < 10:
+    if n >= 0 and n <= 9:
+        # ０１２３４５６７８９
         return chr(65296 + n)
-    else:
+    elif n >= 0:
+        # 101112...
         return str(n)
+    else:
+        msg = '※ 警告: ' \
+            + '数字番号は範囲を超えています'
+        # msg = 'warning: ' \
+        #     + 'overflowed arabic number'
+        if md_line is None:
+            sys.stderr.write(msg + '\n\n')
+        else:
+            md_line.append_warning_message(msg)
+        return '〓'
 
 
 def n2c_p_arab(n, md_line=None):
-    if n < 0:
-        return '△(' + str(-n) + ')'
-    elif n == 0:
+    if n >= 0 and n == 0:
+        # (0)
         return '(0)'
-    elif n > 0 and n <= 20:
+    elif n >= 0 and n <= 20:
+        # ⑴⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀⒁⒂⒃⒄⒅⒆⒇
         return chr(9331 + n)
-    else:
+    elif n >= 0:
+        # (21)(22)(23)...
         return '(' + str(n) + ')'
+    else:
+        msg = '※ 警告: ' \
+            + '括弧付き数字番号は範囲を超えています'
+        # msg = 'warning: ' \
+        #     + 'overflowed parenthesis arabic number'
+        if md_line is None:
+            sys.stderr.write(msg + '\n\n')
+        else:
+            md_line.append_warning_message(msg)
+        return '〓'
 
 
 def n2c_c_arab(n, md_line=None):
-    if n == 0:
+    if n >= 0 and n == 0:
+        # ⓪
         return chr(9450)
-    elif n > 0 and n <= 20:
+    elif n >= 0 and n <= 20:
+        # ①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳
         return chr(9311 + n)
-    elif n > 0 and n <= 35:
+    elif n >= 0 and n <= 35:
+        # ㉑㉒㉓㉔㉕㉖㉗㉘㉙㉚㉛㉜㉝㉞㉟
         return chr(12860 + n)
-    elif n > 0 and n <= 50:
+    elif n >= 0 and n <= 50:
+        # ㊱㊲㊳㊴㊵㊶㊷㊸㊹㊺㊻㊼㊽㊾㊿
         return chr(12941 + n)
     else:
         msg = '※ 警告: ' \
             + '丸付き数字番号は範囲を超えています'
         # msg = 'warning: ' \
-        #     + 'overflowed circled number'
+        #     + 'overflowed circled arabic number'
         if md_line is None:
             sys.stderr.write(msg + '\n\n')
         else:
@@ -508,28 +533,33 @@ def n2c_c_arab(n, md_line=None):
 
 
 def n2c_n_kata(n, md_line=None):
-    if n == 0:
-        return chr(12448 + 83)
-    elif n > 0 and n <= 5:
+    if n >= 1 and n <= 5:
+        # アイウエオ
         return chr(12448 + (2 * n))
-    elif n > 0 and n <= 17:
+    elif n >= 1 and n <= 17:
+        # カキクケコサシスセソタチ
         return chr(12448 + (2 * n) - 1)
-    elif n > 0 and n <= 20:
+    elif n >= 1 and n <= 20:
+        # ツテト
         return chr(12448 + (2 * n))
-    elif n > 0 and n <= 25:
+    elif n >= 1 and n <= 25:
+        # ナニヌネノ
         return chr(12448 + (1 * n) + 21)
-    elif n > 0 and n <= 30:
+    elif n >= 1 and n <= 30:
+        # ハヒフヘホ
         return chr(12448 + (3 * n) - 31)
-    elif n > 0 and n <= 35:
+    elif n >= 1 and n <= 35:
+        # マミムメモ
         return chr(12448 + (1 * n) + 31)
-    elif n > 0 and n <= 38:
+    elif n >= 1 and n <= 38:
+        # ヤユヨ
         return chr(12448 + (2 * n) - 4)
-    elif n > 0 and n <= 43:
+    elif n >= 1 and n <= 43:
+        # ラリルレロ
         return chr(12448 + (1 * n) + 34)
-    elif n > 0 and n <= 45:
-        return chr(12448 + (3 * n) - 53)
-    elif n > 0 and n <= 46:
-        return chr(12448 + (1 * n) + 37)
+    elif n >= 1 and n <= 48:
+        # ワヰヱヲン
+        return chr(12448 + (1 * n) + 35)
     else:
         msg = '※ 警告: ' \
             + 'カタカナ番号は範囲を超えています'
@@ -543,13 +573,16 @@ def n2c_n_kata(n, md_line=None):
 
 
 def n2c_p_kata(n, md_line=None):
-    if n == 0:
-        return '(' + chr(65392 + 45) + ')'
-    elif n > 0 and n <= 44:
+    if n >= 1 and n <= 44:
+        # (ｱ)(ｲ)(ｳ)(ｴ)(ｵ)(ｶ)(ｷ)(ｸ)(ｹ)(ｺ)(ｻ)(ｼ)(ｽ)(ｾ)(ｿ)
+        # (ﾀ)(ﾁ)(ﾂ)(ﾃ)(ﾄ)(ﾅ)(ﾆ)(ﾇ)(ﾈ)(ﾉ)(ﾊ)(ﾋ)(ﾌ)(ﾍ)(ﾎ)
+        # (ﾏ)(ﾐ)(ﾑ)(ﾒ)(ﾓ)(ﾔ)(ﾕ)(ﾖ)(ﾗ)(ﾘ)(ﾙ)(ﾚ)(ﾛ)(ﾜ)
         return '(' + chr(65392 + n) + ')'
-    elif n > 0 and n <= 45:
+    elif n >= 1 and n <= 45:
+        # (ｦ)
         return '(' + chr(65392 + n - 55) + ')'
-    elif n > 0 and n <= 46:
+    elif n >= 1 and n <= 46:
+        # (ﾝ)
         return '(' + chr(65392 + n - 1) + ')'
     else:
         msg = '※ 警告: ' \
@@ -564,9 +597,9 @@ def n2c_p_kata(n, md_line=None):
 
 
 def n2c_c_kata(n, md_line=None):
-    if n == 0:
-        return chr(13007 + 47)
-    elif n > 0 and n <= 47:
+    if n >= 1 and n <= 47:
+        # ㋐㋑㋒㋓㋔㋕㋖㋗㋘㋙㋚㋛㋜㋝㋞㋟㋠㋡㋢㋣㋤㋥㋦㋧㋨
+        # ㋩㋪㋫㋬㋭㋮㋯㋰㋱㋲㋳㋴㋵㋶㋷㋸㋹㋺㋻㋼㋽㋾
         return chr(13007 + n)
     else:
         msg = '※ 警告: ' \
@@ -581,9 +614,8 @@ def n2c_c_kata(n, md_line=None):
 
 
 def n2c_n_alph(n, md_line=None):
-    if n == 0:
-        return chr(65344 + 26)
-    elif n > 0 and n <= 26:
+    if n >= 1 and n <= 26:
+        # ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ
         return chr(65344 + n)
     else:
         msg = '※ 警告: ' \
@@ -598,9 +630,8 @@ def n2c_n_alph(n, md_line=None):
 
 
 def n2c_p_alph(n, md_line=None):
-    if n == 0:
-        return chr(9371 + 26)
-    elif n > 0 and n <= 26:
+    if n >= 1 and n <= 26:
+        # ⒜⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴⒵
         return chr(9371 + n)
     else:
         msg = '※ 警告: ' \
@@ -615,9 +646,8 @@ def n2c_p_alph(n, md_line=None):
 
 
 def n2c_c_alph(n, md_line=None):
-    if n == 0:
-        return chr(9423 + 26)
-    elif n > 0 and n <= 26:
+    if n >= 1 and n <= 26:
+        # ⓐⓑⓒⓓⓔⓕⓖⓗⓘⓙⓚⓛⓜⓝⓞⓟⓠⓡⓢⓣⓤⓥⓦⓧⓨⓩ
         return chr(9423 + n)
     else:
         msg = '※ 警告: ' \
@@ -634,6 +664,8 @@ def n2c_c_alph(n, md_line=None):
 def n2c_n_kanj(n, md_line=None):
     if n >= 0:
         k = str(n)
+        if n >= 10000:
+            k = re.sub('^(.+)(....)$', '\\1万\\2', k)
         if n >= 1000:
             k = re.sub('^(.+)(...)$', '\\1千\\2', k)
         if n >= 100:
@@ -650,7 +682,7 @@ def n2c_n_kanj(n, md_line=None):
         k = re.sub('7', '七', k)
         k = re.sub('8', '八', k)
         k = re.sub('9', '九', k)
-        k = re.sub('〇$', '', k)
+        k = re.sub('(.+)〇$', '\\1', k)
         k = re.sub('〇十', '', k)
         k = re.sub('〇百', '', k)
         k = re.sub('〇千', '', k)
@@ -671,9 +703,8 @@ def n2c_n_kanj(n, md_line=None):
 
 
 def n2c_p_kanj(n, md_line=None):
-    if n == 0:
-        return chr(12831 + 10)
-    elif n > 0 and n <= 10:
+    # ㈠㈡㈢㈣㈤㈥㈦㈧㈨㈩
+    if n >= 1 and n <= 10:
         return chr(12831 + n)
     else:
         msg = '※ 警告: ' \
@@ -688,9 +719,8 @@ def n2c_p_kanj(n, md_line=None):
 
 
 def n2c_c_kanj(n, md_line=None):
-    if n == 0:
-        return chr(12927 + 10)
-    elif n > 0 and n <= 10:
+    # ㊀㊁㊂㊃㊄㊅㊆㊇㊈㊉
+    if n >= 1 and n <= 10:
         return chr(12927 + n)
     else:
         msg = '※ 警告: ' \
@@ -2987,7 +3017,7 @@ class ParagraphTable(Paragraph):
             if len(col) > 0 and re.match(NOT_ESCAPED + '\\\\$', col[-1]):
                 col[-1] += '|'
             tab.append(col)
-            #tab.append(line.split('|'))
+            # tab.append(line.split('|'))
             line = ''
         m = 0
         for rw in tab:
