@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.13-03:31:31-JST>
+# Time-stamp:   <2023.05.13-09:22:15-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -624,7 +624,7 @@ def get_real_width(s):
             wid += 2.0
         elif re.match('^[㋩㋪㋫㋬㋭㋮㋯㋰㋱㋲㋳㋴㋵㋶㋷㋸㋹㋺㋻㋼㋽㋾]$', c):
             wid += 2.0
-        elif re.match('^㊀㊁㊂㊃㊄㊅㊆㊇㊈㊉$', c):
+        elif re.match('^[㊀㊁㊂㊃㊄㊅㊆㊇㊈㊉]$', c):
             wid += 2.0
         elif (w == 'F'):  # Full alphabet ...
             wid += 2.0

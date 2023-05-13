@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.13-02:47:56-JST>
+# Time-stamp:   <2023.05.13-09:22:37-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -446,7 +446,7 @@ def get_real_width(s):
             wid += 2.0
         elif re.match('^[㋩㋪㋫㋬㋭㋮㋯㋰㋱㋲㋳㋴㋵㋶㋷㋸㋹㋺㋻㋼㋽㋾]$', c):
             wid += 2.0
-        elif re.match('^㊀㊁㊂㊃㊄㊅㊆㊇㊈㊉$', c):
+        elif re.match('^[㊀㊁㊂㊃㊄㊅㊆㊇㊈㊉]$', c):
             wid += 2.0
         elif (w == 'F'):  # Full alphabet ...
             wid += 2.0
