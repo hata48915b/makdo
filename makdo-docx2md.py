@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.13-09:22:15-JST>
+# Time-stamp:   <2023.05.17-07:20:42-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -4118,13 +4118,17 @@ class ParagraphTable(Paragraph):
                         md_text += '|' + cell + '|'
                     is_in_head = False
                     md_text += '\n'
-            for cell in row:
-                Paragraph.font_size = size * 0.8
+            for j, cell in enumerate(row):
+                Paragraph.font_size = s_size
                 raw_text, images = RawParagraph._get_raw_text_and_images(cell)
-                raw_text = re.sub('\\|', '\\\\|', raw_text)
-                raw_text = re.sub('^(\\\\\\s+)', ' \\1', raw_text)
-                raw_text = re.sub('(\\s+\\\\)$', '\\1 ', raw_text)
                 Paragraph.font_size = size
+                if re.match('^:-+:$', ali[i][j]):
+                    raw_text = re.sub('^(\\\\\\s+)', ' \\1', raw_text)
+                    raw_text = re.sub('(\\s+\\\\)$', '\\1 ', raw_text)
+                else:
+                    raw_text = re.sub('^\\\\', '', raw_text)
+                    raw_text = re.sub('\\\\$', '', raw_text)
+                raw_text = re.sub('\\|', '\\\\|', raw_text)
                 raw_text = re.sub('\n', '<br>', raw_text)
                 md_text += '|' + raw_text + '|'
             md_text += '\n'
