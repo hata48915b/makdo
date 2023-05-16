@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.17-07:20:42-JST>
+# Time-stamp:   <2023.05.17-08:07:04-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1581,7 +1581,7 @@ class Form:
                     Form.font_size = round(sz_x / 2, 1)
                 # LINE SPACING
                 if ls_x > 0:
-                    Form.line_spacing = round(ls_x / 20 / self.font_size, 2)
+                    Form.line_spacing = round(ls_x / 20 / font_size, 2)
                 # AUTO SPACE
                 if ase == 0 and asn == 0:
                     Form.auto_space = False
@@ -2131,7 +2131,6 @@ class Document:
         paper_size = Form.paper_size
         left_margin = Form.left_margin
         right_margin = Form.right_margin
-        font_size = Form.font_size
         for p in self.paragraphs:
             if p.paragraph_class == 'table' or p.paragraph_class == 'image':
                 indent = p.length_revi['first indent'] \
@@ -2310,8 +2309,8 @@ class RawParagraph:
 
     @staticmethod
     def _get_xml_lines(raw_class, raw_xml_lines):
-        size = Paragraph.font_size
-        s_size = 0.9 * size  # not 0.8
+        m_size = Paragraph.font_size
+        s_size = m_size * 0.9  # not 0.8
         xml_lines = []
         is_large = False
         is_small = False
@@ -2437,9 +2436,9 @@ class RawParagraph:
             w = XML.get_value('w:w', 'w:val', -1.0, rxl)
             if s > 0:
                 if not RawParagraph._is_table(raw_class, raw_xml_lines):
-                    if s > size:
+                    if s > m_size:
                         is_large = True
-                    if s < size:
+                    if s < m_size:
                         is_small = True
                 else:
                     if s > s_size:
@@ -2514,9 +2513,9 @@ class RawParagraph:
     def _get_raw_text_and_images(xml_lines):
         media_dir = IO.media_dir
         img_rels = Form.rels
-        size_cm = Paragraph.font_size * 2.54 / 72
-        s_size_cm = size_cm * 0.8
-        l_size_cm = size_cm * 1.2
+        m_size_cm = Paragraph.font_size * 2.54 / 72
+        s_size_cm = m_size_cm * 0.8
+        l_size_cm = m_size_cm * 1.2
         raw_text = ''
         images = {}
         img = ''
@@ -2590,7 +2589,7 @@ class RawParagraph:
                 img_text = '<>!' \
                     + '[' + img + ']' \
                     + '(' + media_dir + '/' + img + ')'
-                if cm_w >= size_cm * 0.98 and cm_w <= size_cm * 1.02:
+                if cm_w >= m_size_cm * 0.98 and cm_w <= m_size_cm * 1.02:
                     # MEDIUM
                     raw_text += img_text
                 elif cm_w >= s_size_cm * 0.98 and cm_w <= s_size_cm * 1.02:
@@ -3086,7 +3085,7 @@ class Paragraph:
         cls._set_states(xdepth, ydepth, value)
 
     def _get_length_docx(self):
-        size = Form.font_size
+        m_size = Form.font_size
         lnsp = Form.line_spacing
         rxls = self.raw_xml_lines
         length_docx \
@@ -3109,11 +3108,11 @@ class Paragraph:
             li_xml = XML.get_value('w:ind', 'w:left', li_xml, rxl)
             ri_xml = XML.get_value('w:ind', 'w:right', ri_xml, rxl)
             ti_xml = XML.get_value('w:tblInd', 'w:w', ti_xml, rxl)
-        length_docx['space before'] = round(sb_xml / 20 / size / lnsp, 2)
-        length_docx['space after'] = round(sa_xml / 20 / size / lnsp, 2)
+        length_docx['space before'] = round(sb_xml / 20 / m_size / lnsp, 2)
+        length_docx['space after'] = round(sa_xml / 20 / m_size / lnsp, 2)
         ls = 0.0
         if ls_xml > 0.0:
-            ls = (ls_xml / 20 / size / lnsp) - 1
+            ls = (ls_xml / 20 / m_size / lnsp) - 1
         length_docx['line spacing'] = round(ls, 2)
         ls75 = round(ls * .75, 2)
         ls25 = round(ls * .25, 2)
@@ -3135,9 +3134,9 @@ class Paragraph:
                 length_docx['space after'] += ls25
             elif length_docx['space after'] >= 0:
                 length_docx['space after'] *= 2
-        length_docx['first indent'] = round((fi_xml - hi_xml) / 20 / size, 2)
-        length_docx['left indent'] = round((li_xml + ti_xml) / 20 / size, 2)
-        length_docx['right indent'] = round(ri_xml / 20 / size, 2)
+        length_docx['first indent'] = round((fi_xml - hi_xml) / 20 / m_size, 2)
+        length_docx['left indent'] = round((li_xml + ti_xml) / 20 / m_size, 2)
+        length_docx['right indent'] = round(ri_xml / 20 / m_size, 2)
         # self.length_docx = length_docx
         return length_docx
 
@@ -4070,8 +4069,8 @@ class ParagraphTable(Paragraph):
         return False
 
     def _get_md_text(self, raw_text):
-        size = Paragraph.font_size
-        s_size = size * 0.8
+        m_size = Paragraph.font_size
+        s_size = m_size * 0.8
         xml_lines = self.xml_lines
         is_in_row = False
         is_in_cel = False
@@ -4121,7 +4120,7 @@ class ParagraphTable(Paragraph):
             for j, cell in enumerate(row):
                 Paragraph.font_size = s_size
                 raw_text, images = RawParagraph._get_raw_text_and_images(cell)
-                Paragraph.font_size = size
+                Paragraph.font_size = m_size
                 if re.match('^:-+:$', ali[i][j]):
                     raw_text = re.sub('^(\\\\\\s+)', ' \\1', raw_text)
                     raw_text = re.sub('(\\s+\\\\)$', '\\1 ', raw_text)
@@ -4300,7 +4299,7 @@ class ParagraphHorizontalLine(Paragraph):
     def _get_length_docx(self):
         if self.xml_lines[-1] == '<horizontalLine:textbox>':
             return super()._get_length_docx()
-        size = Form.font_size
+        m_size = Form.font_size
         lnsp = Form.line_spacing
         rxls = self.raw_xml_lines
         length_docx \
@@ -4327,10 +4326,10 @@ class ParagraphHorizontalLine(Paragraph):
         tmp_ls = 0.0
         tmp_sb = (sb_xml / 20)
         tmp_sa = (sa_xml / 20)
-        tmp_sb = tmp_sb - ((lnsp - 1) * 0.75 + 0.5) * size
-        tmp_sa = tmp_sa - ((lnsp - 1) * 0.25 + 0.5) * size
-        tmp_sb = tmp_sb / lnsp / size
-        tmp_sa = tmp_sa / lnsp / size
+        tmp_sb = tmp_sb - ((lnsp - 1) * 0.75 + 0.5) * m_size
+        tmp_sa = tmp_sa - ((lnsp - 1) * 0.25 + 0.5) * m_size
+        tmp_sb = tmp_sb / lnsp / m_size
+        tmp_sa = tmp_sa / lnsp / m_size
         tmp_sb = round(tmp_sb, 2)
         tmp_sa = round(tmp_sa, 2)
         if tmp_sb == tmp_sa:
@@ -4341,9 +4340,9 @@ class ParagraphHorizontalLine(Paragraph):
         length_docx['space before'] = tmp_sb
         length_docx['space after'] = tmp_sa
         # HORIZONTAL SPACE
-        length_docx['first indent'] = round((fi_xml - hi_xml) / 20 / size, 2)
-        length_docx['left indent'] = round((li_xml + ti_xml) / 20 / size, 2)
-        length_docx['right indent'] = round(ri_xml / 20 / size, 2)
+        length_docx['first indent'] = round((fi_xml - hi_xml) / 20 / m_size, 2)
+        length_docx['left indent'] = round((li_xml + ti_xml) / 20 / m_size, 2)
+        length_docx['right indent'] = round(ri_xml / 20 / m_size, 2)
         # length_docx = self.length_docx
         return length_docx
 

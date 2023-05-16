@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.17-05:44:15-JST>
+# Time-stamp:   <2023.05.17-07:52:02-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1247,7 +1247,9 @@ class Form:
             Form.auto_space = True
 
     def get_ms_doc(self):
-        size = Form.font_size
+        m_size = Form.font_size
+        s_size = m_size * 0.8
+        l_size = m_size * 1.2
         ms_doc = docx.Document()
         ms_sec = ms_doc.sections[0]
         ms_sec.page_height = Cm(PAPER_HEIGHT[Form.paper_size])
@@ -1259,14 +1261,14 @@ class Form:
         ms_sec.header_distance = Cm(1.0)
         ms_sec.footer_distance = Cm(1.0)
         ms_doc.styles['Footer'].font.name = self.mincho_font  # page number
-        ms_doc.styles['Footer'].font.size = Pt(size)          # page number
-        ms_doc.styles['Normal'].font.size = Pt(size / 2)  # line number
-        ms_doc.styles['List Bullet'].font.size = Pt(size)
-        ms_doc.styles['List Bullet 2'].font.size = Pt(size)
-        ms_doc.styles['List Bullet 3'].font.size = Pt(size)
-        ms_doc.styles['List Number'].font.size = Pt(size)
-        ms_doc.styles['List Number 2'].font.size = Pt(size)
-        ms_doc.styles['List Number 3'].font.size = Pt(size)
+        ms_doc.styles['Footer'].font.size = Pt(m_size)        # page number
+        ms_doc.styles['Normal'].font.size = Pt(m_size / 2)  # line number
+        ms_doc.styles['List Bullet'].font.size = Pt(m_size)
+        ms_doc.styles['List Bullet 2'].font.size = Pt(m_size)
+        ms_doc.styles['List Bullet 3'].font.size = Pt(m_size)
+        ms_doc.styles['List Number'].font.size = Pt(m_size)
+        ms_doc.styles['List Number 2'].font.size = Pt(m_size)
+        ms_doc.styles['List Number 3'].font.size = Pt(m_size)
         # HEADER
         if Form.header_string != '':
             hs = Form.header_string
@@ -1291,11 +1293,11 @@ class Form:
                    re.match(NOT_ESCAPED + '\0$', tex):
                     ms_run = ms_par.add_run()
                     if is_small:
-                        ms_run.font.size = Pt(size * 0.8)
+                        ms_run.font.size = Pt(s_size)
                     elif is_large:
-                        ms_run.font.size = Pt(size * 1.2)
+                        ms_run.font.size = Pt(l_size)
                     else:
-                        ms_run.font.size = Pt(size * 1.0)
+                        ms_run.font.size = Pt(m_size)
                     oe = OxmlElement('w:t')
                     oe.set(ns.qn('xml:space'), 'preserve')
                     if re.match(NOT_ESCAPED + '\\-\\-$', tex):
@@ -1315,7 +1317,7 @@ class Form:
             pn = Form.page_number
             ms_par = ms_doc.sections[0].footer.paragraphs[0]
             # ms_par.style.font.name = self.mincho_font
-            # ms_par.style.font.size = Pt(size)
+            # ms_par.style.font.size = Pt(m_size)
             ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
             if re.match('^: (.*) :$', pn):
                 pn = re.sub('^: (.*) :', '\\1', pn)
@@ -1371,14 +1373,15 @@ class Form:
         return ms_doc
 
     def make_styles(self, ms_doc):
-        size = Form.font_size
+        m_size = Form.font_size
+        l_size = m_size * 1.2
         line_spacing = Form.line_spacing
         # NORMAL
         ms_doc.styles.add_style('makdo', WD_STYLE_TYPE.PARAGRAPH)
         ms_doc.styles['makdo'].font.name = Form.mincho_font
-        ms_doc.styles['makdo'].font.size = Pt(size)
+        ms_doc.styles['makdo'].font.size = Pt(m_size)
         ms_doc.styles['makdo'].paragraph_format.line_spacing \
-            = Pt(line_spacing * size)
+            = Pt(line_spacing * m_size)
         if not Form.auto_space:
             pPr = ms_doc.styles['makdo']._element.get_or_add_pPr()
             # KANJI<->ENGLISH
@@ -1397,7 +1400,7 @@ class Form:
         ms_doc.styles['makdo-i'].font.name = Form.ivs_font
         # TABLE
         ms_doc.styles.add_style('makdo-t', WD_STYLE_TYPE.PARAGRAPH)
-        ms_doc.styles['makdo-t'].paragraph_format.line_spacing = Pt(size * 1.2)
+        ms_doc.styles['makdo-t'].paragraph_format.line_spacing = Pt(l_size)
         # ALIGNMENT
         # ms_doc.styles.add_style('makdo-a', WD_STYLE_TYPE.PARAGRAPH)
         # SECTION
@@ -1408,14 +1411,14 @@ class Form:
             ms_doc.styles.add_style(n, WD_STYLE_TYPE.PARAGRAPH)
             if len(sb) > i and sb[i] != '':
                 ms_doc.styles[n].paragraph_format.space_before \
-                    = Pt(float(sb[i]) * line_spacing * size)
+                    = Pt(float(sb[i]) * line_spacing * m_size)
             if len(sa) > i and sa[i] != '':
                 ms_doc.styles[n].paragraph_format.space_after \
-                    = Pt(float(sa[i]) * line_spacing * size)
+                    = Pt(float(sa[i]) * line_spacing * m_size)
         # HORIZONTAL LINE
         ms_doc.styles.add_style('makdo-h', WD_STYLE_TYPE.PARAGRAPH)
         ms_doc.styles['makdo-h'].paragraph_format.line_spacing = 0
-        ms_doc.styles['makdo-h'].font.size = Pt(size * 0.5)
+        ms_doc.styles['makdo-h'].font.size = Pt(m_size * 0.5)
 
 
 class Document:
@@ -2339,8 +2342,8 @@ class Paragraph:
         alignment = self.alignment
         md_lines = self.md_lines
         text_to_write_with_reviser = self.text_to_write_with_reviser
-        size = Paragraph.font_size
-        xl_size = size * 1.4
+        m_size = Paragraph.font_size
+        xl_size = m_size * 1.4
         if text_to_write_with_reviser == '':
             return
         if paragraph_class == 'alignment':
@@ -2370,13 +2373,13 @@ class Paragraph:
         if paragraph_class == 'section' and tail_section_depth == 1:
             Paragraph.font_size = xl_size
             self._write_text(text_to_write_with_reviser, ms_par)
-            Paragraph.font_size = size
+            Paragraph.font_size = m_size
         else:
             self._write_text(text_to_write_with_reviser, ms_par)
 
     def _get_ms_par(self, ms_doc, par_style='makdo'):
         length_docx = self.length_docx
-        size = Paragraph.font_size
+        m_size = Paragraph.font_size
         ms_par = ms_doc.add_paragraph(style=par_style)
         if not Form.auto_space:
             pPr = ms_par._p.get_or_add_pPr()
@@ -2389,7 +2392,7 @@ class Paragraph:
         ms_fmt = ms_par.paragraph_format
         ms_fmt.widow_control = False
         if length_docx['space before'] >= 0:
-            pt = length_docx['space before'] * Form.line_spacing * size
+            pt = length_docx['space before'] * Form.line_spacing * m_size
             ms_fmt.space_before = Pt(pt)
         else:
             ms_fmt.space_before = Pt(0)
@@ -2399,7 +2402,7 @@ class Paragraph:
             #     + '"space before" is too small'
             self.md_lines[0].append_warning_message(msg)
         if length_docx['space after'] >= 0:
-            pt = length_docx['space after'] * Form.line_spacing * size
+            pt = length_docx['space after'] * Form.line_spacing * m_size
             ms_fmt.space_after = Pt(pt)
         else:
             ms_fmt.space_after = Pt(0)
@@ -2408,21 +2411,21 @@ class Paragraph:
             # msg = 'warning: ' \
             #     + '"space after" is too small'
             self.md_lines[0].append_warning_message(msg)
-        ms_fmt.first_line_indent = Pt(length_docx['first indent'] * size)
-        ms_fmt.left_indent = Pt(length_docx['left indent'] * size)
-        ms_fmt.right_indent = Pt(length_docx['right indent'] * size)
+        ms_fmt.first_line_indent = Pt(length_docx['first indent'] * m_size)
+        ms_fmt.left_indent = Pt(length_docx['left indent'] * m_size)
+        ms_fmt.right_indent = Pt(length_docx['right indent'] * m_size)
         # ms_fmt.line_spacing_rule = WD_LINE_SPACING.ONE_POINT_FIVE
         ls = Form.line_spacing * (1 + length_docx['line spacing'])
         if ls >= 1.0:
-            ms_fmt.line_spacing = Pt(ls * size)
+            ms_fmt.line_spacing = Pt(ls * m_size)
         else:
-            ms_fmt.line_spacing = Pt(1.0 * size)
+            ms_fmt.line_spacing = Pt(1.0 * m_size)
             msg = '警告: ' \
                 + '段落後の余白「X」の値が少な過ぎます'
             # msg = 'warning: ' \
             #     + 'too small line spacing'
             self.md_lines[0].append_warning_message(msg)
-        ms_fmt.line_spacing = Pt(ls * size)
+        ms_fmt.line_spacing = Pt(ls * m_size)
         return ms_par
 
     def _write_text(self, text, ms_par):
@@ -2571,16 +2574,16 @@ class Paragraph:
         string = re.sub('\\\\', '-\\\\', string)
         string = re.sub('-\\\\-\\\\', '-\\\\\\\\', string)
         string = re.sub('-\\\\', '', string)
-        size = Paragraph.font_size
-        l_size = 1.2 * size
-        s_size = 0.8 * size
+        m_size = Paragraph.font_size
+        s_size = m_size * 0.8
+        l_size = m_size * 1.2
         ms_run = ms_par.add_run(string)
-        if cls.is_large and not cls.is_small:
-            ms_run.font.size = Pt(l_size)
-        elif not cls.is_large and cls.is_small:
+        if cls.is_small and not cls.is_large:
             ms_run.font.size = Pt(s_size)
+        elif not cls.is_small and cls.is_large:
+            ms_run.font.size = Pt(l_size)
         else:
-            ms_run.font.size = Pt(size)
+            ms_run.font.size = Pt(m_size)
         if cls.is_bold:
             ms_run.bold = True
         # else:
@@ -2612,9 +2615,9 @@ class Paragraph:
         return ''
 
     def _write_image(self, alte, path, ms_par):
-        size = Paragraph.font_size
-        l_size = 1.2 * size
-        s_size = 0.8 * size
+        m_size = Paragraph.font_size
+        s_size = m_size * 0.8
+        l_size = m_size * 1.2
         indent \
             = self.length_docx['first indent'] \
             + self.length_docx['left indent'] \
@@ -2647,12 +2650,12 @@ class Paragraph:
                 ms_run.add_picture(path, width=Cm(cm_w))
             elif cm_h > 0:
                 ms_run.add_picture(path, height=Cm(cm_h))
-            elif self.is_large and not self.is_small:
-                ms_run.add_picture(path, height=Pt(l_size))
-            elif not self.is_large and self.is_small:
+            elif self.is_small and not self.is_large:
                 ms_run.add_picture(path, height=Pt(s_size))
+            elif not self.is_small and self.is_large:
+                ms_run.add_picture(path, height=Pt(l_size))
             else:
-                ms_run.add_picture(path, height=Pt(size))
+                ms_run.add_picture(path, height=Pt(m_size))
         except BaseException:
             ms_run.text = '![' + alte + '](' + path + ')'
             msg = '警告: ' \
@@ -2948,8 +2951,8 @@ class ParagraphTable(Paragraph):
     res_feature = '^\\|.*\\|$'
 
     def write_paragraph(self, ms_doc):
-        size = Paragraph.font_size
-        s_size = 0.8 * size
+        m_size = Paragraph.font_size
+        s_size = m_size * 0.8
         tab = self._get_table_data(self.md_lines)
         conf_row, ali_list, wid_list = self._get_table_alignment_and_width(tab)
         if conf_row >= 0:
@@ -2964,7 +2967,7 @@ class ParagraphTable(Paragraph):
             ms_tab.columns[j].width = Pt((wid_list[j] + 2) * s_size)
         ms_tab.alignment = WD_TABLE_ALIGNMENT.CENTER
         for i in range(len(tab)):
-            # ms_tab.rows[i].height = Pt(1.5 * size)
+            # ms_tab.rows[i].height = Pt(1.5 * m_size)
             for j in range(len(tab[i])):
                 cell = tab[i][j]
                 if ali_list[j] == WD_TABLE_ALIGNMENT.LEFT:
@@ -2986,7 +2989,7 @@ class ParagraphTable(Paragraph):
                 pPr.append(oe)
                 Paragraph.font_size = s_size
                 self._write_text(cell, ms_par)
-                Paragraph.font_size = size
+                Paragraph.font_size = m_size
                 ms_fmt = ms_par.paragraph_format
                 if i < conf_row:
                     ms_fmt.alignment = WD_TABLE_ALIGNMENT.CENTER
@@ -3294,7 +3297,7 @@ class ParagraphHorizontalLine(Paragraph):
         length_clas = self.length_clas
         line_spacing = Form.line_spacing
         length_docx = self.length_docx
-        size = self.font_size
+        m_size = self.font_size
         ms_par = ms_doc.add_paragraph(style='makdo-h')
         length_docx \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
@@ -3304,15 +3307,15 @@ class ParagraphHorizontalLine(Paragraph):
                 = length_revi[ln] + length_conf[ln] + length_clas[ln]
         ms_fmt = ms_par.paragraph_format
         ms_fmt.line_spacing = 0
-        ms_fmt.first_line_indent = Pt(length_docx['first indent'] * size)
-        ms_fmt.left_indent = Pt(length_docx['left indent'] * size)
-        ms_fmt.right_indent = Pt(length_docx['right indent'] * size)
-        sb = (((line_spacing - 1) * 0.75 + 0.5) * size) \
-            + (0.5 * length_docx['line spacing'] * line_spacing * size) \
-            + length_docx['space before'] * line_spacing * size
-        sa = (((line_spacing - 1) * 0.25 + 0.5) * size) \
-            + (0.5 * length_docx['line spacing'] * line_spacing * size) \
-            + length_docx['space after'] * line_spacing * size
+        ms_fmt.first_line_indent = Pt(length_docx['first indent'] * m_size)
+        ms_fmt.left_indent = Pt(length_docx['left indent'] * m_size)
+        ms_fmt.right_indent = Pt(length_docx['right indent'] * m_size)
+        sb = (((line_spacing - 1) * 0.75 + 0.5) * m_size) \
+            + (0.5 * length_docx['line spacing'] * line_spacing * m_size) \
+            + length_docx['space before'] * line_spacing * m_size
+        sa = (((line_spacing - 1) * 0.25 + 0.5) * m_size) \
+            + (0.5 * length_docx['line spacing'] * line_spacing * m_size) \
+            + length_docx['space after'] * line_spacing * m_size
         ms_fmt.space_before = Pt(sb)
         ms_fmt.space_after = Pt(sa)
         pPr = ms_par._p.get_or_add_pPr()
