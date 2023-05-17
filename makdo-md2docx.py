@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.17-07:52:02-JST>
+# Time-stamp:   <2023.05.18-08:02:28-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1915,8 +1915,10 @@ class Paragraph:
     previous_head_section_depth = 0
     previous_tail_section_depth = 0
     is_preformatted = False
-    is_large = False
+    is_xsmall = False
     is_small = False
+    is_large = False
+    is_xlarge = False
     is_italic = False
     is_bold = False
     has_strike = False
@@ -2485,17 +2487,39 @@ class Paragraph:
                     tex = self._write_string(tex, ms_par)
                     Paragraph.is_italic = not Paragraph.is_italic
                     continue
-            elif re.match(NOT_ESCAPED + '\\-\\-$', tex + c):
-                # -- (SMALL)
-                tex = re.sub('\\-\\-$', '', tex + c)
+            elif re.match(NOT_ESCAPED + '\\-\\-$', tex):
+                tex = re.sub('\\-\\-$', '', tex)
                 tex = self._write_string(tex, ms_par)
-                Paragraph.is_small = not Paragraph.is_small
+                if c == '-' and not Paragraph.is_small:
+                    # --- (XSMALL)
+                    Paragraph.is_xsmall = not Paragraph.is_xsmall
+                    Paragraph.is_small = False
+                    Paragraph.is_large = False
+                    Paragraph.is_xlarge = False
+                else:
+                    # -- (SMALL)
+                    tex += c
+                    Paragraph.is_xsmall = False
+                    Paragraph.is_small = not Paragraph.is_small
+                    Paragraph.is_large = False
+                    Paragraph.is_xlarge = False
                 continue
-            elif re.match(NOT_ESCAPED + '\\+\\+$', tex + c):
-                # ++ (LARGE)
-                tex = re.sub('\\+\\+$', '', tex + c)
+            elif re.match(NOT_ESCAPED + '\\+\\+$', tex):
+                tex = re.sub('\\+\\+$', '', tex)
                 tex = self._write_string(tex, ms_par)
-                Paragraph.is_large = not Paragraph.is_large
+                if c == '+' and not Paragraph.is_large:
+                    # +++ (XLARGE)
+                    Paragraph.is_xsmall = False
+                    Paragraph.is_small = False
+                    Paragraph.is_large = False
+                    Paragraph.is_xlarge = not Paragraph.is_xlarge
+                else:
+                    # ++ (LARGE)
+                    tex += c
+                    Paragraph.is_xsmall = False
+                    Paragraph.is_small = False
+                    Paragraph.is_large = not Paragraph.is_large
+                    Paragraph.is_xlarge = False
                 continue
             elif re.match(NOT_ESCAPED + '\\^([0-9A-Za-z]*)\\^$', tex + c):
                 # ^...^ (FONT COLOR)
@@ -2575,13 +2599,19 @@ class Paragraph:
         string = re.sub('-\\\\-\\\\', '-\\\\\\\\', string)
         string = re.sub('-\\\\', '', string)
         m_size = Paragraph.font_size
+        xs_size = m_size * 0.6
         s_size = m_size * 0.8
         l_size = m_size * 1.2
+        xl_size = m_size * 1.4
         ms_run = ms_par.add_run(string)
-        if cls.is_small and not cls.is_large:
+        if cls.is_xsmall:
+            ms_run.font.size = Pt(xs_size)
+        elif cls.is_small:
             ms_run.font.size = Pt(s_size)
-        elif not cls.is_small and cls.is_large:
+        elif cls.is_large:
             ms_run.font.size = Pt(l_size)
+        elif cls.is_xlarge:
+            ms_run.font.size = Pt(xl_size)
         else:
             ms_run.font.size = Pt(m_size)
         if cls.is_bold:

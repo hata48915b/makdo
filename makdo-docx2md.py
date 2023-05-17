@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.17-09:32:18-JST>
+# Time-stamp:   <2023.05.18-08:49:58-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -238,7 +238,9 @@ FONT_DECORATORS = [
     '`',                   # preformatted
     '//',                  # italic
     '__',                  # underline
+    '\\-\\-\\-',           # xsmall
     '\\-\\-',              # small
+    '\\+\\+\\+',           # xlarge
     '\\+\\+',              # large
     '\\^[0-9A-Za-z]*\\^',  # font color
     '_[0-9A-Za-z]+_',      # higilight color
@@ -2312,8 +2314,10 @@ class RawParagraph:
         m_size = Paragraph.font_size
         s_size = m_size * 0.8
         xml_lines = []
-        is_large = False
+        is_xsmall = False
         is_small = False
+        is_large = False
+        is_xlarge = False
         is_italic = False
         is_bold = False
         is_gothic = False
@@ -2386,6 +2390,10 @@ class RawParagraph:
                 if is_gothic:
                     text = '`' + text + '`'
                     is_gothic = False
+                # XSMALL
+                if is_xsmall:
+                    text = '---' + text + '---'
+                    is_xsmall = False
                 # SMALL
                 if is_small:
                     text = '--' + text + '--'
@@ -2394,6 +2402,10 @@ class RawParagraph:
                 if is_large:
                     text = '++' + text + '++'
                     is_large = False
+                # XLARGE
+                if is_xlarge:
+                    text = '+++' + text + '+++'
+                    is_xlarge = False
                 # FONT COLOR
                 if font_color != '':
                     if font_color == 'FFFFFF':
@@ -2436,20 +2448,32 @@ class RawParagraph:
             w = XML.get_value('w:w', 'w:val', -1.0, rxl)
             if s > 0:
                 if not RawParagraph._is_table(raw_class, raw_xml_lines):
-                    if s < m_size * 0.9:
+                    if s < m_size * 0.7:
+                        is_xsmall = True
+                    elif s < m_size * 0.9:
                         is_small = True
+                    elif s > m_size * 1.3:
+                        is_xlarge = True
                     elif s > m_size * 1.1:
                         is_large = True
                 else:
-                    if s < s_size * 0.9:
+                    if s < s_size * 0.7:
+                        is_xsmall = True
+                    elif s < s_size * 0.9:
                         is_small = True
+                    elif s > s_size * 1.3:
+                        is_xlarge = True
                     elif s > s_size * 1.1:
                         is_large = True
             elif w > 0:
-                if w > 100:
-                    is_large = True
-                if w < 100:
+                if w < 80:
+                    is_xsmall = True
+                elif w < 90:
                     is_small = True
+                elif w > 130:
+                    is_xlarge = True
+                elif w > 110:
+                    is_large = True
             elif re.match('^<w:i/?>$', rxl):
                 is_italic = True
             elif re.match('^<w:b/?>$', rxl):
@@ -2481,8 +2505,10 @@ class RawParagraph:
                 rxl = rxl.replace('//', '\\/\\/')
                 # http https ftp ...
                 rxl = re.sub('([a-z]+:)\\\\/\\\\/', '\\1//', rxl)
-                rxl = rxl.replace('++', '\\+\\+')
+                rxl = rxl.replace('---', '\\-\\-\\-')
                 rxl = rxl.replace('--', '\\-\\-')
+                rxl = rxl.replace('+++', '\\+\\+\\+')
+                rxl = rxl.replace('++', '\\+\\+')
                 rxl = rxl.replace('%%', '\\%\\%')
                 rxl = rxl.replace('&lt;', '\\&lt;')
                 rxl = rxl.replace('&gt;', '\\&gt;')
@@ -2516,8 +2542,10 @@ class RawParagraph:
         media_dir = IO.media_dir
         img_rels = Form.rels
         m_size_cm = Paragraph.font_size * 2.54 / 72
+        xs_size_cm = m_size_cm * 0.6
         s_size_cm = m_size_cm * 0.8
         l_size_cm = m_size_cm * 1.2
+        xl_size_cm = m_size_cm * 1.4
         raw_text = ''
         images = {}
         img = ''
@@ -2594,6 +2622,13 @@ class RawParagraph:
                 if cm_w >= m_size_cm * 0.98 and cm_w <= m_size_cm * 1.02:
                     # MEDIUM
                     raw_text += img_text
+                elif cm_w >= xs_size_cm * 0.98 and cm_w <= xs_size_cm * 1.02:
+                    # XSMALL
+                    if re.match('^.*(\n.*)*\\-\\-\\-$', raw_text):
+                        raw_text = re.sub('\\-\\-\\-$', '', raw_text)
+                        raw_text += img_text + '---'
+                    else:
+                        raw_text += '---' + img_text + '---'
                 elif cm_w >= s_size_cm * 0.98 and cm_w <= s_size_cm * 1.02:
                     # SMALL
                     if re.match('^.*(\n.*)*\\-\\-$', raw_text):
@@ -2608,6 +2643,13 @@ class RawParagraph:
                         raw_text += img_text + '++'
                     else:
                         raw_text += '++' + img_text + '++'
+                elif cm_w >= xl_size_cm * 0.98 and cm_w <= xl_size_cm * 1.02:
+                    # XLARGE
+                    if re.match('^.*(\n.*)*\\+\\+\\+$', raw_text):
+                        raw_text = re.sub('\\+\\+\\+$', '', raw_text)
+                        raw_text += img_text + '+++'
+                    else:
+                        raw_text += '+++' + img_text + '+++'
                 else:
                     # FREE SIZE
                     raw_text += '<>!' \
@@ -2619,51 +2661,79 @@ class RawParagraph:
                 continue
             while True:
                 # ITALIC AND BOLD
-                if re.match('^.*(\n.*)*[^\\*]\\*\\*\\*$', raw_text) and \
+                if re.match('^(.|\n)*[^\\*]\\*\\*\\*$', raw_text) and \
                    re.match('^\\*\\*\\*[^\\*].*$', xl):
                     raw_text = re.sub('\\*\\*\\*$', '', raw_text)
                     xl = re.sub('^\\*\\*\\*', '', xl)
                     continue
                 # ITALIC
-                if re.match('^.*(\n.*)*[^\\*]\\*\\*$', raw_text) and \
+                if re.match('^(.|\n)*[^\\*]\\*\\*$', raw_text) and \
                    re.match('^\\*\\*[^\\*].*$', xl):
                     raw_text = re.sub('\\*\\*$', '', raw_text)
                     xl = re.sub('^\\*\\*', '', xl)
                     continue
                 # BOLD
-                if re.match('^.*(\n.*)*[^\\*]\\*$', raw_text) and \
+                if re.match('^(.|\n)*[^\\*]\\*$', raw_text) and \
                    re.match('^\\*[^\\*].*$', xl):
                     raw_text = re.sub('\\*$', '', raw_text)
                     xl = re.sub('^\\*', '', xl)
                     continue
                 # STRIKETHROUGH
-                if re.match('^.*(\n.*)*~~$', raw_text) and \
+                if re.match('^(.|\n)*~~$', raw_text) and \
                    re.match('^~~.*$', xl):
                     raw_text = re.sub('~~$', '', raw_text)
                     xl = re.sub('^~~', '', xl)
                     continue
                 # PREFORMATTED
-                if re.match('^.*(\n.*)*`$', raw_text) and \
+                if re.match('^(.|\n)*`$', raw_text) and \
                    re.match('^`.*$', xl):
                     raw_text = re.sub('`$', '', raw_text)
                     xl = re.sub('^`', '', xl)
                     continue
-                # SMALL
-                if re.match('^.*(\n.*)*\\-\\-$', raw_text) and \
+                # XSMALL x XSMALL
+                if re.match('^(.|\n)*\\-\\-\\-$', raw_text) and \
+                   re.match('^\\-\\-\\-.*$', xl):
+                    raw_text = re.sub('\\-\\-\\-$', '', raw_text)
+                    xl = re.sub('^\\-\\-\\-', '', xl)
+                    continue
+                # XSMALL x SMALL
+                if re.match('^(.|\n)*\\-\\-\\-$', raw_text) and \
+                   re.match('^\\-\\-.*$', xl):
+                    break
+                # SMALL x XSMALL
+                if re.match('^(.|\n)*\\-\\-$', raw_text) and \
+                   re.match('^\\-\\-\\-.*$', xl):
+                    break
+                # SMALL x SMALL
+                if re.match('^(.|\n)*\\-\\-$', raw_text) and \
                    re.match('^\\-\\-.*$', xl):
                     raw_text = re.sub('\\-\\-$', '', raw_text)
                     xl = re.sub('^\\-\\-', '', xl)
                     continue
-                # LARGE
-                if re.match('^.*(\n.*)*\\+\\+$', raw_text) and \
+                # XLARGE x XLARGE
+                if re.match('^(.|\n)*\\+\\+\\+$', raw_text) and \
+                   re.match('^\\+\\+\\+.*$', xl):
+                    raw_text = re.sub('\\+\\+\\+$', '', raw_text)
+                    xl = re.sub('^\\+\\+\\+', '', xl)
+                    continue
+                # XLARGE x LARGE
+                if re.match('^(.|\n)*\\+\\+\\+$', raw_text) and \
+                   re.match('^\\+\\+.*$', xl):
+                    break
+                # LARGE x XLARGE
+                if re.match('^(.|\n)*\\+\\+$', raw_text) and \
+                   re.match('^\\+\\+\\+.*$', xl):
+                    break
+                # LARGE x LARGE
+                if re.match('^(.|\n)*\\+\\+$', raw_text) and \
                    re.match('^\\+\\+.*$', xl):
                     raw_text = re.sub('\\+\\+$', '', raw_text)
                     xl = re.sub('^\\+\\+', '', xl)
                     continue
                 # FOND COLOR
-                if re.match('^.*(\n.*)*\\^[0-9A-Za-z]*\\^$', raw_text) and \
+                if re.match('^(?:.|\n)*\\^[0-9A-Za-z]*\\^$', raw_text) and \
                    re.match('^\\^[0-9A-Za-z]*\\^.*$', xl):
-                    ce = re.sub('^.*(?:\n.*)*(\\^[0-9A-Za-z]*\\^)$', '\\1',
+                    ce = re.sub('^(?:.|\n)*(\\^[0-9A-Za-z]*\\^)$', '\\1',
                                 raw_text)
                     cb = re.sub('^(\\^[0-9A-Za-z]*\\^).*$', '\\1', xl)
                     if ce == cb:
@@ -2671,15 +2741,15 @@ class RawParagraph:
                         xl = re.sub('^\\^[0-9A-Za-z]*\\^', '', xl)
                         continue
                 # UNDERLINE
-                if re.match('^.*(\n.*)*__$', raw_text) and \
+                if re.match('^(.|\n)*__$', raw_text) and \
                    re.match('^__.*$', xl):
                     raw_text = re.sub('__$', '', raw_text)
                     xl = re.sub('^__', '', xl)
                     continue
                 # HIGILIGHT COLOR
-                if re.match('^.*(\n.*)*_[0-9A-Za-z]*_$', raw_text) and \
+                if re.match('^(?:.|\n)*_[0-9A-Za-z]*_$', raw_text) and \
                    re.match('^_[0-9A-Za-z]*_.*$', xl):
-                    ce = re.sub('^.*(?:\n.*)*(_[0-9A-Za-z]*_)$', '\\1',
+                    ce = re.sub('^(?:.|\n)*(_[0-9A-Za-z]*_)$', '\\1',
                                 raw_text)
                     cb = re.sub('^(_[0-9A-Za-z]*_).*$', '\\1', xl)
                     if ce == cb:
@@ -2687,13 +2757,13 @@ class RawParagraph:
                         xl = re.sub('^_[0-9A-Za-z]*_', '', xl)
                         continue
                 # TRACK CHANGES (DELETED)
-                if re.match('^.*(\n.*)*\\-\\-&gt;$', raw_text) and \
+                if re.match('^(.|\n)*\\-\\-&gt;$', raw_text) and \
                    re.match('^&lt;!\\-\\-.*$', xl):
                     raw_text = re.sub('\\-\\-&gt;$', '', raw_text)
                     xl = re.sub('^&lt;!\\-\\-', '', xl)
                     continue
                 # TRACK CHANGES (INSERTED)
-                if re.match('^.*(\n.*)*&lt;\\+&gt;$', raw_text) and \
+                if re.match('^(.|\n)*&lt;\\+&gt;$', raw_text) and \
                    re.match('^&lt;!\\+&gt;.*$', xl):
                     raw_text = re.sub('&lt;\\+&gt;$', '', raw_text)
                     xl = re.sub('^&lt;!\\+&gt;', '', xl)
@@ -2763,10 +2833,13 @@ class RawParagraph:
             tmp_text = raw_text
             for fd in FONT_DECORATORS:
                 if fd == '~~' or fd == '__' or \
-                   fd == '\\-\\-' or fd == '\\+\\+' or \
+                   fd == '\\-\\-\\-' or fd == '\\-\\-' or \
+                   fd == '\\+\\+\\+' or fd == '\\+\\+' or \
                    fd == '_[0-9A-Za-z]+_':
                     continue
-                res = fd + '((?:\\s|~~|__|\\-\\-|\\+\\+|_[0-9A-Za-z]+_)+)' + fd
+                res = fd \
+                    + '((?:\\s|~~|__|\\-\\-\\-?|\\+\\+\\+?|_[0-9A-Za-z]+_)+)' \
+                    + fd
                 raw_text = re.sub(res, '\\1', raw_text)
             if tmp_text == raw_text:
                 break
@@ -3698,7 +3771,7 @@ class ParagraphSection(Paragraph):
     paragraph_class_ja = 'セクション'
 
     # r0 = '((?:' + '|'.join(FONT_DECORATORS) + ')*)'
-    r1 = '\\+\\+(.*)\\+\\+'
+    r1 = '\\+\\+\\+(.*)\\+\\+\\+'
     r2 = '(?:(第([0-9０-９]+)条?)((?:の[0-9０-９]+)*))'
     r3 = '(?:(([0-9０-９]+))((?:の[0-9０-９]+)*))'
     r4 = '(?:([⑴-⒇]|[\\(（]([0-9０-９]+)[\\)）])((?:の[0-9０-９]+)*))'
@@ -3791,8 +3864,10 @@ class ParagraphSection(Paragraph):
         raw_text = re.sub('^\u3000', '', raw_text)
         if head_symbol == '':
             self._step_states(0, 0)
-            head_font_revisers.remove('++')
-            tail_font_revisers.remove('++')
+            if '+++' in head_font_revisers:
+                head_font_revisers.remove('+++')
+            if '+++' in tail_font_revisers:
+                tail_font_revisers.remove('+++')
             head_symbol = '# '
         return numbering_revisers, head_font_revisers, tail_font_revisers, \
             head_symbol + raw_text
@@ -4154,6 +4229,7 @@ class ParagraphTable(Paragraph):
         text_to_write_with_reviser = super().get_text_to_write_with_reviser()
         # self.text_to_write_with_reviser = text_to_write_with_reviser
         return text_to_write_with_reviser
+
 
 class ParagraphImage(Paragraph):
 
