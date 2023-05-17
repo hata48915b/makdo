@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.17-08:07:04-JST>
+# Time-stamp:   <2023.05.17-09:32:18-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2310,7 +2310,7 @@ class RawParagraph:
     @staticmethod
     def _get_xml_lines(raw_class, raw_xml_lines):
         m_size = Paragraph.font_size
-        s_size = m_size * 0.9  # not 0.8
+        s_size = m_size * 0.8
         xml_lines = []
         is_large = False
         is_small = False
@@ -2436,12 +2436,14 @@ class RawParagraph:
             w = XML.get_value('w:w', 'w:val', -1.0, rxl)
             if s > 0:
                 if not RawParagraph._is_table(raw_class, raw_xml_lines):
-                    if s > m_size:
-                        is_large = True
-                    if s < m_size:
+                    if s < m_size * 0.9:
                         is_small = True
+                    elif s > m_size * 1.1:
+                        is_large = True
                 else:
-                    if s > s_size:
+                    if s < s_size * 0.9:
+                        is_small = True
+                    elif s > s_size * 1.1:
                         is_large = True
             elif w > 0:
                 if w > 100:
@@ -4146,6 +4148,12 @@ class ParagraphTable(Paragraph):
                 break
         return md_text
 
+    def get_text_to_write_with_reviser(self):
+        self.head_font_revisers = []
+        self.tail_font_revisers = []
+        text_to_write_with_reviser = super().get_text_to_write_with_reviser()
+        # self.text_to_write_with_reviser = text_to_write_with_reviser
+        return text_to_write_with_reviser
 
 class ParagraphImage(Paragraph):
 
