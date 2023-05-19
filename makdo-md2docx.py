@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.20-08:08:11-JST>
+# Time-stamp:   <2023.05.20-08:28:40-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2732,9 +2732,9 @@ class ParagraphChapter(Paragraph):
     paragraph_class = 'chapter'
     paragraph_class_ja = 'チャプター'
     res_symbol = '(\\$+)((?:\\-\\$+)*)'
-    res_feature = '^' + res_symbol + '(?:\\s(.*(?:.*\n*)*))?$'
+    res_feature = '^' + res_symbol + '(?:\\s((?:.|\n)*))?$'
     # SPACE POLICY
-    # res_feature = '^' + res_symbol + '(?:\\s+(.*(?:.*\n*)*))?$'
+    # res_feature = '^' + res_symbol + '(?:\\s+((?:.|\n)*))?$'
     res_reviser = res_symbol + '=([0-9]+)'
     states = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # 第１編
               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # 第１章
@@ -2787,9 +2787,9 @@ class ParagraphSection(Paragraph):
     paragraph_class = 'section'
     paragraph_class_ja = 'セクション'
     res_symbol = '(#+)((?:\\-#+)*)'
-    res_feature = '^' + res_symbol + '(?:\\s(.*(?:.*\n*)*))?$'
+    res_feature = '^' + res_symbol + '(?:\\s((?:.|\n)*))?$'
     # SPACE POLICY
-    # res_feature = '^' + res_symbol + '(?:\\s+(.*(?:.*\n*)*))?$'
+    # res_feature = '^' + res_symbol + '(?:\\s+((?:.|\n)*))?$'
     res_reviser = res_symbol + '=([0-9]+)'
     states = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # -
               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # 第１

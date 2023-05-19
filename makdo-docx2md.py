@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.20-07:58:47-JST>
+# Time-stamp:   <2023.05.20-08:25:53-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -3082,7 +3082,7 @@ class Paragraph:
         tail_font_revisers = []
         while True:
             for fd in FONT_DECORATORS:
-                res = '^(' + fd + ')(.*(?:.*\n)*)$'
+                res = '^(' + fd + ')((?:.|\n)*)$'
                 if re.match(res, raw_text):
                     t1 = re.sub(res, '\\1', raw_text)
                     t2 = re.sub(res, '\\2', raw_text)
@@ -3093,7 +3093,7 @@ class Paragraph:
                 break
         while True:
             for fd in FONT_DECORATORS:
-                res = '^(.*(?:.*\n)*)(' + fd + ')$'
+                res = '^((?:.|\n)*)(' + fd + ')$'
                 if re.match(res, raw_text):
                     t1 = re.sub(res, '\\1', raw_text)
                     t2 = re.sub(res, '\\2', raw_text)
@@ -3365,7 +3365,7 @@ class Paragraph:
             - (indent * unit)
         height_cm = PAPER_HEIGHT[paper_size] - top_margin - bottom_margin
         region_cm = (width_cm, height_cm)
-        res = '^((?:.*\n)*.*)(' + RES_IMAGE_WITH_SIZE + ')((?:.*\n)*.*)$'
+        res = '^((?:.|\n)*)(' + RES_IMAGE_WITH_SIZE + ')((?:.|\n)*)$'
         text_to_write = ''
         while re.match(res, md_lines_text):
             text_to_write += re.sub(res, '\\1', md_lines_text)
@@ -3712,7 +3712,7 @@ class ParagraphChapter(Paragraph):
                    + res_branch + res_separator,
                    '(第([0-9０-９]+)' + unit_chars[4] + ')'
                    + res_branch + res_separator]
-    res_rest = '(.*\\S(?:.*\n*)*)'
+    res_rest = '(.*\\S(?:.|\n)*)'
     states = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # 第１編
               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # 第１章
               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # 第１節
@@ -3809,7 +3809,7 @@ class ParagraphSection(Paragraph):
         r3 + '?' + r4 + '?' + r5 + '?' + r6 + '?' + r7 + '(' + r8 + '?)' + r9,
         r3 + '?' + r4 + '?' + r5 + '?' + r6 + '?' + r7 + '?' + r8 + '()' + r9]
     res_number = '^[0-9０-９]+(?:, ?|\\. ?|，|．)[0-9０-９]+'
-    res_rest = '(.*\\S(?:.*\n*)*)'
+    res_rest = '(.*\\S(?:.|\n)*)'
     states = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # -
               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # 第１
               [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],  # １
@@ -4090,7 +4090,7 @@ class ParagraphList(Paragraph):
                       + '()' + res_separator),
                      ('(([' + chr(12927 + 1) + '-' + chr(12927 + 10) + ']))'
                       + '()' + res_separator)]
-    res_rest = '(.*\\S(?:.*\n*)*)'
+    res_rest = '(.*\\S(?:.|\n)*)'
     states = [[0],  # ①
               [0],  # ㋐
               [0],  # ⓐ
