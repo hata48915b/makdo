@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.18-08:49:58-JST>
+# Time-stamp:   <2023.05.20-07:58:47-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -202,7 +202,7 @@ TABLE_SPACE_AFTER = 0.2
 
 DEFAULT_AUTO_SPACE = False
 
-NOT_ESCAPED = '^((?:(?:.*\n)*.*[^\\\\])?(?:\\\\\\\\)*)?'
+NOT_ESCAPED = '^((?:(?:.|\n)*[^\\\\])?(?:\\\\\\\\)*)?'
 
 RES_NUMBER = '(?:[-\\+]?(?:(?:[0-9]+(?:\\.[0-9]+)?)|(?:\\.[0-9]+)))'
 RES_NUMBER6 = '(?:' + RES_NUMBER + '?,){,5}' + RES_NUMBER + '?,?'
@@ -1555,8 +1555,6 @@ class Form:
             Form.page_number = pn
 
     def _configure_by_styles_xml(self, xml_lines):
-        font_size = self.font_size
-        line_spacing = self.line_spacing
         xml_body = XML.get_body('w:styles', xml_lines)
         xml_blocks = XML.get_blocks(xml_body)
         sb = ['0.0', '0.0', '0.0', '0.0', '0.0', '0.0']
@@ -1583,7 +1581,7 @@ class Form:
                     Form.font_size = round(sz_x / 2, 1)
                 # LINE SPACING
                 if ls_x > 0:
-                    Form.line_spacing = round(ls_x / 20 / font_size, 2)
+                    Form.line_spacing = round(ls_x / 20 / Form.font_size, 2)
                 # AUTO SPACE
                 if ase == 0 and asn == 0:
                     Form.auto_space = False
@@ -1605,10 +1603,12 @@ class Form:
                         sa[i] \
                             = XML.get_value('w:spacing', 'w:after', sa[i], xl)
                     if sb[i] != '':
-                        f = float(sb[i]) / 20 / font_size / line_spacing
+                        f = float(sb[i]) / 20 \
+                            / Form.font_size / Form.line_spacing
                         sb[i] = str(round(f, 2))
                     if sa[i] != '':
-                        f = float(sa[i]) / 20 / font_size / line_spacing
+                        f = float(sa[i]) / 20 \
+                            / Form.font_size / Form.line_spacing
                         sa[i] = str(round(f, 2))
         # SPACE BEFORE, SPACE AFTER
         csb = ',' + ', '.join(sb) + ','
@@ -2024,13 +2024,13 @@ class Document:
                         p_next.length_docx['space before'] *= 2
             # TABLE
             elif p.paragraph_class == 'table':
-                if i == 0:
+                if i == 0 or p_prev.paragraph_class == 'pagebreak':
                     p.length_supp['space before'] += TABLE_SPACE_BEFORE
                 else:
                     p.length_docx['space before'] \
                         = p_prev.length_docx['space after']
                     p_prev.length_docx['space after'] = 0.0
-                if i == m:
+                if i == m or p_next.paragraph_class == 'pagebreak':
                     p.length_supp['space after'] += TABLE_SPACE_AFTER
                 else:
                     p.length_docx['space after'] \
@@ -2101,21 +2101,26 @@ class Document:
             p_prev = self.paragraphs[i - 1]
             if p.paragraph_class != 'sentence':
                 continue
-            if p.length_revi['first indent'] != 0.0:
-                continue
-            if p.length_revi['right indent'] != 0.0:
-                continue
-            if p.length_revi['left indent'] >= 0.0:
-                continue
-            if not p.length_revi['left indent'].is_integer():
+            if p.length_revi['space before'] != 0.0 or \
+               p.length_revi['space after'] != 0.0 or \
+               p.length_revi['line spacing'] != 0.0 or \
+               p.length_revi['first indent'] != 0.0 or \
+               p.length_revi['right indent'] != 0.0 or \
+               p.length_revi['left indent'] >= 0.0 or \
+               not p.length_revi['left indent'].is_integer():
                 continue
             left_indent = int(p.length_revi['left indent'])
             if p.head_section_depth + left_indent < 1:
                 continue
             p.head_section_depth += left_indent
             p.tail_section_depth += left_indent
-            if p_prev.tail_section_depth != p.tail_section_depth:
-                p.pre_text_to_write = '#' * p.head_section_depth + ' \n'
+            if p.section_states[1][0] == 0 and \
+               p.section_states[2][0] > 0 and \
+               p.head_section_depth + left_indent == 2:
+                p.head_section_depth -= 1
+                p.tail_section_depth -= 1
+            p.length_clas['left indent'] = p.head_section_depth
+            p.pre_text_to_write = '#' * p.head_section_depth + ' \n'
             # RENEW
             p.length_clas = p._get_length_clas()
             # p.length_conf = p._get_length_conf()
@@ -2466,7 +2471,7 @@ class RawParagraph:
                     elif s > s_size * 1.1:
                         is_large = True
             elif w > 0:
-                if w < 80:
+                if w < 70:
                     is_xsmall = True
                 elif w < 90:
                     is_small = True
@@ -3007,6 +3012,7 @@ class Paragraph:
         self.head_font_revisers = []
         self.tail_font_revisers = []
         self.md_text = ''
+        self.section_states = []
         self.length_docx = {}
         self.length_clas = {}
         self.length_conf = {}
@@ -3027,6 +3033,8 @@ class Paragraph:
             self.tail_font_revisers, \
             self.md_text \
             = self._get_revisers_and_md_text(self.raw_text)
+        ParagraphList.reset_states(self.paragraph_class)
+        self.section_states = self._get_section_states()
         self.length_docx = self._get_length_docx()
         self.length_clas = self._get_length_clas()
         self.length_conf = self._get_length_conf()
@@ -3034,7 +3042,6 @@ class Paragraph:
         self.length_revi = self._get_length_revi()
         self.length_revisers = self._get_length_revisers(self.length_revi)
         # EXECUTION
-        ParagraphList.reset_states(self.paragraph_class)
         self.md_lines_text = self._get_md_lines_text(self.md_text)
         self.text_to_write = self.get_text_to_write()
         self.text_to_write_with_reviser \
@@ -3047,6 +3054,13 @@ class Paragraph:
         # self.head_section_depth = head_section_depth
         # self.tail_section_depth = tail_section_depth
         return head_section_depth, tail_section_depth
+
+    @staticmethod
+    def _get_section_states():
+        ss = ParagraphSection.states
+        states \
+            = [[ss[i][j] for j in range(len(ss[i]))] for i in range(len(ss))]
+        return states
 
     @classmethod
     def _get_proper_depth(cls, raw_text):
@@ -3219,6 +3233,7 @@ class Paragraph:
         paragraph_class = self.paragraph_class
         head_section_depth = self.head_section_depth
         tail_section_depth = self.tail_section_depth
+        section_states = self.section_states
         proper_depth = self.proper_depth
         length_clas \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
@@ -3252,10 +3267,10 @@ class Paragraph:
            paragraph_class == 'list' or \
            paragraph_class == 'preformatted' or \
            paragraph_class == 'sentence':
-            if ParagraphSection.states[1][0] == 0 and tail_section_depth > 2:
+            if section_states[1][0] == 0 and tail_section_depth > 2:
                 length_clas['left indent'] -= 1.0
         if Form.document_style == 'j':
-            if ParagraphSection.states[1][0] > 0 and tail_section_depth > 2:
+            if section_states[1][0] > 0 and tail_section_depth > 2:
                 length_clas['left indent'] -= 1.0
         # self.length_clas = length_clas
         return length_clas
@@ -3396,7 +3411,7 @@ class Paragraph:
         for rev in head_font_revisers:
             ttwwr += rev
         ttwwr += text_to_write
-        for rev in tail_font_revisers:
+        for rev in reversed(tail_font_revisers):
             ttwwr += rev
         # FOR PARAGRAPH ALIGNMENT
         if has_right_colon:
@@ -3662,15 +3677,15 @@ class ParagraphBlank(Paragraph):
         rp_rcl = rp.raw_class
         rp_xl = rp.xml_lines
         rp_rtx = rp.raw_text
-        if ParagraphTable.is_this_class(raw_paragraph):
+        if ParagraphTable.is_this_class(rp):
             return False
-        if ParagraphImage.is_this_class(raw_paragraph):
+        if ParagraphImage.is_this_class(rp):
             return False
-        if ParagraphPagebreak.is_this_class(raw_paragraph):
+        if ParagraphPagebreak.is_this_class(rp):
             return False
-        if ParagraphConfiguration.is_this_class(raw_paragraph):
+        if ParagraphHorizontalLine.is_this_class(rp):
             return False
-        if ParagraphHorizontalLine.is_this_class(raw_paragraph):
+        if ParagraphConfiguration.is_this_class(rp):
             return False
         if re.match('^\\s*$', rp_rtx):
             return True
@@ -3708,6 +3723,10 @@ class ParagraphChapter(Paragraph):
     def is_this_class(cls, raw_paragraph):
         rp = raw_paragraph
         rp_rtx = rp.raw_text
+        if ParagraphTable.is_this_class(rp):
+            return False
+        if ParagraphConfiguration.is_this_class(rp):
+            return False
         for i in range(len(cls.res_symbols)):
             res = '^' \
                 + RES_FONT_DECORATORS \
@@ -3802,11 +3821,16 @@ class ParagraphSection(Paragraph):
 
     @classmethod
     def is_this_class(cls, raw_paragraph):
-        raw_text = raw_paragraph.raw_text
-        alignment = raw_paragraph.alignment
+        rp = raw_paragraph
+        raw_text = rp.raw_text
+        alignment = rp.alignment
         head_section_depth, tail_section_depth \
             = cls._get_section_depths(raw_text)
-        if ParagraphImage.is_this_class(raw_paragraph):
+        if ParagraphTable.is_this_class(rp):
+            return False
+        if ParagraphImage.is_this_class(rp):
+            return False
+        if ParagraphConfiguration.is_this_class(rp):
             return False
         if tail_section_depth == 1 and alignment == 'center':
             return True
@@ -3838,6 +3862,9 @@ class ParagraphSection(Paragraph):
         return head_section_depth, tail_section_depth
 
     def _get_revisers_and_md_text(self, raw_text):
+        m_size = Paragraph.font_size
+        xl_size = m_size * 1.4
+        raw_xml_lines = self.raw_xml_lines
         rss = self.res_symbols
         rre = self.res_rest
         rnm = self.res_number
@@ -3868,6 +3895,27 @@ class ParagraphSection(Paragraph):
                 head_font_revisers.remove('+++')
             if '+++' in tail_font_revisers:
                 tail_font_revisers.remove('+++')
+            for rxl in raw_xml_lines:
+                s = XML.get_value('w:sz', 'w:val', -1.0, rxl) / 2
+                w = XML.get_value('w:w', 'w:val', -1.0, rxl)
+                if (s > 0 and s < xl_size * 0.7) or (w > 0 and w < 70):
+                    head_font_revisers.insert(0, '---')
+                    tail_font_revisers.intert(0, '---')
+                    # raw_text = '---' + raw_text + '---'
+                elif (s > 0 and s < xl_size * 0.9) or (w > 0 and w < 90):
+                    head_font_revisers.insert(0, '--')
+                    tail_font_revisers.insert(0, '--')
+                    # raw_text = '--' + raw_text + '--'
+                elif (s > 0 and s > xl_size * 1.3) or (w > 0 and w > 130):
+                    head_font_revisers.insert(0, '+++')
+                    tail_font_revisers.insert(0, '+++')
+                    # raw_text = '+++' + raw_text + '+++'
+                elif (s > 0 and s > xl_size * 1.1) or (w > 0 and w > 110):
+                    head_font_revisers.insert(0, '++')
+                    tail_font_revisers.insert(0, '++')
+                    # raw_text = '++' + raw_text + '++'
+                if s > 0 or w > 0:
+                    break
             head_symbol = '# '
         return numbering_revisers, head_font_revisers, tail_font_revisers, \
             head_symbol + raw_text
@@ -3921,6 +3969,10 @@ class ParagraphSystemlist(Paragraph):
         res_xml_number_ms = cls.res_xml_number_ms
         res_xml_bullet_lo = cls.res_xml_bullet_lo
         res_xml_number_lo = cls.res_xml_number_lo
+        if ParagraphTable.is_this_class(rp):
+            return False
+        if ParagraphConfiguration.is_this_class(rp):
+            return False
         for rxl in raw_xml_lines:
             if re.match(res_xml_bullet_ms, rxl):
                 return True
@@ -4049,6 +4101,10 @@ class ParagraphList(Paragraph):
         rp = raw_paragraph
         raw_text = rp.raw_text
         proper_depth = cls._get_proper_depth(raw_text)
+        if ParagraphTable.is_this_class(rp):
+            return False
+        if ParagraphConfiguration.is_this_class(rp):
+            return False
         if proper_depth > 0:
             return True
         return False
@@ -4141,6 +4197,8 @@ class ParagraphTable(Paragraph):
     def is_this_class(cls, raw_paragraph):
         rp = raw_paragraph
         rp_cls = rp.raw_class
+        if ParagraphConfiguration.is_this_class(rp):
+            return False
         if rp_cls == 'w:tbl':
             return True
         return False
@@ -4219,7 +4277,8 @@ class ParagraphTable(Paragraph):
                 md_text = re.sub('(^|\n)\\\\  \\|', '\\1|', md_text)
                 md_text = re.sub('\\\\  \\|(\n|$)', '|\\1', md_text)
                 md_text = re.sub('\\\\  \\|', '\\\n  |', md_text)
-                md_text = re.sub('<br>', '<br>\\\n    ', md_text)
+                md_text = re.sub('<br>(\\s+)', '<br>\\\\\\1', md_text)
+                md_text = re.sub('<br>([^\\|])', '<br>\\\n    \\1', md_text)
                 break
         return md_text
 
@@ -4243,17 +4302,26 @@ class ParagraphImage(Paragraph):
         rp_rtx = rp.raw_text
         rp_img = rp.images
         rp_rtx = re.sub(RES_IMAGE, '', rp_rtx)
+        if ParagraphTable.is_this_class(rp):
+            return False
+        if ParagraphConfiguration.is_this_class(rp):
+            return False
         if rp_rtx == '' and len(rp_img) > 0:
             return True
         return False
 
     def _get_md_text(self, raw_text):
+        alignment = self.alignment
         text_w = PAPER_WIDTH[Form.paper_size] \
             - Form.left_margin - Form.right_margin
         text_h = PAPER_HEIGHT[Form.paper_size] \
             - Form.top_margin - Form.bottom_margin
         text_size = (text_w, text_h)
         md_text = ParagraphImage.replace_with_fixed_size(raw_text, text_size)
+        if alignment == 'left':
+            md_text = ': ' + md_text
+        elif alignment == 'right':
+            md_text = md_text + ' :'
         return md_text
 
     @staticmethod
@@ -4296,14 +4364,13 @@ class ParagraphAlignment(Paragraph):
     @classmethod
     def is_this_class(cls, raw_paragraph):
         rp = raw_paragraph
+        rp_alg = rp.alignment
+        if ParagraphTable.is_this_class(rp):
+            return False
         if ParagraphImage.is_this_class(rp):
             return False
-        # rp_sty = rp.style
-        rp_alg = rp.alignment
-        if rp.raw_class == 'w:sectPr':
-            return False  # configuration
-        # if rp_sty == 'makdo-a':
-        #     return True
+        if ParagraphConfiguration.is_this_class(rp):
+            return False
         if rp.alignment != '':
             return True
         return False
@@ -4337,6 +4404,10 @@ class ParagraphPreformatted(Paragraph):
     def is_this_class(cls, raw_paragraph):
         rp = raw_paragraph
         rp_sty = rp.style
+        if ParagraphTable.is_this_class(rp):
+            return False
+        if ParagraphConfiguration.is_this_class(rp):
+            return False
         if rp_sty == 'makdo-g':
             return True
         return False
@@ -4475,6 +4546,11 @@ class ParagraphBreakdown(Paragraph):
 
     @classmethod
     def is_this_class(cls, raw_paragraph):
+        rp = raw_paragraph
+        if ParagraphTable.is_this_class(rp):
+            return False
+        if ParagraphConfiguration.is_this_class(rp):
+            return False
         return False
 
 
@@ -4503,7 +4579,7 @@ class ParagraphConfiguration(Paragraph):
     def is_this_class(cls, raw_paragraph):
         rp = raw_paragraph
         if rp.raw_class == 'w:sectPr':
-            return 'configuration'
+            return True
 
 
 ############################################################

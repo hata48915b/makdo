@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.18-08:02:28-JST>
+# Time-stamp:   <2023.05.20-08:08:11-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -252,7 +252,7 @@ TABLE_SPACE_AFTER = 0.2
 
 DEFAULT_AUTO_SPACE = False
 
-NOT_ESCAPED = '^((?:(?:.*\n)*.*[^\\\\])?(?:\\\\\\\\)*)?'
+NOT_ESCAPED = '^((?:(?:.|\n)*[^\\\\])?(?:\\\\\\\\)*)?'
 
 RES_NUMBER = '(?:[-\\+]?(?:(?:[0-9]+(?:\\.[0-9]+)?)|(?:\\.[0-9]+)))'
 RES_NUMBER6 = '(?:' + RES_NUMBER + '?,){,5}' + RES_NUMBER + '?,?'
@@ -267,7 +267,9 @@ FONT_DECORATORS = [
     '`',                   # preformatted
     '//',                  # italic
     '__',                  # underline
+    '\\-\\-\\-',           # xsmall
     '\\-\\-',              # small
+    '\\+\\+\\+',           # xlarge
     '\\+\\+',              # large
     '\\^[0-9A-Za-z]*\\^',  # font color
     '_[0-9A-Za-z]+_',      # higilight color
@@ -2336,6 +2338,7 @@ class Paragraph:
             = ''.join(head_font_revisers) \
             + text_to_write \
             + ''.join(tail_font_revisers)
+        # self.text_to_write_with_reviser = text_to_write_with_reviser
         return text_to_write_with_reviser
 
     def write_paragraph(self, ms_doc):
@@ -2438,89 +2441,53 @@ class Paragraph:
             while re.match(res, ln):
                 ln = re.sub(res, '\\1\n', ln)
             text += ln + '\n'
-        text = re.sub('\n$', '', text)
+        text = re.sub('\n$', '', text, 1)
         text = Paragraph._remove_relax_symbol(text)
-        res_img = NOT_ESCAPED + RES_IMAGE
-        res_ivs = '^(.*?)([^0-9\\\\])([0-9]+);$'
+        res_ivs = '^((?:.|\n)*?)([^0-9\\\\])([0-9]+);$'
         tex = ''
         for c in text + '\0':
+            # PROCESS (tex + c)
             if False:
                 pass
             elif re.match(NOT_ESCAPED + '\\*\\*\\*$', tex + c):
                 # *** (ITALIC AND BOLD)
                 tex = re.sub('\\*\\*\\*$', '', tex + c)
                 tex = self._write_string(tex, ms_par)
+                c = ''
                 Paragraph.is_italic = not Paragraph.is_italic
                 Paragraph.is_bold = not Paragraph.is_bold
-                continue
-            elif re.match(NOT_ESCAPED + '\\*\\*$', tex) and c != '*':
-                # ** (BOLD)
-                tex = re.sub('\\*\\*$', '', tex)
-                tex = self._write_string(tex, ms_par)
-                tex += c
-                Paragraph.is_bold = not Paragraph.is_bold
-                continue
-            elif re.match(NOT_ESCAPED + '\\*$', tex) and c != '*':
-                # * (ITALIC)
-                tex = re.sub('\\*$', '', tex)
-                tex = self._write_string(tex, ms_par)
-                tex += c
-                Paragraph.is_italic = not Paragraph.is_italic
-                continue
             elif re.match(NOT_ESCAPED + '~~$', tex + c):
                 # ~~ (STRIKETHROUGH)
                 tex = re.sub('~~$', '', tex + c)
                 tex = self._write_string(tex, ms_par)
+                c = ''
                 Paragraph.has_strike = not Paragraph.has_strike
-                continue
-            elif re.match(NOT_ESCAPED + '`$', tex + c):
-                # ` (PREFORMATTED)
-                tex = re.sub('`$', '', tex + c)
-                tex = self._write_string(tex, ms_par)
-                Paragraph.is_preformatted = not Paragraph.is_preformatted
-                continue
             elif re.match(NOT_ESCAPED + '//$', tex + c):
                 # // (ITALIC)
                 if not re.match('[a-z]+://', tex + c):
                     # not http:// https:// ftp:// ...
                     tex = re.sub('//$', '', tex + c)
                     tex = self._write_string(tex, ms_par)
+                    c = ''
                     Paragraph.is_italic = not Paragraph.is_italic
-                    continue
-            elif re.match(NOT_ESCAPED + '\\-\\-$', tex):
-                tex = re.sub('\\-\\-$', '', tex)
+            elif re.match(NOT_ESCAPED + '\\-\\-\\-$', tex + c):
+                # --- XSMALL
+                tex = re.sub('\\-\\-\\-$', '', tex + c)
                 tex = self._write_string(tex, ms_par)
-                if c == '-' and not Paragraph.is_small:
-                    # --- (XSMALL)
-                    Paragraph.is_xsmall = not Paragraph.is_xsmall
-                    Paragraph.is_small = False
-                    Paragraph.is_large = False
-                    Paragraph.is_xlarge = False
-                else:
-                    # -- (SMALL)
-                    tex += c
-                    Paragraph.is_xsmall = False
-                    Paragraph.is_small = not Paragraph.is_small
-                    Paragraph.is_large = False
-                    Paragraph.is_xlarge = False
-                continue
-            elif re.match(NOT_ESCAPED + '\\+\\+$', tex):
-                tex = re.sub('\\+\\+$', '', tex)
+                c = ''
+                Paragraph.is_xsmall = not Paragraph.is_xsmall
+                Paragraph.is_small = False
+                Paragraph.is_large = False
+                Paragraph.is_xlarge = False
+            elif re.match(NOT_ESCAPED + '\\+\\+\\+$', tex + c):
+                # +++ XLARGE
+                tex = re.sub('\\+\\+\\+$', '', tex + c)
                 tex = self._write_string(tex, ms_par)
-                if c == '+' and not Paragraph.is_large:
-                    # +++ (XLARGE)
-                    Paragraph.is_xsmall = False
-                    Paragraph.is_small = False
-                    Paragraph.is_large = False
-                    Paragraph.is_xlarge = not Paragraph.is_xlarge
-                else:
-                    # ++ (LARGE)
-                    tex += c
-                    Paragraph.is_xsmall = False
-                    Paragraph.is_small = False
-                    Paragraph.is_large = not Paragraph.is_large
-                    Paragraph.is_xlarge = False
-                continue
+                c = ''
+                Paragraph.is_xsmall = False
+                Paragraph.is_small = False
+                Paragraph.is_large = False
+                Paragraph.is_xlarge = not Paragraph.is_xlarge
             elif re.match(NOT_ESCAPED + '\\^([0-9A-Za-z]*)\\^$', tex + c):
                 # ^...^ (FONT COLOR)
                 col = re.sub(NOT_ESCAPED + '\\^([0-9A-Za-z]*)\\^$', '\\2',
@@ -2535,49 +2502,86 @@ class Paragraph:
                 if re.match('^[0-9A-F]{6}$', col):
                     tex = re.sub('\\^([0-9A-Za-z]*)\\^$', '', tex + c)
                     tex = self._write_string(tex, ms_par)
+                    c = ''
                     if Paragraph.font_color == '':
                         Paragraph.font_color = col
                     else:
                         Paragraph.font_color = ''
-                    continue
             elif re.match(NOT_ESCAPED + '__$', tex + c):
                 # __ (UNDERLINE)
                 tex = re.sub('__$', '', tex + c)
                 tex = self._write_string(tex, ms_par)
+                c = ''
                 Paragraph.has_underline = not Paragraph.has_underline
-                continue
             elif re.match(NOT_ESCAPED + '_([0-9A-Za-z]+)_$', tex + c):
                 # _..._ (HIGHLIGHT COLOR)
                 col = re.sub(NOT_ESCAPED + '_([0-9A-Za-z]+)_$', '\\2', tex + c)
                 if col in HIGHLIGHT_COLOR:
                     tex = re.sub('_([0-9A-Za-z]+)_$', '', tex + c)
                     tex = self._write_string(tex, ms_par)
+                    c = ''
                     if Paragraph.highlight_color is None:
                         Paragraph.highlight_color = HIGHLIGHT_COLOR[col]
                     else:
                         Paragraph.highlight_color = None
-                    continue
-            elif re.match(res_img, tex + c):
-                # ![...](...)
-                comm = re.sub(res_img, '\\2', tex + c)
-                path = re.sub(res_img, '\\3', tex + c)
-                tex = re.sub(res_img, '\\1', tex + c)
+            elif re.match(NOT_ESCAPED + RES_IMAGE, tex + c):
+                # ![...](...) (IMAGE)
+                comm = re.sub(NOT_ESCAPED + RES_IMAGE, '\\2', tex + c)
+                path = re.sub(NOT_ESCAPED + RES_IMAGE, '\\3', tex + c)
+                tex = re.sub(NOT_ESCAPED + RES_IMAGE, '\\1', tex + c)
                 tex = self._write_string(tex, ms_par)
+                c = ''
                 self._write_image(comm, path, ms_par)
-                continue
-            elif re.match(res_ivs, tex + c, flags=re.DOTALL):
+            elif re.match(res_ivs, tex + c):
                 # .[0-9]+; (IVS (IDEOGRAPHIC VARIATION SEQUENCE))
-                tmp_t = re.sub(res_ivs, '\\1', tex + c, flags=re.DOTALL)
-                ivs_c = re.sub(res_ivs, '\\2', tex + c, flags=re.DOTALL)
-                ivs_n = re.sub(res_ivs, '\\3', tex + c, flags=re.DOTALL)
+                tmp_t = re.sub(res_ivs, '\\1', tex + c)
+                ivs_c = re.sub(res_ivs, '\\2', tex + c)
+                ivs_n = re.sub(res_ivs, '\\3', tex + c)
                 ivs_u = int('0xE0100', 16) + int(ivs_n)
                 if int(ivs_u) <= int('0xE01EF', 16):
                     tex = self._write_string(tmp_t, ms_par)
+                    c = ''
                     pmf = Paragraph.mincho_font
                     Paragraph.mincho_font = Paragraph.ivs_font
                     self._write_string(ivs_c + chr(ivs_u), ms_par)
                     Paragraph.mincho_font = pmf
-                    continue
+            # PROCESS (tex)
+            if False:
+                pass
+            elif re.match(NOT_ESCAPED + '\\*\\*$', tex) and c != '*':
+                # ** (BOLD)
+                tex = re.sub('\\*\\*$', '', tex)
+                tex = self._write_string(tex, ms_par)
+                Paragraph.is_bold = not Paragraph.is_bold
+            elif re.match(NOT_ESCAPED + '\\*$', tex) and c != '*':
+                # * (ITALIC)
+                tex = re.sub('\\*$', '', tex)
+                tex = self._write_string(tex, ms_par)
+                Paragraph.is_italic = not Paragraph.is_italic
+            elif re.match(NOT_ESCAPED + '\\-\\-$', tex) and c != '-':
+                # -- (SMALL)
+                tex = re.sub('\\-\\-$', '', tex)
+                tex = self._write_string(tex, ms_par)
+                Paragraph.is_xsmall = False
+                Paragraph.is_small = not Paragraph.is_small
+                Paragraph.is_large = False
+                Paragraph.is_xlarge = False
+            elif re.match(NOT_ESCAPED + '\\+\\+$', tex) and c != '+':
+                # ++ (LARGE)
+                tex = re.sub('\\+\\+$', '', tex)
+                tex = self._write_string(tex, ms_par)
+                Paragraph.is_xsmall = False
+                Paragraph.is_small = False
+                Paragraph.is_large = not Paragraph.is_large
+                Paragraph.is_xlarge = False
+            # PROCESS (c)
+            if False:
+                pass
+            elif c == '`':
+                # ` (PREFORMATTED)
+                tex = self._write_string(tex, ms_par)
+                c = ''
+                Paragraph.is_preformatted = not Paragraph.is_preformatted
             tex += c
         tex = re.sub('\0$', '', tex)
         if tex != '':
