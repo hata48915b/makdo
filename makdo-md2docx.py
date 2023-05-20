@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.20-09:00:56-JST>
+# Time-stamp:   <2023.05.20-12:52:40-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -52,6 +52,7 @@ from docx.oxml.ns import qn
 from docx.enum.style import WD_STYLE_TYPE
 from docx.shared import RGBColor
 from docx.enum.text import WD_COLOR_INDEX
+from docx.enum.text import WD_UNDERLINE
 import socket   # host
 import getpass  # user
 
@@ -198,12 +199,18 @@ HELP_EPILOG = '''Markdownの記法:
     [~~]で挟まれた文字列は打消線が引かれます
     [`]で挟まれた文字列はゴシック体になります
     [//]で挟まれた文字列は斜体になります（独自）
+    [---]で挟まれた文字列は文字がとても小さくなります（独自）
     [--]で挟まれた文字列は文字が小さくなります（独自）
     [++]で挟まれた文字列は文字が大きくなります（独自）
+    [+++]で挟まれた文字列は文字がとても大きくなります（独自）
     [^^]で挟まれた文字列は白色になって見えなくなります（独自）
     [^XXYYZZ^]で挟まれた文字列はRGB(XX,YY,ZZ)色になります（独自）
     [^foo^]で挟まれた文字列はfoo色になります（独自）
     [__]で挟まれた文字列は下線が引かれます（独自）
+    [_=_]で挟まれた文字列は二重下線が引かれます（独自）
+    [_-_]で挟まれた文字列は破線で下線が引かれます（独自）
+    [_~_]で挟まれた文字列は波線で下線が引かれます（独自）
+    [_._]で挟まれた文字列は点線で下線が引かれます（独自）
     [_foo_]で挟まれた区間の背景はfoo色になります（独自）
       red(R) darkRed(DR) yellow(Y) darkYellow(DY) green(G) darkGreen(DG)
       cyan(C) darkCyan(DC) blue(B) darkBlue(DB) magenta(M) darkMagenta(DM)
@@ -266,6 +273,11 @@ FONT_DECORATORS = [
     '~~',                  # strikethrough
     '`',                   # preformatted
     '//',                  # italic
+    '_=_',                 # double underline
+    '_~_',                 # wavy underline
+    '_\\-_',               # dash underline
+    '_\\._',               # dotted underline
+    '___',                 # thick underline
     '__',                  # underline
     '\\-\\-\\-',           # xsmall
     '\\-\\-',              # small
@@ -1924,7 +1936,7 @@ class Paragraph:
     is_italic = False
     is_bold = False
     has_strike = False
-    has_underline = False
+    underline = 'none'
     font_color = ''
     highlight_color = None
 
@@ -2507,12 +2519,26 @@ class Paragraph:
                         Paragraph.font_color = col
                     else:
                         Paragraph.font_color = ''
-            elif re.match(NOT_ESCAPED + '__$', tex + c):
-                # __ (UNDERLINE)
-                tex = re.sub('__$', '', tex + c)
+            elif re.match(NOT_ESCAPED + '_([_=~\\-\\.])_$', tex + c):
+                # _[_=~\\-\\.]_ (SPECIAL UNDERLINE)
+                style = re.sub('.*_([_=~\\-\\.])_$', '\\1', tex + c)
+                tex = re.sub('_([_=~\\-\\.])_$', '', tex + c)
                 tex = self._write_string(tex, ms_par)
                 c = ''
-                Paragraph.has_underline = not Paragraph.has_underline
+                if style == '_':
+                    ud = 'thick'
+                elif style == '=':
+                    ud = 'double'
+                elif style == '~':
+                    ud = 'wavy'
+                elif style == '-':
+                    ud = 'dash'
+                elif style == '.':
+                    ud = 'dotted'
+                if Paragraph.underline != ud:
+                    Paragraph.underline = ud
+                else:
+                    Paragraph.underline = 'none'
             elif re.match(NOT_ESCAPED + '_([0-9A-Za-z]+)_$', tex + c):
                 # _..._ (HIGHLIGHT COLOR)
                 col = re.sub(NOT_ESCAPED + '_([0-9A-Za-z]+)_$', '\\2', tex + c)
@@ -2574,6 +2600,14 @@ class Paragraph:
                 Paragraph.is_small = False
                 Paragraph.is_large = not Paragraph.is_large
                 Paragraph.is_xlarge = False
+            elif re.match(NOT_ESCAPED + '__$', tex) and c != '_':
+                # __ (UNDERLINE)
+                tex = re.sub('__$', '', tex)
+                tex = self._write_string(tex, ms_par)
+                if Paragraph.underline != 'single':
+                    Paragraph.underline = 'single'
+                else:
+                    Paragraph.underline = 'none'
             # PROCESS (c)
             if False:
                 pass
@@ -2635,10 +2669,18 @@ class Paragraph:
             ms_run.font.strike = True
         # else:
         #     ms_run.font.strike = False
-        if cls.has_underline:
-            ms_run.underline = True
-        # else:
-        #     ms_run.underline = False
+        if cls.underline == 'single':
+            ms_run.underline = WD_UNDERLINE.SINGLE
+        elif cls.underline == 'thick':
+            ms_run.underline = WD_UNDERLINE.THICK
+        elif cls.underline == 'double':
+            ms_run.underline = WD_UNDERLINE.DOUBLE
+        elif cls.underline == 'wavy':
+            ms_run.underline = WD_UNDERLINE.WAVY
+        elif cls.underline == 'dash':
+            ms_run.underline = WD_UNDERLINE.DASH
+        elif cls.underline == 'dotted':
+            ms_run.underline = WD_UNDERLINE.DOTTED
         if cls.font_color != '':
             r = int(re.sub('^(..)(..)(..)$', '\\1', cls.font_color), 16)
             g = int(re.sub('^(..)(..)(..)$', '\\2', cls.font_color), 16)

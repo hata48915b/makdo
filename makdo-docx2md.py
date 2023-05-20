@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.20-08:25:53-JST>
+# Time-stamp:   <2023.05.20-13:19:35-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -237,6 +237,11 @@ FONT_DECORATORS = [
     '~~',                  # strikethrough
     '`',                   # preformatted
     '//',                  # italic
+    '_=_',                 # double underline
+    '_~_',                 # wavy underline
+    '_\\-_',               # dash underline
+    '_\\._',               # dotted underline
+    '___',                 # thick underline
     '__',                  # underline
     '\\-\\-\\-',           # xsmall
     '\\-\\-',              # small
@@ -2327,7 +2332,7 @@ class RawParagraph:
         is_bold = False
         is_gothic = False
         has_strike = False
-        has_underline = False
+        underline = 'none'
         font_color = ''
         highlight_color = ''
         has_deleted = False   # TRACK CHANGES
@@ -2425,9 +2430,24 @@ class RawParagraph:
                             + '^' + font_color + '^'
                     font_color = ''
                 # UNDERLINE
-                if has_underline:
+                if underline == 'single':
                     text = '__' + text + '__'
-                    has_underline = False
+                    underline == 'none'
+                elif underline == 'thick':
+                    text = '___' + text + '___'
+                    underline == 'none'
+                elif underline == 'double':
+                    text = '_=_' + text + '_=_'
+                    underline == 'none'
+                elif underline == 'wavy':
+                    text = '_~_' + text + '_~_'
+                    underline == 'none'
+                elif underline == 'dash':
+                    text = '_-_' + text + '_-_'
+                    underline == 'none'
+                elif underline == 'dotted':
+                    text = '_._' + text + '_._'
+                    underline == 'none'
                 # HIGILIGHT COLOR
                 if highlight_color != '':
                     text = '_' + highlight_color + '_' \
@@ -2483,12 +2503,22 @@ class RawParagraph:
                 is_italic = True
             elif re.match('^<w:b/?>$', rxl):
                 is_bold = True
-            elif re.match('^<w:rFonts .*((Gothic)|(ゴシック)).*>$', rxl):
+            elif re.match('^<w:rFonts .*(Gothic|ゴシック).*>$', rxl):
                 is_gothic = True
             elif re.match('^<w:strike/?>$', rxl):
                 has_strike = True
+            elif re.match('^<w:u .*[\'"]double[\'"].*>$', rxl):
+                underline = 'double'
+            elif re.match('^<w:u .*[\'"]wave[\'"].*>$', rxl):
+                underline = 'wavy'
+            elif re.match('^<w:u .*[\'"]dash[\'"].*>$', rxl):
+                underline = 'dash'
+            elif re.match('^<w:u .*[\'"]dotted[\'"].*>$', rxl):
+                underline = 'dotted'
+            elif re.match('^<w:u .*[\'"]thick[\'"].*>$', rxl):
+                underline = 'thick'
             elif re.match('^<w:u( .*)?>$', rxl):
-                has_underline = True
+                underline = 'single'
             elif re.match('^<w:color w:val="[0-9A-F]+"( .*)?/?>$', rxl):
                 font_color \
                     = re.sub('^<.*w:val="([0-9A-F]+)".*>$', '\\1', rxl, re.I)
@@ -2745,7 +2775,24 @@ class RawParagraph:
                         raw_text = re.sub('\\^[0-9A-Za-z]*\\^$', '', raw_text)
                         xl = re.sub('^\\^[0-9A-Za-z]*\\^', '', xl)
                         continue
-                # UNDERLINE
+                # SPECIAL UNDERLINE x SPECIAL UNDERLINE
+                if re.match('^(?:.|\n)*_([_=~\\-\\.])_$', raw_text) and \
+                   re.match('^_([_=~\\-\\.])_.*$', xl):
+                    ue = re.sub('^(?:.|\n)*_([_=~\\-\\.])_$', '\\1', raw_text)
+                    ub = re.sub('^_([_=~\\-\\.])_.*$', '\\1', xl)
+                    if ue == ub:
+                        raw_text = re.sub('_([_=~\\-\\.])_$', '', raw_text)
+                        xl = re.sub('^_([_=~\\-\\.])_', '', xl)
+                        continue
+                # SPECIAL UNDERLINE x UNDERLINE
+                if re.match('^(.|\n)*___$', raw_text) and \
+                   re.match('^__.*$', xl):
+                    break
+                # UNDERLINE x SPECIAL UNDERLINE
+                if re.match('^(.|\n)*__$', raw_text) and \
+                   re.match('^___.*$', xl):
+                    break
+                # UNDERLINE x UNDERLINE
                 if re.match('^(.|\n)*__$', raw_text) and \
                    re.match('^__.*$', xl):
                     raw_text = re.sub('__$', '', raw_text)
@@ -2837,14 +2884,18 @@ class RawParagraph:
         while True:
             tmp_text = raw_text
             for fd in FONT_DECORATORS:
-                if fd == '~~' or fd == '__' or \
+                if fd == '~~' or fd == '_=_' or fd == '_~_' or fd == '_-_' or \
+                   fd == '_._' or fd == '___' or fd == '__' or \
                    fd == '\\-\\-\\-' or fd == '\\-\\-' or \
                    fd == '\\+\\+\\+' or fd == '\\+\\+' or \
                    fd == '_[0-9A-Za-z]+_':
                     continue
-                res = fd \
-                    + '((?:\\s|~~|__|\\-\\-\\-?|\\+\\+\\+?|_[0-9A-Za-z]+_)+)' \
-                    + fd
+                res = fd + '((?:\\s' + \
+                    '|~~' + \
+                    '|_[=~\\-\\._]?_' + \
+                    '|\\-\\-\\-?|\\+\\+\\+?' + \
+                    '|_[0-9A-Za-z]+_' + \
+                    ')+)' + fd
                 raw_text = re.sub(res, '\\1', raw_text)
             if tmp_text == raw_text:
                 break
