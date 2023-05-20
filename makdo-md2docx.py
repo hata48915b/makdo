@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.20-08:28:40-JST>
+# Time-stamp:   <2023.05.20-09:00:56-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2650,8 +2650,10 @@ class Paragraph:
 
     def _write_image(self, alte, path, ms_par):
         m_size = Paragraph.font_size
+        xs_size = m_size * 0.6
         s_size = m_size * 0.8
         l_size = m_size * 1.2
+        xl_size = m_size * 1.4
         indent \
             = self.length_docx['first indent'] \
             + self.length_docx['left indent'] \
@@ -2684,10 +2686,14 @@ class Paragraph:
                 ms_run.add_picture(path, width=Cm(cm_w))
             elif cm_h > 0:
                 ms_run.add_picture(path, height=Cm(cm_h))
-            elif self.is_small and not self.is_large:
+            elif self.is_xsmall:
+                ms_run.add_picture(path, height=Pt(xs_size))
+            elif self.is_small:
                 ms_run.add_picture(path, height=Pt(s_size))
-            elif not self.is_small and self.is_large:
+            elif self.is_large:
                 ms_run.add_picture(path, height=Pt(l_size))
+            elif self.is_xlarge:
+                ms_run.add_picture(path, height=Pt(xl_size))
             else:
                 ms_run.add_picture(path, height=Pt(m_size))
         except BaseException:
