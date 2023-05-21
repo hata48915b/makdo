@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.20-12:52:40-JST>
+# Time-stamp:   <2023.05.21-08:05:43-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -267,24 +267,19 @@ RES_NUMBER6 = '(?:' + RES_NUMBER + '?,){,5}' + RES_NUMBER + '?,?'
 RES_IMAGE = '! *\\[([^\\[\\]]*)\\] *\\(([^\\(\\)]+)\\)'
 
 FONT_DECORATORS = [
-    '\\*\\*\\*',           # italic and bold
-    '\\*\\*',              # bold
-    '\\*',                 # italic
-    '~~',                  # strikethrough
-    '`',                   # preformatted
-    '//',                  # italic
-    '_=_',                 # double underline
-    '_~_',                 # wavy underline
-    '_\\-_',               # dash underline
-    '_\\._',               # dotted underline
-    '___',                 # thick underline
-    '__',                  # underline
-    '\\-\\-\\-',           # xsmall
-    '\\-\\-',              # small
-    '\\+\\+\\+',           # xlarge
-    '\\+\\+',              # large
-    '\\^[0-9A-Za-z]*\\^',  # font color
-    '_[0-9A-Za-z]+_',      # higilight color
+    '\\*\\*\\*',             # italic and bold
+    '\\*\\*',                # bold
+    '\\*',                   # italic
+    '~~',                    # strikethrough
+    '`',                     # preformatted
+    '//',                    # italic
+    '_[\\$=\\.#\\-~\\+]*_',  # underline
+    '\\-\\-\\-',             # xsmall
+    '\\-\\-',                # small
+    '\\+\\+\\+',             # xlarge
+    '\\+\\+',                # large
+    '\\^[0-9A-Za-z]*\\^',    # font color
+    '_[0-9A-Za-z]+_',        # higilight color
 ]
 
 RELAX_SYMBOL = '<>'
@@ -294,6 +289,26 @@ ORIGINAL_COMMENT_SYMBOL = ';;'
 COMMENT_SEPARATE_SYMBOL = ' / '
 
 HORIZONTAL_BAR = '[ー−—－―‐]'
+
+UNDERLINE = {
+    '':     WD_UNDERLINE.SINGLE,
+    '$':    WD_UNDERLINE.WORDS,
+    '=':    WD_UNDERLINE.DOUBLE,
+    '.':    WD_UNDERLINE.DOTTED,
+    '#':    WD_UNDERLINE.THICK,
+    '-':    WD_UNDERLINE.DASH,
+    '.-':   WD_UNDERLINE.DOT_DASH,
+    '..-':  WD_UNDERLINE.DOT_DOT_DASH,
+    '~':    WD_UNDERLINE.WAVY,
+    '.#':   WD_UNDERLINE.DOTTED_HEAVY,
+    '-#':   WD_UNDERLINE.DASH_HEAVY,
+    '.-#':  WD_UNDERLINE.DOT_DASH_HEAVY,
+    '..-#': WD_UNDERLINE.DOT_DOT_DASH_HEAVY,
+    '~#':   WD_UNDERLINE.WAVY_HEAVY,
+    '-+':   WD_UNDERLINE.DASH_LONG,
+    '~=':   WD_UNDERLINE.WAVY_DOUBLE,
+    '-+#':  WD_UNDERLINE.DASH_LONG_HEAVY,
+}
 
 FONT_COLOR = {
     'red':         'FF0000',
@@ -1936,7 +1951,7 @@ class Paragraph:
     is_italic = False
     is_bold = False
     has_strike = False
-    underline = 'none'
+    underline = None
     font_color = ''
     highlight_color = None
 
@@ -2519,26 +2534,21 @@ class Paragraph:
                         Paragraph.font_color = col
                     else:
                         Paragraph.font_color = ''
-            elif re.match(NOT_ESCAPED + '_([_=~\\-\\.])_$', tex + c):
-                # _[_=~\\-\\.]_ (SPECIAL UNDERLINE)
-                style = re.sub('.*_([_=~\\-\\.])_$', '\\1', tex + c)
-                tex = re.sub('_([_=~\\-\\.])_$', '', tex + c)
-                tex = self._write_string(tex, ms_par)
-                c = ''
-                if style == '_':
-                    ud = 'thick'
-                elif style == '=':
-                    ud = 'double'
-                elif style == '~':
-                    ud = 'wavy'
-                elif style == '-':
-                    ud = 'dash'
-                elif style == '.':
-                    ud = 'dotted'
-                if Paragraph.underline != ud:
-                    Paragraph.underline = ud
-                else:
-                    Paragraph.underline = 'none'
+            elif re.match(NOT_ESCAPED + '_([\\$=\\.#\\-~\\+]*)_$', tex + c):
+                # _[\\$=\\.#\\-~\\+]*_ (SPECIAL UNDERLINE)
+                sty = re.sub(NOT_ESCAPED + '_([\\$=\\.#\\-~\\+]*)_$', '\\2',
+                             tex + c)
+                if sty in UNDERLINE:
+                    tex = re.sub('_([\\$=\\.#\\-~\\+]*)_$', '', tex + c)
+                    tex = self._write_string(tex, ms_par)
+                    c = ''
+                    ul = UNDERLINE[sty]
+                    if Paragraph.underline is None:
+                        Paragraph.underline = ul
+                    elif Paragraph.underline != ul:
+                        Paragraph.underline = ul
+                    else:
+                        Paragraph.underline = None
             elif re.match(NOT_ESCAPED + '_([0-9A-Za-z]+)_$', tex + c):
                 # _..._ (HIGHLIGHT COLOR)
                 col = re.sub(NOT_ESCAPED + '_([0-9A-Za-z]+)_$', '\\2', tex + c)
@@ -2546,8 +2556,11 @@ class Paragraph:
                     tex = re.sub('_([0-9A-Za-z]+)_$', '', tex + c)
                     tex = self._write_string(tex, ms_par)
                     c = ''
+                    hc = HIGHLIGHT_COLOR[col]
                     if Paragraph.highlight_color is None:
-                        Paragraph.highlight_color = HIGHLIGHT_COLOR[col]
+                        Paragraph.highlight_color = hc
+                    elif Paragraph.highlight_color != hc:
+                        Paragraph.highlight_color = hc
                     else:
                         Paragraph.highlight_color = None
             elif re.match(NOT_ESCAPED + RES_IMAGE, tex + c):
@@ -2600,14 +2613,6 @@ class Paragraph:
                 Paragraph.is_small = False
                 Paragraph.is_large = not Paragraph.is_large
                 Paragraph.is_xlarge = False
-            elif re.match(NOT_ESCAPED + '__$', tex) and c != '_':
-                # __ (UNDERLINE)
-                tex = re.sub('__$', '', tex)
-                tex = self._write_string(tex, ms_par)
-                if Paragraph.underline != 'single':
-                    Paragraph.underline = 'single'
-                else:
-                    Paragraph.underline = 'none'
             # PROCESS (c)
             if False:
                 pass
@@ -2654,8 +2659,6 @@ class Paragraph:
             ms_run.font.size = Pt(m_size)
         if cls.is_bold:
             ms_run.bold = True
-        # else:
-        #     ms_run.bold = False
         if cls.is_preformatted:
             ms_run.font.name = cls.gothic_font
         else:
@@ -2663,24 +2666,10 @@ class Paragraph:
         ms_run._element.rPr.rFonts.set(qn('w:eastAsia'), ms_run.font.name)
         if cls.is_italic:
             ms_run.italic = True
-        # else:
-        #     ms_run.italic = False
         if cls.has_strike:
             ms_run.font.strike = True
-        # else:
-        #     ms_run.font.strike = False
-        if cls.underline == 'single':
-            ms_run.underline = WD_UNDERLINE.SINGLE
-        elif cls.underline == 'thick':
-            ms_run.underline = WD_UNDERLINE.THICK
-        elif cls.underline == 'double':
-            ms_run.underline = WD_UNDERLINE.DOUBLE
-        elif cls.underline == 'wavy':
-            ms_run.underline = WD_UNDERLINE.WAVY
-        elif cls.underline == 'dash':
-            ms_run.underline = WD_UNDERLINE.DASH
-        elif cls.underline == 'dotted':
-            ms_run.underline = WD_UNDERLINE.DOTTED
+        if cls.underline is not None:
+            ms_run.underline = cls.underline
         if cls.font_color != '':
             r = int(re.sub('^(..)(..)(..)$', '\\1', cls.font_color), 16)
             g = int(re.sub('^(..)(..)(..)$', '\\2', cls.font_color), 16)

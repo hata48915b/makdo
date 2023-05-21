@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.20-13:19:35-JST>
+# Time-stamp:   <2023.05.21-09:28:31-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -231,28 +231,43 @@ RES_XML_IMG_SIZE \
     = '<wp:extent cx=[\'"]([0-9]+)[\'"] cy=[\'"]([0-9]+)[\'"]/>'
 
 FONT_DECORATORS = [
-    '\\*\\*\\*',           # italic and bold
-    '\\*\\*',              # bold
-    '\\*',                 # italic
-    '~~',                  # strikethrough
-    '`',                   # preformatted
-    '//',                  # italic
-    '_=_',                 # double underline
-    '_~_',                 # wavy underline
-    '_\\-_',               # dash underline
-    '_\\._',               # dotted underline
-    '___',                 # thick underline
-    '__',                  # underline
-    '\\-\\-\\-',           # xsmall
-    '\\-\\-',              # small
-    '\\+\\+\\+',           # xlarge
-    '\\+\\+',              # large
-    '\\^[0-9A-Za-z]*\\^',  # font color
-    '_[0-9A-Za-z]+_',      # higilight color
+    '\\*\\*\\*',             # italic and bold
+    '\\*\\*',                # bold
+    '\\*',                   # italic
+    '~~',                    # strikethrough
+    '`',                     # preformatted
+    '//',                    # italic
+    '_[\\$=\\.#\\-~\\+]*_',  # underline
+    '\\-\\-\\-',             # xsmall
+    '\\-\\-',                # small
+    '\\+\\+\\+',             # xlarge
+    '\\+\\+',                # large
+    '\\^[0-9A-Za-z]*\\^',    # font color
+    '_[0-9A-Za-z]+_',        # higilight color
 ]
 RES_FONT_DECORATORS = '((?:' + '|'.join(FONT_DECORATORS) + ')*)'
 
 MD_TEXT_WIDTH = 68
+
+UNDERLINE = {
+    'single':          '',
+    'words':           '$',
+    'double':          '=',
+    'dotted':          '.',
+    'thick':           '#',
+    'dash':            '-',
+    'dotDash':         '.-',
+    'dotDotDash':      '..-',
+    'wave':            '~',
+    'dottedHeavy':     '.#',
+    'dashedHeavy':     '-#',
+    'dashDotHeavy':    '.-#',
+    'dashDotDotHeavy': '..-#',
+    'wavyHeavy':       '~#',
+    'dashLong':        '-+',
+    'wavyDouble':      '~=',
+    'dashLongHeavy':   '-+#',
+}
 
 FONT_COLOR = {
     'FF0000': 'red',
@@ -2332,7 +2347,7 @@ class RawParagraph:
         is_bold = False
         is_gothic = False
         has_strike = False
-        underline = 'none'
+        underline = ''
         font_color = ''
         highlight_color = ''
         has_deleted = False   # TRACK CHANGES
@@ -2430,24 +2445,10 @@ class RawParagraph:
                             + '^' + font_color + '^'
                     font_color = ''
                 # UNDERLINE
-                if underline == 'single':
-                    text = '__' + text + '__'
-                    underline == 'none'
-                elif underline == 'thick':
-                    text = '___' + text + '___'
-                    underline == 'none'
-                elif underline == 'double':
-                    text = '_=_' + text + '_=_'
-                    underline == 'none'
-                elif underline == 'wavy':
-                    text = '_~_' + text + '_~_'
-                    underline == 'none'
-                elif underline == 'dash':
-                    text = '_-_' + text + '_-_'
-                    underline == 'none'
-                elif underline == 'dotted':
-                    text = '_._' + text + '_._'
-                    underline == 'none'
+                if underline != '':
+                    ul = UNDERLINE[underline]
+                    text = '_' + ul + '_' + text + '_' + ul + '_'
+                    underline = ''
                 # HIGILIGHT COLOR
                 if highlight_color != '':
                     text = '_' + highlight_color + '_' \
@@ -2507,25 +2508,18 @@ class RawParagraph:
                 is_gothic = True
             elif re.match('^<w:strike/?>$', rxl):
                 has_strike = True
-            elif re.match('^<w:u .*[\'"]double[\'"].*>$', rxl):
-                underline = 'double'
-            elif re.match('^<w:u .*[\'"]wave[\'"].*>$', rxl):
-                underline = 'wavy'
-            elif re.match('^<w:u .*[\'"]dash[\'"].*>$', rxl):
-                underline = 'dash'
-            elif re.match('^<w:u .*[\'"]dotted[\'"].*>$', rxl):
-                underline = 'dotted'
-            elif re.match('^<w:u .*[\'"]thick[\'"].*>$', rxl):
-                underline = 'thick'
             elif re.match('^<w:u( .*)?>$', rxl):
                 underline = 'single'
+                res = '^<.* w:val=[\'"]([a-zA-Z]+)[\'"].*>$'
+                if re.match(res, rxl):
+                    underline = re.sub(res, '\\1', rxl)
             elif re.match('^<w:color w:val="[0-9A-F]+"( .*)?/?>$', rxl):
                 font_color \
-                    = re.sub('^<.*w:val="([0-9A-F]+)".*>$', '\\1', rxl, re.I)
+                    = re.sub('^<.* w:val="([0-9A-F]+)".*>$', '\\1', rxl, re.I)
                 font_color = font_color.upper()
             elif re.match('^<w:highlight w:val="[a-zA-Z]+"( .*)?/?>$', rxl):
                 highlight_color \
-                    = re.sub('^<.*w:val="([a-zA-Z]+)".*>$', '\\1', rxl)
+                    = re.sub('^<.* w:val="([a-zA-Z]+)".*>$', '\\1', rxl)
             elif re.match('^<w:br/?>$', rxl):
                 text += '\n'
             # TRACK CHANGES
@@ -2536,7 +2530,8 @@ class RawParagraph:
                 rxl = rxl.replace('*', '\\*')
                 rxl = rxl.replace('`', '\\`')
                 rxl = rxl.replace('~~', '\\~\\~')
-                rxl = rxl.replace('__', '\\_\\_')
+                # rxl = rxl.replace('__', '\\_\\_')
+                rxl = re.sub('_([\\$=\\.#\\-~\\+]*)_', '\\\\_\\1\\\\_', rxl)
                 rxl = rxl.replace('//', '\\/\\/')
                 # http https ftp ...
                 rxl = re.sub('([a-z]+:)\\\\/\\\\/', '\\1//', rxl)
@@ -2544,6 +2539,8 @@ class RawParagraph:
                 rxl = rxl.replace('--', '\\-\\-')
                 rxl = rxl.replace('+++', '\\+\\+\\+')
                 rxl = rxl.replace('++', '\\+\\+')
+                rxl = re.sub('\\^([0-9a-zA-Z]+)\\^', '\\\\^\\1\\\\^', rxl)
+                rxl = re.sub('_([0-9a-zA-Z]+)_', '\\\\_\\1\\\\_', rxl)
                 rxl = rxl.replace('%%', '\\%\\%')
                 rxl = rxl.replace('&lt;', '\\&lt;')
                 rxl = rxl.replace('&gt;', '\\&gt;')
@@ -2775,29 +2772,16 @@ class RawParagraph:
                         raw_text = re.sub('\\^[0-9A-Za-z]*\\^$', '', raw_text)
                         xl = re.sub('^\\^[0-9A-Za-z]*\\^', '', xl)
                         continue
-                # SPECIAL UNDERLINE x SPECIAL UNDERLINE
-                if re.match('^(?:.|\n)*_([_=~\\-\\.])_$', raw_text) and \
-                   re.match('^_([_=~\\-\\.])_.*$', xl):
-                    ue = re.sub('^(?:.|\n)*_([_=~\\-\\.])_$', '\\1', raw_text)
-                    ub = re.sub('^_([_=~\\-\\.])_.*$', '\\1', xl)
+                # UNDERLINE
+                res = '_([\\$=\\.#\\-~\\+]*)_'
+                if re.match('^(?:.|\n)*'+ res + '$', raw_text) and \
+                   re.match('^' + res + '.*$', xl):
+                    ue = re.sub('^(?:.|\n)*' + res + '$', '\\1', raw_text)
+                    ub = re.sub('^' + res + '.*$', '\\1', xl)
                     if ue == ub:
-                        raw_text = re.sub('_([_=~\\-\\.])_$', '', raw_text)
-                        xl = re.sub('^_([_=~\\-\\.])_', '', xl)
+                        raw_text = re.sub(res + '$', '', raw_text, 1)
+                        xl = re.sub('^' + res, '', xl, 1)
                         continue
-                # SPECIAL UNDERLINE x UNDERLINE
-                if re.match('^(.|\n)*___$', raw_text) and \
-                   re.match('^__.*$', xl):
-                    break
-                # UNDERLINE x SPECIAL UNDERLINE
-                if re.match('^(.|\n)*__$', raw_text) and \
-                   re.match('^___.*$', xl):
-                    break
-                # UNDERLINE x UNDERLINE
-                if re.match('^(.|\n)*__$', raw_text) and \
-                   re.match('^__.*$', xl):
-                    raw_text = re.sub('__$', '', raw_text)
-                    xl = re.sub('^__', '', xl)
-                    continue
                 # HIGILIGHT COLOR
                 if re.match('^(?:.|\n)*_[0-9A-Za-z]*_$', raw_text) and \
                    re.match('^_[0-9A-Za-z]*_.*$', xl):
@@ -2884,16 +2868,17 @@ class RawParagraph:
         while True:
             tmp_text = raw_text
             for fd in FONT_DECORATORS:
-                if fd == '~~' or fd == '_=_' or fd == '_~_' or fd == '_-_' or \
-                   fd == '_._' or fd == '___' or fd == '__' or \
+                if fd == '~~' or \
+                   fd == '_[\\$=\\.#\\-~\\+]*_' or \
                    fd == '\\-\\-\\-' or fd == '\\-\\-' or \
                    fd == '\\+\\+\\+' or fd == '\\+\\+' or \
                    fd == '_[0-9A-Za-z]+_':
                     continue
                 res = fd + '((?:\\s' + \
                     '|~~' + \
-                    '|_[=~\\-\\._]?_' + \
-                    '|\\-\\-\\-?|\\+\\+\\+?' + \
+                    '|_[\\$=\\.#\\-~\\+]*_' + \
+                    '|\\-\\-\\-|\\-\\-' + \
+                    '|\\+\\+\\+|\\+\\+' + \
                     '|_[0-9A-Za-z]+_' + \
                     ')+)' + fd
                 raw_text = re.sub(res, '\\1', raw_text)
@@ -3654,13 +3639,17 @@ class Paragraph:
                         # '+' + '+' (LARGE)
                         if re.match('^.*\\+$', s1) and re.match('^\\+.*$', s2):
                             continue
+                        # '_.*' + '.*_' (UNDERLINE)
+                        if re.match('^.*_[\\$=\\.#\\-~\\+]*$', s1) and \
+                           re.match('^[\\$=\\.#\\-~\\+]*_.*$', s2):
+                            continue
                         # '^.*' + '.*^' (FONT COLOR)
                         if re.match('^.*\\^[0-9A-Za-z]*$', s1) and \
                            re.match('^[0-9A-Za-z]*\\^.*$', s2):
                             continue
-                        # '_.*' + '.*_' (UNDERLINE AND HIGHLIGHT COLOR)
-                        if re.match('^.*_[0-9A-Za-z]*$', s1) and \
-                           re.match('^[0-9A-Za-z]*_.*$', s2):
+                        # '_.+' + '.+_' (HIGHLIGHT COLOR)
+                        if re.match('^.*_[0-9A-Za-z]+$', s1) and \
+                           re.match('^[0-9A-Za-z]+_.*$', s2):
                             continue
                         # ' ' + ' ' (LINE BREAK)
                         if re.match('^.* $', s1) and re.match('^ .*$', s2):
