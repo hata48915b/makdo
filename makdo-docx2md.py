@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.21-09:28:31-JST>
+# Time-stamp:   <2023.05.21-13:11:38-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -231,19 +231,19 @@ RES_XML_IMG_SIZE \
     = '<wp:extent cx=[\'"]([0-9]+)[\'"] cy=[\'"]([0-9]+)[\'"]/>'
 
 FONT_DECORATORS = [
-    '\\*\\*\\*',             # italic and bold
-    '\\*\\*',                # bold
-    '\\*',                   # italic
-    '~~',                    # strikethrough
-    '`',                     # preformatted
-    '//',                    # italic
-    '_[\\$=\\.#\\-~\\+]*_',  # underline
-    '\\-\\-\\-',             # xsmall
-    '\\-\\-',                # small
-    '\\+\\+\\+',             # xlarge
-    '\\+\\+',                # large
-    '\\^[0-9A-Za-z]*\\^',    # font color
-    '_[0-9A-Za-z]+_',        # higilight color
+    '\\*\\*\\*',                # italic and bold
+    '\\*\\*',                   # bold
+    '\\*',                      # italic
+    '~~',                       # strikethrough
+    '`',                        # preformatted
+    '//',                       # italic
+    '\\-\\-\\-',                # xsmall
+    '\\-\\-',                   # small
+    '\\+\\+\\+',                # xlarge
+    '\\+\\+',                   # large
+    '_[\\$=\\.#\\-~\\+]{,4}_',  # underline
+    '\\^[0-9A-Za-z]{0,11}\\^',  # font color
+    '_[0-9A-Za-z]{1,11}_',      # higilight color
 ]
 RES_FONT_DECORATORS = '((?:' + '|'.join(FONT_DECORATORS) + ')*)'
 
@@ -2339,14 +2339,14 @@ class RawParagraph:
         m_size = Paragraph.font_size
         s_size = m_size * 0.8
         xml_lines = []
+        is_italic = False
+        is_bold = False
+        has_strike = False
         is_xsmall = False
         is_small = False
         is_large = False
         is_xlarge = False
-        is_italic = False
-        is_bold = False
         is_gothic = False
-        has_strike = False
         underline = ''
         font_color = ''
         highlight_color = ''
@@ -2431,6 +2431,11 @@ class RawParagraph:
                 if is_xlarge:
                     text = '+++' + text + '+++'
                     is_xlarge = False
+                # UNDERLINE
+                if underline != '':
+                    ul = UNDERLINE[underline]
+                    text = '_' + ul + '_' + text + '_' + ul + '_'
+                    underline = ''
                 # FONT COLOR
                 if font_color != '':
                     if font_color == 'FFFFFF':
@@ -2444,11 +2449,6 @@ class RawParagraph:
                             + text \
                             + '^' + font_color + '^'
                     font_color = ''
-                # UNDERLINE
-                if underline != '':
-                    ul = UNDERLINE[underline]
-                    text = '_' + ul + '_' + text + '_' + ul + '_'
-                    underline = ''
                 # HIGILIGHT COLOR
                 if highlight_color != '':
                     text = '_' + highlight_color + '_' \
@@ -2762,19 +2762,9 @@ class RawParagraph:
                     raw_text = re.sub('\\+\\+$', '', raw_text)
                     xl = re.sub('^\\+\\+', '', xl)
                     continue
-                # FOND COLOR
-                if re.match('^(?:.|\n)*\\^[0-9A-Za-z]*\\^$', raw_text) and \
-                   re.match('^\\^[0-9A-Za-z]*\\^.*$', xl):
-                    ce = re.sub('^(?:.|\n)*(\\^[0-9A-Za-z]*\\^)$', '\\1',
-                                raw_text)
-                    cb = re.sub('^(\\^[0-9A-Za-z]*\\^).*$', '\\1', xl)
-                    if ce == cb:
-                        raw_text = re.sub('\\^[0-9A-Za-z]*\\^$', '', raw_text)
-                        xl = re.sub('^\\^[0-9A-Za-z]*\\^', '', xl)
-                        continue
                 # UNDERLINE
-                res = '_([\\$=\\.#\\-~\\+]*)_'
-                if re.match('^(?:.|\n)*'+ res + '$', raw_text) and \
+                res = '_([\\$=\\.#\\-~\\+]{,4})_'
+                if re.match('^(?:.|\n)*' + res + '$', raw_text) and \
                    re.match('^' + res + '.*$', xl):
                     ue = re.sub('^(?:.|\n)*' + res + '$', '\\1', raw_text)
                     ub = re.sub('^' + res + '.*$', '\\1', xl)
@@ -2782,15 +2772,25 @@ class RawParagraph:
                         raw_text = re.sub(res + '$', '', raw_text, 1)
                         xl = re.sub('^' + res, '', xl, 1)
                         continue
-                # HIGILIGHT COLOR
-                if re.match('^(?:.|\n)*_[0-9A-Za-z]*_$', raw_text) and \
-                   re.match('^_[0-9A-Za-z]*_.*$', xl):
-                    ce = re.sub('^(?:.|\n)*(_[0-9A-Za-z]*_)$', '\\1',
-                                raw_text)
-                    cb = re.sub('^(_[0-9A-Za-z]*_).*$', '\\1', xl)
+                # FONT COLOR
+                res = '\\^([0-9A-Za-z]{0,11})\\^'
+                if re.match('^(?:.|\n)*' + res + '$', raw_text) and \
+                   re.match('^'+ res + '.*$', xl):
+                    ce = re.sub('^(?:.|\n)*' + res + '$', '\\1', raw_text)
+                    cb = re.sub('^' + res + '.*$', '\\1', xl)
                     if ce == cb:
-                        raw_text = re.sub('_[0-9A-Za-z]*_$', '', raw_text)
-                        xl = re.sub('^_[0-9A-Za-z]*_', '', xl)
+                        raw_text = re.sub(res + '$', '', raw_text)
+                        xl = re.sub('^' + res, '', xl)
+                        continue
+                # HIGILIGHT COLOR
+                res = '_([0-9A-Za-z]{1,11})_'
+                if re.match('^(?:.|\n)*' + res + '$', raw_text) and \
+                   re.match('^' + res + '.*$', xl):
+                    ce = re.sub('^(?:.|\n)*' + res + '$', '\\1', raw_text)
+                    cb = re.sub('^' + res + '.*$', '\\1', xl)
+                    if ce == cb:
+                        raw_text = re.sub(res + '$', '', raw_text)
+                        xl = re.sub('^' + res, '', xl)
                         continue
                 # TRACK CHANGES (DELETED)
                 if re.match('^(.|\n)*\\-\\-&gt;$', raw_text) and \
@@ -2820,7 +2820,7 @@ class RawParagraph:
         if re.match('^(\\$+(\\-\\$)*|#+(\\-#)*)(\\s*.*)?$', raw_text):
             raw_text = '\\' + raw_text
         # LIST
-        if re.match('^(\\-|\\+|\\*|[0-9]+\\.|[0-9]+\\))\\s+', raw_text):
+        if re.match('^(\\-|\\+|[0-9]+\\.|[0-9]+\\))\\s+', raw_text):
             raw_text = '\\' + raw_text
         # Table
         if re.match('^\\|(.*)\\|$', raw_text):
@@ -2869,20 +2869,26 @@ class RawParagraph:
             tmp_text = raw_text
             for fd in FONT_DECORATORS:
                 if fd == '~~' or \
-                   fd == '_[\\$=\\.#\\-~\\+]*_' or \
+                   fd == '_[\\$=\\.#\\-~\\+]{,4}_' or \
                    fd == '\\-\\-\\-' or fd == '\\-\\-' or \
                    fd == '\\+\\+\\+' or fd == '\\+\\+' or \
-                   fd == '_[0-9A-Za-z]+_':
+                   fd == '_[0-9A-Za-z]{1,11}_':
                     continue
-                res = fd + '((?:\\s' + \
+                res = '((?:\\s' + \
                     '|~~' + \
-                    '|_[\\$=\\.#\\-~\\+]*_' + \
-                    '|\\-\\-\\-|\\-\\-' + \
-                    '|\\+\\+\\+|\\+\\+' + \
-                    '|_[0-9A-Za-z]+_' + \
-                    ')+)' + fd
-                raw_text = re.sub(res, '\\1', raw_text)
+                    '|_[\\$=\\.#\\-~\\+]{,4}_' + \
+                    '|\\-\\-\\-' + '|\\-\\-' + \
+                    '|\\+\\+\\+' + '|\\+\\+' + \
+                    '|_[0-9A-Za-z]{1,11}_' + \
+                    ')+)'
+                raw_text = re.sub(fd + res + fd, '\\1', raw_text)
+                raw_text = re.sub('^(' + fd + ')' + res, '\\2\\1', raw_text)
+                raw_text = re.sub(res + '(' + fd + ')$', '\\2\\1', raw_text)
             if tmp_text == raw_text:
+                if re.match('^\\s+(.|\n)*$', raw_text):
+                    raw_text = '\\' + raw_text
+                if re.match('^(.|\n)*\\s+$', raw_text):
+                    raw_text = raw_text + '\\'
                 break
         # self.raw_text = raw_text
         # self.images = images
@@ -3421,13 +3427,18 @@ class Paragraph:
         text_to_write = self.text_to_write
         pre_text_to_write = self.pre_text_to_write
         post_text_to_write = self.post_text_to_write
-        # FOR PARAGRAPH ALIGNMENT
+        # LEFT SYMBOL
+        has_left_sharp = False
         has_left_colon = False
-        if re.match('^: .*$', text_to_write):
+        if re.match('^# (.|\n)*$', text_to_write):
+            text_to_write = re.sub('^# ', '', text_to_write)
+            has_left_sharp = True
+        elif re.match('^: (.|\n)*$', text_to_write):
             text_to_write = re.sub('^: ', '', text_to_write)
             has_left_colon = True
+        # RIGHT SYMBOL
         has_right_colon = False
-        if re.match('^.* :$', text_to_write):
+        if re.match('^(.|\n)* :$', text_to_write):
             text_to_write = re.sub(' :$', '', text_to_write)
             has_right_colon = True
         ttwwr = ''
@@ -3441,15 +3452,17 @@ class Paragraph:
             ttwwr += rev + ' '
         if re.match('^(.|\n)* $', ttwwr):
             ttwwr = re.sub(' $', '\n', ttwwr)
-        # FOR PARAGRAPH ALIGNMENT
-        if has_left_colon:
+        # LEFT SYMBOL
+        if has_left_sharp:
+            ttwwr += '# '
+        elif has_left_colon:
             ttwwr += ': '
         for rev in head_font_revisers:
             ttwwr += rev
         ttwwr += text_to_write
         for rev in reversed(tail_font_revisers):
             ttwwr += rev
-        # FOR PARAGRAPH ALIGNMENT
+        # RIGHT SYMBOL
         if has_right_colon:
             ttwwr += ' :'
         if post_text_to_write != '':

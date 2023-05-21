@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.21-08:05:43-JST>
+# Time-stamp:   <2023.05.21-13:05:02-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -206,11 +206,14 @@ HELP_EPILOG = '''Markdownの記法:
     [^^]で挟まれた文字列は白色になって見えなくなります（独自）
     [^XXYYZZ^]で挟まれた文字列はRGB(XX,YY,ZZ)色になります（独自）
     [^foo^]で挟まれた文字列はfoo色になります（独自）
+      red(R) darkRed(DR) yellow(Y) darkYellow(DY) green(G) darkGreen(DG)
+      cyan(C) darkCyan(DC) blue(B) darkBlue(DB) magenta(M) darkMagenta(DM)
+      lightGray(G1) darkGray(G2) black(BK)
     [__]で挟まれた文字列は下線が引かれます（独自）
-    [_=_]で挟まれた文字列は二重下線が引かれます（独自）
-    [_-_]で挟まれた文字列は破線で下線が引かれます（独自）
-    [_~_]で挟まれた文字列は波線で下線が引かれます（独自）
-    [_._]で挟まれた文字列は点線で下線が引かれます（独自）
+    [_foo_]で挟まれた文字列は特殊な下線が引かれます（独自）
+      $(単語だけ) =(二重線) .(点線) #(太線) -(破線) .-(点破線) ..-(点々破線)
+      ~(波線) .#(点太線) -#(破太線) .-#(点破太線) ..-#(点々破太線) ~#(波太線)
+      -+(破長線) ~=(波二重線) -+#(破長太線)
     [_foo_]で挟まれた区間の背景はfoo色になります（独自）
       red(R) darkRed(DR) yellow(Y) darkYellow(DY) green(G) darkGreen(DG)
       cyan(C) darkCyan(DC) blue(B) darkBlue(DB) magenta(M) darkMagenta(DM)
@@ -267,19 +270,19 @@ RES_NUMBER6 = '(?:' + RES_NUMBER + '?,){,5}' + RES_NUMBER + '?,?'
 RES_IMAGE = '! *\\[([^\\[\\]]*)\\] *\\(([^\\(\\)]+)\\)'
 
 FONT_DECORATORS = [
-    '\\*\\*\\*',             # italic and bold
-    '\\*\\*',                # bold
-    '\\*',                   # italic
-    '~~',                    # strikethrough
-    '`',                     # preformatted
-    '//',                    # italic
-    '_[\\$=\\.#\\-~\\+]*_',  # underline
-    '\\-\\-\\-',             # xsmall
-    '\\-\\-',                # small
-    '\\+\\+\\+',             # xlarge
-    '\\+\\+',                # large
-    '\\^[0-9A-Za-z]*\\^',    # font color
-    '_[0-9A-Za-z]+_',        # higilight color
+    '\\*\\*\\*',                # italic and bold
+    '\\*\\*',                   # bold
+    '\\*',                      # italic
+    '~~',                       # strikethrough
+    '`',                        # preformatted
+    '//',                       # italic
+    '\\-\\-\\-',                # xsmall
+    '\\-\\-',                   # small
+    '\\+\\+\\+',                # xlarge
+    '\\+\\+',                   # large
+    '_[\\$=\\.#\\-~\\+]{,4}_',  # underline
+    '\\^[0-9A-Za-z]{0,11}\\^',  # font color
+    '_[0-9A-Za-z]{1,11}_',      # higilight color
 ]
 
 RELAX_SYMBOL = '<>'
@@ -1319,7 +1322,7 @@ class Form:
                 tex += c
                 if re.match(NOT_ESCAPED + '\\-\\-$', tex) or \
                    re.match(NOT_ESCAPED + '\\+\\+$', tex) or \
-                   re.match(NOT_ESCAPED + '\0$', tex):
+                   re.match('\0$', tex):
                     ms_run = ms_par.add_run()
                     if is_small:
                         ms_run.font.size = Pt(s_size)
@@ -1358,38 +1361,55 @@ class Form:
                 pn = re.sub('(.*) :$', '\\1', pn)
                 ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
             tex = ''
+            is_large = False
+            is_small = False
             for c in pn + '\0':
-                if c != 'n' and c != 'N' and c != '\0':
-                    tex += c
-                    continue
-                if not re.match(NOT_ESCAPED + 'x', tex + 'x') and c != '\0':
-                    tex = re.sub('\\\\$', '', tex) + c
-                    continue
-                # TEXT
-                ms_run = ms_par.add_run()
-                oe = OxmlElement('w:t')
-                oe.set(ns.qn('xml:space'), 'preserve')
-                oe.text = tex
-                ms_run._r.append(oe)
-                tex = ''
-                # PAGE OR NUMPAGES
-                if c == '\0':
-                    continue
-                pn = re.sub('^n', '', pn)
-                ms_run = ms_par.add_run()
-                oe = OxmlElement('w:fldChar')
-                oe.set(ns.qn('w:fldCharType'), 'begin')
-                ms_run._r.append(oe)
-                oe = OxmlElement('w:instrText')
-                oe.set(ns.qn('xml:space'), 'preserve')
-                if c == 'n':
-                    oe.text = 'PAGE'
-                elif c == 'N':
-                    oe.text = 'NUMPAGES'
-                ms_run._r.append(oe)
-                oe = OxmlElement('w:fldChar')
-                oe.set(ns.qn('w:fldCharType'), 'end')
-                ms_run._r.append(oe)
+                tex += c
+                if re.match(NOT_ESCAPED + '\\-\\-$', tex) or \
+                   re.match(NOT_ESCAPED + '\\+\\+$', tex) or \
+                   re.match(NOT_ESCAPED + 'n$', tex) or \
+                   re.match(NOT_ESCAPED + 'N$', tex) or \
+                   re.match('\0$', tex):
+                    ms_run = ms_par.add_run()
+                    if is_small:
+                        ms_run.font.size = Pt(s_size)
+                    elif is_large:
+                        ms_run.font.size = Pt(l_size)
+                    else:
+                        ms_run.font.size = Pt(m_size)
+                    oe = OxmlElement('w:t')
+                    oe.set(ns.qn('xml:space'), 'preserve')
+                    if re.match(NOT_ESCAPED + '\\-\\-$', tex):
+                        oe.text = re.sub('\\-\\-$', '', tex)
+                        is_small = not is_small
+                        is_large = False
+                    elif re.match(NOT_ESCAPED + '\\+\\+$', tex):
+                        oe.text = re.sub('\\+\\+$', '', tex)
+                        is_small = False
+                        is_large = not is_large
+                    elif re.match(NOT_ESCAPED + 'n$', tex):
+                        oe.text = re.sub('n$', '', tex)
+                    elif re.match(NOT_ESCAPED + 'N$', tex):
+                        oe.text = re.sub('N$', '', tex)
+                    elif re.match(NOT_ESCAPED + '\0$', tex):
+                        oe.text = re.sub('\0$', '', tex)
+                    tex = ''
+                    ms_run._r.append(oe)
+                if tex == '' and (c == 'n' or c == 'N'):
+                    ms_run = ms_par.add_run()
+                    oe = OxmlElement('w:fldChar')
+                    oe.set(ns.qn('w:fldCharType'), 'begin')
+                    ms_run._r.append(oe)
+                    oe = OxmlElement('w:instrText')
+                    oe.set(ns.qn('xml:space'), 'preserve')
+                    if c == 'n':
+                        oe.text = 'PAGE'
+                    elif c == 'N':
+                        oe.text = 'NUMPAGES'
+                    ms_run._r.append(oe)
+                    oe = OxmlElement('w:fldChar')
+                    oe.set(ns.qn('w:fldCharType'), 'end')
+                    ms_run._r.append(oe)
         # LINE NUMBER
         if Form.line_number:
             ms_scp = ms_doc.sections[0]._sectPr
@@ -1750,7 +1770,7 @@ class RawParagraph:
         res_lr = '^(\\s*' + ParagraphList.res_reviser + ')(?:\\s*(.*))?$'
         res_er = '^\\s*((?:v|V|X|<<|<|>)=' + RES_NUMBER + ')(?:\\s*(.*))?$'
         res_fr = '^(' + '|'.join(FONT_DECORATORS) + ')(.*)$'
-        res_tr = '^(.*)(' + '|'.join(FONT_DECORATORS) + ')$'
+        res_tr = NOT_ESCAPED + '(' + '|'.join(FONT_DECORATORS) + ')$'
         res_hl = '^' + ParagraphHorizontalLine.res_feature + '$'
         # HEAD REVISERS
         for ml in md_lines:
@@ -1944,13 +1964,13 @@ class Paragraph:
     previous_head_section_depth = 0
     previous_tail_section_depth = 0
     is_preformatted = False
+    is_italic = False
+    is_bold = False
+    has_strike = False
     is_xsmall = False
     is_small = False
     is_large = False
     is_xlarge = False
-    is_italic = False
-    is_bold = False
-    has_strike = False
     underline = None
     font_color = ''
     highlight_color = None
@@ -2515,9 +2535,24 @@ class Paragraph:
                 Paragraph.is_small = False
                 Paragraph.is_large = False
                 Paragraph.is_xlarge = not Paragraph.is_xlarge
-            elif re.match(NOT_ESCAPED + '\\^([0-9A-Za-z]*)\\^$', tex + c):
-                # ^...^ (FONT COLOR)
-                col = re.sub(NOT_ESCAPED + '\\^([0-9A-Za-z]*)\\^$', '\\2',
+            elif re.match(NOT_ESCAPED + '_([\\$=\\.#\\-~\\+]{,4})_$', tex + c):
+                # _.*_ (UNDERLINE)
+                sty = re.sub(NOT_ESCAPED + '_([\\$=\\.#\\-~\\+]{,4})_$', '\\2',
+                             tex + c)
+                if sty in UNDERLINE:
+                    tex = re.sub('_([\\$=\\.#\\-~\\+]{,4})_$', '', tex + c, 1)
+                    tex = self._write_string(tex, ms_par)
+                    c = ''
+                    ul = UNDERLINE[sty]
+                    if Paragraph.underline is None:
+                        Paragraph.underline = ul
+                    elif Paragraph.underline != ul:
+                        Paragraph.underline = ul
+                    else:
+                        Paragraph.underline = None
+            elif re.match(NOT_ESCAPED + '\\^([0-9A-Za-z]{0,11})\\^$', tex + c):
+                # ^.*^ (FONT COLOR)
+                col = re.sub(NOT_ESCAPED + '\\^([0-9A-Za-z]{0,11})\\^$', '\\2',
                              tex + c)
                 if col == '':
                     col = 'FFFFFF'
@@ -2534,24 +2569,10 @@ class Paragraph:
                         Paragraph.font_color = col
                     else:
                         Paragraph.font_color = ''
-            elif re.match(NOT_ESCAPED + '_([\\$=\\.#\\-~\\+]*)_$', tex + c):
-                # _[\\$=\\.#\\-~\\+]*_ (SPECIAL UNDERLINE)
-                sty = re.sub(NOT_ESCAPED + '_([\\$=\\.#\\-~\\+]*)_$', '\\2',
+            elif re.match(NOT_ESCAPED + '_([0-9A-Za-z]{1,11})_$', tex + c):
+                # _.+_ (HIGHLIGHT COLOR)
+                col = re.sub(NOT_ESCAPED + '_([0-9A-Za-z]{1,11})_$', '\\2',
                              tex + c)
-                if sty in UNDERLINE:
-                    tex = re.sub('_([\\$=\\.#\\-~\\+]*)_$', '', tex + c)
-                    tex = self._write_string(tex, ms_par)
-                    c = ''
-                    ul = UNDERLINE[sty]
-                    if Paragraph.underline is None:
-                        Paragraph.underline = ul
-                    elif Paragraph.underline != ul:
-                        Paragraph.underline = ul
-                    else:
-                        Paragraph.underline = None
-            elif re.match(NOT_ESCAPED + '_([0-9A-Za-z]+)_$', tex + c):
-                # _..._ (HIGHLIGHT COLOR)
-                col = re.sub(NOT_ESCAPED + '_([0-9A-Za-z]+)_$', '\\2', tex + c)
                 if col in HIGHLIGHT_COLOR:
                     tex = re.sub('_([0-9A-Za-z]+)_$', '', tex + c)
                     tex = self._write_string(tex, ms_par)
@@ -2564,7 +2585,7 @@ class Paragraph:
                     else:
                         Paragraph.highlight_color = None
             elif re.match(NOT_ESCAPED + RES_IMAGE, tex + c):
-                # ![...](...) (IMAGE)
+                # ![.*](.+) (IMAGE)
                 comm = re.sub(NOT_ESCAPED + RES_IMAGE, '\\2', tex + c)
                 path = re.sub(NOT_ESCAPED + RES_IMAGE, '\\3', tex + c)
                 tex = re.sub(NOT_ESCAPED + RES_IMAGE, '\\1', tex + c)
@@ -2647,6 +2668,17 @@ class Paragraph:
         l_size = m_size * 1.2
         xl_size = m_size * 1.4
         ms_run = ms_par.add_run(string)
+        if cls.is_italic:
+            ms_run.italic = True
+        if cls.has_strike:
+            ms_run.font.strike = True
+        if cls.is_bold:
+            ms_run.bold = True
+        if cls.is_preformatted:
+            ms_run.font.name = cls.gothic_font
+        else:
+            ms_run.font.name = cls.mincho_font
+        ms_run._element.rPr.rFonts.set(qn('w:eastAsia'), ms_run.font.name)
         if cls.is_xsmall:
             ms_run.font.size = Pt(xs_size)
         elif cls.is_small:
@@ -2657,17 +2689,6 @@ class Paragraph:
             ms_run.font.size = Pt(xl_size)
         else:
             ms_run.font.size = Pt(m_size)
-        if cls.is_bold:
-            ms_run.bold = True
-        if cls.is_preformatted:
-            ms_run.font.name = cls.gothic_font
-        else:
-            ms_run.font.name = cls.mincho_font
-        ms_run._element.rPr.rFonts.set(qn('w:eastAsia'), ms_run.font.name)
-        if cls.is_italic:
-            ms_run.italic = True
-        if cls.has_strike:
-            ms_run.font.strike = True
         if cls.underline is not None:
             ms_run.underline = cls.underline
         if cls.font_color != '':
@@ -2919,7 +2940,7 @@ class ParagraphList(Paragraph):
 
     paragraph_class = 'list'
     paragraph_class_ja = 'リスト'
-    res_symbol = '(\\-|\\+|\\*|[0-9]+\\.|[0-9]+\\))()'
+    res_symbol = '(\\-|\\+|[0-9]+\\.|[0-9]+\\))()'
     res_feature = '^\\s*' + res_symbol + '\\s(.*)$'
     # SPACE POLICY
     # res_feature = '^\\s*' + res_symbol + '\\s+(.*)$'
