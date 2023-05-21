@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.21-13:05:02-JST>
+# Time-stamp:   <2023.05.22-06:43:39-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1305,6 +1305,8 @@ class Form:
         if Form.header_string != '':
             hs = Form.header_string
             ms_par = ms_doc.sections[0].header.paragraphs[0]
+            # ms_par.style.font.name = self.gothic_font
+            # ms_par.style.font.size = Pt(m_size)
             ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
             if re.match('^: (.*) :$', hs):
                 hs = re.sub('^: (.*) :', '\\1', hs)
@@ -1316,39 +1318,45 @@ class Form:
                 hs = re.sub('(.*) :$', '\\1', hs)
                 ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
             tex = ''
-            is_large = False
-            is_small = False
+            font_size = Pt(m_size)
+            underline = None
+            res = NOT_ESCAPED + '(\\-\\-|\\+\\+|__)$'
             for c in hs + '\0':
+                # TODO ITALIC BOLD STRIKE GOTHIC UNDERLINE
                 tex += c
-                if re.match(NOT_ESCAPED + '\\-\\-$', tex) or \
-                   re.match(NOT_ESCAPED + '\\+\\+$', tex) or \
-                   re.match('\0$', tex):
+                if not re.match(res, tex) and c != '\0':
+                    continue
+                tex = re.sub('(\\-\\-|\\+\\+|__|\0)$', '', tex, 1)
+                tex = re.sub('\\\\', '-\\\\', tex)
+                tex = re.sub('-\\\\-\\\\', '-\\\\\\\\', tex)
+                tex = re.sub('-\\\\', '', tex)
+                if tex != '':
                     ms_run = ms_par.add_run()
-                    if is_small:
-                        ms_run.font.size = Pt(s_size)
-                    elif is_large:
-                        ms_run.font.size = Pt(l_size)
-                    else:
-                        ms_run.font.size = Pt(m_size)
+                    ms_run.font.size = font_size
+                    ms_run.underline = underline
                     oe = OxmlElement('w:t')
                     oe.set(ns.qn('xml:space'), 'preserve')
-                    if re.match(NOT_ESCAPED + '\\-\\-$', tex):
-                        oe.text = re.sub('\\-\\-$', '', tex)
-                        is_small = not is_small
-                        is_large = False
-                    elif re.match(NOT_ESCAPED + '\\+\\+$', tex):
-                        oe.text = re.sub('\\+\\+$', '', tex)
-                        is_small = False
-                        is_large = not is_large
-                    elif re.match(NOT_ESCAPED + '\0$', tex):
-                        oe.text = re.sub('\0$', '', tex)
-                    tex = ''
+                    oe.text = tex
                     ms_run._r.append(oe)
+                    tex = ''
+                if c == '`':
+                    is_preformatted = not is_preformatted
+                if c == '-' and font_size != Pt(s_size):
+                    font_size = Pt(s_size)
+                elif c == '+' and font_size != Pt(l_size):
+                    font_size = Pt(l_size)
+                elif c == '-' or c == '+':
+                    font_size = Pt(m_size)
+                if c == '_':
+                    if underline is None or underline != UNDERLINE['']:
+                        underline = UNDERLINE['']
+                    else:
+                        underline = None
         # FOOTER
         if Form.page_number != '':
             pn = Form.page_number
             ms_par = ms_doc.sections[0].footer.paragraphs[0]
-            # ms_par.style.font.name = self.mincho_font
+            # ms_par.style.font.name = self.gothic_font
             # ms_par.style.font.size = Pt(m_size)
             ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
             if re.match('^: (.*) :$', pn):
@@ -1361,41 +1369,41 @@ class Form:
                 pn = re.sub('(.*) :$', '\\1', pn)
                 ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
             tex = ''
-            is_large = False
-            is_small = False
+            font_size = Pt(m_size)
+            underline = None
+            res = NOT_ESCAPED + '(\\-\\-|\\+\\+|__|n|N)$'
             for c in pn + '\0':
+                # TODO ITALIC BOLD STRIKE GOTHIC UNDERLINE
                 tex += c
-                if re.match(NOT_ESCAPED + '\\-\\-$', tex) or \
-                   re.match(NOT_ESCAPED + '\\+\\+$', tex) or \
-                   re.match(NOT_ESCAPED + 'n$', tex) or \
-                   re.match(NOT_ESCAPED + 'N$', tex) or \
-                   re.match('\0$', tex):
+                if not re.match(res, tex) and c != '\0':
+                    continue
+                tex = re.sub('(\\-\\-|\\+\\+|__|n|N|\0)$', '', tex, 1)
+                tex = re.sub('\\\\', '-\\\\', tex)
+                tex = re.sub('-\\\\-\\\\', '-\\\\\\\\', tex)
+                tex = re.sub('-\\\\', '', tex)
+                ms_run = ms_par.add_run()
+                if tex != '':
                     ms_run = ms_par.add_run()
-                    if is_small:
-                        ms_run.font.size = Pt(s_size)
-                    elif is_large:
-                        ms_run.font.size = Pt(l_size)
-                    else:
-                        ms_run.font.size = Pt(m_size)
+                    ms_run.font.size = font_size
+                    ms_run.underline = underline
                     oe = OxmlElement('w:t')
                     oe.set(ns.qn('xml:space'), 'preserve')
-                    if re.match(NOT_ESCAPED + '\\-\\-$', tex):
-                        oe.text = re.sub('\\-\\-$', '', tex)
-                        is_small = not is_small
-                        is_large = False
-                    elif re.match(NOT_ESCAPED + '\\+\\+$', tex):
-                        oe.text = re.sub('\\+\\+$', '', tex)
-                        is_small = False
-                        is_large = not is_large
-                    elif re.match(NOT_ESCAPED + 'n$', tex):
-                        oe.text = re.sub('n$', '', tex)
-                    elif re.match(NOT_ESCAPED + 'N$', tex):
-                        oe.text = re.sub('N$', '', tex)
-                    elif re.match(NOT_ESCAPED + '\0$', tex):
-                        oe.text = re.sub('\0$', '', tex)
-                    tex = ''
+                    oe.text = tex
                     ms_run._r.append(oe)
-                if tex == '' and (c == 'n' or c == 'N'):
+                    tex = ''
+                if c == '-' and font_size != Pt(s_size):
+                    font_size = Pt(s_size)
+                elif c == '+' and font_size != Pt(l_size):
+                    font_size = Pt(l_size)
+                elif c == '-' or c == '+':
+                    font_size = Pt(m_size)
+                if c == '_':
+                    if underline is None or underline != UNDERLINE['']:
+                        underline = UNDERLINE['']
+                    else:
+                        underline = None
+                elif c == 'n' or c == 'N':
+                    # TODO FONT SIZE
                     ms_run = ms_par.add_run()
                     oe = OxmlElement('w:fldChar')
                     oe.set(ns.qn('w:fldCharType'), 'begin')

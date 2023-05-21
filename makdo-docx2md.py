@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.21-13:11:38-JST>
+# Time-stamp:   <2023.05.22-06:58:52-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1557,9 +1557,9 @@ class Form:
                 alg = 'R'
             elif re.match('^<.*>$', rxl):
                 continue
-            elif re.match('^PAGE( .*)?', rxl, re.I):
+            elif re.match('^ *PAGE( .*)?', rxl, re.I):
                 pn += 'n'
-            elif re.match('^NUMPAGES( .*)?', rxl, re.I):
+            elif re.match('^ *NUMPAGES( .*)?', rxl, re.I):
                 pn += 'N'
             else:
                 pn += rxl
