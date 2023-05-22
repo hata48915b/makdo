@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.22-06:43:39-JST>
+# Time-stamp:   <2023.05.23-08:12:18-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1303,121 +1303,20 @@ class Form:
         ms_doc.styles['List Number 3'].font.size = Pt(m_size)
         # HEADER
         if Form.header_string != '':
-            hs = Form.header_string
+            hd_str = Form.header_string
             ms_par = ms_doc.sections[0].header.paragraphs[0]
             # ms_par.style.font.name = self.gothic_font
             # ms_par.style.font.size = Pt(m_size)
-            ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-            if re.match('^: (.*) :$', hs):
-                hs = re.sub('^: (.*) :', '\\1', hs)
-                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-            elif re.match('^: (.*)$', hs):
-                hs = re.sub('^: (.*)', '\\1', hs)
-                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
-            elif re.match('^(.*) :$', hs):
-                hs = re.sub('(.*) :$', '\\1', hs)
-                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
-            tex = ''
-            font_size = Pt(m_size)
-            underline = None
-            res = NOT_ESCAPED + '(\\-\\-|\\+\\+|__)$'
-            for c in hs + '\0':
-                # TODO ITALIC BOLD STRIKE GOTHIC UNDERLINE
-                tex += c
-                if not re.match(res, tex) and c != '\0':
-                    continue
-                tex = re.sub('(\\-\\-|\\+\\+|__|\0)$', '', tex, 1)
-                tex = re.sub('\\\\', '-\\\\', tex)
-                tex = re.sub('-\\\\-\\\\', '-\\\\\\\\', tex)
-                tex = re.sub('-\\\\', '', tex)
-                if tex != '':
-                    ms_run = ms_par.add_run()
-                    ms_run.font.size = font_size
-                    ms_run.underline = underline
-                    oe = OxmlElement('w:t')
-                    oe.set(ns.qn('xml:space'), 'preserve')
-                    oe.text = tex
-                    ms_run._r.append(oe)
-                    tex = ''
-                if c == '`':
-                    is_preformatted = not is_preformatted
-                if c == '-' and font_size != Pt(s_size):
-                    font_size = Pt(s_size)
-                elif c == '+' and font_size != Pt(l_size):
-                    font_size = Pt(l_size)
-                elif c == '-' or c == '+':
-                    font_size = Pt(m_size)
-                if c == '_':
-                    if underline is None or underline != UNDERLINE['']:
-                        underline = UNDERLINE['']
-                    else:
-                        underline = None
+            hd_str = self._set_alignment(ms_par, hd_str)
+            self._write_xxxxer(ms_par, hd_str, False)
         # FOOTER
         if Form.page_number != '':
-            pn = Form.page_number
+            ft_str = Form.page_number
             ms_par = ms_doc.sections[0].footer.paragraphs[0]
             # ms_par.style.font.name = self.gothic_font
             # ms_par.style.font.size = Pt(m_size)
-            ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-            if re.match('^: (.*) :$', pn):
-                pn = re.sub('^: (.*) :', '\\1', pn)
-                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-            elif re.match('^: (.*)$', pn):
-                pn = re.sub('^: (.*)', '\\1', pn)
-                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
-            elif re.match('^(.*) :$', pn):
-                pn = re.sub('(.*) :$', '\\1', pn)
-                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
-            tex = ''
-            font_size = Pt(m_size)
-            underline = None
-            res = NOT_ESCAPED + '(\\-\\-|\\+\\+|__|n|N)$'
-            for c in pn + '\0':
-                # TODO ITALIC BOLD STRIKE GOTHIC UNDERLINE
-                tex += c
-                if not re.match(res, tex) and c != '\0':
-                    continue
-                tex = re.sub('(\\-\\-|\\+\\+|__|n|N|\0)$', '', tex, 1)
-                tex = re.sub('\\\\', '-\\\\', tex)
-                tex = re.sub('-\\\\-\\\\', '-\\\\\\\\', tex)
-                tex = re.sub('-\\\\', '', tex)
-                ms_run = ms_par.add_run()
-                if tex != '':
-                    ms_run = ms_par.add_run()
-                    ms_run.font.size = font_size
-                    ms_run.underline = underline
-                    oe = OxmlElement('w:t')
-                    oe.set(ns.qn('xml:space'), 'preserve')
-                    oe.text = tex
-                    ms_run._r.append(oe)
-                    tex = ''
-                if c == '-' and font_size != Pt(s_size):
-                    font_size = Pt(s_size)
-                elif c == '+' and font_size != Pt(l_size):
-                    font_size = Pt(l_size)
-                elif c == '-' or c == '+':
-                    font_size = Pt(m_size)
-                if c == '_':
-                    if underline is None or underline != UNDERLINE['']:
-                        underline = UNDERLINE['']
-                    else:
-                        underline = None
-                elif c == 'n' or c == 'N':
-                    # TODO FONT SIZE
-                    ms_run = ms_par.add_run()
-                    oe = OxmlElement('w:fldChar')
-                    oe.set(ns.qn('w:fldCharType'), 'begin')
-                    ms_run._r.append(oe)
-                    oe = OxmlElement('w:instrText')
-                    oe.set(ns.qn('xml:space'), 'preserve')
-                    if c == 'n':
-                        oe.text = 'PAGE'
-                    elif c == 'N':
-                        oe.text = 'NUMPAGES'
-                    ms_run._r.append(oe)
-                    oe = OxmlElement('w:fldChar')
-                    oe.set(ns.qn('w:fldCharType'), 'end')
-                    ms_run._r.append(oe)
+            ft_str = self._set_alignment(ms_par, ft_str)
+            self._write_xxxxer(ms_par, ft_str, True)
         # LINE NUMBER
         if Form.line_number:
             ms_scp = ms_doc.sections[0]._sectPr
@@ -1428,6 +1327,126 @@ class Form:
             ms_scp.append(oe)
         self.make_styles(ms_doc)
         return ms_doc
+
+    @staticmethod
+    def _set_alignment(ms_par, xx_str):
+        ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        if re.match('^: (.*) :$', xx_str):
+            xx_str = re.sub('^: (.*) :', '\\1', xx_str)
+            ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        elif re.match('^: (.*)$', xx_str):
+            xx_str = re.sub('^: (.*)', '\\1', xx_str)
+            ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+        elif re.match('^(.*) :$', xx_str):
+            xx_str = re.sub('(.*) :$', '\\1', xx_str)
+            ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
+        return xx_str
+
+    @staticmethod
+    def _write_xxxxer(ms_par, xx_str, has_page_number):
+        m_size = Form.font_size
+        s_size = m_size * 0.8
+        l_size = m_size * 1.2
+        tex = ''
+        is_italic = False
+        is_bold = False
+        has_strike = False
+        is_preformatted = False
+        scaling = Pt(m_size)
+        underline = None
+        if not has_page_number:
+            res = NOT_ESCAPED + \
+                '(\\*\\*\\*|~~|`|\\-\\-|\\+\\+|__)$'
+        else:
+            res = NOT_ESCAPED + \
+                '(\\*\\*\\*|~~|`|\\-\\-|\\+\\+|__|n|N)$'
+        xx_str += '\0'
+        for i, c in enumerate(xx_str):
+            # TODO FONT COLOR HIGHT COLOR
+            n = ''
+            if i < len(xx_str) - 1:
+                n = xx_str[i + 1]
+            tex += c
+            if re.match(res, tex):
+                com = re.sub(res, '\\2', tex)
+                tex = re.sub(res, '\\1', tex)
+            elif re.match(NOT_ESCAPED + '\\*\\*$', tex) and n != '*':
+                com = '**'
+                tex = re.sub('\\*\\*$', '', tex, 1)
+            elif re.match(NOT_ESCAPED + '\\*$', tex) and n != '*':
+                com = '*'
+                tex = re.sub('\\*$', '', tex, 1)
+            elif c == '\0':
+                com = '\0'
+                tex = re.sub('\0$', '', tex, 1)
+            else:
+                continue
+            if com == '*':
+                if re.match(NOT_ESCAPED + '\\*\\*$', tex):
+                    tex = re.match('\\*\\*$', '', tex, 1)
+                    com = '***'
+            tex = re.sub('\\\\', '-\\\\', tex)
+            tex = re.sub('-\\\\-\\\\', '-\\\\\\\\', tex)
+            tex = re.sub('-\\\\', '', tex)
+            if tex != '':
+                ms_run = ms_par.add_run()
+                if is_italic:
+                    ms_run.italic = True
+                if is_bold:
+                    ms_run.bold = True
+                if is_preformatted:
+                    ms_run.font.name = Form.gothic_font
+                else:
+                    ms_run.font.name = Form.mincho_font
+                ms_run._element.rPr.rFonts.set(qn('w:eastAsia'),
+                                               ms_run.font.name)
+                if has_strike:
+                    ms_run.font.strike = True
+                ms_run.font.size = scaling
+                ms_run.underline = underline
+                oe = OxmlElement('w:t')
+                oe.set(ns.qn('xml:space'), 'preserve')
+                oe.text = tex
+                ms_run._r.append(oe)
+                tex = ''
+            if com == '*':
+                is_italic = not is_italic
+            elif com == '**':
+                is_bold = not is_bold
+            elif com == '***':
+                is_italic = not is_italic
+                is_bold = not is_bold
+            elif com == '~~':
+                has_strike = not has_strike
+            elif com == '`':
+                is_preformatted = not is_preformatted
+            elif com == '--' and scaling != Pt(s_size):
+                scaling = Pt(s_size)
+            elif com == '++' and scaling != Pt(l_size):
+                scaling = Pt(l_size)
+            elif com == '--' or com == '++':
+                scaling = Pt(m_size)
+            elif com == '__':
+                if underline is None or underline != UNDERLINE['']:
+                    underline = UNDERLINE['']
+                else:
+                    underline = None
+            elif com == 'n' or com == 'N':
+                # TODO FONT DECORATIONS
+                ms_run = ms_par.add_run()
+                oe = OxmlElement('w:fldChar')
+                oe.set(ns.qn('w:fldCharType'), 'begin')
+                ms_run._r.append(oe)
+                oe = OxmlElement('w:instrText')
+                oe.set(ns.qn('xml:space'), 'preserve')
+                if c == 'n':
+                    oe.text = 'PAGE'
+                elif c == 'N':
+                    oe.text = 'NUMPAGES'
+                ms_run._r.append(oe)
+                oe = OxmlElement('w:fldChar')
+                oe.set(ns.qn('w:fldCharType'), 'end')
+                ms_run._r.append(oe)
 
     def make_styles(self, ms_doc):
         m_size = Form.font_size
@@ -1971,10 +1990,10 @@ class Paragraph:
 
     previous_head_section_depth = 0
     previous_tail_section_depth = 0
-    is_preformatted = False
     is_italic = False
     is_bold = False
     has_strike = False
+    is_preformatted = False
     is_xsmall = False
     is_small = False
     is_large = False
@@ -2678,10 +2697,10 @@ class Paragraph:
         ms_run = ms_par.add_run(string)
         if cls.is_italic:
             ms_run.italic = True
-        if cls.has_strike:
-            ms_run.font.strike = True
         if cls.is_bold:
             ms_run.bold = True
+        if cls.has_strike:
+            ms_run.font.strike = True
         if cls.is_preformatted:
             ms_run.font.name = cls.gothic_font
         else:
