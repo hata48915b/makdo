@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.22-06:58:52-JST>
+# Time-stamp:   <2023.05.23-08:17:02-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1506,6 +1506,7 @@ class Form:
         is_in_paragraph = False
         alg = 'L'
         for rxl in xml_lines:
+            # TODO FONT DECORATIONS
             if re.match('^<w:p( .*)?>$', rxl):
                 is_in_paragraph = True
                 continue
@@ -1520,9 +1521,9 @@ class Form:
                 alg = 'R'
             elif re.match('^<.*>$', rxl):
                 continue
-            elif re.match('^PAGE( .*)?', rxl):
+            elif re.match('^ *PAGE( .*)?', rxl):
                 hs += 'n'
-            elif re.match('^NUMPAGES( .*)?', rxl):
+            elif re.match('^ *NUMPAGES( .*)?', rxl):
                 hs += 'N'
             else:
                 hs += rxl
@@ -1543,6 +1544,7 @@ class Form:
         is_in_paragraph = False
         alg = 'L'
         for rxl in xml_lines:
+            # TODO FONT DECORATIONS
             if re.match('^<w:p( .*)?>$', rxl):
                 is_in_paragraph = True
                 continue
