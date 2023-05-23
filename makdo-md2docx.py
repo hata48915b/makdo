@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.23-08:12:18-JST>
+# Time-stamp:   <2023.05.24-06:30:38-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1999,7 +1999,7 @@ class Paragraph:
     is_large = False
     is_xlarge = False
     underline = None
-    font_color = ''
+    font_color = None
     highlight_color = None
 
     @classmethod
@@ -2592,10 +2592,10 @@ class Paragraph:
                     tex = re.sub('\\^([0-9A-Za-z]*)\\^$', '', tex + c)
                     tex = self._write_string(tex, ms_par)
                     c = ''
-                    if Paragraph.font_color == '':
+                    if Paragraph.font_color is None:
                         Paragraph.font_color = col
                     else:
-                        Paragraph.font_color = ''
+                        Paragraph.font_color = None
             elif re.match(NOT_ESCAPED + '_([0-9A-Za-z]{1,11})_$', tex + c):
                 # _.+_ (HIGHLIGHT COLOR)
                 col = re.sub(NOT_ESCAPED + '_([0-9A-Za-z]{1,11})_$', '\\2',
@@ -2718,7 +2718,7 @@ class Paragraph:
             ms_run.font.size = Pt(m_size)
         if cls.underline is not None:
             ms_run.underline = cls.underline
-        if cls.font_color != '':
+        if cls.font_color is not None:
             r = int(re.sub('^(..)(..)(..)$', '\\1', cls.font_color), 16)
             g = int(re.sub('^(..)(..)(..)$', '\\2', cls.font_color), 16)
             b = int(re.sub('^(..)(..)(..)$', '\\3', cls.font_color), 16)
