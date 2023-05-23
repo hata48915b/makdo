@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.23-08:17:02-JST>
+# Time-stamp:   <2023.05.24-07:30:47-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1014,6 +1014,13 @@ class XML:
                         return False
                 return value
         return init_value
+
+    @staticmethod
+    def is_this_tag(tag_name, init_value, tag):
+        if re.match('<' + tag_name + '( .*)?/?>', tag):
+            return True
+        else:
+            return init_value
 
 
 class IO:
@@ -2238,6 +2245,12 @@ class Style:
         self.name = None
         self.font = None
         self.font_size = None
+        self.font_italic = False
+        self.font_bold = False
+        self.font_strike = False
+        self.font_underline = None
+        self.font_color = None
+        self.font_highlight_color = None
         self.alignment = None
         self.raw_length \
             = {'space before': None, 'space after': None, 'line spacing': None,
@@ -2249,7 +2262,13 @@ class Style:
         stid = None
         name = None
         font = None
-        fs_x = None
+        f_2s = None
+        f_it = False
+        f_bd = False
+        f_sk = False
+        f_ul = None
+        f_cl = None
+        f_hc = None
         alig = None
         rl = {'sb': None, 'sa': None, 'ls': None,
               'fi': None, 'hi': None, 'li': None, 'ri': None}
@@ -2258,7 +2277,13 @@ class Style:
             stid = XML.get_value('w:style', 'w:styleId', stid, rxl)
             name = XML.get_value('w:name', 'w:val', name, rxl)
             font = XML.get_value('w:rFonts', '*', font, rxl)
-            fs_x = XML.get_value('w:sz', 'w:val', fs_x, rxl)
+            f_2s = XML.get_value('w:sz', 'w:val', f_2s, rxl)
+            f_it = XML.is_this_tag('w:i', f_it, rxl)
+            f_bd = XML.is_this_tag('w:b', f_bd, rxl)
+            f_sk = XML.is_this_tag('w:strike', f_sk, rxl)
+            f_ul = XML.get_value('w:u', 'w:val', f_ul, rxl)
+            f_cl = XML.get_value('w:color', 'w:val', f_cl, rxl)
+            f_hc = XML.get_value('w:highlight', 'w:val', f_hc, rxl)
             alig = XML.get_value('w:jc', 'w:val', alig, rxl)
             rl['sb'] = XML.get_value('w:spacing', 'w:before', rl['sb'], rxl)
             rl['sa'] = XML.get_value('w:spacing', 'w:after', rl['sa'], rxl)
@@ -2272,8 +2297,14 @@ class Style:
         self.styleid = stid
         self.name = name
         self.font = font
-        if fs_x is not None:
-            self.font_size = round(float(fs_x) / 2, 1)
+        if f_2s is not None:
+            self.font_size = round(float(f_2s) / 2, 1)
+        self.is_italic = f_it
+        self.is_bold = f_bd
+        self.has_strike = f_sk
+        self.underline = f_ul
+        self.font_color = f_cl
+        self.highlight_color = f_hc
         self.alignment = alig
         if rl['sb'] is not None:
             self.raw_length['space before'] = float(rl['sb'])
