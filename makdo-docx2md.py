@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.24-07:30:47-JST>
+# Time-stamp:   <2023.05.24-09:03:29-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1382,11 +1382,11 @@ class Form:
         # DECLARE
         self.document_xml_lines = None
         self.core_xml_lines = None
+        self.styles_xml_lines = None
         self.header1_xml_lines = None
         self.header2_xml_lines = None
         self.footer1_xml_lines = None
         self.footer2_xml_lines = None
-        self.styles_xml_lines = None
         self.rels_xml_lines = None
         self.args = None
 
@@ -1395,14 +1395,14 @@ class Form:
         self._configure_by_document_xml(self.document_xml_lines)
         # DOCUMENT TITLE, DOCUMENT STYLE, ORIGINAL FILE
         self._configure_by_core_xml(self.core_xml_lines)
+        # FONT, LINE SPACING, AUTO SPACE, SAPCE BEFORE AND AFTER
+        self._configure_by_styles_xml(self.styles_xml_lines)
         # HEADER STRING
         self._configure_by_headerX_xml(self.header1_xml_lines)
         self._configure_by_headerX_xml(self.header2_xml_lines)
         # PAGE NUMBER
         self._configure_by_footerX_xml(self.footer1_xml_lines)
         self._configure_by_footerX_xml(self.footer2_xml_lines)
-        # FONT, LINE SPACING, AUTO SPACE, SAPCE BEFORE AND AFTER
-        self._configure_by_styles_xml(self.styles_xml_lines)
         # REVISE BY ARGUMENTS
         self._configure_by_args(self.args)
         # PARAGRAPH
@@ -1507,82 +1507,6 @@ class Form:
                     Form.original_file \
                         = dt.strftime('%Y-%m-%dT%H:%M:%S+09:00')
 
-    def _configure_by_headerX_xml(self, xml_lines):
-        # HEADER STRING
-        hs = ''
-        is_in_paragraph = False
-        alg = 'L'
-        for rxl in xml_lines:
-            # TODO FONT DECORATIONS
-            if re.match('^<w:p( .*)?>$', rxl):
-                is_in_paragraph = True
-                continue
-            elif re.match('^</w:p>$', rxl):
-                is_in_paragraph = False
-                continue
-            if not is_in_paragraph:
-                continue
-            if re.match('<w:jc( .*)w:val=[\'"]center[\'"]( .*)?/>', rxl):
-                alg = 'C'
-            elif re.match('<w:jc( .*)w:val=[\'"]right[\'"]( .*)?/>', rxl):
-                alg = 'R'
-            elif re.match('^<.*>$', rxl):
-                continue
-            elif re.match('^ *PAGE( .*)?', rxl):
-                hs += 'n'
-            elif re.match('^ *NUMPAGES( .*)?', rxl):
-                hs += 'N'
-            else:
-                hs += rxl
-        if hs != '':
-            hs = re.sub('n-\\s[0-9]+\\s-', '- n -', hs)
-            hs = re.sub('N-\\s[0-9]+\\s-', '- N -', hs)
-            hs = re.sub('n[0-9A-Za-z]+', 'n', hs)
-            hs = re.sub('N[0-9A-Za-z]+', 'N', hs)
-            if alg == 'L':
-                hs = ': ' + hs
-            elif alg == 'R':
-                hs = hs + ' :'
-            Form.header_string = hs
-
-    def _configure_by_footerX_xml(self, xml_lines):
-        # PAGE NUMBER
-        pn = ''
-        is_in_paragraph = False
-        alg = 'L'
-        for rxl in xml_lines:
-            # TODO FONT DECORATIONS
-            if re.match('^<w:p( .*)?>$', rxl):
-                is_in_paragraph = True
-                continue
-            elif re.match('^</w:p>$', rxl):
-                is_in_paragraph = False
-                continue
-            if not is_in_paragraph:
-                continue
-            if re.match('<w:jc( .*)w:val=[\'"]center[\'"]( .*)?/>', rxl):
-                alg = 'C'
-            elif re.match('<w:jc( .*)w:val=[\'"]right[\'"]( .*)?/>', rxl):
-                alg = 'R'
-            elif re.match('^<.*>$', rxl):
-                continue
-            elif re.match('^ *PAGE( .*)?', rxl, re.I):
-                pn += 'n'
-            elif re.match('^ *NUMPAGES( .*)?', rxl, re.I):
-                pn += 'N'
-            else:
-                pn += rxl
-        if pn != '':
-            pn = re.sub('n-\\s[0-9]+\\s-', '- n -', pn)
-            pn = re.sub('N-\\s[0-9]+\\s-', '- N -', pn)
-            pn = re.sub('n[0-9A-Za-z]+', 'n', pn)
-            pn = re.sub('N[0-9A-Za-z]+', 'N', pn)
-            if alg == 'L':
-                pn = ': ' + pn
-            elif alg == 'R':
-                pn = pn + ' :'
-            Form.page_number = pn
-
     def _configure_by_styles_xml(self, xml_lines):
         xml_body = XML.get_body('w:styles', xml_lines)
         xml_blocks = XML.get_blocks(xml_body)
@@ -1592,6 +1516,13 @@ class Form:
             name = ''
             font = ''
             sz_x = -1.0
+            f_it = False
+            f_bd = False
+            f_sk = False
+            f_ul = ''
+            f_cl = ''
+            f_hc = ''
+            alig = ''
             ls_x = -1.0
             ase = -1
             asn = -1
@@ -1599,18 +1530,37 @@ class Form:
                 name = XML.get_value('w:name', 'w:val', name, xl)
                 font = XML.get_value('w:rFonts', '*', font, xl)
                 sz_x = XML.get_value('w:sz', 'w:val', sz_x, xl)
+                f_it = XML.is_this_tag('w:i', f_it, xl)
+                f_bd = XML.is_this_tag('w:b', f_bd, xl)
+                f_sk = XML.is_this_tag('w:strike', f_sk, xl)
+                f_ul = XML.get_value('w:u', 'w:val', f_ul, xl)
+                f_cl = XML.get_value('w:color', 'w:val', f_cl, xl)
+                f_hc = XML.get_value('w:highlight', 'w:val', f_hc, xl)
+                alig = XML.get_value('w:jc', 'w:val', alig, xl)
                 ls_x = XML.get_value('w:spacing', 'w:line', ls_x, xl)
                 ase = XML.get_value('w:autoSpaceDE', 'w:val', ase, xl)
                 asn = XML.get_value('w:autoSpaceDN', 'w:val', asn, xl)
-            if name == 'makdo':
+            f_sz = round(sz_x / 2, 1)
+            lnsp = round(ls_x / 20 / Form.font_size, 2)
+            if name == 'header' or name == 'Header':
+                Form.header_string = '<' \
+                    + str(f_sz) + '/' + str(f_it) + '/' + str(f_bd) + '/' \
+                    + str(f_sk) + '/' + str(f_ul) + '/' + str(f_cl) + '/' \
+                    + str(f_hc) + '/' + str(alig) + '>'
+            elif name == 'footer' or name == 'Footer':
+                Form.page_number = '<' \
+                    + str(f_sz) + '/' + str(f_it) + '/' + str(f_bd) + '/' \
+                    + str(f_sk) + '/' + str(f_ul) + '/' + str(f_cl) + '/' \
+                    + str(f_hc) + '/' + str(alig) + '>'
+            elif name == 'makdo':
                 # MINCHO FONT
                 Form.mincho_font = font
                 # FONT SIZE
                 if sz_x > 0:
-                    Form.font_size = round(sz_x / 2, 1)
+                    Form.font_size = f_sz
                 # LINE SPACING
                 if ls_x > 0:
-                    Form.line_spacing = round(ls_x / 20 / Form.font_size, 2)
+                    Form.line_spacing = lnsp
                 # AUTO SPACE
                 if ase == 0 and asn == 0:
                     Form.auto_space = False
@@ -1654,6 +1604,92 @@ class Form:
             Form.space_before = csb
         if csa != '':
             Form.space_after = csa
+
+    def _configure_by_headerX_xml(self, xml_lines):
+        if re.match('^<(.*/.*/.*/.*/.*/.*/.*)>$', Form.header_string):
+            fds = re.sub('^<(.*)>$', '\\1', Form.header_string).split('/')
+            # TODO
+        # HEADER STRING
+        hs = ''
+        is_in_paragraph = False
+        alg = 'L'
+        for rxl in xml_lines:
+            # TODO FONT DECORATIONS
+            if re.match('^<w:p( .*)?>$', rxl):
+                is_in_paragraph = True
+                continue
+            elif re.match('^</w:p>$', rxl):
+                is_in_paragraph = False
+                continue
+            if not is_in_paragraph:
+                continue
+            if re.match('<w:jc( .*)w:val=[\'"]center[\'"]( .*)?/>', rxl):
+                alg = 'C'
+            elif re.match('<w:jc( .*)w:val=[\'"]right[\'"]( .*)?/>', rxl):
+                alg = 'R'
+            elif re.match('^<.*>$', rxl):
+                continue
+            # elif re.match('^ *PAGE( .*)?', rxl):
+            #     hs += 'n'
+            # elif re.match('^ *NUMPAGES( .*)?', rxl):
+            #     hs += 'N'
+            else:
+                hs += rxl
+        if hs != '':
+            hs = re.sub('n-\\s[0-9]+\\s-', '- n -', hs)
+            hs = re.sub('N-\\s[0-9]+\\s-', '- N -', hs)
+            hs = re.sub('n[0-9A-Za-z]+', 'n', hs)
+            hs = re.sub('N[0-9A-Za-z]+', 'N', hs)
+            if alg == 'L':
+                hs = ': ' + hs
+            elif alg == 'R':
+                hs = hs + ' :'
+            hs = re.sub('&lt;', '<', hs)
+            hs = re.sub('&gt;', '>', hs)
+            Form.header_string = hs
+
+    def _configure_by_footerX_xml(self, xml_lines):
+        if re.match('^<(.*/.*/.*/.*/.*/.*/.*)>$', Form.page_number):
+            fds = re.sub('^<(.+)>$', '\\1', Form.page_number).split('/')
+            # TODO
+        # PAGE NUMBER
+        pn = ''
+        is_in_paragraph = False
+        alg = 'L'
+        for rxl in xml_lines:
+            # TODO FONT DECORATIONS
+            if re.match('^<w:p( .*)?>$', rxl):
+                is_in_paragraph = True
+                continue
+            elif re.match('^</w:p>$', rxl):
+                is_in_paragraph = False
+                continue
+            if not is_in_paragraph:
+                continue
+            if re.match('<w:jc( .*)w:val=[\'"]center[\'"]( .*)?/>', rxl):
+                alg = 'C'
+            elif re.match('<w:jc( .*)w:val=[\'"]right[\'"]( .*)?/>', rxl):
+                alg = 'R'
+            elif re.match('^<.*>$', rxl):
+                continue
+            elif re.match('^ *PAGE( .*)?', rxl, re.I):
+                pn += 'n'
+            elif re.match('^ *NUMPAGES( .*)?', rxl, re.I):
+                pn += 'N'
+            else:
+                pn += rxl
+        if pn != '':
+            pn = re.sub('n-\\s[0-9]+\\s-', '- n -', pn)
+            pn = re.sub('N-\\s[0-9]+\\s-', '- N -', pn)
+            pn = re.sub('n[0-9A-Za-z]+', 'n', pn)
+            pn = re.sub('N[0-9A-Za-z]+', 'N', pn)
+            if alg == 'L':
+                pn = ': ' + pn
+            elif alg == 'R':
+                pn = pn + ' :'
+            pn = re.sub('&lt;', '<', pn)
+            pn = re.sub('&gt;', '>', pn)
+            Form.page_number = pn
 
     @staticmethod
     def _configure_by_args(args):
