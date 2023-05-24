@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.24-09:15:13-JST>
+# Time-stamp:   <2023.05.24-11:46:58-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1543,12 +1543,12 @@ class Form:
             f_sz = round(sz_x / 2, 1)
             lnsp = round(ls_x / 20 / Form.font_size, 2)
             if name == 'header' or name == 'Header':
-                Form.header_string = '<' \
+                Form.header_string += '<' \
                     + str(f_sz) + '/' + str(f_it) + '/' + str(f_bd) + '/' \
                     + str(f_sk) + '/' + str(f_ul) + '/' + str(f_cl) + '/' \
                     + str(f_hc) + '/' + str(alig) + '>'
             elif name == 'footer' or name == 'Footer':
-                Form.page_number = '<' \
+                Form.page_number += '<' \
                     + str(f_sz) + '/' + str(f_it) + '/' + str(f_bd) + '/' \
                     + str(f_sk) + '/' + str(f_ul) + '/' + str(f_cl) + '/' \
                     + str(f_hc) + '/' + str(alig) + '>'
@@ -1606,8 +1606,10 @@ class Form:
             Form.space_after = csa
 
     def _configure_by_headerX_xml(self, xml_lines):
-        if re.match('^<(.*/.*/.*/.*/.*/.*/.*)>$', Form.header_string):
-            fds = re.sub('^<(.*)>$', '\\1', Form.header_string).split('/')
+        if re.match('^(.*)<(.*/.*/.*/.*/.*/.*/.*)>$', Form.header_string):
+            hs = Form.header_string
+            fds = re.sub('^(.*)<(.*)>$', '\\2', hs).split('/')
+            Form.header_string = re.sub('^(.*)<(.*)>$', '\\1', hs)
             # TODO
         # HEADER STRING
         hs = ''
@@ -1650,8 +1652,10 @@ class Form:
             Form.header_string = hs
 
     def _configure_by_footerX_xml(self, xml_lines):
-        if re.match('^<(.*/.*/.*/.*/.*/.*/.*)>$', Form.page_number):
-            fds = re.sub('^<(.+)>$', '\\1', Form.page_number).split('/')
+        if re.match('^(.*)<(.*/.*/.*/.*/.*/.*/.*)>$', Form.page_number):
+            pn = Form.page_number
+            fds = re.sub('^(.*)<(.*)>$', '\\2', pn).split('/')
+            Form.page_number = re.sub('^(.*)<(.*)>$', '\\1', pn)
             # TODO
         # PAGE NUMBER
         pn = ''
