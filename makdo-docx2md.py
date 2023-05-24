@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.24-09:03:29-JST>
+# Time-stamp:   <2023.05.24-09:15:13-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1646,6 +1646,7 @@ class Form:
                 hs = hs + ' :'
             hs = re.sub('&lt;', '<', hs)
             hs = re.sub('&gt;', '>', hs)
+            hs = re.sub('&amp;', '&', hs)
             Form.header_string = hs
 
     def _configure_by_footerX_xml(self, xml_lines):
@@ -1689,6 +1690,7 @@ class Form:
                 pn = pn + ' :'
             pn = re.sub('&lt;', '<', pn)
             pn = re.sub('&gt;', '>', pn)
+            pn = re.sub('&amp;', '&', pn)
             Form.page_number = pn
 
     @staticmethod
