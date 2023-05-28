@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.24-06:30:38-JST>
+# Time-stamp:   <2023.05.28-11:59:10-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -262,7 +262,8 @@ TABLE_SPACE_AFTER = 0.2
 
 DEFAULT_AUTO_SPACE = False
 
-NOT_ESCAPED = '^((?:(?:.|\n)*[^\\\\])?(?:\\\\\\\\)*)?'
+NOT_ESCAPED = '^((?:(?:.|\n)*?[^\\\\])?(?:\\\\\\\\)*?)?'
+# NOT_ESCAPED = '^((?:(?:.|\n)*[^\\\\])?(?:\\\\\\\\)*)?'
 
 RES_NUMBER = '(?:[-\\+]?(?:(?:[0-9]+(?:\\.[0-9]+)?)|(?:\\.[0-9]+)))'
 RES_NUMBER6 = '(?:' + RES_NUMBER + '?,){,5}' + RES_NUMBER + '?,?'
@@ -1292,8 +1293,6 @@ class Form:
         ms_sec.right_margin = Cm(Form.right_margin)
         ms_sec.header_distance = Cm(1.0)
         ms_sec.footer_distance = Cm(1.0)
-        ms_doc.styles['Footer'].font.name = self.mincho_font  # page number
-        ms_doc.styles['Footer'].font.size = Pt(m_size)        # page number
         ms_doc.styles['Normal'].font.size = Pt(m_size / 2)  # line number
         ms_doc.styles['List Bullet'].font.size = Pt(m_size)
         ms_doc.styles['List Bullet 2'].font.size = Pt(m_size)
@@ -1302,21 +1301,59 @@ class Form:
         ms_doc.styles['List Number 2'].font.size = Pt(m_size)
         ms_doc.styles['List Number 3'].font.size = Pt(m_size)
         # HEADER
+        # ms_doc.styles['Header'].font.name = self.mincho_font
+        # ms_doc.styles['Header'].font.size = Pt(m_size)
         if Form.header_string != '':
-            hd_str = Form.header_string
+            # MDLINE
+            ml = MdLine(-1, Form.header_string)
+            # RAWPARAGRAPH
+            pn = RawParagraph.raw_paragraph_number
+            rp = RawParagraph([ml])
+            RawParagraph.raw_paragraph_number = pn
+            rp.raw_paragraph_number = -1
+            rp.paragraph_class = 'alignment'
+            # PARAGRAPH
+            pn = Paragraph.paragraph_number
+            p = rp.get_paragraph()
+            Paragraph.paragraph_number = pn
+            p.paragraph_number = -1
+            # WRITE
             ms_par = ms_doc.sections[0].header.paragraphs[0]
-            # ms_par.style.font.name = self.gothic_font
-            # ms_par.style.font.size = Pt(m_size)
-            hd_str = self._set_alignment(ms_par, hd_str)
-            self._write_xxxxer(ms_par, hd_str, False)
+            if p.alignment == 'right':
+                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
+            elif p.alignment == 'center':
+                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+            else:
+                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+            p._write_text(p.text_to_write_with_reviser, ms_par)
+            Paragraph.initialize_class_variable()
         # FOOTER
+        # ms_doc.styles['Footer'].font.name = self.mincho_font  # page number
+        # ms_doc.styles['Footer'].font.size = Pt(m_size)        # page number
         if Form.page_number != '':
-            ft_str = Form.page_number
+            # MDLINE
+            ml = MdLine(-1, Form.page_number)
+            # RAWPARAGRAPH
+            pn = RawParagraph.raw_paragraph_number
+            rp = RawParagraph([ml])
+            RawParagraph.raw_paragraph_number = pn
+            rp.raw_paragraph_number = -2
+            rp.paragraph_class = 'alignment'
+            # PARAGRAPH
+            pn = Paragraph.paragraph_number
+            p = rp.get_paragraph()
+            Paragraph.paragraph_number = pn
+            p.paragraph_number = -2
+            # WRITE
             ms_par = ms_doc.sections[0].footer.paragraphs[0]
-            # ms_par.style.font.name = self.gothic_font
-            # ms_par.style.font.size = Pt(m_size)
-            ft_str = self._set_alignment(ms_par, ft_str)
-            self._write_xxxxer(ms_par, ft_str, True)
+            if p.alignment == 'right':
+                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
+            elif p.alignment == 'center':
+                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+            else:
+                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+            p._write_text(p.text_to_write_with_reviser, ms_par, 'footer')
+            Paragraph.initialize_class_variable()
         # LINE NUMBER
         if Form.line_number:
             ms_scp = ms_doc.sections[0]._sectPr
@@ -1327,126 +1364,6 @@ class Form:
             ms_scp.append(oe)
         self.make_styles(ms_doc)
         return ms_doc
-
-    @staticmethod
-    def _set_alignment(ms_par, xx_str):
-        ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-        if re.match('^: (.*) :$', xx_str):
-            xx_str = re.sub('^: (.*) :', '\\1', xx_str)
-            ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-        elif re.match('^: (.*)$', xx_str):
-            xx_str = re.sub('^: (.*)', '\\1', xx_str)
-            ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
-        elif re.match('^(.*) :$', xx_str):
-            xx_str = re.sub('(.*) :$', '\\1', xx_str)
-            ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
-        return xx_str
-
-    @staticmethod
-    def _write_xxxxer(ms_par, xx_str, has_page_number):
-        m_size = Form.font_size
-        s_size = m_size * 0.8
-        l_size = m_size * 1.2
-        tex = ''
-        is_italic = False
-        is_bold = False
-        has_strike = False
-        is_preformatted = False
-        scaling = Pt(m_size)
-        underline = None
-        if not has_page_number:
-            res = NOT_ESCAPED + \
-                '(\\*\\*\\*|~~|`|\\-\\-|\\+\\+|__)$'
-        else:
-            res = NOT_ESCAPED + \
-                '(\\*\\*\\*|~~|`|\\-\\-|\\+\\+|__|n|N)$'
-        xx_str += '\0'
-        for i, c in enumerate(xx_str):
-            # TODO FONT COLOR HIGHT COLOR
-            n = ''
-            if i < len(xx_str) - 1:
-                n = xx_str[i + 1]
-            tex += c
-            if re.match(res, tex):
-                com = re.sub(res, '\\2', tex)
-                tex = re.sub(res, '\\1', tex)
-            elif re.match(NOT_ESCAPED + '\\*\\*$', tex) and n != '*':
-                com = '**'
-                tex = re.sub('\\*\\*$', '', tex, 1)
-            elif re.match(NOT_ESCAPED + '\\*$', tex) and n != '*':
-                com = '*'
-                tex = re.sub('\\*$', '', tex, 1)
-            elif c == '\0':
-                com = '\0'
-                tex = re.sub('\0$', '', tex, 1)
-            else:
-                continue
-            if com == '*':
-                if re.match(NOT_ESCAPED + '\\*\\*$', tex):
-                    tex = re.match('\\*\\*$', '', tex, 1)
-                    com = '***'
-            tex = re.sub('\\\\', '-\\\\', tex)
-            tex = re.sub('-\\\\-\\\\', '-\\\\\\\\', tex)
-            tex = re.sub('-\\\\', '', tex)
-            if tex != '':
-                ms_run = ms_par.add_run()
-                if is_italic:
-                    ms_run.italic = True
-                if is_bold:
-                    ms_run.bold = True
-                if is_preformatted:
-                    ms_run.font.name = Form.gothic_font
-                else:
-                    ms_run.font.name = Form.mincho_font
-                ms_run._element.rPr.rFonts.set(qn('w:eastAsia'),
-                                               ms_run.font.name)
-                if has_strike:
-                    ms_run.font.strike = True
-                ms_run.font.size = scaling
-                ms_run.underline = underline
-                oe = OxmlElement('w:t')
-                oe.set(ns.qn('xml:space'), 'preserve')
-                oe.text = tex
-                ms_run._r.append(oe)
-                tex = ''
-            if com == '*':
-                is_italic = not is_italic
-            elif com == '**':
-                is_bold = not is_bold
-            elif com == '***':
-                is_italic = not is_italic
-                is_bold = not is_bold
-            elif com == '~~':
-                has_strike = not has_strike
-            elif com == '`':
-                is_preformatted = not is_preformatted
-            elif com == '--' and scaling != Pt(s_size):
-                scaling = Pt(s_size)
-            elif com == '++' and scaling != Pt(l_size):
-                scaling = Pt(l_size)
-            elif com == '--' or com == '++':
-                scaling = Pt(m_size)
-            elif com == '__':
-                if underline is None or underline != UNDERLINE['']:
-                    underline = UNDERLINE['']
-                else:
-                    underline = None
-            elif com == 'n' or com == 'N':
-                # TODO FONT DECORATIONS
-                ms_run = ms_par.add_run()
-                oe = OxmlElement('w:fldChar')
-                oe.set(ns.qn('w:fldCharType'), 'begin')
-                ms_run._r.append(oe)
-                oe = OxmlElement('w:instrText')
-                oe.set(ns.qn('xml:space'), 'preserve')
-                if c == 'n':
-                    oe.text = 'PAGE'
-                elif c == 'N':
-                    oe.text = 'NUMPAGES'
-                ms_run._r.append(oe)
-                oe = OxmlElement('w:fldChar')
-                oe.set(ns.qn('w:fldCharType'), 'end')
-                ms_run._r.append(oe)
 
     def make_styles(self, ms_doc):
         m_size = Form.font_size
@@ -2002,6 +1919,20 @@ class Paragraph:
     font_color = None
     highlight_color = None
 
+    @staticmethod
+    def initialize_class_variable():
+        Paragraph.is_italic = False
+        Paragraph.is_bold = False
+        Paragraph.has_strike = False
+        Paragraph.is_preformatted = False
+        Paragraph.is_xsmall = False
+        Paragraph.is_small = False
+        Paragraph.is_large = False
+        Paragraph.is_xlarge = False
+        Paragraph.underline = None
+        Paragraph.font_color = None
+        Paragraph.highlight_color = None
+
     @classmethod
     def is_this_class(cls, full_text,
                       head_font_revisers=[], tail_font_revisers=[]):
@@ -2507,7 +2438,7 @@ class Paragraph:
         ms_fmt.line_spacing = Pt(ls * m_size)
         return ms_par
 
-    def _write_text(self, text, ms_par):
+    def _write_text(self, text, ms_par, type='normal'):
         lns = text.split('\n')
         text = ''
         res = NOT_ESCAPED + '<br/?>'
@@ -2664,11 +2595,16 @@ class Paragraph:
             # PROCESS (c)
             if False:
                 pass
-            elif c == '`':
+            elif re.match(NOT_ESCAPED + '`$', tex + c):
                 # ` (PREFORMATTED)
                 tex = self._write_string(tex, ms_par)
                 c = ''
                 Paragraph.is_preformatted = not Paragraph.is_preformatted
+            if re.match(NOT_ESCAPED + '(n|N)$', tex + c):
+                if type == 'footer':
+                    # n|N (PAGE NUMBER)
+                    tex = self._write_string(tex, ms_par)
+                    c = self._write_page_number(c, ms_par)
             tex += c
         tex = re.sub('\0$', '', tex)
         if tex != '':
@@ -2680,6 +2616,69 @@ class Paragraph:
         while re.match(res, text):
             text = re.sub(res, '\\1', text)
         return text
+
+    @classmethod
+    def _write_page_number(cls, char, ms_par):
+        # BEGIN
+        ms_run = ms_par.add_run()
+        oe = OxmlElement('w:fldChar')
+        oe.set(ns.qn('w:fldCharType'), 'begin')
+        ms_run._r.append(oe)
+        cls._decorate_page_number(ms_run)
+        # PAGENUMBER
+        ms_run = ms_par.add_run()
+        oe = OxmlElement('w:instrText')
+        # oe.set(ns.qn('xml:space'), 'preserve')
+        if char == 'n':
+            oe.text = 'PAGE'
+        elif char == 'N':
+            oe.text = 'NUMPAGES'
+        ms_run._r.append(oe)
+        # END
+        ms_run = ms_par.add_run()
+        oe = OxmlElement('w:fldChar')
+        oe.set(ns.qn('w:fldCharType'), 'end')
+        ms_run._r.append(oe)
+        cls._decorate_page_number(ms_run)
+        return ''
+
+    @classmethod
+    def _decorate_page_number(cls, ms_run):
+        m_size = Form.font_size
+        xs_size = m_size * 0.6
+        s_size = m_size * 0.8
+        l_size = m_size * 1.2
+        xl_size = m_size * 1.4
+        if cls.is_italic:
+            ms_run.italic = True
+        if cls.is_bold:
+            ms_run.bold = True
+        if cls.has_strike:
+            ms_run.font.strike = True
+        if cls.is_preformatted:
+            ms_run.font.name = Form.gothic_font
+        else:
+            ms_run.font.name = Form.mincho_font
+        ms_run._element.rPr.rFonts.set(qn('w:eastAsia'), ms_run.font.name)
+        if cls.is_xsmall:
+            ms_run.font.size = Pt(xs_size)
+        elif cls.is_small:
+            ms_run.font.size = Pt(s_size)
+        elif cls.is_large:
+            ms_run.font.size = Pt(l_size)
+        elif cls.is_xlarge:
+            ms_run.font.size = Pt(xl_size)
+        else:
+            ms_run.font.size = Pt(m_size)
+        if cls.underline is not None:
+            ms_run.underline = cls.underline
+        if cls.font_color is not None:
+            r = int(re.sub('^(..)(..)(..)$', '\\1', cls.font_color), 16)
+            g = int(re.sub('^(..)(..)(..)$', '\\2', cls.font_color), 16)
+            b = int(re.sub('^(..)(..)(..)$', '\\3', cls.font_color), 16)
+            ms_run.font.color.rgb = RGBColor(r, g, b)
+        if cls.highlight_color is not None:
+            ms_run.font.highlight_color = cls.highlight_color
 
     @classmethod
     def _write_string(cls, string, ms_par):
