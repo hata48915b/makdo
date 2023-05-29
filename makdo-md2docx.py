@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.28-11:59:10-JST>
+# Time-stamp:   <2023.05.29-09:12:30-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2634,6 +2634,7 @@ class Paragraph:
         elif char == 'N':
             oe.text = 'NUMPAGES'
         ms_run._r.append(oe)
+        cls._decorate_page_number(ms_run)
         # END
         ms_run = ms_par.add_run()
         oe = OxmlElement('w:fldChar')
@@ -2661,15 +2662,22 @@ class Paragraph:
             ms_run.font.name = Form.mincho_font
         ms_run._element.rPr.rFonts.set(qn('w:eastAsia'), ms_run.font.name)
         if cls.is_xsmall:
-            ms_run.font.size = Pt(xs_size)
+            font_size = xs_size
         elif cls.is_small:
-            ms_run.font.size = Pt(s_size)
+            font_size = s_size
         elif cls.is_large:
-            ms_run.font.size = Pt(l_size)
+            font_size = l_size
         elif cls.is_xlarge:
-            ms_run.font.size = Pt(xl_size)
+            font_size = xl_size
         else:
-            ms_run.font.size = Pt(m_size)
+            font_size = m_size
+        rPr = ms_run._r.get_or_add_rPr()
+        oe = OxmlElement('w:sz')
+        oe.set(ns.qn('w:val'), str(font_size * 2))
+        rPr.append(oe)
+        oe = OxmlElement('w:szCs')
+        oe.set(ns.qn('w:val'), str(font_size * 2))
+        rPr.append(oe)
         if cls.underline is not None:
             ms_run.underline = cls.underline
         if cls.font_color is not None:
