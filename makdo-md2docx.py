@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.05.29-09:12:30-JST>
+# Time-stamp:   <2023.06.02-18:15:22-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1569,29 +1569,43 @@ class Document:
             # TABLE
             if p.paragraph_class == 'table':
                 if i > 0:
-                    sb = p.length_docx['space before']
-                    if sb < 0:
+                    if p.length_docx['space before'] < 0:
                         msg = '警告: ' \
                             + '段落前の余白「v」の値が小さ過ぎます'
                         # msg = 'warning: ' \
                         #     + '"space before" is too small'
                         p.md_lines[0].append_warning_message(msg)
-                    if p_prev.length_docx['space after'] \
-                       < sb + TABLE_SPACE_BEFORE:
-                        p_prev.length_docx['space after'] = sb
+                        p.length_docx['space before'] = 0.0
+                    sa = p_prev.length_docx['space after']
+                    sb = p.length_docx['space before'] - TABLE_SPACE_BEFORE
+                    mx = max([0, sa, sb])
+                    mn = min([0, sa, sb])
+                    if mx > 0:
+                        p_prev.length_docx['space after'] \
+                            = mx + TABLE_SPACE_BEFORE
+                    else:
+                        p_prev.length_docx['space after'] \
+                            = mn + TABLE_SPACE_BEFORE
                     p.length_docx['space before'] = 0.0
                 if i < m:
-                    sa = p.length_docx['space after']
-                    if sa < 0:
+                    if p.length_docx['space after'] < 0:
                         msg = '警告: ' \
                             + '段落前の余白「V」の値が小さ過ぎます'
                         # msg = 'warning: ' \
                         #     + '"space after" is too small'
                         p.md_lines[0].append_warning_message(msg)
-                    if p_next.length_docx['space before'] \
-                       < sa + TABLE_SPACE_AFTER:
-                        p_next.length_docx['space before'] = sa
+                        p.length_docx['space after'] = 0.0
+                    sa = p.length_docx['space after'] - TABLE_SPACE_AFTER
+                    sb = p_next.length_docx['space before']
+                    mx = max([0, sa, sb])
+                    mn = min([0, sa, sb])
                     p.length_docx['space after'] = 0.0
+                    if mx > 0:
+                        p_next.length_docx['space before'] \
+                            = mx + TABLE_SPACE_AFTER
+                    else:
+                        p_next.length_docx['space before'] \
+                            = mn + TABLE_SPACE_AFTER
         return self.paragraphs
 
     def write_property(self, ms_doc):
