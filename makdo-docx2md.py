@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.06.03-09:25:44-JST>
+# Time-stamp:   <2023.06.04-06:30:31-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2360,8 +2360,12 @@ class RawParagraph:
         has_bottom_line = False   # HORIZONTAL LINE
         has_textbox_line = False  # HORIZONTAL LINE
         is_in_text = False
+        is_not_table_paragraph = True
         fldchar = ''
         for rxl in raw_xml_lines:
+            if re.match('<w:tbl( .*)?>', rxl):
+                is_not_table_paragraph = False
+            # FOR PAGE NUMBER
             if re.match('<w:fldChar w:fldCharType="begin"/>', rxl):
                 fldchar = 'begin'
             elif re.match('<w:fldChar w:fldCharType="separate"/>', rxl):
@@ -2386,11 +2390,11 @@ class RawParagraph:
                 # IMAGE SIZE
                 xml_lines.append(rxl)
                 continue
-            if re.match('^<w:top( .*)?>$', rxl):
+            if is_not_table_paragraph and re.match('^<w:top( .*)?>$', rxl):
                 # HORIZONTAL LINE (TOPLINE)
                 has_top_line = True
                 continue
-            if re.match('^<w:bottom( .*)?>$', rxl):
+            if is_not_table_paragraph and re.match('^<w:bottom( .*)?>$', rxl):
                 # HORIZONTAL LINE (BOTTOMLINE)
                 has_bottom_line = True
                 continue
@@ -2399,11 +2403,6 @@ class RawParagraph:
                 # HORIZONTAL LINE (TEXTBOX)
                 has_textbox_line = True
                 continue
-            if re.match('^<w:r( .*)?>$', rxl):
-                text = ''
-                xml_lines.append(rxl)
-                is_in_text = True
-                continue
             # TRACK CHANGES
             if re.match('^<w:ins( .*)?>$', rxl):
                 has_inserted = True
@@ -2411,79 +2410,86 @@ class RawParagraph:
             elif re.match('^</w:ins( .*)?>$', rxl):
                 has_inserted = False
                 continue
-            if re.match('^</w:r>$', rxl) and text != '':
-                # ITALIC
-                if is_italic:
-                    text = '*' + text + '*'
-                    is_italic = False
-                # BOLD
-                if is_bold:
-                    text = '**' + text + '**'
-                    is_bold = False
-                # STRIKETHROUGH
-                if has_strike:
-                    text = '~~' + text + '~~'
-                    has_strike = False
-                # PREFORMATTED
-                if is_gothic:
-                    text = '`' + text + '`'
-                    is_gothic = False
-                # XSMALL
-                if is_xsmall:
-                    text = '---' + text + '---'
-                    is_xsmall = False
-                # SMALL
-                if is_small:
-                    text = '--' + text + '--'
-                    is_small = False
-                # LARGE
-                if is_large:
-                    text = '++' + text + '++'
-                    is_large = False
-                # XLARGE
-                if is_xlarge:
-                    text = '+++' + text + '+++'
-                    is_xlarge = False
-                # UNDERLINE
-                if underline != '':
-                    ul = UNDERLINE[underline]
-                    text = '_' + ul + '_' + text + '_' + ul + '_'
-                    underline = ''
-                # FONT COLOR
-                if font_color != '':
-                    if font_color == 'FFFFFF':
-                        text = '^^' + text + '^^'
-                    elif font_color in FONT_COLOR:
-                        text = '^' + FONT_COLOR[font_color] + '^' \
-                            + text \
-                            + '^' + FONT_COLOR[font_color] + '^'
-                    else:
-                        text = '^' + font_color + '^' \
-                            + text \
-                            + '^' + font_color + '^'
-                    font_color = ''
-                # HIGILIGHT COLOR
-                if highlight_color != '':
-                    text = '_' + highlight_color + '_' \
-                        + text \
-                        + '_' + highlight_color + '_'
-                    highlight_color = ''
-                # FONT
-                if tmp_font != '':
-                    text = '@' + tmp_font + '@' + \
-                        text + \
-                        '@' + tmp_font + '@'
-                    tmp_font = ''
-                # TRACK CHANGES (DELETED)
-                if has_deleted:
-                    text = '&lt;!--' + text + '--&gt;'
-                    has_deleted = False
-                # TRACK CHANGES (INSERTED)
-                elif has_inserted:
-                    text = '&lt;!+&gt;' + text + '&lt;+&gt;'
-                    has_inserted = False
-                xml_lines.append(text)
+            if re.match('^<w:r( .*)?>$', rxl):
                 text = ''
+                xml_lines.append(rxl)
+                is_in_text = True
+                continue
+            if re.match('^</w:r>$', rxl):
+                if text != '':
+                    # ITALIC
+                    if is_italic:
+                        text = '*' + text + '*'
+                        is_italic = False
+                    # BOLD
+                    if is_bold:
+                        text = '**' + text + '**'
+                        is_bold = False
+                    # STRIKETHROUGH
+                    if has_strike:
+                        text = '~~' + text + '~~'
+                        has_strike = False
+                    # PREFORMATTED
+                    if is_gothic:
+                        text = '`' + text + '`'
+                        is_gothic = False
+                    # XSMALL
+                    if is_xsmall:
+                        text = '---' + text + '---'
+                        is_xsmall = False
+                    # SMALL
+                    if is_small:
+                        text = '--' + text + '--'
+                        is_small = False
+                    # LARGE
+                    if is_large:
+                        text = '++' + text + '++'
+                        is_large = False
+                    # XLARGE
+                    if is_xlarge:
+                        text = '+++' + text + '+++'
+                        is_xlarge = False
+                    # UNDERLINE
+                    if underline != '':
+                        ul = UNDERLINE[underline]
+                        text = '_' + ul + '_' + text + '_' + ul + '_'
+                        underline = ''
+                    # FONT COLOR
+                    if font_color != '':
+                        if font_color == 'FFFFFF':
+                            text = '^^' + text + '^^'
+                        elif font_color in FONT_COLOR:
+                            text = '^' + FONT_COLOR[font_color] + '^' \
+                                + text \
+                                + '^' + FONT_COLOR[font_color] + '^'
+                        else:
+                            text = '^' + font_color + '^' \
+                                + text \
+                                + '^' + font_color + '^'
+                        font_color = ''
+                    # HIGILIGHT COLOR
+                    if highlight_color != '':
+                        text = '_' + highlight_color + '_' \
+                            + text \
+                            + '_' + highlight_color + '_'
+                        highlight_color = ''
+                    # FONT
+                    if tmp_font != '':
+                        text = '@' + tmp_font + '@' + \
+                            text + \
+                            '@' + tmp_font + '@'
+                        tmp_font = ''
+                    # TRACK CHANGES (DELETED)
+                    if has_deleted:
+                        text = '&lt;!--' + text + '--&gt;'
+                        has_deleted = False
+                    # TRACK CHANGES (INSERTED)
+                    elif has_inserted:
+                        text = '&lt;!+&gt;' + text + '&lt;+&gt;'
+                        has_inserted = False
+                    xml_lines.append(text)
+                    text = ''
+                xml_lines.append(rxl)
                 is_in_text = False
                 continue
             if not is_in_text:
@@ -4317,7 +4323,7 @@ class ParagraphTable(Paragraph):
                 wid.append(w)
             if is_in_cel:
                 cell.append(xl)
-            if re.match('<w:tr(.*)?>', xl):
+            if re.match('<w:tr( .*)?>', xl):
                 row = []
                 is_in_row = True
             elif xl == '<w:tc>':
@@ -4336,10 +4342,15 @@ class ParagraphTable(Paragraph):
                 for xml in cell:
                     if re.match('<w:jc w:val=[\'"]left[\'"]/>', xml):
                         tmp.append(':' + '-' * (wid[j] - 1))
+                        break
                     elif re.match('<w:jc w:val=[\'"]center[\'"]/>', xml):
                         tmp.append(':' + '-' * (wid[j] - 2) + ':')
+                        break
                     elif re.match('<w:jc w:val=[\'"]right[\'"]/>', xml):
                         tmp.append('-' * (wid[j] - 1) + ':')
+                        break
+                else:
+                    tmp.append(':' + '-' * (wid[j] - 1))
             ali.append(tmp)
         md_text = ''
         half_row = int(len(tab) / 2)
@@ -4365,7 +4376,16 @@ class ParagraphTable(Paragraph):
                 raw_text = re.sub('\n', '<br>', raw_text)
                 md_text += '|' + raw_text + '|'
             md_text += '\n'
-        md_text = md_text.replace('||', '|')
+        tmp_text = ''
+        for line in md_text.split('\n'):
+            if re.match('^\\|.*\\|$', line):
+                line = re.sub('^\\|', '', line)
+                line = re.sub('\\|$', '', line)
+                line = line.replace('||', '|')
+                line = '|' + line + '|'
+            tmp_text += line + '\n'
+        md_text = tmp_text
+        # md_text = md_text.replace('||', '|')
         md_text = md_text.replace('&lt;', '<')
         md_text = md_text.replace('&gt;', '>')
         md_text = re.sub('\n$', '', md_text)
