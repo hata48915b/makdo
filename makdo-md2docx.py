@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.06.02-18:15:22-JST>
+# Time-stamp:   <2023.06.03-09:27:07-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -198,6 +198,7 @@ HELP_EPILOG = '''Markdownの記法:
     [***]で挟まれた文字列は斜体かつ太字になります
     [~~]で挟まれた文字列は打消線が引かれます
     [`]で挟まれた文字列はゴシック体になります
+    [@foo@]で囲まれた文字列のフォントはfooになります（独自）
     [//]で挟まれた文字列は斜体になります（独自）
     [---]で挟まれた文字列は文字がとても小さくなります（独自）
     [--]で挟まれた文字列は文字が小さくなります（独自）
@@ -214,7 +215,7 @@ HELP_EPILOG = '''Markdownの記法:
       $(単語だけ) =(二重線) .(点線) #(太線) -(破線) .-(点破線) ..-(点々破線)
       ~(波線) .#(点太線) -#(破太線) .-#(点破太線) ..-#(点々破太線) ~#(波太線)
       -+(破長線) ~=(波二重線) -+#(破長太線)
-    [_foo_]で挟まれた区間の背景はfoo色になります（独自）
+    [_foo_]で挟まれた文字列の背景はfoo色になります（独自）
       red(R) darkRed(DR) yellow(Y) darkYellow(DY) green(G) darkGreen(DG)
       cyan(C) darkCyan(DC) blue(B) darkBlue(DB) magenta(M) darkMagenta(DM)
       lightGray(G1) darkGray(G2) black(BK)
@@ -284,6 +285,7 @@ FONT_DECORATORS = [
     '_[\\$=\\.#\\-~\\+]{,4}_',  # underline
     '\\^[0-9A-Za-z]{0,11}\\^',  # font color
     '_[0-9A-Za-z]{1,11}_',      # higilight color
+    '@.{1,66}@'                 # font
 ]
 
 RELAX_SYMBOL = '<>'
@@ -2564,6 +2566,18 @@ class Paragraph:
                 tex = self._write_string(tex, ms_par)
                 c = ''
                 self._write_image(comm, path, ms_par)
+            elif re.match(NOT_ESCAPED + '@(.{1,66})@$', tex + c):
+                # @.+@
+                fnt = re.sub(NOT_ESCAPED + '@(.{1,66})@$', '\\2', tex + c)
+                tex = re.sub(NOT_ESCAPED + '@(.{1,66})@$', '\\1', tex + c)
+                tex = self._write_string(tex, ms_par)
+                c = ''
+                if Paragraph.mincho_font != fnt:
+                    Paragraph.mincho_font = fnt
+                    Paragraph.gothic_font = fnt
+                else:
+                    Paragraph.mincho_font = Form.mincho_font
+                    Paragraph.gothic_font = Form.gothic_font
             elif re.match(res_ivs, tex + c):
                 # .[0-9]+; (IVS (IDEOGRAPHIC VARIATION SEQUENCE))
                 tmp_t = re.sub(res_ivs, '\\1', tex + c)
