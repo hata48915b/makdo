@@ -7,7 +7,7 @@
 文書式: 条文
 
 # [Word形式ファイルの作成方法]
-# python3 makdo-md2docx.py --document-style j kisoku.md kisoku.docx
+# python3 makdo_md2docx.py --document-style j kisoku.md kisoku.docx
 
 -------------------------------------------------------->
 

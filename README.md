@@ -1,4 +1,4 @@
-<!-- Time-stamp:   <2023.05.16-06:56:38-JST> -->
+<!-- Time-stamp:   <2023.06.05-06:58:57-JST> -->
 
 # MAKDO（魔苦怒）
 
@@ -33,18 +33,18 @@ OSに合ったZIPファイルをダウンロードして、展開してくださ
 
 展開したフォルダの中に実行ファイルがあります。
 
-"makdo-md2docx"
-（Windowsの場合は"makdo-md2docx.bat"、macOSの場合は"makdo-md2docx.app"）に、
+"makdo_md2docx"
+（Windowsの場合は"makdo_md2docx.bat"、macOSの場合は"makdo_md2docx.app"）に、
 Markdown形式のファイルをドラッグ＆ドロップすると、
 公用文書書式のMS Word形式のファイルが作成されます。
 
-"makdo-docx2md"
-（Windowsの場合は"makdo-docx2md.bat"、macOSの場合は"makdo-docx2md.app"）に、
+"makdo_docx2md"
+（Windowsの場合は"makdo_docx2md.bat"、macOSの場合は"makdo_docx2md.app"）に、
 公用文書書式のMS Word形式のファイルをドラッグ＆ドロップすると、
 Markdown形式のファイルが作成されます。
 
-なお、"makdo-docx2pdf"
-（Windowsの場合は"makdo-docx2pdf.bat"、macOSの場合は"makdo-docx2pdf.app"）に、
+なお、"makdo_docx2pdf"
+（Windowsの場合は"makdo_docx2pdf.bat"、macOSの場合は"makdo_docx2pdf.app"）に、
 公用文書書式のMS Word形式のファイルをドラッグ＆ドロップすると、
 PDF形式のファイルが作成されます。
 ただし、LibreOfficeがインストールされていることが必要です。
@@ -189,36 +189,36 @@ python -m pip install chardet
 
 Markdown形式のファイルを用意し
 （"OOOO.md"というファイル名だと仮定します。）、
-"makdo-md2docx.py"のあるフォルダに移動させ、次のように実行してください。
+"makdo_md2docx.py"のあるフォルダに移動させ、次のように実行してください。
 "XXXX.docx"というファイル名で、
 公用文書書式のMS Word形式のファイルが作成されます。
 
 ```
-python3 makdo-md2docx.py OOOO.md XXXX.docx
+python3 makdo_md2docx.py OOOO.md XXXX.docx
 ```
 
 オプションについては、`--help`でご確認ください。
 
 ```
-python3 makdo-md2docx.py --help
+python3 makdo_md2docx.py --help
 ```
 
 ### Markdown形式のファイルを作成する場合
 
 公用文書書式のMS Word形式のファイルを用意し
 （"XXXX.docx"というファイル名だと仮定します。）
-"makdo-md2docx.py"のあるフォルダに移動させ、次のように実行してください。
+"makdo_md2docx.py"のあるフォルダに移動させ、次のように実行してください。
 "OOOO.md"というファイル名で、
 Markdown形式のファイルが作成されます。
 
 ```
-python3 makdo-docx2md.py XXXX.docx OOOO.md
+python3 makdo_docx2md.py XXXX.docx OOOO.md
 ```
 
 オプションについては、`--help`でご確認ください。
 
 ```
-python3 makdo-docx2md.py --help
+python3 makdo_docx2md.py --help
 ```
 
 ## Markdown形式とは

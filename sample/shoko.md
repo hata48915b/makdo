@@ -4,7 +4,7 @@
 書題名: サンプル証拠説明書
 
 # [Word形式ファイルの作成方法]
-# python3 makdo-md2docx.py shoko.md shoko.docx
+# python3 makdo_md2docx.py shoko.md shoko.docx
 
 -------------------------------------------------------->
 

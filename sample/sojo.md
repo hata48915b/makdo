@@ -10,7 +10,7 @@
 前余白: ,1,,,,
 
 # [Word形式ファイルの作成方法]
-# python3 makdo-md2docx.py --line-number --space-before ,1 sojo.md sojo.docx
+# python3 makdo_md2docx.py --line-number --space-before ,1 sojo.md sojo.docx
 
 -------------------------------------------------------->
 

@@ -51,8 +51,8 @@
 例えば"sojo.md"を使って自動で実行する場合には、
 次のように実行してください。
 
-"sojo.md"を、"makdo-md2docx"
-（Windowsの場合は"makdo-md2docx.bat"、macOSの場合は"makdo-md2docx.app"）に、
+"sojo.md"を、"makdo_md2docx"
+（Windowsの場合は"makdo_md2docx.bat"、macOSの場合は"makdo_md2docx.app"）に、
 Markdown形式のファイル（例えば"test.md"）を、ドラッグ＆ドロップしてください。
 
 MS Word形式のファイル"sojo.docx"が作成されます。
@@ -69,7 +69,7 @@ MS Word形式のファイル"sojo.docx"が作成されます。
 次のように実行してください。
 
 ```
-python3 makdo-md2docx.py sojo.md sojo.docx
+python3 makdo_md2docx.py sojo.md sojo.docx
 ```
 
 MS Word形式のファイル"sojo.docx"が作成されます。
