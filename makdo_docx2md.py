@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.06.04-06:30:31-JST>
+# Time-stamp:   <2023.06.05-07:26:43-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2530,13 +2530,15 @@ class RawParagraph:
             elif re.match('^<w:b/?>$', rxl):
                 is_bold = True
             elif re.match('^<w:rFonts .*>$', rxl):
-                font = re.sub('^.*[\'"]([^\'"]*)[\'"].*$', '\\1', rxl)
-                if font == Form.mincho_font:
-                    pass
-                elif font == Form.gothic_font:
-                    is_gothic = True
-                else:
-                    tmp_font = font
+                item = re.sub('^.* (\\S+)=[\'"]([^\'"]*)[\'"].*$', '\\1', rxl)
+                font = re.sub('^.* (\\S+)=[\'"]([^\'"]*)[\'"].*$', '\\2', rxl)
+                if item != 'w:hint':
+                    if font == Form.mincho_font:
+                        pass
+                    elif font == Form.gothic_font:
+                        is_gothic = True
+                    else:
+                        tmp_font = font
             elif re.match('^<w:strike/?>$', rxl):
                 has_strike = True
             elif re.match('^<w:u( .*)?>$', rxl):
