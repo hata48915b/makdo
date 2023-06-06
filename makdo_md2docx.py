@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.06.03-09:27:07-JST>
+# Time-stamp:   <2023.06.06-10:00:14-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -26,6 +26,11 @@
 # 2023.01.07 v04 Mitaki
 # 2023.03.16 v05 Aki-Nagatsuka
 # 20XX.XX.XX v06 Shimo-Gion
+
+
+# from makdo_md2docx import Md2Docx
+# m2d = Md2Docx('xxx.md')
+# m2d.save('xxx.docx')
 
 
 ############################################################
@@ -785,33 +790,27 @@ class IO:
 
     """A class to handle input and output"""
 
-    def __init__(self, inputed_md_file, inputed_docx_file):
-        # DECLARE
+    def __init__(self):
         self.inputed_md_file = None
         self.inputed_docx_file = None
         self.md_file = None
         self.docx_file = None
-        # SUBSTITUTE
+        self.ms_doc = None
+
+    def set_md_file(self, inputed_md_file):
+        md_file = inputed_md_file
+        self._verify_input_file(md_file)
         self.inputed_md_file = inputed_md_file
-        self.inputed_docx_file = inputed_docx_file
-        self.md_file = self.inputed_md_file
-        self.docx_file \
-            = self._get_docx_file(self.inputed_md_file, self.inputed_docx_file)
-        # VERIFY
-        self._verify_files(self.md_file, self.docx_file)
+        self.md_file = md_file
 
     def read_md_file(self):
         mf = MdFile(self.md_file)
         self.formal_md_lines = mf.read_file()
         return self.formal_md_lines
 
-    def write_docx_file(self, ms_doc):
-        df = DocxFile(self.docx_file)
-        df.write_file(ms_doc)
-        return
-
-    @staticmethod
-    def _get_docx_file(inputed_md_file, inputed_docx_file):
+    def set_docx_file(self, inputed_docx_file):
+        inputed_md_file = self.inputed_md_file
+        md_file = self.md_file
         docx_file = inputed_docx_file
         if docx_file == '':
             if inputed_md_file == '-':
@@ -825,11 +824,19 @@ class IO:
                 docx_file = re.sub('\\.md$', '.docx', inputed_md_file)
             else:
                 docx_file = inputed_md_file + '.docx'
-        return docx_file
+        self._verify_output_file(docx_file)
+        self._verify_older(md_file, docx_file)
+        self.inputed_docx_file = inputed_docx_file
+        self.docx_file = docx_file
+
+    def save_docx_file(self):
+        ms_doc = self.ms_doc
+        df = DocxFile(self.docx_file)
+        df.write_file(ms_doc)
+        return
 
     @staticmethod
-    def _verify_files(input_file, output_file):
-        # INPUT FILE
+    def _verify_input_file(input_file):
         if input_file != '-':
             if not os.path.exists(input_file):
                 msg = '※ エラー: ' \
@@ -853,7 +860,9 @@ class IO:
                 #     + 'unreadable "' + input_file + '"'
                 sys.stderr.write(msg + '\n\n')
                 sys.exit(1)
-        # OUTPUT FILE
+
+    @staticmethod
+    def _verify_output_file(output_file):
         if output_file != '-' and os.path.exists(output_file):
             if not os.path.isfile(output_file):
                 msg = '※ エラー: ' \
@@ -870,7 +879,9 @@ class IO:
                 #     + 'unwritable "' + output_file + '"'
                 sys.stderr.write(msg + '\n\n')
                 sys.exit(1)
-        # OLDER OR NEWER
+
+    @staticmethod
+    def _verify_older(input_file, output_file):
         if input_file != '-' and os.path.exists(input_file) and \
            output_file != '-' and os.path.exists(output_file):
             if os.path.getmtime(input_file) < os.path.getmtime(output_file):
@@ -880,6 +891,140 @@ class IO:
                 #     + 'overwriting newer file'
                 sys.stderr.write(msg + '\n\n')
                 sys.exit(1)
+
+    def get_ms_doc(self):
+        m_size = Form.font_size
+        s_size = m_size * 0.8
+        l_size = m_size * 1.2
+        ms_doc = docx.Document()
+        ms_sec = ms_doc.sections[0]
+        ms_sec.page_height = Cm(PAPER_HEIGHT[Form.paper_size])
+        ms_sec.page_width = Cm(PAPER_WIDTH[Form.paper_size])
+        ms_sec.top_margin = Cm(Form.top_margin)
+        ms_sec.bottom_margin = Cm(Form.bottom_margin)
+        ms_sec.left_margin = Cm(Form.left_margin)
+        ms_sec.right_margin = Cm(Form.right_margin)
+        ms_sec.header_distance = Cm(1.0)
+        ms_sec.footer_distance = Cm(1.0)
+        ms_doc.styles['Normal'].font.size = Pt(m_size / 2)  # line number
+        ms_doc.styles['List Bullet'].font.size = Pt(m_size)
+        ms_doc.styles['List Bullet 2'].font.size = Pt(m_size)
+        ms_doc.styles['List Bullet 3'].font.size = Pt(m_size)
+        ms_doc.styles['List Number'].font.size = Pt(m_size)
+        ms_doc.styles['List Number 2'].font.size = Pt(m_size)
+        ms_doc.styles['List Number 3'].font.size = Pt(m_size)
+        # HEADER
+        # ms_doc.styles['Header'].font.name = self.mincho_font
+        # ms_doc.styles['Header'].font.size = Pt(m_size)
+        if Form.header_string != '':
+            # MDLINE
+            ml = MdLine(-1, Form.header_string)
+            # RAWPARAGRAPH
+            pn = RawParagraph.raw_paragraph_number
+            rp = RawParagraph([ml])
+            RawParagraph.raw_paragraph_number = pn
+            rp.raw_paragraph_number = -1
+            rp.paragraph_class = 'alignment'
+            # PARAGRAPH
+            pn = Paragraph.paragraph_number
+            p = rp.get_paragraph()
+            Paragraph.paragraph_number = pn
+            p.paragraph_number = -1
+            # WRITE
+            ms_par = ms_doc.sections[0].header.paragraphs[0]
+            if p.alignment == 'right':
+                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
+            elif p.alignment == 'center':
+                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+            else:
+                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+            p._write_text(p.text_to_write_with_reviser, ms_par)
+            Paragraph.initialize_class_variable()
+        # FOOTER
+        # ms_doc.styles['Footer'].font.name = self.mincho_font  # page number
+        # ms_doc.styles['Footer'].font.size = Pt(m_size)        # page number
+        if Form.page_number != '':
+            # MDLINE
+            ml = MdLine(-1, Form.page_number)
+            # RAWPARAGRAPH
+            pn = RawParagraph.raw_paragraph_number
+            rp = RawParagraph([ml])
+            RawParagraph.raw_paragraph_number = pn
+            rp.raw_paragraph_number = -2
+            rp.paragraph_class = 'alignment'
+            # PARAGRAPH
+            pn = Paragraph.paragraph_number
+            p = rp.get_paragraph()
+            Paragraph.paragraph_number = pn
+            p.paragraph_number = -2
+            # WRITE
+            ms_par = ms_doc.sections[0].footer.paragraphs[0]
+            if p.alignment == 'right':
+                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
+            elif p.alignment == 'center':
+                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+            else:
+                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
+            p._write_text(p.text_to_write_with_reviser, ms_par, 'footer')
+            Paragraph.initialize_class_variable()
+        # LINE NUMBER
+        if Form.line_number:
+            ms_scp = ms_doc.sections[0]._sectPr
+            oe = OxmlElement('w:lnNumType')
+            oe.set(ns.qn('w:countBy'), '5')
+            oe.set(ns.qn('w:restart'), 'newPage')
+            oe.set(ns.qn('w:distance'), '567')  # 567≒20*72/2.54=1cm
+            ms_scp.append(oe)
+        self.make_styles(ms_doc)
+        return ms_doc
+
+    def make_styles(self, ms_doc):
+        m_size = Form.font_size
+        l_size = m_size * 1.2
+        line_spacing = Form.line_spacing
+        # NORMAL
+        ms_doc.styles.add_style('makdo', WD_STYLE_TYPE.PARAGRAPH)
+        ms_doc.styles['makdo'].font.name = Form.mincho_font
+        ms_doc.styles['makdo'].font.size = Pt(m_size)
+        ms_doc.styles['makdo'].paragraph_format.line_spacing \
+            = Pt(line_spacing * m_size)
+        if not Form.auto_space:
+            pPr = ms_doc.styles['makdo']._element.get_or_add_pPr()
+            # KANJI<->ENGLISH
+            oe = OxmlElement('w:autoSpaceDE')
+            oe.set(ns.qn('w:val'), '0')
+            pPr.append(oe)
+            # KANJI<->NUMBER
+            oe = OxmlElement('w:autoSpaceDN')
+            oe.set(ns.qn('w:val'), '0')
+            pPr.append(oe)
+        # GOTHIC
+        ms_doc.styles.add_style('makdo-g', WD_STYLE_TYPE.PARAGRAPH)
+        ms_doc.styles['makdo-g'].font.name = Form.gothic_font
+        # IVS
+        ms_doc.styles.add_style('makdo-i', WD_STYLE_TYPE.PARAGRAPH)
+        ms_doc.styles['makdo-i'].font.name = Form.ivs_font
+        # TABLE
+        ms_doc.styles.add_style('makdo-t', WD_STYLE_TYPE.PARAGRAPH)
+        ms_doc.styles['makdo-t'].paragraph_format.line_spacing = Pt(l_size)
+        # ALIGNMENT
+        # ms_doc.styles.add_style('makdo-a', WD_STYLE_TYPE.PARAGRAPH)
+        # SECTION
+        sb = Form.space_before.split(',')
+        sa = Form.space_after.split(',')
+        for i in range(6):
+            n = 'makdo-' + str(i + 1)
+            ms_doc.styles.add_style(n, WD_STYLE_TYPE.PARAGRAPH)
+            if len(sb) > i and sb[i] != '':
+                ms_doc.styles[n].paragraph_format.space_before \
+                    = Pt(float(sb[i]) * line_spacing * m_size)
+            if len(sa) > i and sa[i] != '':
+                ms_doc.styles[n].paragraph_format.space_after \
+                    = Pt(float(sa[i]) * line_spacing * m_size)
+        # HORIZONTAL LINE
+        ms_doc.styles.add_style('makdo-h', WD_STYLE_TYPE.PARAGRAPH)
+        ms_doc.styles['makdo-h'].paragraph_format.line_spacing = 0
+        ms_doc.styles['makdo-h'].font.size = Pt(m_size * 0.5)
 
 
 class MdFile:
@@ -1244,176 +1389,43 @@ class Form:
 
     @staticmethod
     def _configure_by_args(args):
-        if args.document_title is not None:
-            Form.document_title = args.document_title
-        if args.paper_size is not None:
-            Form.paper_size = args.paper_size
-        if args.top_margin is not None:
-            Form.top_margin = args.top_margin
-        if args.bottom_margin is not None:
-            Form.bottom_margin = args.bottom_margin
-        if args.left_margin is not None:
-            Form.left_margin = args.left_margin
-        if args.right_margin is not None:
-            Form.right_margin = args.right_margin
-        if args.mincho_font is not None:
-            Form.mincho_font = args.mincho_font
-        if args.gothic_font is not None:
-            Form.gothic_font = args.gothic_font
-        if args.ivs_font is not None:
-            Form.ivs_font = args.ivs_font
-        if args.font_size is not None:
-            Form.font_size = args.font_size
-        if args.document_style is not None:
-            Form.document_style = args.document_style
-        if args.header_string is not None:
-            Form.header_string = args.header_string
-        if args.page_number is not None:
-            Form.page_number = args.page_number
-        if args.line_number:
-            Form.line_number = True
-        if args.line_spacing is not None:
-            Form.line_spacing = args.line_spacing
-        if args.space_before is not None:
-            Form.space_before = args.space_before
-        if args.space_after is not None:
-            Form.space_after = args.space_after
-        if args.auto_space:
-            Form.auto_space = True
-
-    def get_ms_doc(self):
-        m_size = Form.font_size
-        s_size = m_size * 0.8
-        l_size = m_size * 1.2
-        ms_doc = docx.Document()
-        ms_sec = ms_doc.sections[0]
-        ms_sec.page_height = Cm(PAPER_HEIGHT[Form.paper_size])
-        ms_sec.page_width = Cm(PAPER_WIDTH[Form.paper_size])
-        ms_sec.top_margin = Cm(Form.top_margin)
-        ms_sec.bottom_margin = Cm(Form.bottom_margin)
-        ms_sec.left_margin = Cm(Form.left_margin)
-        ms_sec.right_margin = Cm(Form.right_margin)
-        ms_sec.header_distance = Cm(1.0)
-        ms_sec.footer_distance = Cm(1.0)
-        ms_doc.styles['Normal'].font.size = Pt(m_size / 2)  # line number
-        ms_doc.styles['List Bullet'].font.size = Pt(m_size)
-        ms_doc.styles['List Bullet 2'].font.size = Pt(m_size)
-        ms_doc.styles['List Bullet 3'].font.size = Pt(m_size)
-        ms_doc.styles['List Number'].font.size = Pt(m_size)
-        ms_doc.styles['List Number 2'].font.size = Pt(m_size)
-        ms_doc.styles['List Number 3'].font.size = Pt(m_size)
-        # HEADER
-        # ms_doc.styles['Header'].font.name = self.mincho_font
-        # ms_doc.styles['Header'].font.size = Pt(m_size)
-        if Form.header_string != '':
-            # MDLINE
-            ml = MdLine(-1, Form.header_string)
-            # RAWPARAGRAPH
-            pn = RawParagraph.raw_paragraph_number
-            rp = RawParagraph([ml])
-            RawParagraph.raw_paragraph_number = pn
-            rp.raw_paragraph_number = -1
-            rp.paragraph_class = 'alignment'
-            # PARAGRAPH
-            pn = Paragraph.paragraph_number
-            p = rp.get_paragraph()
-            Paragraph.paragraph_number = pn
-            p.paragraph_number = -1
-            # WRITE
-            ms_par = ms_doc.sections[0].header.paragraphs[0]
-            if p.alignment == 'right':
-                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
-            elif p.alignment == 'center':
-                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-            else:
-                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
-            p._write_text(p.text_to_write_with_reviser, ms_par)
-            Paragraph.initialize_class_variable()
-        # FOOTER
-        # ms_doc.styles['Footer'].font.name = self.mincho_font  # page number
-        # ms_doc.styles['Footer'].font.size = Pt(m_size)        # page number
-        if Form.page_number != '':
-            # MDLINE
-            ml = MdLine(-1, Form.page_number)
-            # RAWPARAGRAPH
-            pn = RawParagraph.raw_paragraph_number
-            rp = RawParagraph([ml])
-            RawParagraph.raw_paragraph_number = pn
-            rp.raw_paragraph_number = -2
-            rp.paragraph_class = 'alignment'
-            # PARAGRAPH
-            pn = Paragraph.paragraph_number
-            p = rp.get_paragraph()
-            Paragraph.paragraph_number = pn
-            p.paragraph_number = -2
-            # WRITE
-            ms_par = ms_doc.sections[0].footer.paragraphs[0]
-            if p.alignment == 'right':
-                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
-            elif p.alignment == 'center':
-                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-            else:
-                ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
-            p._write_text(p.text_to_write_with_reviser, ms_par, 'footer')
-            Paragraph.initialize_class_variable()
-        # LINE NUMBER
-        if Form.line_number:
-            ms_scp = ms_doc.sections[0]._sectPr
-            oe = OxmlElement('w:lnNumType')
-            oe.set(ns.qn('w:countBy'), '5')
-            oe.set(ns.qn('w:restart'), 'newPage')
-            oe.set(ns.qn('w:distance'), '567')  # 567≒20*72/2.54=1cm
-            ms_scp.append(oe)
-        self.make_styles(ms_doc)
-        return ms_doc
-
-    def make_styles(self, ms_doc):
-        m_size = Form.font_size
-        l_size = m_size * 1.2
-        line_spacing = Form.line_spacing
-        # NORMAL
-        ms_doc.styles.add_style('makdo', WD_STYLE_TYPE.PARAGRAPH)
-        ms_doc.styles['makdo'].font.name = Form.mincho_font
-        ms_doc.styles['makdo'].font.size = Pt(m_size)
-        ms_doc.styles['makdo'].paragraph_format.line_spacing \
-            = Pt(line_spacing * m_size)
-        if not Form.auto_space:
-            pPr = ms_doc.styles['makdo']._element.get_or_add_pPr()
-            # KANJI<->ENGLISH
-            oe = OxmlElement('w:autoSpaceDE')
-            oe.set(ns.qn('w:val'), '0')
-            pPr.append(oe)
-            # KANJI<->NUMBER
-            oe = OxmlElement('w:autoSpaceDN')
-            oe.set(ns.qn('w:val'), '0')
-            pPr.append(oe)
-        # GOTHIC
-        ms_doc.styles.add_style('makdo-g', WD_STYLE_TYPE.PARAGRAPH)
-        ms_doc.styles['makdo-g'].font.name = Form.gothic_font
-        # IVS
-        ms_doc.styles.add_style('makdo-i', WD_STYLE_TYPE.PARAGRAPH)
-        ms_doc.styles['makdo-i'].font.name = Form.ivs_font
-        # TABLE
-        ms_doc.styles.add_style('makdo-t', WD_STYLE_TYPE.PARAGRAPH)
-        ms_doc.styles['makdo-t'].paragraph_format.line_spacing = Pt(l_size)
-        # ALIGNMENT
-        # ms_doc.styles.add_style('makdo-a', WD_STYLE_TYPE.PARAGRAPH)
-        # SECTION
-        sb = Form.space_before.split(',')
-        sa = Form.space_after.split(',')
-        for i in range(6):
-            n = 'makdo-' + str(i + 1)
-            ms_doc.styles.add_style(n, WD_STYLE_TYPE.PARAGRAPH)
-            if len(sb) > i and sb[i] != '':
-                ms_doc.styles[n].paragraph_format.space_before \
-                    = Pt(float(sb[i]) * line_spacing * m_size)
-            if len(sa) > i and sa[i] != '':
-                ms_doc.styles[n].paragraph_format.space_after \
-                    = Pt(float(sa[i]) * line_spacing * m_size)
-        # HORIZONTAL LINE
-        ms_doc.styles.add_style('makdo-h', WD_STYLE_TYPE.PARAGRAPH)
-        ms_doc.styles['makdo-h'].paragraph_format.line_spacing = 0
-        ms_doc.styles['makdo-h'].font.size = Pt(m_size * 0.5)
+        if args is not None:
+            if args.document_title is not None:
+                Form.document_title = args.document_title
+            if args.paper_size is not None:
+                Form.paper_size = args.paper_size
+            if args.top_margin is not None:
+                Form.top_margin = args.top_margin
+            if args.bottom_margin is not None:
+                Form.bottom_margin = args.bottom_margin
+            if args.left_margin is not None:
+                Form.left_margin = args.left_margin
+            if args.right_margin is not None:
+                Form.right_margin = args.right_margin
+            if args.mincho_font is not None:
+                Form.mincho_font = args.mincho_font
+            if args.gothic_font is not None:
+                Form.gothic_font = args.gothic_font
+            if args.ivs_font is not None:
+                Form.ivs_font = args.ivs_font
+            if args.font_size is not None:
+                Form.font_size = args.font_size
+            if args.document_style is not None:
+                Form.document_style = args.document_style
+            if args.header_string is not None:
+                Form.header_string = args.header_string
+            if args.page_number is not None:
+                Form.page_number = args.page_number
+            if args.line_number:
+                Form.line_number = True
+            if args.line_spacing is not None:
+                Form.line_spacing = args.line_spacing
+            if args.space_before is not None:
+                Form.space_before = args.space_before
+            if args.space_after is not None:
+                Form.space_after = args.space_after
+            if args.auto_space:
+                Form.auto_space = True
 
 
 class Document:
@@ -3607,43 +3619,56 @@ class MdLine:
             sys.stderr.write(msg + '\n\n')
 
 
+class Md2Docx:
+
+    """A class to make a MS Word file from a Markdown file"""
+
+    def __init__(self, inputed_md_file, args=None):
+        self.io = IO()
+        io = self.io
+        self.doc = Document()
+        doc = self.doc
+        self.frm = Form()
+        frm = self.frm
+        # READ MARKDOWN FILE
+        io.set_md_file(inputed_md_file)
+        formal_md_lines = io.read_md_file()
+        doc.md_lines = doc.get_md_lines(formal_md_lines)
+        # CONFIGURE
+        frm = Form()
+        frm.md_lines = doc.md_lines
+        frm.args = args
+        frm.configure()
+        # MAKE DOCUMENT
+        doc.raw_paragraphs = doc.get_raw_paragraphs(doc.md_lines)
+        doc.paragraphs = doc.get_paragraphs(doc.raw_paragraphs)
+        doc.paragraphs = doc.modify_paragraphs(doc.paragraphs)
+        # WRITE DOCUMENT
+        io.ms_doc = io.get_ms_doc()
+        doc.write_property(io.ms_doc)
+        doc.write_document(io.ms_doc)
+        # PRINT WARNING MESSAGES
+        doc.print_warning_messages()
+
+    def save(self, inputed_docx_file):
+        io = self.io
+        doc = self.doc
+        frm = self.frm
+        # SAVE MS WORD FILE
+        io.set_docx_file(inputed_docx_file)
+        io.save_docx_file()
+
+
 ############################################################
 # MAIN
 
 
 def main():
-
     args = get_arguments()
-
-    io = IO(args.md_file, args.docx_file)
-
-    doc = Document()
-
-    formal_md_lines = io.read_md_file()
-    doc.md_lines = doc.get_md_lines(formal_md_lines)
-
-    frm = Form()
-    frm.md_lines = doc.md_lines
-    frm.args = args
-    frm.configure()
-
-    doc.raw_paragraphs = doc.get_raw_paragraphs(doc.md_lines)
-    doc.paragraphs = doc.get_paragraphs(doc.raw_paragraphs)
-    doc.paragraphs = doc.modify_paragraphs(doc.paragraphs)
-
-    ms_doc = frm.get_ms_doc()
-
-    doc.write_property(ms_doc)
-
-    doc.write_document(ms_doc)
-
-    io.write_docx_file(ms_doc)
-
-    doc.print_warning_messages()
-
+    m2d = Md2Docx(args.md_file, args)
+    m2d.save(args.docx_file)
     sys.exit(0)
 
 
 if __name__ == '__main__':
-
     main()

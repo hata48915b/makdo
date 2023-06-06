@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.06.05-07:26:43-JST>
+# Time-stamp:   <2023.06.06-10:28:30-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -26,6 +26,11 @@
 # 2023.01.07 v04 Mitaki
 # 2023.03.16 v05 Aki-Nagatsuka
 # 20XX.XX.XX v06 Shimo-Gion
+
+
+# from makdo_docx2md import Docx2Md
+# d2m = Md2Docx('xxx.docx')
+# d2m.save('xxx.md')
 
 
 ############################################################
@@ -1031,7 +1036,7 @@ class IO:
 
     media_dir = ''
 
-    def __init__(self, inputed_docx_file, inputed_md_file):
+    def __init__(self):
         # DECLARE
         self.inputed_docx_file = None
         self.inputed_md_file = None
@@ -1042,15 +1047,14 @@ class IO:
         self.docx_input = None
         self.md_file_inst = None
         # SUBSTITUTE
-        self.inputed_docx_file = inputed_docx_file
-        self.inputed_md_file = inputed_md_file
-        self.docx_file = self.inputed_docx_file
-        self.md_file = self._get_md_file(inputed_docx_file, inputed_md_file)
         self.temp_dir_inst = tempfile.TemporaryDirectory()
         self.temp_dir = self.temp_dir_inst.name
-        # VERIFY
-        self._verify_files(self.docx_file, self.md_file)
-        IO.media_dir = self._get_media_dir(self.md_file)
+
+    def set_docx_file(self, inputed_docx_file):
+        docx_file = inputed_docx_file
+        self._verify_input_file(docx_file)
+        self.inputed_docx_file = inputed_docx_file
+        self.docx_file = docx_file
 
     def unpack_docx_file(self):
         self.docx_input = DocxFile(self.docx_file)
@@ -1060,6 +1064,27 @@ class IO:
     def read_xml_file(self, xml_file):
         xml_lines = self.docx_input.read_xml_file(xml_file)
         return xml_lines
+
+    def set_md_file(self, inputed_md_file):
+        inputed_docx_file = self.inputed_docx_file
+        docx_file = self.docx_file
+        md_file = inputed_md_file
+        if md_file == '':
+            if inputed_docx_file == '-':
+                msg = '※ エラー: ' \
+                    + '出力ファイルの指定がありません'
+                # msg = 'error: ' \
+                #     + 'no output file name'
+                sys.stderr.write(msg + '\n\n')
+                sys.exit(1)
+            elif re.match('^.*\\.docx$', inputed_docx_file):
+                md_file = re.sub('\\.docx$', '.md', inputed_docx_file)
+            else:
+                md_file = inputed_docx_file + '.md'
+        self._verify_output_file(md_file)
+        self._verify_older(docx_file, md_file)
+        self.inputed_md_file = inputed_md_file
+        self.md_file = md_file
 
     def open_md_file(self):
         self.md_file_inst = MdFile(self.md_file)
@@ -1141,26 +1166,8 @@ class IO:
                 sys.stderr.write(msg + '\n\n')
                 continue
 
-    @staticmethod
-    def _get_md_file(inputed_docx_file, inputed_md_file):
-        md_file = inputed_md_file
-        if md_file == '':
-            if inputed_docx_file == '-':
-                msg = '※ エラー: ' \
-                    + '出力ファイルの指定がありません'
-                # msg = 'error: ' \
-                #     + 'no output file name'
-                sys.stderr.write(msg + '\n\n')
-                sys.exit(1)
-            elif re.match('^.*\\.docx$', inputed_docx_file):
-                md_file = re.sub('\\.docx$', '.md', inputed_docx_file)
-            else:
-                md_file = inputed_docx_file + '.md'
-        # self.md_file = md_file
-        return md_file
-
-    @staticmethod
-    def _get_media_dir(md_file):
+    def get_media_dir(self):
+        md_file = self.md_file
         if md_file == '':
             media_dir = ''
         else:
@@ -1174,8 +1181,7 @@ class IO:
         return media_dir
 
     @staticmethod
-    def _verify_files(input_file, output_file):
-        # INPUT FILE
+    def _verify_input_file(input_file):
         if input_file != '-':
             if not os.path.exists(input_file):
                 msg = '※ エラー: ' \
@@ -1193,13 +1199,15 @@ class IO:
                 sys.exit(1)
             if not os.access(input_file, os.R_OK):
                 msg = '※ エラー: ' \
-                    + '入力ファイル「' + input_file + '」に読込み権限が' \
+                    + '入力ファイル「' + input_file + '」に読込権限が' \
                     + 'ありません'
                 # msg = 'error: ' \
                 #     + 'unreadable "' + input_file + '"'
                 sys.stderr.write(msg + '\n\n')
                 sys.exit(1)
-        # OUTPUT FILE
+
+    @staticmethod
+    def _verify_output_file(output_file):
         if output_file != '-' and os.path.exists(output_file):
             if not os.path.isfile(output_file):
                 msg = '※ エラー: ' \
@@ -1210,13 +1218,15 @@ class IO:
                 sys.exit(1)
             if not os.access(output_file, os.W_OK):
                 msg = '※ エラー: ' \
-                    + '出力ファイル「' + output_file + '」に書込み権限が' \
+                    + '出力ファイル「' + output_file + '」に書込権限が' \
                     + 'ありません'
                 # msg = 'error: ' \
                 #     + 'unwritable "' + output_file + '"'
                 sys.stderr.write(msg + '\n\n')
                 sys.exit(1)
-        # OLDER OR NEWER
+
+    @staticmethod
+    def _verify_older(input_file, output_file):
         if input_file != '-' and os.path.exists(input_file) and \
            output_file != '-' and os.path.exists(output_file):
             if os.path.getmtime(input_file) < os.path.getmtime(output_file):
@@ -1627,42 +1637,43 @@ class Form:
 
     @staticmethod
     def _configure_by_args(args):
-        if args.document_title is not None:
-            Form.document_title = args.document_title
-        if args.document_style is not None:
-            Form.document_style = args.document_style
-        if args.paper_size is not None:
-            Form.paper_size = args.paper_size
-        if args.top_margin is not None:
-            Form.top_margin = args.top_margin
-        if args.bottom_margin is not None:
-            Form.bottom_margin = args.bottom_margin
-        if args.left_margin is not None:
-            Form.left_margin = args.left_margin
-        if args.right_margin is not None:
-            Form.right_margin = args.right_margin
-        if args.header_string is not None:
-            Form.header_string = args.header_string
-        if args.page_number is not None:
-            Form.page_number = args.page_number
-        if args.line_number:
-            Form.line_number = True
-        if args.mincho_font is not None:
-            Form.mincho_font = args.mincho_font
-        if args.gothic_font is not None:
-            Form.gothic_font = args.gothic_font
-        if args.ivs_font is not None:
-            Form.ivs_font = args.ivs_font
-        if args.font_size is not None:
-            Form.font_size = args.font_size
-        if args.line_spacing is not None:
-            Form.line_spacing = args.line_spacing
-        if args.space_before is not None:
-            Form.space_before = args.space_before
-        if args.space_after is not None:
-            Form.space_after = args.space_after
-        if args.auto_space:
-            Form.auto_space = args.auto_space
+        if args is not None:
+            if args.document_title is not None:
+                Form.document_title = args.document_title
+            if args.document_style is not None:
+                Form.document_style = args.document_style
+            if args.paper_size is not None:
+                Form.paper_size = args.paper_size
+            if args.top_margin is not None:
+                Form.top_margin = args.top_margin
+            if args.bottom_margin is not None:
+                Form.bottom_margin = args.bottom_margin
+            if args.left_margin is not None:
+                Form.left_margin = args.left_margin
+            if args.right_margin is not None:
+                Form.right_margin = args.right_margin
+            if args.header_string is not None:
+                Form.header_string = args.header_string
+            if args.page_number is not None:
+                Form.page_number = args.page_number
+            if args.line_number:
+                Form.line_number = True
+            if args.mincho_font is not None:
+                Form.mincho_font = args.mincho_font
+            if args.gothic_font is not None:
+                Form.gothic_font = args.gothic_font
+            if args.ivs_font is not None:
+                Form.ivs_font = args.ivs_font
+            if args.font_size is not None:
+                Form.font_size = args.font_size
+            if args.line_spacing is not None:
+                Form.line_spacing = args.line_spacing
+            if args.space_before is not None:
+                Form.space_before = args.space_before
+            if args.space_after is not None:
+                Form.space_after = args.space_after
+            if args.auto_space:
+                Form.auto_space = args.auto_space
 
     @classmethod
     def get_configurations(cls):
@@ -4703,66 +4714,80 @@ class ParagraphConfiguration(Paragraph):
             return True
 
 
+class Docx2Md:
+
+    """A class to make a Markdown file from a MS Word file"""
+
+    def __init__(self, inputed_docx_file, args=None):
+        self.io = IO()
+        io = self.io
+        self.doc = Document()
+        doc = self.doc
+        self.frm = Form()
+        frm = self.frm
+        # RAED MS WORD FILE
+        io.set_docx_file(inputed_docx_file)
+        io.unpack_docx_file()
+        document_xml_lines = io.read_xml_file('/word/document.xml')
+        core_xml_lines = io.read_xml_file('/docProps/core.xml')
+        styles_xml_lines = io.read_xml_file('/word/styles.xml')
+        header1_xml_lines = io.read_xml_file('/word/header1.xml')
+        header2_xml_lines = io.read_xml_file('/word/header2.xml')
+        footer1_xml_lines = io.read_xml_file('/word/footer1.xml')
+        footer2_xml_lines = io.read_xml_file('/word/footer2.xml')
+        rels_xml_lines = io.read_xml_file('/word/_rels/document.xml.rels')
+        # CONFIGURE
+        frm.document_xml_lines = document_xml_lines
+        frm.core_xml_lines = core_xml_lines
+        frm.styles_xml_lines = styles_xml_lines
+        frm.header1_xml_lines = header1_xml_lines
+        frm.header2_xml_lines = header2_xml_lines
+        frm.footer1_xml_lines = footer1_xml_lines
+        frm.footer2_xml_lines = footer2_xml_lines
+        frm.args = args
+        frm.configure()
+        # IMAGE LIST
+        # frm.rels_xml_lines = rels_xml_lines
+        Form.rels = Form.get_rels(rels_xml_lines)
+        # STYLE LIST
+        # frm.styles_xml_lines = styles_xml_lines
+        Form.styles = Form.get_styles(styles_xml_lines)
+        # PRESERVE
+        doc.document_xml_lines = document_xml_lines
+
+    def save(self, inputed_md_file):
+        io = self.io
+        doc = self.doc
+        frm = self.frm
+        document_xml_lines = doc.document_xml_lines
+        # SET MARKDOWN FILE NAME
+        io.set_md_file(inputed_md_file)
+        IO.media_dir = io.get_media_dir()
+        # MAKE DOCUMUNT
+        doc.raw_paragraphs = doc.get_raw_paragraphs(document_xml_lines)
+        doc.paragraphs = doc.get_paragraphs(doc.raw_paragraphs)
+        doc.paragraphs = doc.modify_paragraphs()
+        # SAVE MARKDOWN FILE
+        io.open_md_file()
+        cfgs = frm.get_configurations()
+        io.write_md_file(cfgs)
+        dcmt = doc.get_document()
+        io.write_md_file(dcmt)
+        imgs = doc.get_images()
+        io.save_images(imgs)
+        io.close_md_file()
+
+
 ############################################################
 # MAIN
 
 
 def main():
-
     args = get_arguments()
-
-    io = IO(args.docx_file, args.md_file)
-
-    doc = Document()
-
-    io.unpack_docx_file()
-    document_xml_lines = io.read_xml_file('/word/document.xml')
-    core_xml_lines = io.read_xml_file('/docProps/core.xml')
-    styles_xml_lines = io.read_xml_file('/word/styles.xml')
-    header1_xml_lines = io.read_xml_file('/word/header1.xml')
-    header2_xml_lines = io.read_xml_file('/word/header2.xml')
-    footer1_xml_lines = io.read_xml_file('/word/footer1.xml')
-    footer2_xml_lines = io.read_xml_file('/word/footer2.xml')
-    rels_xml_lines = io.read_xml_file('/word/_rels/document.xml.rels')
-
-    frm = Form()
-    frm.document_xml_lines = document_xml_lines
-    frm.core_xml_lines = core_xml_lines
-    frm.styles_xml_lines = styles_xml_lines
-    frm.header1_xml_lines = header1_xml_lines
-    frm.header2_xml_lines = header2_xml_lines
-    frm.footer1_xml_lines = footer1_xml_lines
-    frm.footer2_xml_lines = footer2_xml_lines
-    frm.args = args
-    frm.configure()
-
-    # frm.rels_xml_lines = rels_xml_lines
-    Form.rels = Form.get_rels(rels_xml_lines)
-
-    # frm.styles_xml_lines = styles_xml_lines
-    Form.styles = Form.get_styles(styles_xml_lines)
-
-    # doc.document_xml_lines = document_xml_lines
-    doc.raw_paragraphs = doc.get_raw_paragraphs(document_xml_lines)
-    doc.paragraphs = doc.get_paragraphs(doc.raw_paragraphs)
-    doc.paragraphs = doc.modify_paragraphs()
-
-    io.open_md_file()
-
-    cfgs = frm.get_configurations()
-    io.write_md_file(cfgs)
-
-    dcmt = doc.get_document()
-    io.write_md_file(dcmt)
-
-    imgs = doc.get_images()
-    io.save_images(imgs)
-
-    io.close_md_file()
-
+    d2m = Docx2Md(args.docx_file, args)
+    d2m.save(args.md_file)
     sys.exit(0)
 
 
 if __name__ == '__main__':
-
     main()
