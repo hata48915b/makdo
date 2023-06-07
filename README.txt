@@ -1,4 +1,4 @@
-<!-- Time-stamp:   <2023.06.07-11:02:54-JST> -->
+<!-- Time-stamp:   <2023.06.07-11:44:51-JST> -->
 
 # MAKDO（魔苦怒）
 
@@ -12,7 +12,7 @@
 
 ## 注意事項
 
-このライブラリは、Python3（Pythonのバージョン3）以上を想定しています。
+このアプリ（ライブラリ）は、Python3（Pythonのバージョン3）以上を想定しています。
 
 以下の説明では`python`という表記は、
 システムによっては`python3`等を意味する場合があります。
@@ -472,9 +472,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ## ウェブページ
 
-[makdo](https://github.com/hata48915b/makdo)
+[ソースコードのページ（github）](https://github.com/hata48915b/makdo)
 
-[makdo](https://hata-o.jp/kian/index?tools#makdo)
+[ライブラリのページ（PyPI）](https://pypi.org/project/makdo/)
+
+[簡易実行ファイルのページ](https://hata-o.jp/kian/index?tools#makdo)
 
 ## 名前の由来
 
