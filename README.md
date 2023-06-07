@@ -1,4 +1,4 @@
-<!-- Time-stamp:   <2023.06.07-11:49:41-JST> -->
+<!-- Time-stamp:   <2023.06.08-06:54:10-JST> -->
 
 # MAKDO（魔苦怒）
 
@@ -40,7 +40,7 @@
 とりあえず使いたい方は、下記にアクセスして、
 OSに合ったZIPファイルをダウンロードして、展開してください。
 
-[簡易実行ファイルのダウンロード](https://hata-o.jp/kian/index?tools#makdo)
+[簡易実行ファイルのダウンロードページ](https://hata-o.jp/kian/index?tools#makdo)
 
 展開したフォルダの中に実行ファイルがあります。
 
@@ -60,7 +60,7 @@ Markdown形式のファイルが作成されます。
 PDF形式のファイルが作成されます。
 ただし、LibreOfficeがインストールされていることが必要です。
 
-[LibreOffice](https://ja.libreoffice.org/download/download/)
+[LibreOfficeのダウンロードページ](https://ja.libreoffice.org/download/download/)
 
 ## これは何？
 
@@ -112,7 +112,7 @@ Windowsでも、macOSでも、Linuxでも動作します
 
 [Pythonの公式サイト](https://www.python.org/)
 
-[python-docxのページ](https://package.wiki/python-docx)
+[python-docxのページ](https://pypi.org/project/python-docx/)
 
 ### Python3のインストール
 
@@ -124,9 +124,9 @@ Python2では動作しませんので、Python3をインストールする必要
 下記の公式サイトのダウンロードページから、
 インストーラーをダウンロードして実行し、インストールしてください。
 
-[Windows用のダウンロードサイト](https://www.python.org/downloads/windows/)
+[Windows用のダウンロードページ](https://www.python.org/downloads/windows/)
 
-[macOS用のダウンロードサイト](https://www.python.org/downloads/macos/)
+[macOS用のダウンロードページ](https://www.python.org/downloads/macos/)
 
 インストーラ−は、
 Windowsの場合は"python-(VERSION)-amd64.exe"、
