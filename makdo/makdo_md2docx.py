@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.06.07-12:15:02-JST>
+# Time-stamp:   <2023.06.08-05:49:43-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -3136,14 +3136,14 @@ class ParagraphTable(Paragraph):
             # ms_tab.rows[i].height = Pt(1.5 * m_size)
             for j in range(len(tab[i])):
                 cell = tab[i][j]
-                if re.match('^:\\s(.*)\\s:$', cell):
-                    cell = re.sub('^:\\s(.*)\\s:$', '\\1', cell)
+                if re.match('^\\s*:\\s(.*)\\s:\\s*$', cell):
+                    cell = re.sub('^\\s*:\\s(.*)\\s:\\s*$', '\\1', cell)
                     cel_ali = WD_TABLE_ALIGNMENT.CENTER
-                elif re.match('^:\\s(.*)$', cell):
-                    cell = re.sub(':\\s(.*)', '\\1', cell)
+                elif re.match('^\\s*:\\s(.*)$', cell):
+                    cell = re.sub('\\s*:\\s(.*)', '\\1', cell)
                     cel_ali = WD_TABLE_ALIGNMENT.LEFT
-                elif re.match('^(.*)\\s:$', cell):
-                    cell = re.sub('^(.*)\\s:$', '\\1', cell)
+                elif re.match('^(.*)\\s:\\s*$', cell):
+                    cell = re.sub('^(.*)\\s:\\s*$', '\\1', cell)
                     cel_ali = WD_TABLE_ALIGNMENT.RIGHT
                 elif i < conf_row:
                     cel_ali = WD_TABLE_ALIGNMENT.CENTER
