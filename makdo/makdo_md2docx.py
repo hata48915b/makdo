@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.06.07-10:55:43-JST>
+# Time-stamp:   <2023.06.07-12:15:02-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -3136,12 +3136,25 @@ class ParagraphTable(Paragraph):
             # ms_tab.rows[i].height = Pt(1.5 * m_size)
             for j in range(len(tab[i])):
                 cell = tab[i][j]
-                if ali_list[j] == WD_TABLE_ALIGNMENT.LEFT:
+                if re.match('^:\\s(.*)\\s:$', cell):
+                    cell = re.sub('^:\\s(.*)\\s:$', '\\1', cell)
+                    cel_ali = WD_TABLE_ALIGNMENT.CENTER
+                elif re.match('^:\\s(.*)$', cell):
+                    cell = re.sub(':\\s(.*)', '\\1', cell)
+                    cel_ali = WD_TABLE_ALIGNMENT.LEFT
+                elif re.match('^(.*)\\s:$', cell):
+                    cell = re.sub('^(.*)\\s:$', '\\1', cell)
+                    cel_ali = WD_TABLE_ALIGNMENT.RIGHT
+                elif i < conf_row:
+                    cel_ali = WD_TABLE_ALIGNMENT.CENTER
+                else:
+                    cel_ali = ali_list[j]
+                if cel_ali == WD_TABLE_ALIGNMENT.LEFT:
                     cell = re.sub('\\s+$', '', cell)
-                elif ali_list[j] == WD_TABLE_ALIGNMENT.CENTER:
+                elif cel_ali == WD_TABLE_ALIGNMENT.CENTER:
                     cell = re.sub('^\\s+', '', cell)
                     cell = re.sub('\\s+$', '', cell)
-                elif ali_list[j] == WD_TABLE_ALIGNMENT.RIGHT:
+                elif cel_ali == WD_TABLE_ALIGNMENT.RIGHT:
                     cell = re.sub('^\\s+', '', cell)
                 ms_cell = ms_tab.cell(i, j)
                 ms_cell.width = Pt((wid_list[j] + 2) * s_size)
@@ -3157,10 +3170,7 @@ class ParagraphTable(Paragraph):
                 self._write_text(cell, ms_par)
                 Paragraph.font_size = m_size
                 ms_fmt = ms_par.paragraph_format
-                if i < conf_row:
-                    ms_fmt.alignment = WD_TABLE_ALIGNMENT.CENTER
-                else:
-                    ms_fmt.alignment = ali_list[j]
+                ms_fmt.alignment = cel_ali
 
     @staticmethod
     def _get_table_data(md_lines):
