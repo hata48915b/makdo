@@ -1,4 +1,4 @@
-<!-- Time-stamp:   <2023.06.07-11:44:51-JST> -->
+<!-- Time-stamp:   <2023.06.07-11:49:41-JST> -->
 
 # MAKDO（魔苦怒）
 
@@ -464,11 +464,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ## 連絡先
 
-弁護士 秦 誠一郎
+[弁護士 秦 誠一郎の公式ページ](https://hata-o.jp/hata48915b/)
 
-[Seiichiro HATA](https://hata-o.jp/hata48915b/)
-
-[Seiichiro HATA](<mailto:infotech@hata-o.jp>)
+[弁護士 秦 誠一郎の連絡先](<mailto:hata48915b@post.nifty.jp>)
 
 ## ウェブページ
 
