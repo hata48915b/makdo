@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
-# Version:      v06a Shimo-Gion
-# Time-stamp:   <2023.06.06-10:28:30-JST>
+# Version:      v06 Shimo-Gion
+# Time-stamp:   <2023.06.07-10:55:03-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -25,7 +25,7 @@
 # 2022.12.25 v03 Yokogawa
 # 2023.01.07 v04 Mitaki
 # 2023.03.16 v05 Aki-Nagatsuka
-# 20XX.XX.XX v06 Shimo-Gion
+# 2023.06.07 v06 Shimo-Gion
 
 
 # from makdo_docx2md import Docx2Md
@@ -47,7 +47,7 @@ import unicodedata
 import datetime
 
 
-__version__ = 'v06a Shimo-Gion'
+__version__ = 'v06 Shimo-Gion'
 
 
 def get_arguments():
