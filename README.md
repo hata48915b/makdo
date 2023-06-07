@@ -1,4 +1,4 @@
-<!-- Time-stamp:   <2023.06.07-10:03:45-JST> -->
+<!-- Time-stamp:   <2023.06.07-11:02:54-JST> -->
 
 # MAKDO（魔苦怒）
 
@@ -28,7 +28,7 @@
 
 ↓↓↓ 簡易実行ファイルの実行の様子（Windowsの場合）
 
-![簡易実行ファイルの実行の様子](image/simple-exec.gif "簡易実行ファイルの実行の様子")
+![簡易実行ファイルの実行の様子](https://raw.githubusercontent.com/hata48915b/makdo/main/image/simple-exec.gif "簡易実行ファイルの実行の様子")
 
 とりあえず使いたい方のために、簡易実行ファイルを用意しました
 （このREADMEは、簡易実行ファイルを作成するためのソースファイルの説明用です。）。
