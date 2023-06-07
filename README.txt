@@ -1,8 +1,8 @@
-<!-- Time-stamp:   <2023.06.07-09:27:03-JST> -->
+<!-- Time-stamp:   <2023.06.07-10:03:45-JST> -->
 
 # MAKDO（魔苦怒）
 
-![MAKDOのLOGO](https://github.com/hata48915b/makdo/tree/main/image/md8docx.png "MAKDOのLOGO")
+![MAKDOのLOGO](https://raw.githubusercontent.com/hata48915b/makdo/main/image/md8docx.png "MAKDOのLOGO")
 
 〜〜 Markdown形式からMS Word形式へ、MS Word形式からMarkdown形式へ 〜〜
 
@@ -92,11 +92,11 @@ pandocなどの優れたソフトを使わずに、あえて自作した理由�
 
 ↓↓↓ Markdown形式のファイルのサンプル画像
 
-![Markdown形式のファイルのサンプル画像](https://github.com/hata48915b/makdo/tree/main/image/sojo-md.png "Markdown形式のファイルのサンプル画像")
+![Markdown形式のファイルのサンプル画像](https://raw.githubusercontent.com/hata48915b/makdo/main/image/sojo-md.png "Markdown形式のファイルのサンプル画像")
 
 ↓↓↓ 公用文書書式のMS Word形式のファイルのサンプル画像
 
-![公用文書書式のMS Word形式のファイルのサンプル画像](https://github.com/hata48915b/makdo/tree/main/image/sojo-pdf.png "公用文書書式のMS Word形式のファイルのサンプル画像")
+![公用文書書式のMS Word形式のファイルのサンプル画像](https://raw.githubusercontent.com/hata48915b/makdo/main/image/sojo-pdf.png "公用文書書式のMS Word形式のファイルのサンプル画像")
 
 なお、Markdown形式と公用文書書式のMS Word形式についてお知りになりたい方は、
 後記の「Markdown形式とは」と「公用文書書式のMS Word形式とは」をご覧ください。
@@ -355,7 +355,7 @@ v=1（←１行下げる）
 
 ↓↓↓ Markdown形式のファイルのサンプル画像
 
-![Markdown形式のファイルのサンプル画像](https://github.com/hata48915b/makdo/tree/main/image/sojo-md.png "Markdown形式のファイルのサンプル画像")
+![Markdown形式のファイルのサンプル画像](https://raw.githubusercontent.com/hata48915b/makdo/main/image/sojo-md.png "Markdown形式のファイルのサンプル画像")
 
 "sample"フォルダの中にサンプルファイルを用意しておりますので、
 そちらもご覧ください。
@@ -394,7 +394,7 @@ v=1（←１行下げる）
 
 ↓↓↓ 公用文書書式のMS Word形式のファイルのサンプル画像
 
-![公用文書書式のMS Word形式のファイルのサンプル画像](https://github.com/hata48915b/makdo/tree/main/image/sojo-pdf.png "公用文書書式のMS Word形式のファイルのサンプル画像")
+![公用文書書式のMS Word形式のファイルのサンプル画像](https://raw.githubusercontent.com/hata48915b/makdo/main/image/sojo-pdf.png "公用文書書式のMS Word形式のファイルのサンプル画像")
 
 "sample"フォルダの中にサンプルファイルを用意しておりますので、
 そちらもご覧ください。
@@ -507,4 +507,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ### 2023.03.16 v05 Aki-Nagatsuka リリース
 
 修正を加えたリリースです。
+
+### 2023.06.07 v06 Shimo-Gion リリース
+
+大幅な修正を加えたリリースです。
 
