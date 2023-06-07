@@ -1,14 +1,25 @@
-<!-- Time-stamp:   <2023.06.05-06:58:57-JST> -->
+<!-- Time-stamp:   <2023.06.07-09:27:03-JST> -->
 
 # MAKDO（魔苦怒）
 
-![MAKDOのLOGO](image/md8docx.png "MAKDOのLOGO")
+![MAKDOのLOGO](https://github.com/hata48915b/makdo/tree/main/image/md8docx.png "MAKDOのLOGO")
 
 〜〜 Markdown形式からMS Word形式へ、MS Word形式からMarkdown形式へ 〜〜
 
 〜〜 MS Wordがなくても、MS Word形式のファイルを読み書きできます 〜〜
 
 〜〜 わずらわしいナンバリング（番号付け）やインデント（字下げ）から、あなたを解放します 〜〜
+
+## 注意事項
+
+このライブラリは、Python3（Pythonのバージョン3）以上を想定しています。
+
+以下の説明では`python`という表記は、
+システムによっては`python3`等を意味する場合があります。
+
+`python`をうまく実行できない場合には、
+`python`の実行ファイルをフルパスで指定するか、
+環境変数PATHの設定をお願いします。
 
 ## とりあえず使いたい方へ
 
@@ -72,7 +83,7 @@ Markdown形式のファイルから公用文書書式のMS Word形式のファ�
 - `grep`コマンドを使って、過去に作成した書面に検索をかけられるようになります
 - `diff`コマンドを使って、原稿間の違いを確認できるようになります
 - 定型文書をコンピューターで自動で作成できるようになります
-- LinuxやFreeBSDで弁護士の仕事ができるようになります（ソースは私）
+- LinuxやFreeBSDで弁護士の仕事ができるようになります
 
 **見出し機能などのMS Wordの特別な機能は、あえて使っていません。
 これは、見出し機能などの特別な機能を使わなくても公用文書書式を実現できる一方で、
@@ -81,11 +92,11 @@ pandocなどの優れたソフトを使わずに、あえて自作した理由�
 
 ↓↓↓ Markdown形式のファイルのサンプル画像
 
-![Markdown形式のファイルのサンプル画像](image/sojo-md.png "Markdown形式のファイルのサンプル画像")
+![Markdown形式のファイルのサンプル画像](https://github.com/hata48915b/makdo/tree/main/image/sojo-md.png "Markdown形式のファイルのサンプル画像")
 
 ↓↓↓ 公用文書書式のMS Word形式のファイルのサンプル画像
 
-![公用文書書式のMS Word形式のファイルのサンプル画像](image/sojo-pdf.png "公用文書書式のMS Word形式のファイルのサンプル画像")
+![公用文書書式のMS Word形式のファイルのサンプル画像](https://github.com/hata48915b/makdo/tree/main/image/sojo-pdf.png "公用文書書式のMS Word形式のファイルのサンプル画像")
 
 なお、Markdown形式と公用文書書式のMS Word形式についてお知りになりたい方は、
 後記の「Markdown形式とは」と「公用文書書式のMS Word形式とは」をご覧ください。
@@ -172,20 +183,102 @@ python -m pip install chardet
     --trusted-host pypi.org
 ```
 
-## インストール
+### ライブラリとして使う場合
 
-ここの記載は、開発者向けです。
-簡易実行ファイルをご利用の方は、関係がありません。
+#### インストール
 
+本アプリは、ライブラリとして使うことができます。
+
+その場合は、
+コマンドプロンプト（Windowsの場合）又はターミナル（macOSの場合）で、
+次のコマンドを実行してインストールしてください。
+
+```
+python -m pip install makdo
+```
+
+#### 基本的な使い方
+
+##### Markdown形式からMS Word形式へ
+
+Markdown形式のファイルを用意します。
+ここでは仮に"foo.md"とします。
+
+コマンドプロンプト（Windowsの場合）又はターミナル（macOSの場合）で、
+次のように実行してください。
+
+```
+python
+>>> import makdo
+>>> m2d = makdo.Md2Docx("foo.md")
+>>> m2d.save("bar.docx")
+```
+
+"bar.docx"というMS Word形式のファイルが生成されます。
+
+##### MS Word形式からMarkdown形式へ
+
+MS Word形式のファイルを用意します。
+ここでは仮に"bar.docx"とします。
+
+コマンドプロンプト（Windowsの場合）又はターミナル（macOSの場合）で、
+次のように実行してください。
+
+```
+python
+>>> import makdo
+>>> d2m = makdo.Docx2Md("bar.docx")
+>>> d2m.save("foo.md")
+```
+
+"foo.md"というMS Word形式のファイルが生成されます。
+
+#### スクリプトからの実行
+
+##### Markdown形式からMS Word形式へ
+
+次のようなスクリプトを"md2docx.py"作ります。
+
+```
+#!/usr/bin/python3
+import sys
+import makdo
+m2d = makdo.Md2Docx(sys.argv[1])
+m2d.save(sys.argv[2])
+```
+
+Markdown形式のファイルを用意し、次のように実行します。
+
+```
+md2docx.py foo.md bar.docx
+```
+
+##### MS Word形式からMarkdown形式へ
+
+次のようなスクリプトを"docx2md.py"作ります。
+
+```
+#!/usr/bin/python3
+import sys
+d2m = makdo.Docx2Md(sys.argv[1])
+d2m.save(sys.argv[2])
+```
+
+MS Word形式のファイルを用意し、次のように実行します。
+
+```
+docx2md.py bar.docx foo.md
+```
+
+### スクリプトとして使う場合
+
+本アプリは、直接スクリプトとして使うことができます。
+
+その場合、
 本アプリは、Python3で書かれたプログラムファイルを実行するだけなので、
 インストールは必要ありません。
 
-## 実行方法
-
-ここの記載は、開発者向けです。
-簡易実行ファイルをご利用の方は、関係がありません。
-
-### 公用文書書式のMS Word形式のファイルを作成する場合
+#### 公用文書書式のMS Word形式のファイルを作成する場合
 
 Markdown形式のファイルを用意し
 （"OOOO.md"というファイル名だと仮定します。）、
@@ -203,7 +296,7 @@ python3 makdo_md2docx.py OOOO.md XXXX.docx
 python3 makdo_md2docx.py --help
 ```
 
-### Markdown形式のファイルを作成する場合
+#### Markdown形式のファイルを作成する場合
 
 公用文書書式のMS Word形式のファイルを用意し
 （"XXXX.docx"というファイル名だと仮定します。）
@@ -262,7 +355,7 @@ v=1（←１行下げる）
 
 ↓↓↓ Markdown形式のファイルのサンプル画像
 
-![Markdown形式のファイルのサンプル画像](image/sojo-md.png "Markdown形式のファイルのサンプル画像")
+![Markdown形式のファイルのサンプル画像](https://github.com/hata48915b/makdo/tree/main/image/sojo-md.png "Markdown形式のファイルのサンプル画像")
 
 "sample"フォルダの中にサンプルファイルを用意しておりますので、
 そちらもご覧ください。
@@ -301,7 +394,7 @@ v=1（←１行下げる）
 
 ↓↓↓ 公用文書書式のMS Word形式のファイルのサンプル画像
 
-![公用文書書式のMS Word形式のファイルのサンプル画像](image/sojo-pdf.png "公用文書書式のMS Word形式のファイルのサンプル画像")
+![公用文書書式のMS Word形式のファイルのサンプル画像](https://github.com/hata48915b/makdo/tree/main/image/sojo-pdf.png "公用文書書式のMS Word形式のファイルのサンプル画像")
 
 "sample"フォルダの中にサンプルファイルを用意しておりますので、
 そちらもご覧ください。
@@ -412,4 +505,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 日本語対応を強化しました。
 
 ### 2023.03.16 v05 Aki-Nagatsuka リリース
+
+修正を加えたリリースです。
 
