@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.06.08-05:49:43-JST>
+# Time-stamp:   <2023.06.16-19:05:16-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -209,6 +209,10 @@ HELP_EPILOG = '''Markdownの記法:
     [--]で挟まれた文字列は文字が小さくなります（独自）
     [++]で挟まれた文字列は文字が大きくなります（独自）
     [+++]で挟まれた文字列は文字がとても大きくなります（独自）
+    [<<<]と[>>>]に挟まれた文字列は文字幅がとても広がります（独自）
+    [<<]と[>>]に挟まれた文字列は文字幅が広がります（独自）
+    [>>]と[<<]に挟まれた文字列は文字幅が狭まります（独自）
+    [>>>]と[<<<]に挟まれた文字列は文字幅がとても狭まります（独自）
     [^^]で挟まれた文字列は白色になって見えなくなります（独自）
     [^XXYYZZ^]で挟まれた文字列はRGB(XX,YY,ZZ)色になります（独自）
     [^foo^]で挟まれた文字列はfoo色になります（独自）
@@ -225,7 +229,7 @@ HELP_EPILOG = '''Markdownの記法:
       cyan(C) darkCyan(DC) blue(B) darkBlue(DB) magenta(M) darkMagenta(DM)
       lightGray(G1) darkGray(G2) black(BK)
     [字N;]（N=0-239）で"字"の異字体（IVS）が使えます（独自）
-      ただし、IPAmj明朝フォント等がインストールされている必要があります。
+      ただし、IPAmj明朝フォント等がインストールされている必要があります
       参考：https://moji.or.jp/mojikiban/font/
             https://moji.or.jp/mojikibansearch/basic
   エスケープ記号
@@ -287,6 +291,10 @@ FONT_DECORATORS = [
     '\\-\\-',                   # small
     '\\+\\+\\+',                # xlarge
     '\\+\\+',                   # large
+    '>>>',                      # xnarrow or reset
+    '>>',                       # narrow or reset
+    '<<<',                      # xwide or reset
+    '<<',                       # wide or reset
     '_[\\$=\\.#\\-~\\+]{,4}_',  # underline
     '\\^[0-9A-Za-z]{0,11}\\^',  # font color
     '_[0-9A-Za-z]{1,11}_',      # higilight color
@@ -1943,6 +1951,7 @@ class Paragraph:
     is_small = False
     is_large = False
     is_xlarge = False
+    font_width = 1.0
     underline = None
     font_color = None
     highlight_color = None
@@ -1957,6 +1966,7 @@ class Paragraph:
         Paragraph.is_small = False
         Paragraph.is_large = False
         Paragraph.is_xlarge = False
+        Paragraph.font_width = 1.0
         Paragraph.underline = None
         Paragraph.font_color = None
         Paragraph.highlight_color = None
@@ -2504,7 +2514,7 @@ class Paragraph:
                     c = ''
                     Paragraph.is_italic = not Paragraph.is_italic
             elif re.match(NOT_ESCAPED + '\\-\\-\\-$', tex + c):
-                # --- XSMALL
+                # --- (XSMALL)
                 tex = re.sub('\\-\\-\\-$', '', tex + c)
                 tex = self._write_string(tex, ms_par)
                 c = ''
@@ -2513,7 +2523,7 @@ class Paragraph:
                 Paragraph.is_large = False
                 Paragraph.is_xlarge = False
             elif re.match(NOT_ESCAPED + '\\+\\+\\+$', tex + c):
-                # +++ XLARGE
+                # +++ (XLARGE)
                 tex = re.sub('\\+\\+\\+$', '', tex + c)
                 tex = self._write_string(tex, ms_par)
                 c = ''
@@ -2521,6 +2531,24 @@ class Paragraph:
                 Paragraph.is_small = False
                 Paragraph.is_large = False
                 Paragraph.is_xlarge = not Paragraph.is_xlarge
+            elif re.match(NOT_ESCAPED + '<<<$', tex + c):
+                # <<< (XWIDE or RESET)
+                tex = re.sub('<<<$', '', tex + c)
+                tex = self._write_string(tex, ms_par)
+                c = ''
+                if Paragraph.font_width == 0.6:
+                    Paragraph.font_width = 1.0
+                else:
+                    Paragraph.font_width = 1.4
+            elif re.match(NOT_ESCAPED + '>>>$', tex + c):
+                # >>> (XNARROW or RESET)
+                tex = re.sub('>>>$', '', tex + c)
+                tex = self._write_string(tex, ms_par)
+                c = ''
+                if Paragraph.font_width == 1.4:
+                    Paragraph.font_width = 1.0
+                else:
+                    Paragraph.font_width = 0.6
             elif re.match(NOT_ESCAPED + '_([\\$=\\.#\\-~\\+]{,4})_$', tex + c):
                 # _.*_ (UNDERLINE)
                 sty = re.sub(NOT_ESCAPED + '_([\\$=\\.#\\-~\\+]{,4})_$', '\\2',
@@ -2632,6 +2660,22 @@ class Paragraph:
                 Paragraph.is_small = False
                 Paragraph.is_large = not Paragraph.is_large
                 Paragraph.is_xlarge = False
+            elif re.match(NOT_ESCAPED + '<<$', tex):
+                # << (WIDE or RESET)
+                tex = re.sub('<<$', '', tex)
+                tex = self._write_string(tex, ms_par)
+                if Paragraph.font_width == 0.8:
+                    Paragraph.font_width = 1.0
+                else:
+                    Paragraph.font_width = 1.2
+            elif re.match(NOT_ESCAPED + '>>$', tex):
+                # >> (NARROW or RESET)
+                tex = re.sub('>>$', '', tex)
+                tex = self._write_string(tex, ms_par)
+                if Paragraph.font_width == 1.2:
+                    Paragraph.font_width = 1.0
+                else:
+                    Paragraph.font_width = 0.8
             # PROCESS (c)
             if False:
                 pass
@@ -2711,6 +2755,11 @@ class Paragraph:
             font_size = xl_size
         else:
             font_size = m_size
+        if cls.font_width != 1.00:
+            rPr = ms_run._r.get_or_add_rPr()
+            oe = OxmlElement('w:w')
+            oe.set(ns.qn('w:val'), str(cls.font_width * 100))
+            rPr.append(oe)
         rPr = ms_run._r.get_or_add_rPr()
         oe = OxmlElement('w:sz')
         oe.set(ns.qn('w:val'), str(font_size * 2))
@@ -2763,6 +2812,11 @@ class Paragraph:
             ms_run.font.size = Pt(xl_size)
         else:
             ms_run.font.size = Pt(m_size)
+        if cls.font_width != 1.00:
+            rPr = ms_run._r.get_or_add_rPr()
+            oe = OxmlElement('w:w')
+            oe.set(ns.qn('w:val'), str(cls.font_width * 100))
+            rPr.append(oe)
         if cls.underline is not None:
             ms_run.underline = cls.underline
         if cls.font_color is not None:

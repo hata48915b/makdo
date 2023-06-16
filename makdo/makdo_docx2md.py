@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.06.07-12:30:59-JST>
+# Time-stamp:   <2023.06.16-19:20:21-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -247,6 +247,10 @@ FONT_DECORATORS = [
     '\\-\\-',                   # small
     '\\+\\+\\+',                # xlarge
     '\\+\\+',                   # large
+    '>>>',                      # xnarrow or reset
+    '>>',                       # narrow or reset
+    '<<<',                      # xwide or reset
+    '<<',                       # wide or reset
     '_[\\$=\\.#\\-~\\+]{,4}_',  # underline
     '\\^[0-9A-Za-z]{0,11}\\^',  # font color
     '_[0-9A-Za-z]{1,11}_',      # higilight color
@@ -2360,6 +2364,7 @@ class RawParagraph:
         is_small = False
         is_large = False
         is_xlarge = False
+        font_width = 1.0
         is_gothic = False
         underline = ''
         font_color = ''
@@ -2460,6 +2465,18 @@ class RawParagraph:
                     if is_xlarge:
                         text = '+++' + text + '+++'
                         is_xlarge = False
+                    if font_width < 0.7:
+                        text = '>>>' + text + '<<<'
+                        font_width = 1.0
+                    elif font_width < 0.9:
+                        text = '>>' + text + '<<'
+                        font_width = 1.0
+                    elif font_width > 1.3:
+                        text = '<<<' + text + '>>>'
+                        font_width = 1.0
+                    elif font_width > 1.1:
+                        text = '<<' + text + '>>'
+                        font_width = 1.0
                     # UNDERLINE
                     if underline != '':
                         ul = UNDERLINE[underline]
@@ -2529,13 +2546,13 @@ class RawParagraph:
                         is_large = True
             elif w > 0:
                 if w < 70:
-                    is_xsmall = True
+                    font_width = 0.6
                 elif w < 90:
-                    is_small = True
+                    font_width = 0.8
                 elif w > 130:
-                    is_xlarge = True
+                    font_width = 1.4
                 elif w > 110:
-                    is_large = True
+                    font_width = 1.2
             elif re.match('^<w:i/?>$', rxl):
                 is_italic = True
             elif re.match('^<w:b/?>$', rxl):
@@ -2738,7 +2755,7 @@ class RawParagraph:
                         + '(' + media_dir + '/' + img + ')'
                 img = ''
                 img_size = ''
-            if re.match('^<.*>$', xl):
+            if re.match('^<[^<>]*>$', xl):
                 continue
             while True:
                 # ITALIC AND BOLD
@@ -2811,6 +2828,42 @@ class RawParagraph:
                     raw_text = re.sub('\\+\\+$', '', raw_text)
                     xl = re.sub('^\\+\\+', '', xl)
                     continue
+                # XNARROW x XNARROW
+                if re.match('^(.|\n)*<<<$', raw_text) and \
+                   re.match('^>>>.*$', xl):
+                    raw_text = re.sub('<<<$', '', raw_text)
+                    xl = re.sub('^>>>', '', xl)
+                    continue
+                # XWIDE x XWIDE
+                if re.match('^(.|\n)*>>>$', raw_text) and \
+                   re.match('^<<<.*$', xl):
+                    raw_text = re.sub('>>>$', '', raw_text)
+                    xl = re.sub('^<<<', '', xl)
+                    continue
+                # XNARROW x NARROW
+                if re.match('^(.|\n)*<<<$', raw_text) and \
+                   re.match('^>>.*$', xl):
+                    break
+                # NARROW x XNARROW
+                if re.match('^(.|\n)*<<$', raw_text) and \
+                   re.match('^>>>.*$', xl):
+                    break
+                # XWIDE x WIDE
+                if re.match('^(.|\n)*>>>$', raw_text) and \
+                   re.match('^<<.*$', xl):
+                    break
+                # WIDE x XWIDE
+                if re.match('^(.|\n)*>>$', raw_text) and \
+                   re.match('^<<<.*$', xl):
+                    break
+                # NARROW x NARROW
+                if re.match('^(.|\n)*<<$', raw_text) and \
+                   re.match('^>>.*$', xl):
+                    break
+                # WIDE x WIDE
+                if re.match('^(.|\n)*>>$', raw_text) and \
+                   re.match('^<<.*$', xl):
+                    break
                 # UNDERLINE
                 res = '_([\\$=\\.#\\-~\\+]{,4})_'
                 if re.match('^(?:.|\n)*' + res + '$', raw_text) and \
@@ -2931,6 +2984,8 @@ class RawParagraph:
                    fd == '_[\\$=\\.#\\-~\\+]{,4}_' or \
                    fd == '\\-\\-\\-' or fd == '\\-\\-' or \
                    fd == '\\+\\+\\+' or fd == '\\+\\+' or \
+                   fd == '<<<' or fd == '<<' or \
+                   fd == '>>' or fd == '>>>' or \
                    fd == '_[0-9A-Za-z]{1,11}_' or \
                    fd == '@.{1,66}@':
                     continue
@@ -2939,6 +2994,8 @@ class RawParagraph:
                     '|_[\\$=\\.#\\-~\\+]{,4}_' + \
                     '|\\-\\-\\-' + '|\\-\\-' + \
                     '|\\+\\+\\+' + '|\\+\\+' + \
+                    '|<<<' + '|<<' + \
+                    '|>>' + '|>>>' + \
                     '|_[0-9A-Za-z]{1,11}_' + \
                     '|@.{1,66}@' + \
                     ')+)'
