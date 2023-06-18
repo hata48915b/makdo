@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.06.16-19:05:16-JST>
+# Time-stamp:   <2023.06.18-09:30:46-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -86,6 +86,11 @@ def get_arguments():
         metavar='STRING',
         help='文書の標題')
     parser.add_argument(
+        '-d', '--document-style',
+        type=str,
+        choices=['k', 'j'],
+        help='文書スタイルの指定（契約、条文）')
+    parser.add_argument(
         '-p', '--paper-size',
         type=str,
         choices=['A3', 'A3L', 'A3P', 'A4', 'A4L', 'A4P'],
@@ -110,11 +115,6 @@ def get_arguments():
         type=float,
         metavar='NUMBER',
         help='右余白（単位cm）')
-    parser.add_argument(
-        '-d', '--document-style',
-        type=str,
-        choices=['k', 'j'],
-        help='文書スタイルの指定（契約、条文）')
     parser.add_argument(
         '-H', '--header-string',
         type=str,
@@ -156,12 +156,12 @@ def get_arguments():
         '-B', '--space-before',
         type=floats6,
         metavar='NUMBER,NUMBER,...',
-        help='タイトル前の空白')
+        help='セクションタイトル前の空白')
     parser.add_argument(
         '-A', '--space-after',
         type=floats6,
         metavar='NUMBER,NUMBER,...',
-        help='タイトル後の空白')
+        help='セクションタイトル後の空白')
     parser.add_argument(
         '-a', '--auto-space',
         action='store_true',
@@ -1244,150 +1244,43 @@ class Form:
             if False:
                 pass
             elif nam == 'document_title' or nam == '書題名':
-                Form.document_title = val
+                Form.set_document_title(val, nam)
             elif nam == 'document_style' or nam == '文書式':
-                if val == 'n' or val == '普通' or val == '-':
-                    Form.document_style = 'n'
-                elif val == 'k' or val == '契約':
-                    Form.document_style = 'k'
-                elif val == 'j' or val == '条文':
-                    Form.document_style = 'j'
-                else:
-                    msg = '※ 警告: ' \
-                        + '「' + nam + '」の値は"普通"、"契約"又は"条文"で' \
-                        + 'なければなりません'
-                    # msg = 'warning: ' \
-                    #     + '"' + nam + '" must be "-", "k" or "j"'
-                    sys.stderr.write(msg + '\n\n')
+                Form.set_document_style(val, nam)
             elif nam == 'paper_size' or nam == '用紙サ':
-                val = unicodedata.normalize('NFKC', val)
-                if val == 'A3':
-                    Form.paper_size = 'A3'
-                elif val == 'A3L' or val == 'A3横':
-                    Form.paper_size = 'A3L'
-                elif val == 'A3P' or val == 'A3縦':
-                    Form.paper_size = 'A3P'
-                elif val == 'A4':
-                    Form.paper_size = 'A4'
-                elif val == 'A4L' or val == 'A4横':
-                    Form.paper_size = 'A4L'
-                elif val == 'A4P' or val == 'A4縦':
-                    Form.paper_size = 'A4P'
-                else:
-                    msg = '※ 警告: ' \
-                        + '「' + nam + '」の値は' \
-                        + '"A3横"、"A3縦"、"A4横"又は"A4縦"で' \
-                        + 'なければなりません'
-                    # msg = 'warning: ' \
-                    #     + '"' + nam + '" must be "A3", "A3P", "A4" or "A4L"'
-                    sys.stderr.write(msg + '\n\n')
-            elif (re.match('^(top|bottom|left|right)_margin$', nam) or
-                  re.match('^(上|下|左|右)余白$', nam)):
-                val = unicodedata.normalize('NFKC', val)
-                val = re.sub('\\s*cm$', '', val)
-                if re.match('^' + RES_NUMBER + '$', val):
-                    if nam == 'top_margin' or nam == '上余白':
-                        Form.top_margin = float(val)
-                    elif nam == 'bottom_margin' or nam == '下余白':
-                        Form.bottom_margin = float(val)
-                    elif nam == 'left_margin' or nam == '左余白':
-                        Form.left_margin = float(val)
-                    elif nam == 'right_margin' or nam == '右余白':
-                        Form.right_margin = float(val)
-                else:
-                    msg = '※ 警告: ' \
-                        + '「' + nam + '」の値は整数又は小数で' \
-                        + 'なければなりません'
-                    # msg = 'warning: ' \
-                    #     + '"' + nam + '" must be an integer or a decimal'
-                    sys.stderr.write(msg + '\n\n')
+                Form.set_paper_size(val, nam)
+            elif nam == 'top_margin' or nam == '上余白':
+                Form.set_top_margin(val, nam)
+            elif nam == 'bottom_margin' or nam == '下余白':
+                Form.set_bottom_margin(val, nam)
+            elif nam == 'left_margin' or nam == '左余白':
+                Form.set_left_margin(val, nam)
+            elif nam == 'right_margin' or nam == '右余白':
+                Form.set_right_margin(val, nam)
             elif nam == 'header_string' or nam == '頭書き':
-                Form.header_string = val
+                Form.set_header_string(val, nam)
             elif nam == 'page_number' or nam == '頁番号':
-                val = unicodedata.normalize('NFKC', val)
-                if val == 'True' or val == '有':
-                    Form.page_number = DEFAULT_PAGE_NUMBER
-                elif val == 'False' or val == '無' or val == '-':
-                    Form.page_number = ''
-                else:
-                    Form.page_number = val
+                Form.set_page_number(val, nam)
             elif nam == 'line_number' or nam == '行番号':
-                val = unicodedata.normalize('NFKC', val)
-                if val == 'True' or val == '有':
-                    Form.line_number = True
-                elif val == 'False' or val == '無':
-                    Form.line_number = False
-                else:
-                    msg = '※ 警告: ' \
-                        + '「' + nam + '」の値は"有"又は"無"で' \
-                        + 'なければなりません'
-                    # msg = 'warning: ' \
-                    #     + '"' + nam + '" must be "True" or "False"'
-                    sys.stderr.write(msg + '\n\n')
+                Form.set_line_number(val, nam)
             elif nam == 'mincho_font' or nam == '明朝体':
-                Form.mincho_font = val
+                Form.set_mincho_font(val, nam)
             elif nam == 'gothic_font' or nam == 'ゴシ体':
-                Form.gothic_font = val
+                Form.set_gothic_font(val, nam)
             elif nam == 'ivs_font' or nam == '異字体':
-                Form.ivs_font = val
+                Form.set_ivs_font(val, nam)
             elif nam == 'font_size' or nam == '文字サ':
-                val = unicodedata.normalize('NFKC', val)
-                val = re.sub('\\s*pt$', '', val)
-                if re.match('^' + RES_NUMBER + '$', val):
-                    Form.font_size = float(val)
-                else:
-                    msg = '※ 警告: ' \
-                        + '「' + nam + '」の値は整数又は小数で' \
-                        + 'なければなりません'
-                    # msg = 'warning: ' \
-                    #     + '"' + nam + '" must be an integer or a decimal'
-                    sys.stderr.write(msg + '\n\n')
+                Form.set_font_size(val, nam)
             elif nam == 'line_spacing' or nam == '行間高':
-                val = unicodedata.normalize('NFKC', val)
-                val = re.sub('\\s*倍$', '', val)
-                if re.match('^' + RES_NUMBER + '$', val):
-                    Form.line_spacing = float(val)
-                else:
-                    msg = '※ 警告: ' \
-                        + '「' + nam + '」の値は整数又は小数で' \
-                        + 'なければなりません'
-                    # msg = 'warning: ' \
-                    #     + '"' + nam + '" must be an integer or a decimal'
-                    sys.stderr.write(msg + '\n\n')
-            elif (re.match('^space_(before|after)$', nam) or
-                  re.match('^(前|後)余白$', nam)):
-                val = unicodedata.normalize('NFKC', val)
-                val = val.replace('、', ',')
-                val = val.replace('倍', '')
-                val = val.replace(' ', '')
-                if re.match('^' + RES_NUMBER6 + '$', val):
-                    if nam == 'space_before' or nam == '前余白':
-                        Form.space_before = val
-                    elif nam == 'space_after'or nam == '後余白':
-                        Form.space_after = val
-                else:
-                    msg = '※ 警告: ' \
-                        + '「' + nam + '」の値は' \
-                        + '整数又は小数をカンマで区切って並べたもので' \
-                        + 'なければなりません'
-                    # msg = 'warning: ' \
-                    #     + '"' + nam + '" must be 6 integers or decimals'
-                    sys.stderr.write(msg + '\n\n')
+                Form.set_line_spacing(val, nam)
+            elif nam == 'space_before' or nam == '前余白':
+                Form.set_space_before(val, nam)
+            elif nam == 'space_after' or nam == '後余白':
+                Form.set_space_after(val, nam)
             elif nam == 'auto_space' or nam == '字間整':
-                val = unicodedata.normalize('NFKC', val)
-                if val == 'True' or val == '有':
-                    Form.auto_space = True
-                elif val == 'False' or val == '無':
-                    Form.auto_space = False
-                else:
-                    msg = '※ 警告: ' \
-                        + '「' + nam + '」の値は"有"又は"無"で' \
-                        + 'なければなりません'
-                    # msg = 'warning: ' \
-                    #     + '"' + nam + '" must be "True" or "False"'
-                    sys.stderr.write(msg + '\n\n')
+                Form.set_auto_space(val, nam)
             elif nam == 'original_file' or nam == '元原稿':
-                Form.original_file = val
+                Form.set_original_file(val, nam)
             else:
                 msg = '※ 警告: ' \
                     + '「' + nam + '」という設定項目は存在しません'
@@ -1399,41 +1292,295 @@ class Form:
     def _configure_by_args(args):
         if args is not None:
             if args.document_title is not None:
-                Form.document_title = args.document_title
-            if args.paper_size is not None:
-                Form.paper_size = args.paper_size
-            if args.top_margin is not None:
-                Form.top_margin = args.top_margin
-            if args.bottom_margin is not None:
-                Form.bottom_margin = args.bottom_margin
-            if args.left_margin is not None:
-                Form.left_margin = args.left_margin
-            if args.right_margin is not None:
-                Form.right_margin = args.right_margin
-            if args.mincho_font is not None:
-                Form.mincho_font = args.mincho_font
-            if args.gothic_font is not None:
-                Form.gothic_font = args.gothic_font
-            if args.ivs_font is not None:
-                Form.ivs_font = args.ivs_font
-            if args.font_size is not None:
-                Form.font_size = args.font_size
+                Form.set_document_title(args.document_title)
             if args.document_style is not None:
-                Form.document_style = args.document_style
+                Form.set_document_style(args.document_style)
+            if args.paper_size is not None:
+                Form.set_paper_size(args.paper_size)
+            if args.top_margin is not None:
+                Form.set_top_margin(str(args.top_margin))
+            if args.bottom_margin is not None:
+                Form.set_bottom_margin(str(args.bottom_margin))
+            if args.left_margin is not None:
+                Form.set_left_margin(str(args.left_margin))
+            if args.right_margin is not None:
+                Form.set_right_margin(str(args.right_margin))
             if args.header_string is not None:
-                Form.header_string = args.header_string
+                Form.set_header_string(args.header_string)
             if args.page_number is not None:
-                Form.page_number = args.page_number
+                Form.set_page_number(args.page_number)
             if args.line_number:
-                Form.line_number = True
+                Form.set_line_number('True')
+            if args.mincho_font is not None:
+                Form.set_mincho_font(args.mincho_font)
+            if args.gothic_font is not None:
+                Form.set_gothic_font(args.gothic_font)
+            if args.ivs_font is not None:
+                Form.set_ivs_font(args.ivs_font)
+            if args.font_size is not None:
+                Form.set_font_size(str(args.font_size))
             if args.line_spacing is not None:
-                Form.line_spacing = args.line_spacing
+                Form.set_line_spacing(str(args.line_spacing))
             if args.space_before is not None:
-                Form.space_before = args.space_before
+                Form.set_space_before(args.space_before)
             if args.space_after is not None:
-                Form.space_after = args.space_after
+                Form.set_space_after(args.space_after)
             if args.auto_space:
-                Form.auto_space = True
+                Form.set_auto_space(str(args.auto_space))
+
+    @staticmethod
+    def set_document_title(value, item='document_title'):
+        if value is None:
+            return False
+        Form.document_title = value
+        return True
+
+    @staticmethod
+    def set_document_style(value, item='document_style'):
+        if value is None:
+            return False
+        if value == 'n' or value == '普通' or value == '-':
+            Form.document_style = 'n'
+            return True
+        if value == 'k' or value == '契約':
+            Form.document_style = 'k'
+            return True
+        if value == 'j' or value == '条文':
+            Form.document_style = 'j'
+            return True
+        msg = '※ 警告: ' \
+            + '「' + item + '」の値は' \
+            + '"普通"、"契約"又は"条文"でなければなりません'
+        # msg = 'warning: ' \
+        #     + '"' + nam + '" must be "n", "k" or "j"'
+        sys.stderr.write(msg + '\n\n')
+        return False
+
+    @staticmethod
+    def set_paper_size(value, item='paper_size'):
+        if value is None:
+            return False
+        value = unicodedata.normalize('NFKC', value)
+        if value == 'A3':
+            Form.paper_size = 'A3'
+            return True
+        elif value == 'A3L' or value == 'A3横':
+            Form.paper_size = 'A3L'
+            return True
+        elif value == 'A3P' or value == 'A3縦':
+            Form.paper_size = 'A3P'
+            return True
+        elif value == 'A4':
+            Form.paper_size = 'A4'
+            return True
+        elif value == 'A4L' or value == 'A4横':
+            Form.paper_size = 'A4L'
+            return True
+        elif value == 'A4P' or value == 'A4縦':
+            Form.paper_size = 'A4P'
+            return True
+        msg = '※ 警告: ' \
+            + '「' + item + '」の値は' \
+            + '"A3横"、"A3縦"、"A4横"又は"A4縦"でなければなりません'
+        # msg = 'warning: ' \
+        #     + '"' + item + '" must be "A3", "A3P", "A4" or "A4L"'
+        sys.stderr.write(msg + '\n\n')
+        return False
+
+    @staticmethod
+    def set_top_margin(value, item='top_margin'):
+        return Form._set_margin(value, item)
+
+    @staticmethod
+    def set_bottom_margin(value, item='bottom_margin'):
+        return Form._set_margin(value, item)
+
+    @staticmethod
+    def set_left_margin(value, item='left_margin'):
+        return Form._set_margin(value, item)
+
+    @staticmethod
+    def set_right_margin(value, item='right_margin'):
+        return Form._set_margin(value, item)
+
+    @staticmethod
+    def _set_margin(value, item):
+        if value is None:
+            return False
+        value = unicodedata.normalize('NFKC', value)
+        value = re.sub('\\s*cm$', '', value)
+        if re.match('^' + RES_NUMBER + '$', value):
+            if item == 'top_margin' or item == '上余白':
+                Form.top_margin = float(value)
+                return True
+            if item == 'bottom_margin' or item == '下余白':
+                Form.bottom_margin = float(value)
+                return True
+            if item == 'left_margin' or item == '左余白':
+                Form.left_margin = float(value)
+                return True
+            if item == 'right_margin' or item == '右余白':
+                Form.right_margin = float(value)
+                return True
+        msg = '※ 警告: ' \
+            + '「' + item + '」の値は' \
+            + '整数又は小数でなければなりません'
+        # msg = 'warning: ' \
+        #     + '"' + item + '" must be an integer or a decimal'
+        sys.stderr.write(msg + '\n\n')
+        return False
+
+    @staticmethod
+    def set_header_string(value, item='header_string'):
+        if value is None:
+            return False
+        Form.header_string = value
+        return True
+
+    @staticmethod
+    def set_page_number(value, item='page_number'):
+        if value is None:
+            return False
+        value = unicodedata.normalize('NFKC', value)
+        if value == 'True' or value == '有':
+            Form.page_number = DEFAULT_PAGE_NUMBER
+            return True
+        elif value == 'False' or value == '無':
+            Form.page_number = ''
+            return True
+        else:
+            Form.page_number = value
+            return True
+
+    @staticmethod
+    def set_line_number(value, item='line_number'):
+        if value is None:
+            return False
+        value = unicodedata.normalize('NFKC', value)
+        if value == 'True' or value == '有':
+            Form.line_number = True
+            return True
+        elif value == 'False' or value == '無':
+            Form.line_number = False
+            return True
+        msg = '※ 警告: ' \
+            + '「' + item + '」の値は' \
+            + '"有"又は"無"でなければなりません'
+        # msg = 'warning: ' \
+        #     + '"' + item + '" must be "True" or "False"'
+        sys.stderr.write(msg + '\n\n')
+        return False
+
+    @staticmethod
+    def set_mincho_font(value, item='mincho_font'):
+        if value is None:
+            return False
+        Form.mincho_font = value
+        return True
+
+    @staticmethod
+    def set_gothic_font(value, item='gothic_font'):
+        if value is None:
+            return False
+        Form.gothic_font = value
+        return True
+
+    @staticmethod
+    def set_ivs_font(value, item='ivs_font'):
+        if value is None:
+            return False
+        Form.ivs_font = value
+        return True
+
+    @staticmethod
+    def set_font_size(value, item='font_size'):
+        if value is None:
+            return False
+        value = unicodedata.normalize('NFKC', value)
+        value = re.sub('\\s*pt$', '', value)
+        if re.match('^' + RES_NUMBER + '$', value):
+            Form.font_size = float(value)
+            return True
+        msg = '※ 警告: ' \
+            + '「' + item + '」の値は' \
+            + '整数又は小数でなければなりません'
+        # msg = 'warning: ' \
+        #     + '"' + item + '" must be an integer or a decimal'
+        sys.stderr.write(msg + '\n\n')
+        return False
+
+    @staticmethod
+    def set_line_spacing(value, item='line_spacing'):
+        if value is None:
+            return False
+        value = unicodedata.normalize('NFKC', value)
+        value = re.sub('\\s*倍$', '', value)
+        if re.match('^' + RES_NUMBER + '$', value):
+            Form.line_spacing = float(value)
+            return True
+        msg = '※ 警告: ' \
+            + '「' + item + '」の値は' \
+            + '整数又は小数でなければなりません'
+        # msg = 'warning: ' \
+        #     + '"' + item + '" must be an integer or a decimal'
+        sys.stderr.write(msg + '\n\n')
+        return False
+
+    @staticmethod
+    def set_space_before(value, item='space_before'):
+        return Form._set_space(value, item)
+
+    @staticmethod
+    def set_space_after(value, item='space_after'):
+        return Form._set_space(value, item)
+
+    @staticmethod
+    def _set_space(value, item):
+        if value is None:
+            return False
+        value = unicodedata.normalize('NFKC', value)
+        value = value.replace('、', ',')
+        value = value.replace('倍', '')
+        value = value.replace(' ', '')
+        if re.match('^' + RES_NUMBER6 + '$', value):
+            if item == 'space_before' or item == '前余白':
+                Form.space_before = value
+                return True
+            elif item == 'space_after'or item == '後余白':
+                Form.space_after = value
+                return True
+        msg = '※ 警告: ' \
+            + '「' + item + '」の値は' \
+            + '整数又は小数をカンマで区切って並べたものでなければなりません'
+        # msg = 'warning: ' \
+        #     + '"' + item + '" must be 6 integers or decimals'
+        sys.stderr.write(msg + '\n\n')
+        return False
+
+    @staticmethod
+    def set_auto_space(value, item='auto_space'):
+        if value is None:
+            return False
+        value = unicodedata.normalize('NFKC', value)
+        if value == 'True' or value == '有':
+            Form.auto_space = True
+            return True
+        elif value == 'False' or value == '無':
+            Form.auto_space = False
+            return True
+        msg = '※ 警告: ' \
+            + '「' + item + '」の値は' \
+            + '"有"又は"無"でなければなりません'
+        # msg = 'warning: ' \
+        #     + '"' + item + '" must be "True" or "False"'
+        sys.stderr.write(msg + '\n\n')
+
+    @staticmethod
+    def set_original_file(value, item='original_file'):
+        if value is None:
+            return False
+        Form.original_file = value
+        return True
 
 
 class Document:
@@ -3703,6 +3850,11 @@ class Md2Docx:
         frm.md_lines = doc.md_lines
         frm.args = args
         frm.configure()
+
+    def save(self, inputed_docx_file):
+        io = self.io
+        doc = self.doc
+        frm = self.frm
         # MAKE DOCUMENT
         doc.raw_paragraphs = doc.get_raw_paragraphs(doc.md_lines)
         doc.paragraphs = doc.get_paragraphs(doc.raw_paragraphs)
@@ -3713,14 +3865,153 @@ class Md2Docx:
         doc.write_document(io.ms_doc)
         # PRINT WARNING MESSAGES
         doc.print_warning_messages()
-
-    def save(self, inputed_docx_file):
-        io = self.io
-        doc = self.doc
-        frm = self.frm
         # SAVE MS WORD FILE
         io.set_docx_file(inputed_docx_file)
         io.save_docx_file()
+
+    @staticmethod
+    def set_document_title(value):
+        return Form.set_document_title(value)
+
+    @staticmethod
+    def get_document_title():
+        return Form.document_title
+
+    @staticmethod
+    def set_document_style(value):
+        return Form.set_document_style(value)
+
+    @staticmethod
+    def get_document_style():
+        return Form.document_style
+
+    @staticmethod
+    def set_paper_size(value):
+        return Form.set_paper_size(value)
+
+    @staticmethod
+    def get_paper_size():
+        return Form.paper_size
+
+    @staticmethod
+    def set_top_margin(value):
+        return Form.set_top_margin(str(value))
+
+    @staticmethod
+    def get_top_margin():
+        return Form.top_margin
+
+    @staticmethod
+    def set_bottom_margin(value):
+        return Form.set_bottom_margin(str(value))
+
+    @staticmethod
+    def get_bottom_margin():
+        return Form.bottom_margin
+
+    @staticmethod
+    def set_left_margin(value):
+        return Form.set_left_margin(str(value))
+
+    @staticmethod
+    def get_left_margin():
+        return Form.left_margin
+
+    @staticmethod
+    def set_right_margin(value):
+        return Form.set_right_margin(str(value))
+
+    @staticmethod
+    def get_right_margin():
+        return Form.right_margin
+
+    @staticmethod
+    def set_header_string(value):
+        return Form.set_header_string(value)
+
+    @staticmethod
+    def get_header_string():
+        return Form.header_string
+
+    @staticmethod
+    def set_page_number(value):
+        return Form.set_page_number(value)
+
+    @staticmethod
+    def get_page_number():
+        return Form.page_number
+
+    @staticmethod
+    def set_line_number(value):
+        return Form.set_line_number(value)
+
+    @staticmethod
+    def get_line_number():
+        return Form.line_number
+
+    @staticmethod
+    def set_mincho_font(value):
+        return Form.set_mincho_font(value)
+
+    @staticmethod
+    def get_mincho_font():
+        return Form.mincho_font
+
+    @staticmethod
+    def set_gothic_font(value):
+        return Form.set_gothic_font(value)
+
+    @staticmethod
+    def get_gothic_font():
+        return Form.gothic_font
+
+    @staticmethod
+    def set_ivs_font(value):
+        return Form.set_ivs_font(value)
+
+    @staticmethod
+    def get_ivs_font():
+        return Form.ivs_font
+
+    @staticmethod
+    def set_font_size(value):
+        return Form.set_font_size(str(value))
+
+    @staticmethod
+    def get_font_size():
+        return Form.font_size
+
+    @staticmethod
+    def set_line_spacing(value):
+        return Form.set_line_spacing(str(value))
+
+    @staticmethod
+    def get_line_spacing():
+        return Form.line_spacing
+
+    @staticmethod
+    def set_space_before(value):
+        return Form.set_space_before(value)
+
+    @staticmethod
+    def get_space_before():
+        return Form.space_before
+
+    @staticmethod
+    def set_space_after(value):
+        return Form.set_space_after(value)
+
+    @staticmethod
+    def get_space_after():
+        return Form.space_after
+
+    @staticmethod
+    def set_auto_space(value):
+        return Form.set_auto_space(str(value))
+
+    @staticmethod
+    def get_auto_space():
+        return Form.auto_space
 
 
 ############################################################
