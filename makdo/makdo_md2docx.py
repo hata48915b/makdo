@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.06.18-09:30:46-JST>
+# Time-stamp:   <2023.06.18-12:18:01-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -53,7 +53,7 @@ from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.table import WD_ALIGN_VERTICAL
 from docx.enum.table import WD_ROW_HEIGHT_RULE
 from docx.oxml import OxmlElement, ns
-from docx.oxml.ns import qn
+# from docx.oxml.ns import qn
 from docx.enum.style import WD_STYLE_TYPE
 from docx.shared import RGBColor
 from docx.enum.text import WD_COLOR_INDEX
@@ -794,6 +794,21 @@ def concatenate_string(str1, str2):
 # CLASS
 
 
+class XML:
+
+    """A class to handle xml"""
+
+    @staticmethod
+    def add_tag(ms_foo, tag, options, text=None):
+        oe = OxmlElement(tag)
+        for item in options:
+            value = options[item]
+            oe.set(ns.qn(item), value)
+        if text is not None:
+            oe.text = text
+        ms_foo.append(oe)
+
+
 class IO:
 
     """A class to handle input and output"""
@@ -977,12 +992,11 @@ class IO:
             Paragraph.initialize_class_variable()
         # LINE NUMBER
         if Form.line_number:
-            ms_scp = ms_doc.sections[0]._sectPr
-            oe = OxmlElement('w:lnNumType')
-            oe.set(ns.qn('w:countBy'), '5')
-            oe.set(ns.qn('w:restart'), 'newPage')
-            oe.set(ns.qn('w:distance'), '567')  # 567≒20*72/2.54=1cm
-            ms_scp.append(oe)
+            opts = {}
+            opts['w:countBy'] = '5'
+            opts['w:restart'] = 'newPage'
+            opts['w:distance'] = '567'  # 567≒20*72/2.54=1cm
+            XML.add_tag(ms_doc.sections[0]._sectPr, 'w:lnNumType', opts)
         self.make_styles(ms_doc)
         return ms_doc
 
@@ -997,15 +1011,11 @@ class IO:
         ms_doc.styles['makdo'].paragraph_format.line_spacing \
             = Pt(line_spacing * m_size)
         if not Form.auto_space:
-            pPr = ms_doc.styles['makdo']._element.get_or_add_pPr()
+            ms_ppr = ms_doc.styles['makdo']._element.get_or_add_pPr()
             # KANJI<->ENGLISH
-            oe = OxmlElement('w:autoSpaceDE')
-            oe.set(ns.qn('w:val'), '0')
-            pPr.append(oe)
+            XML.add_tag(ms_ppr, 'w:autoSpaceDE', {'w:val': '0'})
             # KANJI<->NUMBER
-            oe = OxmlElement('w:autoSpaceDN')
-            oe.set(ns.qn('w:val'), '0')
-            pPr.append(oe)
+            XML.add_tag(ms_ppr, 'w:autoSpaceDN', {'w:val': '0'})
         # GOTHIC
         ms_doc.styles.add_style('makdo-g', WD_STYLE_TYPE.PARAGRAPH)
         ms_doc.styles['makdo-g'].font.name = Form.gothic_font
@@ -2544,10 +2554,8 @@ class Paragraph:
         if paragraph_class == 'alignment':
             ms_par = self._get_ms_par(ms_doc)
             # WORD WRAP (英単語の途中で改行する)
-            oe = OxmlElement('w:wordWrap')
-            oe.set(ns.qn('w:val'), '0')
-            pPr = ms_par._p.get_or_add_pPr()
-            pPr.append(oe)
+            ms_ppr = ms_par._p.get_or_add_pPr(),
+            XML.add_tag(ms_ppr, 'w:wordWrap', {'w:val': '0'})
         elif paragraph_class == 'preformatted':
             ms_par = self._get_ms_par(ms_doc, 'makdo-g')
         else:
@@ -2577,13 +2585,11 @@ class Paragraph:
         m_size = Paragraph.font_size
         ms_par = ms_doc.add_paragraph(style=par_style)
         if not Form.auto_space:
-            pPr = ms_par._p.get_or_add_pPr()
-            oe = OxmlElement('w:autoSpaceDE')
-            oe.set(ns.qn('w:val'), '0')
-            pPr.append(oe)
-            oe = OxmlElement('w:autoSpaceDN')
-            oe.set(ns.qn('w:val'), '0')
-            pPr.append(oe)
+            ms_ppr = ms_par._p.get_or_add_pPr()
+            # KANJI<->ENGLISH
+            XML.add_tag(ms_ppr, 'w:autoSpaceDE', {'w:val': '0'})
+            # KANJI<->NUMBER
+            XML.add_tag(ms_ppr, 'w:autoSpaceDN', {'w:val': '0'})
         ms_fmt = ms_par.paragraph_format
         ms_fmt.widow_control = False
         if length_docx['space before'] >= 0:
@@ -2852,25 +2858,20 @@ class Paragraph:
     def _write_page_number(cls, char, ms_par):
         # BEGIN
         ms_run = ms_par.add_run()
-        oe = OxmlElement('w:fldChar')
-        oe.set(ns.qn('w:fldCharType'), 'begin')
-        ms_run._r.append(oe)
+        XML.add_tag(ms_run._r, 'w:fldChar', {'w:fldCharType': 'begin'})
         cls._decorate_page_number(ms_run)
         # PAGENUMBER
         ms_run = ms_par.add_run()
-        oe = OxmlElement('w:instrText')
-        # oe.set(ns.qn('xml:space'), 'preserve')
+        opts = {}
+        # opts = {'xml:space': 'preserve'}
         if char == 'n':
-            oe.text = 'PAGE'
+            XML.add_tag(ms_run._r, 'w:instrText', opts, 'PAGE')
         elif char == 'N':
-            oe.text = 'NUMPAGES'
-        ms_run._r.append(oe)
+            XML.add_tag(ms_run._r, 'w:instrText', opts, 'NUMPAGES')
         cls._decorate_page_number(ms_run)
         # END
         ms_run = ms_par.add_run()
-        oe = OxmlElement('w:fldChar')
-        oe.set(ns.qn('w:fldCharType'), 'end')
-        ms_run._r.append(oe)
+        XML.add_tag(ms_run._r, 'w:fldChar', {'w:fldCharType': 'end'})
         cls._decorate_page_number(ms_run)
         return ''
 
@@ -2902,18 +2903,11 @@ class Paragraph:
             font_size = xl_size
         else:
             font_size = m_size
+        ms_ppr = ms_run._r.get_or_add_rPr()
+        XML.add_tag(ms_ppr, 'w:sz', {'w:val': str(font_size * 2)})
+        XML.add_tag(ms_ppr, 'w:szCs', {'w:val': str(font_size * 2)})
         if cls.font_width != 1.00:
-            rPr = ms_run._r.get_or_add_rPr()
-            oe = OxmlElement('w:w')
-            oe.set(ns.qn('w:val'), str(cls.font_width * 100))
-            rPr.append(oe)
-        rPr = ms_run._r.get_or_add_rPr()
-        oe = OxmlElement('w:sz')
-        oe.set(ns.qn('w:val'), str(font_size * 2))
-        rPr.append(oe)
-        oe = OxmlElement('w:szCs')
-        oe.set(ns.qn('w:val'), str(font_size * 2))
-        rPr.append(oe)
+            XML.add_tag(ms_ppr, 'w:w', {'w:val': str(cls.font_width * 100)})
         if cls.underline is not None:
             ms_run.underline = cls.underline
         if cls.font_color is not None:
@@ -2960,10 +2954,8 @@ class Paragraph:
         else:
             ms_run.font.size = Pt(m_size)
         if cls.font_width != 1.00:
-            rPr = ms_run._r.get_or_add_rPr()
-            oe = OxmlElement('w:w')
-            oe.set(ns.qn('w:val'), str(cls.font_width * 100))
-            rPr.append(oe)
+            ms_rpr = ms_run._r.get_or_add_rPr()
+            XML.add_tag(ms_rpr, 'w:w', {'w:val': str(cls.font_width * 100)})
         if cls.underline is not None:
             ms_run.underline = cls.underline
         if cls.font_color is not None:
@@ -3363,10 +3355,8 @@ class ParagraphTable(Paragraph):
                 ms_par = ms_cell.paragraphs[0]
                 ms_par.style = 'makdo-t'
                 # WORD WRAP (英単語の途中で改行する)
-                oe = OxmlElement('w:wordWrap')
-                oe.set(ns.qn('w:val'), '0')
-                pPr = ms_par._p.get_or_add_pPr()
-                pPr.append(oe)
+                ms_ppr = ms_par._p.get_or_add_pPr()
+                XML.add_tag(ms_ppr, 'w:wordWrap', {'w:val': '0'})
                 Paragraph.font_size = s_size
                 self._write_text(cell, ms_par)
                 Paragraph.font_size = m_size
@@ -3695,15 +3685,15 @@ class ParagraphHorizontalLine(Paragraph):
             + length_docx['space after'] * line_spacing * m_size
         ms_fmt.space_before = Pt(sb)
         ms_fmt.space_after = Pt(sa)
-        pPr = ms_par._p.get_or_add_pPr()
-        pBdr = OxmlElement('w:pBdr')
-        pPr.insert_element_before(pBdr)
-        oe = OxmlElement('w:bottom')
-        oe.set(qn('w:val'), 'single')
-        oe.set(qn('w:sz'), '6')
-        # oe.set(qn('w:space'), '1')
-        # oe.set(qn('w:color'), 'auto')
-        pBdr.append(oe)
+        ms_ppr = ms_par._p.get_or_add_pPr()
+        oe_pbdr = OxmlElement('w:pBdr')
+        ms_ppr.insert_element_before(oe_pbdr)
+        opts = {}
+        opts['w:val'] = 'single'
+        opts['w:sz'] = '6'
+        # opts['w:space'] = '1'
+        # opts['w:color'] = 'auto'
+        XML.add_tag(oe_pbdr, 'w:bottom', opts)
 
 
 class ParagraphBreakdown(Paragraph):

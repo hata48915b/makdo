@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.06.18-09:41:51-JST>
+# Time-stamp:   <2023.06.18-09:55:38-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -937,6 +937,8 @@ def c2n_c_kanj(s):
 
 
 class XML:
+
+    """A class to handle xml"""
 
     @staticmethod
     def get_body(tag_name, xml_lines):
