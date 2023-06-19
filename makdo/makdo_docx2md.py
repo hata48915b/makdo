@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.06.18-09:55:38-JST>
+# Time-stamp:   <2023.06.19-09:09:10-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -188,7 +188,7 @@ DEFAULT_RIGHT_MARGIN = 2.0
 
 DEFAULT_HEADER_STRING = ''
 
-DEFAULT_PAGE_NUMBER = 'n'
+DEFAULT_PAGE_NUMBER = ': n :'
 
 DEFAULT_LINE_NUMBER = False
 
