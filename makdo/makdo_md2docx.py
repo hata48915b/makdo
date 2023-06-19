@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.06.18-12:18:01-JST>
+# Time-stamp:   <2023.06.19-09:06:08-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -807,6 +807,12 @@ class XML:
         if text is not None:
             oe.text = text
         ms_foo.append(oe)
+
+    @staticmethod
+    def add_tags(ms_foo, parent_tag, tag, options, text=None):
+        oe = OxmlElement(parent_tag)
+        ms_foo.insert_element_before(oe)
+        XML.add_tag(oe, tag, options)
 
 
 class IO:
@@ -2554,7 +2560,7 @@ class Paragraph:
         if paragraph_class == 'alignment':
             ms_par = self._get_ms_par(ms_doc)
             # WORD WRAP (英単語の途中で改行する)
-            ms_ppr = ms_par._p.get_or_add_pPr(),
+            ms_ppr = ms_par._p.get_or_add_pPr()
             XML.add_tag(ms_ppr, 'w:wordWrap', {'w:val': '0'})
         elif paragraph_class == 'preformatted':
             ms_par = self._get_ms_par(ms_doc, 'makdo-g')
@@ -2892,7 +2898,7 @@ class Paragraph:
             ms_run.font.name = Form.gothic_font
         else:
             ms_run.font.name = Form.mincho_font
-        ms_run._element.rPr.rFonts.set(qn('w:eastAsia'), ms_run.font.name)
+        ms_run._element.rPr.rFonts.set(ns.qn('w:eastAsia'), ms_run.font.name)
         if cls.is_xsmall:
             font_size = xs_size
         elif cls.is_small:
@@ -2942,7 +2948,7 @@ class Paragraph:
             ms_run.font.name = cls.gothic_font
         else:
             ms_run.font.name = cls.mincho_font
-        ms_run._element.rPr.rFonts.set(qn('w:eastAsia'), ms_run.font.name)
+        ms_run._element.rPr.rFonts.set(ns.qn('w:eastAsia'), ms_run.font.name)
         if cls.is_xsmall:
             ms_run.font.size = Pt(xs_size)
         elif cls.is_small:
@@ -3685,15 +3691,13 @@ class ParagraphHorizontalLine(Paragraph):
             + length_docx['space after'] * line_spacing * m_size
         ms_fmt.space_before = Pt(sb)
         ms_fmt.space_after = Pt(sa)
-        ms_ppr = ms_par._p.get_or_add_pPr()
-        oe_pbdr = OxmlElement('w:pBdr')
-        ms_ppr.insert_element_before(oe_pbdr)
         opts = {}
         opts['w:val'] = 'single'
         opts['w:sz'] = '6'
         # opts['w:space'] = '1'
         # opts['w:color'] = 'auto'
-        XML.add_tag(oe_pbdr, 'w:bottom', opts)
+        ms_ppr = ms_par._p.get_or_add_pPr()
+        XML.add_tags(ms_ppr, 'w:pBdr', 'w:bottom', opts)
 
 
 class ParagraphBreakdown(Paragraph):
