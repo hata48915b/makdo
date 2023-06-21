@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.06.19-09:08:43-JST>
+# Time-stamp:   <2023.06.22-08:33:24-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1089,7 +1089,7 @@ class MdFile:
             # msg = 'error: ' \
             #     + 'failed to read input file "' + md_file + '"'
             sys.stderr.write(msg + '\n\n')
-            sys.exit(0)
+            sys.exit(1)
         return raw_data
 
     @staticmethod
@@ -1126,7 +1126,7 @@ class MdFile:
             # msg = 'error: ' \
             #     + 'can\'t read data (maybe not Markdown?)'
             sys.stderr.write(msg + '\n\n')
-            sys.exit(0)
+            sys.exit(1)
         return decoded_data
 
     @staticmethod
