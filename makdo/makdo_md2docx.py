@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.06.23-05:36:26-JST>
+# Time-stamp:   <2023.06.23-05:49:35-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1199,6 +1199,8 @@ class DocxFile:
 
     @staticmethod
     def _save_old_file(output_file):
+        if output_file is None:
+            return False
         if output_file == '-':
             return True
         backup_file = output_file + '~'
@@ -1228,6 +1230,8 @@ class DocxFile:
 
     @staticmethod
     def _write_new_file(ms_doc, docx_file):
+        if docx_file is None:
+            return False
         if docx_file == '-':
             output_file = '/dev/stdout'
         else:
