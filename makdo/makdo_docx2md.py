@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.06.23-02:02:42-JST>
+# Time-stamp:   <2023.06.23-02:25:27-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1369,7 +1369,7 @@ class MdFile:
     @staticmethod
     def _save_old_file(output_file):
         if output_file == '-':
-            return
+            return True
         backup_file = output_file + '~'
         if os.path.exists(output_file):
             if os.path.exists(backup_file):
@@ -1382,6 +1382,7 @@ class MdFile:
                 sys.stderr.write(msg + '\n\n')
                 if __name__ == '__main__':
                     sys.exit(205)
+                return False
             os.rename(output_file, backup_file)
         if os.path.exists(output_file):
             msg = '※ エラー: ' \
@@ -1391,6 +1392,8 @@ class MdFile:
             sys.stderr.write(msg + '\n\n')
             if __name__ == '__main__':
                 sys.exit(206)
+            return False
+        return True
 
 
 class Form:

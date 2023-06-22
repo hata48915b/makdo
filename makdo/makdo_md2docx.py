@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.06.23-02:15:13-JST>
+# Time-stamp:   <2023.06.23-02:26:36-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1192,20 +1192,21 @@ class DocxFile:
     @staticmethod
     def _save_old_file(output_file):
         if output_file == '-':
-            return
-        old_file = output_file + '~'
+            return True
+        backup_file = output_file + '~'
         if os.path.exists(output_file):
-            if os.path.exists(old_file):
-                os.remove(old_file)
-            if os.path.exists(old_file):
+            if os.path.exists(backup_file):
+                os.remove(backup_file)
+            if os.path.exists(backup_file):
                 msg = '※ エラー: ' \
-                    + '古いファイル「' + old_file + '」を削除できません'
+                    + '古いファイル「' + backup_file + '」を削除できません'
                 # msg = 'error: ' \
-                #     + 'can\'t remove "' + old_file + '"'
+                #     + 'can\'t remove "' + backup_file + '"'
                 sys.stderr.write(msg + '\n\n')
                 if __name__ == '__main__':
                     sys.exit(204)
-            os.rename(output_file, old_file)
+                return False
+            os.rename(output_file, backup_file)
         if os.path.exists(output_file):
             msg = '※ エラー: ' \
                 + '古いファイル「' + output_file + '」を改名できません'
@@ -1214,6 +1215,8 @@ class DocxFile:
             sys.stderr.write(msg + '\n\n')
             if __name__ == '__main__':
                 sys.exit(205)
+            return False
+        return True
 
     @staticmethod
     def _write_new_file(ms_doc, docx_file):
