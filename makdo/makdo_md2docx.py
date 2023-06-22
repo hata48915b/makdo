@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.06.23-02:38:29-JST>
+# Time-stamp:   <2023.06.23-05:36:26-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1104,7 +1104,8 @@ class MdFile:
 
     @staticmethod
     def _get_raw_data(md_file):
-        raw_data = ''
+        if md_file is None:
+            return ''
         try:
             if md_file == '-':
                 raw_data = sys.stdin.buffer.read()
@@ -1118,6 +1119,7 @@ class MdFile:
             sys.stderr.write(msg + '\n\n')
             if __name__ == '__main__':
                 sys.exit(104)
+            return ''
         return raw_data
 
     @staticmethod
@@ -1148,7 +1150,6 @@ class MdFile:
 
     @staticmethod
     def _decode_data(encoding, raw_data):
-        decoded_data = ''
         try:
             decoded_data = raw_data.decode(encoding)
         except BaseException:
@@ -1159,6 +1160,7 @@ class MdFile:
             sys.stderr.write(msg + '\n\n')
             if __name__ == '__main__':
                 sys.exit(105)
+            return ''
         return decoded_data
 
     @staticmethod
@@ -1240,6 +1242,8 @@ class DocxFile:
             sys.stderr.write(msg + '\n\n')
             if __name__ == '__main__':
                 sys.exit(206)
+            return False
+        return True
 
 
 class Form:

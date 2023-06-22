@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.06.23-02:38:13-JST>
+# Time-stamp:   <2023.06.23-05:40:21-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1284,6 +1284,8 @@ class DocxFile:
     def unpack_docx_file(self, temp_dir):
         self.temp_dir = temp_dir
         docx_file = self.docx_file
+        if docx_file is None:
+            return False
         try:
             shutil.unpack_archive(docx_file, temp_dir, 'zip')
         except BaseException:
@@ -1321,6 +1323,7 @@ class DocxFile:
             sys.stderr.write(msg + '\n\n')
             if __name__ == '__main__':
                 sys.exit(106)
+            return []
         tmp = ''
         for ln in xf:
             ln = re.sub('\n', '', ln)
@@ -1369,7 +1372,9 @@ class MdFile:
                 sys.stderr.write(msg + '\n\n')
                 if __name__ == '__main__':
                     sys.exit(204)
+                return False
         self.md_output = md_output
+        return True
 
     def write(self, article):
         self.md_output.write(article)
