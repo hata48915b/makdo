@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.06.23-02:26:36-JST>
+# Time-stamp:   <2023.06.23-02:38:29-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -828,9 +828,11 @@ class IO:
 
     def set_md_file(self, inputed_md_file):
         md_file = inputed_md_file
-        self._verify_input_file(md_file)
+        if not self._verify_input_file(md_file):
+            return False
         self.inputed_md_file = inputed_md_file
         self.md_file = md_file
+        return True
 
     def read_md_file(self):
         mf = MdFile(self.md_file)
@@ -850,14 +852,18 @@ class IO:
                 sys.stderr.write(msg + '\n\n')
                 if __name__ == '__main__':
                     sys.exit(201)
+                return False
             elif re.match('^.*\\.md$', inputed_md_file):
                 docx_file = re.sub('\\.md$', '.docx', inputed_md_file)
             else:
                 docx_file = inputed_md_file + '.docx'
-        self._verify_output_file(docx_file)
-        self._verify_older(md_file, docx_file)
+        if not self._verify_output_file(docx_file):
+            return False
+        if not self._verify_older(md_file, docx_file):
+            return False
         self.inputed_docx_file = inputed_docx_file
         self.docx_file = docx_file
+        return True
 
     def save_docx_file(self):
         ms_doc = self.ms_doc

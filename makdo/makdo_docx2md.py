@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.06.23-02:25:27-JST>
+# Time-stamp:   <2023.06.23-02:38:13-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1058,9 +1058,11 @@ class IO:
 
     def set_docx_file(self, inputed_docx_file):
         docx_file = inputed_docx_file
-        self._verify_input_file(docx_file)
+        if not self._verify_input_file(docx_file):
+            return False
         self.inputed_docx_file = inputed_docx_file
         self.docx_file = docx_file
+        return True
 
     def unpack_docx_file(self):
         self.docx_input = DocxFile(self.docx_file)
@@ -1084,14 +1086,18 @@ class IO:
                 sys.stderr.write(msg + '\n\n')
                 if __name__ == '__main__':
                     sys.exit(201)
+                return False
             elif re.match('^.*\\.docx$', inputed_docx_file):
                 md_file = re.sub('\\.docx$', '.md', inputed_docx_file)
             else:
                 md_file = inputed_docx_file + '.md'
-        self._verify_output_file(md_file)
-        self._verify_older(docx_file, md_file)
+        if not self._verify_output_file(md_file):
+            return False
+        if not self._verify_older(docx_file, md_file):
+            return False
         self.inputed_md_file = inputed_md_file
         self.md_file = md_file
+        return True
 
     def open_md_file(self):
         self.md_file_inst = MdFile(self.md_file)
@@ -1260,6 +1266,8 @@ class IO:
                 sys.stderr.write(msg + '\n\n')
                 if __name__ == '__main__':
                     sys.exit(301)
+                return False
+        return True
 
 
 class DocxFile:
@@ -1286,6 +1294,7 @@ class DocxFile:
             sys.stderr.write(msg + '\n\n')
             if __name__ == '__main__':
                 sys.exit(104)
+            return False
         if not os.path.exists(temp_dir + '/word/document.xml'):
             msg = '※ エラー: ' \
                 + '入力ファイル「' + docx_file + '」はMS Wordのファイルでは' \
@@ -1295,6 +1304,8 @@ class DocxFile:
             sys.stderr.write(msg + '\n\n')
             if __name__ == '__main__':
                 sys.exit(105)
+            return False
+        return True
 
     def read_xml_file(self, xml_file):
         path = self.temp_dir + '/' + xml_file
