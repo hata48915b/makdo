@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.06.23-07:40:21-JST>
+# Time-stamp:   <2023.06.23-08:15:25-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2896,6 +2896,9 @@ class RawParagraph:
                 rxl = rxl.replace('%%', '\\%\\%')
                 rxl = rxl.replace('&lt;', '\\&lt;')
                 rxl = rxl.replace('&gt;', '\\&gt;')
+                res = '^(\\S*)\\s*\\\\\\\\\\\\\\* MERGEFORMAT$'
+                if fldchar == 'begin' and re.match(res, rxl):
+                    rxl = re.sub(res, '\\1', rxl)
                 if fldchar == 'begin' and rxl == 'PAGE':
                     rxl = 'n'
                 if fldchar == 'begin' and rxl == 'NUMPAGES':
