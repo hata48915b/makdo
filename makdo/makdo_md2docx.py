@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.06.22-23:52:22-JST>
+# Time-stamp:   <2023.06.23-02:15:13-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -867,53 +867,64 @@ class IO:
 
     @staticmethod
     def _verify_input_file(input_file):
-        if input_file != '-':
-            if not os.path.exists(input_file):
-                msg = '※ エラー: ' \
-                    + '入力ファイル「' + input_file + '」がありません'
-                # msg = 'error: ' \
-                #     + 'no input file "' + input_file + '"'
-                sys.stderr.write(msg + '\n\n')
-                if __name__ == '__main__':
-                    sys.exit(101)
-            if not os.path.isfile(input_file):
-                msg = '※ エラー: ' \
-                    + '入力「' + input_file + '」はファイルではありません'
-                # msg = 'error: ' \
-                #     + 'not a file "' + input_file + '"'
-                sys.stderr.write(msg + '\n\n')
-                if __name__ == '__main__':
-                    sys.exit(102)
-            if not os.access(input_file, os.R_OK):
-                msg = '※ エラー: ' \
-                    + '入力ファイル「' + input_file + '」に読込権限が' \
-                    + 'ありません'
-                # msg = 'error: ' \
-                #     + 'unreadable "' + input_file + '"'
-                sys.stderr.write(msg + '\n\n')
-                if __name__ == '__main__':
-                    sys.exit(103)
+        if input_file == '-':
+            return True
+        if not os.path.exists(input_file):
+            msg = '※ エラー: ' \
+                + '入力ファイル「' + input_file + '」がありません'
+            # msg = 'error: ' \
+            #     + 'no input file "' + input_file + '"'
+            sys.stderr.write(msg + '\n\n')
+            if __name__ == '__main__':
+                sys.exit(101)
+            return False
+        if not os.path.isfile(input_file):
+            msg = '※ エラー: ' \
+                + '入力「' + input_file + '」はファイルではありません'
+            # msg = 'error: ' \
+            #     + 'not a file "' + input_file + '"'
+            sys.stderr.write(msg + '\n\n')
+            if __name__ == '__main__':
+                sys.exit(102)
+            return False
+        if not os.access(input_file, os.R_OK):
+            msg = '※ エラー: ' \
+                + '入力ファイル「' + input_file + '」に読込権限が' \
+                + 'ありません'
+            # msg = 'error: ' \
+            #     + 'unreadable "' + input_file + '"'
+            sys.stderr.write(msg + '\n\n')
+            if __name__ == '__main__':
+                sys.exit(103)
+            return False
+        return True
 
     @staticmethod
     def _verify_output_file(output_file):
-        if output_file != '-' and os.path.exists(output_file):
-            if not os.path.isfile(output_file):
-                msg = '※ エラー: ' \
-                    + '出力「' + output_file + '」はファイルではありません'
-                # msg = 'error: ' \
-                #     + 'not a file "' + output_file + '"'
-                sys.stderr.write(msg + '\n\n')
-                if __name__ == '__main__':
-                    sys.exit(202)
-            if not os.access(output_file, os.W_OK):
-                msg = '※ エラー: ' \
-                    + '出力ファイル「' + output_file + '」に書込権限が' \
-                    + 'ありません'
-                # msg = 'error: ' \
-                #     + 'unwritable "' + output_file + '"'
-                sys.stderr.write(msg + '\n\n')
-                if __name__ == '__main__':
-                    sys.exit(203)
+        if output_file == '-':
+            return True
+        if not os.path.exists(output_file):
+            return True
+        if not os.path.isfile(output_file):
+            msg = '※ エラー: ' \
+                + '出力「' + output_file + '」はファイルではありません'
+            # msg = 'error: ' \
+            #     + 'not a file "' + output_file + '"'
+            sys.stderr.write(msg + '\n\n')
+            if __name__ == '__main__':
+                sys.exit(202)
+            return False
+        if not os.access(output_file, os.W_OK):
+            msg = '※ エラー: ' \
+                + '出力ファイル「' + output_file + '」に書込権限が' \
+                + 'ありません'
+            # msg = 'error: ' \
+            #     + 'unwritable "' + output_file + '"'
+            sys.stderr.write(msg + '\n\n')
+            if __name__ == '__main__':
+                sys.exit(203)
+            return False
+        return True
 
     @staticmethod
     def _verify_older(input_file, output_file):
@@ -927,6 +938,8 @@ class IO:
                 sys.stderr.write(msg + '\n\n')
                 if __name__ == '__main__':
                     sys.exit(301)
+                return False
+        return True
 
     def get_ms_doc(self):
         m_size = Form.font_size
@@ -1085,6 +1098,7 @@ class MdFile:
 
     @staticmethod
     def _get_raw_data(md_file):
+        raw_data = ''
         try:
             if md_file == '-':
                 raw_data = sys.stdin.buffer.read()
@@ -1102,7 +1116,9 @@ class MdFile:
 
     @staticmethod
     def _get_encoding(raw_data):
-        encoding = chardet.detect(raw_data)['encoding']
+        encoding = 'SHIFT_JIS'
+        if raw_data != '':
+            encoding = chardet.detect(raw_data)['encoding']
         if encoding is None:
             encoding = 'SHIFT_JIS'
         elif (re.match('^utf[-_]?.*$', encoding, re.I)) or \
@@ -1126,6 +1142,7 @@ class MdFile:
 
     @staticmethod
     def _decode_data(encoding, raw_data):
+        decoded_data = ''
         try:
             decoded_data = raw_data.decode(encoding)
         except BaseException:
