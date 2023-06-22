@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.06.23-05:40:21-JST>
+# Time-stamp:   <2023.06.23-06:54:37-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -3149,11 +3149,15 @@ class RawParagraph:
                 # NARROW x NARROW
                 if re.match('^(.|\n)*<<$', raw_text) and \
                    re.match('^>>.*$', xl):
-                    break
+                    raw_text = re.sub('<<$', '', raw_text)
+                    xl = re.sub('^>>', '', xl)
+                    continue
                 # WIDE x WIDE
                 if re.match('^(.|\n)*>>$', raw_text) and \
                    re.match('^<<.*$', xl):
-                    break
+                    raw_text = re.sub('>>$', '', raw_text)
+                    xl = re.sub('^<<', '', xl)
+                    continue
                 # UNDERLINE
                 res = '_([\\$=\\.#\\-~\\+]{,4})_'
                 if re.match('^(?:.|\n)*' + res + '$', raw_text) and \
