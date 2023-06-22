@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.06.19-09:09:10-JST>
+# Time-stamp:   <2023.06.22-23:55:36-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1082,7 +1082,8 @@ class IO:
                 # msg = 'error: ' \
                 #     + 'no output file name'
                 sys.stderr.write(msg + '\n\n')
-                sys.exit(1)
+                if __name__ == '__main__':
+                    sys.exit(201)
             elif re.match('^.*\\.docx$', inputed_docx_file):
                 md_file = re.sub('\\.docx$', '.md', inputed_docx_file)
             else:
@@ -1195,14 +1196,16 @@ class IO:
                 # msg = 'error: ' \
                 #     + 'no input file "' + input_file + '"'
                 sys.stderr.write(msg + '\n\n')
-                sys.exit(1)
+                if __name__ == '__main__':
+                    sys.exit(101)
             if not os.path.isfile(input_file):
                 msg = '※ エラー: ' \
                     + '入力「' + input_file + '」はファイルではありません'
                 # msg = 'error: ' \
                 #     + 'not a file "' + input_file + '"'
                 sys.stderr.write(msg + '\n\n')
-                sys.exit(1)
+                if __name__ == '__main__':
+                    sys.exit(102)
             if not os.access(input_file, os.R_OK):
                 msg = '※ エラー: ' \
                     + '入力ファイル「' + input_file + '」に読込権限が' \
@@ -1210,7 +1213,8 @@ class IO:
                 # msg = 'error: ' \
                 #     + 'unreadable "' + input_file + '"'
                 sys.stderr.write(msg + '\n\n')
-                sys.exit(1)
+                if __name__ == '__main__':
+                    sys.exit(103)
 
     @staticmethod
     def _verify_output_file(output_file):
@@ -1221,7 +1225,8 @@ class IO:
                 # msg = 'error: ' \
                 #     + 'not a file "' + output_file + '"'
                 sys.stderr.write(msg + '\n\n')
-                sys.exit(1)
+                if __name__ == '__main__':
+                    sys.exit(202)
             if not os.access(output_file, os.W_OK):
                 msg = '※ エラー: ' \
                     + '出力ファイル「' + output_file + '」に書込権限が' \
@@ -1229,7 +1234,8 @@ class IO:
                 # msg = 'error: ' \
                 #     + 'unwritable "' + output_file + '"'
                 sys.stderr.write(msg + '\n\n')
-                sys.exit(1)
+                if __name__ == '__main__':
+                    sys.exit(203)
 
     @staticmethod
     def _verify_older(input_file, output_file):
@@ -1241,7 +1247,8 @@ class IO:
                 # msg = 'error: ' \
                 #     + 'overwriting a newer file'
                 sys.stderr.write(msg + '\n\n')
-                sys.exit(1)
+                if __name__ == '__main__':
+                    sys.exit(301)
 
 
 class DocxFile:
@@ -1266,7 +1273,8 @@ class DocxFile:
             # msg = 'error: ' \
             #     + 'can\'t unpack a input file "' + docx_file + '"'
             sys.stderr.write(msg + '\n\n')
-            sys.exit(1)
+            if __name__ == '__main__':
+                sys.exit(104)
         if not os.path.exists(temp_dir + '/word/document.xml'):
             msg = '※ エラー: ' \
                 + '入力ファイル「' + docx_file + '」はMS Wordのファイルでは' \
@@ -1274,7 +1282,8 @@ class DocxFile:
             # msg = 'error: ' \
             #     + 'not a ms word file "' + docx_file + '"'
             sys.stderr.write(msg + '\n\n')
-            sys.exit(1)
+            if __name__ == '__main__':
+                sys.exit(105)
 
     def read_xml_file(self, xml_file):
         path = self.temp_dir + '/' + xml_file
@@ -1288,7 +1297,8 @@ class DocxFile:
             # msg = 'error: ' \
             #     + 'can\'t read "' + xml_file + '"'
             sys.stderr.write(msg + '\n\n')
-            sys.exit(1)
+            if __name__ == '__main__':
+                sys.exit(106)
         tmp = ''
         for ln in xf:
             ln = re.sub('\n', '', ln)
@@ -1335,7 +1345,8 @@ class MdFile:
                 # msg = 'error: ' \
                 #     + 'can\'t write "' + md_file + '"'
                 sys.stderr.write(msg + '\n\n')
-                sys.exit(1)
+                if __name__ == '__main__':
+                    sys.exit(204)
         self.md_output = md_output
 
     def write(self, article):
@@ -1358,7 +1369,8 @@ class MdFile:
                 # msg = 'error: ' \
                 #     + 'can\'t remove "' + backup_file + '"'
                 sys.stderr.write(msg + '\n\n')
-                sys.exit(1)
+                if __name__ == '__main__':
+                    sys.exit(205)
             os.rename(output_file, backup_file)
         if os.path.exists(output_file):
             msg = '※ エラー: ' \
@@ -1366,7 +1378,8 @@ class MdFile:
             # msg = 'error: ' \
             #     + 'can\'t rename "' + output_file + '"'
             sys.stderr.write(msg + '\n\n')
-            sys.exit(1)
+            if __name__ == '__main__':
+                sys.exit(206)
 
 
 class Form:

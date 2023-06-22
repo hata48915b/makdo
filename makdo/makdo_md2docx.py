@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.06.22-08:33:24-JST>
+# Time-stamp:   <2023.06.22-23:52:22-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -848,7 +848,8 @@ class IO:
                 # msg = 'error: ' \
                 #     + 'no output file name'
                 sys.stderr.write(msg + '\n\n')
-                sys.exit(1)
+                if __name__ == '__main__':
+                    sys.exit(201)
             elif re.match('^.*\\.md$', inputed_md_file):
                 docx_file = re.sub('\\.md$', '.docx', inputed_md_file)
             else:
@@ -873,14 +874,16 @@ class IO:
                 # msg = 'error: ' \
                 #     + 'no input file "' + input_file + '"'
                 sys.stderr.write(msg + '\n\n')
-                sys.exit(1)
+                if __name__ == '__main__':
+                    sys.exit(101)
             if not os.path.isfile(input_file):
                 msg = '※ エラー: ' \
                     + '入力「' + input_file + '」はファイルではありません'
                 # msg = 'error: ' \
                 #     + 'not a file "' + input_file + '"'
                 sys.stderr.write(msg + '\n\n')
-                sys.exit(1)
+                if __name__ == '__main__':
+                    sys.exit(102)
             if not os.access(input_file, os.R_OK):
                 msg = '※ エラー: ' \
                     + '入力ファイル「' + input_file + '」に読込権限が' \
@@ -888,7 +891,8 @@ class IO:
                 # msg = 'error: ' \
                 #     + 'unreadable "' + input_file + '"'
                 sys.stderr.write(msg + '\n\n')
-                sys.exit(1)
+                if __name__ == '__main__':
+                    sys.exit(103)
 
     @staticmethod
     def _verify_output_file(output_file):
@@ -899,7 +903,8 @@ class IO:
                 # msg = 'error: ' \
                 #     + 'not a file "' + output_file + '"'
                 sys.stderr.write(msg + '\n\n')
-                sys.exit(1)
+                if __name__ == '__main__':
+                    sys.exit(202)
             if not os.access(output_file, os.W_OK):
                 msg = '※ エラー: ' \
                     + '出力ファイル「' + output_file + '」に書込権限が' \
@@ -907,7 +912,8 @@ class IO:
                 # msg = 'error: ' \
                 #     + 'unwritable "' + output_file + '"'
                 sys.stderr.write(msg + '\n\n')
-                sys.exit(1)
+                if __name__ == '__main__':
+                    sys.exit(203)
 
     @staticmethod
     def _verify_older(input_file, output_file):
@@ -919,7 +925,8 @@ class IO:
                 # msg = 'error: ' \
                 #     + 'overwriting newer file'
                 sys.stderr.write(msg + '\n\n')
-                sys.exit(1)
+                if __name__ == '__main__':
+                    sys.exit(301)
 
     def get_ms_doc(self):
         m_size = Form.font_size
@@ -1089,7 +1096,8 @@ class MdFile:
             # msg = 'error: ' \
             #     + 'failed to read input file "' + md_file + '"'
             sys.stderr.write(msg + '\n\n')
-            sys.exit(1)
+            if __name__ == '__main__':
+                sys.exit(104)
         return raw_data
 
     @staticmethod
@@ -1126,7 +1134,8 @@ class MdFile:
             # msg = 'error: ' \
             #     + 'can\'t read data (maybe not Markdown?)'
             sys.stderr.write(msg + '\n\n')
-            sys.exit(1)
+            if __name__ == '__main__':
+                sys.exit(105)
         return decoded_data
 
     @staticmethod
@@ -1177,7 +1186,8 @@ class DocxFile:
                 # msg = 'error: ' \
                 #     + 'can\'t remove "' + old_file + '"'
                 sys.stderr.write(msg + '\n\n')
-                sys.exit(1)
+                if __name__ == '__main__':
+                    sys.exit(204)
             os.rename(output_file, old_file)
         if os.path.exists(output_file):
             msg = '※ エラー: ' \
@@ -1185,7 +1195,8 @@ class DocxFile:
             # msg = 'error: ' \
             #     + 'can\'t rename "' + output_file + '"'
             sys.stderr.write(msg + '\n\n')
-            sys.exit(1)
+            if __name__ == '__main__':
+                sys.exit(205)
 
     @staticmethod
     def _write_new_file(ms_doc, docx_file):
@@ -1201,7 +1212,8 @@ class DocxFile:
             # msg = 'error: ' \
             #     + 'failed to write output file "' + docx_file + '"'
             sys.stderr.write(msg + '\n\n')
-            sys.exit(1)
+            if __name__ == '__main__':
+                sys.exit(206)
 
 
 class Form:
