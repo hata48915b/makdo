@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.06.23-06:54:37-JST>
+# Time-stamp:   <2023.06.23-07:40:21-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2850,7 +2850,7 @@ class RawParagraph:
             elif re.match('^<w:rFonts .*>$', rxl):
                 item = re.sub('^.* (\\S+)=[\'"]([^\'"]*)[\'"].*$', '\\1', rxl)
                 font = re.sub('^.* (\\S+)=[\'"]([^\'"]*)[\'"].*$', '\\2', rxl)
-                if item != 'w:hint':
+                if not re.match('^w:(hint|.*Theme)$', item):
                     if font == Form.mincho_font:
                         pass
                     elif font == Form.gothic_font:
