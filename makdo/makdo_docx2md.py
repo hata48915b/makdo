@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.06.23-08:15:25-JST>
+# Time-stamp:   <2023.06.24-08:24:11-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -30,6 +30,24 @@
 
 # from makdo_docx2md import Docx2Md
 # d2m = Docx2Md('xxx.docx')
+# d2m.set_document_title('aaa')
+# d2m.set_document_style('bbb')
+# d2m.set_paper_size('ccc')
+# d2m.set_top_margin('ddd')
+# d2m.set_bottom_margin('eee')
+# d2m.set_left_margin('fff')
+# d2m.set_right_margin('ggg')
+# d2m.set_header_string('hhh')
+# d2m.set_page_number('hhh')
+# d2m.set_line_number('iii')
+# d2m.set_mincho_font('jjj')
+# d2m.set_gothic_font('kkk')
+# d2m.set_ivs_font('lll')
+# d2m.set_font_size('mmm')
+# d2m.set_line_spacing('nnn')
+# d2m.set_space_before('ooo')
+# d2m.set_space_after('ppp')
+# d2m.set_auto_space('qqq')
 # d2m.save('xxx.md')
 
 

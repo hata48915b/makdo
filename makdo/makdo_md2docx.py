@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.06.23-05:49:35-JST>
+# Time-stamp:   <2023.06.24-08:23:54-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -30,6 +30,24 @@
 
 # from makdo_md2docx import Md2Docx
 # m2d = Md2Docx('xxx.md')
+# m2d.set_document_title('aaa')
+# m2d.set_document_style('bbb')
+# m2d.set_paper_size('ccc')
+# m2d.set_top_margin('ddd')
+# m2d.set_bottom_margin('eee')
+# m2d.set_left_margin('fff')
+# m2d.set_right_margin('ggg')
+# m2d.set_header_string('hhh')
+# m2d.set_page_number('hhh')
+# m2d.set_line_number('iii')
+# m2d.set_mincho_font('jjj')
+# m2d.set_gothic_font('kkk')
+# m2d.set_ivs_font('lll')
+# m2d.set_font_size('mmm')
+# m2d.set_line_spacing('nnn')
+# m2d.set_space_before('ooo')
+# m2d.set_space_after('ppp')
+# m2d.set_auto_space('qqq')
 # m2d.save('xxx.docx')
 
 
