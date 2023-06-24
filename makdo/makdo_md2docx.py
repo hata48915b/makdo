@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.06.24-08:23:54-JST>
+# Time-stamp:   <2023.06.24-12:29:24-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -298,13 +298,16 @@ RES_NUMBER6 = '(?:' + RES_NUMBER + '?,){,5}' + RES_NUMBER + '?,?'
 
 RES_IMAGE = '! *\\[([^\\[\\]]*)\\] *\\(([^\\(\\)]+)\\)'
 
-FONT_DECORATORS = [
+FONT_DECORATORS_UNVISIBLE = [
     '\\*\\*\\*',                # italic and bold
     '\\*\\*',                   # bold
     '\\*',                      # italic
-    '~~',                       # strikethrough
-    '`',                        # preformatted
     '//',                       # italic
+    '`',                        # preformatted
+    '\\^[0-9A-Za-z]{0,11}\\^',  # font color
+]
+FONT_DECORATORS_VISIBLE = [
+    '~~',                       # strikethrough
     '\\-\\-\\-',                # xsmall
     '\\-\\-',                   # small
     '\\+\\+\\+',                # xlarge
@@ -314,10 +317,10 @@ FONT_DECORATORS = [
     '<<<',                      # xwide or reset
     '<<',                       # wide or reset
     '_[\\$=\\.#\\-~\\+]{,4}_',  # underline
-    '\\^[0-9A-Za-z]{0,11}\\^',  # font color
     '_[0-9A-Za-z]{1,11}_',      # higilight color
     '@.{1,66}@'                 # font
 ]
+FONT_DECORATORS = FONT_DECORATORS_UNVISIBLE + FONT_DECORATORS_VISIBLE
 
 RELAX_SYMBOL = '<>'
 

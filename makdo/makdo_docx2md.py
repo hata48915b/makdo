@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.06.24-08:24:11-JST>
+# Time-stamp:   <2023.06.24-12:46:13-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -254,13 +254,16 @@ RES_XML_IMG_PY_NAME \
 RES_XML_IMG_SIZE \
     = '<wp:extent cx=[\'"]([0-9]+)[\'"] cy=[\'"]([0-9]+)[\'"]/>'
 
-FONT_DECORATORS = [
+FONT_DECORATORS_UNVISIBLE = [
     '\\*\\*\\*',                # italic and bold
     '\\*\\*',                   # bold
     '\\*',                      # italic
-    '~~',                       # strikethrough
-    '`',                        # preformatted
     '//',                       # italic
+    '`',                        # preformatted
+    '\\^[0-9A-Za-z]{0,11}\\^',  # font color
+]
+FONT_DECORATORS_VISIBLE = [
+    '~~',                       # strikethrough
     '\\-\\-\\-',                # xsmall
     '\\-\\-',                   # small
     '\\+\\+\\+',                # xlarge
@@ -270,10 +273,10 @@ FONT_DECORATORS = [
     '<<<',                      # xwide or reset
     '<<',                       # wide or reset
     '_[\\$=\\.#\\-~\\+]{,4}_',  # underline
-    '\\^[0-9A-Za-z]{0,11}\\^',  # font color
     '_[0-9A-Za-z]{1,11}_',      # higilight color
     '@.{1,66}@'                 # font
 ]
+FONT_DECORATORS = FONT_DECORATORS_UNVISIBLE + FONT_DECORATORS_VISIBLE
 RES_FONT_DECORATORS = '((?:' + '|'.join(FONT_DECORATORS) + ')*)'
 
 MD_TEXT_WIDTH = 68
@@ -1607,7 +1610,9 @@ class Form:
             asn = -1
             for xl in xb:
                 name = XML.get_value('w:name', 'w:val', name, xl)
-                font = XML.get_value('w:rFonts', '*', font, xl)
+                font = XML.get_value('w:rFonts', 'w:ascii', font, xl)
+                font = XML.get_value('w:rFonts', 'w:eastAsia', font, xl)
+                # font = XML.get_value('w:rFonts', '*', font, xl)
                 sz_x = XML.get_value('w:sz', 'w:val', sz_x, xl)
                 f_it = XML.is_this_tag('w:i', f_it, xl)
                 f_bd = XML.is_this_tag('w:b', f_bd, xl)
@@ -2569,7 +2574,9 @@ class Style:
             type = XML.get_value('w:style', 'w:type', type, rxl)
             stid = XML.get_value('w:style', 'w:styleId', stid, rxl)
             name = XML.get_value('w:name', 'w:val', name, rxl)
-            font = XML.get_value('w:rFonts', '*', font, rxl)
+            font = XML.get_value('w:rFonts', 'w:ascii', font, rxl)
+            font = XML.get_value('w:rFonts', 'w:eastAsia', font, rxl)
+            # font = XML.get_value('w:rFonts', '*', font, rxl)
             f_2s = XML.get_value('w:sz', 'w:val', f_2s, rxl)
             f_it = XML.is_this_tag('w:i', f_it, rxl)
             f_bd = XML.is_this_tag('w:b', f_bd, rxl)
@@ -2866,9 +2873,10 @@ class RawParagraph:
             elif re.match('^<w:b/?>$', rxl):
                 is_bold = True
             elif re.match('^<w:rFonts .*>$', rxl):
-                item = re.sub('^.* (\\S+)=[\'"]([^\'"]*)[\'"].*$', '\\1', rxl)
-                font = re.sub('^.* (\\S+)=[\'"]([^\'"]*)[\'"].*$', '\\2', rxl)
-                if not re.match('^w:(hint|.*Theme)$', item):
+                font = ''
+                font = XML.get_value('w:rFonts', 'w:ascii', font, rxl)
+                font = XML.get_value('w:rFonts', 'w:eastAsia', font, rxl)
+                if font != '':
                     if font == Form.mincho_font:
                         pass
                     elif font == Form.gothic_font:
@@ -4883,6 +4891,10 @@ class ParagraphAlignment(Paragraph):
     def is_this_class(cls, raw_paragraph):
         rp = raw_paragraph
         rp_alg = rp.alignment
+        if ParagraphChapter.is_this_class(rp):
+            return False
+        if ParagraphSection.is_this_class(rp):
+            return False
         if ParagraphTable.is_this_class(rp):
             return False
         if ParagraphImage.is_this_class(rp):
