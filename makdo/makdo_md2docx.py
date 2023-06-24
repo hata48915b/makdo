@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.06.24-12:29:24-JST>
+# Time-stamp:   <2023.06.25-03:32:16-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -298,7 +298,7 @@ RES_NUMBER6 = '(?:' + RES_NUMBER + '?,){,5}' + RES_NUMBER + '?,?'
 
 RES_IMAGE = '! *\\[([^\\[\\]]*)\\] *\\(([^\\(\\)]+)\\)'
 
-FONT_DECORATORS_UNVISIBLE = [
+FONT_DECORATORS_INVISIBLE = [
     '\\*\\*\\*',                # italic and bold
     '\\*\\*',                   # bold
     '\\*',                      # italic
@@ -320,7 +320,7 @@ FONT_DECORATORS_VISIBLE = [
     '_[0-9A-Za-z]{1,11}_',      # higilight color
     '@.{1,66}@'                 # font
 ]
-FONT_DECORATORS = FONT_DECORATORS_UNVISIBLE + FONT_DECORATORS_VISIBLE
+FONT_DECORATORS = FONT_DECORATORS_INVISIBLE + FONT_DECORATORS_VISIBLE
 
 RELAX_SYMBOL = '<>'
 

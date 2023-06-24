@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.06.24-12:46:13-JST>
+# Time-stamp:   <2023.06.25-03:31:53-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -254,7 +254,7 @@ RES_XML_IMG_PY_NAME \
 RES_XML_IMG_SIZE \
     = '<wp:extent cx=[\'"]([0-9]+)[\'"] cy=[\'"]([0-9]+)[\'"]/>'
 
-FONT_DECORATORS_UNVISIBLE = [
+FONT_DECORATORS_INVISIBLE = [
     '\\*\\*\\*',                # italic and bold
     '\\*\\*',                   # bold
     '\\*',                      # italic
@@ -276,7 +276,7 @@ FONT_DECORATORS_VISIBLE = [
     '_[0-9A-Za-z]{1,11}_',      # higilight color
     '@.{1,66}@'                 # font
 ]
-FONT_DECORATORS = FONT_DECORATORS_UNVISIBLE + FONT_DECORATORS_VISIBLE
+FONT_DECORATORS = FONT_DECORATORS_INVISIBLE + FONT_DECORATORS_VISIBLE
 RES_FONT_DECORATORS = '((?:' + '|'.join(FONT_DECORATORS) + ')*)'
 
 MD_TEXT_WIDTH = 68
@@ -2217,6 +2217,9 @@ class Document:
         self.paragraphs = self._modpar_length_reviser_to_depth_setter()
         # CHANGE HORIZONTAL LENGTH
         self.paragraphs = self._modpar_one_line_paragraph()
+        # CHANGE VERTICAL LENGTH
+        self.paragraphs = self._modpar_vertical_length()
+        # RETURN
         return self.paragraphs
 
     def _modpar_left_alignment(self):
@@ -2510,6 +2513,30 @@ class Document:
             p.length_revisers = p._get_length_revisers(p.length_revi)
             # p.md_lines_text = p._get_md_lines_text(p.md_text)
             # p.text_to_write = p.get_text_to_write()
+            p.text_to_write_with_reviser \
+                = p.get_text_to_write_with_reviser()
+        return self.paragraphs
+
+    def _modpar_vertical_length(self):
+        m = len(self.paragraphs) - 1
+        for i, p in enumerate(self.paragraphs):
+            for lr in p.length_revisers:
+                if i != 0 and re.match('^v=-.*', lr):
+                    must_remove = True
+                    p_prev = self.paragraphs[i - 1]
+                    for plr in p_prev.length_revisers:
+                        if re.match('^V=-.*', plr):
+                            must_remove = False
+                    if must_remove:
+                        p.length_revisers.remove(lr)
+                if i != m and re.match('^V=-.*', lr):
+                    must_remove = True
+                    p_next = self.paragraphs[i + 1]
+                    for nlr in p_next.length_revisers:
+                        if re.match('^v=-.*', nlr):
+                            must_remove = False
+                    if must_remove:
+                        p.length_revisers.remove(lr)
             p.text_to_write_with_reviser \
                 = p.get_text_to_write_with_reviser()
         return self.paragraphs
@@ -3489,9 +3516,11 @@ class Paragraph:
         self.paragraph_class = raw_paragraph.paragraph_class
         # DECLARATION
         self.paragraph_number = -1
+        self.head_space = ''
         self.head_section_depth = -1
         self.tail_section_depth = -1
         self.proper_depth = -1
+        self.numbering_revisers = []
         self.head_font_revisers = []
         self.tail_font_revisers = []
         self.md_text = ''
@@ -3508,6 +3537,8 @@ class Paragraph:
         # SUBSTITUTION
         Paragraph.paragraph_number += 1
         self.paragraph_number = Paragraph.paragraph_number
+        self.head_space, self.raw_text \
+            = self._get_separate_head_spaces(self.raw_text)
         self.head_section_depth, self.tail_section_depth \
             = self._get_section_depths(self.raw_text)
         self.proper_depth = self._get_proper_depth(self.raw_text)
@@ -3529,6 +3560,18 @@ class Paragraph:
         self.text_to_write = self.get_text_to_write()
         self.text_to_write_with_reviser \
             = self.get_text_to_write_with_reviser()
+
+    def _get_separate_head_spaces(self, raw_text):
+        paragraph_class = self.paragraph_class
+        head_space = ''
+        if paragraph_class == 'chapter' or \
+           paragraph_class == 'section' or \
+           paragraph_class == 'sentence':
+            res = '^(?:\\\\(\\s+))((?:.|\n)*)$'
+            if re.match(res, raw_text):
+                head_space = re.sub(res, '\\1', raw_text)
+                raw_text = re.sub(res, '\\2', raw_text)
+        return head_space, raw_text
 
     @classmethod
     def _get_section_depths(cls, raw_text):
@@ -3660,6 +3703,7 @@ class Paragraph:
         m_size = Form.font_size
         lnsp = Form.line_spacing
         rxls = self.raw_xml_lines
+        head_space = self.head_space
         length_docx \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
@@ -3709,6 +3753,16 @@ class Paragraph:
         length_docx['first indent'] = round((fi_xml - hi_xml) / 20 / m_size, 2)
         length_docx['left indent'] = round((li_xml + ti_xml) / 20 / m_size, 2)
         length_docx['right indent'] = round(ri_xml / 20 / m_size, 2)
+        if head_space != '':
+            width = 0
+            for sp in head_space:
+                if sp == ' ':
+                    width += 0.5
+                elif sp == '\t':
+                    width = (int(width / 4) + 1) * 4.0
+                else:
+                    width += 1.0
+            length_docx['first indent'] += width
         # self.length_docx = length_docx
         return length_docx
 
@@ -4226,7 +4280,7 @@ class ParagraphChapter(Paragraph):
         if ParagraphConfiguration.is_this_class(rp):
             return False
         for i in range(len(cls.res_symbols)):
-            res = '^' \
+            res = '^(?:\\\\\\s+)?' \
                 + RES_FONT_DECORATORS \
                 + cls.res_symbols[i] \
                 + cls.res_rest + '$'
@@ -4345,13 +4399,13 @@ class ParagraphSection(Paragraph):
         head_section_depth = 0
         tail_section_depth = 0
         for xdepth in range(1, len(rss)):
-            res = '^' + rfd + rss[xdepth] + rre + '$'
+            res = '^(?:\\\\\\s+)?' + rfd + rss[xdepth] + rre + '$'
             if re.match(res, raw_text) and not re.match(rnm, raw_text):
                 if head_section_depth == 0:
                     head_section_depth = xdepth + 1
                 tail_section_depth = xdepth + 1
             if head_section_depth == 0 and tail_section_depth == 0:
-                res = '^' + rfd + rss[0] + rfd + '$'
+                res = '^(?:\\\\\\s+)?' + rfd + rss[0] + rfd + '$'
                 if re.match(res, raw_text):
                     head_section_depth = 1
                     tail_section_depth = 1
