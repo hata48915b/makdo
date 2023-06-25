@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.06.25-03:32:16-JST>
+# Time-stamp:   <2023.06.25-12:00:51-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -318,7 +318,7 @@ FONT_DECORATORS_VISIBLE = [
     '<<',                       # wide or reset
     '_[\\$=\\.#\\-~\\+]{,4}_',  # underline
     '_[0-9A-Za-z]{1,11}_',      # higilight color
-    '@.{1,66}@'                 # font
+    '@[^@]{1,66}@'              # font
 ]
 FONT_DECORATORS = FONT_DECORATORS_INVISIBLE + FONT_DECORATORS_VISIBLE
 
@@ -2832,10 +2832,10 @@ class Paragraph:
                 tex = self._write_string(tex, ms_par)
                 c = ''
                 self._write_image(comm, path, ms_par)
-            elif re.match(NOT_ESCAPED + '@(.{1,66})@$', tex + c):
-                # @.+@
-                fnt = re.sub(NOT_ESCAPED + '@(.{1,66})@$', '\\2', tex + c)
-                tex = re.sub(NOT_ESCAPED + '@(.{1,66})@$', '\\1', tex + c)
+            elif re.match(NOT_ESCAPED + '@([^@]{1,66})@$', tex + c):
+                # @.+@ (FONT)
+                fnt = re.sub(NOT_ESCAPED + '@([^@]{1,66})@$', '\\2', tex + c)
+                tex = re.sub(NOT_ESCAPED + '@([^@]{1,66})@$', '\\1', tex + c)
                 tex = self._write_string(tex, ms_par)
                 c = ''
                 if Paragraph.mincho_font != fnt:

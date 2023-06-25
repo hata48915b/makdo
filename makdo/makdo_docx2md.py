@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.06.25-03:31:53-JST>
+# Time-stamp:   <2023.06.25-12:03:50-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -274,7 +274,7 @@ FONT_DECORATORS_VISIBLE = [
     '<<',                       # wide or reset
     '_[\\$=\\.#\\-~\\+]{,4}_',  # underline
     '_[0-9A-Za-z]{1,11}_',      # higilight color
-    '@.{1,66}@'                 # font
+    '@[^@]{1,66}@'              # font
 ]
 FONT_DECORATORS = FONT_DECORATORS_INVISIBLE + FONT_DECORATORS_VISIBLE
 RES_FONT_DECORATORS = '((?:' + '|'.join(FONT_DECORATORS) + ')*)'
@@ -2945,7 +2945,7 @@ class RawParagraph:
                 rxl = rxl.replace('++', '\\+\\+')
                 rxl = re.sub('\\^([0-9a-zA-Z]+)\\^', '\\\\^\\1\\\\^', rxl)
                 rxl = re.sub('_([0-9a-zA-Z]+)_', '\\\\_\\1\\\\_', rxl)
-                rxl = re.sub('@(.{1,66})@', '\\\\@\\1\\\\@', rxl)
+                rxl = re.sub('@([^@]{1,66})@', '\\\\@\\1\\\\@', rxl)
                 rxl = rxl.replace('%%', '\\%\\%')
                 rxl = rxl.replace('&lt;', '\\&lt;')
                 rxl = rxl.replace('&gt;', '\\&gt;')
@@ -3245,7 +3245,7 @@ class RawParagraph:
                         xl = re.sub('^' + res, '', xl)
                         continue
                 # FONT
-                res = '@(.{1,66})@'
+                res = '@([^@]{1,66})@'
                 if re.match('^(?:.|\n)*' + res + '$', raw_text) and \
                    re.match('^' + res + '.*$', xl):
                     fe = re.sub('^(?:.|\n)*' + res + '$', '\\1', raw_text)
@@ -3337,7 +3337,7 @@ class RawParagraph:
                    fd == '<<<' or fd == '<<' or \
                    fd == '>>' or fd == '>>>' or \
                    fd == '_[0-9A-Za-z]{1,11}_' or \
-                   fd == '@.{1,66}@':
+                   fd == '@[^@]{1,66}@':
                     continue
                 res = '((?:\\s' + \
                     '|~~' + \
@@ -3347,7 +3347,7 @@ class RawParagraph:
                     '|<<<' + '|<<' + \
                     '|>>' + '|>>>' + \
                     '|_[0-9A-Za-z]{1,11}_' + \
-                    '|@.{1,66}@' + \
+                    '|@[^@]{1,66}@' + \
                     ')+)'
                 raw_text = re.sub(fd + res + fd, '\\1', raw_text)
                 raw_text = re.sub('^(' + fd + ')' + res, '\\2\\1', raw_text)
@@ -4160,8 +4160,8 @@ class Paragraph:
                            re.match('^[0-9A-Za-z]+_.*$', s2):
                             continue
                         # '@.+' + '.+@' (FONT)
-                        if re.match('^.*@.{1,66}$', s1) and \
-                           re.match('^.{1,66}@.*$', s2):
+                        if re.match('^.*@[^@]{1,66}$', s1) and \
+                           re.match('^[^@]{1,66}@.*$', s2):
                             continue
                         # ' ' + ' ' (LINE BREAK)
                         if re.match('^.* $', s1) and re.match('^ .*$', s2):
