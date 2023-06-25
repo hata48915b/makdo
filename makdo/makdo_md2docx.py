@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.06.25-12:00:51-JST>
+# Time-stamp:   <2023.06.25-12:15:30-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -303,11 +303,9 @@ FONT_DECORATORS_INVISIBLE = [
     '\\*\\*',                   # bold
     '\\*',                      # italic
     '//',                       # italic
-    '`',                        # preformatted
     '\\^[0-9A-Za-z]{0,11}\\^',  # font color
 ]
 FONT_DECORATORS_VISIBLE = [
-    '~~',                       # strikethrough
     '\\-\\-\\-',                # xsmall
     '\\-\\-',                   # small
     '\\+\\+\\+',                # xlarge
@@ -316,8 +314,10 @@ FONT_DECORATORS_VISIBLE = [
     '>>',                       # narrow or reset
     '<<<',                      # xwide or reset
     '<<',                       # wide or reset
+    '~~',                       # strikethrough
     '_[\\$=\\.#\\-~\\+]{,4}_',  # underline
     '_[0-9A-Za-z]{1,11}_',      # higilight color
+    '`',                        # preformatted
     '@[^@]{1,66}@'              # font
 ]
 FONT_DECORATORS = FONT_DECORATORS_INVISIBLE + FONT_DECORATORS_VISIBLE

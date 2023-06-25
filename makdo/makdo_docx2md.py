@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.06.25-12:03:50-JST>
+# Time-stamp:   <2023.06.25-12:40:30-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -259,11 +259,9 @@ FONT_DECORATORS_INVISIBLE = [
     '\\*\\*',                   # bold
     '\\*',                      # italic
     '//',                       # italic
-    '`',                        # preformatted
     '\\^[0-9A-Za-z]{0,11}\\^',  # font color
 ]
 FONT_DECORATORS_VISIBLE = [
-    '~~',                       # strikethrough
     '\\-\\-\\-',                # xsmall
     '\\-\\-',                   # small
     '\\+\\+\\+',                # xlarge
@@ -272,8 +270,10 @@ FONT_DECORATORS_VISIBLE = [
     '>>',                       # narrow or reset
     '<<<',                      # xwide or reset
     '<<',                       # wide or reset
+    '~~',                       # strikethrough
     '_[\\$=\\.#\\-~\\+]{,4}_',  # underline
     '_[0-9A-Za-z]{1,11}_',      # higilight color
+    '`',                        # preformatted
     '@[^@]{1,66}@'              # font
 ]
 FONT_DECORATORS = FONT_DECORATORS_INVISIBLE + FONT_DECORATORS_VISIBLE
@@ -2783,14 +2783,19 @@ class RawParagraph:
                     if is_bold:
                         text = '**' + text + '**'
                         is_bold = False
-                    # STRIKETHROUGH
-                    if has_strike:
-                        text = '~~' + text + '~~'
-                        has_strike = False
-                    # PREFORMATTED
-                    if is_gothic:
-                        text = '`' + text + '`'
-                        is_gothic = False
+                    # FONT COLOR
+                    if font_color != '':
+                        if font_color == 'FFFFFF':
+                            text = '^^' + text + '^^'
+                        elif font_color in FONT_COLOR:
+                            text = '^' + FONT_COLOR[font_color] + '^' \
+                                + text \
+                                + '^' + FONT_COLOR[font_color] + '^'
+                        else:
+                            text = '^' + font_color + '^' \
+                                + text \
+                                + '^' + font_color + '^'
+                        font_color = ''
                     # XSMALL
                     if is_xsmall:
                         text = '---' + text + '---'
@@ -2807,42 +2812,41 @@ class RawParagraph:
                     if is_xlarge:
                         text = '+++' + text + '+++'
                         is_xlarge = False
+                    # XNARROW
                     if font_width < 0.7:
                         text = '>>>' + text + '<<<'
                         font_width = 1.0
+                    # NARROW
                     elif font_width < 0.9:
                         text = '>>' + text + '<<'
                         font_width = 1.0
+                    # XWIDE
                     elif font_width > 1.3:
                         text = '<<<' + text + '>>>'
                         font_width = 1.0
+                    # WIDE
                     elif font_width > 1.1:
                         text = '<<' + text + '>>'
                         font_width = 1.0
+                    # STRIKETHROUGH
+                    if has_strike:
+                        text = '~~' + text + '~~'
+                        has_strike = False
                     # UNDERLINE
                     if underline != '':
                         ul = UNDERLINE[underline]
                         text = '_' + ul + '_' + text + '_' + ul + '_'
                         underline = ''
-                    # FONT COLOR
-                    if font_color != '':
-                        if font_color == 'FFFFFF':
-                            text = '^^' + text + '^^'
-                        elif font_color in FONT_COLOR:
-                            text = '^' + FONT_COLOR[font_color] + '^' \
-                                + text \
-                                + '^' + FONT_COLOR[font_color] + '^'
-                        else:
-                            text = '^' + font_color + '^' \
-                                + text \
-                                + '^' + font_color + '^'
-                        font_color = ''
                     # HIGILIGHT COLOR
                     if highlight_color != '':
                         text = '_' + highlight_color + '_' \
                             + text \
                             + '_' + highlight_color + '_'
                         highlight_color = ''
+                    # PREFORMATTED
+                    if is_gothic:
+                        text = '`' + text + '`'
+                        is_gothic = False
                     # FONT
                     if tmp_font != '':
                         text = '@' + tmp_font + '@' + \
@@ -3330,25 +3334,9 @@ class RawParagraph:
         while True:
             tmp_text = raw_text
             for fd in FONT_DECORATORS:
-                if fd == '~~' or \
-                   fd == '_[\\$=\\.#\\-~\\+]{,4}_' or \
-                   fd == '\\-\\-\\-' or fd == '\\-\\-' or \
-                   fd == '\\+\\+\\+' or fd == '\\+\\+' or \
-                   fd == '<<<' or fd == '<<' or \
-                   fd == '>>' or fd == '>>>' or \
-                   fd == '_[0-9A-Za-z]{1,11}_' or \
-                   fd == '@[^@]{1,66}@':
+                if fd in FONT_DECORATORS_VISIBLE:
                     continue
-                res = '((?:\\s' + \
-                    '|~~' + \
-                    '|_[\\$=\\.#\\-~\\+]{,4}_' + \
-                    '|\\-\\-\\-' + '|\\-\\-' + \
-                    '|\\+\\+\\+' + '|\\+\\+' + \
-                    '|<<<' + '|<<' + \
-                    '|>>' + '|>>>' + \
-                    '|_[0-9A-Za-z]{1,11}_' + \
-                    '|@[^@]{1,66}@' + \
-                    ')+)'
+                res = '((?:\\s|' + '|'.join(FONT_DECORATORS_VISIBLE) + ')+)'
                 raw_text = re.sub(fd + res + fd, '\\1', raw_text)
                 raw_text = re.sub('^(' + fd + ')' + res, '\\2\\1', raw_text)
                 raw_text = re.sub(res + '(' + fd + ')$', '\\2\\1', raw_text)
