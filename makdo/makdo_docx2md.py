@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.06.25-12:40:30-JST>
+# Time-stamp:   <2023.06.26-16:33:46-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -3275,8 +3275,10 @@ class RawParagraph:
         # SPACE
         if re.match('^\\s+.*?$', raw_text):
             raw_text = '\\' + raw_text
+        raw_text = re.sub('(\n)([ \t\u3000]+)', '\\1\\\\\\2', raw_text)
         if re.match('^.*?\\s+$', raw_text):
             raw_text = raw_text + '\\'
+        raw_text = re.sub('([ \t\u3000]+)(\n)', '\\1\\\\\\2', raw_text)
         # LENGTH REVISER
         if re.match('^(v|V|X|<<|<|>)=\\s*[0-9]+', raw_text):
             raw_text = '\\' + raw_text
