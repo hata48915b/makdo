@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.06.25-12:15:30-JST>
+# Time-stamp:   <2023.07.02-14:00:51-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1528,7 +1528,7 @@ class Form:
         if value == 'True' or value == '有':
             Form.page_number = DEFAULT_PAGE_NUMBER
             return True
-        elif value == 'False' or value == '無':
+        elif value == 'False' or value == 'None' or value == '無':
             Form.page_number = ''
             return True
         else:
