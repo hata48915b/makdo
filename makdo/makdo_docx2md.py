@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.06.26-16:33:46-JST>
+# Time-stamp:   <2023.07.15-10:09:04-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -4809,7 +4809,8 @@ class ParagraphTable(Paragraph):
                         elif re.match('^-+:$', ali[i][j]):
                             raw_text = raw_text + ' :'
                 else:
-                    if ali[i][j] != ali[half_row][j]:
+                    if j < len(ali[half_row]) and \
+                       ali[i][j] != ali[half_row][j]:
                         if re.match('^:-+:$', ali[i][j]):
                             raw_text = ': ' + raw_text + ' :'
                         elif re.match('^:-+$', ali[i][j]):
