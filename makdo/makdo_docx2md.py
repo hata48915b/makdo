@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.07.15-10:09:04-JST>
+# Time-stamp:   <2023.08.06-09:48:27-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2762,10 +2762,10 @@ class RawParagraph:
                 has_textbox_line = True
                 continue
             # TRACK CHANGES
-            if re.match('^<w:ins( .*)?>$', rxl):
+            if re.match('^<w:ins( .*[^/])?>$', rxl):
                 has_inserted = True
                 continue
-            elif re.match('^</w:ins( .*)?>$', rxl):
+            elif re.match('^</w:ins( .*[^/])?>$', rxl):
                 has_inserted = False
                 continue
             if re.match('^<w:r( .*)?>$', rxl):
