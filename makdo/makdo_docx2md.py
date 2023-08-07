@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.08.08-00:14:05-JST>
+# Time-stamp:   <2023.08.08-00:47:56-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1681,8 +1681,8 @@ class Form:
     def _configure_by_headerX_xml(xml_lines):
         # HEADER STRING
         Paragraph.font_size = Form.font_size
-        xl = RawParagraph._get_xml_lines('', xml_lines)
-        raw_text, images = RawParagraph._get_raw_text_and_images(xl)
+        xl, images = RawParagraph._get_xml_lines_and_images('', xml_lines)
+        raw_text = RawParagraph._get_raw_text(xl)
         alignment = RawParagraph._get_alignment(xml_lines)
         if alignment == 'center':
             raw_text = ': ' + raw_text + ' :'
@@ -1695,8 +1695,8 @@ class Form:
     def _configure_by_footerX_xml(xml_lines):
         # PAGE NUMBER
         Paragraph.font_size = Form.font_size
-        xl = RawParagraph._get_xml_lines('', xml_lines)
-        raw_text, images = RawParagraph._get_raw_text_and_images(xl)
+        xl, images = RawParagraph._get_xml_lines_and_images('', xml_lines)
+        raw_text = RawParagraph._get_raw_text(xl)
         alignment = RawParagraph._get_alignment(xml_lines)
         if alignment == 'center':
             raw_text = ': ' + raw_text + ' :'
@@ -2675,10 +2675,10 @@ class RawParagraph:
         self.raw_paragraph_number = RawParagraph.raw_paragraph_number
         self.raw_xml_lines = raw_xml_lines
         self.raw_class = self._get_raw_class(self.raw_xml_lines)
-        self.xml_lines \
-            = self._get_xml_lines(self.raw_class, self.raw_xml_lines)
-        self.raw_text, self.images \
-            = self._get_raw_text_and_images(self.xml_lines)
+        self.xml_lines, self.images \
+            = self._get_xml_lines_and_images(self.raw_class,
+                                             self.raw_xml_lines)
+        self.raw_text = self._get_raw_text(self.xml_lines)
         self.beg_space, self.raw_text, self.end_space \
             = self._separate_space(self.raw_text)
         self.style = self._get_style(raw_xml_lines)
@@ -2695,10 +2695,16 @@ class RawParagraph:
             return None
 
     @classmethod
-    def _get_xml_lines(cls, raw_class, raw_xml_lines):
-        m_size = Paragraph.font_size
-        s_size = m_size * 0.8
+    def _get_xml_lines_and_images(cls, raw_class, raw_xml_lines):
+        media_dir = IO.media_dir
+        img_rels = Form.rels
+        font_size = Paragraph.font_size
+        m_size = font_size
+        s_size = font_size * 0.8
         xml_lines = []
+        images = {}
+        img_file_name = ''
+        img_size = ''
         is_italic = False
         is_bold = False
         has_strike = False
@@ -2737,22 +2743,43 @@ class RawParagraph:
             if fldchar == 'separate':
                 continue
             # IMAGE
+            should_continue = False
             if re.match(RES_XML_IMG_MS, rxl):
                 # IMAGE MS WORD
-                xml_lines.append(rxl)
-                continue
-            if re.match(RES_XML_IMG_PY_ID, rxl):
+                img_rel_name, img_file_name \
+                    = cls._get_img_file_names_ms(rxl, img_rels)
+                Document.images[img_rel_name] = img_file_name
+                images[img_rel_name] = img_file_name
+                should_continue = True
+            elif re.match(RES_XML_IMG_PY_ID, rxl):
                 # IMAGE PYTHON-DOCX ID
-                xml_lines.append(rxl)
-                continue
-            if re.match(RES_XML_IMG_PY_NAME, rxl):
+                img_rel_name, img_file_name \
+                    = cls._get_img_file_names_py(rxl, img_rels, img_py_name)
+                Document.images[img_rel_name] = img_file_name
+                images[img_rel_name] = img_file_name
+                should_continue = True
+            elif re.match(RES_XML_IMG_PY_NAME, rxl):
                 # IMAGE PYTHON-DOCX NAME
-                xml_lines.append(rxl)
-                continue
-            if re.match(RES_XML_IMG_SIZE, rxl):
+                img_py_name = re.sub(RES_XML_IMG_PY_NAME, '\\2', rxl)
+                should_continue = True
+            elif re.match(RES_XML_IMG_SIZE, rxl):
                 # IMAGE SIZE
-                xml_lines.append(rxl)
+                img_size = cls._get_img_size(rxl)
+                should_continue = True
+            if img_file_name != '' and img_size != '':
+                img_md_text = '!' \
+                    + '[' + img_file_name + ':' + img_size + ']' \
+                    + '(' + media_dir + '/' + img_file_name + ')'
+                imt = cls._get_img_md_text(media_dir,
+                                           img_file_name,
+                                           img_size,
+                                           font_size)
+                xml_lines.append('<>' + imt)  # '<>' is to avoid being escaped
+                img_file_name = ''
+                img_size = ''
+            if should_continue:
                 continue
+            # HORIZONTAL LINE
             if raw_class != 'w:tbl' and re.match('^<w:top( .*)?>$', rxl):
                 # HORIZONTAL LINE (TOPLINE)
                 horizontal_line_type = 'top'
@@ -2766,6 +2793,7 @@ class RawParagraph:
                 # HORIZONTAL LINE (TEXTBOX)
                 horizontal_line_type = 'textbox'
                 continue
+            # RUN
             if re.match('^<w:r( .*)?>$', rxl):
                 text = ''
                 xml_lines.append(rxl)
@@ -2784,15 +2812,12 @@ class RawParagraph:
                     # FONT COLOR
                     if font_color != '':
                         if font_color == 'FFFFFF':
-                            text = '^^' + text + '^^'
+                            fc = ''
                         elif font_color in FONT_COLOR:
-                            text = '^' + FONT_COLOR[font_color] + '^' \
-                                + text \
-                                + '^' + FONT_COLOR[font_color] + '^'
+                            fc = FONT_COLOR[font_color]
                         else:
-                            text = '^' + font_color + '^' \
-                                + text \
-                                + '^' + font_color + '^'
+                            fc = font_color
+                        text = '^' + fc + '^' + text + '^' + fc + '^'
                         font_color = ''
                     # SCALE
                     if font_scale != 1.0:
@@ -2827,9 +2852,8 @@ class RawParagraph:
                         underline = ''
                     # HIGILIGHT COLOR
                     if highlight_color != '':
-                        text = '_' + highlight_color + '_' \
-                            + text \
-                            + '_' + highlight_color + '_'
+                        hc = highlight_color
+                        text = '_' + hc + '_' + text + '_' + hc + '_'
                         highlight_color = ''
                     # PREFORMATTED
                     if is_gothic:
@@ -2837,9 +2861,8 @@ class RawParagraph:
                         is_gothic = False
                     # FONT
                     if tmp_font != '':
-                        text = '@' + tmp_font + '@' + \
-                            text + \
-                            '@' + tmp_font + '@'
+                        tf = tmp_font
+                        text = '@' + tf + '@' + text + '@' + tf + '@'
                         tmp_font = ''
                     # TRACK CHANGES (DELETED)
                     if track_changes == 'del':
@@ -2858,7 +2881,6 @@ class RawParagraph:
                 xml_lines.append(rxl)
                 continue
             s = XML.get_value('w:sz', 'w:val', -1.0, rxl) / 2
-            w = XML.get_value('w:w', 'w:val', -1.0, rxl)
             if s > 0:
                 if raw_class != 'w:tbl':
                     b_size = m_size
@@ -2872,7 +2894,8 @@ class RawParagraph:
                     font_scale = 1.4
                 elif s > b_size * 1.1:
                     font_scale = 1.2
-            elif w > 0:
+            w = XML.get_value('w:w', 'w:val', -1.0, rxl)
+            if w > 0:
                 if w < 70:
                     font_width = 0.6
                 elif w < 90:
@@ -2920,7 +2943,8 @@ class RawParagraph:
         if horizontal_line_type != '':
             xml_lines.append('<horizontalLine:' + horizontal_line_type + '>')
         # self.xml_lines = xml_lines
-        return xml_lines
+        # self.images = images
+        return xml_lines, images
 
     @staticmethod
     def _get_img_file_names_ms(rxl, img_rels):
@@ -3046,58 +3070,16 @@ class RawParagraph:
         # RETURN
         return text
 
-    @classmethod
-    def _get_raw_text_and_images(cls, xml_lines):
+    @staticmethod
+    def _get_raw_text(xml_lines):
         font_size = Paragraph.font_size
-        media_dir = IO.media_dir
-        img_rels = Form.rels
         m_size_cm = font_size * 2.54 / 72
         xs_size_cm = m_size_cm * 0.6
         s_size_cm = m_size_cm * 0.8
         l_size_cm = m_size_cm * 1.2
         xl_size_cm = m_size_cm * 1.4
         raw_text = ''
-        images = {}
-        img_file_name = ''
-        img_size = ''
         for xl in xml_lines:
-            # IMAGE
-            should_continue = False
-            if re.match(RES_XML_IMG_MS, xl):
-                # IMAGE MS WORD
-                img_rel_name, img_file_name \
-                    = cls._get_img_file_names_ms(xl, img_rels)
-                Document.images[img_rel_name] = img_file_name
-                images[img_rel_name] = img_file_name
-                should_continue = True
-            elif re.match(RES_XML_IMG_PY_ID, xl):
-                # IMAGE PYTHON-DOCX ID
-                img_rel_name, img_file_name \
-                    = cls._get_img_file_names_py(xl, img_rels, img_py_name)
-                Document.images[img_rel_name] = img_file_name
-                images[img_rel_name] = img_file_name
-                should_continue = True
-            elif re.match(RES_XML_IMG_PY_NAME, xl):
-                # IMAGE PYTHON-DOCX NAME
-                img_py_name = re.sub(RES_XML_IMG_PY_NAME, '\\2', xl)
-                should_continue = True
-            elif re.match(RES_XML_IMG_SIZE, xl):
-                # IMAGE SIZE
-                img_size = cls._get_img_size(xl)
-                should_continue = True
-            if img_file_name != '' and img_size != '':
-                img_md_text = '!' \
-                    + '[' + img_file_name + ':' + img_size + ']' \
-                    + '(' + media_dir + '/' + img_file_name + ')'
-                imt = cls._get_img_md_text(media_dir,
-                                           img_file_name,
-                                           img_size,
-                                           font_size)
-                raw_text += '<>' + imt  # '<>' is to avoid being escaped
-                img_file_name = ''
-                img_size = ''
-            if should_continue:
-                continue
             if re.match('^<[^<>]*>$', xl):
                 continue
             while True:
@@ -3340,8 +3322,7 @@ class RawParagraph:
                     raw_text = raw_text + '\\'
                 break
         # self.raw_text = raw_text
-        # self.images = images
-        return raw_text, images
+        return raw_text
 
     @staticmethod
     def _separate_space(raw_text):
@@ -4792,7 +4773,7 @@ class ParagraphTable(Paragraph):
                     md_text += '\n'
             for j, cell in enumerate(row):
                 Paragraph.font_size = s_size
-                raw_text, images = RawParagraph._get_raw_text_and_images(cell)
+                raw_text = RawParagraph._get_raw_text(cell)
                 if is_in_head:
                     if not re.match('^:-+:$', ali[i][j]):
                         if re.match('^:-+$', ali[i][j]):
