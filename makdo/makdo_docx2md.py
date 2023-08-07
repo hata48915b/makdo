@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.08.08-00:47:56-JST>
+# Time-stamp:   <2023.08.08-00:53:44-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -3072,12 +3072,6 @@ class RawParagraph:
 
     @staticmethod
     def _get_raw_text(xml_lines):
-        font_size = Paragraph.font_size
-        m_size_cm = font_size * 2.54 / 72
-        xs_size_cm = m_size_cm * 0.6
-        s_size_cm = m_size_cm * 0.8
-        l_size_cm = m_size_cm * 1.2
-        xl_size_cm = m_size_cm * 1.4
         raw_text = ''
         for xl in xml_lines:
             if re.match('^<[^<>]*>$', xl):
