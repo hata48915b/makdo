@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.08.06-09:48:27-JST>
+# Time-stamp:   <2023.08.08-00:14:05-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -252,7 +252,7 @@ RES_XML_IMG_PY_ID \
 RES_XML_IMG_PY_NAME \
     = '^<pic:cNvPr id=[\'"](.+)[\'"] name=[\'"]([^\'"]+)[\'"](?: .*)?/?>$'
 RES_XML_IMG_SIZE \
-    = '<wp:extent cx=[\'"]([0-9]+)[\'"] cy=[\'"]([0-9]+)[\'"]/>'
+    = '^<wp:extent cx=[\'"]([0-9]+)[\'"] cy=[\'"]([0-9]+)[\'"]/>$'
 
 FONT_DECORATORS_INVISIBLE = [
     '\\*\\*\\*',                # italic and bold
@@ -2694,44 +2694,49 @@ class RawParagraph:
         else:
             return None
 
-    @staticmethod
-    def _get_xml_lines(raw_class, raw_xml_lines):
+    @classmethod
+    def _get_xml_lines(cls, raw_class, raw_xml_lines):
         m_size = Paragraph.font_size
         s_size = m_size * 0.8
         xml_lines = []
         is_italic = False
         is_bold = False
         has_strike = False
-        is_xsmall = False
-        is_small = False
-        is_large = False
-        is_xlarge = False
+        font_scale = 1.0
         font_width = 1.0
         is_gothic = False
         underline = ''
         font_color = ''
         highlight_color = ''
         tmp_font = ''
-        has_deleted = False   # TRACK CHANGES
-        has_inserted = False  # TRACK CHANGES
-        has_top_line = False      # HORIZONTAL LINE
-        has_bottom_line = False   # HORIZONTAL LINE
-        has_textbox_line = False  # HORIZONTAL LINE
+        track_changes = ''  # ''|'del'|'ins'
+        horizontal_line_type = ''  # 'top'|'bottom'|'textbox'
         is_in_text = False
-        is_not_table_paragraph = True
         fldchar = ''
         for rxl in raw_xml_lines:
-            if re.match('<w:tbl( .*)?>', rxl):
-                is_not_table_paragraph = False
+            # TRACK CHANGES
+            if re.match('^<w:del( .*[^/])?>$', rxl):
+                track_changes = 'del'
+                continue
+            elif re.match('^</w:del( .*[^/])?>$', rxl):
+                track_changes = ''
+                continue
+            elif re.match('^<w:ins( .*[^/])?>$', rxl):
+                track_changes = 'ins'
+                continue
+            elif re.match('^</w:ins( .*[^/])?>$', rxl):
+                track_changes = ''
+                continue
             # FOR PAGE NUMBER
-            if re.match('<w:fldChar w:fldCharType="begin"/>', rxl):
+            if re.match('^<w:fldChar w:fldCharType="begin"/>$', rxl):
                 fldchar = 'begin'
-            elif re.match('<w:fldChar w:fldCharType="separate"/>', rxl):
+            elif re.match('^<w:fldChar w:fldCharType="separate"/>$', rxl):
                 fldchar = 'separate'
-            elif re.match('<w:fldChar w:fldCharType="end"/>', rxl):
+            elif re.match('^<w:fldChar w:fldCharType="end"/>$', rxl):
                 fldchar = 'end'
             if fldchar == 'separate':
                 continue
+            # IMAGE
             if re.match(RES_XML_IMG_MS, rxl):
                 # IMAGE MS WORD
                 xml_lines.append(rxl)
@@ -2748,25 +2753,18 @@ class RawParagraph:
                 # IMAGE SIZE
                 xml_lines.append(rxl)
                 continue
-            if is_not_table_paragraph and re.match('^<w:top( .*)?>$', rxl):
+            if raw_class != 'w:tbl' and re.match('^<w:top( .*)?>$', rxl):
                 # HORIZONTAL LINE (TOPLINE)
-                has_top_line = True
+                horizontal_line_type = 'top'
                 continue
-            if is_not_table_paragraph and re.match('^<w:bottom( .*)?>$', rxl):
+            if raw_class != 'w:tbl' and re.match('^<w:bottom( .*)?>$', rxl):
                 # HORIZONTAL LINE (BOTTOMLINE)
-                has_bottom_line = True
+                horizontal_line_type = 'bottom'
                 continue
             res = '^<v:rect( .*)? style="width:0;height:1.5pt"( .*)?>$'
             if re.match(res, rxl):
                 # HORIZONTAL LINE (TEXTBOX)
-                has_textbox_line = True
-                continue
-            # TRACK CHANGES
-            if re.match('^<w:ins( .*[^/])?>$', rxl):
-                has_inserted = True
-                continue
-            elif re.match('^</w:ins( .*[^/])?>$', rxl):
-                has_inserted = False
+                horizontal_line_type = 'textbox'
                 continue
             if re.match('^<w:r( .*)?>$', rxl):
                 text = ''
@@ -2796,37 +2794,27 @@ class RawParagraph:
                                 + text \
                                 + '^' + font_color + '^'
                         font_color = ''
-                    # XSMALL
-                    if is_xsmall:
-                        text = '---' + text + '---'
-                        is_xsmall = False
-                    # SMALL
-                    if is_small:
-                        text = '--' + text + '--'
-                        is_small = False
-                    # LARGE
-                    if is_large:
-                        text = '++' + text + '++'
-                        is_large = False
-                    # XLARGE
-                    if is_xlarge:
-                        text = '+++' + text + '+++'
-                        is_xlarge = False
-                    # XNARROW
-                    if font_width < 0.7:
-                        text = '>>>' + text + '<<<'
-                        font_width = 1.0
-                    # NARROW
-                    elif font_width < 0.9:
-                        text = '>>' + text + '<<'
-                        font_width = 1.0
-                    # XWIDE
-                    elif font_width > 1.3:
-                        text = '<<<' + text + '>>>'
-                        font_width = 1.0
-                    # WIDE
-                    elif font_width > 1.1:
-                        text = '<<' + text + '>>'
+                    # SCALE
+                    if font_scale != 1.0:
+                        if font_scale < 0.7:
+                            text = '---' + text + '---'
+                        elif font_scale < 0.9:
+                            text = '--' + text + '--'
+                        elif font_scale > 1.3:
+                            text = '+++' + text + '+++'
+                        elif font_scale > 1.1:
+                            text = '++' + text + '++'
+                        font_scale = 1.0
+                    # WIDTH
+                    if font_width != 1.0:
+                        if font_width < 0.7:
+                            text = '>>>' + text + '<<<'
+                        elif font_width < 0.9:
+                            text = '>>' + text + '<<'
+                        elif font_width > 1.3:
+                            text = '<<<' + text + '>>>'
+                        elif font_width > 1.1:
+                            text = '<<' + text + '>>'
                         font_width = 1.0
                     # STRIKETHROUGH
                     if has_strike:
@@ -2854,13 +2842,13 @@ class RawParagraph:
                             '@' + tmp_font + '@'
                         tmp_font = ''
                     # TRACK CHANGES (DELETED)
-                    if has_deleted:
+                    if track_changes == 'del':
                         text = '&lt;!--' + text + '--&gt;'
-                        has_deleted = False
+                        track_changes = ''
                     # TRACK CHANGES (INSERTED)
-                    elif has_inserted:
+                    elif track_changes == 'ins':
                         text = '&lt;!+&gt;' + text + '&lt;+&gt;'
-                        has_inserted = False
+                        track_changes = ''
                     xml_lines.append(text)
                     text = ''
                 xml_lines.append(rxl)
@@ -2872,24 +2860,18 @@ class RawParagraph:
             s = XML.get_value('w:sz', 'w:val', -1.0, rxl) / 2
             w = XML.get_value('w:w', 'w:val', -1.0, rxl)
             if s > 0:
-                if not RawParagraph._is_table(raw_class, raw_xml_lines):
-                    if s < m_size * 0.7:
-                        is_xsmall = True
-                    elif s < m_size * 0.9:
-                        is_small = True
-                    elif s > m_size * 1.3:
-                        is_xlarge = True
-                    elif s > m_size * 1.1:
-                        is_large = True
+                if raw_class != 'w:tbl':
+                    b_size = m_size
                 else:
-                    if s < s_size * 0.7:
-                        is_xsmall = True
-                    elif s < s_size * 0.9:
-                        is_small = True
-                    elif s > s_size * 1.3:
-                        is_xlarge = True
-                    elif s > s_size * 1.1:
-                        is_large = True
+                    b_size = s_size
+                if s < b_size * 0.7:
+                    font_scale = 0.6
+                elif s < b_size * 0.9:
+                    font_scale = 0.8
+                elif s > b_size * 1.3:
+                    font_scale = 1.4
+                elif s > b_size * 1.1:
+                    font_scale = 1.2
             elif w > 0:
                 if w < 70:
                     font_width = 0.6
@@ -2934,177 +2916,188 @@ class RawParagraph:
             elif re.match('^<w:delText( .*)?>$', rxl):
                 has_deleted = True
             elif not re.match('^<.*>$', rxl):
-                rxl = rxl.replace('\\', '\\\\')
-                rxl = rxl.replace('*', '\\*')
-                rxl = rxl.replace('`', '\\`')
-                rxl = rxl.replace('~~', '\\~\\~')
-                # rxl = rxl.replace('__', '\\_\\_')
-                rxl = re.sub('_([\\$=\\.#\\-~\\+]*)_', '\\\\_\\1\\\\_', rxl)
-                rxl = rxl.replace('//', '\\/\\/')
-                # http https ftp ...
-                rxl = re.sub('([a-z]+:)\\\\/\\\\/', '\\1//', rxl)
-                rxl = rxl.replace('---', '\\-\\-\\-')
-                rxl = rxl.replace('--', '\\-\\-')
-                rxl = rxl.replace('+++', '\\+\\+\\+')
-                rxl = rxl.replace('++', '\\+\\+')
-                rxl = re.sub('\\^([0-9a-zA-Z]+)\\^', '\\\\^\\1\\\\^', rxl)
-                rxl = re.sub('_([0-9a-zA-Z]+)_', '\\\\_\\1\\\\_', rxl)
-                rxl = re.sub('@([^@]{1,66})@', '\\\\@\\1\\\\@', rxl)
-                rxl = rxl.replace('%%', '\\%\\%')
-                rxl = rxl.replace('&lt;', '\\&lt;')
-                rxl = rxl.replace('&gt;', '\\&gt;')
-                res = '^(\\S*)\\s*\\\\\\\\\\\\\\* MERGEFORMAT$'
-                if fldchar == 'begin' and re.match(res, rxl):
-                    rxl = re.sub(res, '\\1', rxl)
-                if fldchar == 'begin' and rxl == 'PAGE':
-                    rxl = 'n'
-                if fldchar == 'begin' and rxl == 'NUMPAGES':
-                    rxl = 'N'
-                text += rxl
-        if has_top_line:
-            xml_lines.append('<horizontalLine:top>')
-        if has_bottom_line:
-            xml_lines.append('<horizontalLine:bottom>')
-        if has_textbox_line:
-            xml_lines.append('<horizontalLine:textbox>')
+                text += cls._prepare_text(fldchar, rxl)
+        if horizontal_line_type != '':
+            xml_lines.append('<horizontalLine:' + horizontal_line_type + '>')
         # self.xml_lines = xml_lines
         return xml_lines
 
     @staticmethod
-    def _is_table(raw_class, raw_xml_lines):
-        if raw_class != 'w:tbl':
-            return False
-        tbl_type = ''
-        col = 0
-        for rxl in raw_xml_lines:
-            if re.match('<w:tblStyle w:val=[\'"].+[\'"]/>', rxl):
-                return True
-            if re.match('<w:gridCol w:w=[\'"][0-9]+[\'"]/>', rxl):
-                col += 1
-        if col != 3:
-            return True
-        return False
+    def _get_img_file_names_ms(rxl, img_rels):
+        img_id = re.sub(RES_XML_IMG_MS, '\\1', rxl)
+        img_rel_name = img_rels[img_id]
+        img_ext = re.sub('^.*\\.', '', img_rel_name)
+        img_base = re.sub(RES_XML_IMG_MS, '\\2', rxl)
+        img_base = re.sub('\\s', '_', img_base)
+        i = 0
+        while True:
+            img_file_name = img_base + '.' + img_ext
+            if i > 0:
+                img_file_name = img_base + str(i) + '.' + img_ext
+            for j in Document.images:
+                if j != img_rel_name:
+                    if Document.images[j] == img_file_name:
+                        break
+            else:
+                break
+            i += 1
+        return img_rel_name, img_file_name
 
     @staticmethod
-    def _get_raw_text_and_images(xml_lines):
+    def _get_img_file_names_py(rxl, img_rels, img_py_name):
+        img_id = re.sub(RES_XML_IMG_PY_ID, '\\1', rxl)
+        img_rel_name = img_rels[img_id]
+        img_ext = re.sub('^.*\\.', '', img_rel_name)
+        img_base = re.sub('\\.' + img_ext + '$', '', img_py_name)
+        img_base = re.sub('\\s', '_', img_base)
+        i = 0
+        while True:
+            img_file_name = img_base + '.' + img_ext
+            if i > 0:
+                img_file_name = img_base + str(i) + '.' + img_ext
+            for j in Document.images:
+                if j != img_rel_name:
+                    if Document.images[j] == img_file_name:
+                        break
+            else:
+                break
+            i += 1
+        return img_rel_name, img_file_name
+
+    @staticmethod
+    def _get_img_size(rxl):
+        sz_w = re.sub(RES_XML_IMG_SIZE, '\\1', rxl)
+        sz_h = re.sub(RES_XML_IMG_SIZE, '\\2', rxl)
+        cm_w = float(sz_w) * 2.54 / 72 / 12700
+        cm_h = float(sz_h) * 2.54 / 72 / 12700
+        if cm_w >= 1:
+            cm_w = round(cm_w, 1)
+        else:
+            cm_w = round(cm_w, 2)
+        if cm_h >= 1:
+            cm_h = round(cm_h, 1)
+        else:
+            cm_h = round(cm_h, 2)
+        img_size = str(cm_w) + 'x' + str(cm_h)
+        return img_size
+
+    @staticmethod
+    def _get_img_md_text(media_dir, img_file_name, img_size, font_size):
+        m_size_cm = font_size * 2.54 / 72
+        xs_size_cm = m_size_cm * 0.6
+        s_size_cm = m_size_cm * 0.8
+        l_size_cm = m_size_cm * 1.2
+        xl_size_cm = m_size_cm * 1.4
+        cm_w = float(re.sub('x.*$', '', img_size))
+        img_md_text = '![' + img_file_name + ']' \
+            + '(' + media_dir + '/' + img_file_name + ')'
+        if cm_w >= m_size_cm * 0.98 and cm_w <= m_size_cm * 1.02:
+            # MEDIUM
+            pass
+        elif cm_w >= xs_size_cm * 0.98 and cm_w <= xs_size_cm * 1.02:
+            # XSMALL
+            img_md_text = '---' + img_md_text + '---'
+        elif cm_w >= s_size_cm * 0.98 and cm_w <= s_size_cm * 1.02:
+            # SMALL
+            img_md_text = '--' + img_text + '--'
+        elif cm_w >= l_size_cm * 0.98 and cm_w <= l_size_cm * 1.02:
+            # LARGE
+            img_md_text = '++' + img_text + '++'
+        elif cm_w >= xl_size_cm * 0.98 and cm_w <= xl_size_cm * 1.02:
+            # XLARGE
+            img_md_text = '+++' + img_text + '+++'
+        else:
+            # FREE SIZE
+            img_md_text = '![' + img_file_name + ':' + img_size + ']' \
+                + '(' + media_dir + '/' + img_file_name + ')'
+        return img_md_text
+
+    @staticmethod
+    def _prepare_text(fldchar, input_text):
+        text = input_text
+        # ESCAPE
+        text = text.replace('\\', '\\\\')
+        text = text.replace('*', '\\*')
+        text = text.replace('`', '\\`')
+        text = text.replace('~~', '\\~\\~')
+        # text = text.replace('__', '\\_\\_')
+        text = re.sub('_([\\$=\\.#\\-~\\+]*)_', '\\\\_\\1\\\\_', text)
+        text = text.replace('//', '\\/\\/')
+        # http https ftp ...
+        text = re.sub('([a-z]+:)\\\\/\\\\/', '\\1//', text)
+        text = text.replace('---', '\\-\\-\\-')
+        text = text.replace('--', '\\-\\-')
+        text = text.replace('+++', '\\+\\+\\+')
+        text = text.replace('++', '\\+\\+')
+        text = re.sub('\\^([0-9a-zA-Z]+)\\^', '\\\\^\\1\\\\^', text)
+        text = re.sub('_([0-9a-zA-Z]+)_', '\\\\_\\1\\\\_', text)
+        text = re.sub('@([^@]{1,66})@', '\\\\@\\1\\\\@', text)
+        text = text.replace('%%', '\\%\\%')
+        text = text.replace('&lt;', '\\&lt;')
+        text = text.replace('&gt;', '\\&gt;')
+        # PAGE NUMBER
+        res = '^(\\S*)\\s*\\\\\\\\\\\\\\* MERGEFORMAT$'
+        if fldchar == 'begin' and re.match(res, text):
+            text = re.sub(res, '\\1', text)
+        if fldchar == 'begin' and text == 'PAGE':
+            text = 'n'
+        if fldchar == 'begin' and text == 'NUMPAGES':
+            text = 'N'
+        # RETURN
+        return text
+
+    @classmethod
+    def _get_raw_text_and_images(cls, xml_lines):
+        font_size = Paragraph.font_size
         media_dir = IO.media_dir
         img_rels = Form.rels
-        m_size_cm = Paragraph.font_size * 2.54 / 72
+        m_size_cm = font_size * 2.54 / 72
         xs_size_cm = m_size_cm * 0.6
         s_size_cm = m_size_cm * 0.8
         l_size_cm = m_size_cm * 1.2
         xl_size_cm = m_size_cm * 1.4
         raw_text = ''
         images = {}
-        img = ''
+        img_file_name = ''
         img_size = ''
         for xl in xml_lines:
+            # IMAGE
+            should_continue = False
             if re.match(RES_XML_IMG_MS, xl):
                 # IMAGE MS WORD
-                img_id = re.sub(RES_XML_IMG_MS, '\\1', xl)
-                img_rel_name = img_rels[img_id]
-                img_ext = re.sub('^.*\\.', '', img_rel_name)
-                img_name = re.sub(RES_XML_IMG_MS, '\\2', xl)
-                img_name = re.sub('\\s', '_', img_name)
-                i = 0
-                while True:
-                    if i == 0:
-                        img = img_name + '.' + img_ext
-                    else:
-                        img = img_name + str(i) + '.' + img_ext
-                    for j in Document.images:
-                        if j != img_rel_name:
-                            if Document.images[j] == img:
-                                break
-                    else:
-                        break
-                    i += 1
-                Document.images[img_rel_name] = img
-                images[img_rel_name] = img
-            if re.match(RES_XML_IMG_PY_ID, xl):
+                img_rel_name, img_file_name \
+                    = cls._get_img_file_names_ms(xl, img_rels)
+                Document.images[img_rel_name] = img_file_name
+                images[img_rel_name] = img_file_name
+                should_continue = True
+            elif re.match(RES_XML_IMG_PY_ID, xl):
                 # IMAGE PYTHON-DOCX ID
-                img_id = re.sub(RES_XML_IMG_PY_ID, '\\1', xl)
-                img_rel_name = img_rels[img_id]
-                img_ext = re.sub('^.*\\.', '', img_rel_name)
-                img_name = images['']
-                img_name = re.sub('\\.' + img_ext + '$', '', img_name)
-                img_name = re.sub('\\s', '_', img_name)
-                i = 0
-                while True:
-                    if i == 0:
-                        img = img_name + '.' + img_ext
-                    else:
-                        img = img_name + str(i) + '.' + img_ext
-                    for j in Document.images:
-                        if j != img_rel_name:
-                            if Document.images[j] == img:
-                                break
-                    else:
-                        break
-                    i += 1
-                Document.images[img_rel_name] = img
-                images[img_rel_name] = img
-            if re.match(RES_XML_IMG_PY_NAME, xl):
+                img_rel_name, img_file_name \
+                    = cls._get_img_file_names_py(xl, img_rels, img_py_name)
+                Document.images[img_rel_name] = img_file_name
+                images[img_rel_name] = img_file_name
+                should_continue = True
+            elif re.match(RES_XML_IMG_PY_NAME, xl):
                 # IMAGE PYTHON-DOCX NAME
-                img_name = re.sub(RES_XML_IMG_PY_NAME, '\\2', xl)
-                images[''] = img_name
-            if re.match(RES_XML_IMG_SIZE, xl):
+                img_py_name = re.sub(RES_XML_IMG_PY_NAME, '\\2', xl)
+                should_continue = True
+            elif re.match(RES_XML_IMG_SIZE, xl):
                 # IMAGE SIZE
-                sz_w = re.sub(RES_XML_IMG_SIZE, '\\1', xl)
-                sz_h = re.sub(RES_XML_IMG_SIZE, '\\2', xl)
-                cm_w = float(sz_w) * 2.54 / 72 / 12700
-                cm_h = float(sz_h) * 2.54 / 72 / 12700
-                if cm_w >= 1:
-                    cm_w = round(cm_w, 1)
-                else:
-                    cm_w = round(cm_w, 2)
-                if cm_h >= 1:
-                    cm_h = round(cm_h, 1)
-                else:
-                    cm_h = round(cm_h, 2)
-                img_size = str(cm_w) + 'x' + str(cm_h)
-            if img != '' and img_size != '':
-                img_text = '<>!' \
-                    + '[' + img + ']' \
-                    + '(' + media_dir + '/' + img + ')'
-                if cm_w >= m_size_cm * 0.98 and cm_w <= m_size_cm * 1.02:
-                    # MEDIUM
-                    raw_text += img_text
-                elif cm_w >= xs_size_cm * 0.98 and cm_w <= xs_size_cm * 1.02:
-                    # XSMALL
-                    if re.match('^.*(\n.*)*\\-\\-\\-$', raw_text):
-                        raw_text = re.sub('\\-\\-\\-$', '', raw_text)
-                        raw_text += img_text + '---'
-                    else:
-                        raw_text += '---' + img_text + '---'
-                elif cm_w >= s_size_cm * 0.98 and cm_w <= s_size_cm * 1.02:
-                    # SMALL
-                    if re.match('^.*(\n.*)*\\-\\-$', raw_text):
-                        raw_text = re.sub('\\-\\-$', '', raw_text)
-                        raw_text += img_text + '--'
-                    else:
-                        raw_text += '--' + img_text + '--'
-                elif cm_w >= l_size_cm * 0.98 and cm_w <= l_size_cm * 1.02:
-                    # LARGE
-                    if re.match('^.*(\n.*)*\\+\\+$', raw_text):
-                        raw_text = re.sub('\\+\\+$', '', raw_text)
-                        raw_text += img_text + '++'
-                    else:
-                        raw_text += '++' + img_text + '++'
-                elif cm_w >= xl_size_cm * 0.98 and cm_w <= xl_size_cm * 1.02:
-                    # XLARGE
-                    if re.match('^.*(\n.*)*\\+\\+\\+$', raw_text):
-                        raw_text = re.sub('\\+\\+\\+$', '', raw_text)
-                        raw_text += img_text + '+++'
-                    else:
-                        raw_text += '+++' + img_text + '+++'
-                else:
-                    # FREE SIZE
-                    raw_text += '<>!' \
-                        + '[' + img + ':' + img_size + ']' \
-                        + '(' + media_dir + '/' + img + ')'
-                img = ''
+                img_size = cls._get_img_size(xl)
+                should_continue = True
+            if img_file_name != '' and img_size != '':
+                img_md_text = '!' \
+                    + '[' + img_file_name + ':' + img_size + ']' \
+                    + '(' + media_dir + '/' + img_file_name + ')'
+                imt = cls._get_img_md_text(media_dir,
+                                           img_file_name,
+                                           img_size,
+                                           font_size)
+                raw_text += '<>' + imt  # '<>' is to avoid being escaped
+                img_file_name = ''
                 img_size = ''
+            if should_continue:
+                continue
             if re.match('^<[^<>]*>$', xl):
                 continue
             while True:
@@ -3314,8 +3307,6 @@ class RawParagraph:
         # HORIZONTAL LINE
         if re.match('^((\\s*-\\s*)|(\\s*\\*\\s*)){3,}$', raw_text):
             raw_text = '\\' + raw_text
-        if '' in images:
-            images.pop('')
         # IVS (IDEOGRAPHIC VARIATION SEQUENCE)
         res = '^(.*[^\\\\0-9])([0-9]+);'
         while re.match(res, raw_text, flags=re.DOTALL):
