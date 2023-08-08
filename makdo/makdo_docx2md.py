@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.08.08-00:53:44-JST>
+# Time-stamp:   <2023.08.08-13:55:00-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2663,10 +2663,16 @@ class RawParagraph:
         self.raw_xml_lines = []
         self.raw_class = ''
         self.xml_lines = []
-        self.raw_text = ''
         self.images = {}
+        self.raw_text = ''
         self.beg_space = ''
         self.end_space = ''
+        self.raw_text_prev = ''
+        self.beg_space_prev = ''
+        self.end_space_prev = ''
+        self.raw_text_curr = ''
+        self.beg_space_curr = ''
+        self.end_space_curr = ''
         self.style = ''
         self.alignment = ''
         self.paragraph_class = ''
@@ -2679,8 +2685,14 @@ class RawParagraph:
             = self._get_xml_lines_and_images(self.raw_class,
                                              self.raw_xml_lines)
         self.raw_text = self._get_raw_text(self.xml_lines)
+        self.raw_text_prev = self._get_raw_text_prev(self.raw_text)
+        self.raw_text_curr = self._get_raw_text_curr(self.raw_text)
         self.beg_space, self.raw_text, self.end_space \
             = self._separate_space(self.raw_text)
+        self.beg_space_prev, self.raw_text_prev, self.end_space_prev \
+            = self._separate_space(self.raw_text_prev)
+        self.beg_space_curr, self.raw_text_curr, self.end_space_curr \
+            = self._separate_space(self.raw_text_curr)
         self.style = self._get_style(raw_xml_lines)
         self.alignment = self._get_alignment(self.raw_xml_lines)
         self.paragraph_class = self._get_paragraph_class()
@@ -2774,7 +2786,13 @@ class RawParagraph:
                                            img_file_name,
                                            img_size,
                                            font_size)
-                xml_lines.append('<>' + imt)  # '<>' is to avoid being escaped
+                imt = '<>' + imt  # '<>' is to avoid being escaped
+                if track_changes == 'del':
+                    xml_lines.append('&lt;!--' + imt + '--&gt;')
+                elif track_changes == 'ins':
+                    xml_lines.append('&lt;!+&gt;' + imt + '&lt;+&gt;')
+                else:
+                    xml_lines.append(imt)
                 img_file_name = ''
                 img_size = ''
             if should_continue:
@@ -3012,22 +3030,23 @@ class RawParagraph:
         s_size_cm = m_size_cm * 0.8
         l_size_cm = m_size_cm * 1.2
         xl_size_cm = m_size_cm * 1.4
-        cm_w = float(re.sub('x.*$', '', img_size))
+        # cm_w = float(re.sub('x.*$', '', img_size))
+        cm_h = float(re.sub('^.*x', '', img_size))
         img_md_text = '![' + img_file_name + ']' \
             + '(' + media_dir + '/' + img_file_name + ')'
-        if cm_w >= m_size_cm * 0.98 and cm_w <= m_size_cm * 1.02:
+        if cm_h >= m_size_cm * 0.98 and cm_h <= m_size_cm * 1.02:
             # MEDIUM
             pass
-        elif cm_w >= xs_size_cm * 0.98 and cm_w <= xs_size_cm * 1.02:
+        elif cm_h >= xs_size_cm * 0.98 and cm_h <= xs_size_cm * 1.02:
             # XSMALL
             img_md_text = '---' + img_md_text + '---'
-        elif cm_w >= s_size_cm * 0.98 and cm_w <= s_size_cm * 1.02:
+        elif cm_h >= s_size_cm * 0.98 and cm_h <= s_size_cm * 1.02:
             # SMALL
             img_md_text = '--' + img_text + '--'
-        elif cm_w >= l_size_cm * 0.98 and cm_w <= l_size_cm * 1.02:
+        elif cm_h >= l_size_cm * 0.98 and cm_h <= l_size_cm * 1.02:
             # LARGE
             img_md_text = '++' + img_text + '++'
-        elif cm_w >= xl_size_cm * 0.98 and cm_w <= xl_size_cm * 1.02:
+        elif cm_h >= xl_size_cm * 0.98 and cm_h <= xl_size_cm * 1.02:
             # XLARGE
             img_md_text = '+++' + img_text + '+++'
         else:
@@ -3318,6 +3337,43 @@ class RawParagraph:
         # self.raw_text = raw_text
         return raw_text
 
+    @classmethod
+    def _get_raw_text_prev(cls, raw_text):
+        raw_text_prev = cls._get_raw_text_prev_or_curr(raw_text,
+                                                       '<!\\+>', '<\\+>',
+                                                       '<!--', '-->')
+        return raw_text_prev
+
+    @classmethod
+    def _get_raw_text_curr(cls, raw_text):
+        raw_text_curr = cls._get_raw_text_prev_or_curr(raw_text,
+                                                       '<!--', '-->',
+                                                       '<!\\+>', '<\\+>')
+        return raw_text_curr
+
+    @staticmethod
+    def _get_raw_text_prev_or_curr(raw_text,
+                                   beg_erase, end_erase,
+                                   beg_leave, end_leave):
+        raw_text_erase = ''
+        raw_text_leave = ''
+        track_changes = ''
+        in_to_erase = False
+        for c in raw_text:
+            if in_to_erase:
+                raw_text_erase += c
+                if re.match(NOT_ESCAPED + end_erase + '$', raw_text_erase):
+                    in_to_erase = False
+                raw_text_erase = re.sub(end_erase + '$', '', raw_text_erase)
+            else:
+                raw_text_leave += c
+                if re.match(NOT_ESCAPED + beg_erase + '$', raw_text_leave):
+                    in_to_erase = True
+                raw_text_leave = re.sub(beg_erase + '$', '', raw_text_leave)
+                raw_text_leave = re.sub(beg_leave + '$', '', raw_text_leave)
+                raw_text_leave = re.sub(end_leave + '$', '', raw_text_leave)
+        return raw_text_leave
+
     @staticmethod
     def _separate_space(raw_text):
         beg_space = ''
@@ -3450,7 +3506,9 @@ class Paragraph:
         # rp = raw_paragraph
         # rp_rxl = rp.raw_xml_lines
         # rp_rcl = rp.raw_class
-        # rp_rtx = rp.raw_text
+        # rp_rtx = rp.raw_text_curr
+        # if rp_rtx == '':
+        #     rp_rtx = rp.raw_text_prev
         # rp_img = rp.images
         # rp_sty = rp.style
         # rp_alg = rp.alignment
@@ -3464,15 +3522,23 @@ class Paragraph:
         self.raw_class = raw_paragraph.raw_class
         self.xml_lines = raw_paragraph.xml_lines
         self.raw_text = raw_paragraph.raw_text
-        self.images = raw_paragraph.images
         self.beg_space = raw_paragraph.beg_space
         self.end_space = raw_paragraph.end_space
+        self.raw_text_prev = raw_paragraph.raw_text_prev
+        # self.beg_space_prev = raw_paragraph.beg_space_prev
+        # self.end_space_prev = raw_paragraph.end_space_prev
+        self.raw_text_curr = raw_paragraph.raw_text_curr
+        # self.beg_space_curr = raw_paragraph.beg_space_curr
+        # self.end_space_curr = raw_paragraph.end_space_curr
+        self.images = raw_paragraph.images
         self.style = raw_paragraph.style
         self.alignment = raw_paragraph.alignment
         self.paragraph_class = raw_paragraph.paragraph_class
         # DECLARATION
         self.paragraph_number = -1
         self.head_space = ''
+        # self.head_space_prev = ''
+        # self.head_space_curr = ''
         self.head_section_depth = -1
         self.tail_section_depth = -1
         self.proper_depth = -1
@@ -3493,6 +3559,7 @@ class Paragraph:
         # SUBSTITUTION
         Paragraph.paragraph_number += 1
         self.paragraph_number = Paragraph.paragraph_number
+        self._edit_head_track_changes()
         self.head_space, self.raw_text \
             = self._get_separate_head_spaces(self.raw_text)
         self.head_section_depth, self.tail_section_depth \
@@ -3516,6 +3583,9 @@ class Paragraph:
         self.text_to_write = self.get_text_to_write()
         self.text_to_write_with_reviser \
             = self.get_text_to_write_with_reviser()
+
+    def _edit_head_track_changes(self):
+        return
 
     def _get_separate_head_spaces(self, raw_text):
         paragraph_class = self.paragraph_class
@@ -4184,7 +4254,9 @@ class ParagraphBlank(Paragraph):
         rp_rxl = rp.raw_xml_lines
         rp_rcl = rp.raw_class
         rp_xl = rp.xml_lines
-        rp_rtx = rp.raw_text
+        rp_rtx = rp.raw_text_curr
+        if rp_rtx == '':
+            rp_rtx = rp.raw_text_prev
         if ParagraphTable.is_this_class(rp):
             return False
         if ParagraphImage.is_this_class(rp):
@@ -4230,7 +4302,9 @@ class ParagraphChapter(Paragraph):
     @classmethod
     def is_this_class(cls, raw_paragraph):
         rp = raw_paragraph
-        rp_rtx = rp.raw_text
+        rp_rtx = rp.raw_text_curr
+        if rp_rtx == '':
+            rp_rtx = rp.raw_text_prev
         if ParagraphTable.is_this_class(rp):
             return False
         if ParagraphConfiguration.is_this_class(rp):
@@ -4330,10 +4404,12 @@ class ParagraphSection(Paragraph):
     @classmethod
     def is_this_class(cls, raw_paragraph):
         rp = raw_paragraph
-        raw_text = rp.raw_text
+        rp_rtx = rp.raw_text_curr
+        if rp_rtx == '':
+            rp_rtx = rp.raw_text_prev
         alignment = rp.alignment
         head_section_depth, tail_section_depth \
-            = cls._get_section_depths(raw_text)
+            = cls._get_section_depths(rp_rtx)
         if ParagraphTable.is_this_class(rp):
             return False
         if ParagraphImage.is_this_class(rp):
@@ -4369,6 +4445,22 @@ class ParagraphSection(Paragraph):
         Paragraph.previous_tail_section_depth = tail_section_depth
         return head_section_depth, tail_section_depth
 
+    def _edit_head_track_changes(self):
+        hsd_prev, tsd_prev = self._get_section_depths(self.raw_text_prev)
+        hsd_curr, tsd_curr = self._get_section_depths(self.raw_text_curr)
+        if hsd_prev != tsd_prev:
+            return
+        if hsd_curr != tsd_curr:
+            return
+        if hsd_prev != tsd_curr:
+            return
+        res = '^(<!--[^<>]+-->)(<!\\+>[^<>]+<\\+>)'
+        if re.match(res + self.r9, self.raw_text):
+            self.raw_text = re.sub(res, '\\2\\1', self.raw_text)
+        res = '^<!\\+>([^<>]+)<\\+><!--[^<>]+-->'
+        if re.match(res + self.r9, self.raw_text):
+            self.raw_text = re.sub(res, '\\1', self.raw_text)
+
     def _get_revisers_and_md_text(self, raw_text):
         m_size = Paragraph.font_size
         xl_size = m_size * 1.4
@@ -4380,6 +4472,15 @@ class ParagraphSection(Paragraph):
         head_font_revisers, tail_font_revisers, raw_text \
             = Paragraph._get_font_revisers_and_md_text(raw_text)
         head_symbol = ''
+        # TRACK CHANEGS
+        if re.match('^<!--', raw_text):
+            return '', '', '', '' + raw_text
+        ins_symbol = ''
+        if re.match('^(<!\\+>)(\\s*)((?:.|\n)*$)', raw_text):
+            ins_symbol = re.sub('^(<!\\+>)(\\s*)((?:.|\n)*)$', '\\1', raw_text)
+            self.head_space \
+                += re.sub('^(<!\\+>)(\\s*)((?:.|\n)*)$', '\\2', raw_text)
+            raw_text = re.sub('^(<!\\+>)(\\s*)((?:.|\n)*)$', '\\3', raw_text)
         for xdepth in range(1, len(rss)):
             res = '^' + rss[xdepth] + rre + '$'
             if re.match(res, raw_text) and not re.match(rnm, raw_text):
@@ -4426,7 +4527,7 @@ class ParagraphSection(Paragraph):
                     break
             head_symbol = '# '
         return numbering_revisers, head_font_revisers, tail_font_revisers, \
-            head_symbol + raw_text
+            ins_symbol + head_symbol + raw_text
 
     @staticmethod
     def _decompose_text(res, raw_text, beg_num, end_num):
@@ -4607,8 +4708,10 @@ class ParagraphList(Paragraph):
     @classmethod
     def is_this_class(cls, raw_paragraph):
         rp = raw_paragraph
-        raw_text = rp.raw_text
-        proper_depth = cls._get_proper_depth(raw_text)
+        rp_rtx = rp.raw_text_curr
+        if rp_rtx == '':
+            rp_rtx = rp.raw_text_prev
+        proper_depth = cls._get_proper_depth(rp_rtx)
         if ParagraphTable.is_this_class(rp):
             return False
         if ParagraphConfiguration.is_this_class(rp):
@@ -4836,7 +4939,9 @@ class ParagraphImage(Paragraph):
     @classmethod
     def is_this_class(cls, raw_paragraph):
         rp = raw_paragraph
-        rp_rtx = rp.raw_text
+        rp_rtx = rp.raw_text_curr
+        if rp_rtx == '':
+            rp_rtx = rp.raw_text_prev
         rp_img = rp.images
         rp_rtx = re.sub(RES_IMAGE, '', rp_rtx)
         if ParagraphTable.is_this_class(rp):
