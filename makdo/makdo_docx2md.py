@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.08.09-11:22:10-JST>
+# Time-stamp:   <2023.08.09-11:30:57-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -3920,11 +3920,17 @@ class Paragraph:
         if length_revi['line spacing'] != 0.0:
             length_revisers.append('X=' + str(length_revi['line spacing']))
         if length_revi['first indent'] != 0.0:
-            length_revisers.append('<<=' + str(-length_revi['first indent']))
+            i = length_revi['first indent']
+            i = round(i * 2) / 2  # half-width units
+            length_revisers.append('<<=' + str(-i))
         if length_revi['left indent'] != 0.0:
-            length_revisers.append('<=' + str(-length_revi['left indent']))
+            i = length_revi['left indent']
+            i = round(i * 2) / 2  # half-width units
+            length_revisers.append('<=' + str(-i))
         if length_revi['right indent'] != 0.0:
-            length_revisers.append('>=' + str(-length_revi['right indent']))
+            i = length_revi['right indent']
+            i = round(i * 2) / 2  # half-width units
+            length_revisers.append('>=' + str(-i))
         # self.length_revisers = length_revisers
         return length_revisers
 
