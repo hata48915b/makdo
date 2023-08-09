@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.08.09-21:05:42-JST>
+# Time-stamp:   <2023.08.10-08:55:22-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2243,10 +2243,10 @@ class Document:
         return self.paragraphs
 
     def _modpar_blank_paragraph_to_space_before(self):
-        m = len(self.paragraphs) - 1
         for i, p in enumerate(self.paragraphs):
-            if i < m:
-                p_next = self.paragraphs[i + 1]
+            if p.has_removed:
+                continue
+            p_next = self._get_next_paragraph(self.paragraphs, i)
             if p.paragraph_class == 'blank':
                 v_line = p.md_text.count('\n') + 1.0
                 p.md_text = ''
@@ -2259,9 +2259,7 @@ class Document:
                 p.text_to_write_with_reviser \
                     = p.get_text_to_write_with_reviser()
                 p.paragraph_class = 'empty'
-            if p.paragraph_class == 'empty' and i < m:
-                if i == m:
-                    continue
+            if p.paragraph_class == 'empty' and p_next is not None:
                 lg_sb = p.length_revi['space before']
                 lg_sa = p.length_revi['space after']
                 lg_nx = p_next.length_revi['space before']
@@ -2292,14 +2290,14 @@ class Document:
     def _modpar_article_title(self):
         if Form.document_style != 'j':
             return self.paragraphs
-        m = len(self.paragraphs) - 1
         for i, p in enumerate(self.paragraphs):
-            if i > 0:
-                p_prev = self.paragraphs[i - 1]
+            if p.has_removed:
+                continue
+            p_prev = self._get_prev_paragraph(self.paragraphs, i)
             if p.paragraph_class == 'section' and \
                p.head_section_depth == 2 and \
                p.tail_section_depth == 2 and \
-               i > 0 and \
+               p_prev is not None and \
                p_prev.paragraph_class == 'alignment' and \
                p_prev.alignment == 'left':
                 p_prev.length_conf['space before'] \
@@ -2323,20 +2321,17 @@ class Document:
         return self.paragraphs
 
     def _modpar_section_space_before_and_after(self):
-        m = len(self.paragraphs) - 1
         for i, p in enumerate(self.paragraphs):
             if p.has_removed:
                 continue
-            if i > 0:
-                p_prev = self.paragraphs[i - 1]
-            if i < m:
-                p_next = self.paragraphs[i + 1]
+            p_prev = self._get_prev_paragraph(self.paragraphs, i)
+            p_next = self._get_next_paragraph(self.paragraphs, i)
             # TITLE
             ds = ParagraphSection._get_section_depths(p.raw_text_iod,
                                                       not p.has_removed)
             if p.paragraph_class == 'section' and ds == (1, 1):
                 # BEFORE
-                if i > 0:
+                if p_prev is not None:
                     if p_prev.length_docx['space after'] >= 0.2:
                         p_prev.length_docx['space after'] -= 0.1
                     elif p_prev.length_docx['space after'] >= 0.0:
@@ -2352,20 +2347,20 @@ class Document:
                         p.length_docx['space after'] += 0.1
                     elif p.length_docx['space after'] >= 0.0:
                         p.length_docx['space after'] *= 2
-                if i < m:
+                if p_next is not None:
                     if p_next.length_docx['space before'] >= 0.1:
                         p_next.length_docx['space before'] += 0.1
                     elif p_next.length_docx['space before'] >= 0.0:
                         p_next.length_docx['space before'] *= 2
             # TABLE
             elif p.paragraph_class == 'table':
-                if i == 0 or p_prev.paragraph_class == 'pagebreak':
+                if p_prev is not None or p_prev.paragraph_class == 'pagebreak':
                     p.length_supp['space before'] += TABLE_SPACE_BEFORE
                 else:
                     p.length_docx['space before'] \
                         = p_prev.length_docx['space after']
                     p_prev.length_docx['space after'] = 0.0
-                if i == m or p_next.paragraph_class == 'pagebreak':
+                if p_next is not None or p_next.paragraph_class == 'pagebreak':
                     p.length_supp['space after'] += TABLE_SPACE_AFTER
                 else:
                     p.length_docx['space after'] \
@@ -2374,7 +2369,7 @@ class Document:
             else:
                 continue
             # RENEW
-            if i > 0:
+            if p_prev is not None:
                 p_prev.length_revi = p_prev._get_length_revi()
                 p_prev.length_revisers \
                     = p_prev._get_length_revisers(p_prev.length_revi)
@@ -2390,7 +2385,7 @@ class Document:
                 # p.text_to_write = p.get_text_to_write()
                 p.text_to_write_with_reviser \
                     = p.get_text_to_write_with_reviser()
-            if i < m:
+            if p_next is not None:
                 p_next.length_revi = p_next._get_length_revi()
                 p_next.length_revisers \
                     = p_next._get_length_revisers(p_next.length_revi)
@@ -2405,7 +2400,6 @@ class Document:
         # self.paragraphs = self._modpar_blank_paragraph_to_space_before()
         Paragraph.previous_head_section_depth = 0
         Paragraph.previous_tail_section_depth = 0
-        m = len(self.paragraphs) - 1
         for i, p in enumerate(self.paragraphs):
             if p.has_removed:
                 continue
@@ -2526,18 +2520,18 @@ class Document:
     def _modpar_vertical_length(self):
         m = len(self.paragraphs) - 1
         for i, p in enumerate(self.paragraphs):
+            p_prev = self._get_prev_paragraph(self.paragraphs, i)
+            p_next = self._get_next_paragraph(self.paragraphs, i)
             for lr in p.length_revisers:
-                if i != 0 and re.match('^v=-.*', lr):
+                if p_prev is not None and re.match('^v=-.*', lr):
                     must_remove = True
-                    p_prev = self.paragraphs[i - 1]
                     for plr in p_prev.length_revisers:
                         if re.match('^V=-.*', plr):
                             must_remove = False
                     if must_remove:
                         p.length_revisers.remove(lr)
-                if i != m and re.match('^V=-.*', lr):
+                if p_next is not None and re.match('^V=-.*', lr):
                     must_remove = True
-                    p_next = self.paragraphs[i + 1]
                     for nlr in p_next.length_revisers:
                         if re.match('^v=-.*', nlr):
                             must_remove = False
@@ -2546,6 +2540,20 @@ class Document:
             p.text_to_write_with_reviser \
                 = p.get_text_to_write_with_reviser()
         return self.paragraphs
+
+    @staticmethod
+    def _get_prev_paragraph(paras, base):
+        for i in range(base - 1, -1, -1):
+            if not paras[i].has_removed:
+                return paras[i]
+        return None
+
+    @staticmethod
+    def _get_next_paragraph(paras, base):
+        for i in range(base + 1, len(paras)):
+            if not paras[i].has_removed:
+                return paras[i]
+        return None
 
     def get_document(self):
         dcmt = ''
@@ -3273,11 +3281,7 @@ class RawParagraph:
                 break
             raw_text += xl
         # SPACE
-        if re.match('^\\s+.*?$', raw_text):
-            raw_text = '\\' + raw_text
         raw_text = re.sub('(\n)([ \t\u3000]+)', '\\1\\\\\\2', raw_text)
-        if re.match('^.*?\\s+$', raw_text):
-            raw_text = raw_text + '\\'
         raw_text = re.sub('([ \t\u3000]+)(\n)', '\\1\\\\\\2', raw_text)
         # LENGTH REVISER
         if re.match('^(v|V|X|<<|<|>)=\\s*[0-9]+', raw_text):
@@ -3341,10 +3345,6 @@ class RawParagraph:
                 raw_text = re.sub('^(' + fd + ')' + res, '\\2\\1', raw_text)
                 raw_text = re.sub(res + '(' + fd + ')$', '\\2\\1', raw_text)
             if tmp_text == raw_text:
-                if re.match('^\\s+(.|\n)*$', raw_text):
-                    raw_text = '\\' + raw_text
-                if re.match('^(.|\n)*\\s+$', raw_text):
-                    raw_text = raw_text + '\\'
                 break
         # self.raw_text = raw_text
         return raw_text
@@ -3920,17 +3920,17 @@ class Paragraph:
             length_revisers.append('V=' + str(length_revi['space after']))
         if length_revi['line spacing'] != 0.0:
             length_revisers.append('X=' + str(length_revi['line spacing']))
-        if length_revi['first indent'] != 0.0:
-            i = length_revi['first indent']
-            i = round(i * 2) / 2  # half-width units
+        i = length_revi['first indent']
+        i = round(i * 2) / 2  # half-width units
+        if i != 0.0:
             length_revisers.append('<<=' + str(-i))
-        if length_revi['left indent'] != 0.0:
-            i = length_revi['left indent']
-            i = round(i * 2) / 2  # half-width units
+        i = length_revi['left indent']
+        i = round(i * 2) / 2  # half-width units
+        if i != 0.0:
             length_revisers.append('<=' + str(-i))
-        if length_revi['right indent'] != 0.0:
-            i = length_revi['right indent']
-            i = round(i * 2) / 2  # half-width units
+        i = length_revi['right indent']
+        i = round(i * 2) / 2  # half-width units
+        if i != 0.0:
             length_revisers.append('>=' + str(-i))
         # self.length_revisers = length_revisers
         return length_revisers
