@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.08.09-11:30:57-JST>
+# Time-stamp:   <2023.08.09-21:05:42-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2332,8 +2332,9 @@ class Document:
             if i < m:
                 p_next = self.paragraphs[i + 1]
             # TITLE
-            if p.paragraph_class == 'section' and \
-               ParagraphSection._get_section_depths(p.raw_text_iod) == (1, 1):
+            ds = ParagraphSection._get_section_depths(p.raw_text_iod,
+                                                      not p.has_removed)
+            if p.paragraph_class == 'section' and ds == (1, 1):
                 # BEFORE
                 if i > 0:
                     if p_prev.length_docx['space after'] >= 0.2:
@@ -2416,7 +2417,7 @@ class Document:
                         p.pre_text_to_write = 'v=+1.0\n# \n'
                         p.length_supp['space before'] -= 1.0
             p.head_section_depth, p.tail_section_depth \
-                = p._get_section_depths(p.raw_text_iod)
+                = p._get_section_depths(p.raw_text_iod, not p.has_removed)
             p.length_clas = p._get_length_clas()
             p.length_revi = p._get_length_revi()
             p.length_revisers = p._get_length_revisers(p.length_revi)
@@ -2702,7 +2703,7 @@ class RawParagraph:
             self.raw_text_iod = self.raw_text_ins
         else:
             self.raw_text_iod = self.raw_text_del
-        if self.raw_text_ins != '':
+        if self.raw_text_del != '' and self.raw_text_ins == '':
             self.has_removed = True
         self.style = self._get_style(raw_xml_lines)
         self.alignment = self._get_alignment(self.raw_xml_lines)
