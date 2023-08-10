@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.08.10-08:55:22-JST>
+# Time-stamp:   <2023.08.10-11:02:25-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2905,11 +2905,9 @@ class RawParagraph:
                     # TRACK CHANGES (DELETED)
                     if track_changes == 'del':
                         text = '&lt;!--' + text + '--&gt;'
-                        track_changes = ''
                     # TRACK CHANGES (INSERTED)
                     elif track_changes == 'ins':
                         text = '&lt;!+&gt;' + text + '&lt;+&gt;'
-                        track_changes = ''
                     xml_lines.append(text)
                     text = ''
                 xml_lines.append(rxl)
@@ -3704,15 +3702,30 @@ class Paragraph:
             depth_del = self._get_proper_depth(self.raw_text_del)
             depth_ins = self.proper_depth
         if depth_del > 0 and depth_ins > 0:
-            res_del = '<!--([^ \t\u3000．]+)-->'
-            res_ins = '<!\\+>([^ \t\u3000．]+)<\\+>'
-            res_sp = '([ \t\u3000．]+)'
-            res = '^' + res_del + res_ins + res_sp
+            res_beg = '([第\\(（]?)'
+            res_del = '<!--([^ \t\u3000\\.．]+)-->'
+            res_ins = '<!\\+>([^ \t\u3000\\.．]+)<\\+>'
+            res_end = \
+                '(' + \
+                '[編章節款目条\\)）]?(?:の[0-9０-９]+)*' + \
+                ParagraphSection.r9 + \
+                ')'
+            res = '^' + res_beg + res_del + res_ins + res_end
             if re.match(res, raw_text):
-                raw_text = re.sub(res, '\\2\\3', raw_text)
-            res = '^' + res_ins + res_del + res_sp
+                raw_text = re.sub(res, '\\1\\3\\4', raw_text)
+            res = '^' + res_beg + res_ins + res_del + res_end
             if re.match(res, raw_text):
-                raw_text = re.sub(res, '\\1\\3', raw_text)
+                raw_text = re.sub(res, '\\1\\2\\4', raw_text)
+            res_beg = '(第?[0-9０-９]+[編章節款目条]?[の0-9０-９]+)'
+            res_del = '<!--([の0-9０-９]+)-->'
+            res_ins = '<!\\+>([の0-9０-９]+)<\\+>'
+            res_end = '(' + ParagraphSection.r9 + ')'
+            res = '^' + res_beg + res_del + res_ins + res_end
+            if re.match(res, raw_text):
+                raw_text = re.sub(res, '\\1\\3\\4', raw_text)
+            res = '^' + res_beg + res_ins + res_del + res_end
+            if re.match(res, raw_text):
+                raw_text = re.sub(res, '\\1\\2\\4', raw_text)
         return raw_text
 
     @classmethod
@@ -3776,7 +3789,14 @@ class Paragraph:
         li_xml = 0.0
         ri_xml = 0.0
         ti_xml = 0.0
+        is_changed = False
         for rxl in rxls:
+            if re.match('^<w:pPrChange( .*[^/])?>$', rxl):
+                is_changed = True
+            if re.match('^</w:pPrChange( .*[^/])?>$', rxl):
+                is_changed = False
+            if is_changed:
+                continue
             sb_xml = XML.get_value('w:spacing', 'w:before', sb_xml, rxl)
             sa_xml = XML.get_value('w:spacing', 'w:after', sa_xml, rxl)
             ls_xml = XML.get_value('w:spacing', 'w:line', ls_xml, rxl)
@@ -4372,6 +4392,20 @@ class ParagraphChapter(Paragraph):
         numbering_revisers = []
         head_font_revisers, tail_font_revisers, raw_text \
             = Paragraph._get_font_revisers_and_md_text(raw_text)
+        head_tc = ''
+        tail_tc = ''
+        if re.match('^<!--(.|\n)*$', raw_text):
+            head_tc = '<!--'
+            raw_text = re.sub('^<!--', '', raw_text)
+        elif re.match('^<!\\+>(.|\n)*$', raw_text):
+            head_tc = '<!+>'
+            raw_text = re.sub('^<!\\+>', '', raw_text)
+        if re.match('^(.|\n)*-->$', raw_text):
+            tail_tc = '-->'
+            raw_text = re.sub('-->$', '', raw_text)
+        elif re.match('^(.|\n)*<\\+>', raw_text):
+            tail_tc = '<+>'
+            raw_text = re.sub('<\\+>$', '', raw_text)
         head_symbol = ''
         for xdepth in range(len(rss)):
             res = '^' + rss[xdepth] + rre + '$'
@@ -4379,13 +4413,14 @@ class ParagraphChapter(Paragraph):
                 head_string, raw_text, state \
                     = self._decompose_text(res, raw_text, -1, -1)
                 ydepth = len(state) - 1
-                self._step_states(xdepth, ydepth)
-                numbering_revisers \
-                    = self._get_numbering_revisers(xdepth, state)
+                if head_tc != '<!--':
+                    self._step_states(xdepth, ydepth)
+                    numbering_revisers \
+                        = self._get_numbering_revisers(xdepth, state)
                 head_symbol = '$' * (xdepth + 1) + '-$' * ydepth + ' '
                 break
         return numbering_revisers, head_font_revisers, tail_font_revisers, \
-            head_symbol + raw_text
+            head_tc + head_symbol + raw_text + tail_tc
 
     @staticmethod
     def _decompose_text(res, raw_text, num1, num2):
@@ -4491,14 +4526,21 @@ class ParagraphSection(Paragraph):
         numbering_revisers = []
         head_font_revisers, tail_font_revisers, raw_text \
             = Paragraph._get_font_revisers_and_md_text(raw_text)
-        head_symbol = ''
-        # TRACK CHANEGS
-        if re.match('^<!--', raw_text):
-            head_symbol = '<!--'
+        head_tc = ''
+        tail_tc = ''
+        if re.match('^<!--(.|\n)*$', raw_text):
+            head_tc = '<!--'
             raw_text = re.sub('^<!--', '', raw_text)
-        elif re.match('^<!\\+>', raw_text):
-            head_symbol = '<!+>'
+        elif re.match('^<!\\+>(.|\n)*$', raw_text):
+            head_tc = '<!+>'
             raw_text = re.sub('^<!\\+>', '', raw_text)
+        if re.match('^(.|\n)*-->$', raw_text):
+            tail_tc = '-->'
+            raw_text = re.sub('-->$', '', raw_text)
+        elif re.match('^(.|\n)*<\\+>', raw_text):
+            tail_tc = '<+>'
+            raw_text = re.sub('<\\+>$', '', raw_text)
+        head_symbol = ''
         for xdepth in range(1, len(rss)):
             res = '^' + rss[xdepth] + rre + '$'
             if re.match(res, raw_text) and not re.match(rnm, raw_text):
@@ -4511,12 +4553,13 @@ class ParagraphSection(Paragraph):
                 head_string, raw_text, state \
                     = self._decompose_text(res, raw_text, beg_num, end_num)
                 ydepth = len(state) - 1
-                if head_symbol != '<!--':
+                if head_tc != '<!--':
                     self._step_states(xdepth, ydepth)
                     numbering_revisers \
                         = self._get_numbering_revisers(xdepth, state)
                 head_symbol += '#' * (xdepth + 1) + '-#' * ydepth + ' '
-        raw_text = re.sub('^\u3000', '', raw_text)
+        raw_text = re.sub(ParagraphSection.r9, '', raw_text)
+        # raw_text = re.sub('^(?:  ?|\t|\u3000|\\. ?|．)', '', raw_text)
         if head_symbol == '':
             self._step_states(0, 0)
             if '+++' in head_font_revisers:
@@ -4546,7 +4589,7 @@ class ParagraphSection(Paragraph):
                     break
             head_symbol = '# '
         return numbering_revisers, head_font_revisers, tail_font_revisers, \
-            head_symbol + raw_text
+            head_tc + head_symbol + raw_text + tail_tc
 
     @staticmethod
     def _decompose_text(res, raw_text, beg_num, end_num):
