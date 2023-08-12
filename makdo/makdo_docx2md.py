@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.08.13-03:55:25-JST>
+# Time-stamp:   <2023.08.13-08:01:36-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -3109,177 +3109,98 @@ class RawParagraph:
         # RETURN
         return text
 
-    @staticmethod
-    def _get_raw_text(xml_lines):
+    @classmethod
+    def _get_raw_text(cls, xml_lines):
+        raw_text = cls._join_strings(xml_lines)
+        raw_text = cls._convert_ivs(raw_text)  # IVS (IDEOGRAPHIC VARIATION SEQUENCE)
+        raw_text = cls._restore_charcters(raw_text)
+        raw_text = cls._shrink_meaningless_font_decorations(raw_text)
+        # self.raw_text = raw_text
+        return raw_text
+
+    @classmethod
+    def _join_strings(cls, xml_lines):
         raw_text = ''
         for xl in xml_lines:
             if re.match('^<[^<>]*>$', xl):
                 continue
             while True:
+                tt = raw_text
                 # ITALIC AND BOLD
-                if re.match('^(.|\n)*[^\\*]\\*\\*\\*$', raw_text) and \
-                   re.match('^\\*\\*\\*[^\\*].*$', xl):
-                    raw_text = re.sub('\\*\\*\\*$', '', raw_text)
-                    xl = re.sub('^\\*\\*\\*', '', xl)
-                    continue
-                # ITALIC
-                if re.match('^(.|\n)*[^\\*]\\*\\*$', raw_text) and \
-                   re.match('^\\*\\*[^\\*].*$', xl):
-                    raw_text = re.sub('\\*\\*$', '', raw_text)
-                    xl = re.sub('^\\*\\*', '', xl)
-                    continue
-                # BOLD
-                if re.match('^(.|\n)*[^\\*]\\*$', raw_text) and \
-                   re.match('^\\*[^\\*].*$', xl):
-                    raw_text = re.sub('\\*$', '', raw_text)
-                    xl = re.sub('^\\*', '', xl)
-                    continue
+                tt, xl = cls._cancel_fd(tt, xl, '\\*\\*\\*', '\\*\\*\\*')
+                tt, xl = cls._cancel_fd(tt, xl, '\\*\\*', '\\*\\*')
+                if re.match(NOT_ESCAPED + '\\*\\*', tt) or \
+                   re.match(NOT_ESCAPED + '\\*\\*', xl):
+                    break
+                tt, xl = cls._cancel_fd(tt, xl, '\\*', '\\*')
                 # STRIKETHROUGH
-                if re.match('^(.|\n)*~~$', raw_text) and \
-                   re.match('^~~.*$', xl):
-                    raw_text = re.sub('~~$', '', raw_text)
-                    xl = re.sub('^~~', '', xl)
-                    continue
+                tt, xl = cls._cancel_fd(tt, xl, '~~', '~~')
                 # PREFORMATTED
-                if re.match('^(.|\n)*`$', raw_text) and \
-                   re.match('^`.*$', xl):
-                    raw_text = re.sub('`$', '', raw_text)
-                    xl = re.sub('^`', '', xl)
-                    continue
+                tt, xl = cls._cancel_fd(tt, xl, '`', '`')
                 # XSMALL x XSMALL
-                if re.match('^(.|\n)*\\-\\-\\-$', raw_text) and \
-                   re.match('^\\-\\-\\-.*$', xl):
-                    raw_text = re.sub('\\-\\-\\-$', '', raw_text)
-                    xl = re.sub('^\\-\\-\\-', '', xl)
-                    continue
-                # XSMALL x SMALL
-                if re.match('^(.|\n)*\\-\\-\\-$', raw_text) and \
-                   re.match('^\\-\\-.*$', xl):
-                    break
-                # SMALL x XSMALL
-                if re.match('^(.|\n)*\\-\\-$', raw_text) and \
-                   re.match('^\\-\\-\\-.*$', xl):
-                    break
+                tt, xl = cls._cancel_fd(tt, xl, '\\-\\-\\-', '\\-\\-\\-')
                 # SMALL x SMALL
-                if re.match('^(.|\n)*\\-\\-$', raw_text) and \
-                   re.match('^\\-\\-.*$', xl):
-                    raw_text = re.sub('\\-\\-$', '', raw_text)
-                    xl = re.sub('^\\-\\-', '', xl)
-                    continue
+                if re.match(NOT_ESCAPED + '\\-\\-\\-', tt) or \
+                   re.match(NOT_ESCAPED + '\\-\\-\\-', xl):
+                    break
+                tt, xl = cls._cancel_fd(tt, xl, '\\-\\-', '\\-\\-')
                 # XLARGE x XLARGE
-                if re.match('^(.|\n)*\\+\\+\\+$', raw_text) and \
-                   re.match('^\\+\\+\\+.*$', xl):
-                    raw_text = re.sub('\\+\\+\\+$', '', raw_text)
-                    xl = re.sub('^\\+\\+\\+', '', xl)
-                    continue
-                # XLARGE x LARGE
-                if re.match('^(.|\n)*\\+\\+\\+$', raw_text) and \
-                   re.match('^\\+\\+.*$', xl):
-                    break
-                # LARGE x XLARGE
-                if re.match('^(.|\n)*\\+\\+$', raw_text) and \
-                   re.match('^\\+\\+\\+.*$', xl):
-                    break
+                tt, xl = cls._cancel_fd(tt, xl, '\\+\\+\\+', '\\+\\+\\+')
                 # LARGE x LARGE
-                if re.match('^(.|\n)*\\+\\+$', raw_text) and \
-                   re.match('^\\+\\+.*$', xl):
-                    raw_text = re.sub('\\+\\+$', '', raw_text)
-                    xl = re.sub('^\\+\\+', '', xl)
-                    continue
+                if re.match(NOT_ESCAPED + '\\+\\+\\+', tt) or \
+                   re.match(NOT_ESCAPED + '\\+\\+\\+', xl):
+                    break
+                tt, xl = cls._cancel_fd(tt, xl, '\\+\\+', '\\+\\+')
                 # XNARROW x XNARROW
-                if re.match('^(.|\n)*<<<$', raw_text) and \
-                   re.match('^>>>.*$', xl):
-                    raw_text = re.sub('<<<$', '', raw_text)
-                    xl = re.sub('^>>>', '', xl)
-                    continue
-                # XWIDE x XWIDE
-                if re.match('^(.|\n)*>>>$', raw_text) and \
-                   re.match('^<<<.*$', xl):
-                    raw_text = re.sub('>>>$', '', raw_text)
-                    xl = re.sub('^<<<', '', xl)
-                    continue
-                # XNARROW x NARROW
-                if re.match('^(.|\n)*<<<$', raw_text) and \
-                   re.match('^>>.*$', xl):
-                    break
-                # NARROW x XNARROW
-                if re.match('^(.|\n)*<<$', raw_text) and \
-                   re.match('^>>>.*$', xl):
-                    break
-                # XWIDE x WIDE
-                if re.match('^(.|\n)*>>>$', raw_text) and \
-                   re.match('^<<.*$', xl):
-                    break
-                # WIDE x XWIDE
-                if re.match('^(.|\n)*>>$', raw_text) and \
-                   re.match('^<<<.*$', xl):
-                    break
+                tt, xl = cls._cancel_fd(tt, xl, '>>>', '<<<')
                 # NARROW x NARROW
-                if re.match('^(.|\n)*<<$', raw_text) and \
-                   re.match('^>>.*$', xl):
-                    raw_text = re.sub('<<$', '', raw_text)
-                    xl = re.sub('^>>', '', xl)
-                    continue
+                if re.match(NOT_ESCAPED + '>>>', tt) or \
+                   re.match(NOT_ESCAPED + '<<<', xl):
+                    break
+                tt, xl = cls._cancel_fd(tt, xl, '>>', '<<')
+                # XWIDE x XWIDE
+                tt, xl = cls._cancel_fd(tt, xl, '<<<', '>>>')
                 # WIDE x WIDE
-                if re.match('^(.|\n)*>>$', raw_text) and \
-                   re.match('^<<.*$', xl):
-                    raw_text = re.sub('>>$', '', raw_text)
-                    xl = re.sub('^<<', '', xl)
-                    continue
+                if re.match(NOT_ESCAPED + '<<<', tt) or \
+                   re.match(NOT_ESCAPED + '>>>', xl):
+                    break
+                tt, xl = cls._cancel_fd(tt, xl, '<<', '>>')
                 # UNDERLINE
                 res = '_([\\$=\\.#\\-~\\+]{,4})_'
-                if re.match('^(?:.|\n)*' + res + '$', raw_text) and \
-                   re.match('^' + res + '.*$', xl):
-                    ue = re.sub('^(?:.|\n)*' + res + '$', '\\1', raw_text)
-                    ub = re.sub('^' + res + '.*$', '\\1', xl)
-                    if ue == ub:
-                        raw_text = re.sub(res + '$', '', raw_text, 1)
-                        xl = re.sub('^' + res, '', xl, 1)
-                        continue
+                tt, xl = cls._cancel_fd(tt, xl, res, res, True)
                 # FONT COLOR
                 res = '\\^([0-9A-Za-z]{0,11})\\^'
-                if re.match('^(?:.|\n)*' + res + '$', raw_text) and \
-                   re.match('^' + res + '.*$', xl):
-                    ce = re.sub('^(?:.|\n)*' + res + '$', '\\1', raw_text)
-                    cb = re.sub('^' + res + '.*$', '\\1', xl)
-                    if ce == cb:
-                        raw_text = re.sub(res + '$', '', raw_text)
-                        xl = re.sub('^' + res, '', xl)
-                        continue
+                tt, xl = cls._cancel_fd(tt, xl, res, res, True)
                 # HIGILIGHT COLOR
                 res = '_([0-9A-Za-z]{1,11})_'
-                if re.match('^(?:.|\n)*' + res + '$', raw_text) and \
-                   re.match('^' + res + '.*$', xl):
-                    ce = re.sub('^(?:.|\n)*' + res + '$', '\\1', raw_text)
-                    cb = re.sub('^' + res + '.*$', '\\1', xl)
-                    if ce == cb:
-                        raw_text = re.sub(res + '$', '', raw_text)
-                        xl = re.sub('^' + res, '', xl)
-                        continue
+                tt, xl = cls._cancel_fd(tt, xl, res, res, True)
                 # FONT
                 res = '@([^@]{1,66})@'
-                if re.match('^(?:.|\n)*' + res + '$', raw_text) and \
-                   re.match('^' + res + '.*$', xl):
-                    fe = re.sub('^(?:.|\n)*' + res + '$', '\\1', raw_text)
-                    fb = re.sub('^' + res + '.*$', '\\1', xl)
-                    if fe == fb:
-                        raw_text = re.sub(res + '$', '', raw_text)
-                        xl = re.sub('^' + res, '', xl)
-                        continue
+                tt, xl = cls._cancel_fd(tt, xl, res, res, True)
                 # TRACK CHANGES (DELETED)
-                if re.match('^(.|\n)*\\-\\-&gt;$', raw_text) and \
-                   re.match('^&lt;!\\-\\-.*$', xl):
-                    raw_text = re.sub('\\-\\-&gt;$', '', raw_text)
-                    xl = re.sub('^&lt;!\\-\\-', '', xl)
-                    continue
+                tt, xl = cls._cancel_fd(tt, xl, '-->', '<!--')
                 # TRACK CHANGES (INSERTED)
-                if re.match('^(.|\n)*&lt;\\+&gt;$', raw_text) and \
-                   re.match('^&lt;!\\+&gt;.*$', xl):
-                    raw_text = re.sub('&lt;\\+&gt;$', '', raw_text)
-                    xl = re.sub('^&lt;!\\+&gt;', '', xl)
-                    continue
-                break
-            raw_text += xl
+                tt, xl = cls._cancel_fd(tt, xl, '<\\+>', '<!\\+>')
+                if tt == raw_text:
+                    break
+                raw_text = tt
+            raw_text = tt + xl
+        return raw_text
+
+    @staticmethod
+    def _cancel_fd(text_l, text_r, end_l, beg_r, must_be_same=False):
+        res_l = NOT_ESCAPED + '(' + end_l + ')$'
+        res_r = '^(' + beg_r + ')((?:.|\n)*)$'
+        if re.match(res_l, text_l) and re.match(res_r, text_r):
+            fd_l = re.sub(res_l, '\\2', text_l)
+            fd_r = re.sub(res_r, '\\1', text_r)
+            if (not must_be_same) or (fd_l == fd_r):
+                text_l = re.sub(res_l, '\\1', text_l)
+                text_r = re.sub(res_r, '\\2', text_r)
+        return text_l, text_r
+
+    @staticmethod
+    def _espace_symbols(raw_text):
         # SPACE
         raw_text = re.sub('(\n)([ \t\u3000]+)', '\\1\\\\\\2', raw_text)
         raw_text = re.sub('([ \t\u3000]+)(\n)', '\\1\\\\\\2', raw_text)
@@ -3318,7 +3239,11 @@ class RawParagraph:
         # HORIZONTAL LINE
         if re.match('^((\\s*-\\s*)|(\\s*\\*\\s*)){3,}$', raw_text):
             raw_text = '\\' + raw_text
-        # IVS (IDEOGRAPHIC VARIATION SEQUENCE)
+        return raw_text
+
+    # IVS (IDEOGRAPHIC VARIATION SEQUENCE)
+    @staticmethod
+    def _convert_ivs(raw_text):
         res = '^(.*[^\\\\0-9])([0-9]+);'
         while re.match(res, raw_text, flags=re.DOTALL):
             raw_text = re.sub(res, '\\1\\\\\\2;', raw_text, flags=re.DOTALL)
@@ -3331,10 +3256,17 @@ class RawParagraph:
             t3 = re.sub(res, '\\3', raw_text, flags=re.DOTALL)
             ivs_n = ord(t2) - ivs_beg
             raw_text = t1 + str(ivs_n) + ';' + t3
-        # CHARACTER
+        return raw_text
+
+    @staticmethod
+    def _restore_charcters(raw_text):
         raw_text = raw_text.replace('&lt;', '<')
         raw_text = raw_text.replace('&gt;', '>')
         raw_text = raw_text.replace('&amp;', '&')
+        return raw_text
+
+    @staticmethod
+    def _shrink_meaningless_font_decorations(raw_text):
         while True:
             tmp_text = raw_text
             for fd in FONT_DECORATORS:
@@ -3346,7 +3278,6 @@ class RawParagraph:
                 raw_text = re.sub(res + '(' + fd + ')$', '\\2\\1', raw_text)
             if tmp_text == raw_text:
                 break
-        # self.raw_text = raw_text
         return raw_text
 
     @staticmethod
