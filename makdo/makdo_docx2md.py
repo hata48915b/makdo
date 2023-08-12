@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.08.10-11:02:25-JST>
+# Time-stamp:   <2023.08.13-03:55:25-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2877,6 +2877,8 @@ class RawParagraph:
                         elif font_width > 1.3:
                             text = '<<<' + text + '>>>'
                         elif font_width > 1.1:
+                            if re.match('^=' + RES_NUMBER, text):
+                                text = '\\' + text
                             text = '<<' + text + '>>'
                         font_width = 1.0
                     # STRIKETHROUGH
@@ -3931,29 +3933,51 @@ class Paragraph:
         # self.length_revi = length_revi
         return length_revi
 
-    @staticmethod
-    def _get_length_revisers(length_revi):
+    @classmethod
+    def _get_length_revisers(cls, length_revi):
         length_revisers = []
         if length_revi['space before'] != 0.0:
-            length_revisers.append('v=' + str(length_revi['space before']))
+            vs = cls._get_vlength_string(length_revi['space before'])
+            length_revisers.append('v=' + vs)
         if length_revi['space after'] != 0.0:
-            length_revisers.append('V=' + str(length_revi['space after']))
+            vs = cls._get_vlength_string(length_revi['space after'])
+            length_revisers.append('V=' + vs)
         if length_revi['line spacing'] != 0.0:
-            length_revisers.append('X=' + str(length_revi['line spacing']))
-        i = length_revi['first indent']
-        i = round(i * 2) / 2  # half-width units
-        if i != 0.0:
-            length_revisers.append('<<=' + str(-i))
-        i = length_revi['left indent']
-        i = round(i * 2) / 2  # half-width units
-        if i != 0.0:
-            length_revisers.append('<=' + str(-i))
-        i = length_revi['right indent']
-        i = round(i * 2) / 2  # half-width units
-        if i != 0.0:
-            length_revisers.append('>=' + str(-i))
+            vs = cls._get_vlength_string(length_revi['line spacing'])
+            length_revisers.append('X=' + vs)
+        if length_revi['first indent'] != 0.0:
+            hs = cls._get_hlength_string(-1 * length_revi['first indent'])
+            length_revisers.append('<<=' + hs)
+        if length_revi['left indent'] != 0.0:
+            hs = cls._get_hlength_string(-1 * length_revi['left indent'])
+            length_revisers.append('<=' + hs)
+        if length_revi['right indent'] != 0.0:
+            hs = cls._get_hlength_string(-1 * length_revi['right indent'])
+            length_revisers.append('>=' + hs)
         # self.length_revisers = length_revisers
         return length_revisers
+
+    @staticmethod
+    def _get_vlength_string(length):
+        i_part = int(length)
+        d_part = abs(length - int(length))
+        if d_part > 0.329 and d_part < 0.340:
+            return str(i_part) + '.33'  # 1/3=0.3333...
+        if d_part > 0.660 and d_part < 0.671:
+            return str(i_part) + '.67'  # 2/3=0.6666...
+        if d_part > 0.245 and d_part < 0.255:
+            return str(i_part) + '.25'  # 1/4=0.25
+        if d_part > 0.745 and d_part < 0.755:
+            return str(i_part) + '.75'  # 3/4=0.75
+        if d_part > 0.160 and d_part < 0.171:
+            return str(i_part) + '.17'  # 1/6=0.1666...
+        if d_part > 0.829 and d_part < 0.840:
+            return str(i_part) + '.83'  # 5/6=0.8333...
+        return str(round(length, 1))
+
+    @staticmethod
+    def _get_hlength_string(length):
+        return str(round(length * 2) / 2)  # half-width units
 
     def _get_md_lines_text(self, md_text):
         paragraph_class = self.paragraph_class
