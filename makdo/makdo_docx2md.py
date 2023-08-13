@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.08.13-11:45:50-JST>
+# Time-stamp:   <2023.08.13-12:18:19-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2870,16 +2870,17 @@ class RawParagraph:
                         font_scale = 1.0
                     # WIDTH
                     if font_width != 1.0:
+
                         if font_width < 0.7:
-                            text = '>>>' + text + '<<<'
+                            text = '&gt;&gt;&gt;' + text + '&lt;&lt;&lt;'
                         elif font_width < 0.9:
-                            text = '>>' + text + '<<'
+                            text = '&gt;&gt;' + text + '&lt;&lt;'
                         elif font_width > 1.3:
-                            text = '<<<' + text + '>>>'
+                            text = '&lt;&lt;&lt;' + text + '&gt;&gt;&gt;'
                         elif font_width > 1.1:
                             if re.match('^=' + RES_NUMBER, text):
                                 text = '\\' + text
-                            text = '<<' + text + '>>'
+                            text = '&lt;&lt;' + text + '&gt;&gt;'
                         font_width = 1.0
                     # STRIKETHROUGH
                     if has_strike:
@@ -3178,9 +3179,9 @@ class RawParagraph:
                 res = '@([^@]{1,66})@'
                 tt, xl = cls._cancel_fd(tt, xl, res, res, True)
                 # TRACK CHANGES (DELETED)
-                tt, xl = cls._cancel_fd(tt, xl, '-->', '<!--')
+                tt, xl = cls._cancel_fd(tt, xl, '--&gt;', '&lt;!--')
                 # TRACK CHANGES (INSERTED)
-                tt, xl = cls._cancel_fd(tt, xl, '<\\+>', '<!\\+>')
+                tt, xl = cls._cancel_fd(tt, xl, '&lt;\\+&gt;', '&lt;!\\+&gt;')
                 if tt == raw_text:
                     break
                 raw_text = tt
