@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.08.13-08:01:36-JST>
+# Time-stamp:   <2023.08.13-11:45:50-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -3867,48 +3867,68 @@ class Paragraph:
     @classmethod
     def _get_length_revisers(cls, length_revi):
         length_revisers = []
-        if length_revi['space before'] != 0.0:
-            vs = cls._get_vlength_string(length_revi['space before'])
+        vs = cls._get_vlength_string(length_revi['space before'])
+        if float(vs) < -0.05 or float(vs) > 0.05:
             length_revisers.append('v=' + vs)
-        if length_revi['space after'] != 0.0:
-            vs = cls._get_vlength_string(length_revi['space after'])
+        vs = cls._get_vlength_string(length_revi['space after'])
+        if float(vs) < -0.05 or float(vs) > 0.05:
             length_revisers.append('V=' + vs)
-        if length_revi['line spacing'] != 0.0:
-            vs = cls._get_vlength_string(length_revi['line spacing'])
+        vs = cls._get_vlength_string(length_revi['line spacing'])
+        if float(vs) < -0.05 or float(vs) > 0.05:
             length_revisers.append('X=' + vs)
-        if length_revi['first indent'] != 0.0:
-            hs = cls._get_hlength_string(-1 * length_revi['first indent'])
+        hs = cls._get_hlength_string(- length_revi['first indent'])
+        if float(hs) < -0.05 or float(hs) > 0.05:
             length_revisers.append('<<=' + hs)
-        if length_revi['left indent'] != 0.0:
-            hs = cls._get_hlength_string(-1 * length_revi['left indent'])
+        hs = cls._get_hlength_string(- length_revi['left indent'])
+        if float(hs) < -0.05 or float(hs) > 0.05:
             length_revisers.append('<=' + hs)
-        if length_revi['right indent'] != 0.0:
-            hs = cls._get_hlength_string(-1 * length_revi['right indent'])
+        hs = cls._get_hlength_string(- length_revi['right indent'])
+        if float(hs) < -0.05 or float(hs) > 0.05:
             length_revisers.append('>=' + hs)
         # self.length_revisers = length_revisers
         return length_revisers
 
     @staticmethod
     def _get_vlength_string(length):
-        i_part = int(length)
+        # FRACTION
+        if length < 0:
+            porm = '-'
+        elif length == 0:
+            porm = ''
+        else:
+            porm = '+'
+        i_part = str(int(abs(length)))
         d_part = abs(length - int(length))
         if d_part > 0.329 and d_part < 0.340:
-            return str(i_part) + '.33'  # 1/3=0.3333...
+            return porm + i_part + '.33'  # 1/3=0.3333...
         if d_part > 0.660 and d_part < 0.671:
-            return str(i_part) + '.67'  # 2/3=0.6666...
+            return porm + i_part + '.67'  # 2/3=0.6666...
         if d_part > 0.245 and d_part < 0.255:
-            return str(i_part) + '.25'  # 1/4=0.25
+            return porm + i_part + '.25'  # 1/4=0.25
         if d_part > 0.745 and d_part < 0.755:
-            return str(i_part) + '.75'  # 3/4=0.75
+            return porm + i_part + '.75'  # 3/4=0.75
         if d_part > 0.160 and d_part < 0.171:
-            return str(i_part) + '.17'  # 1/6=0.1666...
+            return porm + i_part + '.17'  # 1/6=0.1666...
         if d_part > 0.829 and d_part < 0.840:
-            return str(i_part) + '.83'  # 5/6=0.8333...
-        return str(round(length, 1))
+            return porm + i_part + '.83'  # 5/6=0.8333...
+        # DECIMAL
+        rounded = round(length, 1)
+        if rounded < 0:
+            return str(rounded)
+        elif rounded == 0:
+            return '0.0'
+        else:
+            return '+' + str(rounded)
 
     @staticmethod
     def _get_hlength_string(length):
-        return str(round(length * 2) / 2)  # half-width units
+        rounded = round(length * 2) / 2  # half-width units
+        if rounded < 0:
+            return str(rounded)
+        if rounded == 0:
+            return '0.0'
+        else:
+            return '+' + str(rounded)
 
     def _get_md_lines_text(self, md_text):
         paragraph_class = self.paragraph_class
