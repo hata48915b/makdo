@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.08.13-12:18:19-JST>
+# Time-stamp:   <2023.08.25-23:18:21-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -3129,41 +3129,46 @@ class RawParagraph:
                 tt = raw_text
                 # ITALIC AND BOLD
                 tt, xl = cls._cancel_fd(tt, xl, '\\*\\*\\*', '\\*\\*\\*')
+                # BOLD
+                if re.match(NOT_ESCAPED + '\\*\\*\\*$', tt) or \
+                   re.match('^\\*\\*\\*(?:.|\n)*$', xl):
+                    break
                 tt, xl = cls._cancel_fd(tt, xl, '\\*\\*', '\\*\\*')
-                if re.match(NOT_ESCAPED + '\\*\\*', tt) or \
-                   re.match(NOT_ESCAPED + '\\*\\*', xl):
+                # ITALIC
+                if re.match(NOT_ESCAPED + '\\*\\*$', tt) or \
+                   re.match('^\\*\\*(?:.|\n)*$', xl):
                     break
                 tt, xl = cls._cancel_fd(tt, xl, '\\*', '\\*')
                 # STRIKETHROUGH
                 tt, xl = cls._cancel_fd(tt, xl, '~~', '~~')
                 # PREFORMATTED
                 tt, xl = cls._cancel_fd(tt, xl, '`', '`')
-                # XSMALL x XSMALL
+                # XSMALL
                 tt, xl = cls._cancel_fd(tt, xl, '\\-\\-\\-', '\\-\\-\\-')
-                # SMALL x SMALL
-                if re.match(NOT_ESCAPED + '\\-\\-\\-', tt) or \
-                   re.match(NOT_ESCAPED + '\\-\\-\\-', xl):
+                # SMALL
+                if re.match(NOT_ESCAPED + '\\-\\-\\-$', tt) or \
+                   re.match('^\\-\\-\\-(?:.|\n)*$', xl):
                     break
                 tt, xl = cls._cancel_fd(tt, xl, '\\-\\-', '\\-\\-')
-                # XLARGE x XLARGE
+                # XLARGE
                 tt, xl = cls._cancel_fd(tt, xl, '\\+\\+\\+', '\\+\\+\\+')
-                # LARGE x LARGE
-                if re.match(NOT_ESCAPED + '\\+\\+\\+', tt) or \
-                   re.match(NOT_ESCAPED + '\\+\\+\\+', xl):
+                # LARGE
+                if re.match(NOT_ESCAPED + '\\+\\+\\+$', tt) or \
+                   re.match('^\\+\\+\\+(?:.|\n)*$', xl):
                     break
                 tt, xl = cls._cancel_fd(tt, xl, '\\+\\+', '\\+\\+')
-                # XNARROW x XNARROW
+                # XNARROW
                 tt, xl = cls._cancel_fd(tt, xl, '>>>', '<<<')
-                # NARROW x NARROW
-                if re.match(NOT_ESCAPED + '>>>', tt) or \
-                   re.match(NOT_ESCAPED + '<<<', xl):
+                # NARROW
+                if re.match(NOT_ESCAPED + '>>>$', tt) or \
+                   re.match('^<<<(?:.|\n)*$', xl):
                     break
                 tt, xl = cls._cancel_fd(tt, xl, '>>', '<<')
-                # XWIDE x XWIDE
+                # XWIDE
                 tt, xl = cls._cancel_fd(tt, xl, '<<<', '>>>')
-                # WIDE x WIDE
-                if re.match(NOT_ESCAPED + '<<<', tt) or \
-                   re.match(NOT_ESCAPED + '>>>', xl):
+                # WIDE
+                if re.match(NOT_ESCAPED + '<<<$', tt) or \
+                   re.match('^>>>(?:.|\n)*$', xl):
                     break
                 tt, xl = cls._cancel_fd(tt, xl, '<<', '>>')
                 # UNDERLINE
