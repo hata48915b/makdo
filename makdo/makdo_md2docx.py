@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.07.02-14:00:51-JST>
+# Time-stamp:   <2023.08.26-11:43:34-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1191,6 +1191,9 @@ class MdFile:
         tmp_data = re.sub('^' + bom, '', tmp_data)  # unnecessary?
         tmp_data = re.sub('\r\n', '\n', tmp_data)  # unnecessary?
         tmp_data = re.sub('\r', '\n', tmp_data)  # unnecessary?
+        # ISOLATE CONFIGURATIONS
+        res = '^(<!--(?:.|\n)*?-->)\n*((?:.|\n)*)$'
+        tmp_data = re.sub(res, '\\1\n\n\\2', tmp_data)
         cleansed_data = tmp_data
         return cleansed_data
 
@@ -1689,6 +1692,14 @@ class Document:
         raw_paragraphs = []
         block = []
         for ml in md_lines:
+            # ISOLATE CONFIGURATIONS
+            if 'is_in_configurations' not in locals():
+                is_in_configurations = True
+            if ml.comment is None:
+                is_in_configurations = False
+            if is_in_configurations:
+                block.append(ml)
+                continue
             is_block_end = False
             if ml.raw_text == '':
                 is_block_end = True
