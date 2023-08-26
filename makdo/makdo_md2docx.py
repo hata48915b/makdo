@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.08.26-11:43:34-JST>
+# Time-stamp:   <2023.08.26-12:42:37-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -192,6 +192,11 @@ def get_arguments():
         default='',
         nargs='?',
         help='MS Wordファイル')
+    # PRINT RAW PARAGRAPHS
+    parser.add_argument(
+        '--print-raw-paragraphs',
+        action='store_true',
+        help=argparse.SUPPRESS)
     return parser.parse_args()
 
 
@@ -3922,13 +3927,22 @@ class Md2Docx:
         frm.md_lines = doc.md_lines
         frm.args = args
         frm.configure()
+        # GET RAW PARAGRAPHS
+        doc.raw_paragraphs = doc.get_raw_paragraphs(doc.md_lines)
+
+    # PRINT RAW PARAGRAPHS
+    def print_raw_paragraphs(self):
+        for i, rp in enumerate(self.doc.raw_paragraphs):
+            print('<!--##################[PARAGRAPH]##################-->')
+            for ml in rp.md_lines:
+                print(ml.raw_text)
+            print('')
 
     def save(self, inputed_docx_file):
         io = self.io
         doc = self.doc
         frm = self.frm
-        # MAKE DOCUMENT
-        doc.raw_paragraphs = doc.get_raw_paragraphs(doc.md_lines)
+        # GET PARAGRAPHS
         doc.paragraphs = doc.get_paragraphs(doc.raw_paragraphs)
         doc.paragraphs = doc.modify_paragraphs(doc.paragraphs)
         # WRITE DOCUMENT
@@ -4093,6 +4107,10 @@ class Md2Docx:
 def main():
     args = get_arguments()
     m2d = Md2Docx(args.md_file, args)
+    # PRINT RAW PARAGRAPHS
+    if args.print_raw_paragraphs:
+        m2d.print_raw_paragraphs()
+        sys.exit(0)
     m2d.save(args.docx_file)
     sys.exit(0)
 
