@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.08.25-23:18:21-JST>
+# Time-stamp:   <2023.08.26-12:22:16-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -3113,7 +3113,7 @@ class RawParagraph:
     @classmethod
     def _get_raw_text(cls, xml_lines):
         raw_text = cls._join_strings(xml_lines)
-        raw_text = cls._convert_ivs(raw_text)  # IVS (IDEOGRAPHIC VARIATION SEQUENCE)
+        raw_text = cls._convert_ivs(raw_text)  # IDEOGRAPHIC VARIATION SEQUENCE
         raw_text = cls._restore_charcters(raw_text)
         raw_text = cls._shrink_meaningless_font_decorations(raw_text)
         # self.raw_text = raw_text
