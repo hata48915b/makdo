@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.08.26-12:22:16-JST>
+# Time-stamp:   <2023.08.28-19:19:16-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2751,7 +2751,14 @@ class RawParagraph:
         horizontal_line_type = ''  # 'top'|'bottom'|'textbox'
         is_in_text = False
         fldchar = ''
+        is_changed = False
         for rxl in raw_xml_lines:
+            if re.match('^<w:rPrChange( .*[^/])?>$', rxl):
+                is_changed = True
+            if re.match('^</w:rPrChange( .*[^/])?>$', rxl):
+                is_changed = False
+            if is_changed:
+                continue
             # TRACK CHANGES
             if re.match('^<w:del( .*[^/])?>$', rxl):
                 track_changes = 'del'
@@ -2870,7 +2877,6 @@ class RawParagraph:
                         font_scale = 1.0
                     # WIDTH
                     if font_width != 1.0:
-
                         if font_width < 0.7:
                             text = '&gt;&gt;&gt;' + text + '&lt;&lt;&lt;'
                         elif font_width < 0.9:
