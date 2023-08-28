@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.08.28-19:19:16-JST>
+# Time-stamp:   <2023.08.28-20:31:43-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -3109,10 +3109,12 @@ class RawParagraph:
         res = '^(\\S*)\\s*\\\\\\\\\\\\\\* MERGEFORMAT$'
         if fldchar == 'begin' and re.match(res, text):
             text = re.sub(res, '\\1', text)
-        if fldchar == 'begin' and text == 'PAGE':
+        if fldchar == 'begin' and re.match('^PAGE$', text, re.I):
             text = 'n'
-        if fldchar == 'begin' and text == 'NUMPAGES':
+        elif fldchar == 'begin' and re.match('^NUMPAGES$', text, re.I):
             text = 'N'
+        else:
+            text = re.sub('(n|N)', '\\\\\\1', text)
         # RETURN
         return text
 
@@ -4264,6 +4266,7 @@ class Paragraph:
             tex += tmp + '\n'
             tmp = ''
         tex = re.sub('\n$', '', tex)
+        tex = re.sub('(  |\t|\u3000)(\n)', '\\1\\\\\\2', tex)
         return tex
 
     def get_document(self):
