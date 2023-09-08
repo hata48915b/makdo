@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.09.08-18:13:01-JST>
+# Time-stamp:   <2023.09.09-03:37:53-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -3180,16 +3180,16 @@ class RawParagraph:
                     break
                 tt, xl = cls._cancel_fd(tt, xl, '<<', '>>')
                 # UNDERLINE
-                res = '_([\\$=\\.#\\-~\\+]{,4})_'
+                res = '_(?:[\\$=\\.#\\-~\\+]{,4})_'
                 tt, xl = cls._cancel_fd(tt, xl, res, res, True)
                 # FONT COLOR
-                res = '\\^([0-9A-Za-z]{0,11})\\^'
+                res = '\\^(?:[0-9A-Za-z]{0,11})\\^'
                 tt, xl = cls._cancel_fd(tt, xl, res, res, True)
                 # HIGILIGHT COLOR
-                res = '_([0-9A-Za-z]{1,11})_'
+                res = '_(?:[0-9A-Za-z]{1,11})_'
                 tt, xl = cls._cancel_fd(tt, xl, res, res, True)
                 # FONT
-                res = '@([^@]{1,66})@'
+                res = '@(?:[^@]{1,66})@'
                 tt, xl = cls._cancel_fd(tt, xl, res, res, True)
                 # TRACK CHANGES (DELETED)
                 tt, xl = cls._cancel_fd(tt, xl, '--&gt;', '&lt;!--')
@@ -3203,14 +3203,14 @@ class RawParagraph:
 
     @staticmethod
     def _cancel_fd(text_l, text_r, end_l, beg_r, must_be_same=False):
-        res_l = NOT_ESCAPED + '(' + end_l + ')$'
-        res_r = '^(' + beg_r + ')((?:.|\n)*)$'
+        res_l = NOT_ESCAPED + '(' + end_l + ')(--&gt;|&lt;\\+&gt;)?$'
+        res_r = '^(&lt;!--|&lt;!\\+&gt;)?(' + beg_r + ')((?:.|\n)*)$'
         if re.match(res_l, text_l) and re.match(res_r, text_r):
             fd_l = re.sub(res_l, '\\2', text_l)
-            fd_r = re.sub(res_r, '\\1', text_r)
+            fd_r = re.sub(res_r, '\\2', text_r)
             if (not must_be_same) or (fd_l == fd_r):
-                text_l = re.sub(res_l, '\\1', text_l)
-                text_r = re.sub(res_r, '\\2', text_r)
+                text_l = re.sub(res_l, '\\1\\3', text_l)
+                text_r = re.sub(res_r, '\\1\\3', text_r)
         return text_l, text_r
 
     @staticmethod
