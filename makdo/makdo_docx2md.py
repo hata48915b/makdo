@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.08.28-20:31:43-JST>
+# Time-stamp:   <2023.09.08-18:13:01-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -4393,7 +4393,7 @@ class ParagraphChapter(Paragraph):
         if re.match('^(.|\n)*-->$', raw_text):
             tail_tc = '-->'
             raw_text = re.sub('-->$', '', raw_text)
-        elif re.match('^(.|\n)*<\\+>', raw_text):
+        elif re.match('^(.|\n)*<\\+>$', raw_text):
             tail_tc = '<+>'
             raw_text = re.sub('<\\+>$', '', raw_text)
         head_symbol = ''
@@ -4527,7 +4527,7 @@ class ParagraphSection(Paragraph):
         if re.match('^(.|\n)*-->$', raw_text):
             tail_tc = '-->'
             raw_text = re.sub('-->$', '', raw_text)
-        elif re.match('^(.|\n)*<\\+>', raw_text):
+        elif re.match('^(.|\n)*<\\+>$', raw_text):
             tail_tc = '<+>'
             raw_text = re.sub('<\\+>$', '', raw_text)
         head_symbol = ''
