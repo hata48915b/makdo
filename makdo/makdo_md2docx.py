@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.08.26-12:42:37-JST>
+# Time-stamp:   <2023.09.08-18:46:24-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2727,7 +2727,6 @@ class Paragraph:
                 ln = re.sub(res, '\\1\n', ln)
             text += ln + '\n'
         text = re.sub('\n$', '', text, 1)
-        text = Paragraph._remove_relax_symbol(text)
         res_ivs = '^((?:.|\n)*?)([^0-9\\\\])([0-9]+);$'
         tex = ''
         for c in text + '\0':
@@ -2936,13 +2935,6 @@ class Paragraph:
         if tex != '':
             tex = self._write_string(tex, ms_par)
 
-    @staticmethod
-    def _remove_relax_symbol(text):
-        res = NOT_ESCAPED + RELAX_SYMBOL
-        while re.match(res, text):
-            text = re.sub(res, '\\1', text)
-        return text
-
     @classmethod
     def _write_page_number(cls, char, ms_par):
         # BEGIN
@@ -3015,6 +3007,7 @@ class Paragraph:
         string = re.sub('\\\\', '-\\\\', string)
         string = re.sub('-\\\\-\\\\', '-\\\\\\\\', string)
         string = re.sub('-\\\\', '', string)
+        string = Paragraph._remove_relax_symbol(string)
         m_size = Paragraph.font_size
         xs_size = m_size * 0.6
         s_size = m_size * 0.8
@@ -3055,6 +3048,13 @@ class Paragraph:
         if cls.highlight_color is not None:
             ms_run.font.highlight_color = cls.highlight_color
         return ''
+
+    @staticmethod
+    def _remove_relax_symbol(text):
+        res = NOT_ESCAPED + RELAX_SYMBOL
+        while re.match(res, text):
+            text = re.sub(res, '\\1', text)
+        return text
 
     def _write_image(self, alte, path, ms_par):
         m_size = Paragraph.font_size
