@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.09.09-03:37:53-JST>
+# Time-stamp:   <2023.09.09-08:02:44-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -3121,6 +3121,7 @@ class RawParagraph:
     @classmethod
     def _get_raw_text(cls, xml_lines):
         raw_text = cls._join_strings(xml_lines)
+        raw_text = cls._escape_symbols(raw_text)
         raw_text = cls._convert_ivs(raw_text)  # IDEOGRAPHIC VARIATION SEQUENCE
         raw_text = cls._restore_charcters(raw_text)
         raw_text = cls._shrink_meaningless_font_decorations(raw_text)
@@ -3214,7 +3215,7 @@ class RawParagraph:
         return text_l, text_r
 
     @staticmethod
-    def _espace_symbols(raw_text):
+    def _escape_symbols(raw_text):
         # SPACE
         raw_text = re.sub('(\n)([ \t\u3000]+)', '\\1\\\\\\2', raw_text)
         raw_text = re.sub('([ \t\u3000]+)(\n)', '\\1\\\\\\2', raw_text)
