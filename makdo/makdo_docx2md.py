@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.09.10-13:02:09-JST>
+# Time-stamp:   <2023.09.11-04:19:00-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -3159,8 +3159,8 @@ class RawParagraph:
                ['\\^(?:[0-9A-Za-z]{0,11})\\^', ''],
                ['_(?:[0-9A-Za-z]{1,11})_', ''],
                ['@(?:[^@]{1,66})@', ''],
-               ['<-', '->'],
-               ['<+', '+>']]
+               ['<\\-', '\\->'],
+               ['<\\+', '\\+>']]
         for ppf in pos_and_pre_fds:
             for i in range(len(text_data) - 1):
                 j = i + 1
@@ -4107,6 +4107,9 @@ class Paragraph:
     @staticmethod
     def _concatenate_phrases(phrases):
         def _extend_tex(extension):
+            # JUST TO MAKE SURE
+            if extension == '':
+                return tex
             if is_in_deleted:
                 return tex + '->' + extension + '<-\n'
             if is_in_inserted:
