@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.09.11-04:19:00-JST>
+# Time-stamp:   <2023.09.11-04:53:59-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2853,24 +2853,6 @@ class RawParagraph:
                 continue
             if re.match('^</w:r>$', xl):
                 if sd.string != '':
-                    # ITALIC
-                    if is_italic:
-                        sd.append('*', '*')
-                        is_italic = False
-                    # BOLD
-                    if is_bold:
-                        sd.append('**', '**')
-                        is_bold = False
-                    # FONT COLOR
-                    if font_color != '':
-                        if font_color == 'FFFFFF':
-                            fc = ''
-                        elif font_color in FONT_COLOR:
-                            fc = FONT_COLOR[font_color]
-                        else:
-                            fc = font_color
-                        sd.append('^' + fc + '^', '^' + fc + '^')
-                        font_color = ''
                     # SCALE
                     if font_scale != 1.0:
                         if font_scale < 0.7:
@@ -2904,11 +2886,6 @@ class RawParagraph:
                         sd.append('_' + UNDERLINE[underline] + '_',
                                   '_' + UNDERLINE[underline] + '_')
                         underline = ''
-                    # HIGILIGHT COLOR
-                    if highlight_color != '':
-                        sd.append('_' + highlight_color + '_',
-                                  '_' + highlight_color + '_')
-                        highlight_color = ''
                     # PREFORMATTED
                     if is_gothic:
                         sd.append('`', '`')
@@ -2917,10 +2894,33 @@ class RawParagraph:
                     if tmp_font != '':
                         sd.append('@' + tmp_font + '@', '@' + tmp_font + '@')
                         tmp_font = ''
-                    # TRACK CHANGES (DELETED)
+                    # HIGILIGHT COLOR
+                    if highlight_color != '':
+                        sd.append('_' + highlight_color + '_',
+                                  '_' + highlight_color + '_')
+                        highlight_color = ''
+                    # FONT COLOR (LATTER)
+                    if font_color != '':
+                        if font_color == 'FFFFFF':
+                            fc = ''
+                        elif font_color in FONT_COLOR:
+                            fc = FONT_COLOR[font_color]
+                        else:
+                            fc = font_color
+                        sd.append('^' + fc + '^', '^' + fc + '^')
+                        font_color = ''
+                    # ITALIC (LATTER)
+                    if is_italic:
+                        sd.append('*', '*')
+                        is_italic = False
+                    # BOLD (LATTER)
+                    if is_bold:
+                        sd.append('**', '**')
+                        is_bold = False
+                    # TRACK CHANGES (DELETED) (LAST)
                     if track_changes == 'del':
                         sd.append('->', '<-')
-                    # TRACK CHANGES (INSERTED)
+                    # TRACK CHANGES (INSERTED) (LAST)
                     elif track_changes == 'ins':
                         sd.append('+>', '<+')
                     text_data.append(sd)
