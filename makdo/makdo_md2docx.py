@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.09.08-18:46:24-JST>
+# Time-stamp:   <2023.09.10-12:58:55-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -216,7 +216,7 @@ HELP_EPILOG = '''Markdownの記法:
     [<=(数字) ]で段落の左の余白を文字数だけ増減します（独自）
     [>=(数字) ]で段落の右の余白を文字数だけ増減します（独自）
   行中指示
-    [;;]から行末まではコメントアウトされます（独自）
+    [->]から行末まではコメントアウトされます（独自）
     [<>]は何もせず表示もされません（独自）
     [<br>]で改行されます
     [<pgbr>]で改行されます（独自）
@@ -328,10 +328,6 @@ FONT_DECORATORS_VISIBLE = [
 FONT_DECORATORS = FONT_DECORATORS_INVISIBLE + FONT_DECORATORS_VISIBLE
 
 RELAX_SYMBOL = '<>'
-
-ORIGINAL_COMMENT_SYMBOL = ';;'
-
-COMMENT_SEPARATE_SYMBOL = ' / '
 
 HORIZONTAL_BAR = '[ー−—－―‐]'
 
@@ -1323,7 +1319,7 @@ class Form:
     def _configure_by_md_file(md_lines):
         for ml in md_lines:
             com = ml.comment
-            if com is None:
+            if ml.text != '':
                 break
             if re.match('^\\s*#', com):
                 continue
@@ -1700,7 +1696,7 @@ class Document:
             # ISOLATE CONFIGURATIONS
             if 'is_in_configurations' not in locals():
                 is_in_configurations = True
-            if ml.comment is None:
+            if ml.text != '':
                 is_in_configurations = False
             if is_in_configurations:
                 block.append(ml)
@@ -3815,28 +3811,33 @@ class MdLine:
     def __init__(self, line_number, raw_text):
         self.line_number = line_number
         self.raw_text = raw_text
-        self.spaced_text, self.comment = self.separate_comment()
+        self.spaced_text, self.comment, self.deleted \
+            = self.separate_comment_and_deleted()
         self.beg_space, self.text, self.end_space = self.separate_spaces()
         self.warning_messages = []
 
-    def separate_comment(self):
-        ori_sym = ORIGINAL_COMMENT_SYMBOL
-        com_sep = COMMENT_SEPARATE_SYMBOL
+    def separate_comment_and_deleted(self):
         rt = self.raw_text
+        del_beg_sym = '\\->'
+        del_end_sym = '<\\-'
+        ins_beg_sym = '\\+>'
+        ins_end_sym = '<\\+'
+        com_sep = ' / '
+        del_sep = ' / '
+        is_in_deleted = False
+        is_in_inserted = False
         spaced_text = ''
-        comment = None
-        if MdLine.is_in_comment:
-            comment = ''
+        comment = ''
+        deleted = ''
         tmp = ''
         for i, c in enumerate(rt):
             tmp += c
+            # COMMENT
             if not MdLine.is_in_comment:
                 if re.match(NOT_ESCAPED + '<!--$', tmp):
                     tmp = re.sub('<!--$', '', tmp)
                     spaced_text += tmp
                     tmp = ''
-                    if comment is None:
-                        comment = ''
                     MdLine.is_in_comment = True
             else:
                 if re.match(NOT_ESCAPED + '-->$', tmp):
@@ -3844,34 +3845,47 @@ class MdLine:
                     comment += tmp + com_sep
                     tmp = ''
                     MdLine.is_in_comment = False
-            if not MdLine.is_in_comment:
-                if re.match(NOT_ESCAPED + ori_sym + '$', tmp):
-                    tmp = re.sub(ori_sym + '$', '', tmp)
+            if MdLine.is_in_comment:
+                continue
+            # DELETED
+            if not is_in_deleted:
+                if re.match(NOT_ESCAPED + del_beg_sym + '$', tmp):
+                    tmp = re.sub(del_beg_sym + '$', '', tmp)
                     spaced_text += tmp
                     tmp = ''
-                    if comment is None:
-                        comment = ''
-                    comment += rt[i + 1:] + com_sep
-                    break
+                    is_in_deleted = True
+            else:
+                if re.match(NOT_ESCAPED + del_end_sym + '$', tmp):
+                    tmp = re.sub(del_end_sym + '$', '', tmp)
+                    deleted += tmp + del_sep
+                    tmp = ''
+                    is_in_deleted = False
+            if is_in_deleted:
+                continue
+            # INSERTED
+            if not is_in_inserted:
+                if re.match(NOT_ESCAPED + ins_beg_sym + '$', tmp):
+                    tmp = re.sub(ins_beg_sym + '$', '', tmp)
+                    is_in_inserted = True
+            else:
+                if re.match(NOT_ESCAPED + ins_end_sym + '$', tmp):
+                    tmp = re.sub(ins_end_sym + '$', '', tmp)
+                    is_in_inserted = False
         else:
             if tmp != '':
-                if not MdLine.is_in_comment:
-                    spaced_text += tmp
-                    tmp = ''
-                else:
-                    if comment is None:
-                        comment = ''
+                if MdLine.is_in_comment:
                     comment += tmp + com_sep
-                    tmp = ''
-        if comment is not None:
-            comment = re.sub(com_sep + '$', '', comment)
-        # TRACK CHANGES
-        res = NOT_ESCAPED + '<!?\\+>'
-        while re.match(res, spaced_text):
-            spaced_text = re.sub(res, '\\1', spaced_text)
+                elif is_in_deleted:
+                    deleted += tmp + del_sep
+                else:
+                    spaced_text += tmp
+                tmp = ''
+        comment = re.sub(com_sep + '$', '', comment)
+        deleted = re.sub(del_sep + '$', '', deleted)
         # self.spaced_text = spaced_text
         # self.comment = comment
-        return spaced_text, comment
+        # self.deleted = deleted
+        return spaced_text, comment, deleted
 
     def separate_spaces(self):
         spaced_text = self.spaced_text

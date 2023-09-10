@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.09.09-08:02:44-JST>
+# Time-stamp:   <2023.09.10-13:02:09-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -965,12 +965,12 @@ class XML:
     def get_body(tag_name, xml_lines):
         xml_body = []
         is_in_body = False
-        for rxl in xml_lines:
-            if re.match('^</?' + tag_name + '( .*)?>$', rxl):
+        for xl in xml_lines:
+            if re.match('^</?' + tag_name + '( .*)?>$', xl):
                 is_in_body = not is_in_body
                 continue
             if is_in_body:
-                xml_body.append(rxl)
+                xml_body.append(xl)
         return xml_body
 
     @staticmethod
@@ -1361,8 +1361,8 @@ class DocxFile:
         tmp = re.sub('<', '\n<', tmp)
         tmp = re.sub('>', '>\n', tmp)
         tmp = re.sub('\n+', '\n', tmp)
-        raw_xml_lines = tmp.split('\n')
-        return raw_xml_lines
+        xml_lines = tmp.split('\n')
+        return xml_lines
 
 
 class MdFile:
@@ -1500,15 +1500,15 @@ class Form:
         bottom_x = -1.0
         left_x = -1.0
         right_x = -1.0
-        for rxl in xml_lines:
-            width_x = XML.get_value('w:pgSz', 'w:w', width_x, rxl)
-            height_x = XML.get_value('w:pgSz', 'w:h', height_x, rxl)
-            top_x = XML.get_value('w:pgMar', 'w:top', top_x, rxl)
-            bottom_x = XML.get_value('w:pgMar', 'w:bottom', bottom_x, rxl)
-            left_x = XML.get_value('w:pgMar', 'w:left', left_x, rxl)
-            right_x = XML.get_value('w:pgMar', 'w:right', right_x, rxl)
+        for xl in xml_lines:
+            width_x = XML.get_value('w:pgSz', 'w:w', width_x, xl)
+            height_x = XML.get_value('w:pgSz', 'w:h', height_x, xl)
+            top_x = XML.get_value('w:pgMar', 'w:top', top_x, xl)
+            bottom_x = XML.get_value('w:pgMar', 'w:bottom', bottom_x, xl)
+            left_x = XML.get_value('w:pgMar', 'w:left', left_x, xl)
+            right_x = XML.get_value('w:pgMar', 'w:right', right_x, xl)
             # LINE NUMBER
-            if re.match('^<w:lnNumType( .*)?>$', rxl):
+            if re.match('^<w:lnNumType( .*)?>$', xl):
                 Form.line_number = True
         # PAPER SIZE
         width = width_x / 567
@@ -1558,30 +1558,30 @@ class Form:
                 Form.document_style = 'j'
 
     def _configure_by_core_xml(self, xml_lines):
-        for i, rxl in enumerate(xml_lines):
+        for i, xl in enumerate(xml_lines):
             # DOCUMUNT TITLE
             resb = '^<dc:title>$'
             rese = '^</dc:title>$'
             if i > 0 and re.match(resb, xml_lines[i - 1], re.I):
-                if not re.match(rese, rxl, re.I):
-                    Form.document_title = rxl
+                if not re.match(rese, xl, re.I):
+                    Form.document_title = xl
             # DOCUMENT STYLE
             resb = '^<cp:category>$'
             rese = '^</cp:category>$'
             if i > 0 and re.match(resb, xml_lines[i - 1], re.I):
-                if not re.match(rese, rxl, re.I):
-                    if re.match('^.*（普通）.*$', rxl):
+                if not re.match(rese, xl, re.I):
+                    if re.match('^.*（普通）.*$', xl):
                         Form.document_style = 'n'
-                    elif re.match('^.*（契約）.*$', rxl):
+                    elif re.match('^.*（契約）.*$', xl):
                         Form.document_style = 'k'
-                    elif re.match('^.*（条文）.*$', rxl):
+                    elif re.match('^.*（条文）.*$', xl):
                         Form.document_style = 'j'
             # ORIGINAL FILE
             resb = '^<dcterms:modified( .*)?>$'
             rese = '^</dcterms:modified>$'
             if i > 0 and re.match(resb, xml_lines[i - 1], re.I):
-                if not re.match(rese, rxl, re.I):
-                    dt = datetime.datetime.strptime(rxl, '%Y-%m-%dT%H:%M:%S%z')
+                if not re.match(rese, xl, re.I):
+                    dt = datetime.datetime.strptime(xl, '%Y-%m-%dT%H:%M:%S%z')
                     if dt.tzname() == 'UTC':
                         dt += datetime.timedelta(hours=9)
                         jst = datetime.timezone(datetime.timedelta(hours=9))
@@ -1681,8 +1681,9 @@ class Form:
     def _configure_by_headerX_xml(xml_lines):
         # HEADER STRING
         Paragraph.font_size = Form.font_size
-        xl, images = RawParagraph._get_xml_lines_and_images('', xml_lines)
-        raw_text = RawParagraph._get_raw_text(xl)
+        text_data, images \
+            = RawParagraph._get_text_data_and_images('', xml_lines)
+        raw_text = RawParagraph._get_raw_text(text_data)
         alignment = RawParagraph._get_alignment(xml_lines)
         if alignment == 'center':
             raw_text = ': ' + raw_text + ' :'
@@ -1695,8 +1696,9 @@ class Form:
     def _configure_by_footerX_xml(xml_lines):
         # PAGE NUMBER
         Paragraph.font_size = Form.font_size
-        xl, images = RawParagraph._get_xml_lines_and_images('', xml_lines)
-        raw_text = RawParagraph._get_raw_text(xl)
+        text_data, images \
+            = RawParagraph._get_text_data_and_images('', xml_lines)
+        raw_text = RawParagraph._get_raw_text(text_data)
         alignment = RawParagraph._get_alignment(xml_lines)
         if alignment == 'center':
             raw_text = ': ' + raw_text + ' :'
@@ -2164,10 +2166,10 @@ class Form:
     def get_rels(xml_lines):
         rels = {}
         res = '^<Relationship Id=[\'"](.*)[\'"] .* Target=[\'"](.*)[\'"]/>$'
-        for rxl in xml_lines:
-            if re.match(res, rxl):
-                rel_id = re.sub(res, '\\1', rxl)
-                rel_tg = re.sub(res, '\\2', rxl)
+        for xl in xml_lines:
+            if re.match(res, xl):
+                rel_id = re.sub(res, '\\1', xl)
+                rel_tg = re.sub(res, '\\2', xl)
                 rels[rel_id] = rel_tg
         # Form.rels = rels
         return rels
@@ -2576,9 +2578,9 @@ class Style:
 
     """A class to handle style"""
 
-    def __init__(self, number, raw_xml_lines):
+    def __init__(self, number, xml_lines):
         self.number = number
-        self.raw_xml_lines = raw_xml_lines
+        self.xml_lines = xml_lines
         self.type = None
         self.styleid = None
         self.name = None
@@ -2611,29 +2613,29 @@ class Style:
         alig = None
         rl = {'sb': None, 'sa': None, 'ls': None,
               'fi': None, 'hi': None, 'li': None, 'ri': None}
-        for rxl in self.raw_xml_lines:
-            type = XML.get_value('w:style', 'w:type', type, rxl)
-            stid = XML.get_value('w:style', 'w:styleId', stid, rxl)
-            name = XML.get_value('w:name', 'w:val', name, rxl)
-            font = XML.get_value('w:rFonts', 'w:ascii', font, rxl)
-            font = XML.get_value('w:rFonts', 'w:eastAsia', font, rxl)
-            # font = XML.get_value('w:rFonts', '*', font, rxl)
-            f_2s = XML.get_value('w:sz', 'w:val', f_2s, rxl)
-            f_it = XML.is_this_tag('w:i', f_it, rxl)
-            f_bd = XML.is_this_tag('w:b', f_bd, rxl)
-            f_sk = XML.is_this_tag('w:strike', f_sk, rxl)
-            f_ul = XML.get_value('w:u', 'w:val', f_ul, rxl)
-            f_cl = XML.get_value('w:color', 'w:val', f_cl, rxl)
-            f_hc = XML.get_value('w:highlight', 'w:val', f_hc, rxl)
-            alig = XML.get_value('w:jc', 'w:val', alig, rxl)
-            rl['sb'] = XML.get_value('w:spacing', 'w:before', rl['sb'], rxl)
-            rl['sa'] = XML.get_value('w:spacing', 'w:after', rl['sa'], rxl)
-            rl['ls'] = XML.get_value('w:spacing', 'w:line', rl['ls'], rxl)
-            rl['ls'] = XML.get_value('w:spacing', 'w:line', rl['ls'], rxl)
-            rl['fi'] = XML.get_value('w:ind', 'w:firstLine', rl['fi'], rxl)
-            rl['hi'] = XML.get_value('w:ind', 'w:hanging', rl['hi'], rxl)
-            rl['li'] = XML.get_value('w:ind', 'w:left', rl['li'], rxl)
-            rl['ri'] = XML.get_value('w:ind', 'w:right', rl['ri'], rxl)
+        for xl in self.xml_lines:
+            type = XML.get_value('w:style', 'w:type', type, xl)
+            stid = XML.get_value('w:style', 'w:styleId', stid, xl)
+            name = XML.get_value('w:name', 'w:val', name, xl)
+            font = XML.get_value('w:rFonts', 'w:ascii', font, xl)
+            font = XML.get_value('w:rFonts', 'w:eastAsia', font, xl)
+            # font = XML.get_value('w:rFonts', '*', font, xl)
+            f_2s = XML.get_value('w:sz', 'w:val', f_2s, xl)
+            f_it = XML.is_this_tag('w:i', f_it, xl)
+            f_bd = XML.is_this_tag('w:b', f_bd, xl)
+            f_sk = XML.is_this_tag('w:strike', f_sk, xl)
+            f_ul = XML.get_value('w:u', 'w:val', f_ul, xl)
+            f_cl = XML.get_value('w:color', 'w:val', f_cl, xl)
+            f_hc = XML.get_value('w:highlight', 'w:val', f_hc, xl)
+            alig = XML.get_value('w:jc', 'w:val', alig, xl)
+            rl['sb'] = XML.get_value('w:spacing', 'w:before', rl['sb'], xl)
+            rl['sa'] = XML.get_value('w:spacing', 'w:after', rl['sa'], xl)
+            rl['ls'] = XML.get_value('w:spacing', 'w:line', rl['ls'], xl)
+            rl['ls'] = XML.get_value('w:spacing', 'w:line', rl['ls'], xl)
+            rl['fi'] = XML.get_value('w:ind', 'w:firstLine', rl['fi'], xl)
+            rl['hi'] = XML.get_value('w:ind', 'w:hanging', rl['hi'], xl)
+            rl['li'] = XML.get_value('w:ind', 'w:left', rl['li'], xl)
+            rl['ri'] = XML.get_value('w:ind', 'w:right', rl['ri'], xl)
         self.type = type
         self.styleid = stid
         self.name = name
@@ -2671,13 +2673,14 @@ class RawParagraph:
 
     raw_paragraph_number = 0
 
-    def __init__(self, raw_xml_lines):
+    def __init__(self, xml_lines):
         # DECLARATION
         self.raw_paragraph_number = -1
         self.has_removed = False
-        self.raw_xml_lines = []
-        self.raw_class = ''
         self.xml_lines = []
+        self.raw_class = ''
+        self.horizontal_line = ''  # 'top'|'bottom'|'textbox'
+        self.text_data = []
         self.images = {}
         self.raw_text = ''
         self.head_space = ''
@@ -2691,18 +2694,19 @@ class RawParagraph:
         # SUBSTITUTION
         RawParagraph.raw_paragraph_number += 1
         self.raw_paragraph_number = RawParagraph.raw_paragraph_number
-        self.raw_xml_lines = raw_xml_lines
-        self.raw_class = self._get_raw_class(self.raw_xml_lines)
-        self.xml_lines, self.images \
-            = self._get_xml_lines_and_images(self.raw_class,
-                                             self.raw_xml_lines)
-        self.raw_text = self._get_raw_text(self.xml_lines)
+        self.xml_lines = xml_lines
+        self.raw_class = self._get_raw_class(self.xml_lines)
+        self.horizontal_line \
+            = self._get_horizontal_line(self.raw_class, self.xml_lines)
+        self.text_data, self.images \
+            = self._get_text_data_and_images(self.raw_class, self.xml_lines)
+        self.raw_text = self._get_raw_text(self.text_data)
         self.head_space, self.raw_text \
             = self._separate_head_space(self.raw_text,
-                                        '<!--', '-->', '<!\\+>', '<\\+>')
+                                        '->', '<-', '\\+>', '<\\+')
         rts, rrt \
             = self._separate_head_space(self.raw_text[::-1],
-                                        '>--', '--!<', '>\\+<', '>\\+!<')
+                                        '>-', '-<', '>\\+', '\\+<')
         self.raw_text = rrt[::-1]
         self.tail_space = rts[::-1]
         self.raw_text_del = self._get_raw_text_del(self.raw_text)
@@ -2713,27 +2717,43 @@ class RawParagraph:
             self.raw_text_iod = self.raw_text_del
         if self.raw_text_del != '' and self.raw_text_ins == '':
             self.has_removed = True
-        self.style = self._get_style(raw_xml_lines)
-        self.alignment = self._get_alignment(self.raw_xml_lines)
+        self.style = self._get_style(xml_lines)
+        self.alignment = self._get_alignment(self.xml_lines)
         self.paragraph_class = self._get_paragraph_class()
 
     @staticmethod
-    def _get_raw_class(raw_xml_lines):
+    def _get_raw_class(xml_lines):
         res = '^<(\\S+)( .*)?>$'
-        rxlz = raw_xml_lines[0]
-        if re.match(res, rxlz):
-            return re.sub(res, '\\1', rxlz)
+        xlz = xml_lines[0]
+        if re.match(res, xlz):
+            return re.sub(res, '\\1', xlz)
         else:
             return None
 
+    @staticmethod
+    def _get_horizontal_line(raw_class, xml_lines):
+        for xl in xml_lines:
+            # HORIZONTAL LINE
+            if raw_class != 'w:tbl' and re.match('^<w:top( .*)?>$', xl):
+                # HORIZONTAL LINE (TOPLINE)
+                return 'top'
+            if raw_class != 'w:tbl' and re.match('^<w:bottom( .*)?>$', xl):
+                # HORIZONTAL LINE (BOTTOMLINE)
+                return 'bottom'
+            res = '^<v:rect( .*)? style="width:0;height:1.5pt"( .*)?>$'
+            if re.match(res, xl):
+                # HORIZONTAL LINE (TEXTBOX)
+                return 'textbox'
+        return ''
+
     @classmethod
-    def _get_xml_lines_and_images(cls, raw_class, raw_xml_lines):
+    def _get_text_data_and_images(cls, raw_class, xml_lines):
         media_dir = IO.media_dir
         img_rels = Form.rels
         font_size = Paragraph.font_size
         m_size = font_size
         s_size = font_size * 0.8
-        xml_lines = []
+        text_data = []
         images = {}
         img_file_name = ''
         img_size = ''
@@ -2748,62 +2768,63 @@ class RawParagraph:
         highlight_color = ''
         tmp_font = ''
         track_changes = ''  # ''|'del'|'ins'
-        horizontal_line_type = ''  # 'top'|'bottom'|'textbox'
         is_in_text = False
         fldchar = ''
         is_changed = False
-        for rxl in raw_xml_lines:
-            if re.match('^<w:rPrChange( .*[^/])?>$', rxl):
+        for xl in xml_lines:
+            if xl == '':
+                continue
+            if re.match('^<w:rPrChange( .*[^/])?>$', xl):
                 is_changed = True
-            if re.match('^</w:rPrChange( .*[^/])?>$', rxl):
+            if re.match('^</w:rPrChange( .*[^/])?>$', xl):
                 is_changed = False
             if is_changed:
                 continue
             # TRACK CHANGES
-            if re.match('^<w:del( .*[^/])?>$', rxl):
+            if re.match('^<w:del( .*[^/])?>$', xl):
                 track_changes = 'del'
                 continue
-            elif re.match('^</w:del( .*[^/])?>$', rxl):
+            elif re.match('^</w:del( .*[^/])?>$', xl):
                 track_changes = ''
                 continue
-            elif re.match('^<w:ins( .*[^/])?>$', rxl):
+            elif re.match('^<w:ins( .*[^/])?>$', xl):
                 track_changes = 'ins'
                 continue
-            elif re.match('^</w:ins( .*[^/])?>$', rxl):
+            elif re.match('^</w:ins( .*[^/])?>$', xl):
                 track_changes = ''
                 continue
             # FOR PAGE NUMBER
-            if re.match('^<w:fldChar w:fldCharType="begin"/>$', rxl):
+            if re.match('^<w:fldChar w:fldCharType="begin"/>$', xl):
                 fldchar = 'begin'
-            elif re.match('^<w:fldChar w:fldCharType="separate"/>$', rxl):
+            elif re.match('^<w:fldChar w:fldCharType="separate"/>$', xl):
                 fldchar = 'separate'
-            elif re.match('^<w:fldChar w:fldCharType="end"/>$', rxl):
+            elif re.match('^<w:fldChar w:fldCharType="end"/>$', xl):
                 fldchar = 'end'
             if fldchar == 'separate':
                 continue
             # IMAGE
             should_continue = False
-            if re.match(RES_XML_IMG_MS, rxl):
+            if re.match(RES_XML_IMG_MS, xl):
                 # IMAGE MS WORD
                 img_rel_name, img_file_name \
-                    = cls._get_img_file_names_ms(rxl, img_rels)
+                    = cls._get_img_file_names_ms(xl, img_rels)
                 Document.images[img_rel_name] = img_file_name
                 images[img_rel_name] = img_file_name
                 should_continue = True
-            elif re.match(RES_XML_IMG_PY_ID, rxl):
+            elif re.match(RES_XML_IMG_PY_ID, xl):
                 # IMAGE PYTHON-DOCX ID
                 img_rel_name, img_file_name \
-                    = cls._get_img_file_names_py(rxl, img_rels, img_py_name)
+                    = cls._get_img_file_names_py(xl, img_rels, img_py_name)
                 Document.images[img_rel_name] = img_file_name
                 images[img_rel_name] = img_file_name
                 should_continue = True
-            elif re.match(RES_XML_IMG_PY_NAME, rxl):
+            elif re.match(RES_XML_IMG_PY_NAME, xl):
                 # IMAGE PYTHON-DOCX NAME
-                img_py_name = re.sub(RES_XML_IMG_PY_NAME, '\\2', rxl)
+                img_py_name = re.sub(RES_XML_IMG_PY_NAME, '\\2', xl)
                 should_continue = True
-            elif re.match(RES_XML_IMG_SIZE, rxl):
+            elif re.match(RES_XML_IMG_SIZE, xl):
                 # IMAGE SIZE
-                img_size = cls._get_img_size(rxl)
+                img_size = cls._get_img_size(xl)
                 should_continue = True
             if img_file_name != '' and img_size != '':
                 img_md_text = '!' \
@@ -2815,44 +2836,30 @@ class RawParagraph:
                                            font_size)
                 imt = '<>' + imt  # '<>' is to avoid being escaped
                 if track_changes == 'del':
-                    xml_lines.append('&lt;!--' + imt + '--&gt;')
+                    sd_img = cls.string_data(['->'], imt, ['<-'])
                 elif track_changes == 'ins':
-                    xml_lines.append('&lt;!+&gt;' + imt + '&lt;+&gt;')
+                    sd_img = cls.string_data(['+>'], imt, ['<+'])
                 else:
-                    xml_lines.append(imt)
+                    sd_img = cls.string_data([], imt, [])
+                text_data.append(sd_img)
                 img_file_name = ''
                 img_size = ''
             if should_continue:
                 continue
-            # HORIZONTAL LINE
-            if raw_class != 'w:tbl' and re.match('^<w:top( .*)?>$', rxl):
-                # HORIZONTAL LINE (TOPLINE)
-                horizontal_line_type = 'top'
-                continue
-            if raw_class != 'w:tbl' and re.match('^<w:bottom( .*)?>$', rxl):
-                # HORIZONTAL LINE (BOTTOMLINE)
-                horizontal_line_type = 'bottom'
-                continue
-            res = '^<v:rect( .*)? style="width:0;height:1.5pt"( .*)?>$'
-            if re.match(res, rxl):
-                # HORIZONTAL LINE (TEXTBOX)
-                horizontal_line_type = 'textbox'
-                continue
             # RUN
-            if re.match('^<w:r( .*)?>$', rxl):
-                text = ''
-                xml_lines.append(rxl)
+            if re.match('^<w:r( .*)?>$', xl):
+                sd = cls.string_data([], '', [])
                 is_in_text = True
                 continue
-            if re.match('^</w:r>$', rxl):
-                if text != '':
+            if re.match('^</w:r>$', xl):
+                if sd.string != '':
                     # ITALIC
                     if is_italic:
-                        text = '*' + text + '*'
+                        sd.append('*', '*')
                         is_italic = False
                     # BOLD
                     if is_bold:
-                        text = '**' + text + '**'
+                        sd.append('**', '**')
                         is_bold = False
                     # FONT COLOR
                     if font_color != '':
@@ -2862,70 +2869,64 @@ class RawParagraph:
                             fc = FONT_COLOR[font_color]
                         else:
                             fc = font_color
-                        text = '^' + fc + '^' + text + '^' + fc + '^'
+                        sd.append('^' + fc + '^', '^' + fc + '^')
                         font_color = ''
                     # SCALE
                     if font_scale != 1.0:
                         if font_scale < 0.7:
-                            text = '---' + text + '---'
+                            sd.append('---', '---')
                         elif font_scale < 0.9:
-                            text = '--' + text + '--'
+                            sd.append('--', '--')
                         elif font_scale > 1.3:
-                            text = '+++' + text + '+++'
+                            sd.append('+++', '+++')
                         elif font_scale > 1.1:
-                            text = '++' + text + '++'
+                            sd.append('++', '++')
                         font_scale = 1.0
                     # WIDTH
                     if font_width != 1.0:
                         if font_width < 0.7:
-                            text = '&gt;&gt;&gt;' + text + '&lt;&lt;&lt;'
+                            sd.append('>>>', '<<<')
                         elif font_width < 0.9:
-                            text = '&gt;&gt;' + text + '&lt;&lt;'
+                            sd.append('>>', '<<')
                         elif font_width > 1.3:
-                            text = '&lt;&lt;&lt;' + text + '&gt;&gt;&gt;'
+                            sd.append('<<<', '>>>')
                         elif font_width > 1.1:
-                            if re.match('^=' + RES_NUMBER, text):
-                                text = '\\' + text
-                            text = '&lt;&lt;' + text + '&gt;&gt;'
+                            if re.match('^=' + RES_NUMBER, sd.string):
+                                sd.string = '\\' + sd.string
+                            sd.append('<<', '>>')
                         font_width = 1.0
                     # STRIKETHROUGH
                     if has_strike:
-                        text = '~~' + text + '~~'
+                        sd.append('~~', '~~')
                         has_strike = False
                     # UNDERLINE
                     if underline != '':
-                        ul = UNDERLINE[underline]
-                        text = '_' + ul + '_' + text + '_' + ul + '_'
+                        sd.append('_' + UNDERLINE[underline] + '_',
+                                  '_' + UNDERLINE[underline] + '_')
                         underline = ''
                     # HIGILIGHT COLOR
                     if highlight_color != '':
-                        hc = highlight_color
-                        text = '_' + hc + '_' + text + '_' + hc + '_'
+                        sd.append('_' + highlight_color + '_',
+                                  '_' + highlight_color + '_')
                         highlight_color = ''
                     # PREFORMATTED
                     if is_gothic:
-                        text = '`' + text + '`'
+                        sd.append('`', '`')
                         is_gothic = False
                     # FONT
                     if tmp_font != '':
-                        tf = tmp_font
-                        text = '@' + tf + '@' + text + '@' + tf + '@'
+                        sd.append('@' + tmp_font + '@', '@' + tmp_font + '@')
                         tmp_font = ''
                     # TRACK CHANGES (DELETED)
                     if track_changes == 'del':
-                        text = '&lt;!--' + text + '--&gt;'
+                        sd.append('->', '<-')
                     # TRACK CHANGES (INSERTED)
                     elif track_changes == 'ins':
-                        text = '&lt;!+&gt;' + text + '&lt;+&gt;'
-                    xml_lines.append(text)
-                    text = ''
-                xml_lines.append(rxl)
+                        sd.append('+>', '<+')
+                    text_data.append(sd)
                 is_in_text = False
                 continue
-            if not is_in_text:
-                xml_lines.append(rxl)
-                continue
-            s = XML.get_value('w:sz', 'w:val', -1.0, rxl) / 2
+            s = XML.get_value('w:sz', 'w:val', -1.0, xl) / 2
             if s > 0:
                 if raw_class != 'w:tbl':
                     b_size = m_size
@@ -2939,7 +2940,7 @@ class RawParagraph:
                     font_scale = 1.4
                 elif s > b_size * 1.1:
                     font_scale = 1.2
-            w = XML.get_value('w:w', 'w:val', -1.0, rxl)
+            w = XML.get_value('w:w', 'w:val', -1.0, xl)
             if w > 0:
                 if w < 70:
                     font_width = 0.6
@@ -2949,14 +2950,14 @@ class RawParagraph:
                     font_width = 1.4
                 elif w > 110:
                     font_width = 1.2
-            elif re.match('^<w:i/?>$', rxl):
+            elif re.match('^<w:i/?>$', xl):
                 is_italic = True
-            elif re.match('^<w:b/?>$', rxl):
+            elif re.match('^<w:b/?>$', xl):
                 is_bold = True
-            elif re.match('^<w:rFonts .*>$', rxl):
+            elif re.match('^<w:rFonts .*>$', xl):
                 font = ''
-                font = XML.get_value('w:rFonts', 'w:ascii', font, rxl)
-                font = XML.get_value('w:rFonts', 'w:eastAsia', font, rxl)
+                font = XML.get_value('w:rFonts', 'w:ascii', font, xl)
+                font = XML.get_value('w:rFonts', 'w:eastAsia', font, xl)
                 if font != '':
                     if font == Form.mincho_font:
                         pass
@@ -2964,39 +2965,55 @@ class RawParagraph:
                         is_gothic = True
                     else:
                         tmp_font = font
-            elif re.match('^<w:strike/?>$', rxl):
+            elif re.match('^<w:strike/?>$', xl):
                 has_strike = True
-            elif re.match('^<w:u( .*)?>$', rxl):
+            elif re.match('^<w:u( .*)?>$', xl):
                 underline = 'single'
                 res = '^<.* w:val=[\'"]([a-zA-Z]+)[\'"].*>$'
-                if re.match(res, rxl):
-                    underline = re.sub(res, '\\1', rxl)
-            elif re.match('^<w:color w:val="[0-9A-F]+"( .*)?/?>$', rxl):
+                if re.match(res, xl):
+                    underline = re.sub(res, '\\1', xl)
+            elif re.match('^<w:color w:val="[0-9A-F]+"( .*)?/?>$', xl):
                 font_color \
-                    = re.sub('^<.* w:val="([0-9A-F]+)".*>$', '\\1', rxl, re.I)
+                    = re.sub('^<.* w:val="([0-9A-F]+)".*>$', '\\1', xl, re.I)
                 font_color = font_color.upper()
-            elif re.match('^<w:highlight w:val="[a-zA-Z]+"( .*)?/?>$', rxl):
+            elif re.match('^<w:highlight w:val="[a-zA-Z]+"( .*)?/?>$', xl):
                 highlight_color \
-                    = re.sub('^<.* w:val="([a-zA-Z]+)".*>$', '\\1', rxl)
-            elif re.match('^<w:br/?>$', rxl):
-                text += '\n'
+                    = re.sub('^<.* w:val="([a-zA-Z]+)".*>$', '\\1', xl)
+            elif re.match('^<w:br/?>$', xl):
+                sd.string += '\n'
             # TRACK CHANGES
-            elif re.match('^<w:delText( .*)?>$', rxl):
+            elif re.match('^<w:delText( .*)?>$', xl):
                 has_deleted = True
-            elif not re.match('^<.*>$', rxl):
-                text += cls._prepare_text(fldchar, rxl)
-        if horizontal_line_type != '':
-            xml_lines.append('<horizontalLine:' + horizontal_line_type + '>')
-        # self.xml_lines = xml_lines
+            elif not re.match('^<.*>$', xl):
+                sd.string += cls._prepare_text(fldchar, xl)
+        # self.text_data = text_data
         # self.images = images
-        return xml_lines, images
+        return text_data, images
+
+    class string_data:
+
+        def __init__(self, pre_fds, string, pos_fds):
+            self.pre_fds = pre_fds
+            self.string = string
+            self.pos_fds = pos_fds
+
+        def append(self, pre_fd, pos_fd):
+            self.pre_fds.append(pre_fd)
+            self.pos_fds.append(pos_fd)
+
+        def get_string_with_fd(self):
+            swf = ''
+            swf += ''.join(self.pre_fds)
+            swf += self.string
+            swf += ''.join(self.pos_fds[::-1])
+            return swf
 
     @staticmethod
-    def _get_img_file_names_ms(rxl, img_rels):
-        img_id = re.sub(RES_XML_IMG_MS, '\\1', rxl)
+    def _get_img_file_names_ms(xl, img_rels):
+        img_id = re.sub(RES_XML_IMG_MS, '\\1', xl)
         img_rel_name = img_rels[img_id]
         img_ext = re.sub('^.*\\.', '', img_rel_name)
-        img_base = re.sub(RES_XML_IMG_MS, '\\2', rxl)
+        img_base = re.sub(RES_XML_IMG_MS, '\\2', xl)
         img_base = re.sub('\\s', '_', img_base)
         i = 0
         while True:
@@ -3013,8 +3030,8 @@ class RawParagraph:
         return img_rel_name, img_file_name
 
     @staticmethod
-    def _get_img_file_names_py(rxl, img_rels, img_py_name):
-        img_id = re.sub(RES_XML_IMG_PY_ID, '\\1', rxl)
+    def _get_img_file_names_py(xl, img_rels, img_py_name):
+        img_id = re.sub(RES_XML_IMG_PY_ID, '\\1', xl)
         img_rel_name = img_rels[img_id]
         img_ext = re.sub('^.*\\.', '', img_rel_name)
         img_base = re.sub('\\.' + img_ext + '$', '', img_py_name)
@@ -3034,9 +3051,9 @@ class RawParagraph:
         return img_rel_name, img_file_name
 
     @staticmethod
-    def _get_img_size(rxl):
-        sz_w = re.sub(RES_XML_IMG_SIZE, '\\1', rxl)
-        sz_h = re.sub(RES_XML_IMG_SIZE, '\\2', rxl)
+    def _get_img_size(xl):
+        sz_w = re.sub(RES_XML_IMG_SIZE, '\\1', xl)
+        sz_h = re.sub(RES_XML_IMG_SIZE, '\\2', xl)
         cm_w = float(sz_w) * 2.54 / 72 / 12700
         cm_h = float(sz_h) * 2.54 / 72 / 12700
         if cm_w >= 1:
@@ -3119,8 +3136,8 @@ class RawParagraph:
         return text
 
     @classmethod
-    def _get_raw_text(cls, xml_lines):
-        raw_text = cls._join_strings(xml_lines)
+    def _get_raw_text(cls, text_data):
+        raw_text = cls._join_data(text_data)
         raw_text = cls._escape_symbols(raw_text)
         raw_text = cls._convert_ivs(raw_text)  # IDEOGRAPHIC VARIATION SEQUENCE
         raw_text = cls._restore_charcters(raw_text)
@@ -3129,90 +3146,47 @@ class RawParagraph:
         return raw_text
 
     @classmethod
-    def _join_strings(cls, xml_lines):
+    def _join_data(cls, text_data):
+        pos_and_pre_fds \
+            = [['\\*', ''], ['\\*\\*', ''], ['\\*\\*\\*', ''],
+               ['~~', ''],
+               ['`', ''],
+               ['\\-\\-', ''], ['\\-\\-\\-', ''],
+               ['\\+\\+', ''], ['\\+\\+\\+', ''],
+               ['>>', '<<'], ['>>>', '<<<'],
+               ['<<', '>>'], ['<<<', '>>>'],
+               ['_(?:[\\$=\\.#\\-~\\+]{,4})_', ''],
+               ['\\^(?:[0-9A-Za-z]{0,11})\\^', ''],
+               ['_(?:[0-9A-Za-z]{1,11})_', ''],
+               ['@(?:[^@]{1,66})@', ''],
+               ['<-', '->'],
+               ['<+', '+>']]
+        for ppf in pos_and_pre_fds:
+            for i in range(len(text_data) - 1):
+                j = i + 1
+                pos_fds = text_data[i].pos_fds
+                pre_fds = text_data[j].pre_fds
+                pos_fds, pre_fds \
+                    = cls._cancel_fd(pos_fds, pre_fds, ppf[0], ppf[1])
         raw_text = ''
-        for xl in xml_lines:
-            if re.match('^<[^<>]*>$', xl):
-                continue
-            while True:
-                tt = raw_text
-                # ITALIC AND BOLD
-                tt, xl = cls._cancel_fd(tt, xl, '\\*\\*\\*', '\\*\\*\\*')
-                # BOLD
-                if re.match(NOT_ESCAPED + '\\*\\*\\*$', tt) or \
-                   re.match('^\\*\\*\\*(?:.|\n)*$', xl):
-                    break
-                tt, xl = cls._cancel_fd(tt, xl, '\\*\\*', '\\*\\*')
-                # ITALIC
-                if re.match(NOT_ESCAPED + '\\*\\*$', tt) or \
-                   re.match('^\\*\\*(?:.|\n)*$', xl):
-                    break
-                tt, xl = cls._cancel_fd(tt, xl, '\\*', '\\*')
-                # STRIKETHROUGH
-                tt, xl = cls._cancel_fd(tt, xl, '~~', '~~')
-                # PREFORMATTED
-                tt, xl = cls._cancel_fd(tt, xl, '`', '`')
-                # XSMALL
-                tt, xl = cls._cancel_fd(tt, xl, '\\-\\-\\-', '\\-\\-\\-')
-                # SMALL
-                if re.match(NOT_ESCAPED + '\\-\\-\\-$', tt) or \
-                   re.match('^\\-\\-\\-(?:.|\n)*$', xl):
-                    break
-                tt, xl = cls._cancel_fd(tt, xl, '\\-\\-', '\\-\\-')
-                # XLARGE
-                tt, xl = cls._cancel_fd(tt, xl, '\\+\\+\\+', '\\+\\+\\+')
-                # LARGE
-                if re.match(NOT_ESCAPED + '\\+\\+\\+$', tt) or \
-                   re.match('^\\+\\+\\+(?:.|\n)*$', xl):
-                    break
-                tt, xl = cls._cancel_fd(tt, xl, '\\+\\+', '\\+\\+')
-                # XNARROW
-                tt, xl = cls._cancel_fd(tt, xl, '>>>', '<<<')
-                # NARROW
-                if re.match(NOT_ESCAPED + '>>>$', tt) or \
-                   re.match('^<<<(?:.|\n)*$', xl):
-                    break
-                tt, xl = cls._cancel_fd(tt, xl, '>>', '<<')
-                # XWIDE
-                tt, xl = cls._cancel_fd(tt, xl, '<<<', '>>>')
-                # WIDE
-                if re.match(NOT_ESCAPED + '<<<$', tt) or \
-                   re.match('^>>>(?:.|\n)*$', xl):
-                    break
-                tt, xl = cls._cancel_fd(tt, xl, '<<', '>>')
-                # UNDERLINE
-                res = '_(?:[\\$=\\.#\\-~\\+]{,4})_'
-                tt, xl = cls._cancel_fd(tt, xl, res, res, True)
-                # FONT COLOR
-                res = '\\^(?:[0-9A-Za-z]{0,11})\\^'
-                tt, xl = cls._cancel_fd(tt, xl, res, res, True)
-                # HIGILIGHT COLOR
-                res = '_(?:[0-9A-Za-z]{1,11})_'
-                tt, xl = cls._cancel_fd(tt, xl, res, res, True)
-                # FONT
-                res = '@(?:[^@]{1,66})@'
-                tt, xl = cls._cancel_fd(tt, xl, res, res, True)
-                # TRACK CHANGES (DELETED)
-                tt, xl = cls._cancel_fd(tt, xl, '--&gt;', '&lt;!--')
-                # TRACK CHANGES (INSERTED)
-                tt, xl = cls._cancel_fd(tt, xl, '&lt;\\+&gt;', '&lt;!\\+&gt;')
-                if tt == raw_text:
-                    break
-                raw_text = tt
-            raw_text = tt + xl
+        for td in text_data:
+            raw_text += td.get_string_with_fd()
         return raw_text
 
     @staticmethod
-    def _cancel_fd(text_l, text_r, end_l, beg_r, must_be_same=False):
-        res_l = NOT_ESCAPED + '(' + end_l + ')(--&gt;|&lt;\\+&gt;)?$'
-        res_r = '^(&lt;!--|&lt;!\\+&gt;)?(' + beg_r + ')((?:.|\n)*)$'
-        if re.match(res_l, text_l) and re.match(res_r, text_r):
-            fd_l = re.sub(res_l, '\\2', text_l)
-            fd_r = re.sub(res_r, '\\2', text_r)
-            if (not must_be_same) or (fd_l == fd_r):
-                text_l = re.sub(res_l, '\\1\\3', text_l)
-                text_r = re.sub(res_r, '\\1\\3', text_r)
-        return text_l, text_r
+    def _cancel_fd(pos_fds, pre_fds, pos_fd, pre_fd):
+        if pre_fd == '':
+            pre_fd = pos_fd
+        for posfd in pos_fds:
+            if re.match('^' + pos_fd + '$', posfd):
+                for prefd in pre_fds:
+                    if re.match('^' + pre_fd + '$', prefd):
+                        if (pos_fd == pre_fd) and (posfd != prefd):
+                            continue
+                        pos_fds.remove(posfd)
+                        pre_fds.remove(prefd)
+                        return pos_fds, pre_fds
+        return pos_fds, pre_fds
 
     @staticmethod
     def _escape_symbols(raw_text):
@@ -3374,10 +3348,10 @@ class RawParagraph:
         return raw_text_leave
 
     @staticmethod
-    def _get_style(raw_xml_lines):
+    def _get_style(xml_lines):
         style = None
-        for rxl in raw_xml_lines:
-            style = XML.get_value('w:pStyle', 'w:val', style, rxl)
+        for xl in xml_lines:
+            style = XML.get_value('w:pStyle', 'w:val', style, xl)
         for ds in Form.styles:
             if style != ds.name:
                 continue
@@ -3391,10 +3365,10 @@ class RawParagraph:
         return style
 
     @staticmethod
-    def _get_alignment(raw_xml_lines):
+    def _get_alignment(xml_lines):
         alignment = ''
-        for rxl in raw_xml_lines:
-            alignment = XML.get_value('w:jc', 'w:val', alignment, rxl)
+        for xl in xml_lines:
+            alignment = XML.get_value('w:jc', 'w:val', alignment, xl)
             if not re.match('^(left|center|right)$', alignment):
                 alignment = ''
         # self.alignment = alignment
@@ -3487,7 +3461,7 @@ class Paragraph:
     @classmethod
     def is_this_class(cls, raw_paragraph):
         # rp = raw_paragraph
-        # rp_rxl = rp.raw_xml_lines
+        # rp_xls = rp.xml_lines
         # rp_rcl = rp.raw_class
         # rp_rtx = rp.raw_text_iod
         # rp_img = rp.images
@@ -3500,9 +3474,9 @@ class Paragraph:
         # RECEIVED
         self.raw_paragraph_number = raw_paragraph.raw_paragraph_number
         self.has_removed = raw_paragraph.has_removed
-        self.raw_xml_lines = raw_paragraph.raw_xml_lines
-        self.raw_class = raw_paragraph.raw_class
         self.xml_lines = raw_paragraph.xml_lines
+        self.raw_class = raw_paragraph.raw_class
+        self.horizontal_line = raw_paragraph.horizontal_line
         self.raw_text = raw_paragraph.raw_text
         self.head_space = raw_paragraph.head_space
         self.tail_space = raw_paragraph.tail_space
@@ -3724,7 +3698,7 @@ class Paragraph:
     def _get_length_docx(self):
         m_size = Form.font_size
         lnsp = Form.line_spacing
-        rxls = self.raw_xml_lines
+        xls = self.xml_lines
         head_space = self.head_space
         length_docx \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
@@ -3738,21 +3712,21 @@ class Paragraph:
         ri_xml = 0.0
         ti_xml = 0.0
         is_changed = False
-        for rxl in rxls:
-            if re.match('^<w:pPrChange( .*[^/])?>$', rxl):
+        for xl in xls:
+            if re.match('^<w:pPrChange( .*[^/])?>$', xl):
                 is_changed = True
-            if re.match('^</w:pPrChange( .*[^/])?>$', rxl):
+            if re.match('^</w:pPrChange( .*[^/])?>$', xl):
                 is_changed = False
             if is_changed:
                 continue
-            sb_xml = XML.get_value('w:spacing', 'w:before', sb_xml, rxl)
-            sa_xml = XML.get_value('w:spacing', 'w:after', sa_xml, rxl)
-            ls_xml = XML.get_value('w:spacing', 'w:line', ls_xml, rxl)
-            fi_xml = XML.get_value('w:ind', 'w:firstLine', fi_xml, rxl)
-            hi_xml = XML.get_value('w:ind', 'w:hanging', hi_xml, rxl)
-            li_xml = XML.get_value('w:ind', 'w:left', li_xml, rxl)
-            ri_xml = XML.get_value('w:ind', 'w:right', ri_xml, rxl)
-            ti_xml = XML.get_value('w:tblInd', 'w:w', ti_xml, rxl)
+            sb_xml = XML.get_value('w:spacing', 'w:before', sb_xml, xl)
+            sa_xml = XML.get_value('w:spacing', 'w:after', sa_xml, xl)
+            ls_xml = XML.get_value('w:spacing', 'w:line', ls_xml, xl)
+            fi_xml = XML.get_value('w:ind', 'w:firstLine', fi_xml, xl)
+            hi_xml = XML.get_value('w:ind', 'w:hanging', hi_xml, xl)
+            li_xml = XML.get_value('w:ind', 'w:left', li_xml, xl)
+            ri_xml = XML.get_value('w:ind', 'w:right', ri_xml, xl)
+            ti_xml = XML.get_value('w:tblInd', 'w:w', ti_xml, xl)
         length_docx['space before'] = round(sb_xml / 20 / m_size / lnsp, 2)
         length_docx['space after'] = round(sa_xml / 20 / m_size / lnsp, 2)
         ls = 0.0
@@ -4117,8 +4091,8 @@ class Paragraph:
                 if tmp != '':
                     phrases.append(tmp)
                     tmp = ''
-            # '<!--' or '-->' or '<!+>' or '<+>' (TRACK CHANGES)
-            res = '(?:<!\\-\\-|\\-\\->|<!\\+>|<\\+>)'
+            # '->' or '<-' or '+>' or '<+' (TRACK CHANGES)
+            res = '(?:\\->|<\\-|\\+>|<\\+)'
             if re.match(NOT_ESCAPED + 'x$', tmp + 'x') and \
                re.match('^' + res + '.*$', tmp2):
                 if tmp != '':
@@ -4132,50 +4106,76 @@ class Paragraph:
 
     @staticmethod
     def _concatenate_phrases(phrases):
+        def _extend_tex(extension):
+            if is_in_deleted:
+                return tex + '->' + extension + '<-\n'
+            if is_in_inserted:
+                return tex + '+>' + extension + '<+\n'
+            return tex + extension + '\n'
         tex = ''
         tmp = ''
+        is_in_deleted = False
+        is_in_inserted = False
         for p in phrases:
+            # DELETED
+            if (not is_in_deleted) and p == '->':
+                tex = _extend_tex(tmp)
+                tmp = ''
+                is_in_deleted = True
+                continue
+            if is_in_deleted and p == '<-':
+                tex = _extend_tex(tmp)
+                tmp = ''
+                is_in_deleted = False
+                continue
+            # INSERTED
+            if (not is_in_inserted) and p == '+>':
+                tex = _extend_tex(tmp)
+                tmp = ''
+                is_in_inserted = True
+                continue
+            if is_in_inserted and p == '<+':
+                tex = _extend_tex(tmp)
+                tmp = ''
+                is_in_inserted = False
+                continue
+            # SECTION WITHOUT A TITLE
             res = '(?:#+(?:\\-#)* )+'
             if tex == '':
                 if re.match('^' + res + '$', tmp):
                     if not re.match('^' + res + '.*$', p):
                         if re.match('^.*[.．。]$', phrases[-1]):
-                            tex += tmp + '\n'
+                            tex = _extend_tex(tmp + '\\')
                             tmp = p
                             continue
+            # IMAGE
             if re.match(RES_IMAGE, p):
-                # IMAGE
-                tex += tmp + '\n' + p + '\n'
+                tex = _extend_tex(tmp + '\n' + p)
                 tmp = ''
                 continue
-            if get_ideal_width(tmp) <= MD_TEXT_WIDTH:
-                if re.match('^.*[．。]$', tmp):
-                    if tmp != '':
-                        tex += tmp + '\n'
+            # CONJUNCTIONS
+            if re.match('^.*[,，、]$', tmp):
+                for c in CONJUNCTIONS:
+                    if re.match('^' + c + '[,，、]$', tmp):
+                        tex = _extend_tex(tmp)
                         tmp = ''
-                if re.match('^(<!\\-\\-|<!\\+>).*', p):
-                    if tmp != '':
-                        tex += tmp + '\n'
-                        tmp = ''
-                if re.match('^.*(\\-\\->|<\\+>)$', tmp):
-                    if tmp != '':
-                        tex += tmp + '\n'
-                        tmp = ''
-            if get_ideal_width(tmp + p) > MD_TEXT_WIDTH:
-                if tmp != '':
-                    tex += tmp + '\n'
-                    tmp = ''
+                        break
+                if tmp == '':
+                    tmp = p
+                    continue
+            # END OF A SENTENCE
+            if re.match('^.*[．。]$', tmp):
+                tex = _extend_tex(tmp)
+                tmp = p
+                continue
+            # RIGTH LENGTH
+            if tmp != '':
+                if get_ideal_width(tmp + p) > MD_TEXT_WIDTH:
+                    tex = _extend_tex(tmp)
+                    tmp = p
+                    continue
+            # TOO LONG
             tmp += p
-            if get_ideal_width(tmp) <= MD_TEXT_WIDTH:
-                if re.match('^.*[，、]$', tmp):
-                    for c in CONJUNCTIONS:
-                        if re.match('^' + c + '[，、]$', tmp):
-                            tex += tmp + '\n'
-                            tmp = ''
-                            break
-                if re.match('^.*[．。]$', tmp):
-                    tex += tmp + '\n'
-                    tmp = ''
             while get_ideal_width(tmp) > MD_TEXT_WIDTH:
                 for i in range(len(tmp), -1, -1):
                     s1 = tmp[:i]
@@ -4187,13 +4187,13 @@ class Paragraph:
                         continue
                     if re.match('^.*を$', s1):
                         if s1 != '':
-                            tex += s1 + '\n'
+                            tex = _extend_tex(s1)
                             tmp = s2
                             break
                     if re.match('^.*[ぁ-ん，、．。]$', s1) and \
                        re.match('^[^ぁ-ん，、．。].*$', s2):
                         if s1 != '':
-                            tex += s1 + '\n'
+                            tex = _extend_tex(s1)
                             tmp = s2
                             break
                 else:
@@ -4243,9 +4243,9 @@ class Paragraph:
                         # ' ' + ' ' (LINE BREAK)
                         if re.match('^.* $', s1) and re.match('^ .*$', s2):
                             continue
-                        # '<!' + '[-+]' or '<' + '![-+]' (TRACK CHANGES)
-                        if re.match('^.*<!?$', s1) and \
-                           re.match('^!?[\\-\\+].*$', s2):
+                        # '<' + '[-+]' (TRACK CHANGES)
+                        if re.match('^.*<$', s1) and \
+                           re.match('^[\\-\\+].*$', s2):
                             continue
                         # '[-+]' + '>' (TRACK CHANGES)
                         if re.match('^.*[\\-\\+]$', s1) and \
@@ -4303,9 +4303,8 @@ class ParagraphBlank(Paragraph):
     @classmethod
     def is_this_class(cls, raw_paragraph):
         rp = raw_paragraph
-        rp_rxl = rp.raw_xml_lines
+        rp_xls = rp.xml_lines
         rp_rcl = rp.raw_class
-        rp_xl = rp.xml_lines
         rp_rtx = rp.raw_text_iod
         if ParagraphTable.is_this_class(rp):
             return False
@@ -4510,7 +4509,7 @@ class ParagraphSection(Paragraph):
     def _get_revisers_and_md_text(self, raw_text):
         m_size = Paragraph.font_size
         xl_size = m_size * 1.4
-        raw_xml_lines = self.raw_xml_lines
+        xml_lines = self.xml_lines
         rss = self.res_symbols
         rre = self.res_rest
         rnm = self.res_number
@@ -4557,9 +4556,9 @@ class ParagraphSection(Paragraph):
                 head_font_revisers.remove('+++')
             if '+++' in tail_font_revisers:
                 tail_font_revisers.remove('+++')
-            for rxl in raw_xml_lines:
-                s = XML.get_value('w:sz', 'w:val', -1.0, rxl) / 2
-                w = XML.get_value('w:w', 'w:val', -1.0, rxl)
+            for xl in xml_lines:
+                s = XML.get_value('w:sz', 'w:val', -1.0, xl) / 2
+                w = XML.get_value('w:w', 'w:val', -1.0, xl)
                 if (s > 0 and s < xl_size * 0.7) or (w > 0 and w < 70):
                     head_font_revisers.insert(0, '---')
                     tail_font_revisers.intert(0, '---')
@@ -4626,7 +4625,7 @@ class ParagraphSystemlist(Paragraph):
     @classmethod
     def is_this_class(cls, raw_paragraph):
         rp = raw_paragraph
-        raw_xml_lines = rp.raw_xml_lines
+        xml_lines = rp.xml_lines
         res_xml_bullet_ms = cls.res_xml_bullet_ms
         res_xml_number_ms = cls.res_xml_number_ms
         res_xml_bullet_lo = cls.res_xml_bullet_lo
@@ -4635,14 +4634,14 @@ class ParagraphSystemlist(Paragraph):
             return False
         if ParagraphConfiguration.is_this_class(rp):
             return False
-        for rxl in raw_xml_lines:
-            if re.match(res_xml_bullet_ms, rxl):
+        for xl in xml_lines:
+            if re.match(res_xml_bullet_ms, xl):
                 return True
-            if re.match(res_xml_number_ms, rxl):
+            if re.match(res_xml_number_ms, xl):
                 return True
-            if re.match(res_xml_bullet_lo, rxl):
+            if re.match(res_xml_bullet_lo, xl):
                 return True
-            if re.match(res_xml_number_lo, rxl):
+            if re.match(res_xml_number_lo, xl):
                 return True
         return False
 
@@ -4659,28 +4658,28 @@ class ParagraphSystemlist(Paragraph):
         res_xml_number_ms = self.res_xml_number_ms
         res_xml_bullet_lo = self.res_xml_bullet_lo
         res_xml_number_lo = self.res_xml_number_lo
-        raw_xml_lines = self.raw_xml_lines
+        xml_lines = self.xml_lines
         raw_text = self.raw_text
         list_type = ''
         depth = 1
-        for rxl in raw_xml_lines:
-            if re.match(res_xml_bullet_ms, rxl):
-                n = re.sub(res_xml_bullet_ms, '\\1', rxl)
+        for xl in xml_lines:
+            if re.match(res_xml_bullet_ms, xl):
+                n = re.sub(res_xml_bullet_ms, '\\1', xl)
                 depth = int(n) + 1
-            if re.match(res_xml_number_ms, rxl):
-                n = re.sub(res_xml_number_ms, '\\1', rxl)
+            if re.match(res_xml_number_ms, xl):
+                n = re.sub(res_xml_number_ms, '\\1', xl)
                 if n == '10':
                     list_type = 'bullet'
                 else:
                     list_type = 'number'
-            if re.match(res_xml_bullet_lo, rxl):
+            if re.match(res_xml_bullet_lo, xl):
                 list_type = 'bullet'
-                n = re.sub(res_xml_bullet_lo, '\\1', rxl)
+                n = re.sub(res_xml_bullet_lo, '\\1', xl)
                 if n != '':
                     depth = int(n)
-            if re.match(res_xml_number_lo, rxl):
+            if re.match(res_xml_number_lo, xl):
                 list_type = 'number'
-                n = re.sub(res_xml_number_lo, '\\1', rxl)
+                n = re.sub(res_xml_number_lo, '\\1', xl)
                 if n != '':
                     depth = int(n)
         proper_depth = depth
@@ -4692,28 +4691,28 @@ class ParagraphSystemlist(Paragraph):
         res_xml_number_ms = self.res_xml_number_ms
         res_xml_bullet_lo = self.res_xml_bullet_lo
         res_xml_number_lo = self.res_xml_number_lo
-        raw_xml_lines = self.raw_xml_lines
+        xml_lines = self.xml_lines
         raw_text = self.raw_text
         list_type = ''
         depth = 1
-        for rxl in raw_xml_lines:
-            if re.match(res_xml_bullet_ms, rxl):
-                n = re.sub(res_xml_bullet_ms, '\\1', rxl)
+        for xl in xml_lines:
+            if re.match(res_xml_bullet_ms, xl):
+                n = re.sub(res_xml_bullet_ms, '\\1', xl)
                 depth = int(n) + 1
-            if re.match(res_xml_number_ms, rxl):
-                n = re.sub(res_xml_number_ms, '\\1', rxl)
+            if re.match(res_xml_number_ms, xl):
+                n = re.sub(res_xml_number_ms, '\\1', xl)
                 if n == '10':
                     list_type = 'bullet'
                 else:
                     list_type = 'number'
-            if re.match(res_xml_bullet_lo, rxl):
+            if re.match(res_xml_bullet_lo, xl):
                 list_type = 'bullet'
-                n = re.sub(res_xml_bullet_lo, '\\1', rxl)
+                n = re.sub(res_xml_bullet_lo, '\\1', xl)
                 if n != '':
                     depth = int(n)
-            if re.match(res_xml_number_lo, rxl):
+            if re.match(res_xml_number_lo, xl):
                 list_type = 'number'
-                n = re.sub(res_xml_number_lo, '\\1', rxl)
+                n = re.sub(res_xml_number_lo, '\\1', xl)
                 if n != '':
                     depth = int(n)
         if list_type == 'bullet':
@@ -5136,22 +5135,16 @@ class ParagraphHorizontalLine(Paragraph):
 
     @classmethod
     def is_this_class(cls, raw_paragraph):
-        rp = raw_paragraph
-        rp_xl = rp.xml_lines
-        if rp_xl[-1] == '<horizontalLine:top>':
-            return True
-        if rp_xl[-1] == '<horizontalLine:bottom>':
-            return True
-        if rp_xl[-1] == '<horizontalLine:textbox>':
+        if raw_paragraph.horizontal_line != '':
             return True
         return False
 
     def _get_length_docx(self):
-        if self.xml_lines[-1] == '<horizontalLine:textbox>':
+        if self.horizontal_line == 'textbox':
             return super()._get_length_docx()
         m_size = Form.font_size
         lnsp = Form.line_spacing
-        rxls = self.raw_xml_lines
+        xls = self.xml_lines
         length_docx \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
@@ -5163,15 +5156,15 @@ class ParagraphHorizontalLine(Paragraph):
         li_xml = 0.0
         ri_xml = 0.0
         ti_xml = 0.0
-        for rxl in rxls:
-            sb_xml = XML.get_value('w:spacing', 'w:before', sb_xml, rxl)
-            sa_xml = XML.get_value('w:spacing', 'w:after', sa_xml, rxl)
-            ls_xml = XML.get_value('w:spacing', 'w:line', ls_xml, rxl)
-            fi_xml = XML.get_value('w:ind', 'w:firstLine', fi_xml, rxl)
-            hi_xml = XML.get_value('w:ind', 'w:hanging', hi_xml, rxl)
-            li_xml = XML.get_value('w:ind', 'w:left', li_xml, rxl)
-            ri_xml = XML.get_value('w:ind', 'w:right', ri_xml, rxl)
-            ti_xml = XML.get_value('w:tblInd', 'w:w', ti_xml, rxl)
+        for xl in xls:
+            sb_xml = XML.get_value('w:spacing', 'w:before', sb_xml, xl)
+            sa_xml = XML.get_value('w:spacing', 'w:after', sa_xml, xl)
+            ls_xml = XML.get_value('w:spacing', 'w:line', ls_xml, xl)
+            fi_xml = XML.get_value('w:ind', 'w:firstLine', fi_xml, xl)
+            hi_xml = XML.get_value('w:ind', 'w:hanging', hi_xml, xl)
+            li_xml = XML.get_value('w:ind', 'w:left', li_xml, xl)
+            ri_xml = XML.get_value('w:ind', 'w:right', ri_xml, xl)
+            ti_xml = XML.get_value('w:tblInd', 'w:w', ti_xml, xl)
         # VERTICAL SPACE
         tmp_ls = 0.0
         tmp_sb = (sb_xml / 20)
@@ -5222,9 +5215,9 @@ class ParagraphPagebreak(Paragraph):
     @classmethod
     def is_this_class(cls, raw_paragraph):
         rp = raw_paragraph
-        rp_rxl = rp.raw_xml_lines
-        for rxl in rp_rxl:
-            if re.match('^<w:br w:type=[\'"]page[\'"]/>$', rxl):
+        rp_xl = rp.xml_lines
+        for xl in rp_xl:
+            if re.match('^<w:br w:type=[\'"]page[\'"]/>$', xl):
                 return True
         return False
 
