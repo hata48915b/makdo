@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.09.11-04:53:59-JST>
+# Time-stamp:   <2023.09.15-07:45:38-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -4149,8 +4149,7 @@ class Paragraph:
                     if not re.match('^' + res + '.*$', p):
                         if re.match('^.*[.．。]$', phrases[-1]):
                             tex = _extend_tex(tmp + '\\')
-                            tmp = p
-                            continue
+                            tmp = ''
             # IMAGE
             if re.match(RES_IMAGE, p):
                 tex = _extend_tex(tmp + '\n' + p)
@@ -4163,20 +4162,15 @@ class Paragraph:
                         tex = _extend_tex(tmp)
                         tmp = ''
                         break
-                if tmp == '':
-                    tmp = p
-                    continue
             # END OF A SENTENCE
             if re.match('^.*[．。]$', tmp):
                 tex = _extend_tex(tmp)
-                tmp = p
-                continue
+                tmp = ''
             # RIGTH LENGTH
             if tmp != '':
                 if get_ideal_width(tmp + p) > MD_TEXT_WIDTH:
                     tex = _extend_tex(tmp)
-                    tmp = p
-                    continue
+                    tmp = ''
             # TOO LONG
             tmp += p
             while get_ideal_width(tmp) > MD_TEXT_WIDTH:
