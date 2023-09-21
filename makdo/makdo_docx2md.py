@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.09.21-10:26:29-JST>
+# Time-stamp:   <2023.09.22-08:37:03-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2904,48 +2904,49 @@ class RawParagraph:
                     # SCALE
                     if font_scale != 1.0:
                         if font_scale < 0.7:
-                            sd.append('---', '---')
+                            sd.append_fds('---', '---')
                         elif font_scale < 0.9:
-                            sd.append('--', '--')
+                            sd.append_fds('--', '--')
                         elif font_scale > 1.3:
-                            sd.append('+++', '+++')
+                            sd.append_fds('+++', '+++')
                         elif font_scale > 1.1:
-                            sd.append('++', '++')
+                            sd.append_fds('++', '++')
                         font_scale = 1.0
                     # WIDTH
                     if font_width != 1.0:
                         if font_width < 0.7:
-                            sd.append('>>>', '<<<')
+                            sd.append_fds('>>>', '<<<')
                         elif font_width < 0.9:
-                            sd.append('>>', '<<')
+                            sd.append_fds('>>', '<<')
                         elif font_width > 1.3:
-                            sd.append('<<<', '>>>')
+                            sd.append_fds('<<<', '>>>')
                         elif font_width > 1.1:
                             if re.match('^=' + RES_NUMBER, sd.string):
                                 sd.string = '\\' + sd.string
-                            sd.append('<<', '>>')
+                            sd.append_fds('<<', '>>')
                         font_width = 1.0
                     # STRIKETHROUGH
                     if has_strike:
-                        sd.append('~~', '~~')
+                        sd.append_fds('~~', '~~')
                         has_strike = False
                     # UNDERLINE
                     if underline != '':
-                        sd.append('_' + UNDERLINE[underline] + '_',
-                                  '_' + UNDERLINE[underline] + '_')
+                        sd.append_fds('_' + UNDERLINE[underline] + '_',
+                                      '_' + UNDERLINE[underline] + '_')
                         underline = ''
                     # PREFORMATTED
                     if is_gothic:
-                        sd.append('`', '`')
+                        sd.append_fds('`', '`')
                         is_gothic = False
                     # FONT
                     if tmp_font != '':
-                        sd.append('@' + tmp_font + '@', '@' + tmp_font + '@')
+                        sd.append_fds('@' + tmp_font + '@',
+                                      '@' + tmp_font + '@')
                         tmp_font = ''
                     # HIGILIGHT COLOR
                     if highlight_color != '':
-                        sd.append('_' + highlight_color + '_',
-                                  '_' + highlight_color + '_')
+                        sd.append_fds('_' + highlight_color + '_',
+                                      '_' + highlight_color + '_')
                         highlight_color = ''
                     # FONT COLOR (LATTER)
                     if font_color != '':
@@ -2955,22 +2956,22 @@ class RawParagraph:
                             fc = FONT_COLOR[font_color]
                         else:
                             fc = font_color
-                        sd.append('^' + fc + '^', '^' + fc + '^')
+                        sd.append_fds('^' + fc + '^', '^' + fc + '^')
                         font_color = ''
                     # ITALIC (LATTER)
                     if is_italic:
-                        sd.append('*', '*')
+                        sd.append_fds('*', '*')
                         is_italic = False
                     # BOLD (LATTER)
                     if is_bold:
-                        sd.append('**', '**')
+                        sd.append_fds('**', '**')
                         is_bold = False
                     # TRACK CHANGES (DELETED) (LAST)
                     if track_changes == 'del':
-                        sd.append('->', '<-')
+                        sd.append_fds('->', '<-')
                     # TRACK CHANGES (INSERTED) (LAST)
                     elif track_changes == 'ins':
-                        sd.append('+>', '<+')
+                        sd.append_fds('+>', '<+')
                     text_data.append(sd)
                 is_in_text = False
                 continue
@@ -3045,7 +3046,7 @@ class RawParagraph:
             self.string = string
             self.pos_fds = pos_fds
 
-        def append(self, pre_fd, pos_fd):
+        def append_fds(self, pre_fd, pos_fd):
             self.pre_fds.append(pre_fd)
             self.pos_fds.append(pos_fd)
 
@@ -4965,7 +4966,9 @@ class ParagraphTable(Paragraph):
                     md_text += '\n'
             for j, cell in enumerate(row):
                 Paragraph.font_size = s_size
-                raw_text = RawParagraph._get_raw_text(cell)
+                text_data, images \
+                    = RawParagraph._get_text_data_and_images('w:tbl', cell)
+                raw_text = RawParagraph._get_raw_text(text_data)
                 if is_in_head:
                     if not re.match('^:-+:$', ali[i][j]):
                         if re.match('^:-+$', ali[i][j]):
