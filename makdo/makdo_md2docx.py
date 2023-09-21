@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.09.10-12:58:55-JST>
+# Time-stamp:   <2023.09.21-09:47:18-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -48,6 +48,7 @@
 # m2d.set_space_before('ooo')
 # m2d.set_space_after('ppp')
 # m2d.set_auto_space('qqq')
+# m2d.set_revision_number('rrr')
 # m2d.save('xxx.docx')
 
 
@@ -185,6 +186,11 @@ def get_arguments():
         action='store_true',
         help='全角文字と半角文字との間の間隔を微調整します')
     parser.add_argument(
+        '--revision-number',
+        type=positive_integer,
+        metavar='REVISION_NUMBER',
+        help='改訂番号')
+    parser.add_argument(
         'md_file',
         help='Markdownファイル')
     parser.add_argument(
@@ -202,8 +208,16 @@ def get_arguments():
 
 def floats6(s):
     if not re.match('^' + RES_NUMBER6 + '$', s):
+        msg = 'invalid 6 floats separated by commas value: \'' + s + '\''
         raise argparse.ArgumentTypeError
     return s
+
+
+def positive_integer(s):
+    if not re.match('[1-9][0-9]*', s):
+        msg = 'invalid positive integer value: \'' + s + '\''
+        raise argparse.ArgumentTypeError(msg)
+    return int(s)
 
 
 HELP_EPILOG = '''Markdownの記法:
@@ -294,6 +308,8 @@ TABLE_SPACE_BEFORE = 0.45
 TABLE_SPACE_AFTER = 0.2
 
 DEFAULT_AUTO_SPACE = False
+
+DEFAULT_REVISION_NUMBER = 1
 
 NOT_ESCAPED = '^((?:(?:.|\n)*?[^\\\\])?(?:\\\\\\\\)*?)?'
 # NOT_ESCAPED = '^((?:(?:.|\n)*[^\\\\])?(?:\\\\\\\\)*)?'
@@ -1297,6 +1313,7 @@ class Form:
     space_before = DEFAULT_SPACE_BEFORE
     space_after = DEFAULT_SPACE_AFTER
     auto_space = DEFAULT_AUTO_SPACE
+    revision_number = DEFAULT_REVISION_NUMBER
     original_file = ''
 
     def __init__(self):
@@ -1366,6 +1383,8 @@ class Form:
                 Form.set_space_after(val, nam)
             elif nam == 'auto_space' or nam == '字間整':
                 Form.set_auto_space(val, nam)
+            elif nam == 'revision_number' or nam == '改番号':
+                Form.set_revision_number(val, nam)
             elif nam == 'original_file' or nam == '元原稿':
                 Form.set_original_file(val, nam)
             else:
@@ -1414,6 +1433,8 @@ class Form:
                 Form.set_space_after(args.space_after)
             if args.auto_space:
                 Form.set_auto_space(str(args.auto_space))
+            if args.revision_number is not None:
+                Form.set_revision_number(args.revision_number)
 
     @staticmethod
     def set_document_title(value, item='document_title'):
@@ -1663,6 +1684,24 @@ class Form:
         sys.stderr.write(msg + '\n\n')
 
     @staticmethod
+    def set_revision_number(value, item='revision_number'):
+        if value is None:
+            return False
+        if type(value) is int:
+            Form.revision_number = value
+            return True
+        if (type(value) is str) and re.match('^[1-9][0-9]*$', value):
+            Form.revision_number = int(value)
+            return True
+        msg = '※ 警告: ' \
+            + '「' + item + '」の値は' \
+            + '正の整数でなければなりません'
+        # msg = 'warning: ' \
+        #     + '"' + item + '" must be a positive integer'
+        sys.stderr.write(msg + '\n\n')
+        return False
+
+    @staticmethod
     def set_original_file(value, item='original_file'):
         if value is None:
             return False
@@ -1896,6 +1935,7 @@ class Document:
         # jst = datetime.timezone(datetime.timedelta(hours=9))
         # dt = datetime.datetime.now(jst)
         # pt = datetime.datetime(1970, 1, 1, 9, 0, 0, tzinfo=jst)
+        rn = Form.revision_number
         ms_cp = ms_doc.core_properties
         ms_cp.identifier \
             = 'makdo(' + __version__.split()[0] + ');' \
@@ -1908,7 +1948,7 @@ class Document:
         # ms_cp.comments = ''          # コメント
         ms_cp.author = at              # 作成者
         # ms_cp.last_modified_by = ''  # 前回保存者
-        # ms_cp.revision = 1           # 改訂番号
+        ms_cp.revision = rn            # 改訂番号
         # ms_cp.version = ''           # バージョン番号
         ms_cp.created = dt             # コンテンツの作成日時
         ms_cp.modified = dt            # 前回保存時

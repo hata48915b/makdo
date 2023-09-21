@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.09.15-07:45:38-JST>
+# Time-stamp:   <2023.09.21-10:26:29-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -48,6 +48,7 @@
 # d2m.set_space_before('ooo')
 # d2m.set_space_after('ppp')
 # d2m.set_auto_space('qqq')
+# d2m.set_revision_number('rrr')
 # d2m.save('xxx.md')
 
 
@@ -170,6 +171,11 @@ def get_arguments():
         action='store_true',
         help='全角文字と半角文字との間の間隔を微調整します')
     parser.add_argument(
+        '--revision-number',
+        type=positive_integer,
+        metavar='REVISION_NUMBER',
+        help='改訂番号')
+    parser.add_argument(
         'docx_file',
         help='MS Wordファイル')
     parser.add_argument(
@@ -184,6 +190,13 @@ def floats6(s):
     if not re.match('^' + RES_NUMBER6 + '$', s):
         raise argparse.ArgumentTypeError
     return s
+
+
+def positive_integer(s):
+    if not re.match('[1-9][0-9]*', s):
+        msg = 'invalid positive integer value: \'' + s + '\''
+        raise argparse.ArgumentTypeError(msg)
+    return int(s)
 
 
 HELP_EPILOG = '''
@@ -224,6 +237,8 @@ TABLE_SPACE_BEFORE = 0.45
 TABLE_SPACE_AFTER = 0.2
 
 DEFAULT_AUTO_SPACE = False
+
+DEFAULT_REVISION_NUMBER = 1
 
 NOT_ESCAPED = '^((?:(?:.|\n)*?[^\\\\])?(?:\\\\\\\\)*?)?'
 # NOT_ESCAPED = '^((?:(?:.|\n)*[^\\\\])?(?:\\\\\\\\)*)?'
@@ -1455,6 +1470,7 @@ class Form:
     space_before = DEFAULT_SPACE_BEFORE
     space_after = DEFAULT_SPACE_AFTER
     auto_space = DEFAULT_AUTO_SPACE
+    revision_number = DEFAULT_REVISION_NUMBER
     original_file = ''
 
     styles = None
@@ -1475,7 +1491,7 @@ class Form:
     def configure(self):
         # PAPER SIZE, MARGIN, LINE NUMBER, DOCUMENT STYLE
         self._configure_by_document_xml(self.document_xml_lines)
-        # DOCUMENT TITLE, DOCUMENT STYLE, ORIGINAL FILE
+        # DOCUMENT TITLE, DOCUMENT STYLE, REVISION NUMBER, ORIGINAL FILE
         self._configure_by_core_xml(self.core_xml_lines)
         # FONT, LINE SPACING, AUTO SPACE, SAPCE BEFORE AND AFTER
         self._configure_by_styles_xml(self.styles_xml_lines)
@@ -1576,6 +1592,12 @@ class Form:
                         Form.document_style = 'k'
                     elif re.match('^.*（条文）.*$', xl):
                         Form.document_style = 'j'
+            # REVISION NUMBER
+            resb = '^<cp:revision>$'
+            rese = '^</cp:revision>$'
+            if i > 0 and re.match(resb, xml_lines[i - 1], re.I):
+                if not re.match(rese, xl, re.I):
+                    Form.revision_number = int(xl)
             # ORIGINAL FILE
             resb = '^<dcterms:modified( .*)?>$'
             rese = '^</dcterms:modified>$'
@@ -1746,6 +1768,8 @@ class Form:
                 Form.set_space_after(args.space_after)
             if args.auto_space:
                 Form.set_auto_space(str(args.auto_space))
+            if args.revision_number is not None:
+                Form.set_revision_number(args.revision_number)
 
     @staticmethod
     def set_document_title(value, item='document_title'):
@@ -1994,6 +2018,22 @@ class Form:
         #     + '"' + item + '" must be "True" or "False"'
         sys.stderr.write(msg + '\n\n')
 
+    @staticmethod
+    def set_revision_number(value, item='revision_number'):
+        if type(value) is int:
+            Form.revision_number = value
+            return True
+        if (type(value) is str) and re.match('^[1-9][0-9]*$', value):
+            Form.revision_number = int(value)
+            return True
+        msg = '※ 警告: ' \
+            + '「' + item + '」の値は' \
+            + '正の整数でなければなりません'
+        # msg = 'warning: ' \
+        #     + '"' + item + '" must be a positive integer'
+        sys.stderr.write(msg + '\n\n')
+        return False
+
     @classmethod
     def get_configurations(cls):
         return cls.get_configurations_in_japanese()
@@ -2005,25 +2045,26 @@ class Form:
         cfgs += \
             '<!-----------------------[CONFIGRATIONS]-------------------------'
         cfgs += '\n'
-        cfgs += 'document_title: ' + cls.document_title + '\n'
-        cfgs += 'document_style: ' + cls.document_style + '\n'
-        cfgs += 'paper_size:     ' + str(cls.paper_size) + '\n'
-        cfgs += 'top_margin:     ' + str(round(cls.top_margin, 1)) + '\n'
-        cfgs += 'bottom_margin:  ' + str(round(cls.bottom_margin, 1)) + '\n'
-        cfgs += 'left_margin:    ' + str(round(cls.left_margin, 1)) + '\n'
-        cfgs += 'right_margin:   ' + str(round(cls.right_margin, 1)) + '\n'
-        cfgs += 'header_string:  ' + str(cls.header_string) + '\n'
-        cfgs += 'page_number:    ' + str(cls.page_number) + '\n'
-        cfgs += 'line_number:    ' + str(cls.line_number) + '\n'
-        cfgs += 'mincho_font:    ' + cls.mincho_font + '\n'
-        cfgs += 'gothic_font:    ' + cls.gothic_font + '\n'
-        cfgs += 'ivs_font:       ' + cls.ivs_font + '\n'
-        cfgs += 'font_size:      ' + str(round(cls.font_size, 1)) + '\n'
-        cfgs += 'line_spacing:   ' + str(round(cls.line_spacing, 2)) + '\n'
-        cfgs += 'space_before:   ' + cls.space_before + '\n'
-        cfgs += 'space_after:    ' + cls.space_after + '\n'
-        cfgs += 'auto_space:     ' + str(cls.auto_space) + '\n'
-        cfgs += 'original_file:  ' + cls.original_file + '\n'
+        cfgs += 'document_title:  ' + cls.document_title + '\n'
+        cfgs += 'document_style:  ' + cls.document_style + '\n'
+        cfgs += 'paper_size:      ' + str(cls.paper_size) + '\n'
+        cfgs += 'top_margin:      ' + str(round(cls.top_margin, 1)) + '\n'
+        cfgs += 'bottom_margin:   ' + str(round(cls.bottom_margin, 1)) + '\n'
+        cfgs += 'left_margin:     ' + str(round(cls.left_margin, 1)) + '\n'
+        cfgs += 'right_margin:    ' + str(round(cls.right_margin, 1)) + '\n'
+        cfgs += 'header_string:   ' + str(cls.header_string) + '\n'
+        cfgs += 'page_number:     ' + str(cls.page_number) + '\n'
+        cfgs += 'line_number:     ' + str(cls.line_number) + '\n'
+        cfgs += 'mincho_font:     ' + cls.mincho_font + '\n'
+        cfgs += 'gothic_font:     ' + cls.gothic_font + '\n'
+        cfgs += 'ivs_font:        ' + cls.ivs_font + '\n'
+        cfgs += 'font_size:       ' + str(round(cls.font_size, 1)) + '\n'
+        cfgs += 'line_spacing:    ' + str(round(cls.line_spacing, 2)) + '\n'
+        cfgs += 'space_before:    ' + cls.space_before + '\n'
+        cfgs += 'space_after:     ' + cls.space_after + '\n'
+        cfgs += 'auto_space:      ' + str(cls.auto_space) + '\n'
+        cfgs += 'revision_number: ' + str(cls.revision_number) + '\n'
+        cfgs += 'original_file:   ' + cls.original_file + '\n'
         cfgs += \
             '---------------------------------------------------------------->'
         cfgs += '\n'
@@ -2039,7 +2080,7 @@ class Form:
         cfgs += '\n\n'
 
         cfgs += \
-            '# プロパティに表示される書面のタイトルを指定ください。'
+            '# プロパティに表示される文書のタイトルを指定できます。'
         cfgs += '\n'
         cfgs += '書題名: ' + cls.document_title + '\n'
         cfgs += '\n'
@@ -2138,6 +2179,13 @@ class Form:
         else:
             cfgs += '字間整: 無\n'
         cfgs += '\n'
+
+        if cls.revision_number > 1:
+            cfgs += \
+                '# 文書の改訂番号を指定できます。'
+            cfgs += '\n'
+            cfgs += '改番号: ' + str(cls.revision_number) + '\n'
+            cfgs += '\n'
 
         cfgs += \
             '# 変換元のWordファイルの最終更新日時が自動で指定されます。'
