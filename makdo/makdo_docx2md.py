@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.09.22-17:31:28-JST>
+# Time-stamp:   <2023.09.22-17:59:21-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -49,6 +49,7 @@
 # d2m.set_space_after('ppp')
 # d2m.set_auto_space('qqq')
 # d2m.set_version_number('rrr')
+# d2m.set_content_status('sss')
 # d2m.save('xxx.md')
 
 
@@ -176,6 +177,11 @@ def get_arguments():
         metavar='VERSION_NUMBER',
         help='バージョン番号')
     parser.add_argument(
+        '--content-status',
+        type=str,
+        metavar='CONTENT_STATUS',
+        help='書面の状態')
+    parser.add_argument(
         'docx_file',
         help='MS Wordファイル')
     parser.add_argument(
@@ -239,6 +245,8 @@ TABLE_SPACE_AFTER = 0.2
 DEFAULT_AUTO_SPACE = False
 
 DEFAULT_VERSION_NUMBER = ''
+
+DEFAULT_CONTENT_STATUS = ''
 
 NOT_ESCAPED = '^((?:(?:.|\n)*?[^\\\\])?(?:\\\\\\\\)*?)?'
 # NOT_ESCAPED = '^((?:(?:.|\n)*[^\\\\])?(?:\\\\\\\\)*)?'
@@ -1471,6 +1479,7 @@ class Form:
     space_after = DEFAULT_SPACE_AFTER
     auto_space = DEFAULT_AUTO_SPACE
     version_number = DEFAULT_VERSION_NUMBER
+    content_status = DEFAULT_CONTENT_STATUS
     original_file = ''
 
     styles = None
@@ -1491,7 +1500,8 @@ class Form:
     def configure(self):
         # PAPER SIZE, MARGIN, LINE NUMBER, DOCUMENT STYLE
         self._configure_by_document_xml(self.document_xml_lines)
-        # DOCUMENT TITLE, DOCUMENT STYLE, VERSION NUMBER, ORIGINAL FILE
+        # DOCUMENT TITLE, DOCUMENT STYLE, VERSION NUMBER, CONTENT STATUS,
+        # ORIGINAL FILE
         self._configure_by_core_xml(self.core_xml_lines)
         # FONT, LINE SPACING, AUTO SPACE, SAPCE BEFORE AND AFTER
         self._configure_by_styles_xml(self.styles_xml_lines)
@@ -1598,6 +1608,12 @@ class Form:
             if i > 0 and re.match(resb, xml_lines[i - 1], re.I):
                 if not re.match(rese, xl, re.I):
                     Form.version_number = xl
+            # CONTENT STATUS
+            resb = '^<cp:contentStatus>$'
+            rese = '^</cp:contentStatus>$'
+            if i > 0 and re.match(resb, xml_lines[i - 1], re.I):
+                if not re.match(rese, xl, re.I):
+                    Form.content_status = xl
             # ORIGINAL FILE
             resb = '^<dcterms:modified( .*)?>$'
             rese = '^</dcterms:modified>$'
@@ -1770,6 +1786,8 @@ class Form:
                 Form.set_auto_space(str(args.auto_space))
             if args.version_number is not None:
                 Form.set_version_number(args.version_number)
+            if args.content_status is not None:
+                Form.set_content_status(args.content_status)
 
     @staticmethod
     def set_document_title(value, item='document_title'):
@@ -2025,6 +2043,13 @@ class Form:
         Form.version_number = value
         return True
 
+    @staticmethod
+    def set_content_status(value, item='content_status'):
+        if value is None:
+            return False
+        Form.content_status = value
+        return True
+
     @classmethod
     def get_configurations(cls):
         return cls.get_configurations_in_japanese()
@@ -2054,7 +2079,8 @@ class Form:
         cfgs += 'space_before:   ' + cls.space_before + '\n'
         cfgs += 'space_after:    ' + cls.space_after + '\n'
         cfgs += 'auto_space:     ' + str(cls.auto_space) + '\n'
-        cfgs += 'version_number: ' + str(cls.version_number) + '\n'
+        cfgs += 'version_number: ' + cls.version_number + '\n'
+        cfgs += 'content_status: ' + cls.content_status + '\n'
         cfgs += 'original_file:  ' + cls.original_file + '\n'
         cfgs += \
             '---------------------------------------------------------------->'
@@ -2176,6 +2202,13 @@ class Form:
                 '# 文書のバージョン番号を文字列で指定できます。'
             cfgs += '\n'
             cfgs += '版番号: ' + cls.version_number + '\n'
+            cfgs += '\n'
+
+        if cls.content_status != '':
+            cfgs += \
+                '# 文書の状態を文字列で指定できます。'
+            cfgs += '\n'
+            cfgs += '書状態: ' + cls.content_status + '\n'
             cfgs += '\n'
 
         cfgs += \

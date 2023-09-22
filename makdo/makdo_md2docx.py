@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.09.22-17:35:14-JST>
+# Time-stamp:   <2023.09.22-18:03:44-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -49,6 +49,7 @@
 # m2d.set_space_after('ppp')
 # m2d.set_auto_space('qqq')
 # m2d.set_version_number('rrr')
+# m2d.set_content_status('sss')
 # m2d.save('xxx.docx')
 
 
@@ -191,6 +192,11 @@ def get_arguments():
         metavar='VERSION_NUMBER',
         help='バージョン番号')
     parser.add_argument(
+        '--content-status',
+        type=str,
+        metavar='CONTENT_STATUS',
+        help='文書の状態')
+    parser.add_argument(
         'md_file',
         help='Markdownファイル')
     parser.add_argument(
@@ -310,6 +316,8 @@ TABLE_SPACE_AFTER = 0.2
 DEFAULT_AUTO_SPACE = False
 
 DEFAULT_VERSION_NUMBER = ''
+
+DEFAULT_CONTENT_STATUS = ''
 
 NOT_ESCAPED = '^((?:(?:.|\n)*?[^\\\\])?(?:\\\\\\\\)*?)?'
 # NOT_ESCAPED = '^((?:(?:.|\n)*[^\\\\])?(?:\\\\\\\\)*)?'
@@ -1314,6 +1322,7 @@ class Form:
     space_after = DEFAULT_SPACE_AFTER
     auto_space = DEFAULT_AUTO_SPACE
     version_number = DEFAULT_VERSION_NUMBER
+    content_status = DEFAULT_CONTENT_STATUS
     original_file = ''
 
     def __init__(self):
@@ -1385,6 +1394,8 @@ class Form:
                 Form.set_auto_space(val, nam)
             elif nam == 'version_number' or nam == '版番号':
                 Form.set_version_number(val, nam)
+            elif nam == 'content_status' or nam == '書状態':
+                Form.set_content_status(val, nam)
             elif nam == 'original_file' or nam == '元原稿':
                 Form.set_original_file(val, nam)
             else:
@@ -1435,6 +1446,8 @@ class Form:
                 Form.set_auto_space(str(args.auto_space))
             if args.version_number is not None:
                 Form.set_version_number(args.version_number)
+            if args.content_status is not None:
+                Form.set_content_status(args.content_status)
 
     @staticmethod
     def set_document_title(value, item='document_title'):
@@ -1691,6 +1704,13 @@ class Form:
         return True
 
     @staticmethod
+    def set_content_status(value, item='content_status'):
+        if value is None:
+            return False
+        Form.content_status = value
+        return True
+
+    @staticmethod
     def set_original_file(value, item='original_file'):
         if value is None:
             return False
@@ -1925,6 +1945,7 @@ class Document:
         # dt = datetime.datetime.now(jst)
         # pt = datetime.datetime(1970, 1, 1, 9, 0, 0, tzinfo=jst)
         vn = Form.version_number
+        cs = Form.content_status
         ms_cp = ms_doc.core_properties
         ms_cp.identifier \
             = 'makdo(' + __version__.split()[0] + ');' \
@@ -1942,7 +1963,7 @@ class Document:
         ms_cp.created = dt             # コンテンツの作成日時
         ms_cp.modified = dt            # 前回保存時
         # ms_cp.last_printed = pt      # 前回印刷日
-        # ms_cp.content_status = ''    # 内容の状態
+        ms_cp.content_status = cs      # 内容の状態
         # ms_cp.language = ''          # 言語
 
     @staticmethod
