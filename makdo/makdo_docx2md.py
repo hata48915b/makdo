@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.09.22-08:37:03-JST>
+# Time-stamp:   <2023.09.22-08:48:00-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -48,7 +48,8 @@
 # d2m.set_space_before('ooo')
 # d2m.set_space_after('ppp')
 # d2m.set_auto_space('qqq')
-# d2m.set_revision_number('rrr')
+# d2m.set_version_number('rrr')
+# d2m.set_revision_number('sss')
 # d2m.save('xxx.md')
 
 
@@ -171,6 +172,11 @@ def get_arguments():
         action='store_true',
         help='全角文字と半角文字との間の間隔を微調整します')
     parser.add_argument(
+        '--version-number',
+        type=str,
+        metavar='VERSION_NUMBER',
+        help='バージョン番号')
+    parser.add_argument(
         '--revision-number',
         type=positive_integer,
         metavar='REVISION_NUMBER',
@@ -238,6 +244,7 @@ TABLE_SPACE_AFTER = 0.2
 
 DEFAULT_AUTO_SPACE = False
 
+DEFAULT_VERSION_NUMBER = ''
 DEFAULT_REVISION_NUMBER = 1
 
 NOT_ESCAPED = '^((?:(?:.|\n)*?[^\\\\])?(?:\\\\\\\\)*?)?'
@@ -1470,6 +1477,7 @@ class Form:
     space_before = DEFAULT_SPACE_BEFORE
     space_after = DEFAULT_SPACE_AFTER
     auto_space = DEFAULT_AUTO_SPACE
+    version_number = DEFAULT_VERSION_NUMBER
     revision_number = DEFAULT_REVISION_NUMBER
     original_file = ''
 
@@ -1491,7 +1499,8 @@ class Form:
     def configure(self):
         # PAPER SIZE, MARGIN, LINE NUMBER, DOCUMENT STYLE
         self._configure_by_document_xml(self.document_xml_lines)
-        # DOCUMENT TITLE, DOCUMENT STYLE, REVISION NUMBER, ORIGINAL FILE
+        # DOCUMENT TITLE, DOCUMENT STYLE, VERSION NUMBER, REVISION NUMBER,
+        # ORIGINAL FILE
         self._configure_by_core_xml(self.core_xml_lines)
         # FONT, LINE SPACING, AUTO SPACE, SAPCE BEFORE AND AFTER
         self._configure_by_styles_xml(self.styles_xml_lines)
@@ -1592,6 +1601,12 @@ class Form:
                         Form.document_style = 'k'
                     elif re.match('^.*（条文）.*$', xl):
                         Form.document_style = 'j'
+            # VERSION NUMBER
+            resb = '^<cp:version>$'
+            rese = '^</cp:version>$'
+            if i > 0 and re.match(resb, xml_lines[i - 1], re.I):
+                if not re.match(rese, xl, re.I):
+                    Form.version_number = xl
             # REVISION NUMBER
             resb = '^<cp:revision>$'
             rese = '^</cp:revision>$'
@@ -1768,6 +1783,8 @@ class Form:
                 Form.set_space_after(args.space_after)
             if args.auto_space:
                 Form.set_auto_space(str(args.auto_space))
+            if args.version_number is not None:
+                Form.set_version_number(args.version_number)
             if args.revision_number is not None:
                 Form.set_revision_number(args.revision_number)
 
@@ -2019,6 +2036,13 @@ class Form:
         sys.stderr.write(msg + '\n\n')
 
     @staticmethod
+    def set_version_number(value, item='version_number'):
+        if value is None:
+            return False
+        Form.version_number = value
+        return True
+
+    @staticmethod
     def set_revision_number(value, item='revision_number'):
         if type(value) is int:
             Form.revision_number = value
@@ -2063,6 +2087,7 @@ class Form:
         cfgs += 'space_before:    ' + cls.space_before + '\n'
         cfgs += 'space_after:     ' + cls.space_after + '\n'
         cfgs += 'auto_space:      ' + str(cls.auto_space) + '\n'
+        cfgs += 'version_number:  ' + str(cls.version_number) + '\n'
         cfgs += 'revision_number: ' + str(cls.revision_number) + '\n'
         cfgs += 'original_file:   ' + cls.original_file + '\n'
         cfgs += \
@@ -2180,10 +2205,11 @@ class Form:
             cfgs += '字間整: 無\n'
         cfgs += '\n'
 
-        if cls.revision_number > 1:
+        if cls.version_number != '' or cls.revision_number > 1:
             cfgs += \
-                '# 文書の改訂番号を指定できます。'
+                '# バージョン番号（文字列）と改訂番号（数値）を指定できます。'
             cfgs += '\n'
+            cfgs += '版番号: ' + cls.version_number + '\n'
             cfgs += '改番号: ' + str(cls.revision_number) + '\n'
             cfgs += '\n'
 

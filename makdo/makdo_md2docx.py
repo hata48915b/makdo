@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.09.21-09:47:18-JST>
+# Time-stamp:   <2023.09.22-08:58:42-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -48,7 +48,8 @@
 # m2d.set_space_before('ooo')
 # m2d.set_space_after('ppp')
 # m2d.set_auto_space('qqq')
-# m2d.set_revision_number('rrr')
+# m2d.set_version_number('rrr')
+# m2d.set_revision_number('sss')
 # m2d.save('xxx.docx')
 
 
@@ -186,6 +187,11 @@ def get_arguments():
         action='store_true',
         help='全角文字と半角文字との間の間隔を微調整します')
     parser.add_argument(
+        '--version-number',
+        type=str,
+        metavar='VERSION_NUMBER',
+        help='バージョン番号')
+    parser.add_argument(
         '--revision-number',
         type=positive_integer,
         metavar='REVISION_NUMBER',
@@ -309,6 +315,7 @@ TABLE_SPACE_AFTER = 0.2
 
 DEFAULT_AUTO_SPACE = False
 
+DEFAULT_VERSION_NUMBER = ''
 DEFAULT_REVISION_NUMBER = 1
 
 NOT_ESCAPED = '^((?:(?:.|\n)*?[^\\\\])?(?:\\\\\\\\)*?)?'
@@ -1313,6 +1320,7 @@ class Form:
     space_before = DEFAULT_SPACE_BEFORE
     space_after = DEFAULT_SPACE_AFTER
     auto_space = DEFAULT_AUTO_SPACE
+    version_number = DEFAULT_VERSION_NUMBER
     revision_number = DEFAULT_REVISION_NUMBER
     original_file = ''
 
@@ -1383,6 +1391,8 @@ class Form:
                 Form.set_space_after(val, nam)
             elif nam == 'auto_space' or nam == '字間整':
                 Form.set_auto_space(val, nam)
+            elif nam == 'version_number' or nam == '版番号':
+                Form.set_version_number(val, nam)
             elif nam == 'revision_number' or nam == '改番号':
                 Form.set_revision_number(val, nam)
             elif nam == 'original_file' or nam == '元原稿':
@@ -1433,6 +1443,8 @@ class Form:
                 Form.set_space_after(args.space_after)
             if args.auto_space:
                 Form.set_auto_space(str(args.auto_space))
+            if args.version_number is not None:
+                Form.set_version_number(args.version_number)
             if args.revision_number is not None:
                 Form.set_revision_number(args.revision_number)
 
@@ -1682,6 +1694,13 @@ class Form:
         # msg = 'warning: ' \
         #     + '"' + item + '" must be "True" or "False"'
         sys.stderr.write(msg + '\n\n')
+
+    @staticmethod
+    def set_version_number(value, item='version_number'):
+        if value is None:
+            return False
+        Form.version_number = value
+        return True
 
     @staticmethod
     def set_revision_number(value, item='revision_number'):
@@ -1935,6 +1954,7 @@ class Document:
         # jst = datetime.timezone(datetime.timedelta(hours=9))
         # dt = datetime.datetime.now(jst)
         # pt = datetime.datetime(1970, 1, 1, 9, 0, 0, tzinfo=jst)
+        vn = Form.version_number
         rn = Form.revision_number
         ms_cp = ms_doc.core_properties
         ms_cp.identifier \
@@ -1948,8 +1968,8 @@ class Document:
         # ms_cp.comments = ''          # コメント
         ms_cp.author = at              # 作成者
         # ms_cp.last_modified_by = ''  # 前回保存者
+        ms_cp.version = vn             # バージョン番号
         ms_cp.revision = rn            # 改訂番号
-        # ms_cp.version = ''           # バージョン番号
         ms_cp.created = dt             # コンテンツの作成日時
         ms_cp.modified = dt            # 前回保存時
         # ms_cp.last_printed = pt      # 前回印刷日
