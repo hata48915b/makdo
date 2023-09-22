@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.09.22-08:48:00-JST>
+# Time-stamp:   <2023.09.22-16:58:57-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2868,11 +2868,23 @@ class RawParagraph:
                 track_changes = ''
                 continue
             # FOR PAGE NUMBER
-            if re.match('^<w:fldChar w:fldCharType="begin"/>$', xl):
+            if re.match('^<w:fldChar w:fldCharType="begin"/?>$', xl):
                 fldchar = 'begin'
-            elif re.match('^<w:fldChar w:fldCharType="separate"/>$', xl):
+            elif re.match('^<w:fldChar w:fldCharType="separate"/?>$', xl):
+                is_in_text = True
+                is_italic = False
+                is_bold = False
+                has_strike = False
+                font_scale = 1.0
+                font_width = 1.0
+                is_gothic = False
+                underline = ''
+                font_color = ''
+                highlight_color = ''
+                tmp_font = ''
+                track_changes = ''  # ''|'del'|'ins'
                 fldchar = 'separate'
-            elif re.match('^<w:fldChar w:fldCharType="end"/>$', xl):
+            elif re.match('^<w:fldChar w:fldCharType="end"/?>$', xl):
                 fldchar = 'end'
             if fldchar == 'separate':
                 continue
@@ -2923,7 +2935,6 @@ class RawParagraph:
             # RUN
             if re.match('^<w:r( .*)?>$', xl):
                 sd = cls.string_data([], '', [])
-                is_in_text = True
                 continue
             if re.match('^</w:r>$', xl):
                 if sd.string != '':
@@ -3198,12 +3209,12 @@ class RawParagraph:
         text = text.replace('&lt;', '\\&lt;')
         text = text.replace('&gt;', '\\&gt;')
         # PAGE NUMBER
-        res = '^(\\S*)\\s*\\\\\\\\\\\\\\* MERGEFORMAT$'
+        res = '^ ?(\\S*)\\s*\\\\\\\\\\\\\\* MERGEFORMAT ?$'
         if fldchar == 'begin' and re.match(res, text):
             text = re.sub(res, '\\1', text)
-        if fldchar == 'begin' and re.match('^PAGE$', text, re.I):
+        if fldchar == 'begin' and re.match('^ ?PAGE ?$', text, re.I):
             text = 'n'
-        elif fldchar == 'begin' and re.match('^NUMPAGES$', text, re.I):
+        elif fldchar == 'begin' and re.match('^ ?NUMPAGES ?$', text, re.I):
             text = 'N'
         else:
             text = re.sub('(n|N)', '\\\\\\1', text)
