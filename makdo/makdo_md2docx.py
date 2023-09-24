@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.09.24-00:17:01-JST>
+# Time-stamp:   <2023.09.25-08:13:20-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -50,6 +50,7 @@
 # m2d.set_auto_space('qqq')
 # m2d.set_version_number('rrr')
 # m2d.set_content_status('sss')
+# m2d.set_with_remarks('ttt')
 # m2d.save('xxx.docx')
 
 
@@ -197,6 +198,10 @@ def get_arguments():
         metavar='CONTENT_STATUS',
         help='文書の状態')
     parser.add_argument(
+        '--no-remarks',
+        action='store_true',
+        help='段落に備考を付記しません')
+    parser.add_argument(
         'md_file',
         help='Markdownファイル')
     parser.add_argument(
@@ -235,6 +240,7 @@ HELP_EPILOG = '''Markdownの記法:
     [<<=(数字) ]で段落1行目の左の余白を文字数だけ増減します（独自）
     [<=(数字) ]で段落の左の余白を文字数だけ増減します（独自）
     [>=(数字) ]で段落の右の余白を文字数だけ増減します（独自）
+    [;; ]で段落の備考を付記することができます（独自）
   行中指示
     [->]から[<-]又は行末まではコメントアウトされます（独自）
     [<>]は何もせず表示もされません（独自）
@@ -318,6 +324,8 @@ DEFAULT_AUTO_SPACE = False
 DEFAULT_VERSION_NUMBER = ''
 
 DEFAULT_CONTENT_STATUS = ''
+
+DEFAULT_WITH_REMARKS = True
 
 NOT_ESCAPED = '^((?:(?:.|\n)*?[^\\\\])?(?:\\\\\\\\)*?)?'
 # NOT_ESCAPED = '^((?:(?:.|\n)*[^\\\\])?(?:\\\\\\\\)*)?'
@@ -1323,6 +1331,7 @@ class Form:
     auto_space = DEFAULT_AUTO_SPACE
     version_number = DEFAULT_VERSION_NUMBER
     content_status = DEFAULT_CONTENT_STATUS
+    with_remarks = DEFAULT_WITH_REMARKS
     original_file = ''
 
     def __init__(self):
@@ -1396,6 +1405,8 @@ class Form:
                 Form.set_version_number(val, nam)
             elif nam == 'content_status' or nam == '書状態':
                 Form.set_content_status(val, nam)
+            elif nam == 'with_remarks' or nam == '備考書':
+                Form.set_with_remarks(val, nam)
             elif nam == 'original_file' or nam == '元原稿':
                 Form.set_original_file(val, nam)
             else:
@@ -1427,7 +1438,7 @@ class Form:
             if args.page_number is not None:
                 Form.set_page_number(args.page_number)
             if args.line_number:
-                Form.set_line_number('True')
+                Form.set_line_number(str(args.line_number))
             if args.mincho_font is not None:
                 Form.set_mincho_font(args.mincho_font)
             if args.gothic_font is not None:
@@ -1448,6 +1459,8 @@ class Form:
                 Form.set_version_number(args.version_number)
             if args.content_status is not None:
                 Form.set_content_status(args.content_status)
+            if args.no_remarks:
+                Form.set_with_remarks('False')
 
     @staticmethod
     def set_document_title(value, item='document_title'):
@@ -1709,6 +1722,24 @@ class Form:
             return False
         Form.content_status = value
         return True
+
+    @staticmethod
+    def set_with_remarks(value, item='with_remarks'):
+        if value is None:
+            return False
+        value = unicodedata.normalize('NFKC', value)
+        if value == 'True' or value == '有':
+            Form.with_remarks = True
+            return True
+        elif value == 'False' or value == '無':
+            Form.with_remarks = False
+            return True
+        msg = '※ 警告: ' \
+            + '「' + item + '」の値は' \
+            + '"有"又は"無"でなければなりません'
+        # msg = 'warning: ' \
+        #     + '"' + item + '" must be "True" or "False"'
+        sys.stderr.write(msg + '\n\n')
 
     @staticmethod
     def set_original_file(value, item='original_file'):
