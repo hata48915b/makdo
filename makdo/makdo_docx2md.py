@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.09.22-17:59:21-JST>
+# Time-stamp:   <2023.09.25-07:50:55-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -50,6 +50,7 @@
 # d2m.set_auto_space('qqq')
 # d2m.set_version_number('rrr')
 # d2m.set_content_status('sss')
+# d2m.set_with_remarks('ttt')
 # d2m.save('xxx.md')
 
 
@@ -182,6 +183,10 @@ def get_arguments():
         metavar='CONTENT_STATUS',
         help='書面の状態')
     parser.add_argument(
+        '--no-remarks',
+        action='store_true',
+        help='段落に備考（コメント）を付記しません')
+    parser.add_argument(
         'docx_file',
         help='MS Wordファイル')
     parser.add_argument(
@@ -247,6 +252,8 @@ DEFAULT_AUTO_SPACE = False
 DEFAULT_VERSION_NUMBER = ''
 
 DEFAULT_CONTENT_STATUS = ''
+
+DEFAULT_WITH_REMARKS = True
 
 NOT_ESCAPED = '^((?:(?:.|\n)*?[^\\\\])?(?:\\\\\\\\)*?)?'
 # NOT_ESCAPED = '^((?:(?:.|\n)*[^\\\\])?(?:\\\\\\\\)*)?'
@@ -1480,10 +1487,12 @@ class Form:
     auto_space = DEFAULT_AUTO_SPACE
     version_number = DEFAULT_VERSION_NUMBER
     content_status = DEFAULT_CONTENT_STATUS
+    with_remarks = DEFAULT_WITH_REMARKS
     original_file = ''
 
     styles = None
     rels = None
+    remarks = None
 
     def __init__(self):
         # DECLARE
@@ -1495,6 +1504,7 @@ class Form:
         self.footer1_xml_lines = None
         self.footer2_xml_lines = None
         self.rels_xml_lines = None
+        self.comments_xml_lines = None
         self.args = None
 
     def configure(self):
@@ -1767,7 +1777,7 @@ class Form:
             if args.page_number is not None:
                 Form.set_page_number(args.page_number)
             if args.line_number:
-                Form.set_line_number('True')
+                Form.set_line_number(str(args.line_number))
             if args.mincho_font is not None:
                 Form.set_mincho_font(args.mincho_font)
             if args.gothic_font is not None:
@@ -1788,6 +1798,8 @@ class Form:
                 Form.set_version_number(args.version_number)
             if args.content_status is not None:
                 Form.set_content_status(args.content_status)
+            if args.no_remarks:
+                Form.set_with_remarks('False')
 
     @staticmethod
     def set_document_title(value, item='document_title'):
@@ -2050,6 +2062,24 @@ class Form:
         Form.content_status = value
         return True
 
+    @staticmethod
+    def set_with_remarks(value, item='with_remarks'):
+        if value is None:
+            return False
+        value = unicodedata.normalize('NFKC', value)
+        if value == 'True' or value == '有':
+            Form.with_remarks = True
+            return True
+        elif value == 'False' or value == '無':
+            Form.with_remarks = False
+            return True
+        msg = '※ 警告: ' \
+            + '「' + item + '」の値は' \
+            + '"有"又は"無"でなければなりません'
+        # msg = 'warning: ' \
+        #     + '"' + item + '" must be "True" or "False"'
+        sys.stderr.write(msg + '\n\n')
+
     @classmethod
     def get_configurations(cls):
         return cls.get_configurations_in_japanese()
@@ -2081,6 +2111,7 @@ class Form:
         cfgs += 'auto_space:     ' + str(cls.auto_space) + '\n'
         cfgs += 'version_number: ' + cls.version_number + '\n'
         cfgs += 'content_status: ' + cls.content_status + '\n'
+        cfgs += 'with_remarks:   ' + str(cls.with_remarks) + '\n'
         cfgs += 'original_file:  ' + cls.original_file + '\n'
         cfgs += \
             '---------------------------------------------------------------->'
@@ -2212,6 +2243,15 @@ class Form:
             cfgs += '\n'
 
         cfgs += \
+            '# 段落に備考（コメント）を付記します。'
+        cfgs += '\n'
+        if cls.with_remarks:
+            cfgs += '備考書: 有\n'
+        else:
+            cfgs += '備考書: 無\n'
+        cfgs += '\n'
+
+        cfgs += \
             '# 変換元のWordファイルの最終更新日時が自動で指定されます。'
         cfgs += '\n'
         cfgs += '元原稿: ' + cls.original_file + '\n'
@@ -2245,6 +2285,28 @@ class Form:
                 rels[rel_id] = rel_tg
         # Form.rels = rels
         return rels
+
+    @staticmethod
+    def get_remarks(xml_lines):
+        remarks = {}
+        res_beg = '^<w:comment w:id="([^"]+)"( .*)?>$'
+        res_end = '^</w:comment>$'
+        remark_id = ''
+        remark_str = ''
+        is_in_remarks = False
+        for xl in xml_lines:
+            if re.match(res_beg, xl):
+                remark_id = re.sub(res_beg, '\\1', xl)
+                remark_str = ''
+                is_in_remarks = True
+            elif re.match(res_end, xl):
+                remarks[remark_id] = remark_str
+                is_in_remarks = False
+            if re.match('^<.*>$', xl):
+                continue
+            if is_in_remarks:
+                remark_str += xl
+        return remarks
 
 
 class Document:
@@ -2760,6 +2822,7 @@ class RawParagraph:
         self.raw_text_del = ''
         self.raw_text_ins = ''
         self.raw_text_iod = ''
+        self.remarks = []
         self.style = ''
         self.alignment = ''
         self.paragraph_class = ''
@@ -2789,6 +2852,7 @@ class RawParagraph:
             self.raw_text_iod = self.raw_text_del
         if self.raw_text_del != '' and self.raw_text_ins == '':
             self.has_removed = True
+        self.remarks = self._get_remarks(xml_lines)
         self.style = self._get_style(xml_lines)
         self.alignment = self._get_alignment(self.xml_lines)
         self.paragraph_class = self._get_paragraph_class()
@@ -3432,6 +3496,16 @@ class RawParagraph:
         return raw_text_leave
 
     @staticmethod
+    def _get_remarks(xml_lines):
+        remarks = []
+        for xl in xml_lines:
+            res = '^<w:commentRangeStart w:id="(.*)"/>$'
+            if re.match(res, xl):
+                remark_id = re.sub(res, '\\1', xl)
+                remarks.append(Form.remarks[remark_id])
+        return remarks
+
+    @staticmethod
     def _get_style(xml_lines):
         style = None
         for xl in xml_lines:
@@ -3568,6 +3642,7 @@ class Paragraph:
         self.raw_text_ins = raw_paragraph.raw_text_ins
         self.raw_text_iod = raw_paragraph.raw_text_iod
         self.images = raw_paragraph.images
+        self.remarks = raw_paragraph.remarks
         self.style = raw_paragraph.style
         self.alignment = raw_paragraph.alignment
         self.paragraph_class = raw_paragraph.paragraph_class
@@ -4353,11 +4428,14 @@ class Paragraph:
 
     def get_document(self):
         paragraph_class = self.paragraph_class
+        remarks = self.remarks
         ttwwr = self.text_to_write_with_reviser
-        dcmt = ''
         if paragraph_class != 'empty':
             if ttwwr != '':
-                dcmt = ttwwr + '\n'
+                dcmt = ''
+                for r in remarks:
+                    dcmt += ';; ' + r + '\n'
+                dcmt += ttwwr + '\n'
         return dcmt
 
     def get_images(self):
@@ -5375,6 +5453,7 @@ class Docx2Md:
         footer1_xml_lines = io.read_xml_file('/word/footer1.xml')
         footer2_xml_lines = io.read_xml_file('/word/footer2.xml')
         rels_xml_lines = io.read_xml_file('/word/_rels/document.xml.rels')
+        comments_xml_lines = io.read_xml_file('/word/comments.xml')
         # CONFIGURE
         frm.document_xml_lines = document_xml_lines
         frm.core_xml_lines = core_xml_lines
@@ -5383,13 +5462,15 @@ class Docx2Md:
         frm.header2_xml_lines = header2_xml_lines
         frm.footer1_xml_lines = footer1_xml_lines
         frm.footer2_xml_lines = footer2_xml_lines
+        frm.rels_xml_lines = rels_xml_lines
+        frm.comments_xml_lines = comments_xml_lines
         frm.args = args
         frm.configure()
         # IMAGE LIST
-        # frm.rels_xml_lines = rels_xml_lines
         Form.rels = Form.get_rels(rels_xml_lines)
+        # REMARKS
+        Form.remarks = Form.get_remarks(comments_xml_lines)
         # STYLE LIST
-        # frm.styles_xml_lines = styles_xml_lines
         Form.styles = Form.get_styles(styles_xml_lines)
         # PRESERVE
         doc.document_xml_lines = document_xml_lines
