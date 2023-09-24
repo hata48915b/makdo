@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.09.25-07:50:55-JST>
+# Time-stamp:   <2023.09.25-08:03:10-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2490,13 +2490,13 @@ class Document:
                         p_next.length_docx['space before'] *= 2
             # TABLE
             elif p.paragraph_class == 'table':
-                if p_prev is not None or p_prev.paragraph_class == 'pagebreak':
+                if p_prev is None or p_prev.paragraph_class == 'pagebreak':
                     p.length_supp['space before'] += TABLE_SPACE_BEFORE
                 else:
                     p.length_docx['space before'] \
                         = p_prev.length_docx['space after']
                     p_prev.length_docx['space after'] = 0.0
-                if p_next is not None or p_next.paragraph_class == 'pagebreak':
+                if p_next is None or p_next.paragraph_class == 'pagebreak':
                     p.length_supp['space after'] += TABLE_SPACE_AFTER
                 else:
                     p.length_docx['space after'] \
@@ -4430,6 +4430,7 @@ class Paragraph:
         paragraph_class = self.paragraph_class
         remarks = self.remarks
         ttwwr = self.text_to_write_with_reviser
+        dcmt = ''
         if paragraph_class != 'empty':
             if ttwwr != '':
                 dcmt = ''
