@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.10.02-08:22:59-JST>
+# Time-stamp:   <2023.10.02-09:19:09-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -199,7 +199,8 @@ def get_arguments():
 
 def floats6(s):
     if not re.match('^' + RES_NUMBER6 + '$', s):
-        raise argparse.ArgumentTypeError
+        msg = 'invalid 6 floats separated by commas value: \'' + s + '\''
+        raise argparse.ArgumentTypeError(msg)
     return s
 
 

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.10.02-08:17:30-JST>
+# Time-stamp:   <2023.10.02-09:19:10-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -209,18 +209,13 @@ def get_arguments():
         default='',
         nargs='?',
         help='MS Wordファイル')
-    # PRINT RAW PARAGRAPHS
-    parser.add_argument(
-        '--print-raw-paragraphs',
-        action='store_true',
-        help=argparse.SUPPRESS)
     return parser.parse_args()
 
 
 def floats6(s):
     if not re.match('^' + RES_NUMBER6 + '$', s):
         msg = 'invalid 6 floats separated by commas value: \'' + s + '\''
-        raise argparse.ArgumentTypeError
+        raise argparse.ArgumentTypeError(msg)
     return s
 
 
@@ -4065,14 +4060,6 @@ class Md2Docx:
         # GET RAW PARAGRAPHS
         doc.raw_paragraphs = doc.get_raw_paragraphs(doc.md_lines)
 
-    # PRINT RAW PARAGRAPHS
-    def print_raw_paragraphs(self):
-        for i, rp in enumerate(self.doc.raw_paragraphs):
-            print('<!--##################[PARAGRAPH]##################-->')
-            for ml in rp.md_lines:
-                print(ml.raw_text)
-            print('')
-
     def save(self, inputed_docx_file):
         io = self.io
         doc = self.doc
@@ -4250,10 +4237,6 @@ class Md2Docx:
 def main():
     args = get_arguments()
     m2d = Md2Docx(args.md_file, args)
-    # PRINT RAW PARAGRAPHS
-    if args.print_raw_paragraphs:
-        m2d.print_raw_paragraphs()
-        sys.exit(0)
     m2d.save(args.docx_file)
     sys.exit(0)
 
