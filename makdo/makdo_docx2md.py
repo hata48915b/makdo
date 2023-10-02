@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.09.25-08:03:10-JST>
+# Time-stamp:   <2023.10.02-08:22:59-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2695,7 +2695,7 @@ class Document:
         dcmt = ''
         for p in self.paragraphs:
             dcmt += p.get_document()
-            if p.paragraph_class != 'empty':
+            if p.paragraph_class != 'empty' and p.paragraph_class != 'remarks':
                 dcmt += '\n'
         return dcmt
 
@@ -3561,6 +3561,8 @@ class RawParagraph:
             return 'pagebreak'
         elif ParagraphBreakdown.is_this_class(self):
             return 'breakdown'
+        elif ParagraphRemarks.is_this_class(self):
+            return 'remarks'
         elif ParagraphConfiguration.is_this_class(self):
             return 'configuration'
         else:
@@ -3596,6 +3598,8 @@ class RawParagraph:
             return ParagraphPagebreak(self)
         elif paragraph_class == 'breakdown':
             return ParagraphBreakdown(self)
+        elif paragraph_class == 'remarks':
+            return ParagraphRemarks(self)
         else:
             return ParagraphSentence(self)
 
@@ -4435,7 +4439,7 @@ class Paragraph:
             if ttwwr != '':
                 dcmt = ''
                 for r in remarks:
-                    dcmt += ';; ' + r + '\n'
+                    dcmt += '"" ' + r + '\n'
                 dcmt += ttwwr + '\n'
         return dcmt
 
@@ -5404,6 +5408,29 @@ class ParagraphBreakdown(Paragraph):
         return False
 
 
+class ParagraphRemarks(Paragraph):
+
+    """A class to handle remarks paragraph"""
+
+    paragraph_class = 'remarks'
+
+    @classmethod
+    def is_this_class(cls, raw_paragraph):
+        rp = raw_paragraph
+        rp_sty = rp.style
+        if rp_sty == 'makdo-r':
+            return True
+        return False
+
+    def get_text_to_write_with_reviser(self):
+        md_lines_text = self.md_lines_text
+        ttwwr = md_lines_text
+        ttwwr = re.sub('^●', '"" ', ttwwr)
+        ttwwr = re.sub('\n●', '\n"" ', ttwwr)
+        text_to_write_with_reviser = ttwwr
+        return text_to_write_with_reviser
+
+
 class ParagraphSentence(Paragraph):
 
     """A class to handle sentence paragraph"""
@@ -5641,6 +5668,14 @@ class Docx2Md:
     @staticmethod
     def get_auto_space():
         return Form.auto_space
+
+    @staticmethod
+    def set_with_remarks(value):
+        return Form.set_with_remarks(str(value))
+
+    @staticmethod
+    def get_auto_space():
+        return Form.with_remarks
 
 
 ############################################################

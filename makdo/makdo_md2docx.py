@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.09.25-08:13:20-JST>
+# Time-stamp:   <2023.10.02-08:17:30-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -240,7 +240,7 @@ HELP_EPILOG = '''Markdownの記法:
     [<<=(数字) ]で段落1行目の左の余白を文字数だけ増減します（独自）
     [<=(数字) ]で段落の左の余白を文字数だけ増減します（独自）
     [>=(数字) ]で段落の右の余白を文字数だけ増減します（独自）
-    [;; ]で段落の備考を付記することができます（独自）
+    ["" ]で段落の備考を付記することができます（独自）
   行中指示
     [->]から[<-]又は行末まではコメントアウトされます（独自）
     [<>]は何もせず表示もされません（独自）
@@ -1129,6 +1129,20 @@ class IO:
         ms_doc.styles.add_style('makdo-h', WD_STYLE_TYPE.PARAGRAPH)
         ms_doc.styles['makdo-h'].paragraph_format.line_spacing = 0
         ms_doc.styles['makdo-h'].font.size = Pt(m_size * 0.5)
+        # REMARKS
+        ms_doc.styles.add_style('makdo-r', WD_STYLE_TYPE.PARAGRAPH)
+        ms_doc.styles['makdo-r'].paragraph_format.line_spacing = 0
+        ms_doc.styles['makdo-r'].paragraph_format.space_before = Pt(10.5)
+        ms_doc.styles['makdo-r'].paragraph_format.space_after = Pt(10.5)
+        ms_doc.styles['makdo-r'].paragraph_format.first_line_indent = 0
+        ms_doc.styles['makdo-r'].paragraph_format.left_indent = 0
+        ms_doc.styles['makdo-r'].paragraph_format.right_indent = 0
+        ms_doc.styles['makdo-r'].font.name = Form.gothic_font
+        ms_doc.styles['makdo-r'].element.rPr.rFonts.set(ns.qn('w:eastAsia'),
+                                                        Form.gothic_font)
+        ms_doc.styles['makdo-r'].font.size = Pt(10.5)
+        ms_doc.styles['makdo-r'].font.color.rgb = RGBColor(255, 255, 0)
+        ms_doc.styles['makdo-r'].font.highlight_color = WD_COLOR_INDEX.BLUE
 
 
 class MdFile:
@@ -1793,6 +1807,9 @@ class Document:
                     if re.match(res_r + '|' + res_s, pre_text):
                         if re.match(res_r + '|' + res_s, cur_text):
                             is_block_end = True
+                if re.match(ParagraphRemarks.res_feature, pre_text) and \
+                   not re.match(ParagraphRemarks.res_feature, cur_text):
+                    is_block_end = True
             if is_block_end:
                 if len(block) == 0:
                     if ml.raw_text != '':
@@ -2215,6 +2232,8 @@ class RawParagraph:
             return 'horizontalline'
         elif ParagraphBreakdown.is_this_class(ft, hfrs, tfrs):
             return 'breakdown'
+        elif ParagraphRemarks.is_this_class(ft, hfrs, tfrs):
+            return 'remarks'
         else:
             return 'sentence'
 
@@ -2246,6 +2265,8 @@ class RawParagraph:
             return ParagraphHorizontalLine(self)
         elif paragraph_class == 'breakdown':
             return ParagraphBreakdown(self)
+        elif paragraph_class == 'remarks':
+            return ParagraphRemarks(self)
         else:
             return ParagraphSentence(self)
 
@@ -3868,6 +3889,25 @@ class ParagraphBreakdown(Paragraph):
     res_feature = NOT_ESCAPED + '!.*!$'
 
 
+class ParagraphRemarks(Paragraph):
+
+    """A class to handle remarks paragraph"""
+
+    paragraph_class = 'remarks'
+    res_feature = '^""\\s+.*$'
+
+    def write_paragraph(self, ms_doc):
+        if not Form.with_remarks:
+            return
+        md_lines = self.md_lines
+        ms_par = ms_doc.add_paragraph(style='makdo-r')
+        for i, ml in enumerate(md_lines):
+            text = '●' + re.sub('^""\\s+', '', ml.text)
+            if i < len(md_lines) - 1:
+                text += '\n'
+            ms_run = ms_par.add_run(text)
+
+
 class ParagraphSentence(Paragraph):
 
     """A class to handle sentence paragraph"""
@@ -4193,6 +4233,14 @@ class Md2Docx:
     @staticmethod
     def get_auto_space():
         return Form.auto_space
+
+    @staticmethod
+    def set_with_remarks(value):
+        return Form.set_with_remarks(str(value))
+
+    @staticmethod
+    def get_with_remarks():
+        return Form.with_remarks
 
 
 ############################################################
