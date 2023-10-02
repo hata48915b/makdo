@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.10.02-09:19:10-JST>
+# Time-stamp:   <2023.10.02-09:24:23-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1358,6 +1358,13 @@ class Form:
         Paragraph.gothic_font = Form.gothic_font
         Paragraph.ivs_font = Form.ivs_font
         Paragraph.font_size = Form.font_size
+        # PRINT MESSAGES
+        if not self.with_remarks:
+            msg = '※ 警告: ' \
+                + '備考書（コメント）は削除されます'
+            # msg = 'warning: ' \
+            #     + 'remarks(comments) is removed'
+            sys.stderr.write(msg + '\n\n')
 
     @staticmethod
     def _configure_by_md_file(md_lines):
