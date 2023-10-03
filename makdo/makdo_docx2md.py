@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.10.02-09:19:09-JST>
+# Time-stamp:   <2023.10.03-12:56:14-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -3500,7 +3500,7 @@ class RawParagraph:
     def _get_remarks(xml_lines):
         remarks = []
         for xl in xml_lines:
-            res = '^<w:commentRangeStart w:id="(.*)"/>$'
+            res = '^<w:commentReference w:id="(.*)"/>$'
             if re.match(res, xl):
                 remark_id = re.sub(res, '\\1', xl)
                 remarks.append(Form.remarks[remark_id])
