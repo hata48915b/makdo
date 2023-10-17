@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.10.03-12:56:14-JST>
+# Time-stamp:   <2023.10.17-19:52:13-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -5671,11 +5671,27 @@ class Docx2Md:
         return Form.auto_space
 
     @staticmethod
+    def set_version_number(value):
+        return Form.set_version_number(value)
+
+    @staticmethod
+    def get_version_number():
+        return Form.version_number
+
+    @staticmethod
+    def set_content_status(value):
+        return Form.set_content_status(value)
+
+    @staticmethod
+    def get_content_status():
+        return Form.content_status
+
+    @staticmethod
     def set_with_remarks(value):
         return Form.set_with_remarks(str(value))
 
     @staticmethod
-    def get_auto_space():
+    def get_with_remarks():
         return Form.with_remarks
 
 

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.10.02-09:24:23-JST>
+# Time-stamp:   <2023.10.17-19:52:01-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -4227,6 +4227,22 @@ class Md2Docx:
     @staticmethod
     def get_auto_space():
         return Form.auto_space
+
+    @staticmethod
+    def set_version_number(value):
+        return Form.set_version_number(value)
+
+    @staticmethod
+    def get_version_number():
+        return Form.version_number
+
+    @staticmethod
+    def set_content_status(value):
+        return Form.set_content_status(value)
+
+    @staticmethod
+    def get_content_status():
+        return Form.content_status
 
     @staticmethod
     def set_with_remarks(value):
