@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.10.17-19:52:01-JST>
+# Time-stamp:   <2023.10.18-18:13:46-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -3904,6 +3904,8 @@ class ParagraphRemarks(Paragraph):
         md_lines = self.md_lines
         ms_par = ms_doc.add_paragraph(style='makdo-r')
         for i, ml in enumerate(md_lines):
+            if ml.text == '':
+                continue
             text = '●' + re.sub('^""\\s+', '', ml.text)
             if i < len(md_lines) - 1:
                 text += '\n'
@@ -4067,19 +4069,24 @@ class Md2Docx:
         # GET RAW PARAGRAPHS
         doc.raw_paragraphs = doc.get_raw_paragraphs(doc.md_lines)
 
-    def save(self, inputed_docx_file):
-        io = self.io
+    def make_docx(self):
         doc = self.doc
         frm = self.frm
         # GET PARAGRAPHS
         doc.paragraphs = doc.get_paragraphs(doc.raw_paragraphs)
         doc.paragraphs = doc.modify_paragraphs(doc.paragraphs)
+        # PRINT WARNING MESSAGES
+        doc.print_warning_messages()
+
+    def save(self, inputed_docx_file):
+        io = self.io
+        doc = self.doc
+        # MAKE DOCX
+        self.make_docx()
         # WRITE DOCUMENT
         io.ms_doc = io.get_ms_doc()
         doc.write_property(io.ms_doc)
         doc.write_document(io.ms_doc)
-        # PRINT WARNING MESSAGES
-        doc.print_warning_messages()
         # SAVE MS WORD FILE
         io.set_docx_file(inputed_docx_file)
         io.save_docx_file()
