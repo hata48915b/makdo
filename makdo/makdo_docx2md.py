@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.10.17-19:52:13-JST>
+# Time-stamp:   <2023.10.19-09:44:10-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -5504,10 +5504,9 @@ class Docx2Md:
         # PRESERVE
         doc.document_xml_lines = document_xml_lines
 
-    def save(self, inputed_md_file):
+    def make_md(self, inputed_md_file):
         io = self.io
         doc = self.doc
-        frm = self.frm
         document_xml_lines = doc.document_xml_lines
         # SET MARKDOWN FILE NAME
         io.set_md_file(inputed_md_file)
@@ -5516,6 +5515,13 @@ class Docx2Md:
         doc.raw_paragraphs = doc.get_raw_paragraphs(document_xml_lines)
         doc.paragraphs = doc.get_paragraphs(doc.raw_paragraphs)
         doc.paragraphs = doc.modify_paragraphs()
+
+    def save(self, inputed_md_file):
+        io = self.io
+        doc = self.doc
+        frm = self.frm
+        # MAKE MD
+        self.make_md(inputed_md_file)
         # SAVE MARKDOWN FILE
         io.open_md_file()
         cfgs = frm.get_configurations()
