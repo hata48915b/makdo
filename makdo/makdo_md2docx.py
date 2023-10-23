@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.10.18-18:13:46-JST>
+# Time-stamp:   <2023.10.23-20:06:10-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1796,22 +1796,28 @@ class Document:
             if is_in_configurations:
                 block.append(ml)
                 continue
+            # CONFIRM BLOCK END
             is_block_end = False
             if ml.raw_text == '':
                 is_block_end = True
-            pre_text = ''
             if len(block) > 0:
                 pre_text = block[-1].raw_text
                 cur_text = ml.raw_text
                 for pc in [ParagraphChapter, ParagraphSection, ParagraphList]:
-                    res_r = '^\\s*' + pc.res_reviser + '(\\s.*)?$'
-                    res_s = '^\\s*' + pc.res_symbol + '\\s+\\S+.*$'
-                    if re.match(res_r + '|' + res_s, pre_text):
-                        if re.match(res_r + '|' + res_s, cur_text):
-                            is_block_end = True
+                    res = '^\\s*' + pc.res_symbol + '\\s+\\S+.*$'
+                    if re.match(res, pre_text) and re.match(res, cur_text):
+                        is_block_end = True
+                    # REMOVED 23.10.23 >
+                    # res_r = '^\\s*' + pc.res_reviser + '(\\s.*)?$'
+                    # res_s = '^\\s*' + pc.res_symbol + '\\s+\\S+.*$'
+                    # if re.match(res_r + '|' + res_s, pre_text):
+                    #     if re.match(res_r + '|' + res_s, cur_text):
+                    #         is_block_end = True
+                    # <
                 if re.match(ParagraphRemarks.res_feature, pre_text) and \
                    not re.match(ParagraphRemarks.res_feature, cur_text):
                     is_block_end = True
+            # RECORD
             if is_block_end:
                 if len(block) == 0:
                     if ml.raw_text != '':
