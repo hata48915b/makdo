@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.02-10:33:03-JST>
+# Time-stamp:   <2023.11.02-10:52:19-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -3724,8 +3724,23 @@ class ParagraphMath(Paragraph):
                         return True
         return False
 
-    #def write_paragraph(self, ms_doc):
-    #    pass
+    def write_paragraph(self, ms_doc):
+        ttwwr = self.text_to_write_with_reviser
+        # OMATH
+        ms_tmp = ms_doc.add_paragraph()
+        ms_mat = ms_tmp._p.add_p_before()
+        ms_mat.style = 'makdo'
+        p = ms_tmp._element
+        p.getparent().remove(p)
+        ms_tmp._p = ms_tmp._element = None
+        oe = OxmlElement('m:oMath')
+        ms_mat.insert_element_before(oe)
+        # MATH EXPRESSION
+        ttwwr = re.sub('^\\\\\\[(.*)\\\\\\]$', '\\1', ttwwr)
+        lev = 0
+        s = ''
+        for c in ttwwr:
+            pass
 
 
 class ParagraphAlignment(Paragraph):
