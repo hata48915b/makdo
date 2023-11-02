@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.10.19-09:44:10-JST>
+# Time-stamp:   <2023.11.02-10:34:28-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2995,6 +2995,13 @@ class RawParagraph:
                 img_size = ''
             if should_continue:
                 continue
+            # MATH
+            if 'math_str' not in locals():
+                math_str = None
+            math_str, text_data, should_continue \
+                = cls._manage_math_expression(xl, math_str, text_data)
+            if should_continue:
+                continue
             # RUN
             if re.match('^<w:r( .*)?>$', xl):
                 sd = cls.string_data([], '', [])
@@ -3248,6 +3255,101 @@ class RawParagraph:
                 + '(' + media_dir + '/' + img_file_name + ')'
         return img_md_text
 
+    @classmethod
+    def _manage_math_expression(cls, xl, math_str, text_data):
+        should_continue = False
+        # MATH MODE
+        if re.match('^<m:oMath>$', xl):
+            math_str = ''
+            math_str += '\\['
+            should_continue = True
+        elif re.match('^</m:oMath>$', xl):
+            math_str += '\\]'
+            res = '([^0-9A-Za-z]){(.)}([^0-9A-Za-z])'
+            math_str = re.sub(res, '\\1\\2\\3', math_str)
+            math_str = re.sub(res, '\\1\\2\\3', math_str)
+            res = '{{' + '([^{}]*' \
+                + ('(?:{[^{}]*' * 5) + ('}[^{}]*)*' * 5) \
+                + ')' + '}}'
+            math_tmp = ''
+            while math_tmp != math_str:
+                math_tmp = math_str
+                math_str = re.sub(res, '{\\1}', math_str)
+            text_data.append(cls.string_data([], math_str, []))
+            math_str = None
+            should_continue = True
+        # LINE BREAK
+        elif re.match('^<m:brk( .*)?/>$', xl):
+            math_str += '\\\\'
+        # ELEMENT
+        elif re.match('^<m:e>$', xl):
+            math_str += '{'
+            should_continue = True
+        elif re.match('^</m:e>$', xl):
+            math_str += '}'
+            should_continue = True
+        # SUP
+        elif re.match('^<m:sup>$', xl):
+            math_str += '^{'
+            should_continue = True
+        elif re.match('^</m:sup>$', xl):
+            math_str += '}'
+            should_continue = True
+        # SUB
+        elif re.match('^<m:sub>$', xl):
+            math_str += '_{'
+            should_continue = True
+        elif re.match('^</m:sub>$', xl):
+            math_str += '}'
+            should_continue = True
+        # FUNCTION
+        elif re.match('^<m:fName>$', xl):
+            math_str += '*'
+            should_continue = True
+        elif re.match('^</m:fName>$', xl):
+            math_str += '*'
+            should_continue = True
+        # INTEGRAL
+        elif re.match('^<m:nary>$', xl):
+            math_str += '\\int'
+            should_continue = True
+        # SIGMA
+        elif re.match('^<m:chr m:val="∑"/>$', xl):
+            math_str = re.sub('\\\\int$', '\\\\sum', math_str)
+            should_continue = True
+        # VECTOR
+        elif re.match('^<m:chr m:val="⃗"/>$', xl):
+            math_str += '\\vec'
+            should_continue = True
+        # RADICAL ROOT
+        elif re.match('^<m:rad>$', xl):
+            math_str += '\\sqrt'
+        elif re.match('^<m:deg>$', xl):
+            math_str += '['
+        elif re.match('^</m:deg>$', xl):
+            math_str += ']'
+        # FRACTION
+        elif re.match('^<m:f>$', xl):
+            math_str += '\\frac'
+            should_continue = True
+        elif re.match('^<m:num>$', xl):
+            math_str += '{'
+            should_continue = True
+        elif re.match('^</m:num>$', xl):
+            math_str += '}'
+            should_continue = True
+        elif re.match('^<m:den>$', xl):
+            math_str += '{'
+            should_continue = True
+        elif re.match('^</m:den>$', xl):
+            math_str += '}'
+            should_continue = True
+        # TEXT
+        elif (math_str is not None) and (not re.match('^<.*>$', xl)):
+            math_str += xl
+            should_continue = True
+        return math_str, text_data, should_continue
+
     @staticmethod
     def _prepare_text(fldchar, input_text):
         text = input_text
@@ -3255,10 +3357,10 @@ class RawParagraph:
         text = text.replace('\\', '\\\\')
         text = text.replace('*', '\\*')
         text = text.replace('`', '\\`')
-        text = text.replace('~~', '\\~\\~')
-        # text = text.replace('__', '\\_\\_')
+        text = text.replace('~~', '\\~~')
+        # text = text.replace('__', '\\__')
         text = re.sub('_([\\$=\\.#\\-~\\+]*)_', '\\\\_\\1\\\\_', text)
-        text = text.replace('//', '\\/\\/')
+        text = text.replace('//', '\\//')  # italic
         # http https ftp ...
         text = re.sub('([a-z]+:)\\\\/\\\\/', '\\1//', text)
         text = text.replace('---', '\\-\\-\\-')
@@ -3268,7 +3370,13 @@ class RawParagraph:
         text = re.sub('\\^([0-9a-zA-Z]+)\\^', '\\\\^\\1\\\\^', text)
         text = re.sub('_([0-9a-zA-Z]+)_', '\\\\_\\1\\\\_', text)
         text = re.sub('@([^@]{1,66})@', '\\\\@\\1\\\\@', text)
-        text = text.replace('%%', '\\%\\%')
+        text = re.sub('^(""\\s)', '\\\\\\1', text)
+        text = text.replace('->', '\\->')
+        text = text.replace('<-', '\\<-')
+        text = text.replace('+>', '\\+>')
+        text = text.replace('<+', '\\<+')
+        text = text.replace('\\[', '\\[')
+        text = text.replace('\\]', '\\]')
         text = text.replace('&lt;', '\\&lt;')
         text = text.replace('&gt;', '\\&gt;')
         # PAGE NUMBER
@@ -3552,6 +3660,8 @@ class RawParagraph:
             return 'table'
         elif ParagraphImage.is_this_class(self):
             return 'image'
+        elif ParagraphMath.is_this_class(self):
+            return 'math'
         elif ParagraphAlignment.is_this_class(self):
             return 'alignment'
         elif ParagraphPreformatted.is_this_class(self):
@@ -3589,6 +3699,8 @@ class RawParagraph:
             return ParagraphTable(self)
         elif paragraph_class == 'image':
             return ParagraphImage(self)
+        elif paragraph_class == 'math':
+            return ParagraphMath(self)
         elif paragraph_class == 'alignment':
             return ParagraphAlignment(self)
         elif paragraph_class == 'preformatted':
@@ -3976,6 +4088,8 @@ class Paragraph:
         if Form.document_style == 'j':
             if section_states[1][0] > 0 and tail_section_depth > 2:
                 length_clas['left indent'] -= 1.0
+        if paragraph_class == 'math':
+            length_clas['line spacing'] += 0.4
         # self.length_clas = length_clas
         return length_clas
 
@@ -5210,6 +5324,25 @@ class ParagraphImage(Paragraph):
                     + '[' + alte + ':' + 'x' + str(cm_h) + ']' \
                     + '(' + path + ')'
         return img_text
+
+
+class ParagraphMath(Paragraph):
+
+    """A class to handle math paragraph"""
+
+    paragraph_class = 'math'
+
+    @classmethod
+    def is_this_class(cls, raw_paragraph):
+        rp = raw_paragraph
+        rp_rtx = rp.raw_text_iod
+        res = '^\\\\\\[(.*)\\\\\\]$'
+        if re.match('^\\\\\\[.*$', rp_rtx):
+            if re.match(NOT_ESCAPED + '\\\\\\]$', rp_rtx):
+                tmp = re.sub(res, '\\1', rp_rtx)
+                if not re.match(NOT_ESCAPED + '\\\\[\\[\\]].*$', tmp):
+                    return True
+        return False
 
 
 class ParagraphAlignment(Paragraph):

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.10.23-20:06:10-JST>
+# Time-stamp:   <2023.11.02-10:33:03-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2230,6 +2230,8 @@ class RawParagraph:
             return 'table'
         elif ParagraphImage.is_this_class(ft, hfrs, tfrs):
             return 'image'
+        elif ParagraphMath.is_this_class(ft, hfrs, tfrs):
+            return 'math'
         elif ParagraphAlignment.is_this_class(ft, hfrs, tfrs):
             return 'alignment'
         elif ParagraphPreformatted.is_this_class(ft, hfrs, tfrs):
@@ -2263,6 +2265,8 @@ class RawParagraph:
             return ParagraphTable(self)
         elif paragraph_class == 'image':
             return ParagraphImage(self)
+        elif paragraph_class == 'math':
+            return ParagraphMath(self)
         elif paragraph_class == 'alignment':
             return ParagraphAlignment(self)
         elif paragraph_class == 'preformatted':
@@ -3700,6 +3704,28 @@ class ParagraphImage(Paragraph):
                             break
                 else:
                     self.md_lines[0].append_warning_message(msg)
+
+
+class ParagraphMath(Paragraph):
+
+    """A class to handle math paragraph"""
+
+    paragraph_class = 'math'
+    res_feature = '^\\\\\\[(.*)\\\\\\]$'
+
+    @classmethod
+    def is_this_class(cls, full_text,
+                      head_font_revisers=[], tail_font_revisers=[]):
+        if re.match(cls.res_feature, full_text):
+            if re.match('^\\\\\\[.*$', full_text):
+                if re.match(NOT_ESCAPED + '\\\\\\]$', full_text):
+                    tmp = re.sub(cls.res_feature, '\\1', full_text)
+                    if not re.match(NOT_ESCAPED + '\\\\[\\[\\]].*$', tmp):
+                        return True
+        return False
+
+    #def write_paragraph(self, ms_doc):
+    #    pass
 
 
 class ParagraphAlignment(Paragraph):
