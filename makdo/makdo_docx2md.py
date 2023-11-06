@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.02-10:34:28-JST>
+# Time-stamp:   <2023.11.06-10:03:59-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2998,9 +2998,9 @@ class RawParagraph:
             # MATH
             if 'math_str' not in locals():
                 math_str = None
-            math_str, text_data, should_continue \
+            math_str, text_data \
                 = cls._manage_math_expression(xl, math_str, text_data)
-            if should_continue:
+            if math_str is not None:
                 continue
             # RUN
             if re.match('^<w:r( .*)?>$', xl):
@@ -3257,17 +3257,16 @@ class RawParagraph:
 
     @classmethod
     def _manage_math_expression(cls, xl, math_str, text_data):
-        should_continue = False
         # MATH MODE
         if re.match('^<m:oMath>$', xl):
             math_str = ''
             math_str += '\\['
-            should_continue = True
         elif re.match('^</m:oMath>$', xl):
             math_str += '\\]'
-            res = '([^0-9A-Za-z]){(.)}([^0-9A-Za-z])'
-            math_str = re.sub(res, '\\1\\2\\3', math_str)
-            math_str = re.sub(res, '\\1\\2\\3', math_str)
+            math_str = re.sub('{}', '', math_str)
+            # res = '([^0-9A-Za-z]){([^{}])}([^0-9A-Za-z])'
+            # math_str = re.sub(res, '\\1\\2\\3', math_str)
+            # math_str = re.sub(res, '\\1\\2\\3', math_str)
             res = '{{' + '([^{}]*' \
                 + ('(?:{[^{}]*' * 5) + ('}[^{}]*)*' * 5) \
                 + ')' + '}}'
@@ -3277,78 +3276,94 @@ class RawParagraph:
                 math_str = re.sub(res, '{\\1}', math_str)
             text_data.append(cls.string_data([], math_str, []))
             math_str = None
-            should_continue = True
+        if math_str is None:
+            return math_str, text_data
+        if False:
+            pass
         # LINE BREAK
         elif re.match('^<m:brk( .*)?/>$', xl):
             math_str += '\\\\'
+        # PARENTHESES
+        elif xl == '<m:d>':
+            math_str += '(()'
+        elif re.match('^<m:begChr m:val="(.)"/>$', xl):
+            bc = re.sub('^<m:begChr m:val="(.)"/>$', '\\1', xl)
+            math_str = re.sub('\\(\\(\\)$', '(' + bc +')', math_str)
+        elif re.match('<m:endChr m:val="(.*)"/>', xl):
+            ec = re.sub('^<m:endChr m:val="(.)"/>$', '\\1', xl)
+            math_str = re.sub('\\((.)\\)$', '(\\1' + ec, math_str)
+        elif xl == '</m:d>':
+            math_str += ')'
+            res = '^(.*)\\(([\\[{\\(])([\\]}\\)])(.*)\\)$'
+            p = re.sub(res, '\\1', math_str)
+            b = re.sub(res, '\\2', math_str)
+            e = re.sub(res, '\\3', math_str)
+            i = re.sub(res, '\\4', math_str)
+            if b == '{':
+                b = '\\{'
+            if e == '}':
+                e = '\\}'
+            math_str = p + b + i + e
         # ELEMENT
-        elif re.match('^<m:e>$', xl):
+        elif xl == '<m:e>':
             math_str += '{'
-            should_continue = True
-        elif re.match('^</m:e>$', xl):
+        elif xl == '</m:e>':
             math_str += '}'
-            should_continue = True
         # SUP
-        elif re.match('^<m:sup>$', xl):
+        elif xl == '<m:sup>':
             math_str += '^{'
-            should_continue = True
-        elif re.match('^</m:sup>$', xl):
+        elif xl == '</m:sup>':
             math_str += '}'
-            should_continue = True
         # SUB
-        elif re.match('^<m:sub>$', xl):
+        elif xl == '<m:sub>':
             math_str += '_{'
-            should_continue = True
-        elif re.match('^</m:sub>$', xl):
+        elif xl == '</m:sub>':
             math_str += '}'
-            should_continue = True
         # FUNCTION
-        elif re.match('^<m:fName>$', xl):
-            math_str += '*'
-            should_continue = True
-        elif re.match('^</m:fName>$', xl):
-            math_str += '*'
-            should_continue = True
+        elif xl == '<m:fName>':
+            math_str += '\\mathrm{'
+        elif xl == '</m:fName>':
+            math_str += '}'
+            math_str = re.sub('\\\\mathrm{sin}$', '\\\\sin', math_str)
+            math_str = re.sub('\\\\mathrm{cos}$', '\\\\cos', math_str)
+            math_str = re.sub('\\\\mathrm{tan}$', '\\\\tan', math_str)
         # INTEGRAL
-        elif re.match('^<m:nary>$', xl):
+        elif xl == '<m:nary>':
             math_str += '\\int'
-            should_continue = True
         # SIGMA
-        elif re.match('^<m:chr m:val="∑"/>$', xl):
+        elif xl == '<m:chr m:val="∑"/>':
             math_str = re.sub('\\\\int$', '\\\\sum', math_str)
-            should_continue = True
+        # LIMIT
+        elif xl == '<m:lim>':
+            math_str = re.sub('\\\\mathrm{{lim}$', '\\\\lim_{{', math_str)
+        elif xl == '</m:lim>':
+            print(math_str)
+            math_str += '}'
         # VECTOR
-        elif re.match('^<m:chr m:val="⃗"/>$', xl):
+        elif xl == '<m:chr m:val="⃗"/>$':
             math_str += '\\vec'
-            should_continue = True
         # RADICAL ROOT
-        elif re.match('^<m:rad>$', xl):
+        elif xl == '<m:rad>':
             math_str += '\\sqrt'
-        elif re.match('^<m:deg>$', xl):
+        elif xl == '<m:deg>':
             math_str += '['
-        elif re.match('^</m:deg>$', xl):
+        elif xl == '</m:deg>':
             math_str += ']'
         # FRACTION
-        elif re.match('^<m:f>$', xl):
+        elif xl == '<m:f>':
             math_str += '\\frac'
-            should_continue = True
-        elif re.match('^<m:num>$', xl):
+        elif xl == '<m:num>':
             math_str += '{'
-            should_continue = True
-        elif re.match('^</m:num>$', xl):
+        elif xl == '</m:num>':
             math_str += '}'
-            should_continue = True
-        elif re.match('^<m:den>$', xl):
+        elif xl == '<m:den>':
             math_str += '{'
-            should_continue = True
-        elif re.match('^</m:den>$', xl):
+        elif xl == '</m:den>':
             math_str += '}'
-            should_continue = True
         # TEXT
         elif (math_str is not None) and (not re.match('^<.*>$', xl)):
             math_str += xl
-            should_continue = True
-        return math_str, text_data, should_continue
+        return math_str, text_data
 
     @staticmethod
     def _prepare_text(fldchar, input_text):
