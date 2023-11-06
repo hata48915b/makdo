@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.02-10:52:19-JST>
+# Time-stamp:   <2023.11.07-08:30:34-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -305,6 +305,7 @@ DEFAULT_LINE_NUMBER = False
 DEFAULT_MINCHO_FONT = 'ＭＳ 明朝'
 DEFAULT_GOTHIC_FONT = 'ＭＳ ゴシック'
 DEFAULT_IVS_FONT = 'IPAmj明朝'  # IPAmjMincho
+DEFAULT_MATH_FONT = 'Cambria Math'
 DEFAULT_FONT_SIZE = 12.0
 
 DEFAULT_LINE_SPACING = 2.14  # (2.0980+2.1812)/2=2.1396
@@ -1124,6 +1125,10 @@ class IO:
         ms_doc.styles.add_style('makdo-h', WD_STYLE_TYPE.PARAGRAPH)
         ms_doc.styles['makdo-h'].paragraph_format.line_spacing = 0
         ms_doc.styles['makdo-h'].font.size = Pt(m_size * 0.5)
+        # MATH
+        ms_doc.styles.add_style('makdo-m', WD_STYLE_TYPE.PARAGRAPH)
+        ms_doc.styles['makdo-m'].font.name = DEFAULT_MATH_FONT
+        ms_doc.styles['makdo-m'].font.size = Pt(m_size)
         # REMARKS
         ms_doc.styles.add_style('makdo-r', WD_STYLE_TYPE.PARAGRAPH)
         ms_doc.styles['makdo-r'].paragraph_format.line_spacing = 0
@@ -3726,7 +3731,137 @@ class ParagraphMath(Paragraph):
 
     def write_paragraph(self, ms_doc):
         ttwwr = self.text_to_write_with_reviser
-        # OMATH
+        ttwwr = re.sub('^\\\\\\[(.*)\\\\\\]$', '\\1', ttwwr)
+        res_paren = '{' + '([^{}]*' \
+            + ('(?:{[^{}]*' * 5) + ('}[^{}]*)*' * 5) \
+            + ')' + '}'
+        # LIMIT, SIGMA, PI, INTEGRAL
+        ttwwr = re.sub('\\^([^{}])', '^{\\1}', ttwwr)
+        ttwwr = re.sub('_([^{}])', '_{\\1}', ttwwr)
+        tmp = ''
+        while tmp != ttwwr:
+            tmp = ttwwr
+            # LIMIT
+            res = '\\\\lim' + '_' + res_paren
+            ttwwr = re.sub(res, '{\\\\Xlim{\\1}}', ttwwr)
+            # LOG
+            res = '\\\\log(?:_{([^{}]*)})? *([0-9]+(?:\\.[0-9]+)?)'
+            ttwwr = re.sub(res, '{\\\\Xlog{\\1}{\\2}}', ttwwr)
+            res = '\\\\log(?:_{([^{}]*)})? *(\\\\[A-Za-z]+)'
+            ttwwr = re.sub(res, '{\\\\Xlog{\\1}{\\2}}', ttwwr)
+            res = '\\\\log(?:_{([^{}]*)})? *([^_])'
+            ttwwr = re.sub(res, '{\\\\Xlog{\\1}{\\2}}', ttwwr)
+            res = '\\\\log(?:_{([^{}]*)})?' + res_paren
+            ttwwr = re.sub(res, '{\\\\Xlog{\\1}{\\2}}', ttwwr)
+            # SIGMA
+            res = '\\\\sum' + '_' + res_paren + '\\^' + res_paren
+            ttwwr = re.sub(res, '{\\\\Xsum{\\1}{\\2}}', ttwwr)
+            res = '\\\\sum' + '\\^' + res_paren + '_' + res_paren
+            ttwwr = re.sub(res, '{\\\\Xsum{\\2}{\\1}}', ttwwr)
+            res = '\\\\sum'
+            ttwwr = re.sub(res, '{\\\\Xsum{}{}}', ttwwr)
+            res = '{\\\\Xsum' + (res_paren * 2) + '} *([^{}])'
+            ttwwr = re.sub(res, '{\\\\Xsum{\\1}{\\2}{\\3}}', ttwwr)
+            res = '{\\\\Xsum' + (res_paren * 2) + '}' + res_paren
+            ttwwr = re.sub(res, '{\\\\Xsum{\\1}{\\2}{\\3}}', ttwwr)
+            # PI
+            res = '\\\\prod' + '_' + res_paren + '\\^' + res_paren
+            ttwwr = re.sub(res, '{\\\\Xpro{\\1}{\\2}}', ttwwr)
+            res = '\\\\prod' + '\\^' + res_paren + '_' + res_paren
+            ttwwr = re.sub(res, '{\\\\Xpro{\\2}{\\1}}', ttwwr)
+            res = '\\\\sum'
+            ttwwr = re.sub(res, '{\\\\Xpro{}{}}', ttwwr)
+            res = '{\\\\Xpro' + (res_paren * 2) + '} *([^{}])'
+            ttwwr = re.sub(res, '{\\\\Xpro{\\1}{\\2}{\\3}}', ttwwr)
+            res = '{\\\\Xpro' + (res_paren * 2) + '}' + res_paren
+            ttwwr = re.sub(res, '{\\\\Xpro{\\1}{\\2}{\\3}}', ttwwr)
+            # INTEGRAL
+            res = '\\\\int' + '_' + res_paren + '\\^' + res_paren
+            ttwwr = re.sub(res, '{\\\\Xint{\\1}{\\2}}', ttwwr)
+            res = '\\\\int' + '\\^' + res_paren + '_' + res_paren
+            ttwwr = re.sub(res, '{\\\\Xint{\\2}{\\1}}', ttwwr)
+            res = '\\\\int'
+            ttwwr = re.sub(res, '{\\\\Xint{}{}}', ttwwr)
+            res = '{\\\\Xint' + (res_paren * 2) + '} *([^{}])'
+            ttwwr = re.sub(res, '{\\\\Xint{\\1}{\\2}{\\3}}', ttwwr)
+            res = '{\\\\Xint' + (res_paren * 2) + '}' + res_paren
+            ttwwr = re.sub(res, '{\\\\Xint{\\1}{\\2}{\\3}}', ttwwr)
+        # CONBINATION, PERMUTATION, SUB, SUP
+        ttwwr = re.sub(NOT_ESCAPED + '\\\\\\^', '\\1{\\\\Xcar}', ttwwr)
+        ttwwr = re.sub(NOT_ESCAPED + '\\\\_', '\\1{\\\\Xund}', ttwwr)
+        ttwwr = re.sub('(^| )\\^', '{}^', ttwwr)
+        ttwwr = re.sub('(^| )_', '{}_', ttwwr)
+        ttwwr = re.sub('([^{}])\\^', '{\\1}^', ttwwr)
+        ttwwr = re.sub('([^{}])_', '{\\1}_', ttwwr)
+        tmp = ''
+        while tmp != ttwwr:
+            tmp = ttwwr
+            # CONBINATION
+            res = '(.*){}_' + res_paren + '(?:\\\\mathrm)?{C}_' + res_paren
+            ttwwr = re.sub(res, '\\1{\\\\Xcon{\\2}{\\3}}', ttwwr)
+            # PERMUTATION
+            res = '(.*){}_' + res_paren + '(?:\\\\mathrm)?{P}_' + res_paren
+            ttwwr = re.sub(res, '\\1{\\\\Xper{\\2}{\\3}}', ttwwr)
+        tmp = ''
+        while tmp != ttwwr:
+            tmp = ttwwr
+            # SUB AND SUP
+            res = '(.*)' + res_paren + '_' + res_paren + '\\^' + res_paren
+            ttwwr = re.sub(res, '\\1{\\\\Xsbp{\\2}{\\3}{\\4}}', ttwwr)
+            res = '(.*)' + res_paren + '\\^' + res_paren + '_' + res_paren
+            ttwwr = re.sub(res, '\\1{\\\\Xsbp{\\2}{\\4}{\\3}}', ttwwr)
+            # SUB
+            res = '(.*)' + res_paren + '_' + res_paren
+            ttwwr = re.sub(res, '\\1{\\\\Xsub{\\2}{\\3}}', ttwwr)
+            # SUP
+            res = '(.*)' + res_paren + '\\^' + res_paren
+            ttwwr = re.sub(res, '\\1{\\\\Xsup{\\2}{\\3}}', ttwwr)
+        ttwwr = re.sub('{\\\\Xcar}', '^', ttwwr)
+        ttwwr = re.sub('{\\\\Xund}', '_', ttwwr)
+        # SIN, COS, TAN
+        tmp = ''
+        while tmp != ttwwr:
+            tmp = ttwwr
+            res = '\\\\(sin|cos|tan) *([0-9]+(?:\\.[0-9]+)?)'
+            ttwwr = re.sub(res, '{\\\\X\\1{\\2}}', ttwwr)
+            res = '\\\\(sin|cos|tan) *(\\\\[A-Za-z]+)'
+            ttwwr = re.sub(res, '{\\\\X\\1{\\2}}', ttwwr)
+            res = '\\\\(sin|cos|tan) *(.)'
+            ttwwr = re.sub(res, '{\\\\X\\1{\\2}}', ttwwr)
+            res = '\\\\(sin|cos|tan)' + res_paren
+            ttwwr = re.sub(res, '{\\\\X\\1{\\2}}', ttwwr)
+        # RADICAL ROOT
+        tmp = ''
+        while tmp != ttwwr:
+            tmp = ttwwr
+            res = '\\\\sqrt(?:\\[([^\\[\\]]+)\\])? *([0-9]+(?:\\.[0-9]+)?)'
+            ttwwr = re.sub(res, '{\\\\Xrrt{\\1}{\\2}}', ttwwr)
+            res = '\\\\sqrt(?:\\[([^\\[\\]]+)\\])? *(\\\\[A-Za-z]+)'
+            ttwwr = re.sub(res, '{\\\\Xrrt{\\1}{\\2}}', ttwwr)
+            res = '\\\\sqrt(?:\\[([^\\[\\]]+)\\])? *([^\\[\\]])'
+            ttwwr = re.sub(res, '{\\\\Xrrt{\\1}{\\2}}', ttwwr)
+            res = '\\\\sqrt(?:\\[([^\\[\\]]+)\\])?' + res_paren
+            ttwwr = re.sub(res, '{\\\\Xrrt{\\1}{\\2}}', ttwwr)
+        # FRACTION
+        tmp = ''
+        while tmp != ttwwr:
+            tmp = ttwwr
+            res = '\\\\frac' + (res_paren * 2)
+            ttwwr = re.sub(res, '{\\\\Xfra{\\1}{\\2}}', ttwwr)
+        # VECTOR
+        ttwwr = re.sub('\\\\vec *([0-9A-Za-z])', '{\\\\Xvec{\\1}}', ttwwr)
+        ttwwr = re.sub('\\\\vec' + res_paren, '{\\\\Xvec{\\1}}', ttwwr)
+        # ROMAN
+        ttwwr = re.sub('\\\\mathrm *([0-9A-Za-z])', '{\\\\Xmrm{\\1}}', ttwwr)
+        ttwwr = re.sub('\\\\mathrm' + res_paren, '{\\\\Xmrm{\\1}}', ttwwr)
+        # SPACE
+        ttwwr = re.sub('\\\\ ', '\\\\Xfsp', ttwwr)
+        ttwwr = re.sub(' ', '', ttwwr)
+        ttwwr = re.sub('\\\\Xfsp', '  ', ttwwr)
+        ttwwr = re.sub('\\\\,', ' ', ttwwr)
+        ttwwr = re.sub('\\\\:', ' ', ttwwr)
+        ttwwr = re.sub('\\\\;', ' ', ttwwr)
+        # MS PARAGRAPH
         ms_tmp = ms_doc.add_paragraph()
         ms_mat = ms_tmp._p.add_p_before()
         ms_mat.style = 'makdo'
@@ -3735,12 +3870,469 @@ class ParagraphMath(Paragraph):
         ms_tmp._p = ms_tmp._element = None
         oe = OxmlElement('m:oMath')
         ms_mat.insert_element_before(oe)
-        # MATH EXPRESSION
-        ttwwr = re.sub('^\\\\\\[(.*)\\\\\\]$', '\\1', ttwwr)
-        lev = 0
+        self._write_math_expression(oe, ttwwr)
+
+    def _write_math_expression(self, oe0, ttwwr):
+        res_paren = '{' + '([^{}]*' \
+            + ('(?:{[^{}]*' * 5) + ('}[^{}]*)*' * 5) \
+            + ')' + '}'
         s = ''
-        for c in ttwwr:
-            pass
+        for c in ttwwr + '\0':
+            s += c
+            if c == '\0':
+                s = re.sub('\0$', '', s)
+                self._write_tex(oe0, s)
+            res = '^([^\\\\]*)\\\\left\\[(.*)\\\\right\\]$'
+            if re.match(res, s):
+                t1 = re.sub(res, '\\1', s)
+                t2 = re.sub(res, '{\\2}', s)
+                self._write_tex(oe0, t1)
+                self._write_prn(oe0, '[]', t2)
+                s = ''
+            res = '^([^\\\\]*)\\\\left\\\\{(.*)\\\\right\\\\}$'
+            if re.match(res, s):
+                t1 = re.sub(res, '\\1', s)
+                t2 = re.sub(res, '{\\2}', s)
+                self._write_tex(oe0, t1)
+                self._write_prn(oe0, '{}', t2)
+                s = ''
+            res = '^([^\\\\]*)\\\\left\\((.*)\\\\right\\)$'
+            if re.match(res, s):
+                t1 = re.sub(res, '\\1', s)
+                t2 = re.sub(res, '{\\2}', s)
+                self._write_tex(oe0, t1)
+                self._write_prn(oe0, '()', t2)
+                s = ''
+            res = '^([^\\\\]*){\\\\Xvec' + res_paren + '}$'
+            if re.match(res, s):
+                t1 = re.sub(res, '\\1', s)
+                t2 = re.sub(res, '{\\2}', s)
+                self._write_tex(oe0, t1)
+                self._write_vec(oe0, t2)
+                s = ''
+            res = '^([^\\\\]*){\\\\Xsbp' + (res_paren * 3) + '}$'
+            if re.match(res, s):
+                t1 = re.sub(res, '\\1', s)
+                t2 = re.sub(res, '{\\2}', s)
+                t3 = re.sub(res, '{\\3}', s)
+                t4 = re.sub(res, '{\\4}', s)
+                self._write_tex(oe0, t1)
+                self._write_sbp(oe0, t2, t3, t4)
+                s = ''
+            res = '^([^\\\\]*){\\\\Xsub' + (res_paren * 2) + '}$'
+            if re.match(res, s):
+                t1 = re.sub(res, '\\1', s)
+                t2 = re.sub(res, '{\\2}', s)
+                t3 = re.sub(res, '{\\3}', s)
+                self._write_tex(oe0, t1)
+                self._write_sub(oe0, t2, t3)
+                s = ''
+            res = '^([^\\\\]*){\\\\Xsup' + (res_paren * 2) + '}$'
+            if re.match(res, s):
+                t1 = re.sub(res, '\\1', s)
+                t2 = re.sub(res, '{\\2}', s)
+                t3 = re.sub(res, '{\\3}', s)
+                self._write_tex(oe0, t1)
+                self._write_sup(oe0, t2, t3)
+                s = ''
+            res = '^([^\\\\]*){\\\\X(con|per)' + (res_paren * 2) + '}$'
+            if re.match(res, s):
+                t1 = re.sub(res, '\\1', s)
+                t2 = re.sub(res, '\\2', s)
+                t3 = re.sub(res, '{\\3}', s)
+                t4 = re.sub(res, '{\\4}', s)
+                self._write_tex(oe0, t1)
+                if t2 == 'con':
+                    self._write_cop(oe0, 'C', t3, t4)
+                elif t2 == 'per':
+                    self._write_cop(oe0, 'P', t3, t4)
+                s = ''
+            res = '^([^\\\\]*){\\\\X(sin|cos|tan)' + res_paren + '}$'
+            if re.match(res, s):
+                t1 = re.sub(res, '\\1', s)
+                t2 = re.sub(res, '\\2', s)
+                t3 = re.sub(res, '{\\3}', s)
+                self._write_tex(oe0, t1)
+                self._write_tri(oe0, t2, t3)
+                s = ''
+            res = '^([^\\\\]*){\\\\Xrrt' + (res_paren * 2) + '}$'
+            if re.match(res, s):
+                t1 = re.sub(res, '\\1', s)
+                t2 = re.sub(res, '{\\2}', s)
+                t3 = re.sub(res, '{\\3}', s)
+                self._write_tex(oe0, t1)
+                self._write_rrt(oe0, t2, t3)
+                s = ''
+            res = '^([^\\\\]*){\\\\Xfra' + (res_paren * 2) + '}$'
+            if re.match(res, s):
+                t1 = re.sub(res, '\\1', s)
+                t2 = re.sub(res, '{\\2}', s)
+                t3 = re.sub(res, '{\\3}', s)
+                self._write_tex(oe0, t1)
+                self._write_fra(oe0, t2, t3)
+                s = ''
+            res = '^([^\\\\]*){\\\\Xlim' + res_paren + '}$'
+            if re.match(res, s):
+                t1 = re.sub(res, '\\1', s)
+                t2 = re.sub(res, '{\\2}', s)
+                self._write_tex(oe0, t1)
+                self._write_lim(oe0, t2)
+                s = ''
+            res = '^([^\\\\]*){\\\\Xlog' + (res_paren * 2) + '}$'
+            if re.match(res, s):
+                t1 = re.sub(res, '\\1', s)
+                t2 = re.sub(res, '{\\2}', s)
+                t3 = re.sub(res, '{\\3}', s)
+                self._write_tex(oe0, t1)
+                self._write_log(oe0, t2, t3)
+                s = ''
+            res = '^([^\\\\]*){\\\\Xsum' + (res_paren * 3) + '}$'
+            if re.match(res, s):
+                t1 = re.sub(res, '\\1', s)
+                t2 = re.sub(res, '{\\2}', s)
+                t3 = re.sub(res, '{\\3}', s)
+                t4 = re.sub(res, '{\\4}', s)
+                self._write_tex(oe0, t1)
+                self._write_sum(oe0, t2, t3, t4)
+                s = ''
+            res = '^([^\\\\]*){\\\\Xpro' + (res_paren * 3) + '}$'
+            if re.match(res, s):
+                t1 = re.sub(res, '\\1', s)
+                t2 = re.sub(res, '{\\2}', s)
+                t3 = re.sub(res, '{\\3}', s)
+                t4 = re.sub(res, '{\\4}', s)
+                self._write_tex(oe0, t1)
+                self._write_pro(oe0, t2, t3, t4)
+                s = ''
+            res = '^([^\\\\]*){\\\\Xint' + (res_paren * 3) + '}$'
+            if re.match(res, s):
+                t1 = re.sub(res, '\\1', s)
+                t2 = re.sub(res, '{\\2}', s)
+                t3 = re.sub(res, '{\\3}', s)
+                t4 = re.sub(res, '{\\4}', s)
+                self._write_tex(oe0, t1)
+                self._write_int(oe0, t2, t3, t4)
+                s = ''
+            res = '^([^\\\\]*){\\\\Xmrm' + res_paren + '}$'
+            if re.match(res, s):
+                t1 = re.sub(res, '\\1', s)
+                t2 = re.sub(res, '{\\2}', s)
+                self._write_tex(oe0, t1)
+                self._write_mrm(oe0, t2)
+                s = ''
+
+    def _write_tex(self, oe0, t1):
+        if t1 == '':
+            return
+        t1 = re.sub('\\\\{', '\\\\Xlmp', t1)
+        t1 = re.sub('\\\\}', '\\\\Xrmp', t1)
+        t1 = re.sub('\\\\ ', '\\\\X11s', t1)
+        t1 = re.sub('\\\\,', '\\\\X49s', t1)
+        t1 = t1.replace('{', '')
+        t1 = t1.replace('}', '')
+        t1 = re.sub('\\\\Xlmp', '{', t1)
+        t1 = re.sub('\\\\Xrmp', '}', t1)
+        t1 = re.sub('\\\\X11s', '  ', t1)
+        t1 = re.sub('\\\\X49s', ' ', t1)
+        oe1 = OxmlElement('m:r')
+        oe0.append(oe1)
+        # oe2 = OxmlElement('m:rPr')
+        # oe1.append(oe2)
+        # oe3 = OxmlElement('w:rFonts')
+        # oe3.set(ns.qn('m:ascii'), 'Cambria Math')
+        # oe3.set(ns.qn('m:eastAsia'), 'Cambria Math')
+        # oe3.set(ns.qn('m:hAnsi'), 'Cambria Math')
+        # oe3.set(ns.qn('m:cs'), 'Cambria Math')
+        # oe2.append(oe3)
+        oe2 = OxmlElement('m:t')
+        oe2.text = t1
+        oe1.append(oe2)
+
+    def _write_mrm(self, oe0, t1):
+        if t1 == '':
+            return
+        oe1 = OxmlElement('m:r')
+        oe0.append(oe1)
+        oe2 = OxmlElement('m:rPr')
+        oe1.append(oe2)
+        oe3 = OxmlElement('m:sty')
+        oe3.set(ns.qn('m:val'), 'p')
+        oe2.append(oe3)
+        oe2 = OxmlElement('m:t')
+        oe2.text = re.sub('^{(.*)}$', '\\1', t1)
+        oe1.append(oe2)
+
+    def _write_vec(self, oe0, t1):
+        oe1 = OxmlElement('m:acc')
+        oe0.append(oe1)
+        oe2 = OxmlElement('m:accPr')
+        oe1.append(oe2)
+        oe3 = OxmlElement('m:chr')
+        oe3.set(ns.qn('m:val'), '⃗')
+        oe2.append(oe3)
+        oe2 = OxmlElement('m:e')
+        oe1.append(oe2)
+        self._write_math_expression(oe2, t1)
+
+    def _write_prn(self, oe0, t1, t2):
+        oe1 = OxmlElement('m:d')
+        oe0.append(oe1)
+        oe2 = OxmlElement('m:dPr')
+        oe1.append(oe2)
+        oe3 = OxmlElement('m:begChr')
+        oe3.set(ns.qn('m:val'), t1[0])
+        oe2.append(oe3)
+        oe3 = OxmlElement('m:endChr')
+        oe3.set(ns.qn('m:val'), t1[1])
+        oe2.append(oe3)
+        oe2 = OxmlElement('m:e')
+        oe1.append(oe2)
+        self._write_math_expression(oe2, t2)
+
+    def _write_sbp(self, oe0, t1, t2, t3):
+        oe1 = OxmlElement('m:sSubSup')
+        oe0.append(oe1)
+        oe2 = OxmlElement('m:e')
+        oe1.append(oe2)
+        self._write_math_expression(oe2, t1)
+        oe2 = OxmlElement('m:sub')
+        oe1.append(oe2)
+        self._write_math_expression(oe2, t2)
+        oe2 = OxmlElement('m:sup')
+        oe1.append(oe2)
+        self._write_math_expression(oe2, t3)
+
+    def _write_sub(self, oe0, t1, t2):
+        oe1 = OxmlElement('m:sSub')
+        oe0.append(oe1)
+        oe2 = OxmlElement('m:e')
+        oe1.append(oe2)
+        self._write_math_expression(oe2, t1)
+        oe2 = OxmlElement('m:sub')
+        oe1.append(oe2)
+        self._write_math_expression(oe2, t2)
+
+    def _write_sup(self, oe0, t1, t2):
+        oe1 = OxmlElement('m:sSup')
+        oe0.append(oe1)
+        oe2 = OxmlElement('m:e')
+        oe1.append(oe2)
+        self._write_math_expression(oe2, t1)
+        oe2 = OxmlElement('m:sup')
+        oe1.append(oe2)
+        self._write_math_expression(oe2, t2)
+
+    def _write_cop(self, oe0, t1, t2, t3):
+        oe1 = OxmlElement('m:sPre')
+        oe0.append(oe1)
+        oe2 = OxmlElement('m:sub')
+        oe1.append(oe2)
+        self._write_math_expression(oe2, t2)
+        oe2 = OxmlElement('m:sup')
+        oe1.append(oe2)
+        self._write_math_expression(oe2, '{　}')
+        oe2 = OxmlElement('m:e')
+        oe1.append(oe2)
+        oe3 = OxmlElement('m:sSub')
+        oe2.append(oe3)
+        oe4 = OxmlElement('m:e')
+        oe3.append(oe4)
+        oe5 = OxmlElement('m:r')
+        oe4.append(oe5)
+        oe6 = OxmlElement('m:rPr')
+        oe5.append(oe6)
+        oe7 = OxmlElement('m:sty')
+        oe7.set(ns.qn('m:val'), 'p')
+        oe6.append(oe7)
+        oe6 = OxmlElement('m:t')
+        oe6.text = t1
+        oe5.append(oe6)
+        oe4 = OxmlElement('m:sub')
+        oe3.append(oe4)
+        self._write_math_expression(oe4, t3)
+
+
+
+
+
+
+
+    def _write_tri(self, oe0, t1, t2):
+        oe1 = OxmlElement('m:func')
+        oe0.append(oe1)
+        oe2 = OxmlElement('m:fName')
+        oe1.append(oe2)
+        oe3 = OxmlElement('m:r')
+        oe2.append(oe3)
+        oe4 = OxmlElement('m:t')
+        oe4.text = t1
+        oe3.append(oe4)
+        oe2 = OxmlElement('m:e')
+        oe1.append(oe2)
+        self._write_math_expression(oe2, t2)
+
+    def _write_rrt(self, oe0, t1, t2):
+        oe1 = OxmlElement('m:rad')
+        oe0.append(oe1)
+        if t1 == '{}':
+            oe2 = OxmlElement('m:radPr')
+            oe1.append(oe2)
+            oe3 = OxmlElement('m:degHide')
+            oe3.set(ns.qn('m:val'), '1')
+            oe2.append(oe3)
+        oe2 = OxmlElement('m:deg')
+        oe1.append(oe2)
+        self._write_math_expression(oe2, t1)
+        oe2 = OxmlElement('m:e')
+        oe1.append(oe2)
+        self._write_math_expression(oe2, t2)
+
+    def _write_fra(self, oe0, t1, t2):
+        oe1 = OxmlElement('m:f')
+        oe0.append(oe1)
+        oe2 = OxmlElement('m:num')
+        oe1.append(oe2)
+        self._write_math_expression(oe2, t1)
+        oe2 = OxmlElement('m:den')
+        oe1.append(oe2)
+        self._write_math_expression(oe2, t2)
+
+    def _write_lim(self, oe0, t1):
+        oe1 = OxmlElement('m:func')
+        oe0.append(oe1)
+        oe2 = OxmlElement('m:fName')
+        oe1.append(oe2)
+        oe3 = OxmlElement('m:limLow')
+        oe2.append(oe3)
+        oe4 = OxmlElement('m:e')
+        oe3.append(oe4)
+        oe5 = OxmlElement('m:r')
+        oe4.append(oe5)
+        oe6 = OxmlElement('m:t')
+        oe6.text = 'lim'
+        oe5.append(oe6)
+        oe4 = OxmlElement('m:lim')
+        oe3.append(oe4)
+        if t1 == '{}':
+            self._write_math_expression(oe4, t1)
+
+    def _write_log(self, oe0, t1, t2):
+        oe1 = OxmlElement('m:func')
+        oe0.append(oe1)
+        oe2 = OxmlElement('m:fName')
+        oe1.append(oe2)
+        if t1 == '{}':
+            oe3 = OxmlElement('m:r')
+            oe2.append(oe3)
+            oe4 = OxmlElement('m:t')
+            oe4.text = 'log'
+            oe3.append(oe4)
+        else:
+            oe3 = OxmlElement('m:sSub')
+            oe2.append(oe3)
+            oe4 = OxmlElement('m:e')
+            oe3.append(oe4)
+            oe5 = OxmlElement('m:r')
+            oe4.append(oe5)
+            oe6 = OxmlElement('m:t')
+            oe6.text = 'log'
+            oe5.append(oe6)
+            oe4 = OxmlElement('m:sub')
+            oe3.append(oe4)
+            self._write_math_expression(oe4, t1)
+        oe2 = OxmlElement('m:e')
+        oe1.append(oe2)
+        self._write_math_expression(oe2, t2)
+
+    def _write_sum(self, oe0, t1, t2, t3):
+        oe1 = OxmlElement('m:nary')
+        oe0.append(oe1)
+        oe2 = OxmlElement('m:naryPr')
+        oe1.append(oe2)
+        oe3 = OxmlElement('m:chr')
+        oe3.set(ns.qn('m:val'), '∑')
+        oe2.append(oe3)
+        oe3 = OxmlElement('m:limLoc')
+        oe3.set(ns.qn('m:val'), 'undOvr')
+        oe2.append(oe3)
+        if t1 == '{}':
+            oe3 = OxmlElement('m:subHide')
+            oe3.set(ns.qn('m:val'), '1')
+            oe2.append(oe3)
+        if t2 == '{}':
+            oe3 = OxmlElement('m:supHide')
+            oe3.set(ns.qn('m:val'), '1')
+            oe2.append(oe3)
+        oe2 = OxmlElement('m:sub')
+        oe1.append(oe2)
+        if t1 != '{}':
+            self._write_math_expression(oe2, t1)
+        oe2 = OxmlElement('m:sup')
+        oe1.append(oe2)
+        if t2 != '{}':
+            self._write_math_expression(oe2, t2)
+        oe2 = OxmlElement('m:e')
+        oe1.append(oe2)
+        self._write_math_expression(oe2, t3)
+
+    def _write_pro(self, oe0, t1, t2):
+        oe1 = OxmlElement('m:nary')
+        oe0.append(oe1)
+        oe2 = OxmlElement('m:naryPr')
+        oe1.append(oe2)
+        oe3 = OxmlElement('m:chr')
+        oe3.set(ns.qn('m:val'), '∏')
+        oe2.append(oe3)
+        oe3 = OxmlElement('m:limLoc')
+        oe3.set(ns.qn('m:val'), 'undOvr')
+        oe2.append(oe3)
+        if t1 == '{}':
+            oe3 = OxmlElement('m:subHide')
+            oe3.set(ns.qn('m:val'), '1')
+            oe2.append(oe3)
+        if t2 == '{}':
+            oe3 = OxmlElement('m:supHide')
+            oe3.set(ns.qn('m:val'), '1')
+            oe2.append(oe3)
+        oe2 = OxmlElement('m:sub')
+        oe1.append(oe2)
+        if t1 != '{}':
+            self._write_math_expression(oe2, t1)
+        oe2 = OxmlElement('m:sup')
+        oe1.append(oe2)
+        if t2 != '{}':
+            self._write_math_expression(oe2, t2)
+        oe2 = OxmlElement('m:e')
+        oe1.append(oe2)
+        self._write_math_expression(oe2, t3)
+
+    def _write_int(self, oe0, t1, t2, t3):
+        oe1 = OxmlElement('m:nary')
+        oe0.append(oe1)
+        oe2 = OxmlElement('m:naryPr')
+        oe1.append(oe2)
+        oe3 = OxmlElement('m:limLoc')
+        oe3.set(ns.qn('m:val'), 'subSup')
+        oe2.append(oe3)
+        if t1 == '{}':
+            oe3 = OxmlElement('m:subHide')
+            oe3.set(ns.qn('m:val'), '1')
+            oe2.append(oe3)
+        if t2 == '{}':
+            oe3 = OxmlElement('m:supHide')
+            oe3.set(ns.qn('m:val'), '1')
+            oe2.append(oe3)
+        oe2 = OxmlElement('m:sub')
+        oe1.append(oe2)
+        if t1 != '{}':
+            self._write_math_expression(oe2, t1)
+        oe2 = OxmlElement('m:sup')
+        oe1.append(oe2)
+        if t2 != '{}':
+            self._write_math_expression(oe2, t2)
+        oe2 = OxmlElement('m:e')
+        oe1.append(oe2)
+        self._write_math_expression(oe2, t3)
 
 
 class ParagraphAlignment(Paragraph):
