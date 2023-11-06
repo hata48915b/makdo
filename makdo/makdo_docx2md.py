@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.06-10:03:59-JST>
+# Time-stamp:   <2023.11.06-18:23:00-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -3362,7 +3362,7 @@ class RawParagraph:
             math_str += '}'
         # TEXT
         elif (math_str is not None) and (not re.match('^<.*>$', xl)):
-            math_str += xl
+            math_str += re.sub(' ', '\\\\,', xl)
         return math_str, text_data
 
     @staticmethod
