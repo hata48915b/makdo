@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.06-18:23:00-JST>
+# Time-stamp:   <2023.11.09-23:56:35-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -148,6 +148,10 @@ def get_arguments():
         type=str,
         metavar='FONT_NAME',
         help='異字体（IVS）フォント')
+    # parser.add_argument(
+    #     '--math_font',
+    #     type=str,
+    #     help=argparse.SUPPRESS)
     parser.add_argument(
         '-f', '--font-size',
         type=float,
@@ -238,6 +242,9 @@ DEFAULT_LINE_NUMBER = False
 DEFAULT_MINCHO_FONT = 'ＭＳ 明朝'
 DEFAULT_GOTHIC_FONT = 'ＭＳ ゴシック'
 DEFAULT_IVS_FONT = 'IPAmj明朝'  # IPAmjMincho
+DEFAULT_MATH_FONT = 'Cambria Math'
+# DEFAULT_MATH_FONT = 'Liberation Serif'
+
 
 DEFAULT_FONT_SIZE = 12.0
 
@@ -2908,6 +2915,7 @@ class RawParagraph:
         is_in_text = False
         fldchar = ''
         is_changed = False
+        sub_or_sup = None
         for xl in xml_lines:
             if xl == '':
                 continue
@@ -2985,26 +2993,32 @@ class RawParagraph:
                                            font_size)
                 imt = '<>' + imt  # '<>' is to avoid being escaped
                 if track_changes == 'del':
-                    sd_img = cls.string_data(['->'], imt, ['<-'])
+                    sd_img = cls.StringData(['->'], imt, ['<-'])
                 elif track_changes == 'ins':
-                    sd_img = cls.string_data(['+>'], imt, ['<+'])
+                    sd_img = cls.StringData(['+>'], imt, ['<+'])
                 else:
-                    sd_img = cls.string_data([], imt, [])
+                    sd_img = cls.StringData([], imt, [])
                 text_data.append(sd_img)
                 img_file_name = ''
                 img_size = ''
             if should_continue:
                 continue
             # MATH
-            if 'math_str' not in locals():
-                math_str = None
-            math_str, text_data \
-                = cls._manage_math_expression(xl, math_str, text_data)
-            if math_str is not None:
+            if 'math_datu' not in locals():
+                math_datu = None
+            math_datu, text_data \
+                = cls._manage_math_expression(xl, math_datu, text_data)
+            if math_datu is not None:
                 continue
+            # SUB
+            if xl == '<w:vertAlign w:val="subscript"/>':
+                sub_or_sup = 'sub'
+            # SUP
+            if xl == '<w:vertAlign w:val="superscript"/>':
+                sub_or_sup = 'sup'
             # RUN
             if re.match('^<w:r( .*)?>$', xl):
-                sd = cls.string_data([], '', [])
+                sd = cls.StringData([], '', [])
                 continue
             if re.match('^</w:r>$', xl):
                 if sd.string != '':
@@ -3073,12 +3087,16 @@ class RawParagraph:
                     if is_bold:
                         sd.append_fds('**', '**')
                         is_bold = False
-                    # TRACK CHANGES (DELETED) (LAST)
+                    # TRACK CHANGES (DELETED OR INSERTED) (LAST)
                     if track_changes == 'del':
                         sd.append_fds('->', '<-')
-                    # TRACK CHANGES (INSERTED) (LAST)
                     elif track_changes == 'ins':
                         sd.append_fds('+>', '<+')
+                    # SUBSCRIPT OR SUPERSCRIPT (LAST)
+                    if sub_or_sup == 'sub':
+                        sd.append_fds('_{', '}')
+                    if sub_or_sup == 'sup':
+                        sd.append_fds('^{', '}')
                     text_data.append(sd)
                 is_in_text = False
                 continue
@@ -3146,7 +3164,7 @@ class RawParagraph:
         # self.images = images
         return text_data, images
 
-    class string_data:
+    class StringData:
 
         def __init__(self, pre_fds, string, pos_fds):
             self.pre_fds = pre_fds
@@ -3256,13 +3274,17 @@ class RawParagraph:
         return img_md_text
 
     @classmethod
-    def _manage_math_expression(cls, xl, math_str, text_data):
+    def _manage_math_expression(cls, xl, math_datu, text_data):
+        res_paren = '{' + '([^{}]*' \
+            + ('(?:{[^{}]*' * 5) + ('}[^{}]*)*' * 5) \
+            + ')' + '}'
         # MATH MODE
         if re.match('^<m:oMath>$', xl):
-            math_str = ''
-            math_str += '\\['
+            math_datu = cls.StringData([], '', [])
+            math_datu.string += '\\['
         elif re.match('^</m:oMath>$', xl):
-            math_str += '\\]'
+            math_datu.string += '\\]'
+            math_str = math_datu.string
             math_str = re.sub('{}', '', math_str)
             # res = '([^0-9A-Za-z]){([^{}])}([^0-9A-Za-z])'
             # math_str = re.sub(res, '\\1\\2\\3', math_str)
@@ -3274,10 +3296,37 @@ class RawParagraph:
             while math_tmp != math_str:
                 math_tmp = math_str
                 math_str = re.sub(res, '{\\1}', math_str)
-            text_data.append(cls.string_data([], math_str, []))
-            math_str = None
-        if math_str is None:
-            return math_str, text_data
+            # ROMAN
+            math_str = re.sub('{\\\\Xerm}{\\\\Xbrm}', '', math_str)
+            math_str = re.sub('{\\\\Xbrm}', '\\\\mathrm{', math_str)
+            math_str = re.sub('{\\\\Xerm}', '}', math_str)
+            # BOLD
+            math_str = re.sub('{\\\\Xebf}{\\\\Xbbf}', '', math_str)
+            math_str = re.sub('{\\\\Xbbf}', '\\\\mathbf{', math_str)
+            math_str = re.sub('{\\\\Xebf}', '}', math_str)
+            # EXCHANGE
+            math_str = re.sub('{\\\\Xbrm}{\\\\Xbbf}', '{\\\\Xbbf}{\\\\Xbrm}',
+                              math_str)
+            math_str = re.sub('{\\\\Xerm}{\\\\Xebf}', '{\\\\Xebf}{\\\\Xerm}',
+                              math_str)
+            # ROMAN
+            math_str = re.sub('{\\\\Xerm}{\\\\Xbrm}', '', math_str)
+            math_str = re.sub('{\\\\Xbrm}', '\\\\mathrm{', math_str)
+            math_str = re.sub('{\\\\Xerm}', '}', math_str)
+            # BOLD
+            math_str = re.sub('{\\\\Xebf}{\\\\Xbbf}', '', math_str)
+            math_str = re.sub('{\\\\Xbbf}', '\\\\mathbf{', math_str)
+            math_str = re.sub('{\\\\Xebf}', '}', math_str)
+            # CONBINATION, PERMUTATION
+            res = '_' + res_paren + '\\^{　}' \
+                + '{' + res_paren + '_' + res_paren + '}'
+            math_str = re.sub(res, '_{\\1}{\\2}_{\\3}', math_str)
+            math_datu.string = math_str
+            text_data.append(math_datu)
+            math_datu = None
+        if math_datu is None:
+            return math_datu, text_data
+        math_str = math_datu.string
         if False:
             pass
         # LINE BREAK
@@ -3288,7 +3337,7 @@ class RawParagraph:
             math_str += '(()'
         elif re.match('^<m:begChr m:val="(.)"/>$', xl):
             bc = re.sub('^<m:begChr m:val="(.)"/>$', '\\1', xl)
-            math_str = re.sub('\\(\\(\\)$', '(' + bc +')', math_str)
+            math_str = re.sub('\\(\\(\\)$', '(' + bc + ')', math_str)
         elif re.match('<m:endChr m:val="(.*)"/>', xl):
             ec = re.sub('^<m:endChr m:val="(.)"/>$', '\\1', xl)
             math_str = re.sub('\\((.)\\)$', '(\\1' + ec, math_str)
@@ -3321,23 +3370,31 @@ class RawParagraph:
             math_str += '}'
         # FUNCTION
         elif xl == '<m:fName>':
-            math_str += '\\mathrm{'
+            pass
         elif xl == '</m:fName>':
-            math_str += '}'
-            math_str = re.sub('\\\\mathrm{sin}$', '\\\\sin', math_str)
-            math_str = re.sub('\\\\mathrm{cos}$', '\\\\cos', math_str)
-            math_str = re.sub('\\\\mathrm{tan}$', '\\\\tan', math_str)
+            math_str = re.sub('{\\\\Xbrm}sin{\\\\Xerm}$', '\\\\sin', math_str)
+            math_str = re.sub('{\\\\Xbrm}cos{\\\\Xerm}$', '\\\\cos', math_str)
+            math_str = re.sub('{\\\\Xbrm}tan{\\\\Xerm}$', '\\\\tan', math_str)
+            math_str = re.sub('{{\\\\Xbrm}log{\\\\Xerm}}_' + res_paren + '$',
+                              '\\\\log_{\\1}', math_str)
+            math_str = re.sub('{\\\\Xbrm}log{\\\\Xerm}$',
+                              '\\\\log', math_str)
         # INTEGRAL
         elif xl == '<m:nary>':
             math_str += '\\int'
         # SIGMA
         elif xl == '<m:chr m:val="∑"/>':
             math_str = re.sub('\\\\int$', '\\\\sum', math_str)
+        # PI
+        elif xl == '<m:chr m:val="Π"/>':
+            math_str = re.sub('\\\\int$', '\\\\prod', math_str)
+        # VECTOR
+        elif xl == '<m:chr m:val="⃗"/>':
+            math_str += '\\vec'
         # LIMIT
         elif xl == '<m:lim>':
             math_str = re.sub('\\\\mathrm{{lim}$', '\\\\lim_{{', math_str)
         elif xl == '</m:lim>':
-            print(math_str)
             math_str += '}'
         # VECTOR
         elif xl == '<m:chr m:val="⃗"/>$':
@@ -3360,10 +3417,61 @@ class RawParagraph:
             math_str += '{'
         elif xl == '</m:den>':
             math_str += '}'
+        # UNDERLINE
+        elif re.match('^<w:u w:val="(.*)"/>$', xl):
+            tx = re.sub('^<w:u w:val="(.*)"/>$', '\\1', xl)
+            md = '_' + UNDERLINE[tx] + '_'
+            if md not in math_datu.pre_fds:
+                math_datu.pre_fds.append(md)
+            if md not in math_datu.pos_fds:
+                math_datu.pos_fds.append(md)
+        # HIGILIGHT COLOR
+        elif re.match('^<w:highlight w:val="(.*)"/>$', xl):
+            tx = re.sub('^<w:highlight w:val="(.*)"/>$', '\\1', xl)
+            md = '_' + tx + '_'
+            if md not in math_datu.pre_fds:
+                math_datu.pre_fds.append(md)
+            if md not in math_datu.pos_fds:
+                math_datu.pos_fds.append(md)
+        # FONT COLOR
+        elif re.match('^<w:color w:val="([^"]*)"(?: .*)?/>$', xl):
+            fc = re.sub('^<w:color w:val="([^"]*)"(?: .*)?/>$', '\\1', xl)
+            if fc == 'FFFFFF':
+                md = '^^'
+            elif fc in FONT_COLOR:
+                md = '^' + FONT_COLOR[fc] + '^'
+            else:
+                md = '^' + fc + '^'
+            if md not in math_datu.pre_fds:
+                math_datu.pre_fds.append(md)
+            if md not in math_datu.pos_fds:
+                math_datu.pos_fds.append(md)
+        # BOLD OR ROMAN
+        elif re.match('<m:sty m:val="([^"]+)"/>', xl):
+            tx = re.sub('<m:sty m:val="([^"]+)"/>', '\\1', xl)
+            # ROMAN
+            if tx == 'p' or tx == 'b':
+                math_str += '{\\Xmrm}'
+            # BOLD
+            if tx == 'bi' or tx == 'b':
+                math_str += '{\\Xmbf}'
+        elif xl == '</m:r>':
+            # BOLD
+            if re.match(NOT_ESCAPED + '{\\\\Xmbf}(.*)$', math_str):
+                math_str = re.sub(NOT_ESCAPED + '{\\\\Xmbf}(.*)$',
+                                  '\\1{\\\\Xbbf}\\2{\\\\Xebf}', math_str)
+            # ROMAN
+            if re.match(NOT_ESCAPED + '{\\\\Xmrm}(.*)$', math_str):
+                math_str = re.sub(NOT_ESCAPED + '{\\\\Xmrm}(.*)$',
+                                  '\\1{\\\\Xbrm}\\2{\\\\Xerm}', math_str)
         # TEXT
         elif (math_str is not None) and (not re.match('^<.*>$', xl)):
+            xl = re.sub('{', '\\{', xl)
+            xl = re.sub('}', '\\}', xl)
             math_str += re.sub(' ', '\\\\,', xl)
-        return math_str, text_data
+        # RETURN
+        math_datu.string = math_str
+        return math_datu, text_data
 
     @staticmethod
     def _prepare_text(fldchar, input_text):
@@ -3440,6 +3548,25 @@ class RawParagraph:
                 pre_fds = text_data[j].pre_fds
                 pos_fds, pre_fds \
                     = cls._cancel_fd(pos_fds, pre_fds, ppf[0], ppf[1])
+        # SUBSCRIPT OR SUPERSCRIPT
+        sub_or_sup = []
+        for td in text_data:
+            if ('_{' in td.pre_fds) and ('}' in td.pos_fds):
+                sub_or_sup.append('sub')
+            elif ('^{' in td.pre_fds) and ('}' in td.pos_fds):
+                sub_or_sup.append('sup')
+            else:
+                sub_or_sup.append('')
+        for j in range(len(text_data)):
+            if j == 0:
+                continue
+            i = j - 1
+            if (sub_or_sup[i] == 'sub') and (sub_or_sup[j] == 'sub'):
+                text_data[i].pos_fds.remove('}')
+                text_data[j].pre_fds.remove('_{')
+            if (sub_or_sup[i] == 'sup') and (sub_or_sup[j] == 'sup'):
+                text_data[i].pos_fds.remove('}')
+                text_data[j].pre_fds.remove('^{')
         raw_text = ''
         for td in text_data:
             raw_text += td.get_string_with_fd()
@@ -5351,13 +5478,23 @@ class ParagraphMath(Paragraph):
     def is_this_class(cls, raw_paragraph):
         rp = raw_paragraph
         rp_rtx = rp.raw_text_iod
-        res = '^\\\\\\[(.*)\\\\\\]$'
-        if re.match('^\\\\\\[.*$', rp_rtx):
-            if re.match(NOT_ESCAPED + '\\\\\\]$', rp_rtx):
-                tmp = re.sub(res, '\\1', rp_rtx)
+        rfd = RES_FONT_DECORATORS
+        res = '^' + rfd + '\\\\\\[(.*)\\\\\\]' + rfd + '$'
+        if re.match('^' + rfd + '\\\\\\[.*$', rp_rtx):
+            if re.match(NOT_ESCAPED + '\\\\\\]' + rfd + '$', rp_rtx):
+                tmp = re.sub(res, '\\2', rp_rtx)
                 if not re.match(NOT_ESCAPED + '\\\\[\\[\\]].*$', tmp):
                     return True
         return False
+
+    def get_text_to_write(self):
+        text_to_write = super().get_text_to_write()
+        alignment = self.alignment
+        if alignment == 'left':
+            text_to_write = re.sub('^\\\\\\[', '\\\\\\[: ', text_to_write)
+        elif alignment == 'right':
+            text_to_write = re.sub('\\\\\\]$', ' :\\\\\\]', text_to_write)
+        return text_to_write
 
 
 class ParagraphAlignment(Paragraph):
