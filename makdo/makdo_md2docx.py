@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.09-23:57:53-JST>
+# Time-stamp:   <2023.11.10-00:50:56-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1434,6 +1434,8 @@ class Math:
                     tex = re.sub('\\\\}$', '{=)}', tex)
             tex = re.sub(NOT_ESCAPED + '\\[$', '\\1{[}', tex)
             tex = re.sub(NOT_ESCAPED + '\\]$', '\\1{]}', tex)
+            tex = re.sub(NOT_ESCAPED + '{\\\\sqrt}{\\[}([^\\[\\]]*){\\]}$',
+                         '\\1{\\\\sqrt}{[\\2]}', tex)
             # SPACE
             tex = re.sub('%$', '%0', tex)
             tex = re.sub(NOT_ESCAPED + '\\\\,', '\\1%1', tex)
@@ -1475,10 +1477,10 @@ class Math:
                 for n in nubs:
                     tmps.append(n)
                 # CONTINUE
-                res = '{\\\\(sum|prod|int)}'
+                res = '^{\\\\(sum|prod|int)}$'
                 if (len(nubs) >= 5) and re.match(res, nubs[-5]):
                     continue
-                res = '{\\\\(sum|prod|int|sin|cos|tan|log|lim)}'
+                res = '^{\\\\(sum|prod|int|sin|cos|tan|log|lim)}$'
                 if (len(nubs) >= 3) and re.match(res, nubs[-3]):
                     continue
                 # CONBINATION, PERMUTATION
@@ -1525,26 +1527,26 @@ class Math:
                     nubs[-4], nubs[-1] = cls._close_func(nubs[-4], nubs[-1])
                 # LOG, LIMIT
                 if (len(nubs) >= 2) and \
-                   re.match('{\\\\(?:log|lim)}', nubs[-2]):
+                   re.match('^{\\\\(?:log|lim)}$', nubs[-2]):
                     if nubs[-1] != '_':
                         nubs.insert(-1, '_')
                         nubs.insert(-1, '{}')
                 if (len(nubs) >= 4) and \
-                   re.match('{\\\\(?:log|lim)}', nubs[-4]):
+                   re.match('^{\\\\(?:log|lim)}$', nubs[-4]):
                     nubs[-4], nubs[-1] = cls._close_func(nubs[-4], nubs[-1])
                 # SIGMA, PI, INTEGRAL
                 if (len(nubs) >= 2) and \
-                   re.match('{\\\\(?:sum|prod|int)}', nubs[-2]):
+                   re.match('^{\\\\(?:sum|prod|int)}$', nubs[-2]):
                     if nubs[-1] != '_':
                         nubs.insert(-1, '_')
                         nubs.insert(-1, '{}')
                 if (len(nubs) >= 4) and \
-                   re.match('{\\\\(?:sum|prod|int)}', nubs[-4]):
+                   re.match('^{\\\\(?:sum|prod|int)}$', nubs[-4]):
                     if nubs[-1] != '^':
                         nubs.insert(-1, '^')
                         nubs.insert(-1, '{}')
                 if (len(nubs) >= 6) and \
-                   re.match('{\\\\(?:sum|prod|int)}', nubs[-6]):
+                   re.match('^{\\\\(?:sum|prod|int)}$', nubs[-6]):
                     nubs[-6], nubs[-1] = cls._close_func(nubs[-6], nubs[-1])
                 # PARENTHESES
                 if (len(nubs) >= 1) and nubs[-1] == '{-)}':
@@ -1713,11 +1715,11 @@ class Math:
         oe3 = OxmlElement('m:limLoc')
         oe3.set(ns.qn('m:val'), 'subSup')
         oe2.append(oe3)
-        if t1 == '{}':
+        if t1 == '' or t1 == '{}':
             oe3 = OxmlElement('m:subHide')
             oe3.set(ns.qn('m:val'), '1')
             oe2.append(oe3)
-        if t2 == '{}':
+        if t2 == '' or t2 == '{}':
             oe3 = OxmlElement('m:supHide')
             oe3.set(ns.qn('m:val'), '1')
             oe2.append(oe3)
@@ -1728,11 +1730,11 @@ class Math:
         #
         oe2 = OxmlElement('m:sub')
         oe1.append(oe2)
-        if t1 != '{}':
+        if t1 != '' and t1 != '{}':
             self._write_math_exp(oe2, t1)
         oe2 = OxmlElement('m:sup')
         oe1.append(oe2)
-        if t2 != '{}':
+        if t2 != '' and t2 != '{}':
             self._write_math_exp(oe2, t2)
         oe2 = OxmlElement('m:e')
         oe1.append(oe2)
@@ -1750,11 +1752,11 @@ class Math:
         oe3 = OxmlElement('m:limLoc')
         oe3.set(ns.qn('m:val'), 'undOvr')
         oe2.append(oe3)
-        if t1 == '{}':
+        if t1 != '' and t1 != '{}':
             oe3 = OxmlElement('m:subHide')
             oe3.set(ns.qn('m:val'), '1')
             oe2.append(oe3)
-        if t2 == '{}':
+        if t2 != '' and t2 != '{}':
             oe3 = OxmlElement('m:supHide')
             oe3.set(ns.qn('m:val'), '1')
             oe2.append(oe3)
@@ -1765,11 +1767,11 @@ class Math:
         #
         oe2 = OxmlElement('m:sub')
         oe1.append(oe2)
-        if t1 != '{}':
+        if t1 != '' and t1 != '{}':
             self._write_math_exp(oe2, t1)
         oe2 = OxmlElement('m:sup')
         oe1.append(oe2)
-        if t2 != '{}':
+        if t2 != '' and t2 != '{}':
             self._write_math_exp(oe2, t2)
         oe2 = OxmlElement('m:e')
         oe1.append(oe2)
@@ -1882,7 +1884,7 @@ class Math:
     def _write_rrt(self, oe0, t1, t2):
         oe1 = OxmlElement('m:rad')
         oe0.append(oe1)
-        if t1 == '{}':
+        if t1 == '' or t1 == '{}':
             oe2 = OxmlElement('m:radPr')
             oe1.append(oe2)
             oe3 = OxmlElement('m:degHide')
