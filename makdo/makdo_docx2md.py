@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.09-23:56:35-JST>
+# Time-stamp:   <2023.11.10-01:27:16-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -3386,7 +3386,7 @@ class RawParagraph:
         elif xl == '<m:chr m:val="∑"/>':
             math_str = re.sub('\\\\int$', '\\\\sum', math_str)
         # PI
-        elif xl == '<m:chr m:val="Π"/>':
+        elif xl == '<m:chr m:val="∏"/>':
             math_str = re.sub('\\\\int$', '\\\\prod', math_str)
         # VECTOR
         elif xl == '<m:chr m:val="⃗"/>':
