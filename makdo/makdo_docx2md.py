@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.10-01:27:16-JST>
+# Time-stamp:   <2023.11.10-01:52:58-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -3393,7 +3393,8 @@ class RawParagraph:
             math_str += '\\vec'
         # LIMIT
         elif xl == '<m:lim>':
-            math_str = re.sub('\\\\mathrm{{lim}$', '\\\\lim_{{', math_str)
+            math_str = re.sub('{{\\\\Xbrm}lim{\\\\Xerm}}$',
+                              '\\\\lim_{', math_str)
         elif xl == '</m:lim>':
             math_str += '}'
         # VECTOR
