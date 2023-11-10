@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.10-00:50:56-JST>
+# Time-stamp:   <2023.11.10-18:42:05-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -868,12 +868,7 @@ class XML:
         if text is not None:
             oe.text = text
         ms_foo.append(oe)
-
-    @staticmethod
-    def add_tags(ms_foo, parent_tag, tag, options, text=None):
-        oe = OxmlElement(parent_tag)
-        ms_foo.insert_element_before(oe)
-        XML.add_tag(oe, tag, options)
+        return oe
 
 
 class IO:
@@ -1384,8 +1379,9 @@ class Math:
         text = re.sub('(^| )_', '{}_', text)
         text = re.sub('(^| )\\^', '{}^', text)
         text = cls._prepare_char(text)
-        text = cls._prepare_func(text)
+        text = cls._close_paren(text)
         text = text.replace(' ', '')
+        text = cls._prepare_func(text)
         text = '{' + text + '}'
         tmp = ''
         while tmp != text:
@@ -1393,6 +1389,22 @@ class Math:
             text = re.sub('{([^{}]+){', '{{\\1}{', text)
             text = re.sub('}([^{}]+)}', '}{\\1}}', text)
             text = re.sub('}([^{}]+){', '}{\\1}{', text)
+        return text
+
+    @staticmethod
+    def _close_paren(text):
+        d = 0
+        t = ''
+        for c in text:
+            t += c
+            if re.match(NOT_ESCAPED + '{$', t):
+                d += 1
+            if re.match(NOT_ESCAPED + '}$', t):
+                d -= 1
+        if d > 0:
+            text = text + ('}' * d)
+        if d < 0:
+            text = ('{' * (d * -1)) + text
         return text
 
     @classmethod
@@ -1417,12 +1429,12 @@ class Math:
             if re.match(res, tex):
                 tex = re.sub(res, '\\1{\\2}', tex)
             # TEX PARENTHESES
-            res = NOT_ESCAPED + '\\\\[Bb]igg?(\\(|\\)|\\\\{|\\\\}|\\[|\\])$'
-            tex = re.sub(res, '\\1\\2', tex)
-            res = NOT_ESCAPED + '\\\\left(\\(|\\\\{|\\[)$'
-            tex = re.sub(res, '\\1\\2', tex)
-            res = NOT_ESCAPED + '\\\\right(\\)|\\\\}|\\])$'
-            tex = re.sub(res, '\\1\\2', tex)
+            res = NOT_ESCAPED + '{\\\\[Bb]igg}$'
+            tex = re.sub(res, '\\1', tex)
+            res = NOT_ESCAPED + '{\\\\left}$'
+            tex = re.sub(res, '\\1', tex)
+            res = NOT_ESCAPED + '{\\\\right}$'
+            tex = re.sub(res, '\\1', tex)
             # PARENTHESES
             tex = re.sub(NOT_ESCAPED + '\\($', '\\1{(-}', tex)
             tex = re.sub(NOT_ESCAPED + '\\)$', '\\1{-)}', tex)
@@ -1497,6 +1509,7 @@ class Math:
                             = cls._close_func(nubs[-5], nubs[-1])
                     elif (len(nubs) >= 5) and \
                          ((nubs[-4] == '^') and (nubs[-2] == '_')):
+                        nubs[-4], nubs[-2] = nubs[-2], nubs[-4]
                         nubs[-3], nubs[-1] = nubs[-1], nubs[-3]
                         nubs[-5], nubs[-1] \
                             = cls._close_func(nubs[-5], nubs[-1])
@@ -1548,18 +1561,46 @@ class Math:
                 if (len(nubs) >= 6) and \
                    re.match('^{\\\\(?:sum|prod|int)}$', nubs[-6]):
                     nubs[-6], nubs[-1] = cls._close_func(nubs[-6], nubs[-1])
+                # MATRIX
+                if '{\\Ybmx}' in nubs:
+                    if (len(nubs) >= 1) and (nubs[-1] == '{\\\\}'):
+                        nubs[-1] = '{\\Ylmx}'
+                if (len(nubs) >= 2) and \
+                   nubs[-2] == '{\\begin}' and \
+                   re.match('^{.*matrix}$', nubs[-1]):
+                    nubs[-2] = '{\\Ybmx}'
+                    nubs[-1] = ''
+                if (len(nubs) >= 2) and \
+                   nubs[-2] == '{\\end}' and \
+                   re.match('^{.*matrix}$', nubs[-1]):
+                    b = None
+                    for i, n in enumerate(nubs):
+                        if n == '{\\Ybmx}':
+                            b = i
+                    if b is not None:
+                        nubs[b] = '{{\\Xbmx}{'
+                        nubs[-1] = '}{\\Xemx}}'
+                    s = ''
+                    for i in range(b + 1, len(nubs) - 2):
+                        if nubs[i] == '&':
+                            nubs[i] = '}{'
+                        if nubs[i] == '{\\Ylmx}':
+                            nubs[i] = '}{\\Xlmx}{'
+                        s += nubs[i]
+                        nubs[i] = ''
+                    nubs[-2] = s
                 # PARENTHESES
-                if (len(nubs) >= 1) and nubs[-1] == '{-)}':
+                if (len(nubs) >= 1) and (nubs[-1] == '{-)}'):
                     for i in range(len(nubs) - 1, -1, -1):
                         if nubs[i] == '{(-}':
                             nubs[i], nubs[-1] \
                                 = cls._close_func(nubs[i], nubs[-1])
-                if (len(nubs) >= 1) and nubs[-1] == '{=)}':
+                if (len(nubs) >= 1) and (nubs[-1] == '{=)}'):
                     for i in range(len(nubs) - 1, -1, -1):
                         if nubs[i] == '{(=}':
                             nubs[i], nubs[-1] \
                                 = cls._close_func(nubs[i], nubs[-1])
-                if (len(nubs) >= 1) and nubs[-1] == '{]}':
+                if (len(nubs) >= 1) and (nubs[-1] == '{]}'):
                     for i in range(len(nubs) - 1, -1, -1):
                         if nubs[i] == '{[}':
                             nubs[i], nubs[-1] \
@@ -1582,31 +1623,28 @@ class Math:
                 dep -= 1
             if c == '}':
                 dep += 1
-            if c == '\0':
-                dep = 0
-            else:
+            if c != '\0':
                 nub = c + nub
-            if nub == '' or dep != 0:
-                continue
-            while re.match('^{{(.*)}}$', nub):
-                tmp = re.sub('^{{(.*)}}$', '{\\1}', nub)
-                td = 0
-                ta = 0
-                for tc in tmp:
-                    if tc == '{':
-                        td -= 1
-                    if tc == '}':
-                        td += 1
-                    if td >= 0:
-                        ta += 1
-                    if ta > 1:
+            if nub != '' and (dep == 0 or c == '\0'):
+                while re.match('^{{(.*)}}$', nub):
+                    tmp = re.sub('^{{(.*)}}$', '{\\1}', nub)
+                    td = 0
+                    ta = 0
+                    for tc in tmp:
+                        if tc == '{':
+                            td -= 1
+                        if tc == '}':
+                            td += 1
+                        if td >= 0:
+                            ta += 1
+                        if ta > 1:
+                            break
+                    if ta == 1:
+                        nub = tmp
+                    else:
                         break
-                if ta == 1:
-                    nub = tmp
-                else:
-                    break
-            nubs.append(nub)
-            nub = ''
+                nubs.append(nub)
+                nub = ''
         return nubs[::-1]
 
     @staticmethod
@@ -1626,7 +1664,9 @@ class Math:
         self._write_math_exp(ms_mth, self.text)
 
     def _write_math_exp(self, oe0, text):
-        text = re.sub('^{(.*)}$', '\\1', text)
+        text = re.sub('^{', '', text)
+        text = re.sub('}$', '', text)
+        # text = re.sub('^{(.*)}$', '\\1', text)
         # PRINT
         if re.match('^[^{}]+$', text):
             self._write_str(oe0, text)
@@ -1635,410 +1675,405 @@ class Math:
         nubs = self._get_nubs(text)
         if False:
             pass
+        # INTEGRAL
         elif len(nubs) == 6 and nubs[0] == '{\\int}':
             self._write_int(oe0, nubs[2], nubs[4], nubs[5])
+        # SIGMA
         elif len(nubs) == 6 and nubs[0] == '{\\sum}':
             self._write_sop(oe0, '∑', nubs[2], nubs[4], nubs[5])
+        # PI
         elif len(nubs) == 6 and nubs[0] == '{\\prod}':
             self._write_sop(oe0, '∏', nubs[2], nubs[4], nubs[5])
+        # SUB AND SUP
         elif len(nubs) == 5 and nubs[1] == '{_}' and nubs[3] == '{^}':
             self._write_bap(oe0, nubs[0], nubs[2], nubs[4])
+        # CONBINATION AND PERMUTATION
         elif len(nubs) == 5 and nubs[1] == '{_}' and nubs[3] == '{_}':
             self._write_cop(oe0, nubs[0], nubs[2], nubs[4])
+        # LOG
         elif len(nubs) == 4 and nubs[0] == '{\\log}':
             if nubs[2] == '{}':
                 self._write_one(oe0, 'log', nubs[3])
             else:
                 self._write_two(oe0, 'log', nubs[1], nubs[2], nubs[3])
+        # LIMIT
         elif len(nubs) == 4 and nubs[0] == '{\\lim}':
             self._write_lim(oe0, nubs[2], nubs[3])
+        # SIN
         elif len(nubs) == 4 and nubs[0] == '{\\sin}':
             if nubs[2] == '{}':
                 self._write_one(oe0, 'sin', nubs[3])
             else:
                 self._write_two(oe0, 'sin', nubs[1], nubs[2], nubs[3])
+        # COS
         elif len(nubs) == 4 and nubs[0] == '{\\cos}':
             if nubs[2] == '{}':
                 self._write_one(oe0, 'cos', nubs[3])
             else:
                 self._write_two(oe0, 'cos', nubs[1], nubs[2], nubs[3])
+        # TAN
         elif len(nubs) == 4 and nubs[0] == '{\\tan}':
             if nubs[2] == '{}':
                 self._write_one(oe0, 'tan', nubs[3])
             else:
                 self._write_two(oe0, 'tan', nubs[1], nubs[2], nubs[3])
+        # SUB AND SUP
         elif len(nubs) == 3 and (nubs[1] == '{_}' or nubs[1] == '{^}'):
             self._write_bop(oe0, nubs[1], nubs[0], nubs[2])
+        # FRACTION
         elif len(nubs) == 3 and nubs[0] == '{\\frac}':
             self._write_fra(oe0, nubs[1], nubs[2])
+        # RADICAL ROOT
         elif len(nubs) == 3 and nubs[0] == '{\\sqrt}':
             t = re.sub('^{\\[(.*)\\]}$', '\\1', nubs[1])
             self._write_rrt(oe0, t, nubs[2])
+        # LIMIT
         elif len(nubs) == 3 and nubs[0] == '{\\lim}':
             self._write_lim(oe0, nubs[1], nubs[2])
+        # EXPONENTIAL
         elif len(nubs) == 2 and nubs[0] == '{\\exp}':
             self._write_one(oe0, 'exp', nubs[1])
+        # VECTOR
         elif len(nubs) == 2 and nubs[0] == '{\\vec}':
             self._write_vec(oe0, nubs[1])
+        # MATRIX
+        elif (len(nubs) >= 2 and
+              nubs[0] == '{\\Xbmx}' and nubs[-1] == '{\\Xemx}'):
+            nubs.pop(0)
+            nubs.pop(-1)
+            self._write_mtx(oe0, nubs)
+        # LINE BREAK
         elif len(nubs) == 2 and nubs[0] == '{\\\\}':
             self.must_break_line = True
             self._write_math_exp(oe0, nubs[1])
             self.must_break_line = False
+        # ROMAN
         elif len(nubs) == 2 and nubs[0] == '{\\mathrm}':
             self.is_roman = True
             self._write_math_exp(oe0, nubs[1])
             self.is_roman = False
+        # BOLD
         elif len(nubs) == 2 and nubs[0] == '{\\mathbf}':
             self.is_bold = True
             self._write_math_exp(oe0, nubs[1])
             self.is_bold = False
+        # S PAREN
         elif len(nubs) >= 2 and nubs[0] == '{(-}' and nubs[-1] == '{-)}':
             t = re.sub('{\\(-}(.*){-\\)}', '\\1', text)
             self._write_prn(oe0, '()', '{' + t + '}')
+        # M PAREN
         elif len(nubs) >= 2 and nubs[0] == '{(=}' and nubs[-1] == '{=)}':
             t = re.sub('{\\(=}(.*){=\\)}', '\\1', text)
             self._write_prn(oe0, '{}', '{' + t + '}')
+        # L PAREN
         elif len(nubs) >= 2 and nubs[0] == '{[}' and nubs[-1] == '{]}':
             t = re.sub('{\\[}(.*){\\]}', '\\1', text)
             self._write_prn(oe0, '[]', '{' + t + '}')
+        # ERROR
+        elif (len(nubs) == 1) and (not re.match('^{.*}$', nubs[0])):
+            self._write_str(oe0, nubs[0])
+        # RECURSION
         else:
-            # RECURSION
             for n in nubs:
                 self._write_math_exp(oe0, n)
 
     # INTEGRAL
     def _write_int(self, oe0, t1, t2, t3):
-        oe1 = OxmlElement('m:nary')
-        oe0.append(oe1)
-        oe2 = OxmlElement('m:naryPr')
-        oe1.append(oe2)
-        oe3 = OxmlElement('m:limLoc')
-        oe3.set(ns.qn('m:val'), 'subSup')
-        oe2.append(oe3)
+        oe1 = XML.add_tag(oe0, 'm:nary', {})
+        oe2 = XML.add_tag(oe1, 'm:naryPr', {})
+        oe3 = XML.add_tag(oe2, 'm:limLoc', {'m:val': 'subSup'})
         if t1 == '' or t1 == '{}':
-            oe3 = OxmlElement('m:subHide')
-            oe3.set(ns.qn('m:val'), '1')
-            oe2.append(oe3)
+            oe3 = XML.add_tag(oe2, 'm:subHide', {'m:val': '1'})
         if t2 == '' or t2 == '{}':
-            oe3 = OxmlElement('m:supHide')
-            oe3.set(ns.qn('m:val'), '1')
-            oe2.append(oe3)
+            oe3 = XML.add_tag(oe2, 'm:supHide', {'m:val': '1'})
         #
-        oe3 = OxmlElement('m:ctrlPr')
-        oe2.append(oe3)
+        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
         self._configure_w(oe3)
         #
-        oe2 = OxmlElement('m:sub')
-        oe1.append(oe2)
-        if t1 != '' and t1 != '{}':
+        oe2 = XML.add_tag(oe1, 'm:sub', {})
+        if not (t1 == '' or t1 == '{}'):
             self._write_math_exp(oe2, t1)
-        oe2 = OxmlElement('m:sup')
-        oe1.append(oe2)
-        if t2 != '' and t2 != '{}':
+        oe2 = XML.add_tag(oe1, 'm:sup', {})
+        if not (t2 == '' or t2 == '{}'):
             self._write_math_exp(oe2, t2)
-        oe2 = OxmlElement('m:e')
-        oe1.append(oe2)
+        oe2 = XML.add_tag(oe1, 'm:e', {})
         self._write_math_exp(oe2, t3)
 
     # SIGMA, PI
     def _write_sop(self, oe0, c, t1, t2, t3):
-        oe1 = OxmlElement('m:nary')
-        oe0.append(oe1)
-        oe2 = OxmlElement('m:naryPr')
-        oe1.append(oe2)
-        oe3 = OxmlElement('m:chr')
-        oe3.set(ns.qn('m:val'), c)
-        oe2.append(oe3)
-        oe3 = OxmlElement('m:limLoc')
-        oe3.set(ns.qn('m:val'), 'undOvr')
-        oe2.append(oe3)
-        if t1 != '' and t1 != '{}':
-            oe3 = OxmlElement('m:subHide')
-            oe3.set(ns.qn('m:val'), '1')
-            oe2.append(oe3)
-        if t2 != '' and t2 != '{}':
-            oe3 = OxmlElement('m:supHide')
-            oe3.set(ns.qn('m:val'), '1')
-            oe2.append(oe3)
+        oe1 = XML.add_tag(oe0, 'm:nary', {})
+        oe2 = XML.add_tag(oe1, 'm:naryPr', {})
+        oe3 = XML.add_tag(oe2, 'm:chr', {'m:val': c})
+        oe3 = XML.add_tag(oe2, 'm:limLoc', {'m:val': 'undOvr'})
+        if t1 == '' or t1 == '{}':
+            oe3 = XML.add_tag(oe2, 'm:subHide', {'m:val': '1'})
+        if t2 == '' or t2 == '{}':
+            oe3 = XML.add_tag(oe2, 'm:supHide', {'m:val': '1'})
         #
-        oe3 = OxmlElement('m:ctrlPr')
-        oe2.append(oe3)
+        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
         self._configure_w(oe3)
         #
-        oe2 = OxmlElement('m:sub')
-        oe1.append(oe2)
-        if t1 != '' and t1 != '{}':
+        oe2 = XML.add_tag(oe1, 'm:sub', {})
+        if not (t1 == '' or t1 == '{}'):
             self._write_math_exp(oe2, t1)
-        oe2 = OxmlElement('m:sup')
-        oe1.append(oe2)
-        if t2 != '' and t2 != '{}':
+        oe2 = XML.add_tag(oe1, 'm:sup', {})
+        if not (t2 == '' or t2 == '{}'):
             self._write_math_exp(oe2, t2)
-        oe2 = OxmlElement('m:e')
-        oe1.append(oe2)
+        oe2 = XML.add_tag(oe1, 'm:e', {})
         self._write_math_exp(oe2, t3)
 
     # SUB AND SUP
     def _write_bap(self, oe0, t1, t2, t3):
-        oe1 = OxmlElement('m:sSubSup')
-        oe0.append(oe1)
-        oe2 = OxmlElement('m:e')
-        oe1.append(oe2)
+        oe1 = XML.add_tag(oe0, 'm:sSubSup', {})
+        #
+        oe2 = XML.add_tag(oe1, 'm:sSubSupPr', {})
+        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
+        self._configure_w(oe3)
+        #
+        oe2 = XML.add_tag(oe1, 'm:e', {})
         self._write_math_exp(oe2, t1)
-        oe2 = OxmlElement('m:sub')
-        oe1.append(oe2)
+        oe2 = XML.add_tag(oe1, 'm:sub', {})
         self._write_math_exp(oe2, t2)
-        oe2 = OxmlElement('m:sup')
-        oe1.append(oe2)
+        oe2 = XML.add_tag(oe1, 'm:sup', {})
         self._write_math_exp(oe2, t3)
 
     # CONBINATION, PERMUTATION
     def _write_cop(self, oe0, t1, t2, t3):
-        oe1 = OxmlElement('m:sPre')
-        oe0.append(oe1)
-        oe2 = OxmlElement('m:sub')
-        oe1.append(oe2)
+        oe1 = XML.add_tag(oe0, 'm:sPre', {})
+        #
+        oe2 = XML.add_tag(oe1, 'm:sPrePr', {})
+        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
+        self._configure_w(oe3)
+        #
+        oe2 = XML.add_tag(oe1, 'm:sub', {})
         self._write_math_exp(oe2, t2)
-        oe2 = OxmlElement('m:sup')
-        oe1.append(oe2)
-        self._write_math_exp(oe2, '{　}')
-        oe2 = OxmlElement('m:e')
-        oe1.append(oe2)
-        oe3 = OxmlElement('m:sSub')
-        oe2.append(oe3)
-        oe4 = OxmlElement('m:e')
-        oe3.append(oe4)
+        oe2 = XML.add_tag(oe1, 'm:sup', {})
+        self._write_math_exp(oe2, '{ }')  # todo
+        oe2 = XML.add_tag(oe1, 'm:e', {})
+        oe3 = XML.add_tag(oe2, 'm:sSub', {})
+        #
+        oe4 = XML.add_tag(oe3, 'm:sSubPr', {})
+        oe5 = XML.add_tag(oe4, 'm:ctrlPr', {})
+        self._configure_w(oe5)
+        #
+        oe4 = XML.add_tag(oe3, 'm:e', {})
         self._write_math_exp(oe4, t1)
-        oe4 = OxmlElement('m:sub')
-        oe3.append(oe4)
+        oe4 = XML.add_tag(oe3, 'm:sub', {})
         self._write_math_exp(oe4, t3)
 
     # TWO ARGUMENTS FUNCTION
     def _write_two(self, oe0, c, s, t1, t2):
-        oe1 = OxmlElement('m:func')
-        oe0.append(oe1)
-        oe2 = OxmlElement('m:fName')
-        oe1.append(oe2)
-        if s == '_':
-            oe3 = OxmlElement('m:sSub')
-        else:
-            oe3 = OxmlElement('m:sSup')
-        oe2.append(oe3)
-        oe4 = OxmlElement('m:e')
-        oe3.append(oe4)
-        oe5 = OxmlElement('m:r')
-        oe4.append(oe5)
+        # \sin^2{x}, \log_2{x}
+        oe1 = XML.add_tag(oe0, 'm:func', {})
         #
-        oe6 = OxmlElement('m:rPr')
-        oe5.append(oe6)
-        oe7 = OxmlElement('m:sty')
+        oe2 = XML.add_tag(oe1, 'm:funcPr', {})
+        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
+        self._configure_w(oe3)
+        #
+        oe2 = XML.add_tag(oe1, 'm:fName', {})
+        if s == '_' or s == '{_}':
+            oe3 = XML.add_tag(oe2, 'm:sSub', {})
+        else:
+            oe3 = XML.add_tag(oe2, 'm:sSup', {})
+        oe4 = XML.add_tag(oe3, 'm:e', {})
+        oe5 = XML.add_tag(oe4, 'm:r', {})
+        #
+        oe6 = XML.add_tag(oe5, 'm:rPr', {})
         if self.is_bold:
-            oe7.set(ns.qn('m:val'), 'b')
+            oe7 = XML.add_tag(oe6, 'm:sty', {'m:val': 'b'})
         else:
-            oe7.set(ns.qn('m:val'), 'p')
-        oe6.append(oe7)
+            oe7 = XML.add_tag(oe6, 'm:sty', {'m:val': 'p'})
         #
-        oe6 = OxmlElement('m:t')
-        oe6.text = c
-        oe5.append(oe6)
+        oe6 = XML.add_tag(oe5, 'm:t', {}, c)
         #
-        if s == '_':
-            oe4 = OxmlElement('m:sub')
+        if s == '_' or s == '{_}':
+            oe4 = XML.add_tag(oe3, 'm:sub', {})
         else:
-            oe4 = OxmlElement('m:sup')
-        oe3.append(oe4)
+            oe4 = XML.add_tag(oe3, 'm:sup', {})
         self._write_math_exp(oe4, t1)
         #
-        oe2 = OxmlElement('m:e')
-        oe1.append(oe2)
+        oe2 = XML.add_tag(oe1, 'm:e', {})
         self._write_math_exp(oe2, t2)
 
     # SUBSCRIPT OR SUPERSCRIPT
     def _write_bop(self, oe0, s, t1, t2):
-        if s == '{_}':
-            oe1 = OxmlElement('m:sSub')
+        # x_i, x^2
+        if s == '_' or s == '{_}':
+            oe1 = XML.add_tag(oe0, 'm:sSub', {})
+            oe2 = XML.add_tag(oe1, 'm:sSubPr', {})
         else:
-            oe1 = OxmlElement('m:sSup')
-        oe0.append(oe1)
-        oe2 = OxmlElement('m:e')
-        oe1.append(oe2)
+            oe1 = XML.add_tag(oe0, 'm:sSup', {})
+            oe2 = XML.add_tag(oe1, 'm:sSupPr', {})
+        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
+        self._configure_w(oe3)
+        oe2 = XML.add_tag(oe1, 'm:e', {})
         self._write_math_exp(oe2, t1)
-        if s == '{_}':
-            oe2 = OxmlElement('m:sub')
+        if s == '_' or s == '{_}':
+            oe2 = XML.add_tag(oe1, 'm:sub', {})
         else:
-            oe2 = OxmlElement('m:sup')
-        oe1.append(oe2)
+            oe2 = XML.add_tag(oe1, 'm:sup', {})
         self._write_math_exp(oe2, t2)
 
     # FRACTION
     def _write_fra(self, oe0, t1, t2):
-        oe1 = OxmlElement('m:f')
-        oe0.append(oe1)
-        oe2 = OxmlElement('m:num')
-        oe1.append(oe2)
+        # \frac{2}{3}
+        oe1 = XML.add_tag(oe0, 'm:f', {})
+        oe2 = XML.add_tag(oe1, 'm:num', {})
         self._write_math_exp(oe2, t1)
-        oe2 = OxmlElement('m:den')
-        oe1.append(oe2)
+        oe2 = XML.add_tag(oe1, 'm:den', {})
         self._write_math_exp(oe2, t2)
 
     # RADICAL ROOT
     def _write_rrt(self, oe0, t1, t2):
-        oe1 = OxmlElement('m:rad')
-        oe0.append(oe1)
+        # \sqrt[3]{2}
+        oe1 = XML.add_tag(oe0, 'm:rad', {})
         if t1 == '' or t1 == '{}':
-            oe2 = OxmlElement('m:radPr')
-            oe1.append(oe2)
-            oe3 = OxmlElement('m:degHide')
-            oe3.set(ns.qn('m:val'), '1')
-            oe2.append(oe3)
-        oe2 = OxmlElement('m:deg')
-        oe1.append(oe2)
+            oe2 = XML.add_tag(oe1, 'm:radPr', {})
+            oe3 = XML.add_tag(oe2, '', {'m:val': '1'})
+        oe2 = XML.add_tag(oe1, 'm:deg', {})
         self._write_math_exp(oe2, t1)
-        oe2 = OxmlElement('m:e')
-        oe1.append(oe2)
+        oe2 = XML.add_tag(oe1, 'm:e', {})
         self._write_math_exp(oe2, t2)
 
     # LIMIT
     def _write_lim(self, oe0, t1, t2):
-        oe1 = OxmlElement('m:func')
-        oe0.append(oe1)
+        # \lim_{x}{y}
+        oe1 = XML.add_tag(oe0, 'm:func', {})
         #
-        oe2 = OxmlElement('m:funcPr')
-        oe1.append(oe2)
-        oe3 = OxmlElement('m:ctrlPr')
-        oe2.append(oe3)
+        oe2 = XML.add_tag(oe1, 'm:funcPr', {})
+        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
         self._configure_w(oe3)
         #
-        oe2 = OxmlElement('m:fName')
-        oe1.append(oe2)
-        oe3 = OxmlElement('m:limLow')
-        oe2.append(oe3)
+        oe2 = XML.add_tag(oe1, 'm:fName', {})
+        oe3 = XML.add_tag(oe2, 'm:limLow', {})
         #
-        oe4 = OxmlElement('m:limLowPr')
-        oe3.append(oe4)
-        oe5 = OxmlElement('m:ctrlPr')
-        oe4.append(oe5)
+        oe4 = XML.add_tag(oe3, 'm:limLowPr', {})
+        oe5 = XML.add_tag(oe4, 'm:ctrlPr', {})
         self._configure_w(oe5)
         #
-        oe4 = OxmlElement('m:e')
-        oe3.append(oe4)
-        oe5 = OxmlElement('m:r')
-        oe4.append(oe5)
+        oe4 = XML.add_tag(oe3, 'm:e', {})
+        oe5 = XML.add_tag(oe4, 'm:r', {})
         #
-        oe6 = OxmlElement('m:rPr')
-        oe5.append(oe6)
-        oe7 = OxmlElement('m:sty')
+        oe6 = XML.add_tag(oe5, 'm:rPr', {})
         if self.is_bold:
-            oe7.set(ns.qn('m:val'), 'b')
+            oe7 = XML.add_tag(oe6, 'm:sty', {'m:val': 'b'})
         else:
-            oe7.set(ns.qn('m:val'), 'p')
-        oe6.append(oe7)
+            oe7 = XML.add_tag(oe6, 'm:sty', {'m:val': 'p'})
         #
-        oe6 = OxmlElement('m:t')
-        oe6.text = 'lim'
-        oe5.append(oe6)
-        oe4 = OxmlElement('m:lim')
-        oe3.append(oe4)
+        oe6 = XML.add_tag(oe5, 'm:t', {}, 'lim')
+        oe4 = XML.add_tag(oe3, 'm:lim', {})
         self._write_math_exp(oe4, t1)
-        oe2 = OxmlElement('m:e')
-        oe1.append(oe2)
+        oe2 = XML.add_tag(oe1, 'm:e', {})
         self._write_math_exp(oe2, t2)
 
     # ONE ARGUMENT FUNCTION
     def _write_one(self, oe0, c, t1):
-        oe1 = OxmlElement('m:func')
-        oe0.append(oe1)
-        oe2 = OxmlElement('m:fName')
-        oe1.append(oe2)
-        oe3 = OxmlElement('m:r')
-        oe2.append(oe3)
+        oe1 = XML.add_tag(oe0, 'm:func', {})
         #
-        oe4 = OxmlElement('m:rPr')
-        oe3.append(oe4)
-        oe5 = OxmlElement('m:sty')
+        oe2 = XML.add_tag(oe1, 'm:funcPr', {})
+        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
+        self._configure_w(oe3)
+        #
+        oe2 = XML.add_tag(oe1, 'm:fName', {})
+        oe3 = XML.add_tag(oe2, 'm:r', {})
+        #
+        oe4 = XML.add_tag(oe3, 'm:rPr', {})
         if self.is_bold:
-            oe5.set(ns.qn('m:val'), 'b')
+            oe5 = XML.add_tag(oe4, 'm:sty', {'m:val': 'b'})
         else:
-            oe5.set(ns.qn('m:val'), 'p')
-        oe4.append(oe5)
+            oe5 = XML.add_tag(oe4, 'm:sty', {'m:val': 'p'})
         #
-        oe4 = OxmlElement('m:t')
-        oe4.text = c
-        oe3.append(oe4)
-        oe2 = OxmlElement('m:e')
-        oe1.append(oe2)
+        oe4 = XML.add_tag(oe3, 'm:t', {}, c)
+        oe2 = XML.add_tag(oe1, 'm:e', {})
         self._write_math_exp(oe2, t1)
 
     # VECTOR
     def _write_vec(self, oe0, t1):
-        oe1 = OxmlElement('m:acc')
-        oe0.append(oe1)
-        oe2 = OxmlElement('m:accPr')
-        oe1.append(oe2)
-        oe3 = OxmlElement('m:chr')
-        oe3.set(ns.qn('m:val'), '⃗')
-        oe2.append(oe3)
+        oe1 = XML.add_tag(oe0, 'm:acc', {})
+        oe2 = XML.add_tag(oe1, 'm:accPr', {})
+        oe3 = XML.add_tag(oe2, 'm:chr', {'m:val': '⃗'})
         #
-        oe3 = OxmlElement('m:ctrlPr')
-        oe2.append(oe3)
+        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
         self._configure(oe3)
         #
-        oe2 = OxmlElement('m:e')
-        oe1.append(oe2)
+        oe2 = XML.add_tag(oe1, 'm:e', {})
         self._write_math_exp(oe2, t1)
+
+    # MATRIX
+    def _write_mtx(self, oe0, t1):
+        nubs = t1
+        nubs.append('{\\Xlmx}')
+        mtrx = []
+        row = []
+        for cel in nubs:
+            cel = re.sub('^{(.*)}$', '\\1', cel)
+            if cel != '\\Xlmx':
+                row.append(cel)
+            else:
+                mtrx.append(row)
+                row = []
+        nrow = len(mtrx[0])
+        #
+        oe1 = XML.add_tag(oe0, 'm:d', {})
+        #
+        oe2 = XML.add_tag(oe1, 'm:dPr', {})
+        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
+        self._configure(oe3)
+        #
+        oe2 = XML.add_tag(oe1, 'm:e', {})
+        oe3 = XML.add_tag(oe2, 'm:m', {})
+        #
+        oe4 = XML.add_tag(oe3, 'm:mPr', {})
+        oe5 = XML.add_tag(oe4, 'm:ctrlPr', {})
+        self._configure(oe5)
+        #
+        for row in mtrx:
+            oe4 = XML.add_tag(oe3, 'm:mr', {})
+            for cel in row:
+                oe5 = XML.add_tag(oe4, 'm:e', {})
+                self._write_math_exp(oe5, '{' + cel + '}')
 
     # PARENTHESIS
     def _write_prn(self, oe0, t1, t2):
-        oe1 = OxmlElement('m:d')
-        oe0.append(oe1)
-        oe2 = OxmlElement('m:dPr')
-        oe1.append(oe2)
-        oe3 = OxmlElement('m:begChr')
-        oe3.set(ns.qn('m:val'), t1[0])
-        oe2.append(oe3)
-        oe3 = OxmlElement('m:endChr')
-        oe3.set(ns.qn('m:val'), t1[1])
-        oe2.append(oe3)
-        oe2 = OxmlElement('m:e')
-        oe1.append(oe2)
+        oe1 = XML.add_tag(oe0, 'm:d', {})
+        oe2 = XML.add_tag(oe1, 'm:dPr', {})
+        oe3 = XML.add_tag(oe2, 'm:begChr', {'m:val': t1[0]})
+        oe3 = XML.add_tag(oe2, 'm:endChr', {'m:val': t1[1]})
+        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
+        self._configure(oe3)
+        oe2 = XML.add_tag(oe1, 'm:e', {})
         self._write_math_exp(oe2, t2)
 
     # WRITE STRING
     def _write_str(self, oe0, string):
+        if string == '':
+            return
         string = re.sub('%9', '  ', string)
         string = re.sub('%3', ' ', string)
         string = re.sub('%2', ' ', string)
         string = re.sub('%1', ' ', string)
         string = re.sub('%0', '#', string)
-        if string == '':
-            return
-        oe1 = OxmlElement('m:r')
-        oe0.append(oe1)
+        oe1 = XML.add_tag(oe0, 'm:r', {})
         self._configure(oe1)
-        oe2 = OxmlElement('m:t')
-        oe2.text = string
-        oe1.append(oe2)
+        oe2 = XML.add_tag(oe1, 'm:t', {}, string)
 
     def _configure(self, oe1):
         self._configure_m(oe1)
         self._configure_w(oe1)
 
     def _configure_m(self, oe1):
-        oe2 = OxmlElement('m:rPr')
-        oe1.append(oe2)
-        oe3 = OxmlElement('m:sty')
+        oe2 = XML.add_tag(oe1, 'm:rPr', {})
         # LINE BREAK
         if self.must_break_line:
-            oe3 = OxmlElement('m:brk')
-            oe3.set(ns.qn('m:alnAt'), '1')
-            oe2.append(oe3)
+            oe3 = XML.add_tag(oe2, 'm:brk', {'m:alnAt': '1'})
+        oe3 = OxmlElement('m:sty')
         # ROMAN AND BOLD
         if self.is_roman and self.is_bold:
-            oe3.set(ns.qn('m:val'), 'b')
+            oe3 = XML.add_tag(oe2, 'm:sty', {'m:val': 'b'})
         elif self.is_roman:
-            oe3.set(ns.qn('m:val'), 'p')
+            oe3 = XML.add_tag(oe2, 'm:sty', {'m:val': 'p'})
         elif self.is_bold:
-            oe3.set(ns.qn('m:val'), 'bi')
-        oe2.append(oe3)
+            oe3 = XML.add_tag(oe2, 'm:sty', {'m:val': 'bi'})
 
     def _configure_w(self, oe1):
         m_size = Paragraph.font_size
@@ -2046,64 +2081,57 @@ class Math:
         s_size = m_size * 0.8
         l_size = m_size * 1.2
         xl_size = m_size * 1.4
-        oe2 = OxmlElement('w:rPr')
-        oe1.append(oe2)
-        # FONT SIZE
-        oe3 = OxmlElement('w:sz')
+        oe2 = XML.add_tag(oe1, 'w:rPr', {})
+        # FONT SIZE (MS OFFICE)
         if Paragraph.is_xsmall:
-            oe3.set(ns.qn('w:val'), str(xs_size * 2))  # ms office
+            oe3 = XML.add_tag(oe2, 'w:sz', {'w:val': str(xs_size * 2)})
         elif Paragraph.is_small:
-            oe3.set(ns.qn('w:val'), str(s_size * 2))   # ms office
+            oe3 = XML.add_tag(oe2, 'w:sz', {'w:val': str(s_size * 2)})
         elif Paragraph.is_large:
-            oe3.set(ns.qn('w:val'), str(l_size * 2))   # ms office
+            oe3 = XML.add_tag(oe2, 'w:sz', {'w:val': str(l_size * 2)})
         elif Paragraph.is_xlarge:
-            oe3.set(ns.qn('w:val'), str(xl_size * 2))  # ms office
+            oe3 = XML.add_tag(oe2, 'w:sz', {'w:val': str(xl_size * 2)})
         else:
-            oe3.set(ns.qn('w:val'), str(m_size * 2))   # ms office
-        oe2.append(oe3)
+            oe3 = XML.add_tag(oe2, 'w:sz', {'w:val': str(m_size * 2)})
         # UNDERLINE
         if Paragraph.underline is not None:
-            oe3 = OxmlElement('w:u')
             if Paragraph.underline == WD_UNDERLINE.SINGLE:
-                oe3.set(ns.qn('w:val'), 'single')
+                oe3 = XML.add_tag(oe2, 'w:u', {'w:val': 'single'})
             elif Paragraph.underline == WD_UNDERLINE.WORDS:
-                oe3.set(ns.qn('w:val'), 'words')
+                oe3 = XML.add_tag(oe2, 'w:u', {'w:val': 'words'})
             elif Paragraph.underline == WD_UNDERLINE.DOUBLE:
-                oe3.set(ns.qn('w:val'), 'double')
+                oe3 = XML.add_tag(oe2, 'w:u', {'w:val': 'double'})
             elif Paragraph.underline == WD_UNDERLINE.DOTTED:
-                oe3.set(ns.qn('w:val'), 'dotted')
+                oe3 = XML.add_tag(oe2, 'w:u', {'w:val': 'dotted'})
             elif Paragraph.underline == WD_UNDERLINE.THICK:
-                oe3.set(ns.qn('w:val'), 'thick')
+                oe3 = XML.add_tag(oe2, 'w:u', {'w:val': 'thick'})
             elif Paragraph.underline == WD_UNDERLINE.DASH:
-                oe3.set(ns.qn('w:val'), 'dash')
+                oe3 = XML.add_tag(oe2, 'w:u', {'w:val': 'dash'})
             elif Paragraph.underline == WD_UNDERLINE.DOT_DASH:
-                oe3.set(ns.qn('w:val'), 'dotDash')
+                oe3 = XML.add_tag(oe2, 'w:u', {'w:val': 'dotDash'})
             elif Paragraph.underline == WD_UNDERLINE.DOT_DOT_DASH:
-                oe3.set(ns.qn('w:val'), 'dotDotDash')
+                oe3 = XML.add_tag(oe2, 'w:u', {'w:val': 'dotDotDash'})
             elif Paragraph.underline == WD_UNDERLINE.WAVY:
-                oe3.set(ns.qn('w:val'), 'wave')
+                oe3 = XML.add_tag(oe2, 'w:u', {'w:val': 'wave'})
             elif Paragraph.underline == WD_UNDERLINE.DOTTED_HEAVY:
-                oe3.set(ns.qn('w:val'), 'dottedHeavy')
+                oe3 = XML.add_tag(oe2, 'w:u', {'w:val': 'dottedHeavy'})
             elif Paragraph.underline == WD_UNDERLINE.DASH_HEAVY:
-                oe3.set(ns.qn('w:val'), 'dashedHeavy')
+                oe3 = XML.add_tag(oe2, 'w:u', {'w:val': 'dashedHeavy'})
             elif Paragraph.underline == WD_UNDERLINE.DOT_DASH_HEAVY:
-                oe3.set(ns.qn('w:val'), 'dashDotHeavy')
+                oe3 = XML.add_tag(oe2, 'w:u', {'w:val': 'dashDotHeavy'})
             elif Paragraph.underline == WD_UNDERLINE.DOT_DOT_DASH_HEAVY:
-                oe3.set(ns.qn('w:val'), 'dashDotDotHeavy')
+                oe3 = XML.add_tag(oe2, 'w:u', {'w:val': 'dashDotDotHeavy'})
             elif Paragraph.underline == WD_UNDERLINE.WAVY_HEAVY:
-                oe3.set(ns.qn('w:val'), 'wavyHeavy')
+                oe3 = XML.add_tag(oe2, 'w:u', {'w:val': 'wavyHeavy'})
             elif Paragraph.underline == WD_UNDERLINE.DASH_LONG:
-                oe3.set(ns.qn('w:val'), 'dashLong')
+                oe3 = XML.add_tag(oe2, 'w:u', {'w:val': 'dashLong'})
             elif Paragraph.underline == WD_UNDERLINE.WAVY_DOUBLE:
-                oe3.set(ns.qn('w:val'), 'wavyDouble')
+                oe3 = XML.add_tag(oe2, 'w:u', {'w:val': 'wavyDouble'})
             elif Paragraph.underline == WD_UNDERLINE.DASH_LONG_HEAVY:
-                oe3.set(ns.qn('w:val'), 'dashLongHeavy')
-            oe2.append(oe3)
+                oe3 = XML.add_tag(oe2, 'w:u', {'w:val': 'dashLongHeavy'})
         # FONT COLOR
         if Paragraph.font_color is not None:
-            oe3 = OxmlElement('w:color')
-            oe3.set(ns.qn('w:val'), Paragraph.font_color)
-            oe2.append(oe3)
+            oe3 = XML.add_tag(oe2, 'w:color', {'w:val': Paragraph.font_color})
         # HIGHLIGHT COLOR
         if Paragraph.highlight_color is not None:
             oe3 = OxmlElement('w:highlight')
@@ -4601,7 +4629,16 @@ class ParagraphMath(Paragraph):
                 # ml.text = re.sub('\\s*:$', '', ml.text)
             if ml.text == ':':
                 ml.text = ''
-            ml.text = re.sub('\\s*\\\\$', '', ml.text)
+            # COMMENT
+            ml.text = re.sub(NOT_ESCAPED + '%.*$', '\\1', ml.text)
+        # END OF LINE
+        for j in range(len(md_lines)):
+            if j == 0:
+                continue
+            i = j - 1
+            if re.match('^.*[0-9A-Za-z]$', md_lines[i].text) and \
+               re.match('^[0-9A-Za-z].*$', md_lines[j].text):
+                md_lines[i].text += '\\,'
 
     def write_paragraph(self, ms_doc):
         ttw = self.text_to_write
@@ -4908,7 +4945,8 @@ class ParagraphHorizontalLine(Paragraph):
         # opts['w:space'] = '1'
         # opts['w:color'] = 'auto'
         ms_ppr = ms_par._p.get_or_add_pPr()
-        XML.add_tags(ms_ppr, 'w:pBdr', 'w:bottom', opts)
+        ms_bdr = XML.add_tag(ms_ppr, 'w:pBdr', {})
+        XML.add_tag(ms_bdr, 'w:bottom', opts)
 
 
 class ParagraphBreakdown(Paragraph):

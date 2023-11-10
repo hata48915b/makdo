@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.10-01:52:58-JST>
+# Time-stamp:   <2023.11.10-19:03:05-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -3353,6 +3353,33 @@ class RawParagraph:
             if e == '}':
                 e = '\\}'
             math_str = p + b + i + e
+            # MATRIX
+            res = '^(.*)[\\[{\\(]{<m:m>(.*)</m:m>}[\\)}\\]](.*)$'
+            if re.match(res, math_str):
+                t1 = re.sub(res, '\\1', math_str)
+                t2 = re.sub(res, '\\2', math_str)
+                t3 = re.sub(res, '\\3', math_str)
+                t9 = ''
+                d = 0
+                for c in t2:
+                    if d == 0 and c == '{':
+                        d += 1
+                        continue
+                    if d == 1 and c == '}':
+                        d -= 1
+                        t9 += '&'
+                        continue
+                    t9 += c
+                t9 = re.sub('&(\\\\\\\\)', '\\1', t9)
+                t9 = re.sub('\\\\\\\\$', '', t9)
+                math_str = t1 + '\\begin{pmatrix}' + t9 + '\\end{pmatrix}' + t3
+        # MATRIX
+        elif xl == '<m:m>':
+            math_str += xl
+        elif xl == '</m:m>':
+            math_str += xl
+        elif xl == '</m:mr>':
+            math_str += '\\\\'
         # ELEMENT
         elif xl == '<m:e>':
             math_str += '{'
@@ -3418,6 +3445,41 @@ class RawParagraph:
             math_str += '{'
         elif xl == '</m:den>':
             math_str += '}'
+        # FONT SIZE
+        m_size = Paragraph.font_size
+        s = XML.get_value('w:sz', 'w:val', -1.0, xl) / 2
+        if s > 0:
+            if s < m_size * 0.7:
+                math_datu.pre_fds.append('---')
+                math_datu.pos_fds.append('---')
+            elif s < m_size * 0.9:
+                math_datu.pre_fds.append('--')
+                math_datu.pos_fds.append('--')
+            elif s > m_size * 1.3:
+                math_datu.pre_fds.append('+++')
+                math_datu.pos_fds.append('+++')
+            elif s > m_size * 1.1:
+                math_datu.pre_fds.append('++')
+                math_datu.pos_fds.append('++')
+        # FONT WIDTH
+        w = XML.get_value('w:w', 'w:val', -1.0, xl)
+        if w > 0:
+            if w < 70:
+                math_datu.pre_fds.append('>>>')
+                math_datu.pos_fds.append('<<<')
+            elif w < 90:
+                math_datu.pre_fds.append('>>')
+                math_datu.pos_fds.append('<<')
+            elif w > 130:
+                math_datu.pre_fds.append('<<<')
+                math_datu.pos_fds.append('>>>')
+            elif w > 110:
+                math_datu.pre_fds.append('<<')
+                math_datu.pos_fds.append('>>')
+        # STRIKETHROUGH
+        elif re.match('^<w:strike/?>$', xl):
+            math_datu.pre_fds.append('~~')
+            math_datu.pos_fds.append('~~')
         # UNDERLINE
         elif re.match('^<w:u w:val="(.*)"/>$', xl):
             tx = re.sub('^<w:u w:val="(.*)"/>$', '\\1', xl)
@@ -4893,6 +4955,8 @@ class ParagraphSection(Paragraph):
         head_section_depth, tail_section_depth \
             = cls._get_section_depths(rp_rtx)
         if ParagraphTable.is_this_class(rp):
+            return False
+        if ParagraphMath.is_this_class(rp):
             return False
         if ParagraphImage.is_this_class(rp):
             return False
