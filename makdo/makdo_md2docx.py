@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.10-18:42:05-JST>
+# Time-stamp:   <2023.11.11-11:02:00-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1929,7 +1929,7 @@ class Math:
         oe1 = XML.add_tag(oe0, 'm:rad', {})
         if t1 == '' or t1 == '{}':
             oe2 = XML.add_tag(oe1, 'm:radPr', {})
-            oe3 = XML.add_tag(oe2, '', {'m:val': '1'})
+            oe3 = XML.add_tag(oe2, 'm:degHide', {'m:val': '1'})
         oe2 = XML.add_tag(oe1, 'm:deg', {})
         self._write_math_exp(oe2, t1)
         oe2 = XML.add_tag(oe1, 'm:e', {})
