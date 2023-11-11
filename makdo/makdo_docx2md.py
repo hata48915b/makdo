@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.10-19:03:05-JST>
+# Time-stamp:   <2023.11.11-13:22:47-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -3334,16 +3334,16 @@ class RawParagraph:
             math_str += '\\\\'
         # PARENTHESES
         elif xl == '<m:d>':
-            math_str += '(()'
+            math_str += '(<()>'
         elif re.match('^<m:begChr m:val="(.)"/>$', xl):
             bc = re.sub('^<m:begChr m:val="(.)"/>$', '\\1', xl)
-            math_str = re.sub('\\(\\(\\)$', '(' + bc + ')', math_str)
+            math_str = re.sub('\\(<(.)(.)>$', '(<' + bc + '\\2>', math_str)
         elif re.match('<m:endChr m:val="(.*)"/>', xl):
             ec = re.sub('^<m:endChr m:val="(.)"/>$', '\\1', xl)
-            math_str = re.sub('\\((.)\\)$', '(\\1' + ec, math_str)
+            math_str = re.sub('\\(<(.)(.)>$', '(<\\1' + ec + '>', math_str)
         elif xl == '</m:d>':
             math_str += ')'
-            res = '^(.*)\\(([\\[{\\(])([\\]}\\)])(.*)\\)$'
+            res = '(.*)\\(<(.)(.)>(.*)\\)$'
             p = re.sub(res, '\\1', math_str)
             b = re.sub(res, '\\2', math_str)
             e = re.sub(res, '\\3', math_str)
@@ -3354,32 +3354,51 @@ class RawParagraph:
                 e = '\\}'
             math_str = p + b + i + e
             # MATRIX
-            res = '^(.*)[\\[{\\(]{<m:m>(.*)</m:m>}[\\)}\\]](.*)$'
+            res1 = '^(.*)\\({+\\\\begin{matrix}(.*)\\\\end{matrix}}+\\)$'
+            res2 = '\\1{\\\\begin{pmatrix}\\2\\\\end{pmatrix}}'
+            if re.match(res1, math_str):
+                math_str = re.sub(res1, res2, math_str)
+            res1 = '^(.*)\\[{+\\\\begin{matrix}(.*)\\\\end{matrix}}+\\]$'
+            res2 = '\\1{\\\\begin{bmatrix}\\2\\\\end{bmatrix}}'
+            if re.match(res1, math_str):
+                math_str = re.sub(res1, res2, math_str)
+            res1 = '^(.*)|{+\\\\begin{matrix}(.*)\\\\end{matrix}}+|$'
+            res2 = '\\1{\\\\begin{vmatrix}\\2\\\\end{vmatrix}}'
+            if re.match(res1, math_str):
+                math_str = re.sub(res1, res2, math_str)
+            res1 = '^(.*)‖{+\\\\begin{matrix}(.*)\\\\end{matrix}}+‖$'
+            res2 = '\\1{\\\\begin{Vmatrix}\\2\\\\end{Vmatrix}}'
+            if re.match(res1, math_str):
+                math_str = re.sub(res1, res2, math_str)
+            res1 = '^(.*){+\\\\begin{matrix}(.*)\\\\end{matrix}}+$'
+            res2 = '\\1{\\\\begin{matrix}\\2\\\\end{matrix}}'
+            if re.match(res1, math_str):
+                math_str = re.sub(res1, res2, math_str)
+        # MATRIX
+        elif xl == '<m:m>':
+            math_str += '{' + xl + '}'
+        elif xl == '</m:mr>':
+            math_str += '{' + xl + '}'
+        elif xl == '</m:m>':
+            math_str += '{' + xl + '}'
+            res = '^(.*){<m:m>}(.*){</m:m>}$'
             if re.match(res, math_str):
                 t1 = re.sub(res, '\\1', math_str)
                 t2 = re.sub(res, '\\2', math_str)
-                t3 = re.sub(res, '\\3', math_str)
+                t2 = re.sub('&', '\\\\&', t2)
                 t9 = ''
                 d = 0
                 for c in t2:
-                    if d == 0 and c == '{':
-                        d += 1
-                        continue
-                    if d == 1 and c == '}':
-                        d -= 1
-                        t9 += '&'
-                        continue
                     t9 += c
-                t9 = re.sub('&(\\\\\\\\)', '\\1', t9)
-                t9 = re.sub('\\\\\\\\$', '', t9)
-                math_str = t1 + '\\begin{pmatrix}' + t9 + '\\end{pmatrix}' + t3
-        # MATRIX
-        elif xl == '<m:m>':
-            math_str += xl
-        elif xl == '</m:m>':
-            math_str += xl
-        elif xl == '</m:mr>':
-            math_str += '\\\\'
+                    if c == '{':
+                        d += 1
+                    if c == '}':
+                        d -= 1
+                    if d == 0:
+                        t9 += '&'
+                t9 = re.sub('&{</m:mr>}&$', '', t9)
+                t9 = re.sub('&{</m:mr>}&', '\\\\\\\\', t9)
+                math_str = t1 + '{\\begin{matrix}' + t9 + '\\end{matrix}}'
         # ELEMENT
         elif xl == '<m:e>':
             math_str += '{'
@@ -3450,52 +3469,37 @@ class RawParagraph:
         s = XML.get_value('w:sz', 'w:val', -1.0, xl) / 2
         if s > 0:
             if s < m_size * 0.7:
-                math_datu.pre_fds.append('---')
-                math_datu.pos_fds.append('---')
+                math_datu.append_fds('---', '---')
             elif s < m_size * 0.9:
-                math_datu.pre_fds.append('--')
-                math_datu.pos_fds.append('--')
+                math_datu.append_fds('--', '--')
             elif s > m_size * 1.3:
-                math_datu.pre_fds.append('+++')
-                math_datu.pos_fds.append('+++')
+                math_datu.append_fds('+++', '+++')
             elif s > m_size * 1.1:
-                math_datu.pre_fds.append('++')
-                math_datu.pos_fds.append('++')
+                math_datu.append_fds('++', '++')
         # FONT WIDTH
         w = XML.get_value('w:w', 'w:val', -1.0, xl)
         if w > 0:
             if w < 70:
-                math_datu.pre_fds.append('>>>')
-                math_datu.pos_fds.append('<<<')
+                math_datu.append_fds('>>>', '<<<')
             elif w < 90:
-                math_datu.pre_fds.append('>>')
-                math_datu.pos_fds.append('<<')
+                math_datu.append_fds('>>', '<<')
             elif w > 130:
-                math_datu.pre_fds.append('<<<')
-                math_datu.pos_fds.append('>>>')
+                math_datu.append_fds('<<<', '>>>')
             elif w > 110:
-                math_datu.pre_fds.append('<<')
-                math_datu.pos_fds.append('>>')
+                math_datu.append_fds('<<', '>>')
         # STRIKETHROUGH
         elif re.match('^<w:strike/?>$', xl):
-            math_datu.pre_fds.append('~~')
-            math_datu.pos_fds.append('~~')
+            math_datu.append_fds('~~', '~~')
         # UNDERLINE
         elif re.match('^<w:u w:val="(.*)"/>$', xl):
             tx = re.sub('^<w:u w:val="(.*)"/>$', '\\1', xl)
             md = '_' + UNDERLINE[tx] + '_'
-            if md not in math_datu.pre_fds:
-                math_datu.pre_fds.append(md)
-            if md not in math_datu.pos_fds:
-                math_datu.pos_fds.append(md)
+            math_datu.append_fds(md, md)
         # HIGILIGHT COLOR
         elif re.match('^<w:highlight w:val="(.*)"/>$', xl):
             tx = re.sub('^<w:highlight w:val="(.*)"/>$', '\\1', xl)
             md = '_' + tx + '_'
-            if md not in math_datu.pre_fds:
-                math_datu.pre_fds.append(md)
-            if md not in math_datu.pos_fds:
-                math_datu.pos_fds.append(md)
+            math_datu.append_fds(md, md)
         # FONT COLOR
         elif re.match('^<w:color w:val="([^"]*)"(?: .*)?/>$', xl):
             fc = re.sub('^<w:color w:val="([^"]*)"(?: .*)?/>$', '\\1', xl)
@@ -3505,10 +3509,7 @@ class RawParagraph:
                 md = '^' + FONT_COLOR[fc] + '^'
             else:
                 md = '^' + fc + '^'
-            if md not in math_datu.pre_fds:
-                math_datu.pre_fds.append(md)
-            if md not in math_datu.pos_fds:
-                math_datu.pos_fds.append(md)
+            math_datu.append_fds(md, md)
         # BOLD OR ROMAN
         elif re.match('<m:sty m:val="([^"]+)"/>', xl):
             tx = re.sub('<m:sty m:val="([^"]+)"/>', '\\1', xl)

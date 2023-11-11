@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.11-11:02:00-JST>
+# Time-stamp:   <2023.11.11-13:21:14-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1569,7 +1569,6 @@ class Math:
                    nubs[-2] == '{\\begin}' and \
                    re.match('^{.*matrix}$', nubs[-1]):
                     nubs[-2] = '{\\Ybmx}'
-                    nubs[-1] = ''
                 if (len(nubs) >= 2) and \
                    nubs[-2] == '{\\end}' and \
                    re.match('^{.*matrix}$', nubs[-1]):
@@ -1578,17 +1577,22 @@ class Math:
                         if n == '{\\Ybmx}':
                             b = i
                     if b is not None:
-                        nubs[b] = '{{\\Xbmx}{'
+                        nubs[b] = '{{\\Xbmx}'
+                        nubs[b + 1] += '{'
                         nubs[-1] = '}{\\Xemx}}'
-                    s = ''
-                    for i in range(b + 1, len(nubs) - 2):
-                        if nubs[i] == '&':
-                            nubs[i] = '}{'
-                        if nubs[i] == '{\\Ylmx}':
-                            nubs[i] = '}{\\Xlmx}{'
-                        s += nubs[i]
-                        nubs[i] = ''
-                    nubs[-2] = s
+                        s = ''
+                        for i in range(b + 2, len(nubs) - 2):
+                            if nubs[i] == '&':
+                                nubs[i] = '}{'
+                            if nubs[i] == '{\\Ylmx}':
+                                nubs[i] = '}{\\Xlmx}{'
+                            s += nubs[i]
+                            nubs[i] = ''
+                        nubs[-2] = s
+                        if re.match('^.*{$', nubs[-2]) and \
+                           re.match('^}.*$', nubs[-1]):
+                            nubs[-2] = re.sub('{$', '', nubs[-2])
+                            nubs[-1] = re.sub('^}', '', nubs[-1])
                 # PARENTHESES
                 if (len(nubs) >= 1) and (nubs[-1] == '{-)}'):
                     for i in range(len(nubs) - 1, -1, -1):
@@ -1739,9 +1743,11 @@ class Math:
         # MATRIX
         elif (len(nubs) >= 2 and
               nubs[0] == '{\\Xbmx}' and nubs[-1] == '{\\Xemx}'):
+            c = nubs[1]
+            nubs.pop(0)
             nubs.pop(0)
             nubs.pop(-1)
-            self._write_mtx(oe0, nubs)
+            self._write_mtx(oe0, c, nubs)
         # LINE BREAK
         elif len(nubs) == 2 and nubs[0] == '{\\\\}':
             self.must_break_line = True
@@ -1968,6 +1974,7 @@ class Math:
 
     # ONE ARGUMENT FUNCTION
     def _write_one(self, oe0, c, t1):
+        # \sin{x}, \exp{y}
         oe1 = XML.add_tag(oe0, 'm:func', {})
         #
         oe2 = XML.add_tag(oe1, 'm:funcPr', {})
@@ -1989,6 +1996,7 @@ class Math:
 
     # VECTOR
     def _write_vec(self, oe0, t1):
+        # \vec{x}
         oe1 = XML.add_tag(oe0, 'm:acc', {})
         oe2 = XML.add_tag(oe1, 'm:accPr', {})
         oe3 = XML.add_tag(oe2, 'm:chr', {'m:val': '⃗'})
@@ -2000,7 +2008,8 @@ class Math:
         self._write_math_exp(oe2, t1)
 
     # MATRIX
-    def _write_mtx(self, oe0, t1):
+    def _write_mtx(self, oe0, c, t1):
+        # \begin{pmatrix}a&b\\c&d\end{pmatrix}
         nubs = t1
         nubs.append('{\\Xlmx}')
         mtrx = []
@@ -2017,6 +2026,21 @@ class Math:
         oe1 = XML.add_tag(oe0, 'm:d', {})
         #
         oe2 = XML.add_tag(oe1, 'm:dPr', {})
+        if c == '{pmatrix}':
+            oe3 = XML.add_tag(oe2, 'm:begChr', {'m:val': '('})
+            oe3 = XML.add_tag(oe2, 'm:endChr', {'m:val': ')'})
+        elif c == '{bmatrix}':
+            oe3 = XML.add_tag(oe2, 'm:begChr', {'m:val': '['})
+            oe3 = XML.add_tag(oe2, 'm:endChr', {'m:val': ']'})
+        elif c == '{vmatrix}':
+            oe3 = XML.add_tag(oe2, 'm:begChr', {'m:val': '|'})
+            oe3 = XML.add_tag(oe2, 'm:endChr', {'m:val': '|'})
+        elif c == '{Vmatrix}':
+            oe3 = XML.add_tag(oe2, 'm:begChr', {'m:val': '‖"'})
+            oe3 = XML.add_tag(oe2, 'm:endChr', {'m:val': '‖"'})
+        else:
+            oe3 = XML.add_tag(oe2, 'm:begChr', {'m:val': ''})
+            oe3 = XML.add_tag(oe2, 'm:endChr', {'m:val': ''})
         oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
         self._configure(oe3)
         #
