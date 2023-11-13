@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.13-18:43:34-JST>
+# Time-stamp:   <2023.11.14-08:16:20-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2214,6 +2214,11 @@ class Math:
     def _write_fra(self, oe0, t1, t2):
         # \frac{2}{3}
         oe1 = XML.add_tag(oe0, 'm:f', {})
+        #
+        oe2 = XML.add_tag(oe1, 'm:fPr', {})
+        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
+        XML._math_decorate_string_w(oe3)
+        #
         oe2 = XML.add_tag(oe1, 'm:num', {})
         self._write_math_exp(oe2, t1)
         oe2 = XML.add_tag(oe1, 'm:den', {})
@@ -2223,9 +2228,14 @@ class Math:
     def _write_rrt(self, oe0, t1, t2):
         # \sqrt[3]{2}
         oe1 = XML.add_tag(oe0, 'm:rad', {})
+        #
+        oe2 = XML.add_tag(oe1, 'm:radPr', {})
         if t1 == '' or t1 == '{}':
-            oe2 = XML.add_tag(oe1, 'm:radPr', {})
             oe3 = XML.add_tag(oe2, 'm:degHide', {'m:val': '1'})
+        #
+        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
+        XML._math_decorate_string_w(oe3)
+        #
         oe2 = XML.add_tag(oe1, 'm:deg', {})
         self._write_math_exp(oe2, t1)
         oe2 = XML.add_tag(oe1, 'm:e', {})
@@ -2288,9 +2298,9 @@ class Math:
     def _write_vec(self, oe0, t1):
         # \vec{x}
         oe1 = XML.add_tag(oe0, 'm:acc', {})
+        #
         oe2 = XML.add_tag(oe1, 'm:accPr', {})
         oe3 = XML.add_tag(oe2, 'm:chr', {'m:val': '⃗'})
-        #
         oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
         XML._math_decorate_string(oe3)
         #
