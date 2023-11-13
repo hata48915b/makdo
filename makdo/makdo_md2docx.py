@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.11-13:21:14-JST>
+# Time-stamp:   <2023.11.13-18:43:34-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -78,7 +78,7 @@ from docx.oxml import OxmlElement, ns
 from docx.enum.style import WD_STYLE_TYPE
 from docx.shared import RGBColor
 from docx.enum.text import WD_COLOR_INDEX
-from docx.enum.text import WD_UNDERLINE
+# from docx.enum.text import WD_UNDERLINE
 import socket   # host
 import getpass  # user
 
@@ -243,7 +243,8 @@ HELP_EPILOG = '''Markdownの記法:
     [>=(数字) ]で段落の右の余白を文字数だけ増減します（独自）
     ["" ]で段落の備考を付記することができます（独自）
   行中指示
-    [->]から[<-]又は行末まではコメントアウトされます（独自）
+    [->]から[<-]まで変更履歴の削除文字列になります（独自）
+    [+>]から[<+]まで変更履歴の加筆文字列になります（独自）
     [<>]は何もせず表示もされません（独自）
     [<br>]で改行されます
   文字装飾
@@ -362,7 +363,7 @@ FONT_DECORATORS_VISIBLE = [
     '_[\\$=\\.#\\-~\\+]{,4}_',  # underline
     '_[0-9A-Za-z]{1,11}_',      # higilight color
     '`',                        # preformatted
-    '@[^@]{1,66}@'              # font
+    '@[^@]{1,66}@',             # font
 ]
 FONT_DECORATORS = FONT_DECORATORS_INVISIBLE + FONT_DECORATORS_VISIBLE
 
@@ -371,24 +372,43 @@ RELAX_SYMBOL = '<>'
 HORIZONTAL_BAR = '[ー−—－―‐]'
 
 UNDERLINE = {
-    '':     WD_UNDERLINE.SINGLE,
-    '$':    WD_UNDERLINE.WORDS,
-    '=':    WD_UNDERLINE.DOUBLE,
-    '.':    WD_UNDERLINE.DOTTED,
-    '#':    WD_UNDERLINE.THICK,
-    '-':    WD_UNDERLINE.DASH,
-    '.-':   WD_UNDERLINE.DOT_DASH,
-    '..-':  WD_UNDERLINE.DOT_DOT_DASH,
-    '~':    WD_UNDERLINE.WAVY,
-    '.#':   WD_UNDERLINE.DOTTED_HEAVY,
-    '-#':   WD_UNDERLINE.DASH_HEAVY,
-    '.-#':  WD_UNDERLINE.DOT_DASH_HEAVY,
-    '..-#': WD_UNDERLINE.DOT_DOT_DASH_HEAVY,
-    '~#':   WD_UNDERLINE.WAVY_HEAVY,
-    '-+':   WD_UNDERLINE.DASH_LONG,
-    '~=':   WD_UNDERLINE.WAVY_DOUBLE,
-    '-+#':  WD_UNDERLINE.DASH_LONG_HEAVY,
+    '':     'single',
+    '$':    'words',
+    '=':    'double',
+    '.':    'dotted',
+    '#':    'thick',
+    '-':    'dash',
+    '.-':   'dotDash',
+    '..-':  'dotDotDash',
+    '~':    'wave',
+    '.#':   'dottedHeavy',
+    '-#':   'dashedHeavy',
+    '.-#':  'dashDotHeavy',
+    '..-#': 'dashDotDotHeavy',
+    '~#':   'wavyHeavy',
+    '-+':   'dashLong',
+    '~=':   'wavyDouble',
+    '-+#':  'dashLongHeavy',
 }
+#WD_UNDERLINE = {
+#    '':     WD_UNDERLINE.SINGLE,
+#    '$':    WD_UNDERLINE.WORDS,
+#    '=':    WD_UNDERLINE.DOUBLE,
+#    '.':    WD_UNDERLINE.DOTTED,
+#    '#':    WD_UNDERLINE.THICK,
+#    '-':    WD_UNDERLINE.DASH,
+#    '.-':   WD_UNDERLINE.DOT_DASH,
+#    '..-':  WD_UNDERLINE.DOT_DOT_DASH,
+#    '~':    WD_UNDERLINE.WAVY,
+#    '.#':   WD_UNDERLINE.DOTTED_HEAVY,
+#    '-#':   WD_UNDERLINE.DASH_HEAVY,
+#    '.-#':  WD_UNDERLINE.DOT_DASH_HEAVY,
+#    '..-#': WD_UNDERLINE.DOT_DOT_DASH_HEAVY,
+#    '~#':   WD_UNDERLINE.WAVY_HEAVY,
+#    '-+':   WD_UNDERLINE.DASH_LONG,
+#    '~=':   WD_UNDERLINE.WAVY_DOUBLE,
+#    '-+#':  WD_UNDERLINE.DASH_LONG_HEAVY,
+#}
 
 FONT_COLOR = {
     'red':         'FF0000',
@@ -460,38 +480,69 @@ FONT_COLOR = {
 }
 
 HIGHLIGHT_COLOR = {
-    'red':         WD_COLOR_INDEX.RED,
-    'R':           WD_COLOR_INDEX.RED,
-    'darkRed':     WD_COLOR_INDEX.DARK_RED,
-    'DR':          WD_COLOR_INDEX.DARK_RED,
-    'yellow':      WD_COLOR_INDEX.YELLOW,
-    'Y':           WD_COLOR_INDEX.YELLOW,
-    'darkYellow':  WD_COLOR_INDEX.DARK_YELLOW,
-    'DY':          WD_COLOR_INDEX.DARK_YELLOW,
-    'green':       WD_COLOR_INDEX.BRIGHT_GREEN,
-    'G':           WD_COLOR_INDEX.BRIGHT_GREEN,
-    'darkGreen':   WD_COLOR_INDEX.GREEN,
-    'DG':          WD_COLOR_INDEX.GREEN,
-    'cyan':        WD_COLOR_INDEX.TURQUOISE,
-    'C':           WD_COLOR_INDEX.TURQUOISE,
-    'darkCyan':    WD_COLOR_INDEX.TEAL,
-    'DC':          WD_COLOR_INDEX.TEAL,
-    'blue':        WD_COLOR_INDEX.BLUE,
-    'B':           WD_COLOR_INDEX.BLUE,
-    'darkBlue':    WD_COLOR_INDEX.DARK_BLUE,
-    'DB':          WD_COLOR_INDEX.DARK_BLUE,
-    'magenta':     WD_COLOR_INDEX.PINK,
-    'M':           WD_COLOR_INDEX.PINK,
-    'darkMagenta': WD_COLOR_INDEX.VIOLET,
-    'DM':          WD_COLOR_INDEX.VIOLET,
-    'lightGray':   WD_COLOR_INDEX.GRAY_25,
-    'G1':          WD_COLOR_INDEX.GRAY_25,
-    'darkGray':    WD_COLOR_INDEX.GRAY_50,
-    'G2':          WD_COLOR_INDEX.GRAY_50,
-    'black':       WD_COLOR_INDEX.BLACK,
-    'BK':          WD_COLOR_INDEX.BLACK,
+    'red':         'red',
+    'R':           'red',
+    'darkRed':     'darkRed',
+    'DR':          'darkRed',
+    'yellow':      'yellow',
+    'Y':           'yellow',
+    'darkYellow':  'darkYellow',
+    'DY':          'darkYellow',
+    'green':       'green',
+    'G':           'green',
+    'darkGreen':   'darkGreen',
+    'DG':          'darkGreen',
+    'cyan':        'cyan',
+    'C':           'cyan',
+    'darkCyan':    'darkCyan',
+    'DC':          'darkCyan',
+    'blue':        'blue',
+    'B':           'blue',
+    'darkBlue':    'darkBlue',
+    'DB':          'darkBlue',
+    'magenta':     'magenta',
+    'M':           'magenta',
+    'darkMagenta': 'darkMagenta',
+    'DM':          'darkMagenta',
+    'lightGray':   'lightGray',
+    'G1':          'lightGray',
+    'darkGray':    'darkGray',
+    'G2':          'darkGray',
+    'black':       'black',
+    'BK':          'black',
 }
-
+#WD_HIGHLIGHT_COLOR = {
+#    'red':         WD_COLOR_INDEX.RED,
+#    'R':           WD_COLOR_INDEX.RED,
+#    'darkRed':     WD_COLOR_INDEX.DARK_RED,
+#    'DR':          WD_COLOR_INDEX.DARK_RED,
+#    'yellow':      WD_COLOR_INDEX.YELLOW,
+#    'Y':           WD_COLOR_INDEX.YELLOW,
+#    'darkYellow':  WD_COLOR_INDEX.DARK_YELLOW,
+#    'DY':          WD_COLOR_INDEX.DARK_YELLOW,
+#    'green':       WD_COLOR_INDEX.BRIGHT_GREEN,
+#    'G':           WD_COLOR_INDEX.BRIGHT_GREEN,
+#    'darkGreen':   WD_COLOR_INDEX.GREEN,
+#    'DG':          WD_COLOR_INDEX.GREEN,
+#    'cyan':        WD_COLOR_INDEX.TURQUOISE,
+#    'C':           WD_COLOR_INDEX.TURQUOISE,
+#    'darkCyan':    WD_COLOR_INDEX.TEAL,
+#    'DC':          WD_COLOR_INDEX.TEAL,
+#    'blue':        WD_COLOR_INDEX.BLUE,
+#    'B':           WD_COLOR_INDEX.BLUE,
+#    'darkBlue':    WD_COLOR_INDEX.DARK_BLUE,
+#    'DB':          WD_COLOR_INDEX.DARK_BLUE,
+#    'magenta':     WD_COLOR_INDEX.PINK,
+#    'M':           WD_COLOR_INDEX.PINK,
+#    'darkMagenta': WD_COLOR_INDEX.VIOLET,
+#    'DM':          WD_COLOR_INDEX.VIOLET,
+#    'lightGray':   WD_COLOR_INDEX.GRAY_25,
+#    'G1':          WD_COLOR_INDEX.GRAY_25,
+#    'darkGray':    WD_COLOR_INDEX.GRAY_50,
+#    'G2':          WD_COLOR_INDEX.GRAY_50,
+#    'black':       WD_COLOR_INDEX.BLACK,
+#    'BK':          WD_COLOR_INDEX.BLACK,
+#}
 
 ############################################################
 # FUNCTION
@@ -869,6 +920,160 @@ class XML:
             oe.text = text
         ms_foo.append(oe)
         return oe
+
+    @staticmethod
+    def write_plain_string(oe0, pla_str):
+        if pla_str == '':
+            return ''
+        pla_str = XML.prepare_string(pla_str)
+        oe1 = XML.add_tag(oe0, 'w:r', {})
+        XML.decorate_string(oe1)
+        oe2 = XML.add_tag(oe1, 'w:t', {}, pla_str)
+        return ''
+
+    @staticmethod
+    def write_deleted_string(oe0, del_str):
+        if del_str == '':
+            return ''
+        del_str = XML.prepare_string(del_str)
+        oe1 = XML.add_tag(oe0, 'w:del', {'w:id': '1'})
+        oe2 = XML.add_tag(oe1, 'w:r', {})
+        XML.decorate_string(oe2)
+        oe3 = XML.add_tag(oe2, 'w:delText', {}, del_str)
+        return ''
+
+    @staticmethod
+    def write_inserted_string(oe0, ins_str):
+        if ins_str == '':
+            return ''
+        ins_str = XML.prepare_string(ins_str)
+        oe1 = XML.add_tag(oe0, 'w:ins', {'w:id': '1'})
+        oe2 = XML.add_tag(oe1, 'w:r', {})
+        XML.decorate_string(oe2)
+        oe3 = XML.add_tag(oe2, 'w:t', {}, ins_str)
+        return ''
+
+    @staticmethod
+    def prepare_string(string):
+        # REMOVE ESCAPE SYMBOL (BACKSLASH)
+        string = re.sub('\\\\', '-\\\\', string)
+        string = re.sub('-\\\\-\\\\', '-\\\\\\\\', string)
+        string = re.sub('-\\\\', '', string)
+        # REMOVE RELAX SYMBOL
+        res = NOT_ESCAPED + RELAX_SYMBOL
+        while re.match(res, string):
+            string = re.sub(res, '\\1', string)
+        # RETURN
+        return string
+
+    @staticmethod
+    def decorate_string(oe0):
+        size = round(Form.font_size * Paragraph.font_scale, 1)
+        oe1 = XML.add_tag(oe0, 'w:rPr', {})
+        # FONT
+        if Paragraph.is_preformatted:
+            font = Paragraph.gothic_font
+        else:
+            font = Paragraph.mincho_font
+        opt = {'w:ascii': font, 'w:hAnsi': font, 'w:eastAsia': font}
+        oe2 = XML.add_tag(oe1, 'w:rFonts', opt)
+        # ITALIC
+        if Paragraph.is_italic:
+            oe2 = XML.add_tag(oe1, 'w:i', {})
+        # BOLD
+        if Paragraph.is_bold:
+            oe2 = XML.add_tag(oe1, 'w:b', {})
+        # STRIKE
+        if Paragraph.has_strike:
+            oe2 = XML.add_tag(oe1, 'w:strike', {})
+        # UNDERLINE
+        if Paragraph.underline is not None:
+            oe2 = XML.add_tag(oe1, 'w:u', {'w:val': Paragraph.underline})
+        # FONT SIZE
+        oe2 = XML.add_tag(oe1, 'w:sz', {'w:val': str(size * 2)})
+        # oe2 = XML.add_tag(oe1, 'w:szCs', {'w:val': str(size * 2)})
+        # FONT WIDTH
+        if Paragraph.font_width != 1.00:
+            opt = {'w:val': str(int(Paragraph.font_width * 100))}
+            oe2 = XML.add_tag(oe1, 'w:w', opt)
+        # FONT COLOR
+        if Paragraph.font_color is not None:
+            oe2 = XML.add_tag(oe1, 'w:color', {'w:val': Paragraph.font_color})
+        # HIGHTLIGHT COLOR
+        if Paragraph.highlight_color is not None:
+            opt = {'w:val': Paragraph.highlight_color}
+            oe2 = XML.add_tag(oe1, 'w:highlight', opt)
+        # SUBSCRIPT
+        if Paragraph.sub_or_sup == 'sub':
+            oe2 = XML.add_tag(oe1, 'w:vertAlign', {'w:val': 'subscript'})
+        # SUPERSCRIPT
+        if Paragraph.sub_or_sup == 'sup':
+            oe2 = XML.add_tag(oe1, 'w:vertAlign', {'w:val': 'superscript'})
+
+    @staticmethod
+    def math_write_string(oe0, mat_str):
+        if mat_str == '':
+            return
+        mat_str = re.sub('%9', '  ', mat_str)
+        mat_str = re.sub('%3', ' ', mat_str)
+        mat_str = re.sub('%2', ' ', mat_str)
+        mat_str = re.sub('%1', ' ', mat_str)
+        mat_str = re.sub('%0', '%', mat_str)
+        oe1 = XML.add_tag(oe0, 'm:r', {})
+        if Math.track_changes == 'del':
+            oe2 = XML.add_tag(oe1, 'w:del', {})
+        elif Math.track_changes == 'ins':
+            oe2 = XML.add_tag(oe1, 'w:ins', {})
+        else:
+            oe2 = oe1
+        XML._math_decorate_string(oe2)
+        oe3 = XML.add_tag(oe2, 'm:t', {}, mat_str)
+
+    @staticmethod
+    def _math_decorate_string(oe0):
+        XML._math_decorate_string_m(oe0)
+        XML._math_decorate_string_w(oe0)
+
+    @staticmethod
+    def _math_decorate_string_m(oe0):
+        oe1 = XML.add_tag(oe0, 'm:rPr', {})
+        # LINE BREAK
+        if Math.must_break_line:
+            oe2 = XML.add_tag(oe1, 'm:brk', {'m:alnAt': '1'})
+        # ROMAN AND BOLD
+        if Math.is_roman and Math.is_bold:
+            oe2 = XML.add_tag(oe1, 'm:sty', {'m:val': 'b'})
+        elif Math.is_roman:
+            oe2 = XML.add_tag(oe1, 'm:sty', {'m:val': 'p'})
+        elif Math.is_bold:
+            oe2 = XML.add_tag(oe1, 'm:sty', {'m:val': 'bi'})
+
+    @staticmethod
+    def _math_decorate_string_w(oe0):
+        size = round(Form.font_size * Math.font_scale, 1)
+        oe1 = XML.add_tag(oe0, 'w:rPr', {})
+        # (FONT, ITALIC, BOLD)
+        # STRIKE
+        if Math.has_strike:
+            oe2 = XML.add_tag(oe1, 'w:strike', {})
+        # UNDERLINE
+        if Math.underline is not None:
+            oe2 = XML.add_tag(oe1, 'w:u', {'w:val': Math.underline})
+        # FONT SIZE
+        oe2 = XML.add_tag(oe1, 'w:sz', {'w:val': str(size * 2)})
+        # oe2 = XML.add_tag(oe1, 'w:szCs', {'w:val': str(size * 2)})
+        # FONT WIDTH
+        if Math.font_width != 1.00:
+            opt = {'w:val': str(int(Math.font_width * 100))}
+            oe2 = XML.add_tag(oe1, 'w:w', opt)
+        # FONT COLOR
+        if Math.font_color is not None:
+            oe2 = XML.add_tag(oe1, 'w:color', {'w:val': Math.font_color})
+        # HIGHTLIGHT COLOR
+        if Math.highlight_color is not None:
+            opt = {'w:val': Math.highlight_color}
+            oe2 = XML.add_tag(oe1, 'w:highlight', opt)
+        # (SUBSCRIPT, SUPERSCRIPT)
 
 
 class IO:
@@ -1366,10 +1571,31 @@ class Math:
         '\\to': '→', '\\infty': '∞',
     }
 
+    is_roman = False
+    is_bold = False
+    has_strike = False
+    font_scale = 1.0
+    font_width = 1.0
+    underline = None
+    font_color = None
+    highlight_color = None
+    track_changes = ''
+    must_break_line = False
+
+    @staticmethod
+    def initialize_class_variable():
+        Math.is_roman = False
+        Math.is_bold = False
+        Math.has_strike = False
+        Math.font_scale = 1.0
+        Math.font_width = 1.0
+        Math.underline = None
+        Math.font_color = None
+        Math.highlight_color = None
+        Math.track_changes = ''
+        Math.must_break_line = False
+
     def __init__(self, raw_text):
-        self.is_roman = False
-        self.is_bold = False
-        self.must_break_line = False
         self.raw_text = raw_text
         self.text = self._prepare(raw_text)
 
@@ -1379,6 +1605,11 @@ class Math:
         text = re.sub('(^| )_', '{}_', text)
         text = re.sub('(^| )\\^', '{}^', text)
         text = cls._prepare_char(text)
+        tmp = ''
+        res = NOT_ESCAPED + '{({\\\\(?:Large|large|small|footnotesize)})\\s*'
+        while tmp != text:
+            tmp = text
+            text = re.sub(res, '\\1\\2{', text)
         text = cls._close_paren(text)
         text = text.replace(' ', '')
         text = cls._prepare_func(text)
@@ -1454,6 +1685,15 @@ class Math:
             tex = re.sub(NOT_ESCAPED + '\\\\:', '\\1%2', tex)
             tex = re.sub(NOT_ESCAPED + '\\\\;', '\\1%3', tex)
             tex = re.sub(NOT_ESCAPED + '\\\\ ', '\\1%9', tex)
+            # DEL AND INS
+            if re.match(NOT_ESCAPED + '\\->$', tex):
+                tex = re.sub('\\->$', '{{->}{', tex)
+            if re.match(NOT_ESCAPED + '<\\-$', tex):
+                tex = re.sub('<\\-$', '}{<-}}', tex)
+            if re.match(NOT_ESCAPED + '\\+>$', tex):
+                tex = re.sub('\\+>$', '{{+>}{', tex)
+            if re.match(NOT_ESCAPED + '<\\+$', tex):
+                tex = re.sub('<\\+$', '}{<+}}', tex)
             # ADD CHAR
             if c != '\0':
                 tex += c
@@ -1517,12 +1757,13 @@ class Math:
                          ((nubs[-2] == '_') or (nubs[-2] == '^')):
                         nubs[-3], nubs[-1] \
                             = cls._close_func(nubs[-3], nubs[-1])
-                # LINEBREAK, MATHRM, MATHBF, EXP, VEC
-                res = '^{\\\\(?:\\\\|mathrm|mathbf|exp|vec)}$'
+                # LINEBREAK, MATHRM, MATHBF, STRIKE, UNDERLINE, EXP, VEC
+                res = '^{\\\\(?:\\\\|mathrm|mathbf|sout|underline|exp|vec)}$'
                 if (len(nubs) >= 2) and re.match(res, nubs[-2]):
                     nubs[-2], nubs[-1] = cls._close_func(nubs[-2], nubs[-1])
-                # FRACTION
-                if (len(nubs) >= 3) and (nubs[-3] == '{\\frac}'):
+                # TEXTCOLOR, COLORBOX, FRACTION
+                res = '^{\\\\(?:textcolor|colorbox|frac)}$'
+                if (len(nubs) >= 3) and re.match(res, nubs[-3]):
                     nubs[-3], nubs[-1] = cls._close_func(nubs[-3], nubs[-1])
                 # SQRT
                 if (len(nubs) >= 2) and (nubs[-2] == '{\\sqrt}'):
@@ -1593,6 +1834,10 @@ class Math:
                            re.match('^}.*$', nubs[-1]):
                             nubs[-2] = re.sub('{$', '', nubs[-2])
                             nubs[-1] = re.sub('^}', '', nubs[-1])
+                # FONT SIZE
+                res = '^{\\\\(?:Large|large|small|footnotesize)}$'
+                if (len(nubs) >= 2) and re.match(res, nubs[-2]):
+                    nubs[-2], nubs[-1] = cls._close_func(nubs[-2], nubs[-1])
                 # PARENTHESES
                 if (len(nubs) >= 1) and (nubs[-1] == '{-)}'):
                     for i in range(len(nubs) - 1, -1, -1):
@@ -1673,7 +1918,7 @@ class Math:
         # text = re.sub('^{(.*)}$', '\\1', text)
         # PRINT
         if re.match('^[^{}]+$', text):
-            self._write_str(oe0, text)
+            XML.math_write_string(oe0, text)
             return
         # FUNCITON
         nubs = self._get_nubs(text)
@@ -1750,19 +1995,55 @@ class Math:
             self._write_mtx(oe0, c, nubs)
         # LINE BREAK
         elif len(nubs) == 2 and nubs[0] == '{\\\\}':
-            self.must_break_line = True
+            Math.must_break_line = True
             self._write_math_exp(oe0, nubs[1])
-            self.must_break_line = False
+            Math.must_break_line = False
+        elif len(nubs) == 2 and nubs[0] == '{\\footnotesize}':
+            Math.font_scale = 0.6
+            self._write_math_exp(oe0, nubs[1])
+            Math.font_scale = 1.0
+        elif len(nubs) == 2 and nubs[0] == '{\\small}':
+            Math.font_scale = 0.8
+            self._write_math_exp(oe0, nubs[1])
+            Math.font_scale = 1.0
+        elif len(nubs) == 2 and nubs[0] == '{\\large}':
+            Math.font_scale = 1.2
+            self._write_math_exp(oe0, nubs[1])
+            Math.font_scale = 1.0
+        elif len(nubs) == 2 and nubs[0] == '{\\Large}':
+            Math.font_scale = 1.4
+            self._write_math_exp(oe0, nubs[1])
+            Math.font_scale = 1.0
         # ROMAN
         elif len(nubs) == 2 and nubs[0] == '{\\mathrm}':
-            self.is_roman = True
+            Math.is_roman = True
             self._write_math_exp(oe0, nubs[1])
-            self.is_roman = False
+            Math.is_roman = False
         # BOLD
         elif len(nubs) == 2 and nubs[0] == '{\\mathbf}':
-            self.is_bold = True
+            Math.is_bold = True
             self._write_math_exp(oe0, nubs[1])
-            self.is_bold = False
+            Math.is_bold = False
+        # STRIKE
+        elif len(nubs) == 2 and nubs[0] == '{\\sout}':
+            Math.has_strike = True
+            self._write_math_exp(oe0, nubs[1])
+            Math.has_strike = False
+        # UNDERLINE
+        elif len(nubs) == 2 and nubs[0] == '{\\underline}':
+            Math.underline = 'single'
+            self._write_math_exp(oe0, nubs[1])
+            Math.underline = None
+        # FONT COLOR
+        elif len(nubs) == 3 and nubs[0] == '{\\textcolor}':
+            Math.font_color = re.sub('^{(.*)}$', '\\1', nubs[1])
+            self._write_math_exp(oe0, nubs[2])
+            Math.font_color = None
+        # HIGHLIGHT COLOR
+        elif len(nubs) == 3 and nubs[0] == '{\\colorbox}':
+            Math.highlight_color = re.sub('^{(.*)}$', '\\1', nubs[1])
+            self._write_math_exp(oe0, nubs[2])
+            Math.highlight_color = None
         # S PAREN
         elif len(nubs) >= 2 and nubs[0] == '{(-}' and nubs[-1] == '{-)}':
             t = re.sub('{\\(-}(.*){-\\)}', '\\1', text)
@@ -1775,9 +2056,18 @@ class Math:
         elif len(nubs) >= 2 and nubs[0] == '{[}' and nubs[-1] == '{]}':
             t = re.sub('{\\[}(.*){\\]}', '\\1', text)
             self._write_prn(oe0, '[]', '{' + t + '}')
+        # DEL OR INS
+        elif len(nubs) >= 3 and nubs[0] == '{->}' and nubs[2] == '{<-}':
+            Math.track_changes = 'del'
+            self._write_math_exp(oe0, nubs[1])
+            Math.track_changes = ''
+        elif len(nubs) >= 3 and nubs[0] == '{+>}' and nubs[2] == '{<+}':
+            Math.track_changes = 'ins'
+            self._write_math_exp(oe0, nubs[1])
+            Math.track_changes = ''
         # ERROR
         elif (len(nubs) == 1) and (not re.match('^{.*}$', nubs[0])):
-            self._write_str(oe0, nubs[0])
+            XML.math_write_string(oe0, text)
         # RECURSION
         else:
             for n in nubs:
@@ -1794,7 +2084,7 @@ class Math:
             oe3 = XML.add_tag(oe2, 'm:supHide', {'m:val': '1'})
         #
         oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        self._configure_w(oe3)
+        XML._math_decorate_string_w(oe3)
         #
         oe2 = XML.add_tag(oe1, 'm:sub', {})
         if not (t1 == '' or t1 == '{}'):
@@ -1817,7 +2107,7 @@ class Math:
             oe3 = XML.add_tag(oe2, 'm:supHide', {'m:val': '1'})
         #
         oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        self._configure_w(oe3)
+        XML._math_decorate_string_w(oe3)
         #
         oe2 = XML.add_tag(oe1, 'm:sub', {})
         if not (t1 == '' or t1 == '{}'):
@@ -1834,7 +2124,7 @@ class Math:
         #
         oe2 = XML.add_tag(oe1, 'm:sSubSupPr', {})
         oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        self._configure_w(oe3)
+        XML._math_decorate_string_w(oe3)
         #
         oe2 = XML.add_tag(oe1, 'm:e', {})
         self._write_math_exp(oe2, t1)
@@ -1849,7 +2139,7 @@ class Math:
         #
         oe2 = XML.add_tag(oe1, 'm:sPrePr', {})
         oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        self._configure_w(oe3)
+        XML._math_decorate_string_w(oe3)
         #
         oe2 = XML.add_tag(oe1, 'm:sub', {})
         self._write_math_exp(oe2, t2)
@@ -1860,7 +2150,7 @@ class Math:
         #
         oe4 = XML.add_tag(oe3, 'm:sSubPr', {})
         oe5 = XML.add_tag(oe4, 'm:ctrlPr', {})
-        self._configure_w(oe5)
+        XML._math_decorate_string_w(oe5)
         #
         oe4 = XML.add_tag(oe3, 'm:e', {})
         self._write_math_exp(oe4, t1)
@@ -1874,7 +2164,7 @@ class Math:
         #
         oe2 = XML.add_tag(oe1, 'm:funcPr', {})
         oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        self._configure_w(oe3)
+        XML._math_decorate_string_w(oe3)
         #
         oe2 = XML.add_tag(oe1, 'm:fName', {})
         if s == '_' or s == '{_}':
@@ -1911,7 +2201,7 @@ class Math:
             oe1 = XML.add_tag(oe0, 'm:sSup', {})
             oe2 = XML.add_tag(oe1, 'm:sSupPr', {})
         oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        self._configure_w(oe3)
+        XML._math_decorate_string_w(oe3)
         oe2 = XML.add_tag(oe1, 'm:e', {})
         self._write_math_exp(oe2, t1)
         if s == '_' or s == '{_}':
@@ -1948,14 +2238,14 @@ class Math:
         #
         oe2 = XML.add_tag(oe1, 'm:funcPr', {})
         oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        self._configure_w(oe3)
+        XML._math_decorate_string_w(oe3)
         #
         oe2 = XML.add_tag(oe1, 'm:fName', {})
         oe3 = XML.add_tag(oe2, 'm:limLow', {})
         #
         oe4 = XML.add_tag(oe3, 'm:limLowPr', {})
         oe5 = XML.add_tag(oe4, 'm:ctrlPr', {})
-        self._configure_w(oe5)
+        XML._math_decorate_string_w(oe5)
         #
         oe4 = XML.add_tag(oe3, 'm:e', {})
         oe5 = XML.add_tag(oe4, 'm:r', {})
@@ -1979,7 +2269,7 @@ class Math:
         #
         oe2 = XML.add_tag(oe1, 'm:funcPr', {})
         oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        self._configure_w(oe3)
+        XML._math_decorate_string_w(oe3)
         #
         oe2 = XML.add_tag(oe1, 'm:fName', {})
         oe3 = XML.add_tag(oe2, 'm:r', {})
@@ -2002,7 +2292,7 @@ class Math:
         oe3 = XML.add_tag(oe2, 'm:chr', {'m:val': '⃗'})
         #
         oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        self._configure(oe3)
+        XML._math_decorate_string(oe3)
         #
         oe2 = XML.add_tag(oe1, 'm:e', {})
         self._write_math_exp(oe2, t1)
@@ -2036,20 +2326,20 @@ class Math:
             oe3 = XML.add_tag(oe2, 'm:begChr', {'m:val': '|'})
             oe3 = XML.add_tag(oe2, 'm:endChr', {'m:val': '|'})
         elif c == '{Vmatrix}':
-            oe3 = XML.add_tag(oe2, 'm:begChr', {'m:val': '‖"'})
-            oe3 = XML.add_tag(oe2, 'm:endChr', {'m:val': '‖"'})
+            oe3 = XML.add_tag(oe2, 'm:begChr', {'m:val': '‖'})
+            oe3 = XML.add_tag(oe2, 'm:endChr', {'m:val': '‖'})
         else:
             oe3 = XML.add_tag(oe2, 'm:begChr', {'m:val': ''})
             oe3 = XML.add_tag(oe2, 'm:endChr', {'m:val': ''})
         oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        self._configure(oe3)
+        XML._math_decorate_string(oe3)
         #
         oe2 = XML.add_tag(oe1, 'm:e', {})
         oe3 = XML.add_tag(oe2, 'm:m', {})
         #
         oe4 = XML.add_tag(oe3, 'm:mPr', {})
         oe5 = XML.add_tag(oe4, 'm:ctrlPr', {})
-        self._configure(oe5)
+        XML._math_decorate_string(oe5)
         #
         for row in mtrx:
             oe4 = XML.add_tag(oe3, 'm:mr', {})
@@ -2064,106 +2354,9 @@ class Math:
         oe3 = XML.add_tag(oe2, 'm:begChr', {'m:val': t1[0]})
         oe3 = XML.add_tag(oe2, 'm:endChr', {'m:val': t1[1]})
         oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        self._configure(oe3)
+        XML._math_decorate_string(oe3)
         oe2 = XML.add_tag(oe1, 'm:e', {})
         self._write_math_exp(oe2, t2)
-
-    # WRITE STRING
-    def _write_str(self, oe0, string):
-        if string == '':
-            return
-        string = re.sub('%9', '  ', string)
-        string = re.sub('%3', ' ', string)
-        string = re.sub('%2', ' ', string)
-        string = re.sub('%1', ' ', string)
-        string = re.sub('%0', '#', string)
-        oe1 = XML.add_tag(oe0, 'm:r', {})
-        self._configure(oe1)
-        oe2 = XML.add_tag(oe1, 'm:t', {}, string)
-
-    def _configure(self, oe1):
-        self._configure_m(oe1)
-        self._configure_w(oe1)
-
-    def _configure_m(self, oe1):
-        oe2 = XML.add_tag(oe1, 'm:rPr', {})
-        # LINE BREAK
-        if self.must_break_line:
-            oe3 = XML.add_tag(oe2, 'm:brk', {'m:alnAt': '1'})
-        oe3 = OxmlElement('m:sty')
-        # ROMAN AND BOLD
-        if self.is_roman and self.is_bold:
-            oe3 = XML.add_tag(oe2, 'm:sty', {'m:val': 'b'})
-        elif self.is_roman:
-            oe3 = XML.add_tag(oe2, 'm:sty', {'m:val': 'p'})
-        elif self.is_bold:
-            oe3 = XML.add_tag(oe2, 'm:sty', {'m:val': 'bi'})
-
-    def _configure_w(self, oe1):
-        m_size = Paragraph.font_size
-        xs_size = m_size * 0.6
-        s_size = m_size * 0.8
-        l_size = m_size * 1.2
-        xl_size = m_size * 1.4
-        oe2 = XML.add_tag(oe1, 'w:rPr', {})
-        # FONT SIZE (MS OFFICE)
-        if Paragraph.is_xsmall:
-            oe3 = XML.add_tag(oe2, 'w:sz', {'w:val': str(xs_size * 2)})
-        elif Paragraph.is_small:
-            oe3 = XML.add_tag(oe2, 'w:sz', {'w:val': str(s_size * 2)})
-        elif Paragraph.is_large:
-            oe3 = XML.add_tag(oe2, 'w:sz', {'w:val': str(l_size * 2)})
-        elif Paragraph.is_xlarge:
-            oe3 = XML.add_tag(oe2, 'w:sz', {'w:val': str(xl_size * 2)})
-        else:
-            oe3 = XML.add_tag(oe2, 'w:sz', {'w:val': str(m_size * 2)})
-        # UNDERLINE
-        if Paragraph.underline is not None:
-            if Paragraph.underline == WD_UNDERLINE.SINGLE:
-                oe3 = XML.add_tag(oe2, 'w:u', {'w:val': 'single'})
-            elif Paragraph.underline == WD_UNDERLINE.WORDS:
-                oe3 = XML.add_tag(oe2, 'w:u', {'w:val': 'words'})
-            elif Paragraph.underline == WD_UNDERLINE.DOUBLE:
-                oe3 = XML.add_tag(oe2, 'w:u', {'w:val': 'double'})
-            elif Paragraph.underline == WD_UNDERLINE.DOTTED:
-                oe3 = XML.add_tag(oe2, 'w:u', {'w:val': 'dotted'})
-            elif Paragraph.underline == WD_UNDERLINE.THICK:
-                oe3 = XML.add_tag(oe2, 'w:u', {'w:val': 'thick'})
-            elif Paragraph.underline == WD_UNDERLINE.DASH:
-                oe3 = XML.add_tag(oe2, 'w:u', {'w:val': 'dash'})
-            elif Paragraph.underline == WD_UNDERLINE.DOT_DASH:
-                oe3 = XML.add_tag(oe2, 'w:u', {'w:val': 'dotDash'})
-            elif Paragraph.underline == WD_UNDERLINE.DOT_DOT_DASH:
-                oe3 = XML.add_tag(oe2, 'w:u', {'w:val': 'dotDotDash'})
-            elif Paragraph.underline == WD_UNDERLINE.WAVY:
-                oe3 = XML.add_tag(oe2, 'w:u', {'w:val': 'wave'})
-            elif Paragraph.underline == WD_UNDERLINE.DOTTED_HEAVY:
-                oe3 = XML.add_tag(oe2, 'w:u', {'w:val': 'dottedHeavy'})
-            elif Paragraph.underline == WD_UNDERLINE.DASH_HEAVY:
-                oe3 = XML.add_tag(oe2, 'w:u', {'w:val': 'dashedHeavy'})
-            elif Paragraph.underline == WD_UNDERLINE.DOT_DASH_HEAVY:
-                oe3 = XML.add_tag(oe2, 'w:u', {'w:val': 'dashDotHeavy'})
-            elif Paragraph.underline == WD_UNDERLINE.DOT_DOT_DASH_HEAVY:
-                oe3 = XML.add_tag(oe2, 'w:u', {'w:val': 'dashDotDotHeavy'})
-            elif Paragraph.underline == WD_UNDERLINE.WAVY_HEAVY:
-                oe3 = XML.add_tag(oe2, 'w:u', {'w:val': 'wavyHeavy'})
-            elif Paragraph.underline == WD_UNDERLINE.DASH_LONG:
-                oe3 = XML.add_tag(oe2, 'w:u', {'w:val': 'dashLong'})
-            elif Paragraph.underline == WD_UNDERLINE.WAVY_DOUBLE:
-                oe3 = XML.add_tag(oe2, 'w:u', {'w:val': 'wavyDouble'})
-            elif Paragraph.underline == WD_UNDERLINE.DASH_LONG_HEAVY:
-                oe3 = XML.add_tag(oe2, 'w:u', {'w:val': 'dashLongHeavy'})
-        # FONT COLOR
-        if Paragraph.font_color is not None:
-            oe3 = XML.add_tag(oe2, 'w:color', {'w:val': Paragraph.font_color})
-        # HIGHLIGHT COLOR
-        if Paragraph.highlight_color is not None:
-            oe3 = OxmlElement('w:highlight')
-            for hc in HIGHLIGHT_COLOR:
-                if Paragraph.highlight_color == HIGHLIGHT_COLOR[hc]:
-                    oe3.set(ns.qn('w:val'), hc)
-                    break
-            oe2.append(oe3)
 
 
 class Form:
@@ -3149,18 +3342,18 @@ class Paragraph:
 
     previous_head_section_depth = 0
     previous_tail_section_depth = 0
+
     is_italic = False
     is_bold = False
     has_strike = False
     is_preformatted = False
-    is_xsmall = False
-    is_small = False
-    is_large = False
-    is_xlarge = False
+    font_scale = 1.0
     font_width = 1.0
     underline = None
     font_color = None
     highlight_color = None
+    sub_or_sup = ''
+    track_changes = ''
 
     @staticmethod
     def initialize_class_variable():
@@ -3168,14 +3361,13 @@ class Paragraph:
         Paragraph.is_bold = False
         Paragraph.has_strike = False
         Paragraph.is_preformatted = False
-        Paragraph.is_xsmall = False
-        Paragraph.is_small = False
-        Paragraph.is_large = False
-        Paragraph.is_xlarge = False
+        Paragraph.font_scale = 1.0
         Paragraph.font_width = 1.0
         Paragraph.underline = None
         Paragraph.font_color = None
         Paragraph.highlight_color = None
+        Paragraph.sub_or_sup = ''
+        Paragraph.track_changes = ''
 
     @classmethod
     def is_this_class(cls, full_text,
@@ -3717,20 +3909,48 @@ class Paragraph:
                 # MIDDLE OF MATH EXPRESSION
                 tex += c
                 continue
+            elif re.match(NOT_ESCAPED + '\\->$', tex + c):
+                # BEGINNING OF DELETED
+                tex = re.sub('\\->$', '', tex + c)
+                tex = self._write_string(tex, ms_par)
+                c = ''
+                Paragraph.track_changes = 'del'
+            elif re.match(NOT_ESCAPED + '<\\-$', tex + c):
+                # END OF DELETED
+                tex = re.sub('<\\-$', '', tex + c)
+                tex = self._write_string(tex, ms_par)
+                c = ''
+                Paragraph.track_changes = ''
+            elif re.match(NOT_ESCAPED + '\\+>$', tex + c):
+                # BEGINNING OF INSERTED
+                tex = re.sub('\\+>$', '', tex + c)
+                tex = self._write_string(tex, ms_par)
+                c = ''
+                Paragraph.track_changes = 'ins'
+            elif re.match(NOT_ESCAPED + '<\\+$', tex + c):
+                # END OF INSERTED
+                tex = re.sub('<\\+$', '', tex + c)
+                tex = self._write_string(tex, ms_par)
+                c = ''
+                Paragraph.track_changes = ''
             elif re.match(res_sub, tex + c):
                 # SUBSCRIPT
                 sub = re.sub(res_sub, '\\2', tex + c)
                 tex = re.sub(res_sub, '\\1', tex + c)
                 c = ''
                 tex = self._write_string(tex, ms_par)
-                sub = self._write_string(sub, ms_par, 'sub')
+                Paragraph.sub_or_sup = 'sub'
+                sub = self._write_string(sub, ms_par)
+                Paragraph.sub_or_sup = ''
             elif re.match(res_sup, tex + c):
                 # SUPERSCRIPT
                 sup = re.sub(res_sup, '\\2', tex + c)
                 tex = re.sub(res_sup, '\\1', tex + c)
                 c = ''
                 tex = self._write_string(tex, ms_par)
-                sup = self._write_string(sup, ms_par, 'sup')
+                Paragraph.sub_or_sup = 'sup'
+                sup = self._write_string(sup, ms_par)
+                Paragraph.sub_or_sup = ''
             elif re.match(NOT_ESCAPED + '\\*\\*\\*$', tex + c):
                 # *** (ITALIC AND BOLD)
                 tex = re.sub('\\*\\*\\*$', '', tex + c)
@@ -3757,19 +3977,19 @@ class Paragraph:
                 tex = re.sub('\\-\\-\\-$', '', tex + c)
                 tex = self._write_string(tex, ms_par)
                 c = ''
-                Paragraph.is_xsmall = not Paragraph.is_xsmall
-                Paragraph.is_small = False
-                Paragraph.is_large = False
-                Paragraph.is_xlarge = False
+                if Paragraph.font_scale == 0.6:
+                    Paragraph.font_scale = 1.0
+                else:
+                    Paragraph.font_scale = 0.6
             elif re.match(NOT_ESCAPED + '\\+\\+\\+$', tex + c):
                 # +++ (XLARGE)
                 tex = re.sub('\\+\\+\\+$', '', tex + c)
                 tex = self._write_string(tex, ms_par)
                 c = ''
-                Paragraph.is_xsmall = False
-                Paragraph.is_small = False
-                Paragraph.is_large = False
-                Paragraph.is_xlarge = not Paragraph.is_xlarge
+                if Paragraph.font_scale == 1.4:
+                    Paragraph.font_scale = 1.0
+                else:
+                    Paragraph.font_scale = 1.4
             elif re.match(NOT_ESCAPED + '<<<$', tex + c):
                 # <<< (XWIDE or RESET)
                 tex = re.sub('<<<$', '', tex + c)
@@ -3819,6 +4039,8 @@ class Paragraph:
                     tex = self._write_string(tex, ms_par)
                     c = ''
                     if Paragraph.font_color is None:
+                        Paragraph.font_color = col
+                    elif Paragraph.font_color != col:
                         Paragraph.font_color = col
                     else:
                         Paragraph.font_color = None
@@ -3887,18 +4109,18 @@ class Paragraph:
                 # -- (SMALL)
                 tex = re.sub('\\-\\-$', '', tex)
                 tex = self._write_string(tex, ms_par)
-                Paragraph.is_xsmall = False
-                Paragraph.is_small = not Paragraph.is_small
-                Paragraph.is_large = False
-                Paragraph.is_xlarge = False
+                if Paragraph.font_scale == 0.8:
+                    Paragraph.font_scale = 1.0
+                else:
+                    Paragraph.font_scale = 0.8
             elif re.match(NOT_ESCAPED + '\\+\\+$', tex) and c != '+':
                 # ++ (LARGE)
                 tex = re.sub('\\+\\+$', '', tex)
                 tex = self._write_string(tex, ms_par)
-                Paragraph.is_xsmall = False
-                Paragraph.is_small = False
-                Paragraph.is_large = not Paragraph.is_large
-                Paragraph.is_xlarge = False
+                if Paragraph.font_scale == 1.2:
+                    Paragraph.font_scale = 1.0
+                else:
+                    Paragraph.font_scale = 1.2
             elif re.match(NOT_ESCAPED + '<<$', tex):
                 # << (WIDE or RESET)
                 tex = re.sub('<<$', '', tex)
@@ -3956,11 +4178,7 @@ class Paragraph:
 
     @classmethod
     def _decorate_page_number(cls, ms_run):
-        m_size = Form.font_size
-        xs_size = m_size * 0.6
-        s_size = m_size * 0.8
-        l_size = m_size * 1.2
-        xl_size = m_size * 1.4
+        size = round(Form.font_size * cls.font_scale, 1)
         if cls.is_italic:
             ms_run.italic = True
         if cls.is_bold:
@@ -3972,100 +4190,35 @@ class Paragraph:
         else:
             ms_run.font.name = Form.mincho_font
         ms_run._element.rPr.rFonts.set(ns.qn('w:eastAsia'), ms_run.font.name)
-        if cls.is_xsmall:
-            font_size = xs_size
-        elif cls.is_small:
-            font_size = s_size
-        elif cls.is_large:
-            font_size = l_size
-        elif cls.is_xlarge:
-            font_size = xl_size
-        else:
-            font_size = m_size
         ms_ppr = ms_run._r.get_or_add_rPr()
-        XML.add_tag(ms_ppr, 'w:sz', {'w:val': str(font_size * 2)})
-        XML.add_tag(ms_ppr, 'w:szCs', {'w:val': str(font_size * 2)})
+        XML.add_tag(ms_ppr, 'w:sz', {'w:val': str(size * 2)})
+        XML.add_tag(ms_ppr, 'w:szCs', {'w:val': str(size * 2)})
         if cls.font_width != 1.00:
             XML.add_tag(ms_ppr, 'w:w', {'w:val': str(cls.font_width * 100)})
         if cls.underline is not None:
-            ms_run.underline = cls.underline
+            XML.add_tag(ms_ppr, 'w:u', {'w:val': cls.underline})
         if cls.font_color is not None:
             r = int(re.sub('^(..)(..)(..)$', '\\1', cls.font_color), 16)
             g = int(re.sub('^(..)(..)(..)$', '\\2', cls.font_color), 16)
             b = int(re.sub('^(..)(..)(..)$', '\\3', cls.font_color), 16)
             ms_run.font.color.rgb = RGBColor(r, g, b)
         if cls.highlight_color is not None:
-            ms_run.font.highlight_color = cls.highlight_color
+            XML.add_tag(ms_ppr, 'w:highlight', {'w:val': cls.highlight_color})
 
     @classmethod
-    def _write_string(cls, string, ms_par, opt=''):
+    def _write_string(cls, string, ms_par):
         if string == '':
             return ''
-        m_size = Paragraph.font_size
-        xs_size = m_size * 0.6
-        s_size = m_size * 0.8
-        l_size = m_size * 1.2
-        xl_size = m_size * 1.4
-        # REMOVE ESCAPE SYMBOL (BACKSLASH)
-        string = re.sub('\\\\', '-\\\\', string)
-        string = re.sub('-\\\\-\\\\', '-\\\\\\\\', string)
-        string = re.sub('-\\\\', '', string)
-        string = Paragraph._remove_relax_symbol(string)
-        ms_run = ms_par.add_run(string)
-        if cls.is_italic:
-            ms_run.italic = True
-        if cls.is_bold:
-            ms_run.bold = True
-        if cls.has_strike:
-            ms_run.font.strike = True
-        if cls.is_preformatted:
-            ms_run.font.name = cls.gothic_font
+        if Paragraph.track_changes == 'del':
+            XML.write_deleted_string(ms_par._p, string)
+        elif Paragraph.track_changes == 'ins':
+            XML.write_inserted_string(ms_par._p, string)
         else:
-            ms_run.font.name = cls.mincho_font
-        ms_run._element.rPr.rFonts.set(ns.qn('w:eastAsia'), ms_run.font.name)
-        if cls.is_xsmall:
-            ms_run.font.size = Pt(xs_size)
-        elif cls.is_small:
-            ms_run.font.size = Pt(s_size)
-        elif cls.is_large:
-            ms_run.font.size = Pt(l_size)
-        elif cls.is_xlarge:
-            ms_run.font.size = Pt(xl_size)
-        else:
-            ms_run.font.size = Pt(m_size)
-        if cls.font_width != 1.00:
-            ms_rpr = ms_run._r.get_or_add_rPr()
-            XML.add_tag(ms_rpr, 'w:w', {'w:val': str(cls.font_width * 100)})
-        if cls.underline is not None:
-            ms_run.underline = cls.underline
-        if cls.font_color is not None:
-            r = int(re.sub('^(..)(..)(..)$', '\\1', cls.font_color), 16)
-            g = int(re.sub('^(..)(..)(..)$', '\\2', cls.font_color), 16)
-            b = int(re.sub('^(..)(..)(..)$', '\\3', cls.font_color), 16)
-            ms_run.font.color.rgb = RGBColor(r, g, b)
-        if cls.highlight_color is not None:
-            ms_run.font.highlight_color = cls.highlight_color
-        if opt == 'sub':
-            ms_rpr = ms_run._r.get_or_add_rPr()
-            XML.add_tag(ms_rpr, 'w:vertAlign', {'w:val': 'subscript'})
-        elif opt == 'sup':
-            ms_rpr = ms_run._r.get_or_add_rPr()
-            XML.add_tag(ms_rpr, 'w:vertAlign', {'w:val': 'superscript'})
+            XML.write_plain_string(ms_par._p, string)
         return ''
 
-    @staticmethod
-    def _remove_relax_symbol(text):
-        res = NOT_ESCAPED + RELAX_SYMBOL
-        while re.match(res, text):
-            text = re.sub(res, '\\1', text)
-        return text
-
     def _write_image(self, alte, path, ms_par):
-        m_size = Paragraph.font_size
-        xs_size = m_size * 0.6
-        s_size = m_size * 0.8
-        l_size = m_size * 1.2
-        xl_size = m_size * 1.4
+        size = round(Paragraph.font_size * Paragraph.font_scale, 1)
         indent \
             = self.length_docx['first indent'] \
             + self.length_docx['left indent'] \
@@ -4098,16 +4251,8 @@ class Paragraph:
                 ms_run.add_picture(path, width=Cm(cm_w))
             elif cm_h > 0:
                 ms_run.add_picture(path, height=Cm(cm_h))
-            elif self.is_xsmall:
-                ms_run.add_picture(path, height=Pt(xs_size))
-            elif self.is_small:
-                ms_run.add_picture(path, height=Pt(s_size))
-            elif self.is_large:
-                ms_run.add_picture(path, height=Pt(l_size))
-            elif self.is_xlarge:
-                ms_run.add_picture(path, height=Pt(xl_size))
             else:
-                ms_run.add_picture(path, height=Pt(m_size))
+                ms_run.add_picture(path, height=Pt(size))
         except BaseException:
             ms_run.text = '![' + alte + '](' + path + ')'
             msg = '警告: ' \
@@ -4742,21 +4887,20 @@ class ParagraphMath(Paragraph):
             if False:
                 pass
             elif fr == '---':
-                Paragraph.is_xsmall = not Paragraph.is_xsmall
+                Paragraph.font_scale = 0.6
             elif fr == '--':
-                Paragraph.is_small = not Paragraph.is_small
+                Paragraph.font_scale = 0.8
             elif fr == '++':
-                Paragraph.is_large = not Paragraph.is_large
+                Paragraph.font_scale = 1.2
             elif fr == '+++':
-                Paragraph.is_xlarge = not Paragraph.is_xlarge
+                Paragraph.font_scale = 1.4
             elif re.match('^_([\\$=\\.#\\-~\\+]{,4})_$', fr):
                 sty = re.sub('^_([\\$=\\.#\\-~\\+]{,4})_$', '\\1', fr)
                 if sty in UNDERLINE:
-                    ul = UNDERLINE[sty]
                     if Paragraph.underline is None:
-                        Paragraph.underline = ul
-                    elif Paragraph.underline != ul:
-                        Paragraph.underline = ul
+                        Paragraph.underline = sty
+                    elif Paragraph.underline != sty:
+                        Paragraph.underline = sty
                     else:
                         Paragraph.underline = None
             elif re.match('^\\^([0-9A-Za-z]{0,11})\\^$', fr):
@@ -4770,6 +4914,8 @@ class ParagraphMath(Paragraph):
                     col = FONT_COLOR[col]
                 if re.match('^[0-9A-F]{6}$', col):
                     if Paragraph.font_color is None:
+                        Paragraph.font_color = col
+                    elif Paragraph.font_color is col:
                         Paragraph.font_color = col
                     else:
                         Paragraph.font_color = None
@@ -5026,28 +5172,19 @@ class MdLine:
     def __init__(self, line_number, raw_text):
         self.line_number = line_number
         self.raw_text = raw_text
-        self.spaced_text, self.comment, self.deleted \
-            = self.separate_comment_and_deleted()
+        self.spaced_text, self.comment = self.separate_comment()
         self.beg_space, self.text, self.end_space = self.separate_spaces()
         self.warning_messages = []
 
-    def separate_comment_and_deleted(self):
+    def separate_comment(self):
         rt = self.raw_text
-        del_beg_sym = '\\->'
-        del_end_sym = '<\\-'
-        ins_beg_sym = '\\+>'
-        ins_end_sym = '<\\+'
         com_sep = ' / '
         del_sep = ' / '
-        is_in_deleted = False
-        is_in_inserted = False
         spaced_text = ''
         comment = ''
-        deleted = ''
         tmp = ''
         for i, c in enumerate(rt):
             tmp += c
-            # COMMENT
             if not MdLine.is_in_comment:
                 if re.match(NOT_ESCAPED + '<!--$', tmp):
                     tmp = re.sub('<!--$', '', tmp)
@@ -5062,45 +5199,16 @@ class MdLine:
                     MdLine.is_in_comment = False
             if MdLine.is_in_comment:
                 continue
-            # DELETED
-            if not is_in_deleted:
-                if re.match(NOT_ESCAPED + del_beg_sym + '$', tmp):
-                    tmp = re.sub(del_beg_sym + '$', '', tmp)
-                    spaced_text += tmp
-                    tmp = ''
-                    is_in_deleted = True
-            else:
-                if re.match(NOT_ESCAPED + del_end_sym + '$', tmp):
-                    tmp = re.sub(del_end_sym + '$', '', tmp)
-                    deleted += tmp + del_sep
-                    tmp = ''
-                    is_in_deleted = False
-            if is_in_deleted:
-                continue
-            # INSERTED
-            if not is_in_inserted:
-                if re.match(NOT_ESCAPED + ins_beg_sym + '$', tmp):
-                    tmp = re.sub(ins_beg_sym + '$', '', tmp)
-                    is_in_inserted = True
-            else:
-                if re.match(NOT_ESCAPED + ins_end_sym + '$', tmp):
-                    tmp = re.sub(ins_end_sym + '$', '', tmp)
-                    is_in_inserted = False
         else:
             if tmp != '':
                 if MdLine.is_in_comment:
                     comment += tmp + com_sep
-                elif is_in_deleted:
-                    deleted += tmp + del_sep
                 else:
                     spaced_text += tmp
                 tmp = ''
         comment = re.sub(com_sep + '$', '', comment)
-        deleted = re.sub(del_sep + '$', '', deleted)
         # self.spaced_text = spaced_text
-        # self.comment = comment
-        # self.deleted = deleted
-        return spaced_text, comment, deleted
+        return spaced_text, comment
 
     def separate_spaces(self):
         spaced_text = self.spaced_text
