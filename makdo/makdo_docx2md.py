@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.14-20:28:50-JST>
+# Time-stamp:   <2023.11.15-07:51:38-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -4721,6 +4721,17 @@ class Paragraph:
                 if tmp != '':
                     phrases.append(tmp)
                     tmp = ''
+            # '\[' or '\]' (MATH MODE)
+            res = '(?:\\\\\\[|\\\\\\])'
+            if re.match(NOT_ESCAPED + 'x$', tmp + 'x') and \
+               re.match('^' + res + '.*$', tmp2):
+                if tmp != '':
+                    phrases.append(tmp)
+                    tmp = ''
+            if re.match('^.*' + res + '$', tmp):
+                if tmp != '':
+                    phrases.append(tmp)
+                    tmp = ''
         return phrases
 
     @staticmethod
@@ -4738,6 +4749,7 @@ class Paragraph:
         tmp = ''
         is_in_deleted = False
         is_in_inserted = False
+        is_in_math = False
         for p in phrases:
             # DELETED
             if (not is_in_deleted) and p == '->':
@@ -4760,6 +4772,17 @@ class Paragraph:
                 tex = _extend_tex(tmp)
                 tmp = ''
                 is_in_inserted = False
+                continue
+            # MATH MODE
+            if (not is_in_math) and p == '\\[':
+                tex = _extend_tex(tmp)
+                tmp = ''
+                is_in_math = True
+                continue
+            if is_in_math and p == '\\]':
+                tex = _extend_tex('\\[' + tmp + '\\]')
+                tmp = ''
+                is_in_math = False
                 continue
             # SECTION WITHOUT A TITLE
             res = '(?:#+(?:\\-#)* )+'
