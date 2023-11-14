@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.14-08:16:20-JST>
+# Time-stamp:   <2023.11.14-20:06:34-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -390,25 +390,25 @@ UNDERLINE = {
     '~=':   'wavyDouble',
     '-+#':  'dashLongHeavy',
 }
-#WD_UNDERLINE = {
-#    '':     WD_UNDERLINE.SINGLE,
-#    '$':    WD_UNDERLINE.WORDS,
-#    '=':    WD_UNDERLINE.DOUBLE,
-#    '.':    WD_UNDERLINE.DOTTED,
-#    '#':    WD_UNDERLINE.THICK,
-#    '-':    WD_UNDERLINE.DASH,
-#    '.-':   WD_UNDERLINE.DOT_DASH,
-#    '..-':  WD_UNDERLINE.DOT_DOT_DASH,
-#    '~':    WD_UNDERLINE.WAVY,
-#    '.#':   WD_UNDERLINE.DOTTED_HEAVY,
-#    '-#':   WD_UNDERLINE.DASH_HEAVY,
-#    '.-#':  WD_UNDERLINE.DOT_DASH_HEAVY,
-#    '..-#': WD_UNDERLINE.DOT_DOT_DASH_HEAVY,
-#    '~#':   WD_UNDERLINE.WAVY_HEAVY,
-#    '-+':   WD_UNDERLINE.DASH_LONG,
-#    '~=':   WD_UNDERLINE.WAVY_DOUBLE,
-#    '-+#':  WD_UNDERLINE.DASH_LONG_HEAVY,
-#}
+# WD_UNDERLINE = {
+#     '':     WD_UNDERLINE.SINGLE,
+#     '$':    WD_UNDERLINE.WORDS,
+#     '=':    WD_UNDERLINE.DOUBLE,
+#     '.':    WD_UNDERLINE.DOTTED,
+#     '#':    WD_UNDERLINE.THICK,
+#     '-':    WD_UNDERLINE.DASH,
+#     '.-':   WD_UNDERLINE.DOT_DASH,
+#     '..-':  WD_UNDERLINE.DOT_DOT_DASH,
+#     '~':    WD_UNDERLINE.WAVY,
+#     '.#':   WD_UNDERLINE.DOTTED_HEAVY,
+#     '-#':   WD_UNDERLINE.DASH_HEAVY,
+#     '.-#':  WD_UNDERLINE.DOT_DASH_HEAVY,
+#     '..-#': WD_UNDERLINE.DOT_DOT_DASH_HEAVY,
+#     '~#':   WD_UNDERLINE.WAVY_HEAVY,
+#     '-+':   WD_UNDERLINE.DASH_LONG,
+#     '~=':   WD_UNDERLINE.WAVY_DOUBLE,
+#     '-+#':  WD_UNDERLINE.DASH_LONG_HEAVY,
+# }
 
 FONT_COLOR = {
     'red':         'FF0000',
@@ -511,38 +511,38 @@ HIGHLIGHT_COLOR = {
     'black':       'black',
     'BK':          'black',
 }
-#WD_HIGHLIGHT_COLOR = {
-#    'red':         WD_COLOR_INDEX.RED,
-#    'R':           WD_COLOR_INDEX.RED,
-#    'darkRed':     WD_COLOR_INDEX.DARK_RED,
-#    'DR':          WD_COLOR_INDEX.DARK_RED,
-#    'yellow':      WD_COLOR_INDEX.YELLOW,
-#    'Y':           WD_COLOR_INDEX.YELLOW,
-#    'darkYellow':  WD_COLOR_INDEX.DARK_YELLOW,
-#    'DY':          WD_COLOR_INDEX.DARK_YELLOW,
-#    'green':       WD_COLOR_INDEX.BRIGHT_GREEN,
-#    'G':           WD_COLOR_INDEX.BRIGHT_GREEN,
-#    'darkGreen':   WD_COLOR_INDEX.GREEN,
-#    'DG':          WD_COLOR_INDEX.GREEN,
-#    'cyan':        WD_COLOR_INDEX.TURQUOISE,
-#    'C':           WD_COLOR_INDEX.TURQUOISE,
-#    'darkCyan':    WD_COLOR_INDEX.TEAL,
-#    'DC':          WD_COLOR_INDEX.TEAL,
-#    'blue':        WD_COLOR_INDEX.BLUE,
-#    'B':           WD_COLOR_INDEX.BLUE,
-#    'darkBlue':    WD_COLOR_INDEX.DARK_BLUE,
-#    'DB':          WD_COLOR_INDEX.DARK_BLUE,
-#    'magenta':     WD_COLOR_INDEX.PINK,
-#    'M':           WD_COLOR_INDEX.PINK,
-#    'darkMagenta': WD_COLOR_INDEX.VIOLET,
-#    'DM':          WD_COLOR_INDEX.VIOLET,
-#    'lightGray':   WD_COLOR_INDEX.GRAY_25,
-#    'G1':          WD_COLOR_INDEX.GRAY_25,
-#    'darkGray':    WD_COLOR_INDEX.GRAY_50,
-#    'G2':          WD_COLOR_INDEX.GRAY_50,
-#    'black':       WD_COLOR_INDEX.BLACK,
-#    'BK':          WD_COLOR_INDEX.BLACK,
-#}
+# WD_HIGHLIGHT_COLOR = {
+#     'red':         WD_COLOR_INDEX.RED,
+#     'R':           WD_COLOR_INDEX.RED,
+#     'darkRed':     WD_COLOR_INDEX.DARK_RED,
+#     'DR':          WD_COLOR_INDEX.DARK_RED,
+#     'yellow':      WD_COLOR_INDEX.YELLOW,
+#     'Y':           WD_COLOR_INDEX.YELLOW,
+#     'darkYellow':  WD_COLOR_INDEX.DARK_YELLOW,
+#     'DY':          WD_COLOR_INDEX.DARK_YELLOW,
+#     'green':       WD_COLOR_INDEX.BRIGHT_GREEN,
+#     'G':           WD_COLOR_INDEX.BRIGHT_GREEN,
+#     'darkGreen':   WD_COLOR_INDEX.GREEN,
+#     'DG':          WD_COLOR_INDEX.GREEN,
+#     'cyan':        WD_COLOR_INDEX.TURQUOISE,
+#     'C':           WD_COLOR_INDEX.TURQUOISE,
+#     'darkCyan':    WD_COLOR_INDEX.TEAL,
+#     'DC':          WD_COLOR_INDEX.TEAL,
+#     'blue':        WD_COLOR_INDEX.BLUE,
+#     'B':           WD_COLOR_INDEX.BLUE,
+#     'darkBlue':    WD_COLOR_INDEX.DARK_BLUE,
+#     'DB':          WD_COLOR_INDEX.DARK_BLUE,
+#     'magenta':     WD_COLOR_INDEX.PINK,
+#     'M':           WD_COLOR_INDEX.PINK,
+#     'darkMagenta': WD_COLOR_INDEX.VIOLET,
+#     'DM':          WD_COLOR_INDEX.VIOLET,
+#     'lightGray':   WD_COLOR_INDEX.GRAY_25,
+#     'G1':          WD_COLOR_INDEX.GRAY_25,
+#     'darkGray':    WD_COLOR_INDEX.GRAY_50,
+#     'G2':          WD_COLOR_INDEX.GRAY_50,
+#     'black':       WD_COLOR_INDEX.BLACK,
+#     'BK':          WD_COLOR_INDEX.BLACK,
+# }
 
 ############################################################
 # FUNCTION
@@ -1729,10 +1729,10 @@ class Math:
                 for n in nubs:
                     tmps.append(n)
                 # CONTINUE
-                res = '^{\\\\(sum|prod|int)}$'
+                res = '^{\\\\(sum|prod|(?:|i|ii|o)int)}$'
                 if (len(nubs) >= 5) and re.match(res, nubs[-5]):
                     continue
-                res = '^{\\\\(sum|prod|int|sin|cos|tan|log|lim)}$'
+                res = '^{\\\\(sum|prod|(?:|i|ii|o)int|sin|cos|tan|log|lim)}$'
                 if (len(nubs) >= 3) and re.match(res, nubs[-3]):
                     continue
                 # CONBINATION, PERMUTATION
@@ -1761,8 +1761,8 @@ class Math:
                 res = '^{\\\\(?:\\\\|mathrm|mathbf|sout|underline|exp|vec)}$'
                 if (len(nubs) >= 2) and re.match(res, nubs[-2]):
                     nubs[-2], nubs[-1] = cls._close_func(nubs[-2], nubs[-1])
-                # TEXTCOLOR, COLORBOX, FRACTION
-                res = '^{\\\\(?:textcolor|colorbox|frac)}$'
+                # TEXTCOLOR, COLORBOX, FRACTION, BINOMIAL
+                res = '^{\\\\(?:textcolor|colorbox|frac|binom)}$'
                 if (len(nubs) >= 3) and re.match(res, nubs[-3]):
                     nubs[-3], nubs[-1] = cls._close_func(nubs[-3], nubs[-1])
                 # SQRT
@@ -1788,19 +1788,19 @@ class Math:
                 if (len(nubs) >= 4) and \
                    re.match('^{\\\\(?:log|lim)}$', nubs[-4]):
                     nubs[-4], nubs[-1] = cls._close_func(nubs[-4], nubs[-1])
-                # SIGMA, PI, INTEGRAL
+                # SIGMA, PI, INTEGRAL, LINE INTEGRAL
                 if (len(nubs) >= 2) and \
-                   re.match('^{\\\\(?:sum|prod|int)}$', nubs[-2]):
+                   re.match('^{\\\\(?:sum|prod|(?:|i|ii|o)int)}$', nubs[-2]):
                     if nubs[-1] != '_':
                         nubs.insert(-1, '_')
                         nubs.insert(-1, '{}')
                 if (len(nubs) >= 4) and \
-                   re.match('^{\\\\(?:sum|prod|int)}$', nubs[-4]):
+                   re.match('^{\\\\(?:sum|prod|(?:|i|ii|o)int)}$', nubs[-4]):
                     if nubs[-1] != '^':
                         nubs.insert(-1, '^')
                         nubs.insert(-1, '{}')
                 if (len(nubs) >= 6) and \
-                   re.match('^{\\\\(?:sum|prod|int)}$', nubs[-6]):
+                   re.match('^{\\\\(?:sum|prod|(?:|i|ii|o)int)}$', nubs[-6]):
                     nubs[-6], nubs[-1] = cls._close_func(nubs[-6], nubs[-1])
                 # MATRIX
                 if '{\\Ybmx}' in nubs:
@@ -1926,7 +1926,16 @@ class Math:
             pass
         # INTEGRAL
         elif len(nubs) == 6 and nubs[0] == '{\\int}':
-            self._write_int(oe0, nubs[2], nubs[4], nubs[5])
+            self._write_int(oe0, '', nubs[2], nubs[4], nubs[5])
+        # DOUBLE INTEGRAL
+        elif len(nubs) == 6 and nubs[0] == '{\\iint}':
+            self._write_int(oe0, '∬', nubs[2], nubs[4], nubs[5])
+        # TRIPLE INTEGRAL
+        elif len(nubs) == 6 and nubs[0] == '{\\iint}':
+            self._write_int(oe0, '∭', nubs[2], nubs[4], nubs[5])
+        # LINE INTEGRAL
+        elif len(nubs) == 6 and nubs[0] == '{\\oint}':
+            self._write_int(oe0, '∮', nubs[2], nubs[4], nubs[5])
         # SIGMA
         elif len(nubs) == 6 and nubs[0] == '{\\sum}':
             self._write_sop(oe0, '∑', nubs[2], nubs[4], nubs[5])
@@ -1972,6 +1981,9 @@ class Math:
         # FRACTION
         elif len(nubs) == 3 and nubs[0] == '{\\frac}':
             self._write_fra(oe0, nubs[1], nubs[2])
+        # BINOMIAL
+        elif len(nubs) == 3 and nubs[0] == '{\\binom}':
+            self._write_bin(oe0, nubs[1], nubs[2])
         # RADICAL ROOT
         elif len(nubs) == 3 and nubs[0] == '{\\sqrt}':
             t = re.sub('^{\\[(.*)\\]}$', '\\1', nubs[1])
@@ -2074,9 +2086,11 @@ class Math:
                 self._write_math_exp(oe0, n)
 
     # INTEGRAL
-    def _write_int(self, oe0, t1, t2, t3):
+    def _write_int(self, oe0, c, t1, t2, t3):
         oe1 = XML.add_tag(oe0, 'm:nary', {})
         oe2 = XML.add_tag(oe1, 'm:naryPr', {})
+        if c != '':
+            oe3 = XML.add_tag(oe2, 'm:chr', {'m:val': c})
         oe3 = XML.add_tag(oe2, 'm:limLoc', {'m:val': 'subSup'})
         if t1 == '' or t1 == '{}':
             oe3 = XML.add_tag(oe2, 'm:subHide', {'m:val': '1'})
@@ -2144,7 +2158,7 @@ class Math:
         oe2 = XML.add_tag(oe1, 'm:sub', {})
         self._write_math_exp(oe2, t2)
         oe2 = XML.add_tag(oe1, 'm:sup', {})
-        self._write_math_exp(oe2, '{ }')  # todo
+        self._write_math_exp(oe2, '{}')
         oe2 = XML.add_tag(oe1, 'm:e', {})
         oe3 = XML.add_tag(oe2, 'm:sSub', {})
         #
@@ -2223,6 +2237,28 @@ class Math:
         self._write_math_exp(oe2, t1)
         oe2 = XML.add_tag(oe1, 'm:den', {})
         self._write_math_exp(oe2, t2)
+
+    # BINOMIAL
+    def _write_bin(self, oe0, t1, t2):
+        # \binom{2}{3}
+        oe1 = XML.add_tag(oe0, 'm:d', {})
+        oe2 = XML.add_tag(oe1, 'm:dPr', {})
+        #
+        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
+        XML._math_decorate_string(oe3)
+        #
+        oe2 = XML.add_tag(oe1, 'm:e', {})
+        oe3 = XML.add_tag(oe2, 'm:f', {})
+        #
+        oe4 = XML.add_tag(oe3, 'm:fPr', {})
+        oe5 = XML.add_tag(oe4, 'm:type', {'m:val': 'noBar'})
+        oe5 = XML.add_tag(oe4, 'm:ctrlPr', {})
+        XML._math_decorate_string_w(oe5)
+        #
+        oe4 = XML.add_tag(oe3, 'm:num', {})
+        self._write_math_exp(oe4, t1)
+        oe4 = XML.add_tag(oe3, 'm:den', {})
+        self._write_math_exp(oe4, t2)
 
     # RADICAL ROOT
     def _write_rrt(self, oe0, t1, t2):

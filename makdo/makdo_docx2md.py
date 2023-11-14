@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.13-20:22:04-JST>
+# Time-stamp:   <2023.11.14-20:28:50-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -3172,8 +3172,10 @@ class RawParagraph:
             self.pos_fds = pos_fds
 
         def append_fds(self, pre_fd, pos_fd):
-            self.pre_fds.append(pre_fd)
-            self.pos_fds.append(pos_fd)
+            if pre_fd not in self.pre_fds:
+                self.pre_fds.append(pre_fd)
+            if pos_fd not in self.pos_fds:
+                self.pos_fds.append(pos_fd)
 
         def get_string_with_fd(self):
             swf = ''
@@ -3277,254 +3279,225 @@ class RawParagraph:
     def _manage_math_expression(cls, xl, math_data, text_data):
         if re.match('^<m:oMath>$', xl):
             math_data = []
-            math_data.append(cls.StringData([], '\\[', []))
-            math_data.append(cls.StringData([], '', []))
+            math_data.append(cls.StringData([''], '', ['']))
+            math_data.append(cls.StringData([''], '', ['']))
             return math_data, text_data
         elif re.match('^</m:oMath>$', xl):
-            math_data.append(cls.StringData([], '\\]', []))
-            math_data = cls._cancel_fds(math_data)
-            for md in math_data:
-                # SYMPTOMATIC TREATMENT
-                tmp = md.string
-                tmp = re.sub('\\\\[a-z]+', '', tmp)
-                tmp = re.sub('[\\+\\-±∓×÷=≡≠≒⋅≧≦≫≪\\(\\){}\\[\\]\\^_0-9]', '', tmp)
-                if tmp == '':
-                    if '*' in md.pre_fds:
-                        md.pre_fds.remove('*')
-                    if '*' in md.pos_fds:
-                        md.pos_fds.remove('*')
-                    if '**' in md.pre_fds:
-                        md.pre_fds.remove('**')
-                    if '**' in md.pos_fds:
-                        md.pos_fds.remove('**')
-                for i in range(len(md.pre_fds)):
-                    if re.match('^\\^([0-9A-Za-z]+)\\^$', md.pre_fds[i]):
-                        c = re.sub('\\^(.+)\\^', '\\1', md.pre_fds[i])
-                        md.pre_fds[i] = '\\textcolor[' + c + ']{'
-                    if re.match('^_([0-9A-Za-z]+)_$', md.pre_fds[i]):
-                        c = re.sub('_(.+)_', '\\1', md.pre_fds[i])
-                        md.pre_fds[i] = '\\colorbox[' + c + ']{'
-                    if md.pre_fds[i] == '---':
-                        md.pre_fds[i] = '{\\footnotesize '
-                    if md.pre_fds[i] == '--':
-                        md.pre_fds[i] = '{\\small '
-                    if md.pre_fds[i] == '++':
-                        md.pre_fds[i] = '{\\large '
-                    if md.pre_fds[i] == '+++':
-                        md.pre_fds[i] = '{\\Large '
-                    if md.pre_fds[i] == '~~':
-                        md.pre_fds[i] = '\\sout{'
-                    if md.pre_fds[i] == '__':
-                        md.pre_fds[i] = '\\underline{'
-                    if md.pre_fds[i] == '*':
-                        md.pre_fds[i] = '\\mathrm{'
-                    if md.pre_fds[i] == '**':
-                        md.pre_fds[i] = '\\mathbf{'
-                for i in range(len(md.pos_fds)):
-                    if re.match('^\\^([0-9A-Za-z]+)\\^$', md.pos_fds[i]):
-                        md.pos_fds[i] = '}'
-                    if re.match('^_([0-9A-Za-z]+)_$', md.pos_fds[i]):
-                        md.pos_fds[i] = '}'
-                    if md.pos_fds[i] == '---':
-                        md.pos_fds[i] = '}'
-                    if md.pos_fds[i] == '--':
-                        md.pos_fds[i] = '}'
-                    if md.pos_fds[i] == '++':
-                        md.pos_fds[i] = '}'
-                    if md.pos_fds[i] == '+++':
-                        md.pos_fds[i] = '}'
-                    if md.pos_fds[i] == '~~':
-                        md.pos_fds[i] = '}'
-                    if md.pos_fds[i] == '__':
-                        md.pos_fds[i] = '}'
-                    if md.pos_fds[i] == '*':
-                        md.pos_fds[i] = '}'
-                    if md.pos_fds[i] == '**':
-                        md.pos_fds[i] = '}'
-                # SYMPTOMATIC TREATMENT
-                if '*' in md.pre_fds and re.match('^{', md.string):
-                    md.string = re.sub('^{', '{*', md.string)
-                    md.pre_fds.remove('*')
-                if '**' in md.pre_fds and re.match('^{', md.string):
-                    md.string = re.sub('^{', '{**', md.string)
-                    md.pre_fds.remove('**')
-            math_str = cls._join_data(math_data)
-            # MATRIX
-            res = '^(.*?){' + \
-                '\\\\Xbegin({.?matrix})(.*?)\\\\Xend({.?matrix})' + \
-                '}(.*?)$'
-            while re.match(res, math_str):
-                str1 = re.sub(res, '\\1', math_str)
-                mtx1 = re.sub(res, '\\2', math_str)
-                roco = re.sub(res, '\\3', math_str)
-                mtx2 = re.sub(res, '\\4', math_str)
-                str2 = re.sub(res, '\\5', math_str)
-                d = 0
-                s = ''
-                for c in roco:
-                    s += c
-                    if c == '{':
-                        d += 1
-                    if c == '}':
-                        d -= 1
-                    if d == 0 and c == '}':
-                        s += '&'
-                    if re.match('.*&\\\\\\\\$', s):
-                        s = re.sub('&\\\\\\\\$', '\\\\\\\\', s)
-                roco = re.sub('\\\\\\\\$', '', s)
-                math_str = str1 + '\\begin' + mtx1 \
-                    + roco \
-                    + '\\end' + mtx2 + str2
-            text_data.append(cls.StringData([], math_str, []))
+            md = math_data[0]
+            if md.string == '' and md.pre_fds == [''] and md.pos_fds == ['']:
+                math_data.pop(0)
+            md = math_data[-1]
+            if md.string == '' and md.pre_fds == [''] and md.pos_fds == ['']:
+                math_data.pop(-1)
+            math_str = cls._join_math_expression(math_data)
+            math_str = cls._shape_math_matrix(math_str)
+            math_str = cls._shape_sub_and_sup(math_str)
+            math_str = cls._replace_binomial(math_str)
+            text_data.append(cls.StringData([], '\\[' + math_str + '\\]', []))
             math_data = None
             return math_data, text_data
         if math_data is None:
             return math_data, text_data
-        md = math_data[-1]
+        md_pre = math_data[-2]
+        md_cur = math_data[-1]
         if False:
+            pass
+        # NEXT
+        elif (xl == '</w:rPr>' or xl == '<w:rPr/>') and md_cur.string != '':
+            math_data.append(cls.StringData([''], '', ['']))
+            md_pre = math_data[-2]
+            md_cur = math_data[-1]
+        elif xl == '</m:r>' or xl == '<m:r/>':
+            math_data.append(cls.StringData([''], '', ['']))
+            md_pre = math_data[-2]
+            md_cur = math_data[-1]
+        # TEXT
+        elif not re.match('^<.*>$', xl):
+            xl = re.sub('{', '\\{', xl)
+            xl = re.sub('}', '\\}', xl)
+            xl = re.sub(' ', '\\\\,', xl)
+            # FUNCTION
+            if re.match('^.*<fun>.*$', md_cur.pre_fds[0]):
+                md_cur.pre_fds[0] = re.sub('<fun>', '', md_cur.pre_fds[0])
+                md_cur.string += '\\'
+                if '*' in md_cur.pre_fds:
+                    md_cur.pre_fds.remove('*')
+                if '*' in md_cur.pos_fds:
+                    md_cur.pos_fds.remove('*')
+            md_cur.string += xl
+        # FUNCTION
+        elif xl == '<m:fName>':
+            md_cur.pre_fds[0] += '<fun>'
+        elif xl == '</m:fName>':
             pass
         # ELEMENT
         elif xl == '<m:e>':
-            md.string += '{'
+            md_cur.pre_fds[0] += '{'
         elif xl == '</m:e>':
-            if len(math_data) >= 1 and md.string == '':
-                math_data[-2].string += '}'
-                res = '^(.*){(\\\\(?:sin|cos|tan|exp|log|lim|sum|prod|int))}$'
-                math_data[-2].string \
-                    = re.sub(res, '\\1\\2', math_data[-2].string)
+            if md_cur.string == '':
+                md_pre.pos_fds[0] += '}'
             else:
-                md.string += '}'
-        # FUNCTION
-        elif xl == '<m:fName>':
-            md.string += '<fun>'
-        elif xl == '</m:fName>':
+                md_cur.pos_fds[0] += '}'
+        elif xl == '<m:e/>':
+            md_cur.pre_fds[0] += '{}'
+        # SUP AND SUB
+        elif xl == '<m:sPre>':
+            md_cur.pre_fds[0] += '{}'
+        elif xl == '</m:sPre>':
             pass
-            # md.string += '</fun>'
-        # SUP
         elif xl == '<m:sup>':
-            md.string += '^{'
+            md_cur.pre_fds[0] += '^{'
         elif xl == '</m:sup>':
-            md.string += '}'
-        # SUB
+            md_pre.pos_fds[0] += '}'
         elif xl == '<m:sub>':
-            md.string += '_{'
+            md_cur.pre_fds[0] += '_{'
         elif xl == '</m:sub>':
-            md.string += '}'
-        # FRACTION
-        elif xl == '<m:f>':
-            md.string += '\\frac'
-        elif xl == '<m:num>':
-            md.string += '{'
-        elif xl == '</m:num>':
-            md.string += '}'
-        elif xl == '<m:den>':
-            md.string += '{'
-        elif xl == '</m:den>':
-            md.string += '}'
-        # RADICAL ROOT
-        elif xl == '<m:rad>':
-            md.string += '\\sqrt'
-        elif xl == '<m:deg>':
-            md.string += '['
-        elif xl == '</m:deg>':
-            md.string += ']'
+            md_pre.pos_fds[0] += '}'
         # VECTOR
         elif xl == '<m:chr m:val="⃗"/>':
-            md.string += '\\vec'
+            md_cur.string += '\\vec'
+        # FRACTION, BINOMIAL
+        elif xl == '<m:f>':
+            md_cur.string += '\\frac'
+        elif xl == '<m:type m:val="noBar"/>':
+            if md_cur.string == '\\frac':
+                md_cur.string = '\\Xbinom'
+        elif xl == '</m:f>':
+            pass
+        elif xl == '<m:num>':
+            md_cur.pre_fds[0] += '{'
+        elif xl == '</m:num>':
+            md_pre.pos_fds[0] += '}'
+        elif xl == '<m:den>':
+            md_cur.pre_fds[0] += '{'
+        elif xl == '</m:den>':
+            md_pre.pos_fds[0] += '}'
+        # RADICAL ROOT
+        elif xl == '<m:rad>':
+            md_cur.string += '\\sqrt'
+            math_data.append(cls.StringData([''], '', ['']))
+            md_pre = math_data[-2]
+            md_cur = math_data[-1]
+        elif xl == '<m:deg>':
+            md_cur.pre_fds[0] += '['
+        elif xl == '</m:deg>':
+            md_cur.pos_fds[0] += ']'
+            if md_cur.string == '' and \
+               md_cur.pre_fds[0] == '[' and md_cur.pos_fds[0] == ']':
+                math_data.pop(-1)
+            math_data.append(cls.StringData([''], '', ['']))
+            md_pre = math_data[-2]
+            md_cur = math_data[-1]
         # LIMIT
         elif xl == '<m:lim>':
-            md.string += '_{'
+            md_cur.pre_fds[0] += '_{'
+            if md_pre.string == '\\lim' and \
+               re.match('^.*{$', md_pre.pre_fds[0]) and \
+               re.match('^}.*$', md_pre.pos_fds[0]):
+                md_pre.pre_fds[0] = re.sub('{$', '', md_pre.pre_fds[0])
+                md_pre.pos_fds[0] = re.sub('^}', '', md_pre.pos_fds[0])
         elif xl == '</m:lim>':
-            md.string += '}'
-        # SIGMA
-        elif xl == '<m:chr m:val="∑"/>':
-            md.string = re.sub('\\\\int$', '\\\\sum', md.string)
-        # PI
-        elif xl == '<m:chr m:val="∏"/>':
-            md.string = re.sub('\\\\int$', '\\\\prod', md.string)
+            md_pre.pos_fds[0] += '}'
         # INTEGRAL
         elif xl == '<m:nary>':
-            md.string += '\\int'
-        # MATRIX
-        elif xl == '<m:m>':
-            md.string += '\\Xbegin{matrix}'
-        elif xl == '</m:mr>':
-            md.string += '\\\\'
-        elif xl == '</m:m>':
-            md.string += '\\Xend{matrix}'
+            md_cur.string += '\\int'
+        # DOUBLE INTEGRAL
+        elif xl == '<m:chr m:val="∬"/>':
+            md_cur.string = re.sub('\\\\int$', '\\\\iint', md_cur.string)
+        # TRIPLE INTEGRAL
+        elif xl == '<m:chr m:val="∭"/>':
+            md_cur.string = re.sub('\\\\int$', '\\\\iiint', md_cur.string)
+        # LINE INTEGRAL
+        elif xl == '<m:chr m:val="∮"/>':
+            md_cur.string = re.sub('\\\\int$', '\\\\oint', md_cur.string)
+        # SIGMA
+        elif xl == '<m:chr m:val="∑"/>':
+            md_cur.string = re.sub('\\\\int$', '\\\\sum', md_cur.string)
+        # PI
+        elif xl == '<m:chr m:val="∏"/>':
+            md_cur.string = re.sub('\\\\int$', '\\\\prod', md_cur.string)
         # LINE BREAK
         elif re.match('^<m:brk( .*)?/>$', xl):
-            md.string += '\\\\'
+            md_cur.pre_fds[0] += '\\\\'
+        # MATRIX
+        elif xl == '<m:m>':
+            md_cur.string += '\\Xbegin{matrix}'
+        elif xl == '</m:mr>':
+            md_cur.pre_fds[0] += '\\\\'
+        elif xl == '</m:m>':
+            md_cur.string += '\\Xend{matrix}'
+            math_data.append(cls.StringData([''], '', ['']))
+            md_pre = math_data[-2]
+            md_cur = math_data[-1]
         # PARENTHESES
         elif xl == '<m:d>':
-            md.string += '(<()>'
+            md_cur.string += '(<()>'
         elif re.match('^<m:begChr m:val="(.)"/>$', xl):
             bc = re.sub('^<m:begChr m:val="(.)"/>$', '\\1', xl)
-            md.string = re.sub('\\(<(.)(.)>$', '(<' + bc + '\\2>', md.string)
+            md_cur.string = re.sub('\\(<(.)(.)>$', '(<' + bc + '\\2>',
+                                   md_cur.string)
         elif re.match('<m:endChr m:val="(.*)"/>', xl):
             ec = re.sub('^<m:endChr m:val="(.)"/>$', '\\1', xl)
-            md.string = re.sub('\\(<(.)(.)>$', '(<\\1' + ec + '>', md.string)
+            md_cur.string = re.sub('\\(<(.)(.)>$', '(<\\1' + ec + '>',
+                                   md_cur.string)
         elif xl == '</m:d>':
             res = '(.*)\\(<(.)(.)>(.*)$'
             end = ')'
-            dm_string = None
+            md_beg_string = None
             for i in range(len(math_data) - 1, -1, -1):
                 if re.match(res, math_data[i].string):
-                    dm_string = math_data[i].string
-                    pre = re.sub(res, '\\1', dm_string)
-                    beg = re.sub(res, '\\2', dm_string)
-                    end = re.sub(res, '\\3', dm_string)
-                    pos = re.sub(res, '\\4', dm_string)
+                    md_beg_string = math_data[i].string
+                    pre = re.sub(res, '\\1', md_beg_string)
+                    beg = re.sub(res, '\\2', md_beg_string)
+                    end = re.sub(res, '\\3', md_beg_string)
+                    pos = re.sub(res, '\\4', md_beg_string)
                     if beg == '{':
                         beg = '\\{'
                     if end == '}':
                         end = '\\}'
-                    dm_string = pre + beg + pos
+                    math_data[i].string = pre + beg + pos
+                    md_cur.pre_fds = ['']
+                    for j in range(1, len(math_data[i].pre_fds)):
+                        fd = math_data[i].pre_fds[j]
+                        md_cur.pre_fds.append(fd)
+                    md_cur.pos_fds = ['']
+                    for j in range(1, len(math_data[i].pos_fds)):
+                        fd = math_data[i].pos_fds[j]
+                        md_cur.pos_fds.append(fd)
                     break
-            math_data[i].string = dm_string
-            md.string += end
-            # MATRIX
-            if dm_string is not None:
-                clist = [['\\(', '\\)', 'p'], ['\\[', '\\]', 'b'],
-                         ['\\|', '\\|', 'v'], ['‖', '‖', 'V']]
-                for c in clist:
-                    beg_fr = '^(.*)' + c[0] +'({)\\\\Xbegin{matrix}(.*)$'
-                    beg_to = '\\1\\2\\\\Xbegin{' + c[2] + 'matrix}\\3'
-                    dm_string = re.sub(beg_fr, beg_to, dm_string)
-                    end_fr = '^(.*)\\\\Xend{matrix}(})' + c[1] + '(.*)$'
-                    end_to = '\\1\\\\Xend{' + c[2] + 'matrix}\\2\\3'
-                    md.string = re.sub(end_fr, end_to, md.string)
-                math_data[i].string = dm_string
+            md_cur.string += end
+            math_data.append(cls.StringData([''], '', ['']))
         # FONT SIZE
         size = Paragraph.font_size
         s = XML.get_value('w:sz', 'w:val', -1.0, xl) / 2
         if s > 0:
             if s < size * 0.7:
-                md.append_fds('---', '---')
+                md_cur.append_fds('---', '---')
             elif s < size * 0.9:
-                md.append_fds('--', '--')
+                md_cur.append_fds('--', '--')
             elif s > size * 1.3:
-                md.append_fds('+++', '+++')
+                md_cur.append_fds('+++', '+++')
             elif s > size * 1.1:
-                md.append_fds('++', '++')
+                md_cur.append_fds('++', '++')
         # FONT WIDTH
         w = XML.get_value('w:w', 'w:val', -1.0, xl)
         if w > 0:
             if w < 70:
-                md.append_fds('>>>', '<<<')
+                md_cur.append_fds('>>>', '<<<')
             elif w < 90:
-                md.append_fds('>>', '<<')
+                md_cur.append_fds('>>', '<<')
             elif w > 130:
-                md.append_fds('<<<', '>>>')
+                md_cur.append_fds('<<<', '>>>')
             elif w > 110:
-                md.append_fds('<<', '>>')
+                md_cur.append_fds('<<', '>>')
         # STRIKETHROUGH
         elif re.match('^<w:strike/?>$', xl):
-            md.append_fds('~~', '~~')
+            md_cur.append_fds('~~', '~~')
         # UNDERLINE
         elif re.match('^<w:u w:val="(.*)"/>$', xl):
             tx = re.sub('^<w:u w:val="(.*)"/>$', '\\1', xl)
-            md.append_fds('_' + UNDERLINE[tx] + '_', '_' + UNDERLINE[tx] + '_')
+            md_cur.append_fds('_' + UNDERLINE[tx] + '_',
+                              '_' + UNDERLINE[tx] + '_')
         # FONT COLOR
         elif re.match('^<w:color w:val="([^"]*)"(?: .*)?/>$', xl):
             fc = re.sub('^<w:color w:val="([^"]*)"(?: .*)?/>$', '\\1', xl)
@@ -3532,52 +3505,189 @@ class RawParagraph:
                 fc = ''
             elif fc in FONT_COLOR:
                 fc = FONT_COLOR[fc]
-            md.append_fds('^' + fc + '^', '^' + fc + '^')
+            md_cur.append_fds('^' + fc + '^', '^' + fc + '^')
         # HIGILIGHT COLOR
         elif re.match('^<w:highlight w:val="(.*)"/>$', xl):
             hc = re.sub('^<w:highlight w:val="(.*)"/>$', '\\1', xl)
-            md.append_fds('_' + hc + '_', '_' + hc + '_')
+            md_cur.append_fds('_' + hc + '_', '_' + hc + '_')
         # DEL OR INS
         elif xl == '<w:del>':
-            md.pre_fds.append('->')
+            md_cur.pre_fds.append('->')
         elif xl == '</w:del>':
-            md.pos_fds.append('<-')
+            md_cur.pos_fds.append('<-')
         elif xl == '<w:ins>':
-            md.pre_fds.append('+>')
+            md_cur.pre_fds.append('+>')
         elif xl == '</w:ins>':
-            md.pos_fds.append('<+')
+            md_cur.pos_fds.append('<+')
         # BOLD OR ROMAN
         elif re.match('<m:sty m:val="([^"]+)"/>', xl):
             tx = re.sub('<m:sty m:val="([^"]+)"/>', '\\1', xl)
             # ROMAN
             if tx == 'p' or tx == 'b':
-                md.pre_fds.append('*')
+                md_cur.pre_fds.append('*')
+                md_cur.pos_fds.append('*')
             # BOLD
             if tx == 'bi' or tx == 'b':
-                md.pre_fds.append('**')
-        elif xl == '</m:r>':
-            # ROMAN
-            if '*' in md.pre_fds:
-                md.pos_fds.append('*')
-            # BOLD
-            if '**' in md.pre_fds:
-                md.pos_fds.append('**')
-            # FUNCTION
-            res = '^(.*)<fun>({?)(sin|cos|tan|exp|log|lim)$'
-            if re.match(res, md.string) and \
-               '*' in md.pre_fds and '*' in md.pos_fds:
-                md.string = re.sub(res, '\\1\\2\\\\\\3', md.string)
-                md.pre_fds.remove('*')
-                md.pos_fds.remove('*')
-            # NEXT
-            math_data.append(cls.StringData([], '', []))
-        # TEXT
-        elif not re.match('^<.*>$', xl):
-            xl = re.sub('{', '\\{', xl)
-            xl = re.sub('}', '\\}', xl)
-            xl = re.sub(' ', '\\\\,', xl)
-            md.string += xl
+                md_cur.pre_fds.append('**')
+                md_cur.pos_fds.append('**')
         return math_data, text_data
+
+    @classmethod
+    def _join_math_expression(cls, math_data):
+        # CANCEL
+        fdlist = [['\\*', ''], ['\\*\\*', ''], ['~~', ''], ['__', ''],
+                  ['---', ''], ['--', ''], ['\\+\\+', ''], ['\\+\\+\\+', ''],
+                  ['>>>', '<<<'], ['>>', '<<'], ['<<', '>>'], ['<<<', '>>>'],
+                  ['\\^([0-9A-Za-z]+)\\^', ''], ['_([0-9A-Za-z]+)_', ''],
+                  ]
+        for fds in fdlist:
+            if fds[1] == '':
+                fds[1] = fds[0]
+            is_set_anywhere = True
+            for i in range(len(math_data)):
+                for j in range(1, len(math_data[i].pre_fds)):
+                    if re.match('^' + fds[0] + '$', math_data[i].pre_fds[j]):
+                        break
+                else:
+                    is_set_anywhere = False
+                    break
+                for j in range(1, len(math_data[i].pos_fds)):
+                    if re.match('^' + fds[1] + '$', math_data[i].pos_fds[j]):
+                        break
+                else:
+                    is_set_anywhere = False
+                    break
+            if is_set_anywhere:
+                for i in range(len(math_data)):
+                    if i > 0:
+                        pre = math_data[i].pre_fds
+                        for j in range(1, len(pre)):
+                            if re.match('^' + fds[0] + '$', pre[j]):
+                                pre.pop(j)
+                                break
+                    if i < len(math_data) - 1:
+                        pos = math_data[i].pos_fds
+                        for j in range(1, len(pos)):
+                            if re.match('^' + fds[1] + '$', pos[j]):
+                                pos.pop(j)
+                                break
+        # REPLACE FDS
+        for mada in math_data:
+            for i in range(len(mada.pre_fds)):
+                if mada.pre_fds[i] == '*':
+                    mada.pre_fds[i] = '\\mathrm{'
+                elif mada.pre_fds[i] == '**':
+                    mada.pre_fds[i] = '\\mathbf{'
+                elif mada.pre_fds[i] == '~~':
+                    mada.pre_fds[i] = '\\sout{'
+                elif mada.pre_fds[i] == '__':
+                    mada.pre_fds[i] = '\\underline{'
+                elif mada.pre_fds[i] == '---':
+                    mada.pre_fds[i] = '{\\footnotesize '
+                elif mada.pre_fds[i] == '--':
+                    mada.pre_fds[i] = '{\\small '
+                elif mada.pre_fds[i] == '++':
+                    mada.pre_fds[i] = '{\\large '
+                elif mada.pre_fds[i] == '+++':
+                    mada.pre_fds[i] = '{\\Large '
+                elif re.match('^\\^([0-9A-Za-z]+)\\^$', mada.pre_fds[i]):
+                    c = re.sub('\\^(.+)\\^', '\\1', mada.pre_fds[i])
+                    mada.pre_fds[i] = '\\textcolor[' + c + ']{'
+                elif re.match('^_([0-9A-Za-z]+)_$', mada.pre_fds[i]):
+                    c = re.sub('_(.+)_', '\\1', mada.pre_fds[i])
+                    mada.pre_fds[i] = '\\colorbox[' + c + ']{'
+            for i in range(len(mada.pos_fds)):
+                if mada.pos_fds[i] == '*':
+                    mada.pos_fds[i] = '}'
+                elif mada.pos_fds[i] == '**':
+                    mada.pos_fds[i] = '}'
+                elif mada.pos_fds[i] == '~~':
+                    mada.pos_fds[i] = '}'
+                elif mada.pos_fds[i] == '__':
+                    mada.pos_fds[i] = '}'
+                elif mada.pos_fds[i] == '---':
+                    mada.pos_fds[i] = '}'
+                elif mada.pos_fds[i] == '--':
+                    mada.pos_fds[i] = '}'
+                elif mada.pos_fds[i] == '++':
+                    mada.pos_fds[i] = '}'
+                elif mada.pos_fds[i] == '+++':
+                    mada.pos_fds[i] = '}'
+                elif re.match('^\\^([0-9A-Za-z]+)\\^$', mada.pos_fds[i]):
+                    mada.pos_fds[i] = '}'
+                elif re.match('^_([0-9A-Za-z]+)_$', mada.pos_fds[i]):
+                    mada.pos_fds[i] = '}'
+        # JOIN
+        math_str = ''
+        for mada in math_data:
+            pre_str = ''.join(mada.pre_fds)
+            str_str = mada.string
+            pos_str = ''.join(mada.pos_fds[::-1])
+            math_str += pre_str + str_str + pos_str
+        return math_str
+
+    @staticmethod
+    def _shape_math_matrix(math_str):
+        # CONFIRM TYPE
+        tlist = [['\\(', '\\)', 'p'], ['\\[', '\\]', 'b'],
+                 ['\\|', '\\|', 'v'], ['‖', '‖', 'V']]
+        tmp = ''
+        while tmp != math_str:
+            tmp = math_str
+            for t in tlist:
+                beg_fr = '^(.*)' + t[0] + '({)\\\\Xbegin{matrix}(.*)$'
+                beg_to = '\\1\\2\\\\Xbegin{' + t[2] + 'matrix}\\3'
+                math_str = re.sub(beg_fr, beg_to, math_str)
+                end_fr = '^(.*)\\\\Xend{matrix}(})' + t[1] + '(.*)$'
+                end_to = '\\1\\\\Xend{' + t[2] + 'matrix}\\2\\3'
+                math_str = re.sub(end_fr, end_to, math_str)
+        # SHAPE CELL
+        res = '^(.*?){' + \
+            '\\\\Xbegin({.?matrix})(.*?)\\\\Xend({.?matrix})' + \
+            '}(.*?)$'
+        while re.match(res, math_str):
+            str1 = re.sub(res, '\\1', math_str)
+            mtx1 = re.sub(res, '\\2', math_str)
+            roco = re.sub(res, '\\3', math_str)
+            mtx2 = re.sub(res, '\\4', math_str)
+            str2 = re.sub(res, '\\5', math_str)
+            d = 0
+            s = ''
+            for c in roco:
+                s += c
+                if c == '{':
+                    d += 1
+                if c == '}':
+                    d -= 1
+                if d == 0 and c == '}':
+                    s += '&'
+                if re.match('.*&\\\\\\\\$', s):
+                    s = re.sub('&\\\\\\\\$', '\\\\\\\\', s)
+            roco = re.sub('\\\\\\\\$', '', s)
+            math_str = str1 + '\\begin' + mtx1 \
+                + roco \
+                + '\\end' + mtx2 + str2
+        return math_str
+
+    @staticmethod
+    def _shape_sub_and_sup(math_str):
+        res = '{}_{([^{}]*(?:{[^{}]*})?[^{}]*)}' \
+            + '{{([^{}]*(?:{[^{}]*})?[^{}]*)}' \
+            + '_{([^{}]*(?:{[^{}]*})?[^{}]*)}}'
+        tmp = ''
+        while tmp != math_str:
+            tmp = math_str
+            math_str = re.sub(res, '{}_{\\1}{\\2}_{\\3}', math_str)
+        return math_str
+
+    @staticmethod
+    def _replace_binomial(math_str):
+        res = '\\({\\\\Xbinom{(.*?)}{(.*?)}}\\)'
+        tmp = ''
+        while tmp != math_str:
+            tmp = math_str
+            math_str = re.sub(res, '\\\\binom{\\1}{\\2}', math_str)
+        return math_str
 
     @staticmethod
     def _prepare_text(fldchar, input_text):
@@ -3641,7 +3751,6 @@ class RawParagraph:
 
     @staticmethod
     def _cancel_fds(text_data):
-        #return text_data
         res_pos_and_pre_fds \
             = [['\\*', ''], ['\\*\\*', ''], ['\\*\\*\\*', ''],
                ['~~', ''],
@@ -3655,8 +3764,7 @@ class RawParagraph:
                ['_(?:[0-9A-Za-z]{1,11})_', ''],
                ['@(?:[^@]{1,66})@', ''],
                ['<\\-', '\\->'],
-               ['<\\+', '\\+>'],
-            ]
+               ['<\\+', '\\+>']]
         for i in range(len(text_data) - 1):
             j = i + 1
             pos_fds = text_data[i].pos_fds
