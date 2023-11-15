@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.15-10:01:27-JST>
+# Time-stamp:   <2023.11.15-10:32:28-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -928,12 +928,16 @@ class XML:
         pla_str = XML.prepare_string(pla_str)
         oe1 = XML.add_tag(oe0, 'w:r', {})
         XML.decorate_string(oe1)
-        res = '^(.*?)\n(.*?)$'
+        res = '^(.*?)([\t\n])(.*?)$'
         while re.match(res, pla_str):
             tmp_str = re.sub(res, '\\1', pla_str)
-            pla_str = re.sub(res, '\\2', pla_str)
+            ext_str = re.sub(res, '\\2', pla_str)
+            pla_str = re.sub(res, '\\3', pla_str)
             oe2 = XML.add_tag(oe1, 'w:t', {}, tmp_str)
-            oe2 = XML.add_tag(oe1, 'w:br', {})
+            if ext_str == '\t':
+                oe2 = XML.add_tag(oe1, 'w:tab', {})
+            elif ext_str == '\n':
+                oe2 = XML.add_tag(oe1, 'w:br', {})
         if pla_str != '':
             oe2 = XML.add_tag(oe1, 'w:t', {}, pla_str)
         return ''
@@ -3844,8 +3848,6 @@ class Paragraph:
         alignment = self.alignment
         md_lines = self.md_lines
         text_to_write_with_reviser = self.text_to_write_with_reviser
-        m_size = Paragraph.font_size
-        xl_size = m_size * 1.4
         if text_to_write_with_reviser == '':
             return
         if paragraph_class == 'alignment':
@@ -3871,9 +3873,9 @@ class Paragraph:
             ms_par.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         ms_fmt = ms_par.paragraph_format
         if paragraph_class == 'section' and tail_section_depth == 1:
-            Paragraph.font_size = xl_size
+            Paragraph.font_scale = 1.4
             self._write_text(text_to_write_with_reviser, ms_par)
-            Paragraph.font_size = m_size
+            Paragraph.font_scale = 1.0
         else:
             self._write_text(text_to_write_with_reviser, ms_par)
 
@@ -4269,6 +4271,62 @@ class Paragraph:
         else:
             XML.write_plain_string(ms_par._p, string)
         return ''
+
+    # @classmethod
+    # def _write_string(cls, string, ms_par, opt=''):
+    #     if string == '':
+    #         return ''
+    #     m_size = Paragraph.font_size
+    #     xs_size = m_size * 0.6
+    #     s_size = m_size * 0.8
+    #     l_size = m_size * 1.2
+    #     xl_size = m_size * 1.4
+    #     # REMOVE ESCAPE SYMBOL (BACKSLASH)
+    #     string = re.sub('\\\\', '-\\\\', string)
+    #     string = re.sub('-\\\\-\\\\', '-\\\\\\\\', string)
+    #     string = re.sub('-\\\\', '', string)
+    #     string = Paragraph._remove_relax_symbol(string)
+    #     ms_run = ms_par.add_run(string)
+    #     if cls.is_italic:
+    #         ms_run.italic = True
+    #     if cls.is_bold:
+    #         ms_run.bold = True
+    #     if cls.has_strike:
+    #         ms_run.font.strike = True
+    #     if cls.is_preformatted:
+    #         ms_run.font.name = cls.gothic_font
+    #     else:
+    #         ms_run.font.name = cls.mincho_font
+    #     ms_run._element.rPr.rFonts.set(ns.qn('w:eastAsia'), ms_run.font.name)
+    #     if cls.is_xsmall:
+    #         ms_run.font.size = Pt(xs_size)
+    #     elif cls.is_small:
+    #         ms_run.font.size = Pt(s_size)
+    #     elif cls.is_large:
+    #         ms_run.font.size = Pt(l_size)
+    #     elif cls.is_xlarge:
+    #         ms_run.font.size = Pt(xl_size)
+    #     else:
+    #         ms_run.font.size = Pt(m_size)
+    #     if cls.font_width != 1.00:
+    #         ms_rpr = ms_run._r.get_or_add_rPr()
+    #         XML.add_tag(ms_rpr, 'w:w', {'w:val': str(cls.font_width * 100)})
+    #     if cls.underline is not None:
+    #         ms_run.underline = cls.underline
+    #     if cls.font_color is not None:
+    #         r = int(re.sub('^(..)(..)(..)$', '\\1', cls.font_color), 16)
+    #         g = int(re.sub('^(..)(..)(..)$', '\\2', cls.font_color), 16)
+    #         b = int(re.sub('^(..)(..)(..)$', '\\3', cls.font_color), 16)
+    #         ms_run.font.color.rgb = RGBColor(r, g, b)
+    #     if cls.highlight_color is not None:
+    #         ms_run.font.highlight_color = cls.highlight_color
+    #     if opt == 'sub':
+    #         ms_rpr = ms_run._r.get_or_add_rPr()
+    #         XML.add_tag(ms_rpr, 'w:vertAlign', {'w:val': 'subscript'})
+    #     elif opt == 'sup':
+    #         ms_rpr = ms_run._r.get_or_add_rPr()
+    #         XML.add_tag(ms_rpr, 'w:vertAlign', {'w:val': 'superscript'})
+    #     return ''
 
     def _write_image(self, alte, path, ms_par):
         size = round(Paragraph.font_size * Paragraph.font_scale, 1)
