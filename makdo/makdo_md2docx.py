@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.15-10:43:50-JST>
+# Time-stamp:   <2023.11.15-18:42:04-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -979,7 +979,7 @@ class XML:
 
     @staticmethod
     def decorate_string(oe0):
-        size = round(Form.font_size * Paragraph.font_scale, 1)
+        size = round(Paragraph.font_size * Paragraph.font_scale, 1)
         oe1 = XML.add_tag(oe0, 'w:rPr', {})
         # FONT
         if Paragraph.is_preformatted:
@@ -1061,7 +1061,7 @@ class XML:
 
     @staticmethod
     def _math_decorate_string_w(oe0):
-        size = round(Form.font_size * Math.font_scale, 1)
+        size = round(Paragraph.font_size * Math.font_scale, 1)
         oe1 = XML.add_tag(oe0, 'w:rPr', {})
         # (FONT, ITALIC, BOLD)
         # STRIKE
@@ -1306,6 +1306,7 @@ class IO:
 
     def make_styles(self, ms_doc):
         m_size = Form.font_size
+        s_size = m_size * 0.8
         l_size = m_size * 1.2
         line_spacing = Form.line_spacing
         # NORMAL
@@ -1328,6 +1329,7 @@ class IO:
         ms_doc.styles['makdo-i'].font.name = Form.ivs_font
         # TABLE
         ms_doc.styles.add_style('makdo-t', WD_STYLE_TYPE.PARAGRAPH)
+        ms_doc.styles['makdo-t'].font.size = Pt(s_size)
         ms_doc.styles['makdo-t'].paragraph_format.line_spacing = Pt(l_size)
         # ALIGNMENT
         # ms_doc.styles.add_style('makdo-a', WD_STYLE_TYPE.PARAGRAPH)
