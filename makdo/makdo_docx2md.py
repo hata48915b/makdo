@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.16-05:31:07-JST>
+# Time-stamp:   <2023.11.16-05:59:37-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2572,19 +2572,30 @@ class Document:
         for i, p in enumerate(self.paragraphs):
             if i == 0:
                 continue
+            p_prev = self._get_prev_paragraph(self.paragraphs, i)
             if p.paragraph_class != 'sentence':
                 continue
-            if p.length_revi['space before'] != 0.0 or \
-               p.length_revi['space after'] != 0.0 or \
-               p.length_revi['line spacing'] != 0.0 or \
-               p.length_revi['first indent'] != 0.0 or \
-               p.length_revi['right indent'] != 0.0 or \
-               p.length_revi['left indent'] >= 0.0 or \
-               not p.length_revi['left indent'].is_integer():
-                continue
+            is_in_reviser = False
+            for j in range(i - 1, 0, -1):
+                p_tmp = self.paragraphs[j]
+                if p_tmp.paragraph_class == 'section':
+                    break
+                if p_tmp.paragraph_class == 'sentence':
+                    if re.match('^#+ \n$', p_tmp.pre_text_to_write):
+                        is_in_reviser = True
+                        break
             left_indent = int(p.length_revi['left indent'])
-            if p.head_section_depth + left_indent < 1:
-                continue
+            if not is_in_reviser:
+                if p.length_revi['space before'] != 0.0 or \
+                   p.length_revi['space after'] != 0.0 or \
+                   p.length_revi['line spacing'] != 0.0 or \
+                   p.length_revi['first indent'] != 0.0 or \
+                   p.length_revi['right indent'] != 0.0 or \
+                   p.length_revi['left indent'] >= 0.0 or \
+                   not p.length_revi['left indent'].is_integer():
+                    continue
+                if p.head_section_depth + left_indent < 1:
+                    continue
             p.head_section_depth += left_indent
             p.tail_section_depth += left_indent
             if p.section_states[1][0] == 0 and \
@@ -2594,6 +2605,15 @@ class Document:
                 p.tail_section_depth -= 1
             p.length_clas['left indent'] = p.head_section_depth
             p.pre_text_to_write = '#' * p.head_section_depth + ' \n'
+            # REMOVE SAME AS BEFORE
+            for j in range(i - 1, 0, -1):
+                p_tmp = self.paragraphs[j]
+                if p_tmp.paragraph_class == 'section':
+                    break
+                if p_tmp.paragraph_class == 'sentence':
+                    if re.match('^#+ \n$', p_tmp.pre_text_to_write):
+                        if p.pre_text_to_write == p_tmp.pre_text_to_write:
+                            p.pre_text_to_write = ''
             # RENEW
             p.length_clas = p._get_length_clas()
             # p.length_conf = p._get_length_conf()
