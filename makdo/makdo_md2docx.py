@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.14-20:06:34-JST>
+# Time-stamp:   <2023.11.15-10:01:27-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -928,7 +928,14 @@ class XML:
         pla_str = XML.prepare_string(pla_str)
         oe1 = XML.add_tag(oe0, 'w:r', {})
         XML.decorate_string(oe1)
-        oe2 = XML.add_tag(oe1, 'w:t', {}, pla_str)
+        res = '^(.*?)\n(.*?)$'
+        while re.match(res, pla_str):
+            tmp_str = re.sub(res, '\\1', pla_str)
+            pla_str = re.sub(res, '\\2', pla_str)
+            oe2 = XML.add_tag(oe1, 'w:t', {}, tmp_str)
+            oe2 = XML.add_tag(oe1, 'w:br', {})
+        if pla_str != '':
+            oe2 = XML.add_tag(oe1, 'w:t', {}, pla_str)
         return ''
 
     @staticmethod
