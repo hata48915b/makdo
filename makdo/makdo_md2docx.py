@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.15-18:42:04-JST>
+# Time-stamp:   <2023.11.16-05:31:43-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -324,8 +324,6 @@ DEFAULT_SPACE_BEFORE = ''
 DEFAULT_SPACE_AFTER = ''
 TABLE_SPACE_BEFORE = 0.45
 TABLE_SPACE_AFTER = 0.20
-MATH_SPACE_BEFORE = 0.35
-MATH_SPACE_AFTER = 0.00
 
 DEFAULT_AUTO_SPACE = False
 
@@ -3687,9 +3685,6 @@ class Paragraph:
            paragraph_class == 'sentence':
             if ParagraphSection.states[1][0] <= 0 and tail_section_depth > 2:
                 length_clas['left indent'] -= 1.0
-        if paragraph_class == 'math':
-            length_clas['space before'] += MATH_SPACE_BEFORE
-            length_clas['space after'] += MATH_SPACE_AFTER
         if Form.document_style == 'j':
             if ParagraphSection.states[1][0] > 0 and tail_section_depth > 2:
                 length_clas['left indent'] -= 1.0

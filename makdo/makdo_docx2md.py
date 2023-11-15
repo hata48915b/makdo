@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.15-07:51:38-JST>
+# Time-stamp:   <2023.11.16-05:31:07-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -244,7 +244,6 @@ DEFAULT_GOTHIC_FONT = 'ＭＳ ゴシック'
 DEFAULT_IVS_FONT = 'IPAmj明朝'  # IPAmjMincho
 DEFAULT_MATH_FONT = 'Cambria Math'
 # DEFAULT_MATH_FONT = 'Liberation Serif'
-
 
 DEFAULT_FONT_SIZE = 12.0
 
@@ -4429,8 +4428,6 @@ class Paragraph:
         if Form.document_style == 'j':
             if section_states[1][0] > 0 and tail_section_depth > 2:
                 length_clas['left indent'] -= 1.0
-        if paragraph_class == 'math':
-            length_clas['line spacing'] += 0.4
         # self.length_clas = length_clas
         return length_clas
 
