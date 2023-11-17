@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.16-05:31:43-JST>
+# Time-stamp:   <2023.11.17-09:00:17-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -317,6 +317,7 @@ DEFAULT_IVS_FONT = 'IPAmj明朝'  # IPAmjMincho
 DEFAULT_MATH_FONT = 'Cambria Math'
 # DEFAULT_MATH_FONT = 'Liberation Serif'
 DEFAULT_FONT_SIZE = 12.0
+TABLE_FONT_SCALE = 0.8
 
 DEFAULT_LINE_SPACING = 2.14  # (2.0980+2.1812)/2=2.1396
 
@@ -4657,7 +4658,7 @@ class ParagraphTable(Paragraph):
 
     def write_paragraph(self, ms_doc):
         m_size = Paragraph.font_size
-        s_size = m_size * 0.8
+        t_size = m_size * TABLE_FONT_SCALE
         tab = self._get_table_data(self.md_lines)
         conf_row, ali_list, wid_list = self._get_table_alignment_and_width(tab)
         if conf_row >= 0:
@@ -4703,7 +4704,7 @@ class ParagraphTable(Paragraph):
                 # WORD WRAP (英単語の途中で改行する)
                 ms_ppr = ms_par._p.get_or_add_pPr()
                 XML.add_tag(ms_ppr, 'w:wordWrap', {'w:val': '0'})
-                Paragraph.font_size = s_size
+                Paragraph.font_size = t_size
                 self._write_text(cell, ms_par)
                 Paragraph.font_size = m_size
                 ms_fmt = ms_par.paragraph_format

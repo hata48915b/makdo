@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.16-06:20:02-JST>
+# Time-stamp:   <2023.11.17-08:58:35-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -246,6 +246,7 @@ DEFAULT_MATH_FONT = 'Cambria Math'
 # DEFAULT_MATH_FONT = 'Liberation Serif'
 
 DEFAULT_FONT_SIZE = 12.0
+TABLE_FONT_SCALE = 0.8
 
 DEFAULT_LINE_SPACING = 2.14  # (2.0980+2.1812)/2=2.1396
 
@@ -2915,7 +2916,7 @@ class RawParagraph:
         img_rels = Form.rels
         font_size = Paragraph.font_size
         m_size = font_size
-        s_size = font_size * 0.8
+        t_size = font_size * TABLE_FONT_SCALE
         text_data = []
         images = {}
         img_file_name = ''
@@ -3124,7 +3125,7 @@ class RawParagraph:
                 if raw_class != 'w:tbl':
                     b_size = m_size
                 else:
-                    b_size = s_size
+                    b_size = t_size
                 if s < b_size * 0.7:
                     font_scale = 0.6
                 elif s < b_size * 0.9:
