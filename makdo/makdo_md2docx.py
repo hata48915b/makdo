@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.17-09:00:17-JST>
+# Time-stamp:   <2023.11.17-09:23:16-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -4670,7 +4670,7 @@ class ParagraphTable(Paragraph):
         for i in range(len(tab)):
             ms_tab.rows[i].height_rule = WD_ROW_HEIGHT_RULE.AUTO
         for j in range(len(tab[0])):
-            ms_tab.columns[j].width = Pt((wid_list[j] + 2) * s_size)
+            ms_tab.columns[j].width = Pt((wid_list[j] + 2) * t_size)
         ms_tab.alignment = WD_TABLE_ALIGNMENT.CENTER
         for i in range(len(tab)):
             # ms_tab.rows[i].height = Pt(1.5 * m_size)
@@ -4697,7 +4697,7 @@ class ParagraphTable(Paragraph):
                 elif cel_ali == WD_TABLE_ALIGNMENT.RIGHT:
                     cell = re.sub('^\\s+', '', cell)
                 ms_cell = ms_tab.cell(i, j)
-                ms_cell.width = Pt((wid_list[j] + 2) * s_size)
+                ms_cell.width = Pt((wid_list[j] + 2) * t_size)
                 ms_cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
                 ms_par = ms_cell.paragraphs[0]
                 ms_par.style = 'makdo-t'
