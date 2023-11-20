@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.20-12:45:48-JST>
+# Time-stamp:   <2023.11.20-10:35:31-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1963,8 +1963,7 @@ class Math:
             if nubs[2] == '{}':
                 cls._write_one(oe0, char_state, 'log', nubs[3])
             else:
-                cls._write_two(oe0, char_state, 'log',
-                               nubs[1], nubs[2], nubs[3])
+                cls._write_two(oe0, char_state, 'log', nubs[1], nubs[2], nubs[3])
         # LIMIT
         elif len(nubs) == 4 and nubs[0] == '{\\lim}':
             cls._write_lim(oe0, char_state, nubs[2], nubs[3])
@@ -1973,22 +1972,19 @@ class Math:
             if nubs[2] == '{}':
                 cls._write_one(oe0, char_state, 'sin', nubs[3])
             else:
-                cls._write_two(oe0, char_state, 'sin',
-                               nubs[1], nubs[2], nubs[3])
+                cls._write_two(oe0, char_state, 'sin', nubs[1], nubs[2], nubs[3])
         # COS
         elif len(nubs) == 4 and nubs[0] == '{\\cos}':
             if nubs[2] == '{}':
                 cls._write_one(oe0, char_state, 'cos', nubs[3])
             else:
-                cls._write_two(oe0, char_state, 'cos',
-                               nubs[1], nubs[2], nubs[3])
+                cls._write_two(oe0, char_state, 'cos', nubs[1], nubs[2], nubs[3])
         # TAN
         elif len(nubs) == 4 and nubs[0] == '{\\tan}':
             if nubs[2] == '{}':
                 cls._write_one(oe0, char_state, 'tan', nubs[3])
             else:
-                cls._write_two(oe0, char_state, 'tan',
-                               nubs[1], nubs[2], nubs[3])
+                cls._write_two(oe0, char_state, 'tan', nubs[1], nubs[2], nubs[3])
         # SUB AND SUP
         elif len(nubs) == 3 and (nubs[1] == '{_}' or nubs[1] == '{^}'):
             cls._write_bop(oe0, char_state, nubs[1], nubs[0], nubs[2])
@@ -2190,6 +2186,40 @@ class Math:
             cls._write_math_exp(oe2, char_state, t2)
         oe2 = XML.add_tag(oe1, 'm:e', {})
         cls._write_math_exp(oe2, char_state, t3)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     # SIGMA, PI
     @classmethod
@@ -4049,8 +4079,8 @@ class Paragraph:
             unit = re.sub('\\\\\\[$', '', unit)
             unit = XML.write_unit(ms_par._p, char_state, unit)
             unit = '\\['
-        elif (re.match('^\\\\\\[', unit) and
-              re.match(NOT_ESCAPED + '\\\\\\]$', unit)):
+        elif re.match('^\\\\\\[', unit) and \
+             re.match(NOT_ESCAPED + '\\\\\\]$', unit):
             # "\]" (END OF MATH EXPRESSION (MUST FIRST)
             unit = re.sub('^\\\\\\[(.*)\\\\\\]$', '\\1', unit)
             unit = Math.write_unit(ms_par._p, CharState(), unit)

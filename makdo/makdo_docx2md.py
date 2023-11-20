@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.17-08:58:35-JST>
+# Time-stamp:   <2023.11.20-12:41:10-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -50,8 +50,14 @@
 # d2m.set_auto_space('qqq')
 # d2m.set_version_number('rrr')
 # d2m.set_content_status('sss')
-# d2m.set_with_remarks('ttt')
+# m2d.set_has_completed('ttt')
 # d2m.save('xxx.md')
+
+
+############################################################
+# POLICY
+
+# document -> paragraph -> text -> string -> unit
 
 
 ############################################################
@@ -187,9 +193,9 @@ def get_arguments():
         metavar='CONTENT_STATUS',
         help='書面の状態')
     parser.add_argument(
-        '--no-remarks',
+        '-c', '--has-completed',
         action='store_true',
-        help='段落に備考（コメント）を付記しません')
+        help='備考書（コメント）などを消して完成させます')
     parser.add_argument(
         'docx_file',
         help='MS Wordファイル')
@@ -261,7 +267,7 @@ DEFAULT_VERSION_NUMBER = ''
 
 DEFAULT_CONTENT_STATUS = ''
 
-DEFAULT_WITH_REMARKS = True
+DEFAULT_HAS_COMPLETED = False
 
 NOT_ESCAPED = '^((?:(?:.|\n)*?[^\\\\])?(?:\\\\\\\\)*?)?'
 # NOT_ESCAPED = '^((?:(?:.|\n)*[^\\\\])?(?:\\\\\\\\)*)?'
@@ -1495,7 +1501,7 @@ class Form:
     auto_space = DEFAULT_AUTO_SPACE
     version_number = DEFAULT_VERSION_NUMBER
     content_status = DEFAULT_CONTENT_STATUS
-    with_remarks = DEFAULT_WITH_REMARKS
+    has_completed = DEFAULT_HAS_COMPLETED
     original_file = ''
 
     styles = None
@@ -1806,8 +1812,8 @@ class Form:
                 Form.set_version_number(args.version_number)
             if args.content_status is not None:
                 Form.set_content_status(args.content_status)
-            if args.no_remarks:
-                Form.set_with_remarks('False')
+            if args.has_completed:
+                Form.set_has_completed(str(args.has_completed))
 
     @staticmethod
     def set_document_title(value, item='document_title'):
@@ -2071,19 +2077,19 @@ class Form:
         return True
 
     @staticmethod
-    def set_with_remarks(value, item='with_remarks'):
+    def set_has_completed(value, item='has_completed'):
         if value is None:
             return False
         value = unicodedata.normalize('NFKC', value)
-        if value == 'True' or value == '有':
-            Form.with_remarks = True
+        if value == 'True' or value == '真偽':
+            Form.has_completed = True
             return True
-        elif value == 'False' or value == '無':
-            Form.with_remarks = False
+        elif value == 'False' or value == '偽':
+            Form.has_completed = False
             return True
         msg = '※ 警告: ' \
             + '「' + item + '」の値は' \
-            + '"有"又は"無"でなければなりません'
+            + '"真"又は"偽"でなければなりません'
         # msg = 'warning: ' \
         #     + '"' + item + '" must be "True" or "False"'
         sys.stderr.write(msg + '\n\n')
@@ -2119,7 +2125,7 @@ class Form:
         cfgs += 'auto_space:     ' + str(cls.auto_space) + '\n'
         cfgs += 'version_number: ' + cls.version_number + '\n'
         cfgs += 'content_status: ' + cls.content_status + '\n'
-        cfgs += 'with_remarks:   ' + str(cls.with_remarks) + '\n'
+        cfgs += 'has_completed:  ' + str(cls.has_completed) + '\n'
         cfgs += 'original_file:  ' + cls.original_file + '\n'
         cfgs += \
             '---------------------------------------------------------------->'
@@ -2251,12 +2257,12 @@ class Form:
             cfgs += '\n'
 
         cfgs += \
-            '# 段落に備考（コメント）を付記します。'
+            '# 備考書（コメント）などを消して完成させます。'
         cfgs += '\n'
-        if cls.with_remarks:
-            cfgs += '備考書: 有\n'
+        if cls.has_completed:
+            cfgs += '完成稿: 真\n'
         else:
-            cfgs += '備考書: 無\n'
+            cfgs += '完成稿: 偽\n'
         cfgs += '\n'
 
         cfgs += \
@@ -3115,8 +3121,10 @@ class RawParagraph:
                     # SUBSCRIPT OR SUPERSCRIPT (LAST)
                     if sub_or_sup == 'sub':
                         sd.append_fds('_{', '}')
+                        sub_or_sup = ''
                     if sub_or_sup == 'sup':
                         sd.append_fds('^{', '}')
+                        sub_or_sup = ''
                     text_data.append(sd)
                 is_in_text = False
                 continue
@@ -3452,16 +3460,20 @@ class RawParagraph:
         # PARENTHESES
         elif xl == '<m:d>':
             md_cur.string += '(<()>'
+        elif re.match('^<m:begChr m:val=""/>$', xl):
+            md_cur.string = re.sub('\\(<(.)(.)>$', '(<>', md_cur.string)
         elif re.match('^<m:begChr m:val="(.)"/>$', xl):
             bc = re.sub('^<m:begChr m:val="(.)"/>$', '\\1', xl)
             md_cur.string = re.sub('\\(<(.)(.)>$', '(<' + bc + '\\2>',
                                    md_cur.string)
-        elif re.match('<m:endChr m:val="(.*)"/>', xl):
+        elif re.match('<m:endChr m:val=""/>', xl):
+            md_cur.string = re.sub('\\(<(.)(.)>$', '(<>', md_cur.string)
+        elif re.match('<m:endChr m:val="(.)"/>', xl):
             ec = re.sub('^<m:endChr m:val="(.)"/>$', '\\1', xl)
             md_cur.string = re.sub('\\(<(.)(.)>$', '(<\\1' + ec + '>',
                                    md_cur.string)
         elif xl == '</m:d>':
-            res = '(.*)\\(<(.)(.)>(.*)$'
+            res = '(.*)\\(<(.?)(.?)>(.*)$'
             end = ')'
             md_beg_string = None
             for i in range(len(math_data) - 1, -1, -1):
@@ -3595,48 +3607,48 @@ class RawParagraph:
         for mada in math_data:
             for i in range(len(mada.pre_fds)):
                 if mada.pre_fds[i] == '*':
-                    mada.pre_fds[i] = '\\mathrm{'
+                    mada.pre_fds[i] = '{\\mathrm{'
                 elif mada.pre_fds[i] == '**':
-                    mada.pre_fds[i] = '\\mathbf{'
+                    mada.pre_fds[i] = '{\\mathbf{'
                 elif mada.pre_fds[i] == '~~':
-                    mada.pre_fds[i] = '\\sout{'
+                    mada.pre_fds[i] = '{\\sout{'
                 elif mada.pre_fds[i] == '__':
-                    mada.pre_fds[i] = '\\underline{'
+                    mada.pre_fds[i] = '{\\underline{'
                 elif mada.pre_fds[i] == '---':
-                    mada.pre_fds[i] = '{\\footnotesize '
+                    mada.pre_fds[i] = '{\\footnotesize{'
                 elif mada.pre_fds[i] == '--':
-                    mada.pre_fds[i] = '{\\small '
+                    mada.pre_fds[i] = '{\\small{'
                 elif mada.pre_fds[i] == '++':
-                    mada.pre_fds[i] = '{\\large '
+                    mada.pre_fds[i] = '{\\large{'
                 elif mada.pre_fds[i] == '+++':
-                    mada.pre_fds[i] = '{\\Large '
+                    mada.pre_fds[i] = '{\\Large{'
                 elif re.match('^\\^([0-9A-Za-z]+)\\^$', mada.pre_fds[i]):
                     c = re.sub('\\^(.+)\\^', '\\1', mada.pre_fds[i])
-                    mada.pre_fds[i] = '\\textcolor[' + c + ']{'
+                    mada.pre_fds[i] = '{\\textcolor{' + c + '}{'
                 elif re.match('^_([0-9A-Za-z]+)_$', mada.pre_fds[i]):
                     c = re.sub('_(.+)_', '\\1', mada.pre_fds[i])
-                    mada.pre_fds[i] = '\\colorbox[' + c + ']{'
+                    mada.pre_fds[i] = '{\\colorbox{' + c + '}{'
             for i in range(len(mada.pos_fds)):
                 if mada.pos_fds[i] == '*':
-                    mada.pos_fds[i] = '}'
+                    mada.pos_fds[i] = '}}'
                 elif mada.pos_fds[i] == '**':
-                    mada.pos_fds[i] = '}'
+                    mada.pos_fds[i] = '}}'
                 elif mada.pos_fds[i] == '~~':
-                    mada.pos_fds[i] = '}'
+                    mada.pos_fds[i] = '}}'
                 elif mada.pos_fds[i] == '__':
-                    mada.pos_fds[i] = '}'
+                    mada.pos_fds[i] = '}}'
                 elif mada.pos_fds[i] == '---':
-                    mada.pos_fds[i] = '}'
+                    mada.pos_fds[i] = '}}'
                 elif mada.pos_fds[i] == '--':
-                    mada.pos_fds[i] = '}'
+                    mada.pos_fds[i] = '}}'
                 elif mada.pos_fds[i] == '++':
-                    mada.pos_fds[i] = '}'
+                    mada.pos_fds[i] = '}}'
                 elif mada.pos_fds[i] == '+++':
-                    mada.pos_fds[i] = '}'
+                    mada.pos_fds[i] = '}}'
                 elif re.match('^\\^([0-9A-Za-z]+)\\^$', mada.pos_fds[i]):
-                    mada.pos_fds[i] = '}'
+                    mada.pos_fds[i] = '}}'
                 elif re.match('^_([0-9A-Za-z]+)_$', mada.pos_fds[i]):
-                    mada.pos_fds[i] = '}'
+                    mada.pos_fds[i] = '}}'
         # JOIN
         math_str = ''
         for mada in math_data:
@@ -3648,6 +3660,12 @@ class RawParagraph:
 
     @staticmethod
     def _shape_math_matrix(math_str):
+        # FONT DECRATIONS
+        res = '{.*\\\\Xbegin{matrix}.*\\\\Xend{matrix}}{.*\\)}+'
+        math_str = ParagraphMath.shift_paren('\\(', 2, res, math_str)
+        math_str = ParagraphMath.cancel_multi_paren(math_str)
+        math_str = re.sub('{(\\\\Xbegin{matrix})}', '\\1', math_str)
+        math_str = re.sub('(\\\\Xend{matrix}}){\\)}', '\\1)', math_str)
         # CONFIRM TYPE
         tlist = [['\\(', '\\)', 'p'], ['\\[', '\\]', 'b'],
                  ['\\|', '\\|', 'v'], ['‖', '‖', 'V']]
@@ -3739,14 +3757,15 @@ class RawParagraph:
         text = text.replace('&lt;', '\\&lt;')
         text = text.replace('&gt;', '\\&gt;')
         # PAGE NUMBER
-        res = '^ ?(\\S*)\\s*\\\\\\\\\\\\\\* MERGEFORMAT ?$'
-        if fldchar == 'begin' and re.match(res, text):
-            text = re.sub(res, '\\1', text)
-        if fldchar == 'begin' and re.match('^ ?PAGE ?$', text, re.I):
-            text = 'n'
-        elif fldchar == 'begin' and re.match('^ ?NUMPAGES ?$', text, re.I):
-            text = 'N'
-        else:
+        if fldchar == 'begin':
+            res = '^ ?(\\S*)\\s*\\\\\\\\\\\\\\* MERGEFORMAT ?$'
+            if re.match(res, text):
+                text = re.sub(res, '\\1', text)
+            if re.match('^ ?PAGE ?$', text, re.I):
+                text = 'n'
+            elif re.match('^ ?NUMPAGES ?$', text, re.I):
+                text = 'N'
+        if fldchar == 'end':
             text = re.sub('(n|N)', '\\\\\\1', text)
         # RETURN
         return text
@@ -3851,18 +3870,22 @@ class RawParagraph:
     # IVS (IDEOGRAPHIC VARIATION SEQUENCE)
     @staticmethod
     def _convert_ivs(raw_text):
+        ivs_font = Form.ivs_font
         res = '^(.*[^\\\\0-9])([0-9]+);'
         while re.match(res, raw_text, flags=re.DOTALL):
             raw_text = re.sub(res, '\\1\\\\\\2;', raw_text, flags=re.DOTALL)
         ivs_beg = int('0xE0100', 16)
         ivs_end = int('0xE01EF', 16)
-        res = '^(.*)([' + chr(ivs_beg) + '-' + chr(ivs_end) + '])(.*)$'
+        res = '^(.*)@' + ivs_font + '@' + \
+            '(.)([' + chr(ivs_beg) + '-' + chr(ivs_end) + '])' + \
+            '@' + ivs_font + '@(.*)$'
         while re.match(res, raw_text, flags=re.DOTALL):
             t1 = re.sub(res, '\\1', raw_text, flags=re.DOTALL)
             t2 = re.sub(res, '\\2', raw_text, flags=re.DOTALL)
             t3 = re.sub(res, '\\3', raw_text, flags=re.DOTALL)
-            ivs_n = ord(t2) - ivs_beg
-            raw_text = t1 + str(ivs_n) + ';' + t3
+            t4 = re.sub(res, '\\4', raw_text, flags=re.DOTALL)
+            ivs_n = ord(t3) - ivs_beg
+            raw_text = t1 + t2 + str(ivs_n) + ';' + t4
         return raw_text
 
     @staticmethod
@@ -3885,6 +3908,7 @@ class RawParagraph:
                 raw_text = re.sub(res + '(' + fd + ')$', '\\2\\1', raw_text)
             if tmp_text == raw_text:
                 break
+
         return raw_text
 
     @staticmethod
@@ -4769,6 +4793,20 @@ class Paragraph:
         is_in_inserted = False
         is_in_math = False
         for p in phrases:
+            # MATH MODE (MUST BE FIRST)
+            if (not is_in_math) and p == '\\[':
+                tex = _extend_tex(tmp)
+                tmp = ''
+                is_in_math = True
+                continue
+            if is_in_math and p == '\\]':
+                tex = _extend_tex('\\[' + tmp + '\\]')
+                tmp = ''
+                is_in_math = False
+                continue
+            if is_in_math:
+                tmp += p
+                continue
             # DELETED
             if (not is_in_deleted) and p == '->':
                 tex = _extend_tex(tmp)
@@ -4790,17 +4828,6 @@ class Paragraph:
                 tex = _extend_tex(tmp)
                 tmp = ''
                 is_in_inserted = False
-                continue
-            # MATH MODE
-            if (not is_in_math) and p == '\\[':
-                tex = _extend_tex(tmp)
-                tmp = ''
-                is_in_math = True
-                continue
-            if is_in_math and p == '\\]':
-                tex = _extend_tex('\\[' + tmp + '\\]')
-                tmp = ''
-                is_in_math = False
                 continue
             # SECTION WITHOUT A TITLE
             res = '(?:#+(?:\\-#)* )+'
@@ -4989,7 +5016,7 @@ class ParagraphChapter(Paragraph):
     paragraph_class = 'chapter'
     paragraph_class_ja = 'チャプター'
 
-    res_branch = '(の[0-9０-９]+)*'
+    res_branch = '((?:の[0-9０-９]+)*)'
     unit_chars = ['編', '章', '節', '款', '目']
     res_separator = '(?:  ?|\t|\u3000)'
     res_symbols = ['(第([0-9０-９]+)' + unit_chars[0] + ')'
@@ -5103,7 +5130,7 @@ class ParagraphSection(Paragraph):
     r6 = '(?:([(\\(（](' + RES_KATAKANA + ')[\\)）])((?:の[0-9０-９]+)*))'
     r7 = '(?:(([a-zａ-ｚ]))((?:の[0-9０-９]+)*))'
     r8 = '(?:([⒜-⒵]|[(\\(（]([a-zａ-ｚ])[\\)）])((?:の[0-9０-９]+)*))'
-    r9 = '(?:  ?|\t|\u3000|\\. ?|．)'
+    r9 = '(?:  ?|\t|\u3000|\\. |．)'
     res_symbols = [
         r1,
         r2 + '()' + r9,
@@ -5181,18 +5208,18 @@ class ParagraphSection(Paragraph):
             = Paragraph._get_font_revisers_and_md_text(raw_text)
         head_tc = ''
         tail_tc = ''
-        if re.match('^<!--(.|\n)*$', raw_text):
-            head_tc = '<!--'
-            raw_text = re.sub('^<!--', '', raw_text)
-        elif re.match('^<!\\+>(.|\n)*$', raw_text):
-            head_tc = '<!+>'
-            raw_text = re.sub('^<!\\+>', '', raw_text)
-        if re.match('^(.|\n)*-->$', raw_text):
-            tail_tc = '-->'
-            raw_text = re.sub('-->$', '', raw_text)
-        elif re.match('^(.|\n)*<\\+>$', raw_text):
-            tail_tc = '<+>'
-            raw_text = re.sub('<\\+>$', '', raw_text)
+        if re.match('^->(.|\n)*$', raw_text):
+            head_tc = '->'
+            raw_text = re.sub('^->', '', raw_text)
+        elif re.match('^\\+>(.|\n)*$', raw_text):
+            head_tc = '+>'
+            raw_text = re.sub('^\\+>', '', raw_text)
+        if re.match('^(.|\n)*<-$', raw_text):
+            tail_tc = '<-'
+            raw_text = re.sub('<-$', '', raw_text)
+        elif re.match('^(.|\n)*<\\+$', raw_text):
+            tail_tc = '<+'
+            raw_text = re.sub('<\\+$', '', raw_text)
         head_symbol = ''
         for xdepth in range(1, len(rss)):
             res = '^' + rss[xdepth] + rre + '$'
@@ -5254,6 +5281,9 @@ class ParagraphSection(Paragraph):
         nmsym = re.sub(res, nmsym_rep, raw_text)
         branc = re.sub(res, branc_rep, raw_text)
         rtext = re.sub(res, rtext_rep, raw_text)
+        # REVISE ⑴-⒇
+        if re.match('^[⑴-⒇]', hdstr) and nmsym == '':
+            nmsym = re.sub('^(.)(.|\n)*$', '\\1', hdstr)
         state = []
         if nmsym == '':
             nmsym = hdstr
@@ -5728,13 +5758,115 @@ class ParagraphMath(Paragraph):
         return False
 
     def get_text_to_write(self):
-        text_to_write = super().get_text_to_write()
+        ttw = super().get_text_to_write()
         alignment = self.alignment
         if alignment == 'left':
-            text_to_write = re.sub('^\\\\\\[', '\\\\\\[: ', text_to_write)
+            ttw = re.sub('^\\\\\\[', '\\\\\\[: ', ttw)
         elif alignment == 'right':
-            text_to_write = re.sub('\\\\\\]$', ' :\\\\\\]', text_to_write)
+            ttow = re.sub('\\\\\\]$', ' :\\\\\\]', ttw)
+        com = '\\\\(?:int|iint|iiint|oint|sum|prod)'
+        ttw = self.shift_paren(com, 5, '_{.*}\\^{.*}{.*}', ttw)
+        com = '\\\\(?:int|iint|iiint|oint|sum|prod)'
+        ttw = self.shift_paren(com, 1, '{.*}', ttw)
+        com = '\\\\(?:log|lim)'
+        ttw = self.shift_paren(com, 3, '_{.*}{.*}', ttw)
+        com = '\\\\(?:sin|cos|tan)'
+        ttw = self.shift_paren(com, 3, '\\^{.*}{.*}', ttw)
+        com = '\\\\(?:log|sin|cos|tan|exp|vec)'
+        ttw = self.shift_paren(com, 1, '{.*}', ttw)
+        ttw = self.cancel_multi_paren(ttw)
+        text_to_write = ttw
         return text_to_write
+
+    @staticmethod
+    def shift_paren(com, cnt, res, unit):
+        res_com = NOT_ESCAPED + '(' + com + ')(}+)$'
+        tmp = ''
+        while tmp != unit:
+            tmp = unit
+            tj = -1
+            for j in range(len(unit)):
+                if re.match(res_com, unit[:j]) and unit[j] != '}':
+                    tj = j
+                    break
+            if tj == -1:
+                break
+            tk = -1
+            dep = []
+            d = 0
+            for k in range(tj, len(unit)):
+                if unit[k] == '{':
+                    d += 1
+                if unit[k] == '}':
+                    d -= 1
+                dep.append(d)
+                if cnt == -1 and re.match(res, unit[tj:k]):
+                    tk = k
+                    break
+                if dep.count(0) == cnt and re.match(res, unit[tj:k]):
+                    tk = k
+                    break
+            if tk == -1:
+                break
+            pre_bpa_fds_com_epa = unit[:tj]
+            pre_bpa_fds = re.sub(res_com, '\\1', pre_bpa_fds_com_epa)
+            com = re.sub(res_com, '\\2', pre_bpa_fds_com_epa)
+            epa = re.sub(res_com, '\\3', pre_bpa_fds_com_epa)
+            arg = unit[tj:tk]
+            pos = unit[tk:]
+            ti = -1
+            d = - len(epa)
+            for i in range(len(pre_bpa_fds) - 1, -1, -1):
+                if unit[i] == '{':
+                    d += 1
+                if unit[i] == '}':
+                    d -= 1
+                if d == 0:
+                    ti = i
+                    break
+            if ti == -1:
+                break
+            bpa_fds = pre_bpa_fds[ti:]
+            r = '^(.*)(\\\\[A-Za-z]+(?:{[^{}]+})?)(.*)$'
+            while re.match(r, bpa_fds):
+                f = re.sub(r, '\\2', bpa_fds)
+                f = '\\' + re.sub('{[^{}]*}', '{[^{}]*}', f)
+                arg = re.sub(f, '', arg)
+                bpa_fds = re.sub(r, '\\1\\3', bpa_fds)
+            unit = pre_bpa_fds + com + arg + epa + pos
+        return unit
+
+    @staticmethod
+    def cancel_multi_paren(unit):
+        rm = []
+        for i in range(len(unit) - 1):
+            if unit[i] != '{' or unit[i + 1] != '{':
+                continue
+            dep = [0]
+            d = 0
+            for j in range(i, len(unit)):
+                if unit[j] == '{':
+                    d += 1
+                if unit[j] == '}':
+                    d -= 1
+                dep.append(d)
+                if d == 0:
+                    if unit[j - 1] == '}' or unit[j] == '}':
+                        dep.pop(0)
+                        dep.pop(0)
+                        dep.pop(-1)
+                        dep.pop(-1)
+                        if 1 not in dep:
+                            rm.append(i)
+                            rm.append(j)
+                    break
+        rm.sort()
+        rm.reverse()
+        u = list(unit)
+        for r in rm:
+            u.pop(r)
+        unit = ''.join(u)
+        return unit
 
 
 class ParagraphAlignment(Paragraph):
@@ -6218,12 +6350,12 @@ class Docx2Md:
         return Form.content_status
 
     @staticmethod
-    def set_with_remarks(value):
-        return Form.set_with_remarks(str(value))
+    def set_has_completed(value):
+        return Form.set_has_completed(str(value))
 
     @staticmethod
-    def get_with_remarks():
-        return Form.with_remarks
+    def get_has_completed():
+        return Form.has_completed
 
 
 ############################################################
