@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.20-12:41:10-JST>
+# Time-stamp:   <2023.11.20-17:02:10-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1744,7 +1744,7 @@ class Form:
         # HEADER STRING
         Paragraph.font_size = Form.font_size
         text_data, images \
-            = RawParagraph._get_text_data_and_images('', xml_lines)
+            = RawParagraph._get_text_data_and_images('', xml_lines, 'header')
         raw_text = RawParagraph._get_raw_text(text_data)
         alignment = RawParagraph._get_alignment(xml_lines)
         if alignment == 'center':
@@ -1759,7 +1759,7 @@ class Form:
         # PAGE NUMBER
         Paragraph.font_size = Form.font_size
         text_data, images \
-            = RawParagraph._get_text_data_and_images('', xml_lines)
+            = RawParagraph._get_text_data_and_images('', xml_lines, 'footer')
         raw_text = RawParagraph._get_raw_text(text_data)
         alignment = RawParagraph._get_alignment(xml_lines)
         if alignment == 'center':
@@ -2917,7 +2917,7 @@ class RawParagraph:
         return ''
 
     @classmethod
-    def _get_text_data_and_images(cls, raw_class, xml_lines):
+    def _get_text_data_and_images(cls, raw_class, xml_lines, type='normal'):
         media_dir = IO.media_dir
         img_rels = Form.rels
         font_size = Paragraph.font_size
@@ -3187,7 +3187,7 @@ class RawParagraph:
             elif re.match('^<w:delText( .*)?>$', xl):
                 has_deleted = True
             elif not re.match('^<.*>$', xl):
-                sd.string += cls._prepare_text(fldchar, xl)
+                sd.string += cls._prepare_text(fldchar, xl, type)
         # self.text_data = text_data
         # self.images = images
         return text_data, images
@@ -3728,7 +3728,7 @@ class RawParagraph:
         return math_str
 
     @staticmethod
-    def _prepare_text(fldchar, input_text):
+    def _prepare_text(fldchar, input_text, type='normal'):
         text = input_text
         # ESCAPE
         text = text.replace('\\', '\\\\')
@@ -3757,16 +3757,17 @@ class RawParagraph:
         text = text.replace('&lt;', '\\&lt;')
         text = text.replace('&gt;', '\\&gt;')
         # PAGE NUMBER
-        if fldchar == 'begin':
-            res = '^ ?(\\S*)\\s*\\\\\\\\\\\\\\* MERGEFORMAT ?$'
-            if re.match(res, text):
-                text = re.sub(res, '\\1', text)
-            if re.match('^ ?PAGE ?$', text, re.I):
-                text = 'n'
-            elif re.match('^ ?NUMPAGES ?$', text, re.I):
-                text = 'N'
-        if fldchar == 'end':
-            text = re.sub('(n|N)', '\\\\\\1', text)
+        if type == 'footer':
+            if fldchar == 'begin':
+                res = '^ ?(\\S*)\\s*\\\\\\\\\\\\\\* MERGEFORMAT ?$'
+                if re.match(res, text):
+                    text = re.sub(res, '\\1', text)
+                if re.match('^ ?PAGE ?$', text, re.I):
+                    text = 'n'
+                elif re.match('^ ?NUMPAGES ?$', text, re.I):
+                    text = 'N'
+            else:
+                text = re.sub('(n|N)', '\\\\\\1', text)
         # RETURN
         return text
 
