@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.21-08:59:24-JST>
+# Time-stamp:   <2023.11.21-09:12:09-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -3730,8 +3730,10 @@ class RawParagraph:
         text = text.replace('\\]', '\\]')
         text = text.replace('&lt;', '\\&lt;')
         text = text.replace('&gt;', '\\&gt;')
-        text = text.replace('-\\&gt;', '\\-&gt;')  # "->"
-        text = text.replace('+\\&gt;', '\\+&gt;')  # "+>"
+        text = text.replace('\\&lt-;', '\\&lt;\\-')  # "<-"
+        text = text.replace('-\\&gt;', '\\-\\&gt;')  # "->"
+        text = text.replace('\\&lt;+', '\\&lt;\\+')  # "<+"
+        text = text.replace('+\\&gt;', '\\+\\&gt;')  # "+>"
         # PAGE NUMBER
         if type == 'footer':
             if fldchar == 'begin':
