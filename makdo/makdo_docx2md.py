@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.21-13:21:29-JST>
+# Time-stamp:   <2023.11.22-07:49:37-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -3020,6 +3020,11 @@ class RawParagraph:
                 font = ''
                 font = XML.get_value('w:rFonts', 'w:ascii', font, xl)
                 font = XML.get_value('w:rFonts', 'w:eastAsia', font, xl)
+                # SYMPTOMATIC TREATMENT
+                if font == 'ＭＳ 明朝;MS Mincho':
+                    font = 'ＭＳ 明朝'
+                if font == 'ＭＳ ゴシック;MS Gothic':
+                    font = 'ＭＳ ゴシック'
                 if font != '':
                     if font == Form.mincho_font:
                         pass
