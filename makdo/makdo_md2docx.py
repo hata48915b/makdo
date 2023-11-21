@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.21-15:43:45-JST>
+# Time-stamp:   <2023.11.21-16:04:12-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -936,10 +936,11 @@ class CharState:
         self.sub_or_sup = ''
         self.track_changes = ''  # ''|'del'|'ins'
 
-    @staticmethod
-    def copy(cs1, cs2):
-        for v in vars(cs1):
-            vars(cs2)[v] = vars(cs1)[v]
+    def copy(self):
+        copy = CharState()
+        for v in vars(copy):
+            vars(copy)[v] = vars(self)[v]
+        return copy
 
 
 class XML:
@@ -3889,8 +3890,8 @@ class Paragraph:
 
     def write_paragraph(self, ms_doc):
         # CHAR STATE
-        CharState.copy(Paragraph.bridge_char_state, self.beg_char_state)
-        CharState.copy(self.beg_char_state, self.char_state)
+        self.beg_char_state = Paragraph.bridge_char_state.copy()
+        self.char_state = self.beg_char_state.copy()
         paragraph_class = self.paragraph_class
         tail_section_depth = self.tail_section_depth
         alignment = self.alignment
@@ -3929,8 +3930,8 @@ class Paragraph:
             char_state.font_scale = 1.0
         else:
             self.write_text(ms_par, char_state, text_to_write_with_reviser)
-        CharState.copy(self.char_state, self.end_char_state)
-        CharState.copy(self.end_char_state, Paragraph.bridge_char_state)
+        self.end_char_state = self.char_state.copy()
+        Paragraph.bridge_char_state = self.end_char_state.copy()
 
     def _get_ms_par(self, ms_doc, par_style='makdo'):
         length_docx = self.length_docx
