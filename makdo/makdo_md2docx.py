@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.20-12:45:48-JST>
+# Time-stamp:   <2023.11.21-08:39:14-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -927,7 +927,6 @@ class CharState:
         self.font_scale = 1.0
         self.font_width = 1.0
         self.is_italic = False
-        self.is_italic = False
         self.is_bold = False
         self.has_strike = False
         self.is_preformatted = False
@@ -935,7 +934,7 @@ class CharState:
         self.font_color = None
         self.highlight_color = None
         self.sub_or_sup = ''
-        self.track_changes = ''
+        self.track_changes = ''  # ''|'del'|'ins'
 
     def copy(self):
         copy = CharState()
@@ -992,14 +991,26 @@ class XML:
 
     @staticmethod
     def _prepare_unit(unit):
+        # REMOVE RELAX SYMBOL ("<>" -> "" / "\<\>" -> "\<\>")
+        d = []
+        for i in range(len(unit)):
+            if re.match(NOT_ESCAPED + '<$', unit[:i]):
+                if re.match('^>', unit[i:]):
+                    d.append(i)
+        us = list(unit)
+        for i in d[::-1]:
+            us.pop(i)
+            us.pop(i - 1)
+        unit = ''.join(us)
         # REMOVE ESCAPE SYMBOL (BACKSLASH)
         unit = re.sub('\\\\', '-\\\\', unit)
         unit = re.sub('-\\\\-\\\\', '-\\\\\\\\', unit)
         unit = re.sub('-\\\\', '', unit)
-        # REMOVE RELAX SYMBOL
-        res = NOT_ESCAPED + RELAX_SYMBOL
-        while re.match(res, unit):
-            unit = re.sub(res, '\\1', unit)
+        # TRANSFORM
+        # unit = unit.replace('&', '&amp;')
+        # unit = unit.replace('>', '&gt;')
+        # unit = unit.replace('"', '&quot;')
+        # unit = unit.replace('<', '&lt;')
         # RETURN
         return unit
 
@@ -2522,11 +2533,6 @@ class Form:
         self._configure_by_md_file(self.md_lines)
         # BY ARGUMENTS
         self._configure_by_args(self.args)
-        # PARAGRPH
-        Paragraph.mincho_font = Form.mincho_font
-        Paragraph.gothic_font = Form.gothic_font
-        Paragraph.ivs_font = Form.ivs_font
-        Paragraph.font_size = Form.font_size
         # PRINT MESSAGES
         if self.has_completed:
             msg = '※ 警告: ' \
@@ -3707,7 +3713,7 @@ class Paragraph:
         tail_section_depth = self.tail_section_depth
         proper_depth = self.proper_depth
         length_revi = self.length_revi
-        size = self.font_size
+        size = Form.font_size
         line_spacing = Form.line_spacing
         length_clas \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
@@ -3937,7 +3943,7 @@ class Paragraph:
 
     def _get_ms_par(self, ms_doc, par_style='makdo'):
         length_docx = self.length_docx
-        m_size = Paragraph.font_size
+        m_size = Form.font_size
         ms_par = ms_doc.add_paragraph(style=par_style)
         if not Form.auto_space:
             ms_ppr = ms_par._p.get_or_add_pPr()
@@ -4040,9 +4046,9 @@ class Paragraph:
         res_foc = NOT_ESCAPED + '\\^([0-9A-Za-z]{0,11})\\^$'
         res_hlc = NOT_ESCAPED + '_([0-9A-Za-z]{1,11})_$'
         if re.match(NOT_ESCAPED + '<$', unit) and c == '>':
-            # '<>' （RELAX）
+            # '<>' （RELAX） "<<<" (+ ">") = "<<" + "<" (+ ">")
             unit = re.sub('<$', '', unit)
-            unit = cls._manage_unit(ms_par, char_state, unit, '<')
+            unit = cls._manage_unit(ms_par, char_state, unit, '<', type)
             unit += '<'
         elif re.match(NOT_ESCAPED + '\\\\\\[$', unit):
             # "\[" (BEGINNING OF MATH EXPRESSION) (MUST FIRST)
@@ -4165,17 +4171,29 @@ class Paragraph:
                 char_state.font_width = 1.2
         elif re.match(NOT_ESCAPED + '>>>$', unit):
             # ">>>" (XNARROW or RESET)
-            unit = re.sub('>>>$', '', unit)
-            unit = XML.write_unit(ms_par._p, char_state, unit)
-            if char_state.font_width > 1.3:
-                char_state.font_width = 1.0
-            elif char_state.font_width > 1.0:
-                char_state.font_width = 1.0
-                unit += '>'
+            if not re.match(NOT_ESCAPED + '<>>>$', unit):
+                unit = re.sub('>>>$', '', unit)
+                unit = XML.write_unit(ms_par._p, char_state, unit)
+                if char_state.font_width > 1.3:
+                    char_state.font_width = 1.0
+                elif char_state.font_width > 1.0:
+                    char_state.font_width = 1.0
+                    unit += '>'
+                else:
+                    char_state.font_width = 0.6
             else:
-                char_state.font_width = 0.6
+                # "<>>>" = "<>" + ">>"
+                unit = re.sub('>>$', '', unit)
+                unit = XML.write_unit(ms_par._p, char_state, unit)
+                if char_state.font_width > 1.0:
+                    char_state.font_width = 1.0
+                else:
+                    char_state.font_width = 0.8
         elif re.match(NOT_ESCAPED + '>>$', unit):
             # ">>" (NARROW or RESET)
+            if re.match(NOT_ESCAPED + '<>>$', unit):
+                # "<>>" = "<>" + ">"
+                return unit
             unit = re.sub('>>$', '', unit)
             unit = XML.write_unit(ms_par._p, char_state, unit)
             if char_state.font_width > 1.0:
@@ -4614,7 +4632,7 @@ class ParagraphTable(Paragraph):
 
     def write_paragraph(self, ms_doc):
         char_state = self.char_state
-        m_size = Paragraph.font_size
+        m_size = Form.font_size
         t_size = m_size * TABLE_FONT_SCALE
         tab = self._get_table_data(self.md_lines)
         conf_row, ali_list, wid_list = self._get_table_alignment_and_width(tab)
@@ -4905,7 +4923,7 @@ class ParagraphMath(Paragraph):
 
     def _set_lenght(self, ms_par):
         length_docx = self.length_docx
-        m_size = Paragraph.font_size
+        m_size = Form.font_size
         ms_fmt = ms_par.paragraph_format
         ms_fmt.widow_control = False
         if length_docx['space before'] >= 0:
@@ -5151,7 +5169,7 @@ class ParagraphHorizontalLine(Paragraph):
         length_clas = self.length_clas
         line_spacing = Form.line_spacing
         length_docx = self.length_docx
-        m_size = self.font_size
+        m_size = Form.font_size
         ms_par = ms_doc.add_paragraph(style='makdo-h')
         length_docx \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
