@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.21-09:12:09-JST>
+# Time-stamp:   <2023.11.21-13:21:29-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1537,6 +1537,9 @@ class Form:
         # PAGE NUMBER
         self._configure_by_footerX_xml(self.footer1_xml_lines)
         self._configure_by_footerX_xml(self.footer2_xml_lines)
+        if len(self.footer1_xml_lines) == 0 and \
+           len(self.footer2_xml_lines) == 0:
+            Form.set_page_number('False')
         # REVISE BY ARGUMENTS
         self._configure_by_args(self.args)
 
