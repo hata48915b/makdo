@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.21-12:51:04-JST>
+# Time-stamp:   <2023.11.21-15:43:45-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -936,11 +936,10 @@ class CharState:
         self.sub_or_sup = ''
         self.track_changes = ''  # ''|'del'|'ins'
 
-    def copy(self):
-        copy = CharState()
-        for v in vars(copy):
-            vars(copy)[v] = vars(self)[v]
-        return copy
+    @staticmethod
+    def copy(cs1, cs2):
+        for v in vars(cs1):
+            vars(cs2)[v] = vars(cs1)[v]
 
 
 class XML:
@@ -3472,20 +3471,6 @@ class Paragraph:
 
     bridge_char_state = CharState()
 
-    @staticmethod
-    def initialize_class_variable():
-        Paragraph.is_italic = False
-        Paragraph.is_bold = False
-        Paragraph.has_strike = False
-        Paragraph.is_preformatted = False
-        Paragraph.font_scale = 1.0
-        Paragraph.font_width = 1.0
-        Paragraph.underline = None
-        Paragraph.font_color = None
-        Paragraph.highlight_color = None
-        Paragraph.sub_or_sup = ''
-        Paragraph.track_changes = ''
-
     @classmethod
     def is_this_class(cls, full_text,
                       head_font_revisers=[], tail_font_revisers=[]):
@@ -3518,9 +3503,9 @@ class Paragraph:
         self.alignment = ''
         self.text_to_write = ''
         self.text_to_write_with_reviser = ''
-        self.beg_char_state = None
-        self.end_char_state = None
-        self.char_state = None
+        self.beg_char_state = CharState()
+        self.end_char_state = CharState()
+        self.char_state = CharState()
         # SUBSTITUTE
         Paragraph.paragraph_number += 1
         self.paragraph_number = Paragraph.paragraph_number
@@ -3549,7 +3534,6 @@ class Paragraph:
         self.text_to_write = self._get_text_to_write()
         self.text_to_write_with_reviser \
             = self._get_text_to_write_with_reviser()
-        self.char_state = self.bridge_char_state.copy()
 
     @classmethod
     def _apply_section_depths_setters(cls, section_depth_setters):
@@ -3904,6 +3888,9 @@ class Paragraph:
         return text_to_write_with_reviser
 
     def write_paragraph(self, ms_doc):
+        # CHAR STATE
+        CharState.copy(Paragraph.bridge_char_state, self.beg_char_state)
+        CharState.copy(self.beg_char_state, self.char_state)
         paragraph_class = self.paragraph_class
         tail_section_depth = self.tail_section_depth
         alignment = self.alignment
@@ -3929,10 +3916,12 @@ class Paragraph:
             ms_par.alignment = WD_ALIGN_PARAGRAPH.RIGHT
         elif (paragraph_class == 'section' and
               re.sub('^\\S*\\s*', '', md_lines[0].text) == ''):
-            ms_par.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            pass
+            # ms_par.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         elif (paragraph_class == 'sentence' and
               not re.match('^.*\n', text_to_write_with_reviser)):
-            ms_par.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+            pass
+            # ms_par.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         ms_fmt = ms_par.paragraph_format
         if paragraph_class == 'section' and tail_section_depth == 1:
             char_state.font_scale = 1.4
@@ -3940,6 +3929,8 @@ class Paragraph:
             char_state.font_scale = 1.0
         else:
             self.write_text(ms_par, char_state, text_to_write_with_reviser)
+        CharState.copy(self.char_state, self.end_char_state)
+        CharState.copy(self.end_char_state, Paragraph.bridge_char_state)
 
     def _get_ms_par(self, ms_doc, par_style='makdo'):
         length_docx = self.length_docx
