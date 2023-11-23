@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.21-16:04:12-JST>
+# Time-stamp:   <2023.11.23-11:47:07-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -3982,24 +3982,23 @@ class Paragraph:
         ms_fmt.line_spacing = Pt(ls * m_size)
         return ms_par
 
-    def write_text(self, ms_par, char_state, text, type='normal'):
-        text = self._replace_br_tag(text)
+    @classmethod
+    def write_text(cls, ms_par, char_state, text, type='normal'):
+        text = cls._replace_br_tag(text)
         unit = ''
         for c in text + '\0':
-            if not self._must_continue(unit, c):
-                unit = self._manage_unit(ms_par, char_state, unit, c, type)
-            unit += c
+            if not cls._must_continue(unit, c):
+                unit = cls._manage_unit(ms_par, char_state, unit, c, type)
+            if c != '\0':
+                unit += c
+        return unit
 
     @staticmethod
     def _replace_br_tag(text):
-        lns = text.split('\n')
-        text = ''
+        tmp = ''
         res = NOT_ESCAPED + '<br/?>'
-        for ln in lns:
-            while re.match(res, ln):
-                ln = re.sub(res, '\\1\n', ln)
-            text += ln + '\n'
-        text = re.sub('\n$', '', text, 1)
+        while re.match(res, text):
+            text = re.sub(res, '\\1\n', text)
         return text
 
     @staticmethod
@@ -4007,6 +4006,17 @@ class Paragraph:
         # MATH
         if re.match('^\\\\\\[', tex):
             if not re.match(NOT_ESCAPED + '\\\\\\]$', tex):
+                return True
+        # SUB OR SUP
+        if re.match('^(_|\\^){', tex):
+            if not re.match(NOT_ESCAPED + '}$', tex):
+                return True
+            t, d = '', 0
+            for c in tex:
+                t += c
+                d += 1 if re.match(NOT_ESCAPED + '{$', t) else 0
+                d -= 1 if re.match(NOT_ESCAPED + '}$', t) else 0
+            if d != 0:
                 return True
         # ITALIC AND BOLD
         if re.match(NOT_ESCAPED + '\\*$', tex):
@@ -4031,9 +4041,8 @@ class Paragraph:
         # ELSE
         return False
 
+    @classmethod
     def _manage_unit(cls, ms_par, char_state, unit, c, type='normal'):
-        res_sub = NOT_ESCAPED + '_{([^{}]*(?:{[^{}]*}[^{}]*)*)}$'
-        res_sup = NOT_ESCAPED + '\\^{([^{}]*(?:{[^{}]*}[^{}]*)*)}$'
         res_ivs = '^((?:.|\n)*?)([^0-9\\\\])([0-9]+);$'
         res_foc = NOT_ESCAPED + '\\^([0-9A-Za-z]{0,11})\\^$'
         res_hlc = NOT_ESCAPED + '_([0-9A-Za-z]{1,11})_$'
@@ -4052,6 +4061,22 @@ class Paragraph:
             # "\]" (END OF MATH EXPRESSION (MUST FIRST)
             unit = re.sub('^\\\\\\[(.*)\\\\\\]$', '\\1', unit)
             unit = Math.write_unit(ms_par._p, CharState(), unit)
+        elif re.match(NOT_ESCAPED + '((?:_|\\^){)$', unit):
+            # "_{" or "^{" (BEGINNIG OF SUB OR SUP)
+            subp = re.sub(NOT_ESCAPED + '((?:_|\\^){)$', '\\2', unit)
+            unit = re.sub(NOT_ESCAPED + '((?:_|\\^){)$', '\\1', unit)
+            unit = XML.write_unit(ms_par._p, char_state, unit)
+            unit = subp
+        elif (re.match('^(?:_|\\^){', unit) and
+              re.match(NOT_ESCAPED + '}$', unit)):
+            # "}" (END OF SUB OR SUP)
+            if re.match('^_{', unit):
+                char_state.sub_or_sup = 'sub'
+            else:
+                char_state.sub_or_sup = 'sup'
+            unit = re.sub('^(?:_|\\^){(.*)}', '\\1', unit)
+            unit = cls.write_text(ms_par, char_state, unit, type)
+            char_state.sub_or_sup = ''
         elif re.match(NOT_ESCAPED + RES_IMAGE, unit):
             # "![.*](.+)" (IMAGE)
             path = re.sub(NOT_ESCAPED + RES_IMAGE, '\\3', unit)
@@ -4244,22 +4269,6 @@ class Paragraph:
                     char_state.highlight_color = col
                 else:
                     char_state.highlight_color = None
-        elif re.match(res_sub, unit):
-            # SUBSCRIPT
-            sub = re.sub(res_sub, '\\2', unit)
-            unit = re.sub(res_sub, '\\1', unit)
-            unit = XML.write_unit(ms_par._p, char_state, unit)
-            char_state.sub_or_sup = 'sub'
-            unit = XML.write_unit(ms_par._p, char_state, sub)
-            char_state.sub_or_sup = ''
-        elif re.match(res_sup, unit):
-            # SUPERSCRIPT
-            sup = re.sub(res_sup, '\\2', unit)
-            unit = re.sub(res_sup, '\\1', unit)
-            unit = XML.write_unit(ms_par._p, char_state, unit)
-            char_state.sub_or_sup = 'sup'
-            unit = XML.write_unit(ms_par._p, char_state, sup)
-            char_state.sub_or_sup = ''
         elif re.match(NOT_ESCAPED + '\\->$', unit):
             # BEGINNING OF DELETED
             unit = re.sub('\\->$', '', unit)
