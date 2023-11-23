@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.23-11:47:07-JST>
+# Time-stamp:   <2023.11.23-16:43:21-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2871,7 +2871,7 @@ class Form:
             if item == 'space_before' or item == '前余白':
                 Form.space_before = value
                 return True
-            elif item == 'space_after'or item == '後余白':
+            elif item == 'space_after' or item == '後余白':
                 Form.space_after = value
                 return True
         msg = '※ 警告: ' \
@@ -3916,13 +3916,12 @@ class Paragraph:
         elif alignment == 'right':
             ms_par.alignment = WD_ALIGN_PARAGRAPH.RIGHT
         elif (paragraph_class == 'section' and
-              re.sub('^\\S*\\s*', '', md_lines[0].text) == ''):
-            pass
-            # ms_par.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+              re.match('^\\S*\\s*$', md_lines[0].text) and
+              not re.match('^.*<br>', text_to_write_with_reviser)):
+            ms_par.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         elif (paragraph_class == 'sentence' and
-              not re.match('^.*\n', text_to_write_with_reviser)):
-            pass
-            # ms_par.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
+              not re.match('^.*<br>', text_to_write_with_reviser)):
+            ms_par.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         ms_fmt = ms_par.paragraph_format
         if paragraph_class == 'section' and tail_section_depth == 1:
             char_state.font_scale = 1.4

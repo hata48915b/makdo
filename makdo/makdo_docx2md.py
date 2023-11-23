@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.23-12:55:52-JST>
+# Time-stamp:   <2023.11.24-07:59:49-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -57,7 +57,7 @@
 ############################################################
 # POLICY
 
-# document -> paragraph -> text -> string -> unit
+# document -> paragraph -> text -> string -> chars
 
 
 ############################################################
@@ -1003,6 +1003,179 @@ def c2n_c_kanj(s):
 # CLASS
 
 
+class CharsDatum:
+
+    """A class to keep character data"""
+
+    res_fds = [['->', '<-'], ['\\+>', '<\\+'],
+               ['_{', '_}'], ['\\^{', '\\^}'],
+               ['`', '`'], ['@[^@]{1,66}@', '@[^@]{1,66}@'],
+               ['\\^[0-9A-Za-z]{0,11}\\^', '\\^[0-9A-Za-z]{0,11}\\^'],
+               ['_[0-9A-Za-z]{1,11}_', '_[0-9A-Za-z]{1,11}_'],
+               ['_[\\$=\\.#\\-~\\+]{,4}_', '_[\\$=\\.#\\-~\\+]{,4}_'],
+               ['>>>', '<<<'], ['>>', '<<'],
+               ['---', '---'], ['--', '--'],
+               ['\\+\\+', '\\+\\+'], ['\\+\\+\\+', '\\+\\+\\+'],
+               ['<<', '>>'], ['<<<', '>>>'],
+               ['~~', '~~'], ['\\*\\*', '\\*\\*'], ['\\*', '\\*']]
+
+    def __init__(self, pre_fds, chars, pos_fds):
+        self.pre_fds = pre_fds
+        self.chars = chars
+        self.pos_fds = pos_fds
+
+    def append_fds(self, pre_fd, pos_fd):
+        if pre_fd not in self.pre_fds:
+            self.pre_fds.append(pre_fd)
+        if pos_fd not in self.pos_fds:
+            self.pos_fds.append(pos_fd)
+
+    def copy_fds(self):
+        pre_fds = []
+        pos_fds = []
+        for fd in self.pre_fds:
+            pre_fds.append(fd)
+        for fd in self.pos_fds:
+            pos_fds.append(fd)
+        return pre_fds, pos_fds
+
+    def get_chars_with_fd(self):
+        chars = self.chars
+        pre_fds = self.pre_fds
+        pos_fds = self.pos_fds
+        pre = ''
+        pos = ''
+        for rf in self.res_fds:
+            pre, pre_fds = self._touch_in_pre(pre, pre_fds, rf[0])
+            pos, pos_fds = self._touch_in_pos(pos, pos_fds, rf[1])
+        pre = pre + ''.join(pre_fds)        # just in case
+        pos = ''.join(pos_fds[::-1]) + pos  # just in case
+        cwf = chars
+        cwf = self._concatenate_chars(pre, cwf)
+        cwf = self._concatenate_chars(cwf, pos)
+        return cwf
+
+    @staticmethod
+    def _concatenate_chars(chars1, chars2):
+        # "~" + "~"
+        if re.match(NOT_ESCAPED + '~$', chars1) and re.match('^~', chars2):
+            return chars1 + '<>' + chars2
+        # "/" + "/"
+        if re.match(NOT_ESCAPED + '/$', chars1) and re.match('^/', chars2):
+            return chars1 + '<>' + chars2
+        # "-" + "-"
+        if re.match(NOT_ESCAPED + '-$', chars1) and re.match('^-', chars2):
+            return chars1 + '<>' + chars2
+        # "+" + "+"
+        if re.match(NOT_ESCAPED + '\\+$', chars1) and re.match('^\\+', chars2):
+            return chars1 + '<>' + chars2
+        # ">" + ">"
+        if re.match(NOT_ESCAPED + '>$', chars1) and re.match('^>', chars2):
+            return chars1 + '<>' + chars2
+        # "<" + "<"
+        if re.match(NOT_ESCAPED + '<$', chars1) and re.match('^<', chars2):
+            return chars1 + '<>' + chars2
+        # "<" + ">"
+        if re.match(NOT_ESCAPED + '<$', chars1) and re.match('^>', chars2):
+            return chars1 + '<>' + chars2
+        # "@.*" + ".*@"
+        if re.match(NOT_ESCAPED + '@([^@]{1,66})$', chars1) and \
+           re.match('^([^@]{1,66})@', chars2):
+            return chars1 + '<>' + chars2
+        # "_.*" + ".*_"
+        if re.match(NOT_ESCAPED + '_([\\$=\\.#\\-~\\+]*)$', chars1) and \
+           re.match('^([\\$=\\.#\\-~\\+]*)_', chars2):
+            return chars1 + '<>' + chars2
+        # "^.*" + ".*^"
+        if re.match(NOT_ESCAPED + '\\^([0-9a-zA-Z]+)$', chars1) and \
+           re.match('^([0-9a-zA-Z]+)\\^', chars2):
+            return chars1 + '<>' + chars2
+        # "_.*" + ".*_"
+        if re.match(NOT_ESCAPED + '_([0-9a-zA-Z]+)$', chars1) and \
+           re.match('([0-9a-zA-Z]+)_^', chars2):
+            return chars1 + '<>' + chars2
+        # "-|+" + ">"
+        if re.match(NOT_ESCAPED + '(-|\\+)$', chars1) and \
+           re.match('^>', chars2):
+            return chars1 + '<>' + chars2
+        # "<" + "-|+"
+        if re.match(NOT_ESCAPED + '<$', chars1) and \
+           re.match('^(-|\\+)', chars2):
+            return chars1 + '<>' + chars2
+        # "\" + "[|]"
+        if re.match(NOT_ESCAPED + '\\\\$', chars1) and \
+           re.match('^(\\[|\\])', chars2):
+            return chars1 + '<>' + chars2
+        return chars1 + chars2
+
+    @staticmethod
+    def _touch_in_pre(pre, fds, res):
+        match = []
+        for fd in fds:
+            if re.match('^' + res + '$', fd):
+                match.append(fd)
+        if len(match) > 0:
+            for m in match:
+                fds.remove(m)
+            pre = pre + match[-1]
+        return pre, fds
+
+    @staticmethod
+    def _touch_in_pos(pos, fds, res):
+        match = []
+        for fd in fds:
+            if re.match('^' + res + '$', fd):
+                match.append(fd)
+        if len(match) > 0:
+            for m in match:
+                fds.remove(m)
+            if re.match('^(_|\\^)}', match[-1]):
+                pos = '}' + pos  # '(_|^)}' -> '}'
+            else:
+                pos = match[-1] + pos
+        return pos, fds
+
+    @classmethod
+    def are_consecutive(cls, unit_data1, unit_data2):
+        pos_fds = []
+        for fd in unit_data1.pos_fds:
+            pos_fds.append(fd)
+        pre_fds = []
+        for fd in unit_data2.pre_fds:
+            pre_fds.append(fd)
+        for rf in cls.res_fds:
+            for pos in pos_fds:
+                if re.match('^' + rf[1] + '$', pos):
+                    for pre in pre_fds:
+                        if re.match('^' + rf[0] + '$', pre):
+                            if (rf[1] == rf[0]) and (pos != pre):
+                                continue
+                            pos_fds.remove(pos)
+                            pre_fds.remove(pre)
+                            break
+                    break
+        if pos_fds == [] and pre_fds == []:
+            return True
+        return False
+
+    @classmethod
+    def cancel_fds(cls, unit_data1, unit_data2):
+        pos_fds = unit_data1.pos_fds
+        pre_fds = unit_data2.pre_fds
+        for rf in cls.res_fds:
+            for pos in pos_fds:
+                if re.match('^' + rf[1] + '$', pos):
+                    for pre in pre_fds:
+                        if re.match('^' + rf[0] + '$', pre):
+                            if (rf[1] == rf[0]) and (pos != pre):
+                                continue
+                            pos_fds.remove(pos)
+                            pre_fds.remove(pre)
+                            break
+                    break
+        return unit_data1, unit_data2
+
+
 class XML:
 
     """A class to handle xml"""
@@ -1742,9 +1915,9 @@ class Form:
     @staticmethod
     def _configure_by_headerX_xml(xml_lines):
         # HEADER STRING
-        text_data, images \
-            = RawParagraph._get_text_data_and_images('', xml_lines, 'header')
-        raw_text = RawParagraph._get_raw_text(text_data)
+        chars_data, images \
+            = RawParagraph._get_chars_data_and_images('', xml_lines, 'header')
+        raw_text = RawParagraph._get_raw_text(chars_data)
         alignment = RawParagraph._get_alignment(xml_lines)
         if alignment == 'center':
             raw_text = ': ' + raw_text + ' :'
@@ -1756,9 +1929,9 @@ class Form:
     @staticmethod
     def _configure_by_footerX_xml(xml_lines):
         # PAGE NUMBER
-        text_data, images \
-            = RawParagraph._get_text_data_and_images('', xml_lines, 'footer')
-        raw_text = RawParagraph._get_raw_text(text_data)
+        chars_data, images \
+            = RawParagraph._get_chars_data_and_images('', xml_lines, 'footer')
+        raw_text = RawParagraph._get_raw_text(chars_data)
         alignment = RawParagraph._get_alignment(xml_lines)
         if alignment == 'center':
             raw_text = ': ' + raw_text + ' :'
@@ -2031,7 +2204,7 @@ class Form:
             if item == 'space_before' or item == '前余白':
                 Form.space_before = value
                 return True
-            elif item == 'space_after'or item == '後余白':
+            elif item == 'space_after' or item == '後余白':
                 Form.space_after = value
                 return True
         msg = '※ 警告: ' \
@@ -2367,6 +2540,8 @@ class Document:
         self.paragraphs = self._modpar_one_line_paragraph()
         # CHANGE VERTICAL LENGTH
         self.paragraphs = self._modpar_vertical_length()
+        # ISOLATE FONT REVISERS
+        self.paragraphs = self._modpar_isolate_revisers()
         # RETURN
         return self.paragraphs
 
@@ -2551,6 +2726,7 @@ class Document:
         for i, p in enumerate(self.paragraphs):
             if p.has_removed:
                 continue
+            #p_next = self._get_next_paragraph(self.paragraphs, i)
             if p.paragraph_class == 'alignment':
                 if p.alignment == 'center':
                     if p.length_revi['space before'] == 1.0:
@@ -2705,6 +2881,65 @@ class Document:
                             must_remove = False
                     if must_remove:
                         p.length_revisers.remove(lr)
+            # RENEW
+            p.text_to_write_with_reviser \
+                = p.get_text_to_write_with_reviser()
+        return self.paragraphs
+
+    def _modpar_isolate_revisers(self):
+        base_cd = None
+        for i, p in enumerate(self.paragraphs):
+            curr_head = p.head_font_revisers
+            curr_tail = p.tail_font_revisers
+            curr_cd = CharsDatum(curr_head, '', curr_tail)
+            next_head = []
+            next_tail = []
+            p_next = self._get_next_paragraph(self.paragraphs, i)
+            if p_next is not None:
+                next_head = p_next.head_font_revisers
+                next_tail = p_next.tail_font_revisers
+            next_cd = CharsDatum(next_head, '', next_tail)
+            is_cc, is_cn, is_nn = False, False, False
+            if CharsDatum.are_consecutive(curr_cd, curr_cd):
+                is_cc = True
+            if CharsDatum.are_consecutive(curr_cd, next_cd):
+                is_cn = True
+            if CharsDatum.are_consecutive(next_cd, next_cd):
+                is_nn = True
+            # SINGLE LINE
+            if (base_cd is None) and is_cc and (not (is_cn and is_nn)):
+                p.head_font_revisers = []
+                p.tail_font_revisers = []
+                tex_fd = CharsDatum(curr_head, '', []).get_chars_with_fd()
+                if tex_fd != '':
+                    p.text_to_write = tex_fd + '\n' + p.text_to_write
+                tex_fd = CharsDatum([], '', curr_tail).get_chars_with_fd()
+                if tex_fd != '':
+                    p.text_to_write = p.text_to_write + '\n' + tex_fd
+            # MULTI LINES
+            if base_cd is None:
+                if is_cc and is_cn and is_nn:
+                    p.head_font_revisers = []
+                    p.tail_font_revisers = []
+                if is_cc and is_cn and is_nn:
+                    tex_fd = CharsDatum(curr_head, '', []).get_chars_with_fd()
+                    if tex_fd != '':
+                        p.pre_text_to_write \
+                            = re.sub('\\s*\n$', ' ', p.pre_text_to_write)
+                        p.pre_text_to_write += tex_fd + '\n'
+                    base_cd = curr_cd
+            else:
+                if True:
+                    p.head_font_revisers = []
+                    p.tail_font_revisers = []
+                if not (is_cc and is_cn and is_nn):
+                    tex_fd = CharsDatum([], '', curr_tail).get_chars_with_fd()
+                    if tex_fd != '':
+                        p.post_text_to_write \
+                            = re.sub('^\n', ' ', p.post_text_to_write)
+                        p.post_text_to_write += '\n' + tex_fd
+                    base_cd = None
+            # RENEW
             p.text_to_write_with_reviser \
                 = p.get_text_to_write_with_reviser()
         return self.paragraphs
@@ -2846,7 +3081,7 @@ class RawParagraph:
         self.xml_lines = []
         self.raw_class = ''
         self.horizontal_line = ''  # 'top'|'bottom'|'textbox'
-        self.text_data = []
+        self.chars_data = []
         self.images = {}
         self.raw_text = ''
         self.head_space = ''
@@ -2865,9 +3100,9 @@ class RawParagraph:
         self.raw_class = self._get_raw_class(self.xml_lines)
         self.horizontal_line \
             = self._get_horizontal_line(self.raw_class, self.xml_lines)
-        self.text_data, self.images \
-            = self._get_text_data_and_images(self.raw_class, self.xml_lines)
-        self.raw_text = self._get_raw_text(self.text_data)
+        self.chars_data, self.images \
+            = self._get_chars_data_and_images(self.raw_class, self.xml_lines)
+        self.raw_text = self._get_raw_text(self.chars_data)
         self.head_space, self.raw_text \
             = self._separate_head_space(self.raw_text,
                                         '->', '<-', '\\+>', '<\\+')
@@ -2915,12 +3150,12 @@ class RawParagraph:
         return ''
 
     @classmethod
-    def _get_text_data_and_images(cls, raw_class, xml_lines, type='normal'):
+    def _get_chars_data_and_images(cls, raw_class, xml_lines, type='normal'):
         if raw_class != 'w:tbl':
             font_size = Form.font_size
         else:
             font_size = Form.font_size * TABLE_FONT_SCALE
-        text_data = []
+        chars_data = []
         images = {}
         media_dir = IO.media_dir
         img_rels = Form.rels
@@ -2929,7 +3164,7 @@ class RawParagraph:
         is_changed = False
         fldchar = ''
         track_changes = ''  # ''|'del'|'ins'
-        sd = cls.UnitData([], '', [])
+        cd = CharsDatum([], '', [])
         for xl in xml_lines:
             # EMPTY
             if xl == '':
@@ -2945,7 +3180,7 @@ class RawParagraph:
             if re.match('^<w:fldChar w:fldCharType="begin"/?>$', xl):
                 fldchar = 'begin'
             elif re.match('^<w:fldChar w:fldCharType="separate"/?>$', xl):
-                sd.pre_fds, sd.pos_fds = [], []
+                cd.pre_fds, cd.pos_fds = [], []
                 fldchar = 'separate'
             elif re.match('^<w:fldChar w:fldCharType="end"/?>$', xl):
                 fldchar = 'end'
@@ -2954,8 +3189,8 @@ class RawParagraph:
             # MATH
             if 'math_data' not in locals():
                 math_data = None
-            math_data, text_data \
-                = cls._manage_math_expression(xl, math_data, text_data)
+            math_data, chars_data \
+                = cls._manage_math_expression(xl, math_data, chars_data)
             if math_data is not None:
                 continue
             # IMAGE
@@ -2992,12 +3227,12 @@ class RawParagraph:
                                            font_size)
                 imt = '<>' + imt  # '<>' is to avoid being escaped
                 if track_changes == 'del':
-                    sd_img = cls.UnitData(['->'], imt, ['<-'])
+                    cd_img = CharsDatum(['->'], imt, ['<-'])
                 elif track_changes == 'ins':
-                    sd_img = cls.UnitData(['+>'], imt, ['<+'])
+                    cd_img = CharsDatum(['+>'], imt, ['<+'])
                 else:
-                    sd_img = cls.UnitData([], imt, [])
-                text_data.append(sd_img)
+                    cd_img = CharsDatum([], imt, [])
+                chars_data.append(cd_img)
                 img_file_name = ''
                 img_size = ''
             if must_continue:
@@ -3029,45 +3264,45 @@ class RawParagraph:
                     if font == Form.mincho_font:
                         pass
                     elif font == Form.gothic_font:
-                        sd.append_fds('`', '`')
+                        cd.append_fds('`', '`')
                     else:
-                        sd.append_fds('@' + font + '@', '@' + font + '@')
+                        cd.append_fds('@' + font + '@', '@' + font + '@')
                 continue
             # ITALIC
             if re.match('^<w:i/?>$', xl):
-                sd.append_fds('*', '*')
+                cd.append_fds('*', '*')
                 continue
             # BOLD
             if re.match('^<w:b/?>$', xl):
-                sd.append_fds('**', '**')
+                cd.append_fds('**', '**')
                 continue
             # STRIKETHROUGH
             if re.match('^<w:strike/?>$', xl):
-                sd.append_fds('~~', '~~')
+                cd.append_fds('~~', '~~')
                 continue
             # FONT SIZE
             s = XML.get_value('w:sz', 'w:val', -1.0, xl) / 2
             if s > 0:
                 if s < font_size * 0.7:
-                    sd.append_fds('---', '---')
+                    cd.append_fds('---', '---')
                 elif s < font_size * 0.9:
-                    sd.append_fds('--', '--')
+                    cd.append_fds('--', '--')
                 elif s > font_size * 1.3:
-                    sd.append_fds('+++', '+++')
+                    cd.append_fds('+++', '+++')
                 elif s > font_size * 1.1:
-                    sd.append_fds('++', '++')
+                    cd.append_fds('++', '++')
                 continue
             # FONT WIDTH
             w = XML.get_value('w:w', 'w:val', -1.0, xl)
             if w > 0:
                 if w < 70:
-                    sd.append_fds('>>>', '<<<')
+                    cd.append_fds('>>>', '<<<')
                 elif w < 90:
-                    sd.append_fds('>>', '<<')
+                    cd.append_fds('>>', '<<')
                 elif w > 130:
-                    sd.append_fds('<<<', '>>>')
+                    cd.append_fds('<<<', '>>>')
                 elif w > 110:
-                    sd.append_fds('<<', '>>')
+                    cd.append_fds('<<', '>>')
                 continue
             # UNDERLINE
             if re.match('^<w:u( .*)?>$', xl):
@@ -3077,7 +3312,7 @@ class RawParagraph:
                     val = re.sub(res, '\\1', xl)
                     if val in UNDERLINE:
                         underline = UNDERLINE[val]
-                sd.append_fds('_' + underline + '_', '_' + underline + '_')
+                cd.append_fds('_' + underline + '_', '_' + underline + '_')
                 continue
             # FONT COLOR
             if re.match('^<w:color w:val="[0-9A-F]+"( .*)?/?>$', xl):
@@ -3089,157 +3324,47 @@ class RawParagraph:
                     font_color = FONT_COLOR[val]
                 else:
                     font_color = val
-                sd.append_fds('^' + font_color + '^', '^' + font_color + '^')
+                cd.append_fds('^' + font_color + '^', '^' + font_color + '^')
                 continue
             # HIGHLIGHT COLOR
             if re.match('^<w:highlight w:val="[a-zA-Z]+"( .*)?/?>$', xl):
                 val = re.sub('^<.* w:val="([a-zA-Z]+)".*>$', '\\1', xl)
                 highlight = val
-                sd.append_fds('_' + highlight + '_', '_' + highlight + '_')
+                cd.append_fds('_' + highlight + '_', '_' + highlight + '_')
                 continue
             # SUBSCRIPT OR SUPERSCRIPT
             if xl == '<w:vertAlign w:val="subscript"/>':
-                sd.append_fds('_{', '_}')
+                cd.append_fds('_{', '_}')
                 continue
             elif xl == '<w:vertAlign w:val="superscript"/>':
-                sd.append_fds('^{', '^}')
+                cd.append_fds('^{', '^}')
                 continue
             # TEXT
             if not re.match('^<.*>$', xl):
-                t = cls._prepare_text(fldchar, xl, type)
-                sd.string = cls._concatenate_text(sd.string, t)
+                t = cls._prepare_chars(fldchar, xl, type)
+                cd.chars = CharsDatum._concatenate_chars(cd.chars, t)
                 continue
             elif re.match('^<w:tab/?>$', xl):
-                sd.string += '\t'
+                cd.chars += '\t'
                 continue
             elif re.match('^<w:br/?>$', xl):
-                sd.string += '\n'
+                cd.chars += '\n'
                 continue
             # RUN
             if re.match('^<w:r( .*)?>$', xl):
                 continue
             elif re.match('^</w:r>$', xl):
-                if sd.string != '':
+                if cd.chars != '':
                     if track_changes == 'del':
-                        sd.append_fds('->', '<-')
+                        cd.append_fds('->', '<-')
                     elif track_changes == 'ins':
-                        sd.append_fds('+>', '<+')
-                    text_data.append(sd)
-                sd = cls.UnitData([], '', [])
+                        cd.append_fds('+>', '<+')
+                    chars_data.append(cd)
+                cd = CharsDatum([], '', [])
                 continue
-        # self.text_data = text_data
+        # self.chars_data = chars_data
         # self.images = images
-        return text_data, images
-
-    class UnitData:
-
-        res_fds = [['->', '<-'], ['\\+>', '<\\+'],
-                   ['_{', '_}'], ['\\^{', '\\^}'],
-                   ['`', '`'], ['@[^@]{1,66}@', '@[^@]{1,66}@'],
-                   ['\\^[0-9A-Za-z]{0,11}\\^', '\\^[0-9A-Za-z]{0,11}\\^'],
-                   ['_[0-9A-Za-z]{1,11}_', '_[0-9A-Za-z]{1,11}_'],
-                   ['_[\\$=\\.#\\-~\\+]{,4}_', '_[\\$=\\.#\\-~\\+]{,4}_'],
-                   ['>>>', '<<<'], ['>>', '<<'],
-                   ['---', '---'], ['--', '--'],
-                   ['\\+\\+', '\\+\\+'], ['\\+\\+\\+', '\\+\\+\\+'],
-                   ['<<', '>>'], ['<<<', '>>>'],
-                   ['~~', '~~'], ['\\*\\*', '\\*\\*'], ['\\*', '\\*']]
-
-        def __init__(self, pre_fds, string, pos_fds):
-            self.pre_fds = pre_fds
-            self.string = string
-            self.pos_fds = pos_fds
-
-        def append_fds(self, pre_fd, pos_fd):
-            if pre_fd not in self.pre_fds:
-                self.pre_fds.append(pre_fd)
-            if pos_fd not in self.pos_fds:
-                self.pos_fds.append(pos_fd)
-
-        def get_string_with_fd(self):
-            string = self.string
-            pre_fds = self.pre_fds
-            pos_fds = self.pos_fds
-            pre = ''
-            pos = ''
-            for rf in self.res_fds:
-                pre, pre_fds = self._touch_in_pre(pre, pre_fds, rf[0])
-                pos, pos_fds = self._touch_in_pos(pos, pos_fds, rf[1])
-            pre = pre + ''.join(pre_fds)        # just in case
-            pos = ''.join(pos_fds[::-1]) + pos  # just in case
-            swf = string
-            swf = RawParagraph._concatenate_text(pre, swf)
-            swf = RawParagraph._concatenate_text(swf, pos)
-            return swf
-
-        @staticmethod
-        def _touch_in_pre(pre, fds, res):
-            match = []
-            for fd in fds:
-                if re.match('^' + res + '$', fd):
-                    match.append(fd)
-            if len(match) > 0:
-                for m in match:
-                    fds.remove(m)
-                pre = pre + match[-1]
-            return pre, fds
-
-        @staticmethod
-        def _touch_in_pos(pos, fds, res):
-            match = []
-            for fd in fds:
-                if re.match('^' + res + '$', fd):
-                    match.append(fd)
-            if len(match) > 0:
-                for m in match:
-                    fds.remove(m)
-                if re.match('^(_|\\^)}', match[-1]):
-                    pos = '}' + pos  # '(_|^)}' -> '}'
-                else:
-                    pos = match[-1] + pos
-            return pos, fds
-
-        @classmethod
-        def has_same_fds(cls, unit_data1, unit_data2=None):
-            if unit_data2 is None:
-                unit_data2 = unit_data1
-            pos_fds = []
-            for fd in unit_data1.pos_fds:
-                pos_fds.append(fd)
-            pre_fds = []
-            for fd in unit_data2.pre_fds:
-                pre_fds.append(fd)
-            for rf in cls.res_fds:
-                for pos in pos_fds:
-                    if re.match('^' + rf[1] + '$', pos):
-                        for pre in pre_fds:
-                            if re.match('^' + rf[0] + '$', pre):
-                                if (rf[1] == rf[0]) and (pos != pre):
-                                    continue
-                                pos_fds.remove(pos)
-                                pre_fds.remove(pre)
-                                break
-                        break
-            if pos_fds == [] and pre_fds == []:
-                return True
-            return False
-
-        @classmethod
-        def cancel_fds(cls, unit_data1, unit_data2):
-            pos_fds = unit_data1.pos_fds
-            pre_fds = unit_data2.pre_fds
-            for rf in cls.res_fds:
-                for pos in pos_fds:
-                    if re.match('^' + rf[1] + '$', pos):
-                        for pre in pre_fds:
-                            if re.match('^' + rf[0] + '$', pre):
-                                if (rf[1] == rf[0]) and (pos != pre):
-                                    continue
-                                pos_fds.remove(pos)
-                                pre_fds.remove(pre)
-                                break
-                        break
-            return unit_data1, unit_data2
+        return chars_data, images
 
     @staticmethod
     def _get_img_file_names_ms(xl, img_rels):
@@ -3333,39 +3458,39 @@ class RawParagraph:
         return img_md_text
 
     @classmethod
-    def _manage_math_expression(cls, xl, math_data, text_data):
+    def _manage_math_expression(cls, xl, math_data, chars_data):
         if re.match('^<m:oMath>$', xl):
             math_data = []
-            math_data.append(cls.UnitData([''], '', ['']))
-            math_data.append(cls.UnitData([''], '', ['']))
-            return math_data, text_data
+            math_data.append(CharsDatum([''], '', ['']))
+            math_data.append(CharsDatum([''], '', ['']))
+            return math_data, chars_data
         elif re.match('^</m:oMath>$', xl):
             md = math_data[0]
-            if md.string == '' and md.pre_fds == [''] and md.pos_fds == ['']:
+            if md.chars == '' and md.pre_fds == [''] and md.pos_fds == ['']:
                 math_data.pop(0)
             md = math_data[-1]
-            if md.string == '' and md.pre_fds == [''] and md.pos_fds == ['']:
+            if md.chars == '' and md.pre_fds == [''] and md.pos_fds == ['']:
                 math_data.pop(-1)
             math_str = cls._join_math_expression(math_data)
             math_str = cls._shape_math_matrix(math_str)
             math_str = cls._shape_sub_and_sup(math_str)
             math_str = cls._replace_binomial(math_str)
-            text_data.append(cls.UnitData([], '\\[' + math_str + '\\]', []))
+            chars_data.append(CharsDatum([], '\\[' + math_str + '\\]', []))
             math_data = None
-            return math_data, text_data
+            return math_data, chars_data
         if math_data is None:
-            return math_data, text_data
+            return math_data, chars_data
         md_pre = math_data[-2]
         md_cur = math_data[-1]
         if False:
             pass
         # NEXT
-        elif (xl == '</w:rPr>' or xl == '<w:rPr/>') and md_cur.string != '':
-            math_data.append(cls.UnitData([''], '', ['']))
+        elif (xl == '</w:rPr>' or xl == '<w:rPr/>') and md_cur.chars != '':
+            math_data.append(CharsDatum([''], '', ['']))
             md_pre = math_data[-2]
             md_cur = math_data[-1]
         elif xl == '</m:r>' or xl == '<m:r/>':
-            math_data.append(cls.UnitData([''], '', ['']))
+            math_data.append(CharsDatum([''], '', ['']))
             md_pre = math_data[-2]
             md_cur = math_data[-1]
         # TEXT
@@ -3376,12 +3501,12 @@ class RawParagraph:
             # FUNCTION
             if re.match('^.*<fun>.*$', md_cur.pre_fds[0]):
                 md_cur.pre_fds[0] = re.sub('<fun>', '', md_cur.pre_fds[0])
-                md_cur.string += '\\'
+                md_cur.chars += '\\'
                 if '*' in md_cur.pre_fds:
                     md_cur.pre_fds.remove('*')
                 if '*' in md_cur.pos_fds:
                     md_cur.pos_fds.remove('*')
-            md_cur.string += xl
+            md_cur.chars += xl
         # FUNCTION
         elif xl == '<m:fName>':
             md_cur.pre_fds[0] += '<fun>'
@@ -3391,7 +3516,7 @@ class RawParagraph:
         elif xl == '<m:e>':
             md_cur.pre_fds[0] += '{'
         elif xl == '</m:e>':
-            if md_cur.string == '':
+            if md_cur.chars == '':
                 md_pre.pos_fds[0] += '}'
             else:
                 md_cur.pos_fds[0] += '}'
@@ -3412,13 +3537,13 @@ class RawParagraph:
             md_pre.pos_fds[0] += '}'
         # VECTOR
         elif xl == '<m:chr m:val="⃗"/>':
-            md_cur.string += '\\vec'
+            md_cur.chars += '\\vec'
         # FRACTION, BINOMIAL
         elif xl == '<m:f>':
-            md_cur.string += '\\frac'
+            md_cur.chars += '\\frac'
         elif xl == '<m:type m:val="noBar"/>':
-            if md_cur.string == '\\frac':
-                md_cur.string = '\\Xbinom'
+            if md_cur.chars == '\\frac':
+                md_cur.chars = '\\Xbinom'
         elif xl == '</m:f>':
             pass
         elif xl == '<m:num>':
@@ -3431,24 +3556,24 @@ class RawParagraph:
             md_pre.pos_fds[0] += '}'
         # RADICAL ROOT
         elif xl == '<m:rad>':
-            md_cur.string += '\\sqrt'
-            math_data.append(cls.UnitData([''], '', ['']))
+            md_cur.chars += '\\sqrt'
+            math_data.append(CharsDatum([''], '', ['']))
             md_pre = math_data[-2]
             md_cur = math_data[-1]
         elif xl == '<m:deg>':
             md_cur.pre_fds[0] += '['
         elif xl == '</m:deg>':
             md_cur.pos_fds[0] += ']'
-            if md_cur.string == '' and \
+            if md_cur.chars == '' and \
                md_cur.pre_fds[0] == '[' and md_cur.pos_fds[0] == ']':
                 math_data.pop(-1)
-            math_data.append(cls.UnitData([''], '', ['']))
+            math_data.append(CharsDatum([''], '', ['']))
             md_pre = math_data[-2]
             md_cur = math_data[-1]
         # LIMIT
         elif xl == '<m:lim>':
             md_cur.pre_fds[0] += '_{'
-            if md_pre.string == '\\lim' and \
+            if md_pre.chars == '\\lim' and \
                re.match('^.*{$', md_pre.pre_fds[0]) and \
                re.match('^}.*$', md_pre.pos_fds[0]):
                 md_pre.pre_fds[0] = re.sub('{$', '', md_pre.pre_fds[0])
@@ -3457,66 +3582,66 @@ class RawParagraph:
             md_pre.pos_fds[0] += '}'
         # INTEGRAL
         elif xl == '<m:nary>':
-            md_cur.string += '\\int'
+            md_cur.chars += '\\int'
         # DOUBLE INTEGRAL
         elif xl == '<m:chr m:val="∬"/>':
-            md_cur.string = re.sub('\\\\int$', '\\\\iint', md_cur.string)
+            md_cur.chars = re.sub('\\\\int$', '\\\\iint', md_cur.chars)
         # TRIPLE INTEGRAL
         elif xl == '<m:chr m:val="∭"/>':
-            md_cur.string = re.sub('\\\\int$', '\\\\iiint', md_cur.string)
+            md_cur.chars = re.sub('\\\\int$', '\\\\iiint', md_cur.chars)
         # LINE INTEGRAL
         elif xl == '<m:chr m:val="∮"/>':
-            md_cur.string = re.sub('\\\\int$', '\\\\oint', md_cur.string)
+            md_cur.chars = re.sub('\\\\int$', '\\\\oint', md_cur.chars)
         # SIGMA
         elif xl == '<m:chr m:val="∑"/>':
-            md_cur.string = re.sub('\\\\int$', '\\\\sum', md_cur.string)
+            md_cur.chars = re.sub('\\\\int$', '\\\\sum', md_cur.chars)
         # PI
         elif xl == '<m:chr m:val="∏"/>':
-            md_cur.string = re.sub('\\\\int$', '\\\\prod', md_cur.string)
+            md_cur.chars = re.sub('\\\\int$', '\\\\prod', md_cur.chars)
         # LINE BREAK
         elif re.match('^<m:brk( .*)?/>$', xl):
             md_cur.pre_fds[0] += '\\\\'
         # MATRIX
         elif xl == '<m:m>':
-            md_cur.string += '\\Xbegin{matrix}'
+            md_cur.chars += '\\Xbegin{matrix}'
         elif xl == '</m:mr>':
             md_cur.pre_fds[0] += '\\\\'
         elif xl == '</m:m>':
-            md_cur.string += '\\Xend{matrix}'
-            math_data.append(cls.UnitData([''], '', ['']))
+            md_cur.chars += '\\Xend{matrix}'
+            math_data.append(CharsDatum([''], '', ['']))
             md_pre = math_data[-2]
             md_cur = math_data[-1]
         # PARENTHESES
         elif xl == '<m:d>':
-            md_cur.string += '(<()>'
+            md_cur.chars += '(<()>'
         elif re.match('^<m:begChr m:val=""/>$', xl):
-            md_cur.string = re.sub('\\(<(.)(.)>$', '(<>', md_cur.string)
+            md_cur.chars = re.sub('\\(<(.)(.)>$', '(<>', md_cur.chars)
         elif re.match('^<m:begChr m:val="(.)"/>$', xl):
             bc = re.sub('^<m:begChr m:val="(.)"/>$', '\\1', xl)
-            md_cur.string = re.sub('\\(<(.)(.)>$', '(<' + bc + '\\2>',
-                                   md_cur.string)
+            md_cur.chars = re.sub('\\(<(.)(.)>$', '(<' + bc + '\\2>',
+                                  md_cur.chars)
         elif re.match('<m:endChr m:val=""/>', xl):
-            md_cur.string = re.sub('\\(<(.)(.)>$', '(<>', md_cur.string)
+            md_cur.chars = re.sub('\\(<(.)(.)>$', '(<>', md_cur.chars)
         elif re.match('<m:endChr m:val="(.)"/>', xl):
             ec = re.sub('^<m:endChr m:val="(.)"/>$', '\\1', xl)
-            md_cur.string = re.sub('\\(<(.)(.)>$', '(<\\1' + ec + '>',
-                                   md_cur.string)
+            md_cur.chars = re.sub('\\(<(.)(.)>$', '(<\\1' + ec + '>',
+                                  md_cur.chars)
         elif xl == '</m:d>':
             res = '(.*)\\(<(.?)(.?)>(.*)$'
             end = ')'
-            md_beg_string = None
+            md_beg_chars = None
             for i in range(len(math_data) - 1, -1, -1):
-                if re.match(res, math_data[i].string):
-                    md_beg_string = math_data[i].string
-                    pre = re.sub(res, '\\1', md_beg_string)
-                    beg = re.sub(res, '\\2', md_beg_string)
-                    end = re.sub(res, '\\3', md_beg_string)
-                    pos = re.sub(res, '\\4', md_beg_string)
+                if re.match(res, math_data[i].chars):
+                    md_beg_chars = math_data[i].chars
+                    pre = re.sub(res, '\\1', md_beg_chars)
+                    beg = re.sub(res, '\\2', md_beg_chars)
+                    end = re.sub(res, '\\3', md_beg_chars)
+                    pos = re.sub(res, '\\4', md_beg_chars)
                     if beg == '{':
                         beg = '\\{'
                     if end == '}':
                         end = '\\}'
-                    math_data[i].string = pre + beg + pos
+                    math_data[i].chars = pre + beg + pos
                     md_cur.pre_fds = ['']
                     for j in range(1, len(math_data[i].pre_fds)):
                         fd = math_data[i].pre_fds[j]
@@ -3526,8 +3651,8 @@ class RawParagraph:
                         fd = math_data[i].pos_fds[j]
                         md_cur.pos_fds.append(fd)
                     break
-            md_cur.string += end
-            math_data.append(cls.UnitData([''], '', ['']))
+            md_cur.chars += end
+            math_data.append(CharsDatum([''], '', ['']))
         # FONT SIZE
         size = Form.font_size
         s = XML.get_value('w:sz', 'w:val', -1.0, xl) / 2
@@ -3591,7 +3716,7 @@ class RawParagraph:
             if tx == 'bi' or tx == 'b':
                 md_cur.pre_fds.append('**')
                 md_cur.pos_fds.append('**')
-        return math_data, text_data
+        return math_data, chars_data
 
     @classmethod
     def _join_math_expression(cls, math_data):
@@ -3682,7 +3807,7 @@ class RawParagraph:
         math_str = ''
         for mada in math_data:
             pre_str = ''.join(mada.pre_fds)
-            str_str = mada.string
+            str_str = mada.chars
             pos_str = ''.join(mada.pos_fds[::-1])
             math_str += pre_str + str_str + pos_str
         return math_str
@@ -3757,108 +3882,58 @@ class RawParagraph:
         return math_str
 
     @staticmethod
-    def _prepare_text(fldchar, input_text, type='normal'):
-        text = input_text
+    def _prepare_chars(fldchar, input_chars, type='normal'):
+        chars = input_chars
         # ESCAPE
-        text = text.replace('\\', '\\\\')
-        text = text.replace('*', '\\*')
-        text = text.replace('`', '\\`')
-        text = text.replace('~~', '\\~\\~')
-        text = text.replace('//', '\\/\\/')  # italic
-        text = re.sub('([a-z]+:)\\\\/\\\\/', '\\1//', text)  # http https ftp
-        text = text.replace('---', '\\-\\-\\-')
-        text = text.replace('--', '\\-\\-')
-        text = text.replace('+++', '\\+\\+\\+')
-        text = text.replace('++', '\\+\\+')
-        text = text.replace('>>>', '\\>\\>\\>')
-        text = text.replace('>>', '\\>\\>')
-        text = text.replace('<<<', '\\<\\<\\<')
-        text = text.replace('<<', '\\<\\<')
-        # text = text.replace('__', '\\_\\_')
-        text = re.sub('@([^@]{1,66})@', '\\\\@\\1\\\\@', text)
-        text = re.sub('_([\\$=\\.#\\-~\\+]*)_', '\\\\_\\1\\\\_', text)
-        text = re.sub('\\^([0-9a-zA-Z]+)\\^', '\\\\^\\1\\\\^', text)
-        text = re.sub('_([0-9a-zA-Z]+)_', '\\\\_\\1\\\\_', text)
-        text = text.replace('->', '\\->')
-        text = text.replace('<-', '\\<-')
-        text = text.replace('+>', '\\+>')
-        text = text.replace('<+', '\\<+')
-        text = text.replace('\\[', '\\[')
-        text = text.replace('\\]', '\\]')
-        text = text.replace('&lt;', '\\&lt;')
-        text = text.replace('&gt;', '\\&gt;')
-        text = text.replace('\\&lt-;', '\\&lt;\\-')  # "<-"
-        text = text.replace('-\\&gt;', '\\-\\&gt;')  # "->"
-        text = text.replace('\\&lt;+', '\\&lt;\\+')  # "<+"
-        text = text.replace('+\\&gt;', '\\+\\&gt;')  # "+>"
+        chars = chars.replace('\\', '\\\\')
+        chars = chars.replace('*', '\\*')
+        chars = chars.replace('`', '\\`')
+        chars = chars.replace('~~', '\\~\\~')
+        chars = chars.replace('//', '\\/\\/')  # italic
+        chars = re.sub('([a-z]+:)\\\\/\\\\/', '\\1//', chars)  # http https ftp
+        chars = chars.replace('---', '\\-\\-\\-')
+        chars = chars.replace('--', '\\-\\-')
+        chars = chars.replace('+++', '\\+\\+\\+')
+        chars = chars.replace('++', '\\+\\+')
+        chars = chars.replace('>>>', '\\>\\>\\>')
+        chars = chars.replace('>>', '\\>\\>')
+        chars = chars.replace('<<<', '\\<\\<\\<')
+        chars = chars.replace('<<', '\\<\\<')
+        # chars = chars.replace('__', '\\_\\_')
+        chars = re.sub('@([^@]{1,66})@', '\\\\@\\1\\\\@', chars)
+        chars = re.sub('_([\\$=\\.#\\-~\\+]*)_', '\\\\_\\1\\\\_', chars)
+        chars = re.sub('\\^([0-9a-zA-Z]+)\\^', '\\\\^\\1\\\\^', chars)
+        chars = re.sub('_([0-9a-zA-Z]+)_', '\\\\_\\1\\\\_', chars)
+        chars = chars.replace('->', '\\->')
+        chars = chars.replace('<-', '\\<-')
+        chars = chars.replace('+>', '\\+>')
+        chars = chars.replace('<+', '\\<+')
+        chars = chars.replace('\\[', '\\[')
+        chars = chars.replace('\\]', '\\]')
+        chars = chars.replace('&lt;', '\\&lt;')
+        chars = chars.replace('&gt;', '\\&gt;')
+        chars = chars.replace('\\&lt-;', '\\&lt;\\-')  # "<-"
+        chars = chars.replace('-\\&gt;', '\\-\\&gt;')  # "->"
+        chars = chars.replace('\\&lt;+', '\\&lt;\\+')  # "<+"
+        chars = chars.replace('+\\&gt;', '\\+\\&gt;')  # "+>"
         # PAGE NUMBER
         if type == 'footer':
             if fldchar == 'begin':
                 res = '^ ?(\\S*)\\s*\\\\\\\\\\\\\\* MERGEFORMAT ?$'
-                if re.match(res, text):
-                    text = re.sub(res, '\\1', text)
-                if re.match('^ ?PAGE ?$', text, re.I):
-                    text = 'n'
-                elif re.match('^ ?NUMPAGES ?$', text, re.I):
-                    text = 'N'
+                if re.match(res, chars):
+                    chars = re.sub(res, '\\1', chars)
+                if re.match('^ ?PAGE ?$', chars, re.I):
+                    chars = 'n'
+                elif re.match('^ ?NUMPAGES ?$', chars, re.I):
+                    chars = 'N'
             else:
-                text = re.sub('(n|N)', '\\\\\\1', text)
+                chars = re.sub('(n|N)', '\\\\\\1', chars)
         # RETURN
-        return text
-
-    @staticmethod
-    def _concatenate_text(t1, t2):
-        # "~" + "~"
-        if re.match(NOT_ESCAPED + '~$', t1) and re.match('^~', t2):
-            return t1 + '<>' + t2
-        # "/" + "/"
-        if re.match(NOT_ESCAPED + '/$', t1) and re.match('^/', t2):
-            return t1 + '<>' + t2
-        # "-" + "-"
-        if re.match(NOT_ESCAPED + '-$', t1) and re.match('^-', t2):
-            return t1 + '<>' + t2
-        # "+" + "+"
-        if re.match(NOT_ESCAPED + '\\+$', t1) and re.match('^\\+', t2):
-            return t1 + '<>' + t2
-        # ">" + ">"
-        if re.match(NOT_ESCAPED + '>$', t1) and re.match('^>', t2):
-            return t1 + '<>' + t2
-        # "<" + "<"
-        if re.match(NOT_ESCAPED + '<$', t1) and re.match('^<', t2):
-            return t1 + '<>' + t2
-        # "<" + ">"
-        if re.match(NOT_ESCAPED + '<$', t1) and re.match('^>', t2):
-            return t1 + '<>' + t2
-        # "@.*" + ".*@"
-        if re.match(NOT_ESCAPED + '@([^@]{1,66})$', t1) and \
-           re.match('^([^@]{1,66})@', t2):
-            return t1 + '<>' + t2
-        # "_.*" + ".*_"
-        if re.match(NOT_ESCAPED + '_([\\$=\\.#\\-~\\+]*)$', t1) and \
-           re.match('^([\\$=\\.#\\-~\\+]*)_', t2):
-            return t1 + '<>' + t2
-        # "^.*" + ".*^"
-        if re.match(NOT_ESCAPED + '\\^([0-9a-zA-Z]+)$', t1) and \
-           re.match('^([0-9a-zA-Z]+)\\^', t2):
-            return t1 + '<>' + t2
-        # "_.*" + ".*_"
-        if re.match(NOT_ESCAPED + '_([0-9a-zA-Z]+)$', t1) and \
-           re.match('([0-9a-zA-Z]+)_^', t2):
-            return t1 + '<>' + t2
-        # "-|+" + ">"
-        if re.match(NOT_ESCAPED + '(-|\\+)$', t1) and re.match('^>', t2):
-            return t1 + '<>' + t2
-        # "<" + "-|+"
-        if re.match(NOT_ESCAPED + '<$', t1) and re.match('^(-|\\+)', t2):
-            return t1 + '<>' + t2
-        # "\" + "[|]"
-        if re.match(NOT_ESCAPED + '\\\\$', t1) and re.match('^(\\[|\\])', t2):
-            return t1 + '<>' + t2
-        return t1 + t2
+        return chars
 
     @classmethod
-    def _get_raw_text(cls, text_data):
-        raw_text = cls._join_data(text_data)
+    def _get_raw_text(cls, chars_data):
+        raw_text = cls._join_data(chars_data)
         raw_text = cls._escape_symbols(raw_text)
         raw_text = cls._convert_ivs(raw_text)  # IDEOGRAPHIC VARIATION SEQUENCE
         raw_text = cls._restore_charcters(raw_text)
@@ -3867,22 +3942,26 @@ class RawParagraph:
         return raw_text
 
     @classmethod
-    def _join_data(cls, text_data):
-        text_data = cls._cancel_fds(text_data)
+    def _join_data(cls, chars_data):
+        chars_data = cls._cancel_fds(chars_data)
         raw_text = ''
-        for td in text_data:
-            swf = td.get_string_with_fd()
-            raw_text = cls._concatenate_text(raw_text, swf)
+        for cd in chars_data:
+            cwf = cd.get_chars_with_fd()
+            raw_text = CharsDatum._concatenate_chars(raw_text, cwf)
         return raw_text
 
     @classmethod
-    def _cancel_fds(cls, text_data):
-        for i, td in enumerate(text_data):
-            if i < len(text_data) - 1:
+    def _cancel_fds(cls, chars_data):
+        for i, cd in enumerate(chars_data):
+            if i < len(chars_data) - 1:
                 j = i + 1
-                text_data[i], text_data[j] \
-                    = cls.UnitData.cancel_fds(text_data[i], text_data[j])
-        return text_data
+                chars_data[i], chars_data[j] \
+                    = CharsDatum.cancel_fds(chars_data[i], chars_data[j])
+            if (cd.chars == '\n') and (i > 0) and (i < len(chars_data) - 1):
+                j, k = i - 1, i + 1
+                chars_data[j], chars_data[k] \
+                    = CharsDatum.cancel_fds(chars_data[j], chars_data[k])
+        return chars_data
 
     @staticmethod
     def _escape_symbols(raw_text):
@@ -3964,18 +4043,14 @@ class RawParagraph:
 
     @staticmethod
     def _shrink_meaningless_font_decorations(raw_text):
-        while True:
+        tmp_text = ''
+        while tmp_text != raw_text:
             tmp_text = raw_text
-            for fd in FONT_DECORATORS:
-                if fd in FONT_DECORATORS_VISIBLE:
-                    continue
+            for fd in FONT_DECORATORS_INVISIBLE:
                 res = '((?:\\s|' + '|'.join(FONT_DECORATORS_VISIBLE) + ')+)'
                 raw_text = re.sub(fd + res + fd, '\\1', raw_text)
                 raw_text = re.sub('^(' + fd + ')' + res, '\\2\\1', raw_text)
                 raw_text = re.sub(res + '(' + fd + ')$', '\\2\\1', raw_text)
-            if tmp_text == raw_text:
-                break
-
         return raw_text
 
     @staticmethod
@@ -4021,16 +4096,16 @@ class RawParagraph:
 
     @classmethod
     def _get_raw_text_del(cls, raw_text):
-        raw_text_del = cls._get_raw_text_del_or_ins(raw_text,
-                                                    '<!\\+>', '<\\+>',
-                                                    '<!--', '-->')
+        raw_text_del \
+            = cls._get_raw_text_del_or_ins(raw_text,
+                                           '\\+>', '<\\+', '->', '<-')
         return raw_text_del
 
     @classmethod
     def _get_raw_text_ins(cls, raw_text):
-        raw_text_ins = cls._get_raw_text_del_or_ins(raw_text,
-                                                    '<!--', '-->',
-                                                    '<!\\+>', '<\\+>')
+        raw_text_ins \
+            = cls._get_raw_text_del_or_ins(raw_text,
+                                           '->', '<-', '\\+>', '<\\+')
         return raw_text_ins
 
     @staticmethod
@@ -5675,7 +5750,7 @@ class ParagraphTable(Paragraph):
                     md_text += '\n'
             for j, cell in enumerate(row):
                 text_data, images \
-                    = RawParagraph._get_text_data_and_images('w:tbl', cell)
+                    = RawParagraph._get_chars_data_and_images('w:tbl', cell)
                 raw_text = RawParagraph._get_raw_text(text_data)
                 if is_in_head:
                     if not re.match('^:-+:$', ali[i][j]):
