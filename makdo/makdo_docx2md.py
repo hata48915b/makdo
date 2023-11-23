@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.22-07:49:37-JST>
+# Time-stamp:   <2023.11.23-12:55:52-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -3099,10 +3099,10 @@ class RawParagraph:
                 continue
             # SUBSCRIPT OR SUPERSCRIPT
             if xl == '<w:vertAlign w:val="subscript"/>':
-                sd.append_fds('_{', '}')
+                sd.append_fds('_{', '_}')
                 continue
             elif xl == '<w:vertAlign w:val="superscript"/>':
-                sd.append_fds('^{', '}')
+                sd.append_fds('^{', '^}')
                 continue
             # TEXT
             if not re.match('^<.*>$', xl):
@@ -3133,6 +3133,18 @@ class RawParagraph:
 
     class UnitData:
 
+        res_fds = [['->', '<-'], ['\\+>', '<\\+'],
+                   ['_{', '_}'], ['\\^{', '\\^}'],
+                   ['`', '`'], ['@[^@]{1,66}@', '@[^@]{1,66}@'],
+                   ['\\^[0-9A-Za-z]{0,11}\\^', '\\^[0-9A-Za-z]{0,11}\\^'],
+                   ['_[0-9A-Za-z]{1,11}_', '_[0-9A-Za-z]{1,11}_'],
+                   ['_[\\$=\\.#\\-~\\+]{,4}_', '_[\\$=\\.#\\-~\\+]{,4}_'],
+                   ['>>>', '<<<'], ['>>', '<<'],
+                   ['---', '---'], ['--', '--'],
+                   ['\\+\\+', '\\+\\+'], ['\\+\\+\\+', '\\+\\+\\+'],
+                   ['<<', '>>'], ['<<<', '>>>'],
+                   ['~~', '~~'], ['\\*\\*', '\\*\\*'], ['\\*', '\\*']]
+
         def __init__(self, pre_fds, string, pos_fds):
             self.pre_fds = pre_fds
             self.string = string
@@ -3148,21 +3160,13 @@ class RawParagraph:
             string = self.string
             pre_fds = self.pre_fds
             pos_fds = self.pos_fds
-            fds = [['->', '<-'], ['\\+>', '<\\+'], ['_{', '}'], ['\\^{', '}'],
-                   ['`', '`'], ['@[^@]{1,66}@', '@[^@]{1,66}@'],
-                   ['\\^[0-9A-Za-z]{0,11}\\^', '\\^[0-9A-Za-z]{0,11}\\^'],
-                   ['_[0-9A-Za-z]{1,11}_', '_[0-9A-Za-z]{1,11}_'],
-                   ['_[\\$=\\.#\\-~\\+]{,4}_', '_[\\$=\\.#\\-~\\+]{,4}_'],
-                   ['>>>', '<<<'], ['>>', '<<'],
-                   ['---', '---'], ['--', '--'],
-                   ['\\+\\+', '\\+\\+'], ['\\+\\+\\+', '\\+\\+\\+'],
-                   ['<<', '>>'], ['<<<', '>>>'],
-                   ['~~', '~~'], ['\\*\\*', '\\*\\*'], ['\\*', '\\*']]
             pre = ''
             pos = ''
-            for f in fds:
-                pre, pre_fds = self._touch_in_pre(pre, pre_fds, f[0])
-                pos, pos_fds = self._touch_in_pos(pos, pos_fds, f[1])
+            for rf in self.res_fds:
+                pre, pre_fds = self._touch_in_pre(pre, pre_fds, rf[0])
+                pos, pos_fds = self._touch_in_pos(pos, pos_fds, rf[1])
+            pre = pre + ''.join(pre_fds)        # just in case
+            pos = ''.join(pos_fds[::-1]) + pos  # just in case
             swf = string
             swf = RawParagraph._concatenate_text(pre, swf)
             swf = RawParagraph._concatenate_text(swf, pos)
@@ -3189,8 +3193,53 @@ class RawParagraph:
             if len(match) > 0:
                 for m in match:
                     fds.remove(m)
-                pos = match[-1] + pos
+                if re.match('^(_|\\^)}', match[-1]):
+                    pos = '}' + pos  # '(_|^)}' -> '}'
+                else:
+                    pos = match[-1] + pos
             return pos, fds
+
+        @classmethod
+        def has_same_fds(cls, unit_data1, unit_data2=None):
+            if unit_data2 is None:
+                unit_data2 = unit_data1
+            pos_fds = []
+            for fd in unit_data1.pos_fds:
+                pos_fds.append(fd)
+            pre_fds = []
+            for fd in unit_data2.pre_fds:
+                pre_fds.append(fd)
+            for rf in cls.res_fds:
+                for pos in pos_fds:
+                    if re.match('^' + rf[1] + '$', pos):
+                        for pre in pre_fds:
+                            if re.match('^' + rf[0] + '$', pre):
+                                if (rf[1] == rf[0]) and (pos != pre):
+                                    continue
+                                pos_fds.remove(pos)
+                                pre_fds.remove(pre)
+                                break
+                        break
+            if pos_fds == [] and pre_fds == []:
+                return True
+            return False
+
+        @classmethod
+        def cancel_fds(cls, unit_data1, unit_data2):
+            pos_fds = unit_data1.pos_fds
+            pre_fds = unit_data2.pre_fds
+            for rf in cls.res_fds:
+                for pos in pos_fds:
+                    if re.match('^' + rf[1] + '$', pos):
+                        for pre in pre_fds:
+                            if re.match('^' + rf[0] + '$', pre):
+                                if (rf[1] == rf[0]) and (pos != pre):
+                                    continue
+                                pos_fds.remove(pos)
+                                pre_fds.remove(pre)
+                                break
+                        break
+            return unit_data1, unit_data2
 
     @staticmethod
     def _get_img_file_names_ms(xl, img_rels):
@@ -3826,41 +3875,13 @@ class RawParagraph:
             raw_text = cls._concatenate_text(raw_text, swf)
         return raw_text
 
-    @staticmethod
-    def _cancel_fds(text_data):
-        res_pos_and_pre_fds \
-            = [['\\*', ''], ['\\*\\*', ''], ['\\*\\*\\*', ''],
-               ['~~', ''],
-               ['`', ''],
-               ['\\-\\-', ''], ['\\-\\-\\-', ''],
-               ['\\+\\+', ''], ['\\+\\+\\+', ''],
-               ['>>', '<<'], ['>>>', '<<<'],
-               ['<<', '>>'], ['<<<', '>>>'],
-               ['_(?:[\\$=\\.#\\-~\\+]{,4})_', ''],
-               ['\\^(?:[0-9A-Za-z]{0,11})\\^', ''],
-               ['_(?:[0-9A-Za-z]{1,11})_', ''],
-               ['@(?:[^@]{1,66})@', ''],
-               ['<\\-', '\\->'],
-               ['<\\+', '\\+>']]
-        for i in range(len(text_data) - 1):
-            j = i + 1
-            pos_fds = text_data[i].pos_fds
-            pre_fds = text_data[j].pre_fds
-            for rppf in res_pos_and_pre_fds:
-                res_pos = rppf[0]
-                res_pre = rppf[1]
-                if res_pre == '':
-                    res_pre = res_pos
-                for pos in pos_fds:
-                    if re.match('^' + res_pos + '$', pos):
-                        for pre in pre_fds:
-                            if re.match('^' + res_pre + '$', pre):
-                                if (res_pos == res_pre) and (pos != pre):
-                                    continue
-                                pos_fds.remove(pos)
-                                pre_fds.remove(pre)
-                                break
-                        break
+    @classmethod
+    def _cancel_fds(cls, text_data):
+        for i, td in enumerate(text_data):
+            if i < len(text_data) - 1:
+                j = i + 1
+                text_data[i], text_data[j] \
+                    = cls.UnitData.cancel_fds(text_data[i], text_data[j])
         return text_data
 
     @staticmethod
