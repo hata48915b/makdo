@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.24-07:59:49-JST>
+# Time-stamp:   <2023.11.24-17:47:45-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2726,14 +2726,21 @@ class Document:
         for i, p in enumerate(self.paragraphs):
             if p.has_removed:
                 continue
-            #p_next = self._get_next_paragraph(self.paragraphs, i)
-            if p.paragraph_class == 'alignment':
-                if p.alignment == 'center':
-                    if p.length_revi['space before'] == 1.0:
-                        Paragraph.previous_head_section_depth = 1
-                        Paragraph.previous_tail_section_depth = 1
-                        p.pre_text_to_write = 'v=+1.0\n# \n'
-                        p.length_supp['space before'] -= 1.0
+            p_next = self._get_next_paragraph(self.paragraphs, i)
+            if p.paragraph_class == 'alignment' and \
+               p.alignment == 'center' and \
+               p.length_revi['space before'] == 1.0:
+                Paragraph.previous_head_section_depth = 1
+                Paragraph.previous_tail_section_depth = 1
+                p.pre_text_to_write += 'v=+1.0\n#'
+                if p_next is not None:
+                    for j in range(2, 9):
+                        rev = ('#' * j) + '=1'
+                        if rev in p_next.numbering_revisers:
+                            p.pre_text_to_write += ' ' + rev
+                            p_next.numbering_revisers.remove(rev)
+                p.pre_text_to_write += '\n'
+                p.length_supp['space before'] -= 1.0
             p.head_section_depth, p.tail_section_depth \
                 = p._get_section_depths(p.raw_text_iod, not p.has_removed)
             p.length_clas = p._get_length_clas()
@@ -2762,7 +2769,7 @@ class Document:
                 if p_tmp.paragraph_class == 'section':
                     break
                 if p_tmp.paragraph_class == 'sentence':
-                    if re.match('^#+ \n$', p_tmp.pre_text_to_write):
+                    if re.match('^#+\n$', p_tmp.pre_text_to_write):
                         is_in_reviser = True
                         break
             left_indent = int(p.length_revi['left indent'])
@@ -2792,7 +2799,7 @@ class Document:
                 if p_tmp.paragraph_class == 'section':
                     break
                 if p_tmp.paragraph_class == 'sentence':
-                    if re.match('^#+ \n$', p_tmp.pre_text_to_write):
+                    if re.match('^#+\n$', p_tmp.pre_text_to_write):
                         if p.pre_text_to_write == p_tmp.pre_text_to_write:
                             p.pre_text_to_write = ''
             # RENEW
@@ -4324,6 +4331,12 @@ class Paragraph:
         self.length_supp = self._get_length_supp()
         self.length_revi = self._get_length_revi()
         self.length_revisers = self._get_length_revisers(self.length_revi)
+        self.section_states, self.numbering_revisers, self.length_revisers \
+            = self._revise_for_section_depth_2(self.head_section_depth,
+                                               self.tail_section_depth,
+                                               self.section_states,
+                                               self.numbering_revisers,
+                                               self.length_revisers)
         # EXECUTION
         self.md_lines_text = self._get_md_lines_text(self.md_text)
         self.text_to_write = self.get_text_to_write()
@@ -4423,8 +4436,8 @@ class Paragraph:
             depth_ins = self.proper_depth
         if depth_del > 0 and depth_ins > 0:
             res_beg = '([第\\(（]?)'
-            res_del = '<!--([^ \t\u3000\\.．]+)-->'
-            res_ins = '<!\\+>([^ \t\u3000\\.．]+)<\\+>'
+            res_del = '->([^ \t\u3000\\.．]+)<-'
+            res_ins = '\\+>([^ \t\u3000\\.．]+)<\\+'
             res_end = \
                 '(' + \
                 '[編章節款目条\\)）]?(?:の[0-9０-９]+)*' + \
@@ -4437,8 +4450,8 @@ class Paragraph:
             if re.match(res, raw_text):
                 raw_text = re.sub(res, '\\1\\2\\4', raw_text)
             res_beg = '(第?[0-9０-９]+[編章節款目条]?[の0-9０-９]+)'
-            res_del = '<!--([の0-9０-９]+)-->'
-            res_ins = '<!\\+>([の0-9０-９]+)<\\+>'
+            res_del = '->([の0-9０-９]+)<-'
+            res_ins = '\\+>([の0-9０-９]+)<\\+'
             res_end = '(' + ParagraphSection.r9 + ')'
             res = '^' + res_beg + res_del + res_ins + res_end
             if re.match(res, raw_text):
@@ -4717,6 +4730,23 @@ class Paragraph:
         else:
             return '+' + str(rounded)
 
+    def _revise_for_section_depth_2(self,
+                                    head_section_depth, tail_section_depth,
+                                    section_states,
+                                    numbering_revisers, length_revisers):
+        if head_section_depth == 3:
+            if tail_section_depth == 3:
+                if '###=1' in numbering_revisers:
+                    if '<=+1.0' in length_revisers:
+                        if ParagraphSection.states[1][0] > 0:
+                            ParagraphSection.states[1][0] = 0
+                            ParagraphSection.states[2][0] = 1
+                            section_states[1][0] = 0
+                            section_states[2][0] = 1
+                            numbering_revisers.insert(0, '##=1')
+                            length_revisers.remove('<=+1.0')
+        return section_states, numbering_revisers, length_revisers
+
     def _get_md_lines_text(self, md_text):
         paragraph_class = self.paragraph_class
         # FOR TRAILING WHITE SPACE
@@ -4972,7 +5002,8 @@ class Paragraph:
                 if re.match('^' + res + '$', tmp):
                     if not re.match('^' + res + '.*$', p):
                         if re.match('^.*[.．。]$', phrases[-1]):
-                            tex = _extend_tex(tmp + '\\')
+                            tex = _extend_tex(re.sub('\\s+$', '', tmp))
+                            # tex = _extend_tex(tmp + '\\')
                             tmp = ''
             # IMAGE
             if re.match(RES_IMAGE, p):
@@ -5209,18 +5240,18 @@ class ParagraphChapter(Paragraph):
             = Paragraph._get_font_revisers_and_md_text(raw_text)
         head_tc = ''
         tail_tc = ''
-        if re.match('^<!--(.|\n)*$', raw_text):
-            head_tc = '<!--'
-            raw_text = re.sub('^<!--', '', raw_text)
-        elif re.match('^<!\\+>(.|\n)*$', raw_text):
-            head_tc = '<!+>'
-            raw_text = re.sub('^<!\\+>', '', raw_text)
-        if re.match('^(.|\n)*-->$', raw_text):
-            tail_tc = '-->'
-            raw_text = re.sub('-->$', '', raw_text)
-        elif re.match('^(.|\n)*<\\+>$', raw_text):
-            tail_tc = '<+>'
-            raw_text = re.sub('<\\+>$', '', raw_text)
+        if re.match('^->(.|\n)*$', raw_text):
+            head_tc = '->'
+            raw_text = re.sub('^->', '', raw_text)
+        elif re.match('^\\+>(.|\n)*$', raw_text):
+            head_tc = '+>'
+            raw_text = re.sub('^\\+>', '', raw_text)
+        if re.match('^(.|\n)*<-$', raw_text):
+            tail_tc = '<-'
+            raw_text = re.sub('<-$', '', raw_text)
+        elif re.match('^(.|\n)*<\\+$', raw_text):
+            tail_tc = '<+'
+            raw_text = re.sub('<\\+$', '', raw_text)
         head_symbol = ''
         for xdepth in range(len(rss)):
             res = '^' + rss[xdepth] + rre + '$'
@@ -5228,7 +5259,7 @@ class ParagraphChapter(Paragraph):
                 head_string, raw_text, state \
                     = self._decompose_text(res, raw_text, -1, -1)
                 ydepth = len(state) - 1
-                if head_tc != '<!--':
+                if head_tc != '->':
                     self._step_states(xdepth, ydepth)
                     numbering_revisers \
                         = self._get_numbering_revisers(xdepth, state)
@@ -5370,7 +5401,7 @@ class ParagraphSection(Paragraph):
                 head_string, raw_text, state \
                     = self._decompose_text(res, raw_text, beg_num, end_num)
                 ydepth = len(state) - 1
-                if head_tc != '<!--':
+                if head_tc != '->':
                     self._step_states(xdepth, ydepth)
                     numbering_revisers \
                         = self._get_numbering_revisers(xdepth, state)
