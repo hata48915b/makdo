@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.25-11:18:27-JST>
+# Time-stamp:   <2023.11.26-08:37:34-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2584,6 +2584,11 @@ class Document:
         return self.paragraphs
 
     def _modpar_left_alignment(self):
+        # |                    ->  |
+        # |(first indent = 0)  ->  |: 段落
+        # |(lef indent = 0)    ->  |
+        # |段落                ->  |
+        # |                    ->  |
         for i, p in enumerate(self.paragraphs):
             if p.has_removed:
                 continue
@@ -2604,6 +2609,11 @@ class Document:
         return self.paragraphs
 
     def _modpar_blank_paragraph_to_space_before(self):
+        # |              ->  |
+        # |v=1           ->  |v=2
+        # |(blank line)  ->  |段落
+        # |段落          ->  |
+        # |              ->  |
         for i, p in enumerate(self.paragraphs):
             if p.has_removed:
                 continue
@@ -2649,6 +2659,17 @@ class Document:
 
     # ARTICLE TITLE (MIMI=EAR)
     def _modpar_article_title(self):
+        # |                    ->  |
+        # |<!--                ->  |<!--
+        # |document_style: j   ->  |document_style: j
+        # |space_before:   ,1  ->  |space_before:   ,1
+        # |-->                 ->  |-->
+        # |                    ->  |
+        # |: （条文の耳）      ->  |(space)
+        # |                    ->  |: （条文の耳）
+        # |(space)             ->  |
+        # |## 条文本文         ->  |## 条文本文
+        # |                    ->  |
         if Form.document_style != 'j':
             return self.paragraphs
         for i, p in enumerate(self.paragraphs):
@@ -2682,6 +2703,15 @@ class Document:
         return self.paragraphs
 
     def _modpar_section_space_before_and_after(self):
+        # |               ->  |
+        # |v=+0.2 V=+0.2  ->  |v=+0.1 V=+0.1
+        # |# タイトル     ->  |# タイトル
+        # |               ->  |
+        # |v=-0.5 V=-0.2  ->  ||項目|項目|
+        # ||項目|項目|    ->  ||:--:|:--:|
+        # ||:--:|:--:|    ->  ||セル|セル|
+        # ||セル|セル|    ->  |
+        # |               ->  |
         for i, p in enumerate(self.paragraphs):
             if p.has_removed:
                 continue
@@ -2758,6 +2788,16 @@ class Document:
         return self.paragraphs
 
     def _modpar_spaced_and_centered(self):
+        # |              ->  |
+        # |v=1           ->  |v=1
+        # |: 添付資料 :  ->  |# ##=1 ###=1
+        # |              ->  |
+        # |###=1         ->  |: 添付資料 :
+        # |### 資料1     ->  |
+        # |              ->  |### 資料1
+        # |### 資料2     ->  |
+        # |              ->  |### 資料2
+        # |              ->  |
         # self.paragraphs = self._modpar_blank_paragraph_to_space_before()
         Paragraph.previous_head_section_depth = 0
         Paragraph.previous_tail_section_depth = 0
@@ -2772,11 +2812,18 @@ class Document:
                 Paragraph.previous_tail_section_depth = 1
                 p.pre_text_to_write += 'v=+1.0\n#'
                 if p_next is not None:
-                    for j in range(2, 9):
-                        rev = ('#' * j) + '=1'
-                        if rev in p_next.numbering_revisers:
-                            p.pre_text_to_write += ' ' + rev
-                            p_next.numbering_revisers.remove(rev)
+                    if p_next.paragraph_class == 'section' and \
+                       p_next.head_section_depth == 3 and \
+                       p_next.tail_section_depth == 3 and \
+                       p_next.section_states[1][0] == 0 and \
+                       p_next.section_states[2][0] == 1 and \
+                       p_next.section_states[2][1] == 0:
+                        p.pre_text_to_write += ' ##=1'
+                        p.pre_text_to_write += ' ###=1'
+                        if '##=1' in p_next.numbering_revisers:
+                            p_next.numbering_revisers.remove('##=1')
+                        if '###=1' in p_next.numbering_revisers:
+                            p_next.numbering_revisers.remove('###=1')
                 p.pre_text_to_write += '\n'
                 p.length_supp['space before'] -= 1.0
             p.head_section_depth, p.tail_section_depth \
@@ -2791,6 +2838,13 @@ class Document:
         return self.paragraphs
 
     def _modpar_length_reviser_to_depth_setter(self):
+        # |               ->  |
+        # |## セクション  ->  |## セクション
+        # |               ->  |
+        # |<=+1.0         ->  |#
+        # |段落           ->  |
+        # |               ->  |段落
+        # |               ->  |
         # self.paragraphs = self._modpar_spaced_and_centered()
         res_gg = '^<<=(' + RES_NUMBER + ')$'
         res_g = '^<=(' + RES_NUMBER + ')$'
@@ -2854,6 +2908,10 @@ class Document:
         return self.paragraphs
 
     def _modpar_one_line_paragraph(self):
+        # |                ->  |
+        # |<<=-1.0 <=+1.0  ->  |1行の段落
+        # |1行の段落       ->  |
+        # |                ->  |
         paper_size = Form.paper_size
         left_margin = Form.left_margin
         right_margin = Form.right_margin
@@ -2907,11 +2965,30 @@ class Document:
         return self.paragraphs
 
     def _modpar_vertical_length(self):
+        # |                  ->  |
+        # |<!--              ->  |<!--
+        # |space_before: ,1  ->  |space_before: ,1
+        # |space_after: ,1   ->  |space_after: ,1
+        # |-->               ->  |-->
+        # |                  ->  |
+        # |V=+1.0            ->  |V=+1.0
+        # |## 前段落1        ->  |## 前段落1
+        # |                  ->  |
+        # |v=-1.0            ->  |## 後段落1
+        # |## 後段落2        ->  |
+        # |                  ->  |## 前段落2
+        # |V=-1.0            ->  |
+        # |## 前段落3        ->  |v=+1.0
+        # |                  ->  |## 後段落2
+        # |v=+1.0            ->  |
+        # |## 後段落4        ->  |
+        # |                  ->  |
         m = len(self.paragraphs) - 1
         for i, p in enumerate(self.paragraphs):
             p_prev = self._get_prev_paragraph(self.paragraphs, i)
             p_next = self._get_next_paragraph(self.paragraphs, i)
             for lr in p.length_revisers:
+                # PREV
                 if p_prev is not None and re.match('^v=-.*', lr):
                     must_remove = True
                     for plr in p_prev.length_revisers:
@@ -2919,6 +2996,7 @@ class Document:
                             must_remove = False
                     if must_remove:
                         p.length_revisers.remove(lr)
+                # NEXT
                 if p_next is not None and re.match('^V=-.*', lr):
                     must_remove = True
                     for nlr in p_next.length_revisers:
@@ -2932,6 +3010,15 @@ class Document:
         return self.paragraphs
 
     def _modpar_isolate_revisers(self):
+        # |           ->  |
+        # |**段落1**  ->  |**
+        # |           ->  |
+        # |**段落2**  ->  |段落1
+        # |           ->  |
+        # |           ->  |段落2
+        # |           ->  |
+        # |           ->  |**
+        # |           ->  |
         base_cd = None
         for i, p in enumerate(self.paragraphs):
             curr_head = p.head_font_revisers
@@ -4778,13 +4865,12 @@ class Paragraph:
             if head_section_depth == 3 and tail_section_depth == 3:
                 if section_states[1][0] > 0:
                     if section_states[2][0] == 1 and section_states[2][1] == 0:
-                        if '<=+1.0' in length_revisers:
-                            for i in range(len(section_states[1])):
-                                section_states[1][i] = 0
-                            for i in range(len(ParagraphSection.states[1])):
-                                ParagraphSection.states[1][i] = 0
-                            numbering_revisers.insert(0, '##=1')
-                            length_revisers.remove('<=+1.0')
+                        if '##=1' not in numbering_revisers:
+                            if '<=+1.0' in length_revisers:
+                                ParagraphSection.states[1][0] = 0
+                                section_states[1][0] = 0
+                                numbering_revisers.insert(0, '##=1')
+                                length_revisers.remove('<=+1.0')
         return section_states, numbering_revisers, length_revisers
 
     def _get_md_lines_text(self, md_text):
