@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.23-16:43:21-JST>
+# Time-stamp:   <2023.11.25-10:08:54-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -4295,7 +4295,7 @@ class Paragraph:
                 unit = re.sub(NOT_ESCAPED + '(n|N)$', '\\1', unit)
                 unit = XML.write_unit(ms_par._p, char_state, unit)
                 unit += XML.write_page_number(ms_par._p, char_state, char)
-        elif c == '\0' and unit != '':
+        if c == '\0' and unit != '':
             # LAST
             unit = XML.write_unit(ms_par._p, char_state, unit)
         return unit

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.24-17:47:45-JST>
+# Time-stamp:   <2023.11.25-10:34:46-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -414,6 +414,24 @@ FONT_COLOR = {
     'FF55AA': 'a330',
     'FF5892': 'a340',
     'FF5A79': 'a350',
+}
+
+HIGHLIGHT_COLOR = {
+    'red':         'R',
+    'darkRed':     'DR',
+    'yellow':      'Y',
+    'darkYellow':  'DY',
+    'green':       'G',
+    'darkGreen':   'DG',
+    'cyan':        'C',
+    'darkCyan':    'DC',
+    'blue':        'B',
+    'darkBlue':    'DB',
+    'magenta':     'M',
+    'darkMagenta': 'DM',
+    'lightGray':   'G1',
+    'darkGray':    'G2',
+    'black':       'BK',
 }
 
 CONJUNCTIONS = [
@@ -1070,42 +1088,62 @@ class CharsDatum:
         if re.match(NOT_ESCAPED + '\\+$', chars1) and re.match('^\\+', chars2):
             return chars1 + '<>' + chars2
         # ">" + ">"
-        if re.match(NOT_ESCAPED + '>$', chars1) and re.match('^>', chars2):
-            return chars1 + '<>' + chars2
+        # if re.match(NOT_ESCAPED + '>$', chars1) and re.match('^>', chars2):
+        #     return chars1 + '<>' + chars2
         # "<" + "<"
-        if re.match(NOT_ESCAPED + '<$', chars1) and re.match('^<', chars2):
-            return chars1 + '<>' + chars2
+        # if re.match(NOT_ESCAPED + '<$', chars1) and re.match('^<', chars2):
+        #     return chars1 + '<>' + chars2
         # "<" + ">"
         if re.match(NOT_ESCAPED + '<$', chars1) and re.match('^>', chars2):
             return chars1 + '<>' + chars2
         # "@.*" + ".*@"
-        if re.match(NOT_ESCAPED + '@([^@]{1,66})$', chars1) and \
-           re.match('^([^@]{1,66})@', chars2):
-            return chars1 + '<>' + chars2
+        if re.match(NOT_ESCAPED + '@([^@]{0,66})$', chars1) and \
+           not re.match(NOT_ESCAPED + '@([^@]{1,66})@[^@]*$', chars1) and \
+           re.match('^([^@]{0,66})@(.|\n)*', chars2) and \
+           not re.match('^[^@]*@([^@]{1,66})@(.|\n)*', chars2):
+            c1 = re.sub(NOT_ESCAPED + '@([^@]{0,66})$', '\\2', chars1)
+            c2 = re.sub('^([^@]{0,66})@(.|\n)*', '\\1', chars2)
+            if len(c1 + c2) <= 66:
+                print(chars1 + '<>' + chars2)
+                return chars1 + '<>' + chars2
         # "_.*" + ".*_"
         if re.match(NOT_ESCAPED + '_([\\$=\\.#\\-~\\+]*)$', chars1) and \
-           re.match('^([\\$=\\.#\\-~\\+]*)_', chars2):
-            return chars1 + '<>' + chars2
+           re.match('^([\\$=\\.#\\-~\\+]*)_(.|\n)*', chars2):
+            c1 = re.sub(NOT_ESCAPED + '_([\\$=\\.#\\-~\\+]*)$', '\\2', chars1)
+            c2 = re.sub('^([\\$=\\.#\\-~\\+]*)_(.|\n)*', '\\1', chars2)
+            for ul in UNDERLINE:
+                if c1 + c2 == UNDERLINE[ul]:
+                    return chars1 + '<>' + chars2
         # "^.*" + ".*^"
-        if re.match(NOT_ESCAPED + '\\^([0-9a-zA-Z]+)$', chars1) and \
-           re.match('^([0-9a-zA-Z]+)\\^', chars2):
-            return chars1 + '<>' + chars2
+        if re.match(NOT_ESCAPED + '\\^([0-9a-zA-Z]*)$', chars1) and \
+           re.match('^([0-9a-zA-Z]*)\\^(.|\n)*', chars2):
+            c1 = re.sub(NOT_ESCAPED + '\\^([0-9a-zA-Z]*)$', '\\2', chars1)
+            c2 = re.sub('^([0-9a-zA-Z]*)\\^(.|\n)*', '\\1', chars2)
+            if re.match('^([0-9A-F]{3})([0-9A-F]{3})?$', c1 + c2):
+                return chars1 + '<>' + chars2
+            for fc in FONT_COLOR:
+                if c1 + c2 == FONT_COLOR[fc]:
+                    return chars1 + '<>' + chars2
         # "_.*" + ".*_"
-        if re.match(NOT_ESCAPED + '_([0-9a-zA-Z]+)$', chars1) and \
-           re.match('([0-9a-zA-Z]+)_^', chars2):
-            return chars1 + '<>' + chars2
+        if re.match(NOT_ESCAPED + '_([0-9a-zA-Z]*)$', chars1) and \
+           re.match('^([0-9a-zA-Z]*)_(.|\n)*', chars2):
+            c1 = re.sub(NOT_ESCAPED + '_([0-9a-zA-Z]*)$', '\\2', chars1)
+            c2 = re.sub('^([0-9a-zA-Z]*)_(.|\n)*', '\\1', chars2)
+            for hc in HIGHLIGHT_COLOR:
+                if (c1 + c2 == hc) or (c1 + c2 == HIGHLIGHT_COLOR[hc]):
+                    return chars1 + '<>' + chars2
         # "-|+" + ">"
-        if re.match(NOT_ESCAPED + '(-|\\+)$', chars1) and \
-           re.match('^>', chars2):
-            return chars1 + '<>' + chars2
+        # if re.match(NOT_ESCAPED + '(-|\\+)$', chars1) and \
+        #    re.match('^>', chars2):
+        #     return chars1 + '<>' + chars2
         # "<" + "-|+"
-        if re.match(NOT_ESCAPED + '<$', chars1) and \
-           re.match('^(-|\\+)', chars2):
-            return chars1 + '<>' + chars2
+        # if re.match(NOT_ESCAPED + '<$', chars1) and \
+        #    re.match('^(-|\\+)', chars2):
+        #     return chars1 + '<>' + chars2
         # "\" + "[|]"
-        if re.match(NOT_ESCAPED + '\\\\$', chars1) and \
-           re.match('^(\\[|\\])', chars2):
-            return chars1 + '<>' + chars2
+        # if re.match(NOT_ESCAPED + '\\\\$', chars1) and \
+        #    re.match('^(\\[|\\])', chars2):
+        #     return chars1 + '<>' + chars2
         return chars1 + chars2
 
     @staticmethod
