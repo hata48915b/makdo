@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.25-10:34:46-JST>
+# Time-stamp:   <2023.11.25-11:18:27-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -4370,7 +4370,8 @@ class Paragraph:
         self.length_revi = self._get_length_revi()
         self.length_revisers = self._get_length_revisers(self.length_revi)
         self.section_states, self.numbering_revisers, self.length_revisers \
-            = self._revise_for_section_depth_2(self.head_section_depth,
+            = self._revise_for_section_depth_2(self.paragraph_class,
+                                               self.head_section_depth,
                                                self.tail_section_depth,
                                                self.section_states,
                                                self.numbering_revisers,
@@ -4769,18 +4770,19 @@ class Paragraph:
             return '+' + str(rounded)
 
     def _revise_for_section_depth_2(self,
+                                    paragraph_class,
                                     head_section_depth, tail_section_depth,
                                     section_states,
                                     numbering_revisers, length_revisers):
-        if head_section_depth == 3:
-            if tail_section_depth == 3:
-                if '###=1' in numbering_revisers:
-                    if '<=+1.0' in length_revisers:
-                        if ParagraphSection.states[1][0] > 0:
-                            ParagraphSection.states[1][0] = 0
-                            ParagraphSection.states[2][0] = 1
-                            section_states[1][0] = 0
-                            section_states[2][0] = 1
+        if paragraph_class == 'section':
+            if head_section_depth == 3 and tail_section_depth == 3:
+                if section_states[1][0] > 0:
+                    if section_states[2][0] == 1 and section_states[2][1] == 0:
+                        if '<=+1.0' in length_revisers:
+                            for i in range(len(section_states[1])):
+                                section_states[1][i] = 0
+                            for i in range(len(ParagraphSection.states[1])):
+                                ParagraphSection.states[1][i] = 0
                             numbering_revisers.insert(0, '##=1')
                             length_revisers.remove('<=+1.0')
         return section_states, numbering_revisers, length_revisers
