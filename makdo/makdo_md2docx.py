@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.25-10:08:54-JST>
+# Time-stamp:   <2023.11.26-09:25:35-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -3241,6 +3241,8 @@ class RawParagraph:
         self.head_font_revisers = []
         self.tail_font_revisers = []
         self.full_text = ''
+        self.full_text_del = ''
+        self.full_text_ins = ''
         self.section_depth_setters = []
         self.paragraph_class = ''
         # SUBSTITUTION
@@ -3256,6 +3258,8 @@ class RawParagraph:
             self.md_lines \
             = self._get_revisers(self.md_lines)
         self.full_text = self._get_full_text(self.md_lines)
+        self.full_text_del = self._get_full_text_del(self.full_text)
+        self.full_text_ins = self._get_full_text_ins(self.full_text)
         self.section_depth_setters, self.full_text \
             = self._get_section_depth_setters(self.full_text)
         self.paragraph_class = self._get_paragraph_class()
@@ -3372,6 +3376,43 @@ class RawParagraph:
                     full_text = ml.beg_space + full_text
         # self.full_text = full_text
         return full_text
+
+    @classmethod
+    def _get_full_text_del(cls, full_text):
+        full_text_del \
+            = cls._get_full_text_del_or_ins(full_text,
+                                            '\\+>', '<\\+', '->', '<-')
+        return full_text_del
+
+    @classmethod
+    def _get_full_text_ins(cls, full_text):
+        full_text_ins \
+            = cls._get_full_text_del_or_ins(full_text,
+                                            '->', '<-', '\\+>', '<\\+')
+        return full_text_ins
+
+    @staticmethod
+    def _get_full_text_del_or_ins(full_text,
+                                  beg_erase, end_erase,
+                                  beg_leave, end_leave):
+        full_text_erase = ''
+        full_text_leave = ''
+        track_changes = ''
+        in_to_erase = False
+        for c in full_text:
+            if in_to_erase:
+                full_text_erase += c
+                if re.match(NOT_ESCAPED + end_erase + '$', full_text_erase):
+                    in_to_erase = False
+                full_text_erase = re.sub(end_erase + '$', '', full_text_erase)
+            else:
+                full_text_leave += c
+                if re.match(NOT_ESCAPED + beg_erase + '$', full_text_leave):
+                    in_to_erase = True
+                full_text_leave = re.sub(beg_erase + '$', '', full_text_leave)
+                full_text_leave = re.sub(beg_leave + '$', '', full_text_leave)
+                full_text_leave = re.sub(end_leave + '$', '', full_text_leave)
+        return full_text_leave
 
     @staticmethod
     def _get_section_depth_setters(full_text):

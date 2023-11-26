@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.26-08:37:34-JST>
+# Time-stamp:   <2023.11.26-09:33:42-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2718,7 +2718,7 @@ class Document:
             p_prev = self._get_prev_paragraph(self.paragraphs, i)
             p_next = self._get_next_paragraph(self.paragraphs, i)
             # TITLE
-            ds = ParagraphSection._get_section_depths(p.raw_text_iod,
+            ds = ParagraphSection._get_section_depths(p.raw_text_doi,
                                                       not p.has_removed)
             if p.paragraph_class == 'section' and ds == (1, 1):
                 # BEFORE
@@ -2827,7 +2827,7 @@ class Document:
                 p.pre_text_to_write += '\n'
                 p.length_supp['space before'] -= 1.0
             p.head_section_depth, p.tail_section_depth \
-                = p._get_section_depths(p.raw_text_iod, not p.has_removed)
+                = p._get_section_depths(p.raw_text_doi, not p.has_removed)
             p.length_clas = p._get_length_clas()
             p.length_revi = p._get_length_revi()
             p.length_revisers = p._get_length_revisers(p.length_revi)
@@ -3220,7 +3220,7 @@ class RawParagraph:
         self.tail_space = ''
         self.raw_text_del = ''
         self.raw_text_ins = ''
-        self.raw_text_iod = ''
+        self.raw_text_doi = ''
         self.remarks = []
         self.style = ''
         self.alignment = ''
@@ -3246,9 +3246,9 @@ class RawParagraph:
         self.raw_text_del = self._get_raw_text_del(self.raw_text)
         self.raw_text_ins = self._get_raw_text_ins(self.raw_text)
         if self.raw_text_ins != '':
-            self.raw_text_iod = self.raw_text_ins
+            self.raw_text_doi = self.raw_text_ins
         else:
-            self.raw_text_iod = self.raw_text_del
+            self.raw_text_doi = self.raw_text_del
         if self.raw_text_del != '' and self.raw_text_ins == '':
             self.has_removed = True
         self.remarks = self._get_remarks(xml_lines)
@@ -4392,7 +4392,7 @@ class Paragraph:
         # rp = raw_paragraph
         # rp_xls = rp.xml_lines
         # rp_rcl = rp.raw_class
-        # rp_rtx = rp.raw_text_iod
+        # rp_rtx = rp.raw_text_doi
         # rp_img = rp.images
         # rp_sty = rp.style
         # rp_alg = rp.alignment
@@ -4411,7 +4411,7 @@ class Paragraph:
         self.tail_space = raw_paragraph.tail_space
         self.raw_text_del = raw_paragraph.raw_text_del
         self.raw_text_ins = raw_paragraph.raw_text_ins
-        self.raw_text_iod = raw_paragraph.raw_text_iod
+        self.raw_text_doi = raw_paragraph.raw_text_doi
         self.images = raw_paragraph.images
         self.remarks = raw_paragraph.remarks
         self.style = raw_paragraph.style
@@ -4440,8 +4440,8 @@ class Paragraph:
         Paragraph.paragraph_number += 1
         self.paragraph_number = Paragraph.paragraph_number
         self.head_section_depth, self.tail_section_depth \
-            = self._get_section_depths(self.raw_text_iod, not self.has_removed)
-        self.proper_depth = self._get_proper_depth(self.raw_text_iod)
+            = self._get_section_depths(self.raw_text_doi, not self.has_removed)
+        self.proper_depth = self._get_proper_depth(self.raw_text_doi)
         self.raw_text = self._remove_track_change_at_head(self.raw_text)
         self.numbering_revisers, \
             self.head_font_revisers, \
@@ -5287,7 +5287,7 @@ class ParagraphBlank(Paragraph):
         rp = raw_paragraph
         rp_xls = rp.xml_lines
         rp_rcl = rp.raw_class
-        rp_rtx = rp.raw_text_iod
+        rp_rtx = rp.raw_text_doi
         if ParagraphTable.is_this_class(rp):
             return False
         if ParagraphImage.is_this_class(rp):
@@ -5333,7 +5333,7 @@ class ParagraphChapter(Paragraph):
     @classmethod
     def is_this_class(cls, raw_paragraph):
         rp = raw_paragraph
-        rp_rtx = rp.raw_text_iod
+        rp_rtx = rp.raw_text_doi
         if ParagraphTable.is_this_class(rp):
             return False
         if ParagraphConfiguration.is_this_class(rp):
@@ -5448,7 +5448,7 @@ class ParagraphSection(Paragraph):
     @classmethod
     def is_this_class(cls, raw_paragraph):
         rp = raw_paragraph
-        rp_rtx = rp.raw_text_iod
+        rp_rtx = rp.raw_text_doi
         alignment = rp.alignment
         head_section_depth, tail_section_depth \
             = cls._get_section_depths(rp_rtx)
@@ -5747,7 +5747,7 @@ class ParagraphList(Paragraph):
     @classmethod
     def is_this_class(cls, raw_paragraph):
         rp = raw_paragraph
-        rp_rtx = rp.raw_text_iod
+        rp_rtx = rp.raw_text_doi
         proper_depth = cls._get_proper_depth(rp_rtx)
         if ParagraphTable.is_this_class(rp):
             return False
@@ -5976,7 +5976,7 @@ class ParagraphImage(Paragraph):
     @classmethod
     def is_this_class(cls, raw_paragraph):
         rp = raw_paragraph
-        rp_rtx = rp.raw_text_iod
+        rp_rtx = rp.raw_text_doi
         rp_img = rp.images
         rp_rtx = re.sub(RES_IMAGE, '', rp_rtx)
         if ParagraphTable.is_this_class(rp):
@@ -6041,7 +6041,7 @@ class ParagraphMath(Paragraph):
     @classmethod
     def is_this_class(cls, raw_paragraph):
         rp = raw_paragraph
-        rp_rtx = rp.raw_text_iod
+        rp_rtx = rp.raw_text_doi
         rfd = RES_FONT_DECORATORS
         res = '^' + rfd + '\\\\\\[(.*)\\\\\\]' + rfd + '$'
         if re.match('^' + rfd + '\\\\\\[.*$', rp_rtx):
