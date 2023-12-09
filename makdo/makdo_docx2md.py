@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.26-09:33:42-JST>
+# Time-stamp:   <2023.12.09-11:44:43-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -2576,6 +2576,7 @@ class Document:
         self.paragraphs = self._modpar_length_reviser_to_depth_setter()
         # CHANGE HORIZONTAL LENGTH
         self.paragraphs = self._modpar_one_line_paragraph()
+        self.paragraphs = self._modpar_cancel_first_indent()
         # CHANGE VERTICAL LENGTH
         self.paragraphs = self._modpar_vertical_length()
         # ISOLATE FONT REVISERS
@@ -2956,6 +2957,36 @@ class Document:
             p.length_supp['first indent'] -= p.length_revi['first indent']
             p.length_supp['left indent'] -= p.length_revi['left indent']
             # RENEW
+            p.length_revi = p._get_length_revi()
+            p.length_revisers = p._get_length_revisers(p.length_revi)
+            # p.md_lines_text = p._get_md_lines_text(p.md_text)
+            # p.text_to_write = p.get_text_to_write()
+            p.text_to_write_with_reviser \
+                = p.get_text_to_write_with_reviser()
+        return self.paragraphs
+
+    def _modpar_cancel_first_indent(self):
+        # |             ->  |
+        # |<<=+1.0      ->  |1行の段落
+        # |　1行の段落  ->  |
+        # |             ->  |
+        res = '^([ \t\u3000]+)((?:.|\n)*)$'
+        for p in self.paragraphs:
+            if not re.match(res, p.text_to_write):
+                continue
+            hsps = re.sub(res, '\\1', p.text_to_write)
+            rest = re.sub(res, '\\2', p.text_to_write)
+            w = 0
+            for c in hsps:
+                if c == ' ':
+                    w += 0.5
+                elif c == '\t':
+                    w += 4.0
+                elif c == '\u3000':
+                    w += 1.0
+            if w + p.length_revi['first indent'] == 0:
+                p.length_supp['first indent'] = w
+                p.text_to_write = rest
             p.length_revi = p._get_length_revi()
             p.length_revisers = p._get_length_revisers(p.length_revi)
             # p.md_lines_text = p._get_md_lines_text(p.md_text)
