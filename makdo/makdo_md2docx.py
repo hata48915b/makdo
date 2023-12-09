@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.11.26-09:25:35-JST>
+# Time-stamp:   <2023.12.10-08:42:01-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -4022,13 +4022,12 @@ class Paragraph:
         ms_fmt.line_spacing = Pt(ls * m_size)
         return ms_par
 
-    @classmethod
-    def write_text(cls, ms_par, char_state, text, type='normal'):
-        text = cls._replace_br_tag(text)
+    def write_text(self, ms_par, char_state, text, type='normal'):
+        text = self._replace_br_tag(text)
         unit = ''
         for c in text + '\0':
-            if not cls._must_continue(unit, c):
-                unit = cls._manage_unit(ms_par, char_state, unit, c, type)
+            if not self._must_continue(unit, c):
+                unit = self._manage_unit(ms_par, char_state, unit, c, type)
             if c != '\0':
                 unit += c
         return unit
@@ -4081,15 +4080,14 @@ class Paragraph:
         # ELSE
         return False
 
-    @classmethod
-    def _manage_unit(cls, ms_par, char_state, unit, c, type='normal'):
+    def _manage_unit(self, ms_par, char_state, unit, c, type='normal'):
         res_ivs = '^((?:.|\n)*?)([^0-9\\\\])([0-9]+);$'
         res_foc = NOT_ESCAPED + '\\^([0-9A-Za-z]{0,11})\\^$'
         res_hlc = NOT_ESCAPED + '_([0-9A-Za-z]{1,11})_$'
         if re.match(NOT_ESCAPED + '<$', unit) and c == '>':
             # '<>' （RELAX） "<<<" (+ ">") = "<<" + "<" (+ ">")
             unit = re.sub('<$', '', unit)
-            unit = cls._manage_unit(ms_par, char_state, unit, '<', type)
+            unit = self._manage_unit(ms_par, char_state, unit, '<', type)
             unit += '<'
         elif re.match(NOT_ESCAPED + '\\\\\\[$', unit):
             # "\[" (BEGINNING OF MATH EXPRESSION) (MUST FIRST)
@@ -4115,7 +4113,7 @@ class Paragraph:
             else:
                 char_state.sub_or_sup = 'sup'
             unit = re.sub('^(?:_|\\^){(.*)}', '\\1', unit)
-            unit = cls.write_text(ms_par, char_state, unit, type)
+            unit = self.write_text(ms_par, char_state, unit, type)
             char_state.sub_or_sup = ''
         elif re.match(NOT_ESCAPED + RES_IMAGE, unit):
             # "![.*](.+)" (IMAGE)
@@ -4123,7 +4121,7 @@ class Paragraph:
             alte = re.sub(NOT_ESCAPED + RES_IMAGE, '\\2', unit)
             unit = re.sub(NOT_ESCAPED + RES_IMAGE, '\\1', unit)
             unit = XML.write_unit(ms_par._p, char_state, unit)
-            cls._write_image(ms_par, char_state, alte, path)
+            self._write_image(ms_par, char_state, alte, path)
         elif re.match(NOT_ESCAPED + '\\*\\*\\*$', unit):
             # "***" (ITALIC AND BOLD)
             unit = re.sub('\\*\\*\\*$', '', unit)
