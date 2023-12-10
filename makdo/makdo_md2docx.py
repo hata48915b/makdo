@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.12.10-08:42:01-JST>
+# Time-stamp:   <2023.12.11-05:19:43-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -3511,7 +3511,7 @@ class Paragraph:
     bridge_head_section_depth = 0
     bridge_tail_section_depth = 0
 
-    bridge_char_state = CharState()
+    bridge_char_state = None
 
     @classmethod
     def is_this_class(cls, full_text,
@@ -5391,6 +5391,7 @@ class Md2Docx:
         doc = self.doc
         frm = self.frm
         # GET PARAGRAPHS
+        Paragraph.bridge_char_state = CharState()
         doc.paragraphs = doc.get_paragraphs(doc.raw_paragraphs)
         doc.paragraphs = doc.modify_paragraphs(doc.paragraphs)
         # PRINT WARNING MESSAGES
