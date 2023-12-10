@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.12.11-05:19:43-JST>
+# Time-stamp:   <2023.12.11-07:14:54-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -5394,8 +5394,6 @@ class Md2Docx:
         Paragraph.bridge_char_state = CharState()
         doc.paragraphs = doc.get_paragraphs(doc.raw_paragraphs)
         doc.paragraphs = doc.modify_paragraphs(doc.paragraphs)
-        # PRINT WARNING MESSAGES
-        doc.print_warning_messages()
 
     def save(self, inputed_docx_file):
         io = self.io
@@ -5409,6 +5407,8 @@ class Md2Docx:
         # SAVE MS WORD FILE
         io.set_docx_file(inputed_docx_file)
         io.save_docx_file()
+        # PRINT WARNING MESSAGES
+        doc.print_warning_messages()
 
     @staticmethod
     def set_document_title(value):

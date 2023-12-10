@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.12.11-06:46:44-JST>
+# Time-stamp:   <2023.12.11-07:48:50-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1476,7 +1476,6 @@ class IO:
                 media_dir = re.sub('\\.md$', '', md_file, re.I)
             else:
                 media_dir = md_file + '.dir'
-        media_dir = os.path.basename(media_dir)
         # self.media_dir = media_dir
         return media_dir
 
@@ -3329,7 +3328,6 @@ class RawParagraph:
             font_size = Form.font_size * TABLE_FONT_SCALE
         chars_data = []
         images = {}
-        media_dir = IO.media_dir
         img_rels = Form.rels
         img_file_name = ''
         img_size = ''
@@ -3390,20 +3388,25 @@ class RawParagraph:
                 img_size = cls._get_img_size(xl)
                 must_continue = True
             if img_file_name != '' and img_size != '':
-                img_md_text = '!' \
-                    + '[' + img_file_name + ':' + img_size + ']' \
-                    + '(' + media_dir + '/' + img_file_name + ')'
-                imt = cls._get_img_md_text(media_dir,
-                                           img_file_name,
-                                           img_size,
-                                           font_size)
-                imt = '<>' + imt  # '<>' is to avoid being escaped
+                imt = cls._get_img_md_text(img_file_name, img_size, font_size)
+                cd_img = CharsDatum([], '', [])
                 if track_changes == 'del':
-                    cd_img = CharsDatum(['->'], imt, ['<-'])
+                    cd_img.append_fds('->', '<-')
                 elif track_changes == 'ins':
-                    cd_img = CharsDatum(['+>'], imt, ['<+'])
-                else:
-                    cd_img = CharsDatum([], imt, [])
+                    cd_img.append_fds('+>', '<+')
+                if re.match('^---(.*)---$', imt):
+                    imt = re.sub('^---(.*)---$', '\\1', imt)
+                    cd_img.append_fds('---', '---')
+                elif re.match('^--(.*)--$', imt):
+                    imt = re.sub('^--(.*)--$', '\\1', imt)
+                    cd_img.append_fds('--', '--')
+                elif re.match('^\\+\\+\\+(.*)\\+\\+\\+$', imt):
+                    imt = re.sub('^\\+\\+\\+(.*)\\+\\+\\+$', '\\1', imt)
+                    cd_img.append_fds('+++', '+++')
+                elif re.match('^\\+\\+(.*)\\+\\+$', imt):
+                    imt = re.sub('^\\+\\+(.*)\\+\\+$', '\\1', imt)
+                    cd_img.append_fds('++', '++')
+                cd_img.chars = '<>' + imt  # '<>' is to avoid being escaped
                 chars_data.append(cd_img)
                 img_file_name = ''
                 img_size = ''
@@ -3598,7 +3601,8 @@ class RawParagraph:
         return img_size
 
     @staticmethod
-    def _get_img_md_text(media_dir, img_file_name, img_size, font_size):
+    def _get_img_md_text(img_file_name, img_size, font_size):
+        relative_dir = os.path.basename(IO.media_dir)
         m_size_cm = font_size * 2.54 / 72
         xs_size_cm = m_size_cm * 0.6
         s_size_cm = m_size_cm * 0.8
@@ -3607,7 +3611,7 @@ class RawParagraph:
         # cm_w = float(re.sub('x.*$', '', img_size))
         cm_h = float(re.sub('^.*x', '', img_size))
         img_md_text = '![' + img_file_name + ']' \
-            + '(' + media_dir + '/' + img_file_name + ')'
+            + '(' + relative_dir + '/' + img_file_name + ')'
         if cm_h >= m_size_cm * 0.98 and cm_h <= m_size_cm * 1.02:
             # MEDIUM
             pass
@@ -3616,17 +3620,17 @@ class RawParagraph:
             img_md_text = '---' + img_md_text + '---'
         elif cm_h >= s_size_cm * 0.98 and cm_h <= s_size_cm * 1.02:
             # SMALL
-            img_md_text = '--' + img_text + '--'
+            img_md_text = '--' + img_md_text + '--'
         elif cm_h >= l_size_cm * 0.98 and cm_h <= l_size_cm * 1.02:
             # LARGE
-            img_md_text = '++' + img_text + '++'
+            img_md_text = '++' + img_md_text + '++'
         elif cm_h >= xl_size_cm * 0.98 and cm_h <= xl_size_cm * 1.02:
             # XLARGE
-            img_md_text = '+++' + img_text + '+++'
+            img_md_text = '+++' + img_md_text + '+++'
         else:
             # FREE SIZE
             img_md_text = '![' + img_file_name + ':' + img_size + ']' \
-                + '(' + media_dir + '/' + img_file_name + ')'
+                + '(' + relative_dir + '/' + img_file_name + ')'
         return img_md_text
 
     @classmethod
