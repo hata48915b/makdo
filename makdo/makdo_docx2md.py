@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.12.09-11:44:43-JST>
+# Time-stamp:   <2023.12.11-04:47:11-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1038,24 +1038,32 @@ class CharsDatum:
                ['~~', '~~'], ['\\*\\*', '\\*\\*'], ['\\*', '\\*']]
 
     def __init__(self, pre_fds, chars, pos_fds):
-        self.pre_fds = pre_fds
+        # PRE FDS
+        self.pre_fds = []
+        self.raw_pre_fds = []
+        for fd in pre_fds:
+            self.pre_fds.append(fd)
+            self.raw_pre_fds.append(fd)
+        # CHARS
         self.chars = chars
-        self.pos_fds = pos_fds
+        # POS FDS
+        self.pos_fds = []
+        self.raw_pos_fds = []
+        for fd in pos_fds:
+            self.pos_fds.append(fd)
+            self.raw_pos_fds.append(fd)
 
     def append_fds(self, pre_fd, pos_fd):
+        # PRE FDS
         if pre_fd not in self.pre_fds:
             self.pre_fds.append(pre_fd)
+        if pre_fd not in self.raw_pre_fds:
+            self.raw_pre_fds.append(pre_fd)
+        # POS FDS
         if pos_fd not in self.pos_fds:
             self.pos_fds.append(pos_fd)
-
-    def copy_fds(self):
-        pre_fds = []
-        pos_fds = []
-        for fd in self.pre_fds:
-            pre_fds.append(fd)
-        for fd in self.pos_fds:
-            pos_fds.append(fd)
-        return pre_fds, pos_fds
+        if pos_fd not in self.raw_pos_fds:
+            self.raw_pos_fds.append(pos_fd)
 
     def get_chars_with_fd(self):
         chars = self.chars
@@ -2834,8 +2842,7 @@ class Document:
             p.length_revisers = p._get_length_revisers(p.length_revi)
             # p.md_lines_text = p._get_md_lines_text(p.md_text)
             # p.text_to_write = p.get_text_to_write()
-            p.text_to_write_with_reviser \
-                = p.get_text_to_write_with_reviser()
+            p.text_to_write_with_reviser = p.get_text_to_write_with_reviser()
         return self.paragraphs
 
     def _modpar_length_reviser_to_depth_setter(self):
@@ -2904,8 +2911,7 @@ class Document:
             # ParagraphList.reset_states(p.paragraph_class)
             # p.md_lines_text = p._get_md_lines_text(p.md_text)
             # p.text_to_write = p.get_text_to_write()
-            p.text_to_write_with_reviser \
-                = p.get_text_to_write_with_reviser()
+            p.text_to_write_with_reviser = p.get_text_to_write_with_reviser()
         return self.paragraphs
 
     def _modpar_one_line_paragraph(self):
@@ -2961,8 +2967,7 @@ class Document:
             p.length_revisers = p._get_length_revisers(p.length_revi)
             # p.md_lines_text = p._get_md_lines_text(p.md_text)
             # p.text_to_write = p.get_text_to_write()
-            p.text_to_write_with_reviser \
-                = p.get_text_to_write_with_reviser()
+            p.text_to_write_with_reviser = p.get_text_to_write_with_reviser()
         return self.paragraphs
 
     def _modpar_cancel_first_indent(self):
@@ -2972,10 +2977,15 @@ class Document:
         # |             ->  |
         res = '^([ \t\u3000]+)((?:.|\n)*)$'
         for p in self.paragraphs:
-            if not re.match(res, p.text_to_write):
+            if len(p.chars_data) == 0:
                 continue
-            hsps = re.sub(res, '\\1', p.text_to_write)
-            rest = re.sub(res, '\\2', p.text_to_write)
+            if not re.match(res, p.chars_data[0].chars):
+                continue
+            fds = p.chars_data[0].raw_pre_fds + p.chars_data[0].raw_pos_fds
+            if '--' in fds or '---' in fds or '++' in fds or '+++' in fds or \
+               '>>' in fds or '>>>' in fds or '<<' in fds or '<<<' in fds:
+                continue
+            hsps = re.sub(res, '\\1', p.chars_data[0].chars)
             w = 0
             for c in hsps:
                 if c == ' ':
@@ -2984,15 +2994,15 @@ class Document:
                     w += 4.0
                 elif c == '\u3000':
                     w += 1.0
-            if w + p.length_revi['first indent'] == 0:
-                p.length_supp['first indent'] = w
-                p.text_to_write = rest
+            if w + p.length_revi['first indent'] != 0:
+                continue
+            p.length_supp['first indent'] = w
+            p.text_to_write = re.sub('^' + hsps, '', p.text_to_write)
             p.length_revi = p._get_length_revi()
             p.length_revisers = p._get_length_revisers(p.length_revi)
             # p.md_lines_text = p._get_md_lines_text(p.md_text)
             # p.text_to_write = p.get_text_to_write()
-            p.text_to_write_with_reviser \
-                = p.get_text_to_write_with_reviser()
+            p.text_to_write_with_reviser = p.get_text_to_write_with_reviser()
         return self.paragraphs
 
     def _modpar_vertical_length(self):
@@ -3036,8 +3046,7 @@ class Document:
                     if must_remove:
                         p.length_revisers.remove(lr)
             # RENEW
-            p.text_to_write_with_reviser \
-                = p.get_text_to_write_with_reviser()
+            p.text_to_write_with_reviser = p.get_text_to_write_with_reviser()
         return self.paragraphs
 
     def _modpar_isolate_revisers(self):
@@ -3103,8 +3112,7 @@ class Document:
                         p.post_text_to_write += '\n' + tex_fd
                     base_cd = None
             # RENEW
-            p.text_to_write_with_reviser \
-                = p.get_text_to_write_with_reviser()
+            p.text_to_write_with_reviser = p.get_text_to_write_with_reviser()
         return self.paragraphs
 
     @staticmethod
@@ -3419,9 +3427,9 @@ class RawParagraph:
                 font = XML.get_value('w:rFonts', 'w:ascii', font, xl)
                 font = XML.get_value('w:rFonts', 'w:eastAsia', font, xl)
                 # SYMPTOMATIC TREATMENT
-                if font == 'ＭＳ 明朝;MS Mincho':
+                if font == 'ＭＳ 明朝;MS Mincho' or font == 'ＭＳ明朝':
                     font = 'ＭＳ 明朝'
-                if font == 'ＭＳ ゴシック;MS Gothic':
+                if font == 'ＭＳ ゴシック;MS Gothic' or font == 'ＭＳゴシック':
                     font = 'ＭＳ ゴシック'
                 if font != '':
                     if font == Form.mincho_font:
@@ -4437,6 +4445,7 @@ class Paragraph:
         self.xml_lines = raw_paragraph.xml_lines
         self.raw_class = raw_paragraph.raw_class
         self.horizontal_line = raw_paragraph.horizontal_line
+        self.chars_data = raw_paragraph.chars_data
         self.raw_text = raw_paragraph.raw_text
         self.head_space = raw_paragraph.head_space
         self.tail_space = raw_paragraph.tail_space
