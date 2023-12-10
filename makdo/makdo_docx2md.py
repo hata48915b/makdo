@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.12.11-04:47:11-JST>
+# Time-stamp:   <2023.12.11-06:46:44-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2023  Seiichiro HATA
@@ -1476,6 +1476,7 @@ class IO:
                 media_dir = re.sub('\\.md$', '', md_file, re.I)
             else:
                 media_dir = md_file + '.dir'
+        media_dir = os.path.basename(media_dir)
         # self.media_dir = media_dir
         return media_dir
 
