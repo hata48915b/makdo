@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.12.11-07:48:50-JST>
+# Time-stamp:   <2024.01.04-17:27:17-JST>
 
 # docx2md.py
-# Copyright (C) 2022-2023  Seiichiro HATA
+# Copyright (C) 2022-2024  Seiichiro HATA
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -250,7 +250,6 @@ DEFAULT_GOTHIC_FONT = 'ＭＳ ゴシック'
 DEFAULT_IVS_FONT = 'IPAmj明朝'  # IPAmjMincho
 DEFAULT_MATH_FONT = 'Cambria Math'
 # DEFAULT_MATH_FONT = 'Liberation Serif'
-
 DEFAULT_FONT_SIZE = 12.0
 TABLE_FONT_SCALE = 0.8
 
@@ -1019,307 +1018,6 @@ def c2n_c_kanj(s):
 
 ############################################################
 # CLASS
-
-
-class CharsDatum:
-
-    """A class to keep character data"""
-
-    res_fds = [['->', '<-'], ['\\+>', '<\\+'],
-               ['_{', '_}'], ['\\^{', '\\^}'],
-               ['`', '`'], ['@[^@]{1,66}@', '@[^@]{1,66}@'],
-               ['\\^[0-9A-Za-z]{0,11}\\^', '\\^[0-9A-Za-z]{0,11}\\^'],
-               ['_[0-9A-Za-z]{1,11}_', '_[0-9A-Za-z]{1,11}_'],
-               ['_[\\$=\\.#\\-~\\+]{,4}_', '_[\\$=\\.#\\-~\\+]{,4}_'],
-               ['>>>', '<<<'], ['>>', '<<'],
-               ['---', '---'], ['--', '--'],
-               ['\\+\\+', '\\+\\+'], ['\\+\\+\\+', '\\+\\+\\+'],
-               ['<<', '>>'], ['<<<', '>>>'],
-               ['~~', '~~'], ['\\*\\*', '\\*\\*'], ['\\*', '\\*']]
-
-    def __init__(self, pre_fds, chars, pos_fds):
-        # PRE FDS
-        self.pre_fds = []
-        self.raw_pre_fds = []
-        for fd in pre_fds:
-            self.pre_fds.append(fd)
-            self.raw_pre_fds.append(fd)
-        # CHARS
-        self.chars = chars
-        # POS FDS
-        self.pos_fds = []
-        self.raw_pos_fds = []
-        for fd in pos_fds:
-            self.pos_fds.append(fd)
-            self.raw_pos_fds.append(fd)
-
-    def append_fds(self, pre_fd, pos_fd):
-        # PRE FDS
-        if pre_fd not in self.pre_fds:
-            self.pre_fds.append(pre_fd)
-        if pre_fd not in self.raw_pre_fds:
-            self.raw_pre_fds.append(pre_fd)
-        # POS FDS
-        if pos_fd not in self.pos_fds:
-            self.pos_fds.append(pos_fd)
-        if pos_fd not in self.raw_pos_fds:
-            self.raw_pos_fds.append(pos_fd)
-
-    def get_chars_with_fd(self):
-        chars = self.chars
-        pre_fds = self.pre_fds
-        pos_fds = self.pos_fds
-        pre = ''
-        pos = ''
-        for rf in self.res_fds:
-            pre, pre_fds = self._touch_in_pre(pre, pre_fds, rf[0])
-            pos, pos_fds = self._touch_in_pos(pos, pos_fds, rf[1])
-        pre = pre + ''.join(pre_fds)        # just in case
-        pos = ''.join(pos_fds[::-1]) + pos  # just in case
-        cwf = chars
-        cwf = self._concatenate_chars(pre, cwf)
-        cwf = self._concatenate_chars(cwf, pos)
-        return cwf
-
-    @staticmethod
-    def _concatenate_chars(chars1, chars2):
-        # "~" + "~"
-        if re.match(NOT_ESCAPED + '~$', chars1) and re.match('^~', chars2):
-            return chars1 + '<>' + chars2
-        # "/" + "/"
-        if re.match(NOT_ESCAPED + '/$', chars1) and re.match('^/', chars2):
-            return chars1 + '<>' + chars2
-        # "-" + "-"
-        if re.match(NOT_ESCAPED + '-$', chars1) and re.match('^-', chars2):
-            return chars1 + '<>' + chars2
-        # "+" + "+"
-        if re.match(NOT_ESCAPED + '\\+$', chars1) and re.match('^\\+', chars2):
-            return chars1 + '<>' + chars2
-        # ">" + ">"
-        # if re.match(NOT_ESCAPED + '>$', chars1) and re.match('^>', chars2):
-        #     return chars1 + '<>' + chars2
-        # "<" + "<"
-        # if re.match(NOT_ESCAPED + '<$', chars1) and re.match('^<', chars2):
-        #     return chars1 + '<>' + chars2
-        # "<" + ">"
-        if re.match(NOT_ESCAPED + '<$', chars1) and re.match('^>', chars2):
-            return chars1 + '<>' + chars2
-        # "@.*" + ".*@"
-        if re.match(NOT_ESCAPED + '@([^@]{0,66})$', chars1) and \
-           not re.match(NOT_ESCAPED + '@([^@]{1,66})@[^@]*$', chars1) and \
-           re.match('^([^@]{0,66})@(.|\n)*', chars2) and \
-           not re.match('^[^@]*@([^@]{1,66})@(.|\n)*', chars2):
-            c1 = re.sub(NOT_ESCAPED + '@([^@]{0,66})$', '\\2', chars1)
-            c2 = re.sub('^([^@]{0,66})@(.|\n)*', '\\1', chars2)
-            if len(c1 + c2) <= 66:
-                print(chars1 + '<>' + chars2)
-                return chars1 + '<>' + chars2
-        # "_.*" + ".*_"
-        if re.match(NOT_ESCAPED + '_([\\$=\\.#\\-~\\+]*)$', chars1) and \
-           re.match('^([\\$=\\.#\\-~\\+]*)_(.|\n)*', chars2):
-            c1 = re.sub(NOT_ESCAPED + '_([\\$=\\.#\\-~\\+]*)$', '\\2', chars1)
-            c2 = re.sub('^([\\$=\\.#\\-~\\+]*)_(.|\n)*', '\\1', chars2)
-            for ul in UNDERLINE:
-                if c1 + c2 == UNDERLINE[ul]:
-                    return chars1 + '<>' + chars2
-        # "^.*" + ".*^"
-        if re.match(NOT_ESCAPED + '\\^([0-9a-zA-Z]*)$', chars1) and \
-           re.match('^([0-9a-zA-Z]*)\\^(.|\n)*', chars2):
-            c1 = re.sub(NOT_ESCAPED + '\\^([0-9a-zA-Z]*)$', '\\2', chars1)
-            c2 = re.sub('^([0-9a-zA-Z]*)\\^(.|\n)*', '\\1', chars2)
-            if re.match('^([0-9A-F]{3})([0-9A-F]{3})?$', c1 + c2):
-                return chars1 + '<>' + chars2
-            for fc in FONT_COLOR:
-                if c1 + c2 == FONT_COLOR[fc]:
-                    return chars1 + '<>' + chars2
-        # "_.*" + ".*_"
-        if re.match(NOT_ESCAPED + '_([0-9a-zA-Z]*)$', chars1) and \
-           re.match('^([0-9a-zA-Z]*)_(.|\n)*', chars2):
-            c1 = re.sub(NOT_ESCAPED + '_([0-9a-zA-Z]*)$', '\\2', chars1)
-            c2 = re.sub('^([0-9a-zA-Z]*)_(.|\n)*', '\\1', chars2)
-            for hc in HIGHLIGHT_COLOR:
-                if (c1 + c2 == hc) or (c1 + c2 == HIGHLIGHT_COLOR[hc]):
-                    return chars1 + '<>' + chars2
-        # "-|+" + ">"
-        # if re.match(NOT_ESCAPED + '(-|\\+)$', chars1) and \
-        #    re.match('^>', chars2):
-        #     return chars1 + '<>' + chars2
-        # "<" + "-|+"
-        # if re.match(NOT_ESCAPED + '<$', chars1) and \
-        #    re.match('^(-|\\+)', chars2):
-        #     return chars1 + '<>' + chars2
-        # "\" + "[|]"
-        # if re.match(NOT_ESCAPED + '\\\\$', chars1) and \
-        #    re.match('^(\\[|\\])', chars2):
-        #     return chars1 + '<>' + chars2
-        return chars1 + chars2
-
-    @staticmethod
-    def _touch_in_pre(pre, fds, res):
-        match = []
-        for fd in fds:
-            if re.match('^' + res + '$', fd):
-                match.append(fd)
-        if len(match) > 0:
-            for m in match:
-                fds.remove(m)
-            pre = pre + match[-1]
-        return pre, fds
-
-    @staticmethod
-    def _touch_in_pos(pos, fds, res):
-        match = []
-        for fd in fds:
-            if re.match('^' + res + '$', fd):
-                match.append(fd)
-        if len(match) > 0:
-            for m in match:
-                fds.remove(m)
-            if re.match('^(_|\\^)}', match[-1]):
-                pos = '}' + pos  # '(_|^)}' -> '}'
-            else:
-                pos = match[-1] + pos
-        return pos, fds
-
-    @classmethod
-    def are_consecutive(cls, unit_data1, unit_data2):
-        pos_fds = []
-        for fd in unit_data1.pos_fds:
-            pos_fds.append(fd)
-        pre_fds = []
-        for fd in unit_data2.pre_fds:
-            pre_fds.append(fd)
-        for rf in cls.res_fds:
-            for pos in pos_fds:
-                if re.match('^' + rf[1] + '$', pos):
-                    for pre in pre_fds:
-                        if re.match('^' + rf[0] + '$', pre):
-                            if (rf[1] == rf[0]) and (pos != pre):
-                                continue
-                            pos_fds.remove(pos)
-                            pre_fds.remove(pre)
-                            break
-                    break
-        if pos_fds == [] and pre_fds == []:
-            return True
-        return False
-
-    @classmethod
-    def cancel_fds(cls, unit_data1, unit_data2):
-        pos_fds = unit_data1.pos_fds
-        pre_fds = unit_data2.pre_fds
-        for rf in cls.res_fds:
-            for pos in pos_fds:
-                if re.match('^' + rf[1] + '$', pos):
-                    for pre in pre_fds:
-                        if re.match('^' + rf[0] + '$', pre):
-                            if (rf[1] == rf[0]) and (pos != pre):
-                                continue
-                            pos_fds.remove(pos)
-                            pre_fds.remove(pre)
-                            break
-                    break
-        return unit_data1, unit_data2
-
-
-class XML:
-
-    """A class to handle xml"""
-
-    @staticmethod
-    def get_body(tag_name, xml_lines):
-        xml_body = []
-        is_in_body = False
-        for xl in xml_lines:
-            if re.match('^</?' + tag_name + '( .*)?>$', xl):
-                is_in_body = not is_in_body
-                continue
-            if is_in_body:
-                xml_body.append(xl)
-        return xml_body
-
-    @staticmethod
-    def get_blocks(xml_body):
-        xml_blocks = []
-        res_oneline_tag = '<(\\S+)( .*)?/>'
-        res_beginning_tag = '<(\\S+)( .*)?>'
-        xb = []
-        xml_class = None
-        xml_depth = 0
-        for xl in xml_body:
-            if xml_class == '':
-                # ABNORMAL STATE (JUST TO MAKE SURE)
-                if not re.match(res_beginning_tag, xl):
-                    # ABNORMAL STATE CONTINUES
-                    xb.append(xl)
-                    continue
-                else:
-                    # SAVE AND RESET
-                    xml_blocks.append(xb)
-                    xb = []
-                    xml_class = None
-                    xml_depth = 0
-            # NORMAL STATE
-            xb.append(xl)
-            if xml_class is None:
-                if re.match(res_oneline_tag, xl):
-                    # SAVE AND RESET
-                    xml_blocks.append(xb)
-                    xb = []
-                    xml_class = None
-                    xml_depth = 0
-                elif re.match(res_beginning_tag, xl):
-                    xml_class = re.sub(res_beginning_tag, '\\1', xl)
-                    xml_depth = 1
-                    res_class_tag = '<' + xml_class + '( .*)?>'
-                    res_end_tag = '</' + xml_class + '>'
-                else:
-                    # MOVE TO ABNORMAL STATE
-                    xml_class = ''
-            elif re.match(res_class_tag, xl):
-                xml_depth += 1
-            elif re.match(res_end_tag, xl):
-                xml_depth -= 1
-                if xml_depth == 0:
-                    # SAVE AND RESET
-                    xml_blocks.append(xb)
-                    xb = []
-                    xml_class = None
-                    xml_depth = 0
-            else:
-                pass
-        if len(xb) > 0:
-            # SAVE AND RESET (JUST TO MAKE SURE)
-            xml_blocks.append(xb)
-            xb = []
-            xml_class = None
-            xml_depth = 0
-        return xml_blocks
-
-    @staticmethod
-    def get_value(tag_name, value_name, init_value, tag):
-        if re.match('<' + tag_name + ' .+>', tag):
-            res = '^.* ' + value_name + '=[\'"]([^\'"]*)[\'"].*$'
-            if re.match(res, tag):
-                value = re.sub(res, '\\1', tag)
-                if type(init_value) is int:
-                    return int(value)
-                if type(init_value) is float:
-                    return float(value)
-                if type(init_value) is bool:
-                    if re.match('^true$', value, re.IGNORECASE):
-                        return True
-                    else:
-                        return False
-                return value
-        return init_value
-
-    @staticmethod
-    def is_this_tag(tag_name, init_value, tag):
-        if re.match('<' + tag_name + '( .*)?/?>', tag):
-            return True
-        else:
-            return init_value
 
 
 class IO:
@@ -2538,6 +2236,306 @@ class Form:
             if is_in_remarks:
                 remark_str += xl
         return remarks
+
+
+class CharsDatum:
+
+    """A class to keep characters data"""
+
+    res_fds = [['->', '<-'], ['\\+>', '<\\+'],
+               ['_{', '_}'], ['\\^{', '\\^}'],
+               ['`', '`'], ['@[^@]{1,66}@', '@[^@]{1,66}@'],
+               ['\\^[0-9A-Za-z]{0,11}\\^', '\\^[0-9A-Za-z]{0,11}\\^'],
+               ['_[0-9A-Za-z]{1,11}_', '_[0-9A-Za-z]{1,11}_'],
+               ['_[\\$=\\.#\\-~\\+]{,4}_', '_[\\$=\\.#\\-~\\+]{,4}_'],
+               ['>>>', '<<<'], ['>>', '<<'],
+               ['---', '---'], ['--', '--'],
+               ['\\+\\+', '\\+\\+'], ['\\+\\+\\+', '\\+\\+\\+'],
+               ['<<', '>>'], ['<<<', '>>>'],
+               ['~~', '~~'], ['\\*\\*', '\\*\\*'], ['\\*', '\\*']]
+
+    def __init__(self, pre_fds, chars, pos_fds):
+        # PRE FDS
+        self.pre_fds = []
+        self.raw_pre_fds = []
+        for fd in pre_fds:
+            self.pre_fds.append(fd)
+            self.raw_pre_fds.append(fd)
+        # CHARS
+        self.chars = chars
+        # POS FDS
+        self.pos_fds = []
+        self.raw_pos_fds = []
+        for fd in pos_fds:
+            self.pos_fds.append(fd)
+            self.raw_pos_fds.append(fd)
+
+    def append_fds(self, pre_fd, pos_fd):
+        # PRE FDS
+        if pre_fd not in self.pre_fds:
+            self.pre_fds.append(pre_fd)
+        if pre_fd not in self.raw_pre_fds:
+            self.raw_pre_fds.append(pre_fd)
+        # POS FDS
+        if pos_fd not in self.pos_fds:
+            self.pos_fds.append(pos_fd)
+        if pos_fd not in self.raw_pos_fds:
+            self.raw_pos_fds.append(pos_fd)
+
+    def get_chars_with_fd(self):
+        chars = self.chars
+        pre_fds = self.pre_fds
+        pos_fds = self.pos_fds
+        pre = ''
+        pos = ''
+        for rf in self.res_fds:
+            pre, pre_fds = self._touch_in_pre(pre, pre_fds, rf[0])
+            pos, pos_fds = self._touch_in_pos(pos, pos_fds, rf[1])
+        pre = pre + ''.join(pre_fds)        # just in case
+        pos = ''.join(pos_fds[::-1]) + pos  # just in case
+        cwf = chars
+        cwf = self._concatenate_chars(pre, cwf)
+        cwf = self._concatenate_chars(cwf, pos)
+        return cwf
+
+    @staticmethod
+    def _concatenate_chars(chars1, chars2):
+        # "~" + "~"
+        if re.match(NOT_ESCAPED + '~$', chars1) and re.match('^~', chars2):
+            return chars1 + '<>' + chars2
+        # "/" + "/"
+        if re.match(NOT_ESCAPED + '/$', chars1) and re.match('^/', chars2):
+            return chars1 + '<>' + chars2
+        # "-" + "-"
+        if re.match(NOT_ESCAPED + '-$', chars1) and re.match('^-', chars2):
+            return chars1 + '<>' + chars2
+        # "+" + "+"
+        if re.match(NOT_ESCAPED + '\\+$', chars1) and re.match('^\\+', chars2):
+            return chars1 + '<>' + chars2
+        # ">" + ">"
+        # if re.match(NOT_ESCAPED + '>$', chars1) and re.match('^>', chars2):
+        #     return chars1 + '<>' + chars2
+        # "<" + "<"
+        # if re.match(NOT_ESCAPED + '<$', chars1) and re.match('^<', chars2):
+        #     return chars1 + '<>' + chars2
+        # "<" + ">"
+        if re.match(NOT_ESCAPED + '<$', chars1) and re.match('^>', chars2):
+            return chars1 + '<>' + chars2
+        # "@.*" + ".*@"
+        if re.match(NOT_ESCAPED + '@([^@]{0,66})$', chars1) and \
+           not re.match(NOT_ESCAPED + '@([^@]{1,66})@[^@]*$', chars1) and \
+           re.match('^([^@]{0,66})@(.|\n)*', chars2) and \
+           not re.match('^[^@]*@([^@]{1,66})@(.|\n)*', chars2):
+            c1 = re.sub(NOT_ESCAPED + '@([^@]{0,66})$', '\\2', chars1)
+            c2 = re.sub('^([^@]{0,66})@(.|\n)*', '\\1', chars2)
+            if len(c1 + c2) <= 66:
+                return chars1 + '<>' + chars2
+        # "_.*" + ".*_"
+        if re.match(NOT_ESCAPED + '_([\\$=\\.#\\-~\\+]*)$', chars1) and \
+           re.match('^([\\$=\\.#\\-~\\+]*)_(.|\n)*', chars2):
+            c1 = re.sub(NOT_ESCAPED + '_([\\$=\\.#\\-~\\+]*)$', '\\2', chars1)
+            c2 = re.sub('^([\\$=\\.#\\-~\\+]*)_(.|\n)*', '\\1', chars2)
+            for ul in UNDERLINE:
+                if c1 + c2 == UNDERLINE[ul]:
+                    return chars1 + '<>' + chars2
+        # "^.*" + ".*^"
+        if re.match(NOT_ESCAPED + '\\^([0-9a-zA-Z]*)$', chars1) and \
+           re.match('^([0-9a-zA-Z]*)\\^(.|\n)*', chars2):
+            c1 = re.sub(NOT_ESCAPED + '\\^([0-9a-zA-Z]*)$', '\\2', chars1)
+            c2 = re.sub('^([0-9a-zA-Z]*)\\^(.|\n)*', '\\1', chars2)
+            if re.match('^([0-9A-F]{3})([0-9A-F]{3})?$', c1 + c2):
+                return chars1 + '<>' + chars2
+            for fc in FONT_COLOR:
+                if c1 + c2 == FONT_COLOR[fc]:
+                    return chars1 + '<>' + chars2
+        # "_.*" + ".*_"
+        if re.match(NOT_ESCAPED + '_([0-9a-zA-Z]*)$', chars1) and \
+           re.match('^([0-9a-zA-Z]*)_(.|\n)*', chars2):
+            c1 = re.sub(NOT_ESCAPED + '_([0-9a-zA-Z]*)$', '\\2', chars1)
+            c2 = re.sub('^([0-9a-zA-Z]*)_(.|\n)*', '\\1', chars2)
+            for hc in HIGHLIGHT_COLOR:
+                if (c1 + c2 == hc) or (c1 + c2 == HIGHLIGHT_COLOR[hc]):
+                    return chars1 + '<>' + chars2
+        # "-|+" + ">"
+        # if re.match(NOT_ESCAPED + '(-|\\+)$', chars1) and \
+        #    re.match('^>', chars2):
+        #     return chars1 + '<>' + chars2
+        # "<" + "-|+"
+        # if re.match(NOT_ESCAPED + '<$', chars1) and \
+        #    re.match('^(-|\\+)', chars2):
+        #     return chars1 + '<>' + chars2
+        # "\" + "[|]"
+        # if re.match(NOT_ESCAPED + '\\\\$', chars1) and \
+        #    re.match('^(\\[|\\])', chars2):
+        #     return chars1 + '<>' + chars2
+        return chars1 + chars2
+
+    @staticmethod
+    def _touch_in_pre(pre, fds, res):
+        match = []
+        for fd in fds:
+            if re.match('^' + res + '$', fd):
+                match.append(fd)
+        if len(match) > 0:
+            for m in match:
+                fds.remove(m)
+            pre = pre + match[-1]
+        return pre, fds
+
+    @staticmethod
+    def _touch_in_pos(pos, fds, res):
+        match = []
+        for fd in fds:
+            if re.match('^' + res + '$', fd):
+                match.append(fd)
+        if len(match) > 0:
+            for m in match:
+                fds.remove(m)
+            if re.match('^(_|\\^)}', match[-1]):
+                pos = '}' + pos  # '(_|^)}' -> '}'
+            else:
+                pos = match[-1] + pos
+        return pos, fds
+
+    @classmethod
+    def are_consecutive(cls, unit_data1, unit_data2):
+        pos_fds = []
+        for fd in unit_data1.pos_fds:
+            pos_fds.append(fd)
+        pre_fds = []
+        for fd in unit_data2.pre_fds:
+            pre_fds.append(fd)
+        for rf in cls.res_fds:
+            for pos in pos_fds:
+                if re.match('^' + rf[1] + '$', pos):
+                    for pre in pre_fds:
+                        if re.match('^' + rf[0] + '$', pre):
+                            if (rf[1] == rf[0]) and (pos != pre):
+                                continue
+                            pos_fds.remove(pos)
+                            pre_fds.remove(pre)
+                            break
+                    break
+        if pos_fds == [] and pre_fds == []:
+            return True
+        return False
+
+    @classmethod
+    def cancel_fds(cls, unit_data1, unit_data2):
+        pos_fds = unit_data1.pos_fds
+        pre_fds = unit_data2.pre_fds
+        for rf in cls.res_fds:
+            for pos in pos_fds:
+                if re.match('^' + rf[1] + '$', pos):
+                    for pre in pre_fds:
+                        if re.match('^' + rf[0] + '$', pre):
+                            if (rf[1] == rf[0]) and (pos != pre):
+                                continue
+                            pos_fds.remove(pos)
+                            pre_fds.remove(pre)
+                            break
+                    break
+        return unit_data1, unit_data2
+
+
+class XML:
+
+    """A class to handle xml"""
+
+    @staticmethod
+    def get_body(tag_name, xml_lines):
+        xml_body = []
+        is_in_body = False
+        for xl in xml_lines:
+            if re.match('^</?' + tag_name + '( .*)?>$', xl):
+                is_in_body = not is_in_body
+                continue
+            if is_in_body:
+                xml_body.append(xl)
+        return xml_body
+
+    @staticmethod
+    def get_blocks(xml_body):
+        xml_blocks = []
+        res_oneline_tag = '<(\\S+)( .*)?/>'
+        res_beginning_tag = '<(\\S+)( .*)?>'
+        xb = []
+        xml_class = None
+        xml_depth = 0
+        for xl in xml_body:
+            if xml_class == '':
+                # ABNORMAL STATE (JUST TO MAKE SURE)
+                if not re.match(res_beginning_tag, xl):
+                    # ABNORMAL STATE CONTINUES
+                    xb.append(xl)
+                    continue
+                else:
+                    # SAVE AND RESET
+                    xml_blocks.append(xb)
+                    xb = []
+                    xml_class = None
+                    xml_depth = 0
+            # NORMAL STATE
+            xb.append(xl)
+            if xml_class is None:
+                if re.match(res_oneline_tag, xl):
+                    # SAVE AND RESET
+                    xml_blocks.append(xb)
+                    xb = []
+                    xml_class = None
+                    xml_depth = 0
+                elif re.match(res_beginning_tag, xl):
+                    xml_class = re.sub(res_beginning_tag, '\\1', xl)
+                    xml_depth = 1
+                    res_class_tag = '<' + xml_class + '( .*)?>'
+                    res_end_tag = '</' + xml_class + '>'
+                else:
+                    # MOVE TO ABNORMAL STATE
+                    xml_class = ''
+            elif re.match(res_class_tag, xl):
+                xml_depth += 1
+            elif re.match(res_end_tag, xl):
+                xml_depth -= 1
+                if xml_depth == 0:
+                    # SAVE AND RESET
+                    xml_blocks.append(xb)
+                    xb = []
+                    xml_class = None
+                    xml_depth = 0
+            else:
+                pass
+        if len(xb) > 0:
+            # SAVE AND RESET (JUST TO MAKE SURE)
+            xml_blocks.append(xb)
+            xb = []
+            xml_class = None
+            xml_depth = 0
+        return xml_blocks
+
+    @staticmethod
+    def get_value(tag_name, value_name, init_value, tag):
+        if re.match('<' + tag_name + ' .+>', tag):
+            res = '^.* ' + value_name + '=[\'"]([^\'"]*)[\'"].*$'
+            if re.match(res, tag):
+                value = re.sub(res, '\\1', tag)
+                if type(init_value) is int:
+                    return int(value)
+                if type(init_value) is float:
+                    return float(value)
+                if type(init_value) is bool:
+                    if re.match('^true$', value, re.IGNORECASE):
+                        return True
+                    else:
+                        return False
+                return value
+        return init_value
+
+    @staticmethod
+    def is_this_tag(tag_name, init_value, tag):
+        if re.match('<' + tag_name + '( .*)?/?>', tag):
+            return True
+        else:
+            return init_value
 
 
 class Document:
@@ -5923,6 +5921,20 @@ class ParagraphTable(Paragraph):
             elif xl == '</w:tr>':
                 tab.append(row)
                 is_in_row = False
+        # DOUBLE LINE
+        row_line = []
+        for i in range(len(tab)):
+            if '<w:bottom w:val="double"/>' in tab[i][0]:
+                row_line.append('double')
+            else:
+                row_line.append('')
+        col_line = []
+        for j in range(len(tab[0])):
+            if '<w:right w:val="double"/>' in tab[0][j]:
+                col_line.append('double')
+            else:
+                col_line.append('')
+        # ALIGNMENT
         ali = []
         for row in tab:
             tmp = []
@@ -5939,6 +5951,9 @@ class ParagraphTable(Paragraph):
                         break
                 else:
                     tmp.append(':' + '-' * (wid[j] - 1))
+                # DOUBLE LINE
+                if col_line[j] == 'double':
+                    tmp[-1] += '='
             ali.append(tmp)
         md_text = ''
         half_row = int(len(tab) / 2)
@@ -5979,6 +5994,9 @@ class ParagraphTable(Paragraph):
                 raw_text = re.sub('\n', '<br>', raw_text)
                 md_text += '|' + raw_text + '|'
             md_text += '\n'
+            # DOUBLE LINE
+            if row_line[i] == 'double':
+                md_text += '=\n'
         tmp_text = ''
         for line in md_text.split('\n'):
             if re.match('^\\|.*\\|$', line):

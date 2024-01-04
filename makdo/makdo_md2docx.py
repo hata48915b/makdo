@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2023.12.11-07:14:54-JST>
+# Time-stamp:   <2024.01.02-07:52:39-JST>
 
 # md2docx.py
-# Copyright (C) 2022-2023  Seiichiro HATA
+# Copyright (C) 2022-2024  Seiichiro HATA
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -912,174 +912,6 @@ def concatenate_string(str1, str2):
 # CLASS
 
 
-class CharState:
-
-    """A class to keep character state"""
-
-    def __init__(self):
-        self.initialize()
-
-    def initialize(self):
-        self.mincho_font = Form.mincho_font
-        self.gothic_font = Form.gothic_font
-        self.ivs_font = Form.ivs_font
-        self.font_size = Form.font_size
-        self.font_scale = 1.0
-        self.font_width = 1.0
-        self.is_italic = False
-        self.is_bold = False
-        self.has_strike = False
-        self.is_preformatted = False
-        self.underline = None
-        self.font_color = None
-        self.highlight_color = None
-        self.sub_or_sup = ''
-        self.track_changes = ''  # ''|'del'|'ins'
-
-    def copy(self):
-        copy = CharState()
-        for v in vars(copy):
-            vars(copy)[v] = vars(self)[v]
-        return copy
-
-
-class XML:
-
-    """A class to handle xml"""
-
-    @staticmethod
-    def add_tag(oe0, tag, opts={}, text=None):
-        oe1 = OxmlElement(tag)
-        for item in opts:
-            value = opts[item]
-            oe1.set(ns.qn(item), value)
-        if text is not None:
-            oe1.text = text
-        oe0.append(oe1)
-        return oe1
-
-    @staticmethod
-    def write_unit(oe0, char_state, unit):
-        if unit == '':
-            return ''
-        unit = XML._prepare_unit(unit)
-        if char_state.track_changes == 'del':
-            oe1 = XML.add_tag(oe0, 'w:del', {'w:id': '1'})
-            tag = 'w:delText'
-        elif char_state.track_changes == 'ins':
-            oe1 = XML.add_tag(oe0, 'w:ins', {'w:id': '1'})
-            tag = 'w:t'
-        else:
-            oe1 = oe0
-            tag = 'w:t'
-        oe2 = XML.add_tag(oe1, 'w:r')
-        XML._decorate_unit(oe2, char_state)
-        res = '^([^\t\n]*)([\t\n\0])((?:.|\n)*)$'
-        unit += '\0'
-        while re.match(res, unit):
-            rest = re.sub(res, '\\1', unit)
-            char = re.sub(res, '\\2', unit)
-            unit = re.sub(res, '\\3', unit)
-            oe3 = XML.add_tag(oe2, tag, {}, rest)
-            if char == '\t':
-                oe3 = XML.add_tag(oe2, 'w:tab', {})
-            elif char == '\n':
-                oe3 = XML.add_tag(oe2, 'w:br', {})
-            elif char == '\0':
-                pass
-        return ''
-
-    @staticmethod
-    def _prepare_unit(unit):
-        # REMOVE RELAX SYMBOL ("<>" -> "" / "\<\>" -> "\<\>")
-        d = []
-        for i in range(len(unit)):
-            if re.match(NOT_ESCAPED + '<$', unit[:i]):
-                if re.match('^>', unit[i:]):
-                    d.append(i)
-        us = list(unit)
-        for i in d[::-1]:
-            us.pop(i)
-            us.pop(i - 1)
-        unit = ''.join(us)
-        # REMOVE ESCAPE SYMBOL (BACKSLASH)
-        unit = re.sub('\\\\', '-\\\\', unit)
-        unit = re.sub('-\\\\-\\\\', '-\\\\\\\\', unit)
-        unit = re.sub('-\\\\', '', unit)
-        # TRANSFORM
-        # unit = unit.replace('&', '&amp;')
-        # unit = unit.replace('>', '&gt;')
-        # unit = unit.replace('"', '&quot;')
-        # unit = unit.replace('<', '&lt;')
-        # RETURN
-        return unit
-
-    @staticmethod
-    def write_page_number(oe0, char_state, char):
-        oe1 = XML.add_tag(oe0, 'w:r')
-        oe2 = XML._decorate_unit(oe1, char_state)
-        oe2 = XML.add_tag(oe1, 'w:fldChar', {'w:fldCharType': 'begin'})
-        #
-        oe1 = XML.add_tag(oe0, 'w:r')
-        oe2 = XML._decorate_unit(oe1, char_state)
-        opts = {}
-        # opts = {'xml:space': 'preserve'}
-        if char == 'n':
-            oe2 = XML.add_tag(oe1, 'w:instrText', opts, 'PAGE')
-        elif char == 'N':
-            oe2 = XML.add_tag(oe1, 'w:instrText', opts, 'NUMPAGES')
-        #
-        oe1 = XML.add_tag(oe0, 'w:r')
-        oe2 = XML._decorate_unit(oe1, char_state)
-        oe2 = XML.add_tag(oe1, 'w:fldChar', {'w:fldCharType': 'end'})
-        #
-        return ''
-
-    @staticmethod
-    def _decorate_unit(oe0, char_state):
-        size = round(char_state.font_size * char_state.font_scale, 1)
-        oe1 = XML.add_tag(oe0, 'w:rPr', {})
-        # FONT
-        if char_state.is_preformatted:
-            font = char_state.gothic_font
-        else:
-            font = char_state.mincho_font
-        opt = {'w:ascii': font, 'w:hAnsi': font, 'w:eastAsia': font}
-        oe2 = XML.add_tag(oe1, 'w:rFonts', opt)
-        # ITALIC
-        if char_state.is_italic:
-            oe2 = XML.add_tag(oe1, 'w:i', {})
-        # BOLD
-        if char_state.is_bold:
-            oe2 = XML.add_tag(oe1, 'w:b', {})
-        # STRIKE
-        if char_state.has_strike:
-            oe2 = XML.add_tag(oe1, 'w:strike', {})
-        # UNDERLINE
-        if char_state.underline is not None:
-            oe2 = XML.add_tag(oe1, 'w:u', {'w:val': char_state.underline})
-        # FONT SIZE
-        oe2 = XML.add_tag(oe1, 'w:sz', {'w:val': str(size * 2)})
-        # oe2 = XML.add_tag(oe1, 'w:szCs', {'w:val': str(size * 2)})
-        # FONT WIDTH
-        if char_state.font_width != 1.00:
-            opt = {'w:val': str(int(char_state.font_width * 100))}
-            oe2 = XML.add_tag(oe1, 'w:w', opt)
-        # FONT COLOR
-        if char_state.font_color is not None:
-            oe2 = XML.add_tag(oe1, 'w:color', {'w:val': char_state.font_color})
-        # HIGHTLIGHT COLOR
-        if char_state.highlight_color is not None:
-            opt = {'w:val': char_state.highlight_color}
-            oe2 = XML.add_tag(oe1, 'w:highlight', opt)
-        # SUBSCRIPT
-        if char_state.sub_or_sup == 'sub':
-            oe2 = XML.add_tag(oe1, 'w:vertAlign', {'w:val': 'subscript'})
-        # SUPERSCRIPT
-        if char_state.sub_or_sup == 'sup':
-            oe2 = XML.add_tag(oe1, 'w:vertAlign', {'w:val': 'superscript'})
-
-
 class IO:
 
     """A class to handle input and output"""
@@ -1256,8 +1088,8 @@ class IO:
                 ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
             else:
                 ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
-            p.write_text(ms_par, p.char_state, p.text_to_write_with_reviser)
-            Paragraph.bridge_char_state.initialize()
+            p.write_text(ms_par, p.chars_state, p.text_to_write_with_reviser)
+            Paragraph.bridge_chars_state.initialize()
         # FOOTER
         # ms_doc.styles['Footer'].font.name = self.mincho_font  # page number
         # ms_doc.styles['Footer'].font.size = Pt(m_size)        # page number
@@ -1283,9 +1115,9 @@ class IO:
                 ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
             else:
                 ms_par.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
-            p.write_text(ms_par, p.char_state, p.text_to_write_with_reviser,
+            p.write_text(ms_par, p.chars_state, p.text_to_write_with_reviser,
                          'footer')
-            Paragraph.bridge_char_state.initialize()
+            Paragraph.bridge_chars_state.initialize()
         # LINE NUMBER
         if Form.line_number:
             opts = {}
@@ -1535,965 +1367,6 @@ class DocxFile:
                 sys.exit(206)
             return False
         return True
-
-
-class Math:
-
-    """A class to write math expressions"""
-
-    symbols = {
-        '\\alpha': 'α', '\\beta': 'β', '\\gamma': 'γ', '\\delta': 'δ',
-        '\\epsilon': 'ϵ', '\\zeta': 'ζ', '\\eta': 'η', '\\theta': 'θ',
-        '\\iota': 'ι', '\\kappa': 'κ', '\\lambda': 'λ', '\\mu': 'μ',
-        '\\nu': 'ν', '\\xi': 'ξ', '\\omicron': 'o', '\\pi': 'π',
-        '\\rho': 'ρ', '\\sigma': 'σ', '\\tau': 'τ', '\\upsilon': 'υ',
-        '\\phi': 'ϕ', '\\chi': 'χ', '\\psi': 'ψ', '\\omega': 'ω',
-        '\\varepsilon': 'ε', '\\vartheta': 'ϑ', '\\varpi': 'ϖ',
-        '\\varrho': 'ϱ', '\\varsigma': 'ς', '\\varphi': 'φ',
-        '\\Alpha': 'A', '\\Beta': 'B', '\\Gamma': 'Γ', '\\Delta': 'Δ',
-        '\\Epsilon': 'E', '\\Zeta': 'Z', '\\Eta': 'H', '\\Theta': 'Θ',
-        '\\Iota': 'I', '\\Kappa': 'K', '\\Lambda': 'Λ', '\\Mu': 'M',
-        '\\Nu': 'N', '\\Xi': 'Ξ', '\\Omicron': 'O', '\\Pi': 'Π',
-        '\\Rho': 'P', '\\Sigma': 'Σ', '\\Tau': 'T', '\\Upsilon': 'Υ',
-        '\\Phi': 'Φ', '\\Chi': 'X', '\\Psi': 'Ψ', '\\Omega': 'Ω',
-        '\\partial': '∂',
-        '\\pm': '±', '\\mp': '∓', '\\times': '×', '\\div': '÷',
-        '\\cdot': '⋅',
-        '\\equiv': '≡', '\\neq': '≠', '\\fallingdotseq': '≒',
-        '\\geqq': '≧', '\\leqq': '≦', '\\gg': '≫', '\\ll': '≪',
-        '\\in': '∈', '\\ni': '∋',
-        '\\notin': '∉', '\\notni': '∌',
-        '\\subset': '⊂', '\\supset': '⊃',
-        '\\subseteq': '⊆', '\\supseteq': '⊇',
-        '\\nsubseteq': '⊈', '\\nsupseteq': '⊉',
-        '\\subsetneq': '⊊', '\\supsetneq': '⊋',
-        '\\cap': '∩', '\\cup': '∪',
-        '\\emptyset': '∅', '\\varnothing': '∅',
-        '\\mathbb{N}': 'ℕ', '\\mathbb{Z}': 'ℤ', '\\mathbb{R}': 'ℝ',
-        '\\mathbb{C}': 'ℂ', '\\mathbb{K}': '𝕂',
-        '\\forall': '∀', '\\exists': '∃',
-        '\\therefore': '∴', '\\because': '∵',
-        '\\to': '→', '\\infty': '∞',
-    }
-
-    @classmethod
-    def write_unit(cls, oe0, char_state, unit):
-        # ADD VARIABLES
-        char_state.is_italic = True
-        char_state.must_break_line = False
-        # ADD MATH TAG
-        oe1 = XML.add_tag(oe0, 'm:oMath')
-        # PREPARE
-        unit = cls._prepare(unit)
-        # WRITE
-        unit = cls._write_math_exp(oe1, char_state, unit)
-        # RETURN
-        return unit
-
-    @classmethod
-    def _prepare(cls, unit):
-        unit = re.sub('^\\\\\\[(.*)\\\\\\]$', '{\\1}', unit)
-        unit = cls._envelop_command(unit)
-        unit = cls._replace_symbol(unit)
-        unit = unit.replace(' ', '')  # ' ' -> ''
-        unit = cls._prepare_func(unit)
-        unit = cls._close_paren(unit)
-        unit = cls._envelop_all(unit)
-        unit = cls._cancel_multi_paren(unit)
-        return unit
-
-    @staticmethod
-    def _envelop_command(unit):
-        # TEX COMMAND
-        tex = ''
-        res1 = NOT_ESCAPED + '(\\\\[A-Za-z]+)$'
-        res9 = '^[^A-Za-z]$'
-        for c in unit + '\0':
-            # ALPHABET COMMAND
-            if re.match(res9, c):
-                tex = re.sub(res1, '\\1{\\2}', tex)
-            tex = re.sub(NOT_ESCAPED + '(\\\\\\\\)$', '\\1{\\2}', tex)
-            # FONT SIZE
-            tex = re.sub('{\\\\tiny}$', '{\\\\footnotesize}', tex)
-            tex = re.sub('{\\\\scriptsize}$', '{\\\\footnotesize}', tex)
-            tex = re.sub('{\\\\huge}$', '{\\\\Large}', tex)
-            tex = re.sub('{\\\\Huge}$', '{\\\\Large}', tex)
-            tex = re.sub('{{\\\\footnotesize}$', '{\\\\footnotesize}{', tex)
-            tex = re.sub('{{\\\\small}$', '{\\\\small}{', tex)
-            tex = re.sub('{{\\\\normalsize}$', '{\\\\normalsize}{', tex)
-            tex = re.sub('{{\\\\large}$', '{\\\\large}{', tex)
-            tex = re.sub('{{\\\\Large}$', '{\\\\Large}{', tex)
-            # SPACE
-            tex = re.sub('\\\\%$', '%0', tex)                   # "%"  -> "%0"
-            tex = re.sub(NOT_ESCAPED + '\\\\,$', '\\1%1', tex)  # "\," -> "%1"
-            tex = re.sub(NOT_ESCAPED + '\\\\:$', '\\1%2', tex)  # "\:" -> "%2"
-            tex = re.sub(NOT_ESCAPED + '\\\\;$', '\\1%3', tex)  # "\;" -> "%3"
-            tex = re.sub(NOT_ESCAPED + '\\\\ $', '\\1%4', tex)  # "\ " -> "%4"
-            tex = re.sub(NOT_ESCAPED + '\\\\!$', '\\1%5', tex)  # "\!" -> "%5"
-            # PARENTHESES
-            tex = re.sub('{\\\\[Bb]igg?}', '', tex)
-            tex = re.sub('{\\\\(?:left|right)}', '', tex)
-            tex = re.sub('\\($', '{(-}', tex)      # "("  -> "{(-}"
-            tex = re.sub('\\)$', '{-)}', tex)      # ")"  -> "{-)}"
-            tex = re.sub(NOT_ESCAPED + '\\\\{$',
-                         '\\1{(=}', tex)           # "\{" -> "{(=}"
-            tex = re.sub(NOT_ESCAPED + '\\\\}$',
-                         '\\1{=)}', tex)           # "\}" -> "{=)}"
-            tex = re.sub('\\[$', '{[}', tex)       # "["  -> "{[}"
-            tex = re.sub('\\]$', '{]}', tex)       # "]"  -> "{]}"
-            # TEX COMMAND OPTION
-            sqrt = '{\\\\sqrt}' + '{\\[}([^\\[\\]]*' \
-                + ('(?:\\[[^\\[\\]]*' * 3) + ('\\][^\\[\\]]*)*' * 3) \
-                + '){\\]}$'
-            tex = re.sub(NOT_ESCAPED + sqrt, '\\1{\\\\sqrt}{[\\2]}', tex)
-            # DEL AND INS
-            tex = re.sub(NOT_ESCAPED + '\\->$', '\\1{{->}{', tex)
-            tex = re.sub(NOT_ESCAPED + '<\\-$', '\\1}{<-}}', tex)
-            tex = re.sub(NOT_ESCAPED + '\\+>$', '\\1{{+>}{', tex)
-            tex = re.sub(NOT_ESCAPED + '<\\+$', '\\1}{<+}}', tex)
-            # SUB, SUP (NO PARENTHESES)
-            oc = '^([^ \\\\_\\^\\(\\){}\\[\\]\0])$'
-            if re.match(NOT_ESCAPED + '(_|\\^)$', tex + c):
-                if tex[-1] != '}':
-                    if re.match(oc, tex[-1]):
-                        tex = re.sub('(.)$', '{\\1}', tex)
-                    else:
-                        tex += '{}'
-            if re.match(NOT_ESCAPED + '(_|\\^)$', tex):
-                if c != '{':
-                    if re.match(oc, c):
-                        tex += '{' + c + '}'
-                        c = ''
-                    else:
-                        tex += '{}'
-            # ADD CHAR
-            if c != '\0':
-                tex += c
-        unit = tex
-        return unit
-
-    @staticmethod
-    def _replace_symbol(unit):
-        for com in Math.symbols:
-            unit = re.sub('{\\' + com + '}', Math.symbols[com], unit)
-        return unit
-
-    @classmethod
-    def _prepare_func(cls, unit):
-        tex = ''
-        for c in unit + '\0':
-            nubs = cls._get_nubs(tex)
-            tmps = []
-            while tmps != nubs:
-                tmps = []
-                for n in nubs:
-                    tmps.append(n)
-                # CONTINUE
-                res = '^.*{\\\\(' \
-                    + 'sum|prod|int|iint|iiint|oint|sin|cos|tan|log|lim' \
-                    + ')}+$'
-                if (len(nubs) >= 3) and re.match(res, nubs[-3]):
-                    continue
-                res = '^.*{\\\\(' \
-                    + 'sum|prod|int|iint|iiint|oint' \
-                    + ')}+$'
-                if (len(nubs) >= 5) and re.match(res, nubs[-5]):
-                    continue
-                # CONBINATION, PERMUTATION
-                if (len(nubs) >= 4) and \
-                   re.match('^{{}(_{.*})}$', nubs[-4]) and nubs[-2] == '_':
-                    nubs[-4] = re.sub('^{{}(_{.*})}$', '\\1', nubs[-4])
-                    nubs[-4], nubs[-3] = nubs[-3], nubs[-4]
-                    nubs[-4], nubs[-1] = cls._close_func(nubs[-4], nubs[-1])
-                # SUBSCRIPT, SUPERSCRIPT
-                elif (c != '_') and (c != '^'):
-                    if (len(nubs) >= 5) and \
-                       ((nubs[-4] == '_') and (nubs[-2] == '^')):
-                        nubs[-5], nubs[-1] \
-                            = cls._close_func(nubs[-5], nubs[-1])
-                    elif (len(nubs) >= 5) and \
-                         ((nubs[-4] == '^') and (nubs[-2] == '_')):
-                        nubs[-4], nubs[-2] = nubs[-2], nubs[-4]
-                        nubs[-3], nubs[-1] = nubs[-1], nubs[-3]
-                        nubs[-5], nubs[-1] \
-                            = cls._close_func(nubs[-5], nubs[-1])
-                    elif (len(nubs) >= 3) and \
-                         ((nubs[-2] == '_') or (nubs[-2] == '^')):
-                        nubs[-3], nubs[-1] \
-                            = cls._close_func(nubs[-3], nubs[-1])
-                # LINEBREAK, MATHRM, MATHBF, STRIKE, UNDERLINE, EXP, VEC
-                res = '^{\\\\(?:\\\\|mathrm|mathbf|sout|underline|exp|vec)}$'
-                if (len(nubs) >= 2) and re.match(res, nubs[-2]):
-                    nubs[-2], nubs[-1] = cls._close_func(nubs[-2], nubs[-1])
-                # TEXTCOLOR, COLORBOX, FRACTION, BINOMIAL
-                res = '^{\\\\(?:textcolor|colorbox|frac|binom)}$'
-                if (len(nubs) >= 3) and re.match(res, nubs[-3]):
-                    nubs[-3], nubs[-1] = cls._close_func(nubs[-3], nubs[-1])
-                # SQRT
-                if (len(nubs) >= 2) and (nubs[-2] == '{\\sqrt}'):
-                    if not re.match('{\\[.*\\]}', nubs[-1]):
-                        nubs.insert(-1, '{[]}')
-                if (len(nubs) >= 3) and (nubs[-3] == '{\\sqrt}'):
-                    nubs[-3], nubs[-1] = cls._close_func(nubs[-3], nubs[-1])
-                # SIN, COS, TAN
-                res = '^.*{\\\\(?:sin|cos|tan)}+$'
-                if (len(nubs) >= 2) and re.match(res, nubs[-2]):
-                    if nubs[-1] != '^':
-                        nubs.insert(-1, '^')
-                        nubs.insert(-1, '{}')
-                if (len(nubs) >= 4) and re.match(res, nubs[-4]):
-                    nubs[-4], nubs[-1] = cls._close_func(nubs[-4], nubs[-1])
-                # LOG, LIMIT
-                if (len(nubs) >= 2) and \
-                   re.match('^{\\\\(?:log|lim)}$', nubs[-2]):
-                    if nubs[-1] != '_':
-                        nubs.insert(-1, '_')
-                        nubs.insert(-1, '{}')
-                if (len(nubs) >= 4) and \
-                   re.match('^{\\\\(?:log|lim)}$', nubs[-4]):
-                    nubs[-4], nubs[-1] = cls._close_func(nubs[-4], nubs[-1])
-                # SIGMA, PI, INTEGRAL, LINE INTEGRAL
-                if (len(nubs) >= 2) and \
-                   re.match('^{\\\\(?:sum|prod|(?:|i|ii|o)int)}$', nubs[-2]):
-                    if nubs[-1] != '_':
-                        nubs.insert(-1, '_')
-                        nubs.insert(-1, '{}')
-                if (len(nubs) >= 4) and \
-                   re.match('^{\\\\(?:sum|prod|(?:|i|ii|o)int)}$', nubs[-4]):
-                    if nubs[-1] != '^':
-                        nubs.insert(-1, '^')
-                        nubs.insert(-1, '{}')
-                if (len(nubs) >= 6) and \
-                   re.match('^{\\\\(?:sum|prod|(?:|i|ii|o)int)}$', nubs[-6]):
-                    nubs[-6], nubs[-1] = cls._close_func(nubs[-6], nubs[-1])
-                # MATRIX
-                if '{\\Ybmx}' in nubs:
-                    if (len(nubs) >= 1) and (nubs[-1] == '{\\\\}'):
-                        nubs[-1] = '{\\Ylmx}'
-                if (len(nubs) >= 2) and \
-                   nubs[-2] == '{\\begin}' and \
-                   re.match('^{.*matrix}$', nubs[-1]):
-                    nubs[-2] = '{\\Ybmx}'
-                if (len(nubs) >= 2) and \
-                   nubs[-2] == '{\\end}' and \
-                   re.match('^{.*matrix}$', nubs[-1]):
-                    b = None
-                    for i, n in enumerate(nubs):
-                        if n == '{\\Ybmx}':
-                            b = i
-                    if b is not None:
-                        nubs[b] = '{{\\Xbmx}'
-                        nubs[b + 1] += '{'
-                        nubs[-1] = '}{\\Xemx}}'
-                        s = ''
-                        for i in range(b + 2, len(nubs) - 2):
-                            if nubs[i] == '&':
-                                nubs[i] = '}{'
-                            if nubs[i] == '{\\Ylmx}':
-                                nubs[i] = '}{\\Xlmx}{'
-                            s += nubs[i]
-                            nubs[i] = ''
-                        nubs[-2] = s
-                        if re.match('^.*{$', nubs[-2]) and \
-                           re.match('^}.*$', nubs[-1]):
-                            nubs[-2] = re.sub('{$', '', nubs[-2])
-                            nubs[-1] = re.sub('^}', '', nubs[-1])
-                # FONT SIZE
-                res = '^{\\\\(?:Large|large|small|footnotesize)}$'
-                if (len(nubs) >= 2) and re.match(res, nubs[-2]):
-                    nubs[-2], nubs[-1] = cls._close_func(nubs[-2], nubs[-1])
-                # PARENTHESES
-                if (len(nubs) >= 1) and (nubs[-1] == '{-)}'):
-                    for i in range(len(nubs) - 1, -1, -1):
-                        if nubs[i] == '{(-}':
-                            nubs[i], nubs[-1] \
-                                = cls._close_func(nubs[i], nubs[-1])
-                if (len(nubs) >= 1) and (nubs[-1] == '{=)}'):
-                    for i in range(len(nubs) - 1, -1, -1):
-                        if nubs[i] == '{(=}':
-                            nubs[i], nubs[-1] \
-                                = cls._close_func(nubs[i], nubs[-1])
-                if (len(nubs) >= 1) and (nubs[-1] == '{]}'):
-                    for i in range(len(nubs) - 1, -1, -1):
-                        if nubs[i] == '{[}':
-                            nubs[i], nubs[-1] \
-                                = cls._close_func(nubs[i], nubs[-1])
-                # REMAKE
-                tex = ''.join(nubs)
-                nubs = cls._get_nubs(tex)
-            if c != '\0':
-                tex += c
-        unit = tex
-        return unit
-
-    @staticmethod
-    def _close_func(beg_str, end_str):
-        oc = '^([^ \\\\_\\^\\(\\){}\\[\\]\0])$'
-        beg_str = '{' + beg_str
-        if not re.match('^{.*}$', end_str):
-            if re.match(oc, end_str):
-                end_str = '{' + end_str + '}}'
-            else:
-                end_str = '{}}' + end_str
-        else:
-            end_str = end_str + '}'
-        return beg_str, end_str
-
-    @staticmethod
-    def _get_nubs(tex):
-        nubs = []
-        nub = ''
-        dep = 0
-        for n, c in enumerate(tex[::-1] + '\0'):
-            if c == '{':
-                dep -= 1
-            if c == '}':
-                dep += 1
-            if c != '\0':
-                nub = c + nub
-            if nub != '' and (dep == 0 or c == '\0'):
-                while re.match('^{{(.*)}}$', nub):
-                    tmp = re.sub('^{{(.*)}}$', '{\\1}', nub)
-                    td = 0
-                    ta = 0
-                    for tc in tmp:
-                        if tc == '{':
-                            td -= 1
-                        if tc == '}':
-                            td += 1
-                        if td >= 0:
-                            ta += 1
-                        if ta > 1:
-                            break
-                    if ta == 1:
-                        nub = tmp
-                    else:
-                        break
-                nubs.append(nub)
-                nub = ''
-        return nubs[::-1]
-
-    @staticmethod
-    def _close_paren(unit):
-        d = 0
-        t = ''
-        for c in unit:
-            t += c
-            if re.match(NOT_ESCAPED + '{$', t):
-                d += 1
-            if re.match(NOT_ESCAPED + '}$', t):
-                d -= 1
-        if d > 0:
-            unit = unit + ('}' * d)
-        if d < 0:
-            unit = ('{' * (d * -1)) + unit
-        return unit
-
-    @staticmethod
-    def _envelop_all(unit):
-        tmp = ''
-        while tmp != unit:
-            tmp = unit
-            unit = re.sub('{([^{}]+){', '{{\\1}{', unit)
-            unit = re.sub('}([^{}]+)}', '}{\\1}}', unit)
-            unit = re.sub('}([^{}]+){', '}{\\1}{', unit)
-        return unit
-
-    @staticmethod
-    def _cancel_multi_paren(unit):
-        rm = []
-        for i in range(len(unit) - 1):
-            if unit[i] != '{' or unit[i + 1] != '{':
-                continue
-            dep = [0]
-            d = 0
-            for j in range(i, len(unit)):
-                if unit[j] == '{':
-                    d += 1
-                if unit[j] == '}':
-                    d -= 1
-                dep.append(d)
-                if d == 0:
-                    if unit[j - 1] == '}' or unit[j] == '}':
-                        dep.pop(0)
-                        dep.pop(0)
-                        dep.pop(-1)
-                        dep.pop(-1)
-                        if 1 not in dep:
-                            rm.append(i)
-                            rm.append(j)
-                    break
-        rm.sort()
-        rm.reverse()
-        u = list(unit)
-        for r in rm:
-            u.pop(r)
-        unit = ''.join(u)
-        return unit
-
-    @classmethod
-    def _write_math_exp(cls, oe0, char_state, unit):
-        tmp = ''
-        unit = re.sub('^{', '', unit)
-        unit = re.sub('}$', '', unit)
-        # unit = re.sub('^{(.*)}$', '\\1', unit)
-        # ONE NUB
-        if re.match('^[^{}]+$', unit):
-            cls._write_nub(oe0, char_state, unit)
-            return ''
-        nubs = cls._get_nubs(unit)
-        # FUNCITON
-        if False:
-            pass
-        # INTEGRAL
-        elif len(nubs) == 6 and nubs[0] == '{\\int}':
-            cls._write_int(oe0, char_state, '', nubs[2], nubs[4], nubs[5])
-        # DOUBLE INTEGRAL
-        elif len(nubs) == 6 and nubs[0] == '{\\iint}':
-            cls._write_int(oe0, char_state, '∬', nubs[2], nubs[4], nubs[5])
-        # TRIPLE INTEGRAL
-        elif len(nubs) == 6 and nubs[0] == '{\\iiint}':
-            cls._write_int(oe0, char_state, '∭', nubs[2], nubs[4], nubs[5])
-        # LINE INTEGRAL
-        elif len(nubs) == 6 and nubs[0] == '{\\oint}':
-            cls._write_int(oe0, char_state, '∮', nubs[2], nubs[4], nubs[5])
-        # SIGMA
-        elif len(nubs) == 6 and nubs[0] == '{\\sum}':
-            cls._write_sop(oe0, char_state, '∑', nubs[2], nubs[4], nubs[5])
-        # PI
-        elif len(nubs) == 6 and nubs[0] == '{\\prod}':
-            cls._write_sop(oe0, char_state, '∏', nubs[2], nubs[4], nubs[5])
-        # SUB AND SUP
-        elif len(nubs) == 5 and nubs[1] == '{_}' and nubs[3] == '{^}':
-            cls._write_bap(oe0, char_state, nubs[0], nubs[2], nubs[4])
-        # CONBINATION AND PERMUTATION
-        elif len(nubs) == 5 and nubs[1] == '{_}' and nubs[3] == '{_}':
-            cls._write_cop(oe0, char_state, nubs[0], nubs[2], nubs[4])
-        # LOG
-        elif len(nubs) == 4 and nubs[0] == '{\\log}':
-            if nubs[2] == '{}':
-                cls._write_one(oe0, char_state, 'log', nubs[3])
-            else:
-                cls._write_two(oe0, char_state, 'log',
-                               nubs[1], nubs[2], nubs[3])
-        # LIMIT
-        elif len(nubs) == 4 and nubs[0] == '{\\lim}':
-            cls._write_lim(oe0, char_state, nubs[2], nubs[3])
-        # SIN
-        elif len(nubs) == 4 and nubs[0] == '{\\sin}':
-            if nubs[2] == '{}':
-                cls._write_one(oe0, char_state, 'sin', nubs[3])
-            else:
-                cls._write_two(oe0, char_state, 'sin',
-                               nubs[1], nubs[2], nubs[3])
-        # COS
-        elif len(nubs) == 4 and nubs[0] == '{\\cos}':
-            if nubs[2] == '{}':
-                cls._write_one(oe0, char_state, 'cos', nubs[3])
-            else:
-                cls._write_two(oe0, char_state, 'cos',
-                               nubs[1], nubs[2], nubs[3])
-        # TAN
-        elif len(nubs) == 4 and nubs[0] == '{\\tan}':
-            if nubs[2] == '{}':
-                cls._write_one(oe0, char_state, 'tan', nubs[3])
-            else:
-                cls._write_two(oe0, char_state, 'tan',
-                               nubs[1], nubs[2], nubs[3])
-        # SUB AND SUP
-        elif len(nubs) == 3 and (nubs[1] == '{_}' or nubs[1] == '{^}'):
-            cls._write_bop(oe0, char_state, nubs[1], nubs[0], nubs[2])
-        # FRACTION
-        elif len(nubs) == 3 and nubs[0] == '{\\frac}':
-            cls._write_fra(oe0, char_state, nubs[1], nubs[2])
-        # BINOMIAL
-        elif len(nubs) == 3 and nubs[0] == '{\\binom}':
-            cls._write_bin(oe0, char_state, nubs[1], nubs[2])
-        # RADICAL ROOT
-        elif len(nubs) == 3 and nubs[0] == '{\\sqrt}':
-            t = re.sub('^{\\[(.*)\\]}$', '\\1', nubs[1])
-            cls._write_rrt(oe0, char_state, t, nubs[2])
-        # LIMIT
-        elif len(nubs) == 3 and nubs[0] == '{\\lim}':
-            cls._write_lim(oe0, char_state, nubs[1], nubs[2])
-        # EXPONENTIAL
-        elif len(nubs) == 2 and nubs[0] == '{\\exp}':
-            cls._write_one(oe0, char_state, 'exp', nubs[1])
-        # VECTOR
-        elif len(nubs) == 2 and nubs[0] == '{\\vec}':
-            cls._write_vec(oe0, char_state, nubs[1])
-        # MATRIX
-        elif (len(nubs) >= 2 and
-              nubs[0] == '{\\Xbmx}' and nubs[-1] == '{\\Xemx}'):
-            c = nubs[1]
-            nubs.pop(0)
-            nubs.pop(0)
-            nubs.pop(-1)
-            cls._write_mtx(oe0, char_state, c, nubs)
-        # S PAREN
-        elif len(nubs) >= 2 and nubs[0] == '{(-}' and nubs[-1] == '{-)}':
-            t = re.sub('{\\(-}(.*){-\\)}', '\\1', unit)
-            cls._write_prn(oe0, char_state, '()', '{' + t + '}')
-        # M PAREN
-        elif len(nubs) >= 2 and nubs[0] == '{(=}' and nubs[-1] == '{=)}':
-            t = re.sub('{\\(=}(.*){=\\)}', '\\1', unit)
-            cls._write_prn(oe0, char_state, '{}', '{' + t + '}')
-        # L PAREN
-        elif len(nubs) >= 2 and nubs[0] == '{[}' and nubs[-1] == '{]}':
-            t = re.sub('{\\[}(.*){\\]}', '\\1', unit)
-            cls._write_prn(oe0, char_state, '[]', '{' + t + '}')
-        # LINE BREAK
-        elif len(nubs) == 2 and nubs[0] == '{\\\\}':
-            char_state.must_break_line = True
-            cls._write_math_exp(oe0, char_state, nubs[1])
-            char_state.must_break_line = False
-        # FONT SIZE
-        elif len(nubs) == 2 and nubs[0] == '{\\footnotesize}':
-            char_state.font_scale = 0.6
-            cls._write_math_exp(oe0, char_state, nubs[1])
-            char_state.font_scale = 1.0
-        elif len(nubs) == 2 and nubs[0] == '{\\small}':
-            char_state.font_scale = 0.8
-            cls._write_math_exp(oe0, char_state, nubs[1])
-            char_state.font_scale = 1.0
-        elif len(nubs) == 2 and nubs[0] == '{\\large}':
-            char_state.font_scale = 1.2
-            cls._write_math_exp(oe0, char_state, nubs[1])
-            char_state.font_scale = 1.0
-        elif len(nubs) == 2 and nubs[0] == '{\\Large}':
-            char_state.font_scale = 1.4
-            cls._write_math_exp(oe0, char_state, nubs[1])
-            char_state.font_scale = 1.0
-        # ROMAN
-        elif len(nubs) == 2 and nubs[0] == '{\\mathrm}':
-            char_state.is_italic = False
-            cls._write_math_exp(oe0, char_state, nubs[1])
-            char_state.is_italic = True
-        # BOLD
-        elif len(nubs) == 2 and nubs[0] == '{\\mathbf}':
-            char_state.is_bold = True
-            cls._write_math_exp(oe0, char_state, nubs[1])
-            char_state.is_bold = False
-        # STRIKE
-        elif len(nubs) == 2 and nubs[0] == '{\\sout}':
-            char_state.has_strike = True
-            cls._write_math_exp(oe0, char_state, nubs[1])
-            char_state.has_strike = False
-        # UNDERLINE
-        elif len(nubs) == 2 and nubs[0] == '{\\underline}':
-            char_state.underline = 'single'
-            cls._write_math_exp(oe0, char_state, nubs[1])
-            char_state.underline = None
-        # FONT COLOR
-        elif len(nubs) == 3 and nubs[0] == '{\\textcolor}':
-            char_state.font_color = re.sub('^{(.*)}$', '\\1', nubs[1])
-            cls._write_math_exp(oe0, char_state, nubs[2])
-            char_state.font_color = None
-        # HIGHLIGHT COLOR
-        elif len(nubs) == 3 and nubs[0] == '{\\colorbox}':
-            char_state.highlight_color = re.sub('^{(.*)}$', '\\1', nubs[1])
-            cls._write_math_exp(oe0, char_state, nubs[2])
-            char_state.highlight_color = None
-        # TRACK CHANGES
-        elif len(nubs) >= 3 and nubs[0] == '{->}' and nubs[2] == '{<-}':
-            char_state.track_changes = 'del'
-            cls._write_math_exp(oe0, char_state, nubs[1])
-            char_state.track_changes = ''
-        elif len(nubs) >= 3 and nubs[0] == '{+>}' and nubs[2] == '{<+}':
-            char_state.track_changes = 'ins'
-            cls._write_math_exp(oe0, char_state, nubs[1])
-            char_state.track_changes = ''
-        # ERROR
-        elif (len(nubs) == 1) and (not re.match('^{.*}$', nubs[0])):
-            cls._write_nub(oe0, char_state, unit)
-        # RECURSION
-        else:
-            for n in nubs:
-                cls._write_math_exp(oe0, char_state, n)
-        return ''
-
-    @classmethod
-    def _write_nub(cls, oe0, char_state, nub):
-        if nub == '':
-            return
-        nub = re.sub('%9', '  ', nub)
-        nub = re.sub('%3', ' ', nub)
-        nub = re.sub('%2', ' ', nub)
-        nub = re.sub('%1', ' ', nub)
-        nub = re.sub('%0', '%', nub)
-        oe1 = XML.add_tag(oe0, 'm:r', {})
-        if char_state.track_changes == 'del':
-            oe2 = XML.add_tag(oe1, 'w:del', {})
-        elif char_state.track_changes == 'ins':
-            oe2 = XML.add_tag(oe1, 'w:ins', {})
-        else:
-            oe2 = oe1
-        cls._decorate_nub(oe2, char_state)
-        oe3 = XML.add_tag(oe2, 'm:t', {}, nub)
-
-    @classmethod
-    def _decorate_nub(cls, oe0, char_state):
-        cls._decorate_nub_m(oe0, char_state)
-        cls._decorate_nub_w(oe0, char_state)
-
-    @staticmethod
-    def _decorate_nub_m(oe0, char_state):
-        oe1 = XML.add_tag(oe0, 'm:rPr', {})
-        # LINE BREAK
-        if char_state.must_break_line:
-            oe2 = XML.add_tag(oe1, 'm:brk', {'m:alnAt': '1'})
-        # ROMAN AND BOLD
-        if char_state.is_italic and char_state.is_bold:
-            oe2 = XML.add_tag(oe1, 'm:sty', {'m:val': 'bi'})
-        elif char_state.is_bold:
-            oe2 = XML.add_tag(oe1, 'm:sty', {'m:val': 'b'})
-        elif not char_state.is_italic:
-            oe2 = XML.add_tag(oe1, 'm:sty', {'m:val': 'p'})
-
-    @staticmethod
-    def _decorate_nub_w(oe0, char_state):
-        m_size = round(char_state.font_size * char_state.font_scale, 1)
-        oe1 = XML.add_tag(oe0, 'w:rPr', {})
-        # (FONT, ITALIC, BOLD)
-        # STRIKE
-        if char_state.has_strike:
-            oe2 = XML.add_tag(oe1, 'w:strike', {})
-        # UNDERLINE
-        if char_state.underline is not None:
-            oe2 = XML.add_tag(oe1, 'w:u', {'w:val': char_state.underline})
-        # FONT SIZE
-        oe2 = XML.add_tag(oe1, 'w:sz', {'w:val': str(m_size * 2)})
-        # oe2 = XML.add_tag(oe1, 'w:szCs', {'w:val': str(m_size * 2)})
-        # FONT WIDTH
-        if char_state.font_width != 1.00:
-            opt = {'w:val': str(int(char_state.font_width * 100))}
-            oe2 = XML.add_tag(oe1, 'w:w', opt)
-        # FONT COLOR
-        if char_state.font_color is not None:
-            oe2 = XML.add_tag(oe1, 'w:color', {'w:val': char_state.font_color})
-        # HIGHTLIGHT COLOR
-        if char_state.highlight_color is not None:
-            opt = {'w:val': char_state.highlight_color}
-            oe2 = XML.add_tag(oe1, 'w:highlight', opt)
-        # (SUBSCRIPT, SUPERSCRIPT)
-
-    # INTEGRAL
-    @classmethod
-    def _write_int(cls, oe0, char_state, c, t1, t2, t3):
-        oe1 = XML.add_tag(oe0, 'm:nary', {})
-        oe2 = XML.add_tag(oe1, 'm:naryPr', {})
-        if c != '':
-            oe3 = XML.add_tag(oe2, 'm:chr', {'m:val': c})
-        oe3 = XML.add_tag(oe2, 'm:limLoc', {'m:val': 'subSup'})
-        if t1 == '' or t1 == '{}':
-            oe3 = XML.add_tag(oe2, 'm:subHide', {'m:val': '1'})
-        if t2 == '' or t2 == '{}':
-            oe3 = XML.add_tag(oe2, 'm:supHide', {'m:val': '1'})
-        #
-        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        cls._decorate_nub_w(oe3, char_state)
-        #
-        oe2 = XML.add_tag(oe1, 'm:sub', {})
-        if not (t1 == '' or t1 == '{}'):
-            cls._write_math_exp(oe2, char_state, t1)
-        oe2 = XML.add_tag(oe1, 'm:sup', {})
-        if not (t2 == '' or t2 == '{}'):
-            cls._write_math_exp(oe2, char_state, t2)
-        oe2 = XML.add_tag(oe1, 'm:e', {})
-        cls._write_math_exp(oe2, char_state, t3)
-
-    # SIGMA, PI
-    @classmethod
-    def _write_sop(cls, oe0, char_state, c, t1, t2, t3):
-        oe1 = XML.add_tag(oe0, 'm:nary', {})
-        oe2 = XML.add_tag(oe1, 'm:naryPr', {})
-        oe3 = XML.add_tag(oe2, 'm:chr', {'m:val': c})
-        oe3 = XML.add_tag(oe2, 'm:limLoc', {'m:val': 'undOvr'})
-        if t1 == '' or t1 == '{}':
-            oe3 = XML.add_tag(oe2, 'm:subHide', {'m:val': '1'})
-        if t2 == '' or t2 == '{}':
-            oe3 = XML.add_tag(oe2, 'm:supHide', {'m:val': '1'})
-        #
-        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        cls._decorate_nub_w(oe3, char_state)
-        #
-        oe2 = XML.add_tag(oe1, 'm:sub', {})
-        if not (t1 == '' or t1 == '{}'):
-            cls._write_math_exp(oe2, char_state, t1)
-        oe2 = XML.add_tag(oe1, 'm:sup', {})
-        if not (t2 == '' or t2 == '{}'):
-            cls._write_math_exp(oe2, char_state, t2)
-        oe2 = XML.add_tag(oe1, 'm:e', {})
-        cls._write_math_exp(oe2, char_state, t3)
-
-    # SUB AND SUP
-    @classmethod
-    def _write_bap(cls, oe0, char_state, t1, t2, t3):
-        oe1 = XML.add_tag(oe0, 'm:sSubSup', {})
-        #
-        oe2 = XML.add_tag(oe1, 'm:sSubSupPr', {})
-        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        cls._decorate_nub_w(oe3, char_state)
-        #
-        oe2 = XML.add_tag(oe1, 'm:e', {})
-        cls._write_math_exp(oe2, char_state, t1)
-        oe2 = XML.add_tag(oe1, 'm:sub', {})
-        cls._write_math_exp(oe2, char_state, t2)
-        oe2 = XML.add_tag(oe1, 'm:sup', {})
-        cls._write_math_exp(oe2, char_state, t3)
-
-    # CONBINATION, PERMUTATION
-    @classmethod
-    def _write_cop(cls, oe0, char_state, t1, t2, t3):
-        oe1 = XML.add_tag(oe0, 'm:sPre', {})
-        #
-        oe2 = XML.add_tag(oe1, 'm:sPrePr', {})
-        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        cls._decorate_nub_w(oe3, char_state, char_state)
-        #
-        oe2 = XML.add_tag(oe1, 'm:sub', {})
-        cls._write_math_exp(oe2, char_state, t2)
-        oe2 = XML.add_tag(oe1, 'm:sup', {})
-        cls._write_math_exp(oe2, char_state, '{}')
-        oe2 = XML.add_tag(oe1, 'm:e', {})
-        oe3 = XML.add_tag(oe2, 'm:sSub', {})
-        #
-        oe4 = XML.add_tag(oe3, 'm:sSubPr', {})
-        oe5 = XML.add_tag(oe4, 'm:ctrlPr', {})
-        cls._decorate_nub_w(oe5, char_state)
-        #
-        oe4 = XML.add_tag(oe3, 'm:e', {})
-        cls._write_math_exp(oe4, char_state, t1)
-        oe4 = XML.add_tag(oe3, 'm:sub', {})
-        cls._write_math_exp(oe4, char_state, t3)
-
-    # TWO ARGUMENTS FUNCTION
-    @classmethod
-    def _write_two(cls, oe0, char_state, c, s, t1, t2):
-        # \sin^2{x}, \log_2{x}
-        oe1 = XML.add_tag(oe0, 'm:func', {})
-        #
-        oe2 = XML.add_tag(oe1, 'm:funcPr', {})
-        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        cls._decorate_nub_w(oe3, char_state)
-        #
-        oe2 = XML.add_tag(oe1, 'm:fName', {})
-        if s == '_' or s == '{_}':
-            oe3 = XML.add_tag(oe2, 'm:sSub', {})
-        else:
-            oe3 = XML.add_tag(oe2, 'm:sSup', {})
-        oe4 = XML.add_tag(oe3, 'm:e', {})
-        oe5 = XML.add_tag(oe4, 'm:r', {})
-        #
-        cls._decorate_nub_m(oe5, char_state)
-        oe6 = XML.add_tag(oe5, 'm:t', {}, c)
-        #
-        if s == '_' or s == '{_}':
-            oe4 = XML.add_tag(oe3, 'm:sub', {})
-        else:
-            oe4 = XML.add_tag(oe3, 'm:sup', {})
-        cls._write_math_exp(oe4, char_state, t1)
-        #
-        oe2 = XML.add_tag(oe1, 'm:e', {})
-        cls._write_math_exp(oe2, char_state, t2)
-
-    # SUBSCRIPT OR SUPERSCRIPT
-    @classmethod
-    def _write_bop(cls, oe0, char_state, s, t1, t2):
-        # x_i, x^2
-        if s == '_' or s == '{_}':
-            oe1 = XML.add_tag(oe0, 'm:sSub', {})
-            oe2 = XML.add_tag(oe1, 'm:sSubPr', {})
-        else:
-            oe1 = XML.add_tag(oe0, 'm:sSup', {})
-            oe2 = XML.add_tag(oe1, 'm:sSupPr', {})
-        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        cls._decorate_nub_w(oe3, char_state)
-        oe2 = XML.add_tag(oe1, 'm:e', {})
-        cls._write_math_exp(oe2, char_state, t1)
-        if s == '_' or s == '{_}':
-            oe2 = XML.add_tag(oe1, 'm:sub', {})
-        else:
-            oe2 = XML.add_tag(oe1, 'm:sup', {})
-        cls._write_math_exp(oe2, char_state, t2)
-
-    # FRACTION
-    @classmethod
-    def _write_fra(cls, oe0, char_state, t1, t2):
-        # \frac{2}{3}
-        oe1 = XML.add_tag(oe0, 'm:f', {})
-        #
-        oe2 = XML.add_tag(oe1, 'm:fPr', {})
-        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        cls._decorate_nub_w(oe3, char_state)
-        #
-        oe2 = XML.add_tag(oe1, 'm:num', {})
-        cls._write_math_exp(oe2, char_state, t1)
-        oe2 = XML.add_tag(oe1, 'm:den', {})
-        cls._write_math_exp(oe2, char_state, t2)
-
-    # BINOMIAL
-    @classmethod
-    def _write_bin(cls, oe0, char_state, t1, t2):
-        # \binom{2}{3}
-        oe1 = XML.add_tag(oe0, 'm:d', {})
-        oe2 = XML.add_tag(oe1, 'm:dPr', {})
-        #
-        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        cls._decorate_nub(oe3, char_state)
-        #
-        oe2 = XML.add_tag(oe1, 'm:e', {})
-        oe3 = XML.add_tag(oe2, 'm:f', {})
-        #
-        oe4 = XML.add_tag(oe3, 'm:fPr', {})
-        oe5 = XML.add_tag(oe4, 'm:type', {'m:val': 'noBar'})
-        oe5 = XML.add_tag(oe4, 'm:ctrlPr', {})
-        cls._decorate_nub_w(oe5, char_state)
-        #
-        oe4 = XML.add_tag(oe3, 'm:num', {})
-        cls._write_math_exp(oe4, char_state, t1)
-        oe4 = XML.add_tag(oe3, 'm:den', {})
-        cls._write_math_exp(oe4, char_state, t2)
-
-    # RADICAL ROOT
-    @classmethod
-    def _write_rrt(cls, oe0, char_state, t1, t2):
-        # \sqrt[3]{2}
-        oe1 = XML.add_tag(oe0, 'm:rad', {})
-        #
-        oe2 = XML.add_tag(oe1, 'm:radPr', {})
-        if t1 == '' or t1 == '{}':
-            oe3 = XML.add_tag(oe2, 'm:degHide', {'m:val': '1'})
-        #
-        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        cls._decorate_nub_w(oe3, char_state)
-        #
-        oe2 = XML.add_tag(oe1, 'm:deg', {})
-        cls._write_math_exp(oe2, char_state, t1)
-        oe2 = XML.add_tag(oe1, 'm:e', {})
-        cls._write_math_exp(oe2, char_state, t2)
-
-    # LIMIT
-    @classmethod
-    def _write_lim(cls, oe0, char_state, t1, t2):
-        # \lim_{x}{y}
-        oe1 = XML.add_tag(oe0, 'm:func', {})
-        #
-        oe2 = XML.add_tag(oe1, 'm:funcPr', {})
-        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        cls._decorate_nub_w(oe3, char_state)
-        #
-        oe2 = XML.add_tag(oe1, 'm:fName', {})
-        oe3 = XML.add_tag(oe2, 'm:limLow', {})
-        #
-        oe4 = XML.add_tag(oe3, 'm:limLowPr', {})
-        oe5 = XML.add_tag(oe4, 'm:ctrlPr', {})
-        cls._decorate_nub_w(oe5, char_state)
-        #
-        oe4 = XML.add_tag(oe3, 'm:e', {})
-        oe5 = XML.add_tag(oe4, 'm:r', {})
-        #
-        cls._decorate_nub_m(oe5, char_state)
-        oe6 = XML.add_tag(oe5, 'm:t', {}, 'lim')
-        oe4 = XML.add_tag(oe3, 'm:lim', {})
-        cls._write_math_exp(oe4, char_state, t1)
-        oe2 = XML.add_tag(oe1, 'm:e', {})
-        cls._write_math_exp(oe2, char_state, t2)
-
-    # ONE ARGUMENT FUNCTION
-    @classmethod
-    def _write_one(cls, oe0, char_state, c, t1):
-        # \sin{x}, \exp{y}
-        oe1 = XML.add_tag(oe0, 'm:func', {})
-        #
-        oe2 = XML.add_tag(oe1, 'm:funcPr', {})
-        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        cls._decorate_nub_w(oe3, char_state)
-        #
-        oe2 = XML.add_tag(oe1, 'm:fName', {})
-        oe3 = XML.add_tag(oe2, 'm:r', {})
-        #
-        cls._decorate_nub_m(oe3, char_state)
-        oe4 = XML.add_tag(oe3, 'm:t', {}, c)
-        oe2 = XML.add_tag(oe1, 'm:e', {})
-        cls._write_math_exp(oe2, char_state, t1)
-
-    # VECTOR
-    @classmethod
-    def _write_vec(cls, oe0, char_state, t1):
-        # \vec{x}
-        oe1 = XML.add_tag(oe0, 'm:acc', {})
-        #
-        oe2 = XML.add_tag(oe1, 'm:accPr', {})
-        oe3 = XML.add_tag(oe2, 'm:chr', {'m:val': '⃗'})
-        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        cls._decorate_nub(oe3, char_state)
-        #
-        oe2 = XML.add_tag(oe1, 'm:e', {})
-        cls._write_math_exp(oe2, char_state, t1)
-
-    # MATRIX
-    @classmethod
-    def _write_mtx(cls, oe0, char_state, c, t1):
-        # \begin{pmatrix}a&b\\c&d\end{pmatrix}
-        nubs = t1
-        nubs.append('{\\Xlmx}')
-        mtrx = []
-        row = []
-        for cel in nubs:
-            cel = re.sub('^{(.*)}$', '\\1', cel)
-            if cel != '\\Xlmx':
-                row.append(cel)
-            else:
-                mtrx.append(row)
-                row = []
-        nrow = len(mtrx[0])
-        #
-        oe1 = XML.add_tag(oe0, 'm:d', {})
-        #
-        oe2 = XML.add_tag(oe1, 'm:dPr', {})
-        if c == '{pmatrix}':
-            oe3 = XML.add_tag(oe2, 'm:begChr', {'m:val': '('})
-            oe3 = XML.add_tag(oe2, 'm:endChr', {'m:val': ')'})
-        elif c == '{bmatrix}':
-            oe3 = XML.add_tag(oe2, 'm:begChr', {'m:val': '['})
-            oe3 = XML.add_tag(oe2, 'm:endChr', {'m:val': ']'})
-        elif c == '{vmatrix}':
-            oe3 = XML.add_tag(oe2, 'm:begChr', {'m:val': '|'})
-            oe3 = XML.add_tag(oe2, 'm:endChr', {'m:val': '|'})
-        elif c == '{Vmatrix}':
-            oe3 = XML.add_tag(oe2, 'm:begChr', {'m:val': '‖'})
-            oe3 = XML.add_tag(oe2, 'm:endChr', {'m:val': '‖'})
-        else:
-            oe3 = XML.add_tag(oe2, 'm:begChr', {'m:val': ''})
-            oe3 = XML.add_tag(oe2, 'm:endChr', {'m:val': ''})
-        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        cls._decorate_nub(oe3, char_state)
-        #
-        oe2 = XML.add_tag(oe1, 'm:e', {})
-        oe3 = XML.add_tag(oe2, 'm:m', {})
-        #
-        oe4 = XML.add_tag(oe3, 'm:mPr', {})
-        oe5 = XML.add_tag(oe4, 'm:ctrlPr', {})
-        cls._decorate_nub(oe5, char_state)
-        #
-        for row in mtrx:
-            oe4 = XML.add_tag(oe3, 'm:mr', {})
-            for cel in row:
-                oe5 = XML.add_tag(oe4, 'm:e', {})
-                cls._write_math_exp(oe5, char_state, '{' + cel + '}')
-
-    # PARENTHESIS
-    @classmethod
-    def _write_prn(cls, oe0, char_state, t1, t2):
-        oe1 = XML.add_tag(oe0, 'm:d', {})
-        oe2 = XML.add_tag(oe1, 'm:dPr', {})
-        oe3 = XML.add_tag(oe2, 'm:begChr', {'m:val': t1[0]})
-        oe3 = XML.add_tag(oe2, 'm:endChr', {'m:val': t1[1]})
-        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        cls._decorate_nub(oe3, char_state)
-        oe2 = XML.add_tag(oe1, 'm:e', {})
-        cls._write_math_exp(oe2, char_state, t2)
 
 
 class Form:
@@ -2938,6 +1811,1142 @@ class Form:
             return False
         Form.original_file = value
         return True
+
+
+class CharsDatum:
+
+    """A class to keep characters data"""
+
+    def __init__(self, chars, chars_state):
+        self.chars = chars
+        self.chars_state = chars_state.copy()
+
+
+class CharsState:
+
+    """A class to keep character state"""
+
+    def __init__(self):
+        self.initialize()
+
+    def initialize(self):
+        self.mincho_font = Form.mincho_font
+        self.gothic_font = Form.gothic_font
+        self.ivs_font = Form.ivs_font
+        self.font_size = Form.font_size
+        self.font_scale = 1.0
+        self.font_width = 1.0
+        self.is_italic = False
+        self.is_bold = False
+        self.has_strike = False
+        self.is_preformatted = False
+        self.underline = None
+        self.font_color = None
+        self.highlight_color = None
+        self.sub_or_sup = ''
+        self.track_changes = ''  # ''|'del'|'ins'
+
+    def copy(self):
+        copy = CharsState()
+        for v in vars(copy):
+            vars(copy)[v] = vars(self)[v]
+        return copy
+
+
+class XML:
+
+    """A class to handle xml"""
+
+    @staticmethod
+    def add_tag(oe0, tag, opts={}, text=None):
+        oe1 = OxmlElement(tag)
+        for item in opts:
+            value = opts[item]
+            oe1.set(ns.qn(item), value)
+        if text is not None:
+            oe1.text = text
+        oe0.append(oe1)
+        return oe1
+
+    @staticmethod
+    def write_unit(oe0, chars_state, unit):
+        if unit == '':
+            return ''
+        unit = XML._prepare_unit(unit)
+        if chars_state.track_changes == 'del':
+            oe1 = XML.add_tag(oe0, 'w:del', {'w:id': '1'})
+            tag = 'w:delText'
+        elif chars_state.track_changes == 'ins':
+            oe1 = XML.add_tag(oe0, 'w:ins', {'w:id': '1'})
+            tag = 'w:t'
+        else:
+            oe1 = oe0
+            tag = 'w:t'
+        oe2 = XML.add_tag(oe1, 'w:r')
+        XML._decorate_unit(oe2, chars_state)
+        res = '^([^\t\n]*)([\t\n\0])((?:.|\n)*)$'
+        unit += '\0'
+        while re.match(res, unit):
+            rest = re.sub(res, '\\1', unit)
+            char = re.sub(res, '\\2', unit)
+            unit = re.sub(res, '\\3', unit)
+            oe3 = XML.add_tag(oe2, tag, {}, rest)
+            if char == '\t':
+                oe3 = XML.add_tag(oe2, 'w:tab', {})
+            elif char == '\n':
+                oe3 = XML.add_tag(oe2, 'w:br', {})
+            elif char == '\0':
+                pass
+        return ''
+
+    @staticmethod
+    def _prepare_unit(unit):
+        # REMOVE RELAX SYMBOL ("<>" -> "" / "\<\>" -> "\<\>")
+        d = []
+        for i in range(len(unit)):
+            if re.match(NOT_ESCAPED + '<$', unit[:i]):
+                if re.match('^>', unit[i:]):
+                    d.append(i)
+        us = list(unit)
+        for i in d[::-1]:
+            us.pop(i)
+            us.pop(i - 1)
+        unit = ''.join(us)
+        # REMOVE ESCAPE SYMBOL (BACKSLASH)
+        unit = re.sub('\\\\', '-\\\\', unit)
+        unit = re.sub('-\\\\-\\\\', '-\\\\\\\\', unit)
+        unit = re.sub('-\\\\', '', unit)
+        # TRANSFORM
+        # unit = unit.replace('&', '&amp;')
+        # unit = unit.replace('>', '&gt;')
+        # unit = unit.replace('"', '&quot;')
+        # unit = unit.replace('<', '&lt;')
+        # RETURN
+        return unit
+
+    @staticmethod
+    def write_page_number(oe0, chars_state, char):
+        oe1 = XML.add_tag(oe0, 'w:r')
+        oe2 = XML._decorate_unit(oe1, chars_state)
+        oe2 = XML.add_tag(oe1, 'w:fldChar', {'w:fldCharType': 'begin'})
+        #
+        oe1 = XML.add_tag(oe0, 'w:r')
+        oe2 = XML._decorate_unit(oe1, chars_state)
+        opts = {}
+        # opts = {'xml:space': 'preserve'}
+        if char == 'n':
+            oe2 = XML.add_tag(oe1, 'w:instrText', opts, 'PAGE')
+        elif char == 'N':
+            oe2 = XML.add_tag(oe1, 'w:instrText', opts, 'NUMPAGES')
+        #
+        oe1 = XML.add_tag(oe0, 'w:r')
+        oe2 = XML._decorate_unit(oe1, chars_state)
+        oe2 = XML.add_tag(oe1, 'w:fldChar', {'w:fldCharType': 'end'})
+        #
+        return ''
+
+    @staticmethod
+    def _decorate_unit(oe0, chars_state):
+        size = round(chars_state.font_size * chars_state.font_scale, 1)
+        oe1 = XML.add_tag(oe0, 'w:rPr', {})
+        # FONT
+        if chars_state.is_preformatted:
+            font = chars_state.gothic_font
+        else:
+            font = chars_state.mincho_font
+        opt = {'w:ascii': font, 'w:hAnsi': font, 'w:eastAsia': font}
+        oe2 = XML.add_tag(oe1, 'w:rFonts', opt)
+        # ITALIC
+        if chars_state.is_italic:
+            oe2 = XML.add_tag(oe1, 'w:i', {})
+        # BOLD
+        if chars_state.is_bold:
+            oe2 = XML.add_tag(oe1, 'w:b', {})
+        # STRIKE
+        if chars_state.has_strike:
+            oe2 = XML.add_tag(oe1, 'w:strike', {})
+        # UNDERLINE
+        if chars_state.underline is not None:
+            oe2 = XML.add_tag(oe1, 'w:u', {'w:val': chars_state.underline})
+        # FONT SIZE
+        oe2 = XML.add_tag(oe1, 'w:sz', {'w:val': str(size * 2)})
+        # oe2 = XML.add_tag(oe1, 'w:szCs', {'w:val': str(size * 2)})
+        # FONT WIDTH
+        if chars_state.font_width != 1.00:
+            opt = {'w:val': str(int(chars_state.font_width * 100))}
+            oe2 = XML.add_tag(oe1, 'w:w', opt)
+        # FONT COLOR
+        if chars_state.font_color is not None:
+            oe2 = XML.add_tag(oe1, 'w:color', {'w:val': chars_state.font_color})
+        # HIGHTLIGHT COLOR
+        if chars_state.highlight_color is not None:
+            opt = {'w:val': chars_state.highlight_color}
+            oe2 = XML.add_tag(oe1, 'w:highlight', opt)
+        # SUBSCRIPT
+        if chars_state.sub_or_sup == 'sub':
+            oe2 = XML.add_tag(oe1, 'w:vertAlign', {'w:val': 'subscript'})
+        # SUPERSCRIPT
+        if chars_state.sub_or_sup == 'sup':
+            oe2 = XML.add_tag(oe1, 'w:vertAlign', {'w:val': 'superscript'})
+
+
+class Math:
+
+    """A class to write math expressions"""
+
+    symbols = {
+        '\\alpha': 'α', '\\beta': 'β', '\\gamma': 'γ', '\\delta': 'δ',
+        '\\epsilon': 'ϵ', '\\zeta': 'ζ', '\\eta': 'η', '\\theta': 'θ',
+        '\\iota': 'ι', '\\kappa': 'κ', '\\lambda': 'λ', '\\mu': 'μ',
+        '\\nu': 'ν', '\\xi': 'ξ', '\\omicron': 'o', '\\pi': 'π',
+        '\\rho': 'ρ', '\\sigma': 'σ', '\\tau': 'τ', '\\upsilon': 'υ',
+        '\\phi': 'ϕ', '\\chi': 'χ', '\\psi': 'ψ', '\\omega': 'ω',
+        '\\varepsilon': 'ε', '\\vartheta': 'ϑ', '\\varpi': 'ϖ',
+        '\\varrho': 'ϱ', '\\varsigma': 'ς', '\\varphi': 'φ',
+        '\\Alpha': 'A', '\\Beta': 'B', '\\Gamma': 'Γ', '\\Delta': 'Δ',
+        '\\Epsilon': 'E', '\\Zeta': 'Z', '\\Eta': 'H', '\\Theta': 'Θ',
+        '\\Iota': 'I', '\\Kappa': 'K', '\\Lambda': 'Λ', '\\Mu': 'M',
+        '\\Nu': 'N', '\\Xi': 'Ξ', '\\Omicron': 'O', '\\Pi': 'Π',
+        '\\Rho': 'P', '\\Sigma': 'Σ', '\\Tau': 'T', '\\Upsilon': 'Υ',
+        '\\Phi': 'Φ', '\\Chi': 'X', '\\Psi': 'Ψ', '\\Omega': 'Ω',
+        '\\partial': '∂',
+        '\\pm': '±', '\\mp': '∓', '\\times': '×', '\\div': '÷',
+        '\\cdot': '⋅',
+        '\\equiv': '≡', '\\neq': '≠', '\\fallingdotseq': '≒',
+        '\\geqq': '≧', '\\leqq': '≦', '\\gg': '≫', '\\ll': '≪',
+        '\\in': '∈', '\\ni': '∋',
+        '\\notin': '∉', '\\notni': '∌',
+        '\\subset': '⊂', '\\supset': '⊃',
+        '\\subseteq': '⊆', '\\supseteq': '⊇',
+        '\\nsubseteq': '⊈', '\\nsupseteq': '⊉',
+        '\\subsetneq': '⊊', '\\supsetneq': '⊋',
+        '\\cap': '∩', '\\cup': '∪',
+        '\\emptyset': '∅', '\\varnothing': '∅',
+        '\\mathbb{N}': 'ℕ', '\\mathbb{Z}': 'ℤ', '\\mathbb{R}': 'ℝ',
+        '\\mathbb{C}': 'ℂ', '\\mathbb{K}': '𝕂',
+        '\\forall': '∀', '\\exists': '∃',
+        '\\therefore': '∴', '\\because': '∵',
+        '\\to': '→', '\\infty': '∞',
+    }
+
+    @classmethod
+    def write_unit(cls, oe0, chars_state, unit):
+        # ADD VARIABLES
+        chars_state.is_italic = True
+        chars_state.must_break_line = False
+        # ADD MATH TAG
+        oe1 = XML.add_tag(oe0, 'm:oMath')
+        # PREPARE
+        unit = cls._prepare(unit)
+        # WRITE
+        unit = cls._write_math_exp(oe1, chars_state, unit)
+        # RETURN
+        return unit
+
+    @classmethod
+    def _prepare(cls, unit):
+        unit = re.sub('^\\\\\\[(.*)\\\\\\]$', '{\\1}', unit)
+        unit = cls._envelop_command(unit)
+        unit = cls._replace_symbol(unit)
+        unit = unit.replace(' ', '')  # ' ' -> ''
+        unit = cls._prepare_func(unit)
+        unit = cls._close_paren(unit)
+        unit = cls._envelop_all(unit)
+        unit = cls._cancel_multi_paren(unit)
+        return unit
+
+    @staticmethod
+    def _envelop_command(unit):
+        # TEX COMMAND
+        tex = ''
+        res1 = NOT_ESCAPED + '(\\\\[A-Za-z]+)$'
+        res9 = '^[^A-Za-z]$'
+        for c in unit + '\0':
+            # ALPHABET COMMAND
+            if re.match(res9, c):
+                tex = re.sub(res1, '\\1{\\2}', tex)
+            tex = re.sub(NOT_ESCAPED + '(\\\\\\\\)$', '\\1{\\2}', tex)
+            # FONT SIZE
+            tex = re.sub('{\\\\tiny}$', '{\\\\footnotesize}', tex)
+            tex = re.sub('{\\\\scriptsize}$', '{\\\\footnotesize}', tex)
+            tex = re.sub('{\\\\huge}$', '{\\\\Large}', tex)
+            tex = re.sub('{\\\\Huge}$', '{\\\\Large}', tex)
+            tex = re.sub('{{\\\\footnotesize}$', '{\\\\footnotesize}{', tex)
+            tex = re.sub('{{\\\\small}$', '{\\\\small}{', tex)
+            tex = re.sub('{{\\\\normalsize}$', '{\\\\normalsize}{', tex)
+            tex = re.sub('{{\\\\large}$', '{\\\\large}{', tex)
+            tex = re.sub('{{\\\\Large}$', '{\\\\Large}{', tex)
+            # SPACE
+            tex = re.sub('\\\\%$', '%0', tex)                   # "%"  -> "%0"
+            tex = re.sub(NOT_ESCAPED + '\\\\,$', '\\1%1', tex)  # "\," -> "%1"
+            tex = re.sub(NOT_ESCAPED + '\\\\:$', '\\1%2', tex)  # "\:" -> "%2"
+            tex = re.sub(NOT_ESCAPED + '\\\\;$', '\\1%3', tex)  # "\;" -> "%3"
+            tex = re.sub(NOT_ESCAPED + '\\\\ $', '\\1%4', tex)  # "\ " -> "%4"
+            tex = re.sub(NOT_ESCAPED + '\\\\!$', '\\1%5', tex)  # "\!" -> "%5"
+            # PARENTHESES
+            tex = re.sub('{\\\\[Bb]igg?}', '', tex)
+            tex = re.sub('{\\\\(?:left|right)}', '', tex)
+            tex = re.sub('\\($', '{(-}', tex)      # "("  -> "{(-}"
+            tex = re.sub('\\)$', '{-)}', tex)      # ")"  -> "{-)}"
+            tex = re.sub(NOT_ESCAPED + '\\\\{$',
+                         '\\1{(=}', tex)           # "\{" -> "{(=}"
+            tex = re.sub(NOT_ESCAPED + '\\\\}$',
+                         '\\1{=)}', tex)           # "\}" -> "{=)}"
+            tex = re.sub('\\[$', '{[}', tex)       # "["  -> "{[}"
+            tex = re.sub('\\]$', '{]}', tex)       # "]"  -> "{]}"
+            # TEX COMMAND OPTION
+            sqrt = '{\\\\sqrt}' + '{\\[}([^\\[\\]]*' \
+                + ('(?:\\[[^\\[\\]]*' * 3) + ('\\][^\\[\\]]*)*' * 3) \
+                + '){\\]}$'
+            tex = re.sub(NOT_ESCAPED + sqrt, '\\1{\\\\sqrt}{[\\2]}', tex)
+            # DEL AND INS
+            tex = re.sub(NOT_ESCAPED + '\\->$', '\\1{{->}{', tex)
+            tex = re.sub(NOT_ESCAPED + '<\\-$', '\\1}{<-}}', tex)
+            tex = re.sub(NOT_ESCAPED + '\\+>$', '\\1{{+>}{', tex)
+            tex = re.sub(NOT_ESCAPED + '<\\+$', '\\1}{<+}}', tex)
+            # SUB, SUP (NO PARENTHESES)
+            oc = '^([^ \\\\_\\^\\(\\){}\\[\\]\0])$'
+            if re.match(NOT_ESCAPED + '(_|\\^)$', tex + c):
+                if tex[-1] != '}':
+                    if re.match(oc, tex[-1]):
+                        tex = re.sub('(.)$', '{\\1}', tex)
+                    else:
+                        tex += '{}'
+            if re.match(NOT_ESCAPED + '(_|\\^)$', tex):
+                if c != '{':
+                    if re.match(oc, c):
+                        tex += '{' + c + '}'
+                        c = ''
+                    else:
+                        tex += '{}'
+            # ADD CHAR
+            if c != '\0':
+                tex += c
+        unit = tex
+        return unit
+
+    @staticmethod
+    def _replace_symbol(unit):
+        for com in Math.symbols:
+            unit = re.sub('{\\' + com + '}', Math.symbols[com], unit)
+        return unit
+
+    @classmethod
+    def _prepare_func(cls, unit):
+        tex = ''
+        for c in unit + '\0':
+            nubs = cls._get_nubs(tex)
+            tmps = []
+            while tmps != nubs:
+                tmps = []
+                for n in nubs:
+                    tmps.append(n)
+                # CONTINUE
+                res = '^.*{\\\\(' \
+                    + 'sum|prod|int|iint|iiint|oint|sin|cos|tan|log|lim' \
+                    + ')}+$'
+                if (len(nubs) >= 3) and re.match(res, nubs[-3]):
+                    continue
+                res = '^.*{\\\\(' \
+                    + 'sum|prod|int|iint|iiint|oint' \
+                    + ')}+$'
+                if (len(nubs) >= 5) and re.match(res, nubs[-5]):
+                    continue
+                # CONBINATION, PERMUTATION
+                if (len(nubs) >= 4) and \
+                   re.match('^{{}(_{.*})}$', nubs[-4]) and nubs[-2] == '_':
+                    nubs[-4] = re.sub('^{{}(_{.*})}$', '\\1', nubs[-4])
+                    nubs[-4], nubs[-3] = nubs[-3], nubs[-4]
+                    nubs[-4], nubs[-1] = cls._close_func(nubs[-4], nubs[-1])
+                # SUBSCRIPT, SUPERSCRIPT
+                elif (c != '_') and (c != '^'):
+                    if (len(nubs) >= 5) and \
+                       ((nubs[-4] == '_') and (nubs[-2] == '^')):
+                        nubs[-5], nubs[-1] \
+                            = cls._close_func(nubs[-5], nubs[-1])
+                    elif (len(nubs) >= 5) and \
+                         ((nubs[-4] == '^') and (nubs[-2] == '_')):
+                        nubs[-4], nubs[-2] = nubs[-2], nubs[-4]
+                        nubs[-3], nubs[-1] = nubs[-1], nubs[-3]
+                        nubs[-5], nubs[-1] \
+                            = cls._close_func(nubs[-5], nubs[-1])
+                    elif (len(nubs) >= 3) and \
+                         ((nubs[-2] == '_') or (nubs[-2] == '^')):
+                        nubs[-3], nubs[-1] \
+                            = cls._close_func(nubs[-3], nubs[-1])
+                # LINEBREAK, MATHRM, MATHBF, STRIKE, UNDERLINE, EXP, VEC
+                res = '^{\\\\(?:\\\\|mathrm|mathbf|sout|underline|exp|vec)}$'
+                if (len(nubs) >= 2) and re.match(res, nubs[-2]):
+                    nubs[-2], nubs[-1] = cls._close_func(nubs[-2], nubs[-1])
+                # TEXTCOLOR, COLORBOX, FRACTION, BINOMIAL
+                res = '^{\\\\(?:textcolor|colorbox|frac|binom)}$'
+                if (len(nubs) >= 3) and re.match(res, nubs[-3]):
+                    nubs[-3], nubs[-1] = cls._close_func(nubs[-3], nubs[-1])
+                # SQRT
+                if (len(nubs) >= 2) and (nubs[-2] == '{\\sqrt}'):
+                    if not re.match('{\\[.*\\]}', nubs[-1]):
+                        nubs.insert(-1, '{[]}')
+                if (len(nubs) >= 3) and (nubs[-3] == '{\\sqrt}'):
+                    nubs[-3], nubs[-1] = cls._close_func(nubs[-3], nubs[-1])
+                # SIN, COS, TAN
+                res = '^.*{\\\\(?:sin|cos|tan)}+$'
+                if (len(nubs) >= 2) and re.match(res, nubs[-2]):
+                    if nubs[-1] != '^':
+                        nubs.insert(-1, '^')
+                        nubs.insert(-1, '{}')
+                if (len(nubs) >= 4) and re.match(res, nubs[-4]):
+                    nubs[-4], nubs[-1] = cls._close_func(nubs[-4], nubs[-1])
+                # LOG, LIMIT
+                if (len(nubs) >= 2) and \
+                   re.match('^{\\\\(?:log|lim)}$', nubs[-2]):
+                    if nubs[-1] != '_':
+                        nubs.insert(-1, '_')
+                        nubs.insert(-1, '{}')
+                if (len(nubs) >= 4) and \
+                   re.match('^{\\\\(?:log|lim)}$', nubs[-4]):
+                    nubs[-4], nubs[-1] = cls._close_func(nubs[-4], nubs[-1])
+                # SIGMA, PI, INTEGRAL, LINE INTEGRAL
+                if (len(nubs) >= 2) and \
+                   re.match('^{\\\\(?:sum|prod|(?:|i|ii|o)int)}$', nubs[-2]):
+                    if nubs[-1] != '_':
+                        nubs.insert(-1, '_')
+                        nubs.insert(-1, '{}')
+                if (len(nubs) >= 4) and \
+                   re.match('^{\\\\(?:sum|prod|(?:|i|ii|o)int)}$', nubs[-4]):
+                    if nubs[-1] != '^':
+                        nubs.insert(-1, '^')
+                        nubs.insert(-1, '{}')
+                if (len(nubs) >= 6) and \
+                   re.match('^{\\\\(?:sum|prod|(?:|i|ii|o)int)}$', nubs[-6]):
+                    nubs[-6], nubs[-1] = cls._close_func(nubs[-6], nubs[-1])
+                # MATRIX
+                if '{\\Ybmx}' in nubs:
+                    if (len(nubs) >= 1) and (nubs[-1] == '{\\\\}'):
+                        nubs[-1] = '{\\Ylmx}'
+                if (len(nubs) >= 2) and \
+                   nubs[-2] == '{\\begin}' and \
+                   re.match('^{.*matrix}$', nubs[-1]):
+                    nubs[-2] = '{\\Ybmx}'
+                if (len(nubs) >= 2) and \
+                   nubs[-2] == '{\\end}' and \
+                   re.match('^{.*matrix}$', nubs[-1]):
+                    b = None
+                    for i, n in enumerate(nubs):
+                        if n == '{\\Ybmx}':
+                            b = i
+                    if b is not None:
+                        nubs[b] = '{{\\Xbmx}'
+                        nubs[b + 1] += '{'
+                        nubs[-1] = '}{\\Xemx}}'
+                        s = ''
+                        for i in range(b + 2, len(nubs) - 2):
+                            if nubs[i] == '&':
+                                nubs[i] = '}{'
+                            if nubs[i] == '{\\Ylmx}':
+                                nubs[i] = '}{\\Xlmx}{'
+                            s += nubs[i]
+                            nubs[i] = ''
+                        nubs[-2] = s
+                        if re.match('^.*{$', nubs[-2]) and \
+                           re.match('^}.*$', nubs[-1]):
+                            nubs[-2] = re.sub('{$', '', nubs[-2])
+                            nubs[-1] = re.sub('^}', '', nubs[-1])
+                # FONT SIZE
+                res = '^{\\\\(?:Large|large|small|footnotesize)}$'
+                if (len(nubs) >= 2) and re.match(res, nubs[-2]):
+                    nubs[-2], nubs[-1] = cls._close_func(nubs[-2], nubs[-1])
+                # PARENTHESES
+                if (len(nubs) >= 1) and (nubs[-1] == '{-)}'):
+                    for i in range(len(nubs) - 1, -1, -1):
+                        if nubs[i] == '{(-}':
+                            nubs[i], nubs[-1] \
+                                = cls._close_func(nubs[i], nubs[-1])
+                if (len(nubs) >= 1) and (nubs[-1] == '{=)}'):
+                    for i in range(len(nubs) - 1, -1, -1):
+                        if nubs[i] == '{(=}':
+                            nubs[i], nubs[-1] \
+                                = cls._close_func(nubs[i], nubs[-1])
+                if (len(nubs) >= 1) and (nubs[-1] == '{]}'):
+                    for i in range(len(nubs) - 1, -1, -1):
+                        if nubs[i] == '{[}':
+                            nubs[i], nubs[-1] \
+                                = cls._close_func(nubs[i], nubs[-1])
+                # REMAKE
+                tex = ''.join(nubs)
+                nubs = cls._get_nubs(tex)
+            if c != '\0':
+                tex += c
+        unit = tex
+        return unit
+
+    @staticmethod
+    def _close_func(beg_str, end_str):
+        oc = '^([^ \\\\_\\^\\(\\){}\\[\\]\0])$'
+        beg_str = '{' + beg_str
+        if not re.match('^{.*}$', end_str):
+            if re.match(oc, end_str):
+                end_str = '{' + end_str + '}}'
+            else:
+                end_str = '{}}' + end_str
+        else:
+            end_str = end_str + '}'
+        return beg_str, end_str
+
+    @staticmethod
+    def _get_nubs(tex):
+        nubs = []
+        nub = ''
+        dep = 0
+        for n, c in enumerate(tex[::-1] + '\0'):
+            if c == '{':
+                dep -= 1
+            if c == '}':
+                dep += 1
+            if c != '\0':
+                nub = c + nub
+            if nub != '' and (dep == 0 or c == '\0'):
+                while re.match('^{{(.*)}}$', nub):
+                    tmp = re.sub('^{{(.*)}}$', '{\\1}', nub)
+                    td = 0
+                    ta = 0
+                    for tc in tmp:
+                        if tc == '{':
+                            td -= 1
+                        if tc == '}':
+                            td += 1
+                        if td >= 0:
+                            ta += 1
+                        if ta > 1:
+                            break
+                    if ta == 1:
+                        nub = tmp
+                    else:
+                        break
+                nubs.append(nub)
+                nub = ''
+        return nubs[::-1]
+
+    @staticmethod
+    def _close_paren(unit):
+        d = 0
+        t = ''
+        for c in unit:
+            t += c
+            if re.match(NOT_ESCAPED + '{$', t):
+                d += 1
+            if re.match(NOT_ESCAPED + '}$', t):
+                d -= 1
+        if d > 0:
+            unit = unit + ('}' * d)
+        if d < 0:
+            unit = ('{' * (d * -1)) + unit
+        return unit
+
+    @staticmethod
+    def _envelop_all(unit):
+        tmp = ''
+        while tmp != unit:
+            tmp = unit
+            unit = re.sub('{([^{}]+){', '{{\\1}{', unit)
+            unit = re.sub('}([^{}]+)}', '}{\\1}}', unit)
+            unit = re.sub('}([^{}]+){', '}{\\1}{', unit)
+        return unit
+
+    @staticmethod
+    def _cancel_multi_paren(unit):
+        rm = []
+        for i in range(len(unit) - 1):
+            if unit[i] != '{' or unit[i + 1] != '{':
+                continue
+            dep = [0]
+            d = 0
+            for j in range(i, len(unit)):
+                if unit[j] == '{':
+                    d += 1
+                if unit[j] == '}':
+                    d -= 1
+                dep.append(d)
+                if d == 0:
+                    if unit[j - 1] == '}' or unit[j] == '}':
+                        dep.pop(0)
+                        dep.pop(0)
+                        dep.pop(-1)
+                        dep.pop(-1)
+                        if 1 not in dep:
+                            rm.append(i)
+                            rm.append(j)
+                    break
+        rm.sort()
+        rm.reverse()
+        u = list(unit)
+        for r in rm:
+            u.pop(r)
+        unit = ''.join(u)
+        return unit
+
+    @classmethod
+    def _write_math_exp(cls, oe0, chars_state, unit):
+        tmp = ''
+        unit = re.sub('^{', '', unit)
+        unit = re.sub('}$', '', unit)
+        # unit = re.sub('^{(.*)}$', '\\1', unit)
+        # ONE NUB
+        if re.match('^[^{}]+$', unit):
+            cls._write_nub(oe0, chars_state, unit)
+            return ''
+        nubs = cls._get_nubs(unit)
+        # FUNCITON
+        if False:
+            pass
+        # INTEGRAL
+        elif len(nubs) == 6 and nubs[0] == '{\\int}':
+            cls._write_int(oe0, chars_state, '', nubs[2], nubs[4], nubs[5])
+        # DOUBLE INTEGRAL
+        elif len(nubs) == 6 and nubs[0] == '{\\iint}':
+            cls._write_int(oe0, chars_state, '∬', nubs[2], nubs[4], nubs[5])
+        # TRIPLE INTEGRAL
+        elif len(nubs) == 6 and nubs[0] == '{\\iiint}':
+            cls._write_int(oe0, chars_state, '∭', nubs[2], nubs[4], nubs[5])
+        # LINE INTEGRAL
+        elif len(nubs) == 6 and nubs[0] == '{\\oint}':
+            cls._write_int(oe0, chars_state, '∮', nubs[2], nubs[4], nubs[5])
+        # SIGMA
+        elif len(nubs) == 6 and nubs[0] == '{\\sum}':
+            cls._write_sop(oe0, chars_state, '∑', nubs[2], nubs[4], nubs[5])
+        # PI
+        elif len(nubs) == 6 and nubs[0] == '{\\prod}':
+            cls._write_sop(oe0, chars_state, '∏', nubs[2], nubs[4], nubs[5])
+        # SUB AND SUP
+        elif len(nubs) == 5 and nubs[1] == '{_}' and nubs[3] == '{^}':
+            cls._write_bap(oe0, chars_state, nubs[0], nubs[2], nubs[4])
+        # CONBINATION AND PERMUTATION
+        elif len(nubs) == 5 and nubs[1] == '{_}' and nubs[3] == '{_}':
+            cls._write_cop(oe0, chars_state, nubs[0], nubs[2], nubs[4])
+        # LOG
+        elif len(nubs) == 4 and nubs[0] == '{\\log}':
+            if nubs[2] == '{}':
+                cls._write_one(oe0, chars_state, 'log', nubs[3])
+            else:
+                cls._write_two(oe0, chars_state, 'log',
+                               nubs[1], nubs[2], nubs[3])
+        # LIMIT
+        elif len(nubs) == 4 and nubs[0] == '{\\lim}':
+            cls._write_lim(oe0, chars_state, nubs[2], nubs[3])
+        # SIN
+        elif len(nubs) == 4 and nubs[0] == '{\\sin}':
+            if nubs[2] == '{}':
+                cls._write_one(oe0, chars_state, 'sin', nubs[3])
+            else:
+                cls._write_two(oe0, chars_state, 'sin',
+                               nubs[1], nubs[2], nubs[3])
+        # COS
+        elif len(nubs) == 4 and nubs[0] == '{\\cos}':
+            if nubs[2] == '{}':
+                cls._write_one(oe0, chars_state, 'cos', nubs[3])
+            else:
+                cls._write_two(oe0, chars_state, 'cos',
+                               nubs[1], nubs[2], nubs[3])
+        # TAN
+        elif len(nubs) == 4 and nubs[0] == '{\\tan}':
+            if nubs[2] == '{}':
+                cls._write_one(oe0, chars_state, 'tan', nubs[3])
+            else:
+                cls._write_two(oe0, chars_state, 'tan',
+                               nubs[1], nubs[2], nubs[3])
+        # SUB AND SUP
+        elif len(nubs) == 3 and (nubs[1] == '{_}' or nubs[1] == '{^}'):
+            cls._write_bop(oe0, chars_state, nubs[1], nubs[0], nubs[2])
+        # FRACTION
+        elif len(nubs) == 3 and nubs[0] == '{\\frac}':
+            cls._write_fra(oe0, chars_state, nubs[1], nubs[2])
+        # BINOMIAL
+        elif len(nubs) == 3 and nubs[0] == '{\\binom}':
+            cls._write_bin(oe0, chars_state, nubs[1], nubs[2])
+        # RADICAL ROOT
+        elif len(nubs) == 3 and nubs[0] == '{\\sqrt}':
+            t = re.sub('^{\\[(.*)\\]}$', '\\1', nubs[1])
+            cls._write_rrt(oe0, chars_state, t, nubs[2])
+        # LIMIT
+        elif len(nubs) == 3 and nubs[0] == '{\\lim}':
+            cls._write_lim(oe0, chars_state, nubs[1], nubs[2])
+        # EXPONENTIAL
+        elif len(nubs) == 2 and nubs[0] == '{\\exp}':
+            cls._write_one(oe0, chars_state, 'exp', nubs[1])
+        # VECTOR
+        elif len(nubs) == 2 and nubs[0] == '{\\vec}':
+            cls._write_vec(oe0, chars_state, nubs[1])
+        # MATRIX
+        elif (len(nubs) >= 2 and
+              nubs[0] == '{\\Xbmx}' and nubs[-1] == '{\\Xemx}'):
+            c = nubs[1]
+            nubs.pop(0)
+            nubs.pop(0)
+            nubs.pop(-1)
+            cls._write_mtx(oe0, chars_state, c, nubs)
+        # S PAREN
+        elif len(nubs) >= 2 and nubs[0] == '{(-}' and nubs[-1] == '{-)}':
+            t = re.sub('{\\(-}(.*){-\\)}', '\\1', unit)
+            cls._write_prn(oe0, chars_state, '()', '{' + t + '}')
+        # M PAREN
+        elif len(nubs) >= 2 and nubs[0] == '{(=}' and nubs[-1] == '{=)}':
+            t = re.sub('{\\(=}(.*){=\\)}', '\\1', unit)
+            cls._write_prn(oe0, chars_state, '{}', '{' + t + '}')
+        # L PAREN
+        elif len(nubs) >= 2 and nubs[0] == '{[}' and nubs[-1] == '{]}':
+            t = re.sub('{\\[}(.*){\\]}', '\\1', unit)
+            cls._write_prn(oe0, chars_state, '[]', '{' + t + '}')
+        # LINE BREAK
+        elif len(nubs) == 2 and nubs[0] == '{\\\\}':
+            chars_state.must_break_line = True
+            cls._write_math_exp(oe0, chars_state, nubs[1])
+            chars_state.must_break_line = False
+        # FONT SIZE
+        elif len(nubs) == 2 and nubs[0] == '{\\footnotesize}':
+            chars_state.font_scale = 0.6
+            cls._write_math_exp(oe0, chars_state, nubs[1])
+            chars_state.font_scale = 1.0
+        elif len(nubs) == 2 and nubs[0] == '{\\small}':
+            chars_state.font_scale = 0.8
+            cls._write_math_exp(oe0, chars_state, nubs[1])
+            chars_state.font_scale = 1.0
+        elif len(nubs) == 2 and nubs[0] == '{\\large}':
+            chars_state.font_scale = 1.2
+            cls._write_math_exp(oe0, chars_state, nubs[1])
+            chars_state.font_scale = 1.0
+        elif len(nubs) == 2 and nubs[0] == '{\\Large}':
+            chars_state.font_scale = 1.4
+            cls._write_math_exp(oe0, chars_state, nubs[1])
+            chars_state.font_scale = 1.0
+        # ROMAN
+        elif len(nubs) == 2 and nubs[0] == '{\\mathrm}':
+            chars_state.is_italic = False
+            cls._write_math_exp(oe0, chars_state, nubs[1])
+            chars_state.is_italic = True
+        # BOLD
+        elif len(nubs) == 2 and nubs[0] == '{\\mathbf}':
+            chars_state.is_bold = True
+            cls._write_math_exp(oe0, chars_state, nubs[1])
+            chars_state.is_bold = False
+        # STRIKE
+        elif len(nubs) == 2 and nubs[0] == '{\\sout}':
+            chars_state.has_strike = True
+            cls._write_math_exp(oe0, chars_state, nubs[1])
+            chars_state.has_strike = False
+        # UNDERLINE
+        elif len(nubs) == 2 and nubs[0] == '{\\underline}':
+            chars_state.underline = 'single'
+            cls._write_math_exp(oe0, chars_state, nubs[1])
+            chars_state.underline = None
+        # FONT COLOR
+        elif len(nubs) == 3 and nubs[0] == '{\\textcolor}':
+            chars_state.font_color = re.sub('^{(.*)}$', '\\1', nubs[1])
+            cls._write_math_exp(oe0, chars_state, nubs[2])
+            chars_state.font_color = None
+        # HIGHLIGHT COLOR
+        elif len(nubs) == 3 and nubs[0] == '{\\colorbox}':
+            chars_state.highlight_color = re.sub('^{(.*)}$', '\\1', nubs[1])
+            cls._write_math_exp(oe0, chars_state, nubs[2])
+            chars_state.highlight_color = None
+        # TRACK CHANGES
+        elif len(nubs) >= 3 and nubs[0] == '{->}' and nubs[2] == '{<-}':
+            chars_state.track_changes = 'del'
+            cls._write_math_exp(oe0, chars_state, nubs[1])
+            chars_state.track_changes = ''
+        elif len(nubs) >= 3 and nubs[0] == '{+>}' and nubs[2] == '{<+}':
+            chars_state.track_changes = 'ins'
+            cls._write_math_exp(oe0, chars_state, nubs[1])
+            chars_state.track_changes = ''
+        # ERROR
+        elif (len(nubs) == 1) and (not re.match('^{.*}$', nubs[0])):
+            cls._write_nub(oe0, chars_state, unit)
+        # RECURSION
+        else:
+            for n in nubs:
+                cls._write_math_exp(oe0, chars_state, n)
+        return ''
+
+    @classmethod
+    def _write_nub(cls, oe0, chars_state, nub):
+        if nub == '':
+            return
+        nub = re.sub('%9', '  ', nub)
+        nub = re.sub('%3', ' ', nub)
+        nub = re.sub('%2', ' ', nub)
+        nub = re.sub('%1', ' ', nub)
+        nub = re.sub('%0', '%', nub)
+        oe1 = XML.add_tag(oe0, 'm:r', {})
+        if chars_state.track_changes == 'del':
+            oe2 = XML.add_tag(oe1, 'w:del', {})
+        elif chars_state.track_changes == 'ins':
+            oe2 = XML.add_tag(oe1, 'w:ins', {})
+        else:
+            oe2 = oe1
+        cls._decorate_nub(oe2, chars_state)
+        oe3 = XML.add_tag(oe2, 'm:t', {}, nub)
+
+    @classmethod
+    def _decorate_nub(cls, oe0, chars_state):
+        cls._decorate_nub_m(oe0, chars_state)
+        cls._decorate_nub_w(oe0, chars_state)
+
+    @staticmethod
+    def _decorate_nub_m(oe0, chars_state):
+        oe1 = XML.add_tag(oe0, 'm:rPr', {})
+        # LINE BREAK
+        if chars_state.must_break_line:
+            oe2 = XML.add_tag(oe1, 'm:brk', {'m:alnAt': '1'})
+        # ROMAN AND BOLD
+        if chars_state.is_italic and chars_state.is_bold:
+            oe2 = XML.add_tag(oe1, 'm:sty', {'m:val': 'bi'})
+        elif chars_state.is_bold:
+            oe2 = XML.add_tag(oe1, 'm:sty', {'m:val': 'b'})
+        elif not chars_state.is_italic:
+            oe2 = XML.add_tag(oe1, 'm:sty', {'m:val': 'p'})
+
+    @staticmethod
+    def _decorate_nub_w(oe0, chars_state):
+        m_size = round(chars_state.font_size * chars_state.font_scale, 1)
+        oe1 = XML.add_tag(oe0, 'w:rPr', {})
+        # (FONT, ITALIC, BOLD)
+        # STRIKE
+        if chars_state.has_strike:
+            oe2 = XML.add_tag(oe1, 'w:strike', {})
+        # UNDERLINE
+        if chars_state.underline is not None:
+            oe2 = XML.add_tag(oe1, 'w:u', {'w:val': chars_state.underline})
+        # FONT SIZE
+        oe2 = XML.add_tag(oe1, 'w:sz', {'w:val': str(m_size * 2)})
+        # oe2 = XML.add_tag(oe1, 'w:szCs', {'w:val': str(m_size * 2)})
+        # FONT WIDTH
+        if chars_state.font_width != 1.00:
+            opt = {'w:val': str(int(chars_state.font_width * 100))}
+            oe2 = XML.add_tag(oe1, 'w:w', opt)
+        # FONT COLOR
+        if chars_state.font_color is not None:
+            oe2 = XML.add_tag(oe1, 'w:color', {'w:val': chars_state.font_color})
+        # HIGHTLIGHT COLOR
+        if chars_state.highlight_color is not None:
+            opt = {'w:val': chars_state.highlight_color}
+            oe2 = XML.add_tag(oe1, 'w:highlight', opt)
+        # (SUBSCRIPT, SUPERSCRIPT)
+
+    # INTEGRAL
+    @classmethod
+    def _write_int(cls, oe0, chars_state, c, t1, t2, t3):
+        oe1 = XML.add_tag(oe0, 'm:nary', {})
+        oe2 = XML.add_tag(oe1, 'm:naryPr', {})
+        if c != '':
+            oe3 = XML.add_tag(oe2, 'm:chr', {'m:val': c})
+        oe3 = XML.add_tag(oe2, 'm:limLoc', {'m:val': 'subSup'})
+        if t1 == '' or t1 == '{}':
+            oe3 = XML.add_tag(oe2, 'm:subHide', {'m:val': '1'})
+        if t2 == '' or t2 == '{}':
+            oe3 = XML.add_tag(oe2, 'm:supHide', {'m:val': '1'})
+        #
+        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
+        cls._decorate_nub_w(oe3, chars_state)
+        #
+        oe2 = XML.add_tag(oe1, 'm:sub', {})
+        if not (t1 == '' or t1 == '{}'):
+            cls._write_math_exp(oe2, chars_state, t1)
+        oe2 = XML.add_tag(oe1, 'm:sup', {})
+        if not (t2 == '' or t2 == '{}'):
+            cls._write_math_exp(oe2, chars_state, t2)
+        oe2 = XML.add_tag(oe1, 'm:e', {})
+        cls._write_math_exp(oe2, chars_state, t3)
+
+    # SIGMA, PI
+    @classmethod
+    def _write_sop(cls, oe0, chars_state, c, t1, t2, t3):
+        oe1 = XML.add_tag(oe0, 'm:nary', {})
+        oe2 = XML.add_tag(oe1, 'm:naryPr', {})
+        oe3 = XML.add_tag(oe2, 'm:chr', {'m:val': c})
+        oe3 = XML.add_tag(oe2, 'm:limLoc', {'m:val': 'undOvr'})
+        if t1 == '' or t1 == '{}':
+            oe3 = XML.add_tag(oe2, 'm:subHide', {'m:val': '1'})
+        if t2 == '' or t2 == '{}':
+            oe3 = XML.add_tag(oe2, 'm:supHide', {'m:val': '1'})
+        #
+        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
+        cls._decorate_nub_w(oe3, chars_state)
+        #
+        oe2 = XML.add_tag(oe1, 'm:sub', {})
+        if not (t1 == '' or t1 == '{}'):
+            cls._write_math_exp(oe2, chars_state, t1)
+        oe2 = XML.add_tag(oe1, 'm:sup', {})
+        if not (t2 == '' or t2 == '{}'):
+            cls._write_math_exp(oe2, chars_state, t2)
+        oe2 = XML.add_tag(oe1, 'm:e', {})
+        cls._write_math_exp(oe2, chars_state, t3)
+
+    # SUB AND SUP
+    @classmethod
+    def _write_bap(cls, oe0, chars_state, t1, t2, t3):
+        oe1 = XML.add_tag(oe0, 'm:sSubSup', {})
+        #
+        oe2 = XML.add_tag(oe1, 'm:sSubSupPr', {})
+        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
+        cls._decorate_nub_w(oe3, chars_state)
+        #
+        oe2 = XML.add_tag(oe1, 'm:e', {})
+        cls._write_math_exp(oe2, chars_state, t1)
+        oe2 = XML.add_tag(oe1, 'm:sub', {})
+        cls._write_math_exp(oe2, chars_state, t2)
+        oe2 = XML.add_tag(oe1, 'm:sup', {})
+        cls._write_math_exp(oe2, chars_state, t3)
+
+    # CONBINATION, PERMUTATION
+    @classmethod
+    def _write_cop(cls, oe0, chars_state, t1, t2, t3):
+        oe1 = XML.add_tag(oe0, 'm:sPre', {})
+        #
+        oe2 = XML.add_tag(oe1, 'm:sPrePr', {})
+        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
+        cls._decorate_nub_w(oe3, chars_state)
+        #
+        oe2 = XML.add_tag(oe1, 'm:sub', {})
+        cls._write_math_exp(oe2, chars_state, t2)
+        oe2 = XML.add_tag(oe1, 'm:sup', {})
+        cls._write_math_exp(oe2, chars_state, '{}')
+        oe2 = XML.add_tag(oe1, 'm:e', {})
+        oe3 = XML.add_tag(oe2, 'm:sSub', {})
+        #
+        oe4 = XML.add_tag(oe3, 'm:sSubPr', {})
+        oe5 = XML.add_tag(oe4, 'm:ctrlPr', {})
+        cls._decorate_nub_w(oe5, chars_state)
+        #
+        oe4 = XML.add_tag(oe3, 'm:e', {})
+        cls._write_math_exp(oe4, chars_state, t1)
+        oe4 = XML.add_tag(oe3, 'm:sub', {})
+        cls._write_math_exp(oe4, chars_state, t3)
+
+    # TWO ARGUMENTS FUNCTION
+    @classmethod
+    def _write_two(cls, oe0, chars_state, c, s, t1, t2):
+        # \sin^2{x}, \log_2{x}
+        oe1 = XML.add_tag(oe0, 'm:func', {})
+        #
+        oe2 = XML.add_tag(oe1, 'm:funcPr', {})
+        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
+        cls._decorate_nub_w(oe3, chars_state)
+        #
+        oe2 = XML.add_tag(oe1, 'm:fName', {})
+        if s == '_' or s == '{_}':
+            oe3 = XML.add_tag(oe2, 'm:sSub', {})
+        else:
+            oe3 = XML.add_tag(oe2, 'm:sSup', {})
+        oe4 = XML.add_tag(oe3, 'm:e', {})
+        oe5 = XML.add_tag(oe4, 'm:r', {})
+        #
+        cls._decorate_nub_m(oe5, chars_state)
+        oe6 = XML.add_tag(oe5, 'm:t', {}, c)
+        #
+        if s == '_' or s == '{_}':
+            oe4 = XML.add_tag(oe3, 'm:sub', {})
+        else:
+            oe4 = XML.add_tag(oe3, 'm:sup', {})
+        cls._write_math_exp(oe4, chars_state, t1)
+        #
+        oe2 = XML.add_tag(oe1, 'm:e', {})
+        cls._write_math_exp(oe2, chars_state, t2)
+
+    # SUBSCRIPT OR SUPERSCRIPT
+    @classmethod
+    def _write_bop(cls, oe0, chars_state, s, t1, t2):
+        # x_i, x^2
+        if s == '_' or s == '{_}':
+            oe1 = XML.add_tag(oe0, 'm:sSub', {})
+            oe2 = XML.add_tag(oe1, 'm:sSubPr', {})
+        else:
+            oe1 = XML.add_tag(oe0, 'm:sSup', {})
+            oe2 = XML.add_tag(oe1, 'm:sSupPr', {})
+        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
+        cls._decorate_nub_w(oe3, chars_state)
+        oe2 = XML.add_tag(oe1, 'm:e', {})
+        cls._write_math_exp(oe2, chars_state, t1)
+        if s == '_' or s == '{_}':
+            oe2 = XML.add_tag(oe1, 'm:sub', {})
+        else:
+            oe2 = XML.add_tag(oe1, 'm:sup', {})
+        cls._write_math_exp(oe2, chars_state, t2)
+
+    # FRACTION
+    @classmethod
+    def _write_fra(cls, oe0, chars_state, t1, t2):
+        # \frac{2}{3}
+        oe1 = XML.add_tag(oe0, 'm:f', {})
+        #
+        oe2 = XML.add_tag(oe1, 'm:fPr', {})
+        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
+        cls._decorate_nub_w(oe3, chars_state)
+        #
+        oe2 = XML.add_tag(oe1, 'm:num', {})
+        cls._write_math_exp(oe2, chars_state, t1)
+        oe2 = XML.add_tag(oe1, 'm:den', {})
+        cls._write_math_exp(oe2, chars_state, t2)
+
+    # BINOMIAL
+    @classmethod
+    def _write_bin(cls, oe0, chars_state, t1, t2):
+        # \binom{2}{3}
+        oe1 = XML.add_tag(oe0, 'm:d', {})
+        oe2 = XML.add_tag(oe1, 'm:dPr', {})
+        #
+        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
+        cls._decorate_nub(oe3, chars_state)
+        #
+        oe2 = XML.add_tag(oe1, 'm:e', {})
+        oe3 = XML.add_tag(oe2, 'm:f', {})
+        #
+        oe4 = XML.add_tag(oe3, 'm:fPr', {})
+        oe5 = XML.add_tag(oe4, 'm:type', {'m:val': 'noBar'})
+        oe5 = XML.add_tag(oe4, 'm:ctrlPr', {})
+        cls._decorate_nub_w(oe5, chars_state)
+        #
+        oe4 = XML.add_tag(oe3, 'm:num', {})
+        cls._write_math_exp(oe4, chars_state, t1)
+        oe4 = XML.add_tag(oe3, 'm:den', {})
+        cls._write_math_exp(oe4, chars_state, t2)
+
+    # RADICAL ROOT
+    @classmethod
+    def _write_rrt(cls, oe0, chars_state, t1, t2):
+        # \sqrt[3]{2}
+        oe1 = XML.add_tag(oe0, 'm:rad', {})
+        #
+        oe2 = XML.add_tag(oe1, 'm:radPr', {})
+        if t1 == '' or t1 == '{}':
+            oe3 = XML.add_tag(oe2, 'm:degHide', {'m:val': '1'})
+        #
+        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
+        cls._decorate_nub_w(oe3, chars_state)
+        #
+        oe2 = XML.add_tag(oe1, 'm:deg', {})
+        cls._write_math_exp(oe2, chars_state, t1)
+        oe2 = XML.add_tag(oe1, 'm:e', {})
+        cls._write_math_exp(oe2, chars_state, t2)
+
+    # LIMIT
+    @classmethod
+    def _write_lim(cls, oe0, chars_state, t1, t2):
+        # \lim_{x}{y}
+        oe1 = XML.add_tag(oe0, 'm:func', {})
+        #
+        oe2 = XML.add_tag(oe1, 'm:funcPr', {})
+        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
+        cls._decorate_nub_w(oe3, chars_state)
+        #
+        oe2 = XML.add_tag(oe1, 'm:fName', {})
+        oe3 = XML.add_tag(oe2, 'm:limLow', {})
+        #
+        oe4 = XML.add_tag(oe3, 'm:limLowPr', {})
+        oe5 = XML.add_tag(oe4, 'm:ctrlPr', {})
+        cls._decorate_nub_w(oe5, chars_state)
+        #
+        oe4 = XML.add_tag(oe3, 'm:e', {})
+        oe5 = XML.add_tag(oe4, 'm:r', {})
+        #
+        cls._decorate_nub_m(oe5, chars_state)
+        oe6 = XML.add_tag(oe5, 'm:t', {}, 'lim')
+        oe4 = XML.add_tag(oe3, 'm:lim', {})
+        cls._write_math_exp(oe4, chars_state, t1)
+        oe2 = XML.add_tag(oe1, 'm:e', {})
+        cls._write_math_exp(oe2, chars_state, t2)
+
+    # ONE ARGUMENT FUNCTION
+    @classmethod
+    def _write_one(cls, oe0, chars_state, c, t1):
+        # \sin{x}, \exp{y}
+        oe1 = XML.add_tag(oe0, 'm:func', {})
+        #
+        oe2 = XML.add_tag(oe1, 'm:funcPr', {})
+        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
+        cls._decorate_nub_w(oe3, chars_state)
+        #
+        oe2 = XML.add_tag(oe1, 'm:fName', {})
+        oe3 = XML.add_tag(oe2, 'm:r', {})
+        #
+        cls._decorate_nub_m(oe3, chars_state)
+        oe4 = XML.add_tag(oe3, 'm:t', {}, c)
+        oe2 = XML.add_tag(oe1, 'm:e', {})
+        cls._write_math_exp(oe2, chars_state, t1)
+
+    # VECTOR
+    @classmethod
+    def _write_vec(cls, oe0, chars_state, t1):
+        # \vec{x}
+        oe1 = XML.add_tag(oe0, 'm:acc', {})
+        #
+        oe2 = XML.add_tag(oe1, 'm:accPr', {})
+        oe3 = XML.add_tag(oe2, 'm:chr', {'m:val': '⃗'})
+        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
+        cls._decorate_nub(oe3, chars_state)
+        #
+        oe2 = XML.add_tag(oe1, 'm:e', {})
+        cls._write_math_exp(oe2, chars_state, t1)
+
+    # MATRIX
+    @classmethod
+    def _write_mtx(cls, oe0, chars_state, c, t1):
+        # \begin{pmatrix}a&b\\c&d\end{pmatrix}
+        nubs = t1
+        nubs.append('{\\Xlmx}')
+        mtrx = []
+        row = []
+        for cel in nubs:
+            cel = re.sub('^{(.*)}$', '\\1', cel)
+            if cel != '\\Xlmx':
+                row.append(cel)
+            else:
+                mtrx.append(row)
+                row = []
+        nrow = len(mtrx[0])
+        #
+        oe1 = XML.add_tag(oe0, 'm:d', {})
+        #
+        oe2 = XML.add_tag(oe1, 'm:dPr', {})
+        if c == '{pmatrix}':
+            oe3 = XML.add_tag(oe2, 'm:begChr', {'m:val': '('})
+            oe3 = XML.add_tag(oe2, 'm:endChr', {'m:val': ')'})
+        elif c == '{bmatrix}':
+            oe3 = XML.add_tag(oe2, 'm:begChr', {'m:val': '['})
+            oe3 = XML.add_tag(oe2, 'm:endChr', {'m:val': ']'})
+        elif c == '{vmatrix}':
+            oe3 = XML.add_tag(oe2, 'm:begChr', {'m:val': '|'})
+            oe3 = XML.add_tag(oe2, 'm:endChr', {'m:val': '|'})
+        elif c == '{Vmatrix}':
+            oe3 = XML.add_tag(oe2, 'm:begChr', {'m:val': '‖'})
+            oe3 = XML.add_tag(oe2, 'm:endChr', {'m:val': '‖'})
+        else:
+            oe3 = XML.add_tag(oe2, 'm:begChr', {'m:val': ''})
+            oe3 = XML.add_tag(oe2, 'm:endChr', {'m:val': ''})
+        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
+        cls._decorate_nub(oe3, chars_state)
+        #
+        oe2 = XML.add_tag(oe1, 'm:e', {})
+        oe3 = XML.add_tag(oe2, 'm:m', {})
+        #
+        oe4 = XML.add_tag(oe3, 'm:mPr', {})
+        oe5 = XML.add_tag(oe4, 'm:ctrlPr', {})
+        cls._decorate_nub(oe5, chars_state)
+        #
+        for row in mtrx:
+            oe4 = XML.add_tag(oe3, 'm:mr', {})
+            for cel in row:
+                oe5 = XML.add_tag(oe4, 'm:e', {})
+                cls._write_math_exp(oe5, chars_state, '{' + cel + '}')
+
+    # PARENTHESIS
+    @classmethod
+    def _write_prn(cls, oe0, chars_state, t1, t2):
+        oe1 = XML.add_tag(oe0, 'm:d', {})
+        oe2 = XML.add_tag(oe1, 'm:dPr', {})
+        oe3 = XML.add_tag(oe2, 'm:begChr', {'m:val': t1[0]})
+        oe3 = XML.add_tag(oe2, 'm:endChr', {'m:val': t1[1]})
+        oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
+        cls._decorate_nub(oe3, chars_state)
+        oe2 = XML.add_tag(oe1, 'm:e', {})
+        cls._write_math_exp(oe2, chars_state, t2)
 
 
 class Document:
@@ -3511,7 +3520,7 @@ class Paragraph:
     bridge_head_section_depth = 0
     bridge_tail_section_depth = 0
 
-    bridge_char_state = None
+    bridge_chars_state = None
 
     @classmethod
     def is_this_class(cls, full_text,
@@ -3545,9 +3554,9 @@ class Paragraph:
         self.alignment = ''
         self.text_to_write = ''
         self.text_to_write_with_reviser = ''
-        self.beg_char_state = CharState()
-        self.end_char_state = CharState()
-        self.char_state = CharState()
+        self.beg_chars_state = CharsState()
+        self.end_chars_state = CharsState()
+        self.chars_state = CharsState()
         # SUBSTITUTE
         Paragraph.paragraph_number += 1
         self.paragraph_number = Paragraph.paragraph_number
@@ -3931,13 +3940,13 @@ class Paragraph:
 
     def write_paragraph(self, ms_doc):
         # CHAR STATE
-        self.beg_char_state = Paragraph.bridge_char_state.copy()
-        self.char_state = self.beg_char_state.copy()
+        self.beg_chars_state = Paragraph.bridge_chars_state.copy()
+        self.chars_state = self.beg_chars_state.copy()
         paragraph_class = self.paragraph_class
         tail_section_depth = self.tail_section_depth
         alignment = self.alignment
         md_lines = self.md_lines
-        char_state = self.char_state
+        chars_state = self.chars_state
         text_to_write_with_reviser = self.text_to_write_with_reviser
         if text_to_write_with_reviser == '':
             return
@@ -3965,13 +3974,13 @@ class Paragraph:
             ms_par.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
         ms_fmt = ms_par.paragraph_format
         if paragraph_class == 'section' and tail_section_depth == 1:
-            char_state.font_scale = 1.4
-            self.write_text(ms_par, char_state, text_to_write_with_reviser)
-            char_state.font_scale = 1.0
+            chars_state.font_scale = 1.4
+            self.write_text(ms_par, chars_state, text_to_write_with_reviser)
+            chars_state.font_scale = 1.0
         else:
-            self.write_text(ms_par, char_state, text_to_write_with_reviser)
-        self.end_char_state = self.char_state.copy()
-        Paragraph.bridge_char_state = self.end_char_state.copy()
+            self.write_text(ms_par, chars_state, text_to_write_with_reviser)
+        self.end_chars_state = self.chars_state.copy()
+        Paragraph.bridge_chars_state = self.end_chars_state.copy()
 
     def _get_ms_par(self, ms_doc, par_style='makdo'):
         length_docx = self.length_docx
@@ -4022,12 +4031,12 @@ class Paragraph:
         ms_fmt.line_spacing = Pt(ls * m_size)
         return ms_par
 
-    def write_text(self, ms_par, char_state, text, type='normal'):
+    def write_text(self, ms_par, chars_state, text, type='normal'):
         text = self._replace_br_tag(text)
         unit = ''
         for c in text + '\0':
             if not self._must_continue(unit, c):
-                unit = self._manage_unit(ms_par, char_state, unit, c, type)
+                unit = self._manage_unit(ms_par, chars_state, unit, c, type)
             if c != '\0':
                 unit += c
         return unit
@@ -4080,193 +4089,193 @@ class Paragraph:
         # ELSE
         return False
 
-    def _manage_unit(self, ms_par, char_state, unit, c, type='normal'):
+    def _manage_unit(self, ms_par, chars_state, unit, c, type='normal'):
         res_ivs = '^((?:.|\n)*?)([^0-9\\\\])([0-9]+);$'
         res_foc = NOT_ESCAPED + '\\^([0-9A-Za-z]{0,11})\\^$'
         res_hlc = NOT_ESCAPED + '_([0-9A-Za-z]{1,11})_$'
         if re.match(NOT_ESCAPED + '<$', unit) and c == '>':
             # '<>' （RELAX） "<<<" (+ ">") = "<<" + "<" (+ ">")
             unit = re.sub('<$', '', unit)
-            unit = self._manage_unit(ms_par, char_state, unit, '<', type)
+            unit = self._manage_unit(ms_par, chars_state, unit, '<', type)
             unit += '<'
         elif re.match(NOT_ESCAPED + '\\\\\\[$', unit):
             # "\[" (BEGINNING OF MATH EXPRESSION) (MUST FIRST)
             unit = re.sub('\\\\\\[$', '', unit)
-            unit = XML.write_unit(ms_par._p, char_state, unit)
+            unit = XML.write_unit(ms_par._p, chars_state, unit)
             unit = '\\['
         elif (re.match('^\\\\\\[', unit) and
               re.match(NOT_ESCAPED + '\\\\\\]$', unit)):
             # "\]" (END OF MATH EXPRESSION (MUST FIRST)
             unit = re.sub('^\\\\\\[(.*)\\\\\\]$', '\\1', unit)
-            unit = Math.write_unit(ms_par._p, CharState(), unit)
+            unit = Math.write_unit(ms_par._p, CharsState(), unit)
         elif re.match(NOT_ESCAPED + '((?:_|\\^){)$', unit):
             # "_{" or "^{" (BEGINNIG OF SUB OR SUP)
             subp = re.sub(NOT_ESCAPED + '((?:_|\\^){)$', '\\2', unit)
             unit = re.sub(NOT_ESCAPED + '((?:_|\\^){)$', '\\1', unit)
-            unit = XML.write_unit(ms_par._p, char_state, unit)
+            unit = XML.write_unit(ms_par._p, chars_state, unit)
             unit = subp
         elif (re.match('^(?:_|\\^){', unit) and
               re.match(NOT_ESCAPED + '}$', unit)):
             # "}" (END OF SUB OR SUP)
             if re.match('^_{', unit):
-                char_state.sub_or_sup = 'sub'
+                chars_state.sub_or_sup = 'sub'
             else:
-                char_state.sub_or_sup = 'sup'
+                chars_state.sub_or_sup = 'sup'
             unit = re.sub('^(?:_|\\^){(.*)}', '\\1', unit)
-            unit = self.write_text(ms_par, char_state, unit, type)
-            char_state.sub_or_sup = ''
+            unit = self.write_text(ms_par, chars_state, unit, type)
+            chars_state.sub_or_sup = ''
         elif re.match(NOT_ESCAPED + RES_IMAGE, unit):
             # "![.*](.+)" (IMAGE)
             path = re.sub(NOT_ESCAPED + RES_IMAGE, '\\3', unit)
             alte = re.sub(NOT_ESCAPED + RES_IMAGE, '\\2', unit)
             unit = re.sub(NOT_ESCAPED + RES_IMAGE, '\\1', unit)
-            unit = XML.write_unit(ms_par._p, char_state, unit)
-            self._write_image(ms_par, char_state, alte, path)
+            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            self._write_image(ms_par, chars_state, alte, path)
         elif re.match(NOT_ESCAPED + '\\*\\*\\*$', unit):
             # "***" (ITALIC AND BOLD)
             unit = re.sub('\\*\\*\\*$', '', unit)
-            unit = XML.write_unit(ms_par._p, char_state, unit)
-            char_state.is_bold = not char_state.is_bold
-            char_state.is_italic = not char_state.is_italic
+            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            chars_state.is_bold = not chars_state.is_bold
+            chars_state.is_italic = not chars_state.is_italic
         elif re.match(NOT_ESCAPED + '\\*\\*$', unit):
             # "**" BOLD
             unit = re.sub('\\*\\*$', '', unit)
-            unit = XML.write_unit(ms_par._p, char_state, unit)
-            char_state.is_bold = not char_state.is_bold
+            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            chars_state.is_bold = not chars_state.is_bold
         elif re.match(NOT_ESCAPED + '\\*$', unit):
             # "*" ITALIC
             unit = re.sub('\\*$', '', unit)
-            unit = XML.write_unit(ms_par._p, char_state, unit)
-            char_state.is_italic = not char_state.is_italic
+            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            chars_state.is_italic = not chars_state.is_italic
         elif re.match(NOT_ESCAPED + '~~$', unit):
             # "~~" (STRIKETHROUGH)
             unit = re.sub('~~$', '', unit)
-            unit = XML.write_unit(ms_par._p, char_state, unit)
-            char_state.has_strike = not char_state.has_strike
+            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            chars_state.has_strike = not chars_state.has_strike
         elif re.match(NOT_ESCAPED + '`$', unit):
             # "`" (PREFORMATTED)
             unit = re.sub('`$', '', unit)
-            unit = XML.write_unit(ms_par._p, char_state, unit)
-            char_state.is_preformatted = not char_state.is_preformatted
+            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            chars_state.is_preformatted = not chars_state.is_preformatted
         elif re.match(NOT_ESCAPED + '//$', unit):
             # "//" (ITALIC)
             if not re.match('^.*[a-z]+://$', unit):
                 # not http:// https:// ftp:// ...
                 unit = re.sub('//$', '', unit)
-                unit = XML.write_unit(ms_par._p, char_state, unit)
-                char_state.is_italic = not char_state.is_italic
+                unit = XML.write_unit(ms_par._p, chars_state, unit)
+                chars_state.is_italic = not chars_state.is_italic
         elif re.match(NOT_ESCAPED + '_([\\$=\\.#\\-~\\+]{,4})_$', unit):
             # "_.*_" (UNDERLINE)
             sty = re.sub(NOT_ESCAPED + '_([\\$=\\.#\\-~\\+]{,4})_$', '\\2',
                          unit)
             if sty in UNDERLINE:
                 unit = re.sub('_([\\$=\\.#\\-~\\+]{,4})_$', '', unit, 1)
-                unit = XML.write_unit(ms_par._p, char_state, unit)
+                unit = XML.write_unit(ms_par._p, chars_state, unit)
                 ul = UNDERLINE[sty]
-                if char_state.underline != ul:
-                    char_state.underline = ul
+                if chars_state.underline != ul:
+                    chars_state.underline = ul
                 else:
-                    char_state.underline = None
+                    chars_state.underline = None
         elif re.match(NOT_ESCAPED + '\\-\\-\\-$', unit):
             # "---" (XSMALL)
             unit = re.sub('\\-\\-\\-$', '', unit)
-            unit = XML.write_unit(ms_par._p, char_state, unit)
-            if char_state.font_scale == 0.8:
-                char_state.font_scale = 1.0
+            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            if chars_state.font_scale == 0.8:
+                chars_state.font_scale = 1.0
                 unit += '-'
-            elif char_state.font_scale != 0.6:
-                char_state.font_scale = 0.6
+            elif chars_state.font_scale != 0.6:
+                chars_state.font_scale = 0.6
             else:
-                char_state.font_scale = 1.0
+                chars_state.font_scale = 1.0
         elif re.match(NOT_ESCAPED + '\\-\\-$', unit):
             # "--" (SMALL)
             unit = re.sub('\\-\\-$', '', unit)
-            unit = XML.write_unit(ms_par._p, char_state, unit)
-            if char_state.font_scale != 0.8:
-                char_state.font_scale = 0.8
+            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            if chars_state.font_scale != 0.8:
+                chars_state.font_scale = 0.8
             else:
-                char_state.font_scale = 1.0
+                chars_state.font_scale = 1.0
         elif re.match(NOT_ESCAPED + '\\+\\+\\+$', unit):
             # "+++" (XLARGE)
             unit = re.sub('\\+\\+\\+$', '', unit)
-            unit = XML.write_unit(ms_par._p, char_state, unit)
-            if char_state.font_scale == 1.2:
-                char_state.font_scale = 1.0
+            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            if chars_state.font_scale == 1.2:
+                chars_state.font_scale = 1.0
                 unit += '+'
-            elif char_state.font_scale != 1.4:
-                char_state.font_scale = 1.4
+            elif chars_state.font_scale != 1.4:
+                chars_state.font_scale = 1.4
             else:
-                char_state.font_scale = 1.0
+                chars_state.font_scale = 1.0
         elif re.match(NOT_ESCAPED + '\\+\\+$', unit):
             # "++" (LARGE)
             unit = re.sub('\\+\\+$', '', unit)
-            unit = XML.write_unit(ms_par._p, char_state, unit)
-            if char_state.font_scale != 1.2:
-                char_state.font_scale = 1.2
+            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            if chars_state.font_scale != 1.2:
+                chars_state.font_scale = 1.2
             else:
-                char_state.font_scale = 1.0
+                chars_state.font_scale = 1.0
         elif re.match(NOT_ESCAPED + '<<<$', unit):
             # "<<<" (XWIDE or RESET)
             unit = re.sub('<<<$', '', unit)
-            unit = XML.write_unit(ms_par._p, char_state, unit)
-            if char_state.font_width < 0.7:
-                char_state.font_width = 1.0
-            elif char_state.font_width < 1.0:
-                char_state.font_width = 1.0
+            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            if chars_state.font_width < 0.7:
+                chars_state.font_width = 1.0
+            elif chars_state.font_width < 1.0:
+                chars_state.font_width = 1.0
                 unit += '<'
             else:
-                char_state.font_width = 1.4
+                chars_state.font_width = 1.4
         elif re.match(NOT_ESCAPED + '<<$', unit):
             # "<<" (WIDE or RESET)
             unit = re.sub('<<$', '', unit)
-            unit = XML.write_unit(ms_par._p, char_state, unit)
-            if char_state.font_width < 1.0:
-                char_state.font_width = 1.0
+            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            if chars_state.font_width < 1.0:
+                chars_state.font_width = 1.0
             else:
-                char_state.font_width = 1.2
+                chars_state.font_width = 1.2
         elif re.match(NOT_ESCAPED + '>>>$', unit):
             # ">>>" (XNARROW or RESET)
             if not re.match(NOT_ESCAPED + '<>>>$', unit):
                 unit = re.sub('>>>$', '', unit)
-                unit = XML.write_unit(ms_par._p, char_state, unit)
-                if char_state.font_width > 1.3:
-                    char_state.font_width = 1.0
-                elif char_state.font_width > 1.0:
-                    char_state.font_width = 1.0
+                unit = XML.write_unit(ms_par._p, chars_state, unit)
+                if chars_state.font_width > 1.3:
+                    chars_state.font_width = 1.0
+                elif chars_state.font_width > 1.0:
+                    chars_state.font_width = 1.0
                     unit += '>'
                 else:
-                    char_state.font_width = 0.6
+                    chars_state.font_width = 0.6
             else:
                 # "<>>>" = "<>" + ">>"
                 unit = re.sub('>>$', '', unit)
-                unit = XML.write_unit(ms_par._p, char_state, unit)
-                if char_state.font_width > 1.0:
-                    char_state.font_width = 1.0
+                unit = XML.write_unit(ms_par._p, chars_state, unit)
+                if chars_state.font_width > 1.0:
+                    chars_state.font_width = 1.0
                 else:
-                    char_state.font_width = 0.8
+                    chars_state.font_width = 0.8
         elif re.match(NOT_ESCAPED + '>>$', unit):
             # ">>" (NARROW or RESET)
             if re.match(NOT_ESCAPED + '<>>$', unit):
                 # "<>>" = "<>" + ">"
                 return unit
             unit = re.sub('>>$', '', unit)
-            unit = XML.write_unit(ms_par._p, char_state, unit)
-            if char_state.font_width > 1.0:
-                char_state.font_width = 1.0
+            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            if chars_state.font_width > 1.0:
+                chars_state.font_width = 1.0
             else:
-                char_state.font_width = 0.8
+                chars_state.font_width = 0.8
         elif re.match(NOT_ESCAPED + '@([^@]{1,66})@$', unit):
             # "@.+@" (FONT)
             font = re.sub(NOT_ESCAPED + '@([^@]{1,66})@$', '\\2', unit)
             unit = re.sub(NOT_ESCAPED + '@([^@]{1,66})@$', '\\1', unit)
-            unit = XML.write_unit(ms_par._p, char_state, unit)
-            if char_state.mincho_font != font or \
-               char_state.gothic_font != font:
-                char_state.mincho_font = font
-                char_state.gothic_font = font
+            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            if chars_state.mincho_font != font or \
+               chars_state.gothic_font != font:
+                chars_state.mincho_font = font
+                chars_state.gothic_font = font
             else:
-                char_state.mincho_font = Form.mincho_font
-                char_state.gothic_font = Form.gothic_font
+                chars_state.mincho_font = Form.mincho_font
+                chars_state.gothic_font = Form.gothic_font
         elif re.match(res_ivs, unit):
             # .[0-9]+; (IVS (IDEOGRAPHIC VARIATION SEQUENCE))
             ivsn = re.sub(res_ivs, '\\3', unit)
@@ -4274,11 +4283,11 @@ class Paragraph:
             unit = re.sub(res_ivs, '\\1', unit)
             ivsu = int('0xE0100', 16) + int(ivsn)
             if int(ivsu) <= int('0xE01EF', 16):
-                unit = XML.write_unit(ms_par._p, char_state, unit)
-                save_name = char_state.mincho_font
-                char_state.mincho_font = char_state.ivs_font
-                unit = XML.write_unit(ms_par._p, char_state, ivsc + chr(ivsu))
-                char_state.mincho_font = save_name
+                unit = XML.write_unit(ms_par._p, chars_state, unit)
+                save_name = chars_state.mincho_font
+                chars_state.mincho_font = chars_state.ivs_font
+                unit = XML.write_unit(ms_par._p, chars_state, ivsc + chr(ivsu))
+                chars_state.mincho_font = save_name
         elif re.match(res_foc, unit):
             # "^.*^" (FONT COLOR)
             col = re.sub(res_foc, '\\2', unit)
@@ -4291,56 +4300,56 @@ class Paragraph:
                 col = FONT_COLOR[col]
             if re.match('^[0-9A-F]{6}$', col):
                 unit = re.sub('\\^([0-9A-Za-z]*)\\^$', '', unit)
-                unit = XML.write_unit(ms_par._p, char_state, unit)
-                if char_state.font_color != col:
-                    char_state.font_color = col
+                unit = XML.write_unit(ms_par._p, chars_state, unit)
+                if chars_state.font_color != col:
+                    chars_state.font_color = col
                 else:
-                    char_state.font_color = None
+                    chars_state.font_color = None
         elif re.match(res_hlc, unit):
             # "_.+_" (HIGHLIGHT COLOR)
             col = re.sub(res_hlc, '\\2', unit)
             if col in HIGHLIGHT_COLOR:
                 unit = re.sub(res_hlc, '\\1', unit)
-                unit = XML.write_unit(ms_par._p, char_state, unit)
+                unit = XML.write_unit(ms_par._p, chars_state, unit)
                 col = HIGHLIGHT_COLOR[col]
-                if char_state.highlight_color != col:
-                    char_state.highlight_color = col
+                if chars_state.highlight_color != col:
+                    chars_state.highlight_color = col
                 else:
-                    char_state.highlight_color = None
+                    chars_state.highlight_color = None
         elif re.match(NOT_ESCAPED + '\\->$', unit):
             # BEGINNING OF DELETED
             unit = re.sub('\\->$', '', unit)
-            unit = XML.write_unit(ms_par._p, char_state, unit)
-            char_state.track_changes = 'del'
+            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            chars_state.track_changes = 'del'
         elif re.match(NOT_ESCAPED + '<\\-$', unit):
             # END OF DELETED
             unit = re.sub('<\\-$', '', unit)
-            unit = XML.write_unit(ms_par._p, char_state, unit)
-            char_state.track_changes = ''
+            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            chars_state.track_changes = ''
         elif re.match(NOT_ESCAPED + '\\+>$', unit):
             # BEGINNING OF INSERTED
             unit = re.sub('\\+>$', '', unit)
-            unit = XML.write_unit(ms_par._p, char_state, unit)
-            char_state.track_changes = 'ins'
+            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            chars_state.track_changes = 'ins'
         elif re.match(NOT_ESCAPED + '<\\+$', unit):
             # END OF INSERTED
             unit = re.sub('<\\+$', '', unit)
-            unit = XML.write_unit(ms_par._p, char_state, unit)
-            char_state.track_changes = ''
+            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            chars_state.track_changes = ''
         elif re.match(NOT_ESCAPED + '(n|N)$', unit):
             if type == 'footer':
                 # "n|N" (PAGE NUMBER)
                 char = re.sub(NOT_ESCAPED + '(n|N)$', '\\2', unit)
                 unit = re.sub(NOT_ESCAPED + '(n|N)$', '\\1', unit)
-                unit = XML.write_unit(ms_par._p, char_state, unit)
-                unit += XML.write_page_number(ms_par._p, char_state, char)
+                unit = XML.write_unit(ms_par._p, chars_state, unit)
+                unit += XML.write_page_number(ms_par._p, chars_state, char)
         if c == '\0' and unit != '':
             # LAST
-            unit = XML.write_unit(ms_par._p, char_state, unit)
+            unit = XML.write_unit(ms_par._p, chars_state, unit)
         return unit
 
-    def _write_image(self, ms_par, char_state, alte, path):
-        size = round(char_state.font_size * char_state.font_scale, 1)
+    def _write_image(self, ms_par, chars_state, alte, path):
+        size = round(chars_state.font_size * chars_state.font_scale, 1)
         indent \
             = self.length_docx['first indent'] \
             + self.length_docx['left indent'] \
@@ -4670,10 +4679,12 @@ class ParagraphTable(Paragraph):
     res_feature = '^\\|.*\\|$'
 
     def write_paragraph(self, ms_doc):
-        char_state = self.char_state
+        chars_state = self.chars_state
         m_size = Form.font_size
         t_size = m_size * TABLE_FONT_SCALE
         tab = self._get_table_data(self.md_lines)
+        # DOUBLE LINE
+        row_line, col_line, tab = self._get_row_and_col_line(tab)
         conf_row, ali_list, wid_list = self._get_table_alignment_and_width(tab)
         if conf_row >= 0:
             tab.pop(conf_row)
@@ -4718,11 +4729,18 @@ class ParagraphTable(Paragraph):
                 # WORD WRAP (英単語の途中で改行する)
                 ms_ppr = ms_par._p.get_or_add_pPr()
                 XML.add_tag(ms_ppr, 'w:wordWrap', {'w:val': '0'})
-                char_state.font_size = t_size
-                self.write_text(ms_par, char_state, cell)
-                char_state.font_size = m_size
+                chars_state.font_size = t_size
+                self.write_text(ms_par, chars_state, cell)
+                chars_state.font_size = m_size
                 ms_fmt = ms_par.paragraph_format
                 ms_fmt.alignment = cel_ali
+                # DOUBLE LINE
+                ms_tcpr = ms_cell._tc.get_or_add_tcPr()
+                ms_tcbr = XML.add_tag(ms_tcpr, 'w:tcBorders')
+                if row_line[i] == 'double':
+                    XML.add_tag(ms_tcbr, 'w:bottom', {'w:val': 'double'})
+                if col_line[j] == 'double':
+                    XML.add_tag(ms_tcbr, 'w:right', {'w:val': 'double'})
 
     @staticmethod
     def _get_table_data(md_lines):
@@ -4751,8 +4769,14 @@ class ParagraphTable(Paragraph):
             if len(col) > 0 and re.match(NOT_ESCAPED + '\\\\$', col[-1]):
                 col[-1] += '|'
             tab.append(col)
-            # tab.append(line.split('|'))
             line = ''
+            # DOUBLE LINE
+            if re.match('^=+$', ml.text):
+                if len(tab[-1]) == 1:
+                    tab.pop(-1)
+                else:
+                    tab[-1].pop(-1)
+                tab.append(['='])
         m = 0
         for rw in tab:
             if m < len(rw) - 1:
@@ -4766,12 +4790,46 @@ class ParagraphTable(Paragraph):
         #         tab[i][j] = re.sub('\\s+$', '', tab[i][j])
         return tab
 
+    # FOR DOUBLE LINE
+    @staticmethod
+    def _get_row_and_col_line(tab):
+        row_line = []
+        col_line = []
+        for i in range(len(tab)):
+            # ROW
+            for j in range(len(tab[i])):
+                if j == 0 and tab[i][j] != '=':
+                    break
+                if j > 0 and tab[i][j] != '':
+                    break
+            else:
+                tab[i] = 'remove'
+                row_line[-1] = 'double'
+                continue
+            # COLUMN
+            for j in range(len(tab[i])):
+                if not re.match('^ *:?-*:? *=?$', tab[i][j]):
+                    break
+            else:
+                for k in range(len(tab[i])):
+                    if re.match('^.*=$', tab[i][k]):
+                        tab[i][k] = re.sub('=$', '', tab[i][k])
+                        # tab[i][k] = re.sub('-', '--', tab[i][k], 1)
+                        col_line.append('double')
+                    else:
+                        col_line.append('')
+                continue
+            row_line.append('')
+        while 'remove' in tab:
+            tab.remove('remove')
+        return row_line, col_line, tab
+
     @staticmethod
     def _get_table_alignment_and_width(tab):
         conf_row = -1
         for i in range(len(tab)):
             for j in range(len(tab[i])):
-                if not re.match('^ *:?-*:? *$', tab[i][j]):
+                if not re.match('^ *:?-*:? *=?$', tab[i][j]):
                     break
             else:
                 conf_row = i
@@ -4942,7 +5000,7 @@ class ParagraphMath(Paragraph):
         self._set_alignment(ms_par, ms_mpa)
         self._set_lenght(ms_par)
         self._set_font_revisers(hfr)
-        unit = Math.write_unit(ms_par._p, CharState(), ttw)
+        unit = Math.write_unit(ms_par._p, CharsState(), ttw)
         self._set_font_revisers(tfr)
 
     def _set_alignment(self, ms_par, ms_mpa):
@@ -5391,7 +5449,7 @@ class Md2Docx:
         doc = self.doc
         frm = self.frm
         # GET PARAGRAPHS
-        Paragraph.bridge_char_state = CharState()
+        Paragraph.bridge_chars_state = CharsState()
         doc.paragraphs = doc.get_paragraphs(doc.raw_paragraphs)
         doc.paragraphs = doc.modify_paragraphs(doc.paragraphs)
 
