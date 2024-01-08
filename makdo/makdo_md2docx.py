@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.01.02-07:52:39-JST>
+# Time-stamp:   <2024.01.09-07:17:55-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -2386,10 +2386,22 @@ class Math:
 
     @classmethod
     def _write_math_exp(cls, oe0, chars_state, unit):
+        # REMOVE ENCLOSING PARENTHESIS
+        if re.match('^{(.*)}$', unit):
+            u = re.sub('^{(.*)}$', '\\1', unit)
+            t = ''
+            d = 0
+            for c in u:
+                t += c
+                if re.match(NOT_ESCAPED + '{$', t):
+                    d += 1
+                if re.match(NOT_ESCAPED + '}$', t):
+                    d -= 1
+                if d < 0:
+                    break
+            else:
+                unit = u
         tmp = ''
-        unit = re.sub('^{', '', unit)
-        unit = re.sub('}$', '', unit)
-        # unit = re.sub('^{(.*)}$', '\\1', unit)
         # ONE NUB
         if re.match('^[^{}]+$', unit):
             cls._write_nub(oe0, chars_state, unit)
