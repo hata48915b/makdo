@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.01.09-07:17:55-JST>
+# Time-stamp:   <2024.01.27-08:27:13-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -3333,7 +3333,7 @@ class RawParagraph:
                 else:
                     break
             if ml.text != '':
-                if re.match('.*  $', ml.text):
+                if re.match(NOT_ESCAPED + '  $', ml.text):
                     ml.text = re.sub('  $', '<br>', ml.text)
                 break
         # TAIL REVISERS
@@ -4832,6 +4832,14 @@ class ParagraphTable(Paragraph):
                         col_line.append('')
                 continue
             row_line.append('')
+        # COLUMN (IF NO CONFIG LINE)
+        if col_line == []:
+            m = 0
+            for t in tab:
+                n = len(t)
+                if m < n:
+                    m = n
+            col_line = ['' for x in range(m)]
         while 'remove' in tab:
             tab.remove('remove')
         return row_line, col_line, tab
