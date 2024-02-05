@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.01.04-17:27:17-JST>
+# Time-stamp:   <2024.02.05-13:15:27-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -2519,14 +2519,31 @@ class XML:
             if re.match(res, tag):
                 value = re.sub(res, '\\1', tag)
                 if type(init_value) is int:
-                    return int(value)
+                    # INT
+                    if re.match('^[-\\+]?[0-9]+$', value):
+                        return int(value)
+                    if re.match('^true$', value, re.IGNORECASE):
+                        return 1
+                    if re.match('^false$', value, re.IGNORECASE):
+                        return -1
+                    return init_value  # bad value
                 if type(init_value) is float:
-                    return float(value)
+                    # FLOAT
+                    if re.match('^' + RES_NUMBER + '$', value):
+                        return float(value)
+                    return init_value  # bad value
                 if type(init_value) is bool:
+                    # BOOL
                     if re.match('^true$', value, re.IGNORECASE):
                         return True
-                    else:
+                    if re.match('^false$', value, re.IGNORECASE):
                         return False
+                    if value == '1':
+                        return True
+                    if value == '-1':
+                        return False
+                    return init_value  # bad value
+                # STRING
                 return value
         return init_value
 
