@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.02.05-13:15:27-JST>
+# Time-stamp:   <2024.02.05-13:35:39-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -252,6 +252,27 @@ DEFAULT_MATH_FONT = 'Cambria Math'
 # DEFAULT_MATH_FONT = 'Liberation Serif'
 DEFAULT_FONT_SIZE = 12.0
 TABLE_FONT_SCALE = 0.8
+
+MS_FONTS = [
+    ['ＭＳ 明朝',
+     'ＭＳ明朝',
+     'ＭＳ 明朝;MS Mincho',
+     'MS Mincho;ＭＳ 明朝',
+     'Mincho;MS Mincho'],
+    ['ＭＳゴシック',
+     'ＭＳ ゴシック;MS Gothic',
+     'MS Gothic;ＭＳ ゴシック',
+     'Gothic;MS Gothic'],
+    ['ＭＳ Ｐ明朝',
+     'ＭＳＰ明朝',
+     'ＭＳ Ｐ明朝;MS PMincho',
+     'MS PMincho;ＭＳ Ｐ明朝'
+     'PMincho;MS PMincho'],
+    ['ＭＳ Ｐゴシック',
+     'ＭＳ Ｐゴシック;MS PGothic',
+     'MS PGothic; ＭＳ Ｐゴシック',
+     'PGothic;MS PGothic'],
+]
 
 DEFAULT_LINE_SPACING = 2.14  # (2.0980+2.1812)/2=2.1396
 
@@ -3446,10 +3467,10 @@ class RawParagraph:
                 font = XML.get_value('w:rFonts', 'w:ascii', font, xl)
                 font = XML.get_value('w:rFonts', 'w:eastAsia', font, xl)
                 # SYMPTOMATIC TREATMENT
-                if font == 'ＭＳ 明朝;MS Mincho' or font == 'ＭＳ明朝':
-                    font = 'ＭＳ 明朝'
-                if font == 'ＭＳ ゴシック;MS Gothic' or font == 'ＭＳゴシック':
-                    font = 'ＭＳ ゴシック'
+                for mfs in MS_FONTS:
+                    for mf in mfs:
+                        if font == mf:
+                            font = mfs[0]
                 if font != '':
                     if font == Form.mincho_font:
                         pass
