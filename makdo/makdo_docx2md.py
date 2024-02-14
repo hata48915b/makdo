@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.02.05-13:35:39-JST>
+# Time-stamp:   <2024.02.15-05:50:52-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4772,6 +4772,13 @@ class Paragraph:
             elif length_docx['space after'] >= 0:
                 length_docx['space after'] *= 2
         length_docx['first indent'] = round((fi_xml - hi_xml) / 20 / m_size, 2)
+        # （１）, （ア）, （ａ）
+        paragraph_class = self.paragraph_class
+        raw_text = self.raw_text
+        res = '^（([0-9０-９]+|[ｱ-ﾝア-ン]+|[a-zａ-ｚ]+)）'
+        if paragraph_class == 'section':
+            if re.match(res, raw_text):
+                length_docx['first indent'] += 1.0
         length_docx['left indent'] = round((li_xml + ti_xml) / 20 / m_size, 2)
         length_docx['right indent'] = round(ri_xml / 20 / m_size, 2)
         if head_space != '':
@@ -5549,6 +5556,9 @@ class ParagraphSection(Paragraph):
 
     @classmethod
     def _get_section_depths(cls, raw_text, should_record=False):
+        # （１）, （ア）, （ａ）
+        raw_text = re.sub('^（([0-9０-９]+|[ｱ-ﾝア-ン]+|[a-zａ-ｚ]+)）',
+                          '(\\1) ', raw_text)
         rss = cls.res_symbols
         rfd = RES_FONT_DECORATORS
         rre = cls.res_rest
@@ -5572,6 +5582,9 @@ class ParagraphSection(Paragraph):
         return head_section_depth, tail_section_depth
 
     def _get_revisers_and_md_text(self, raw_text):
+        # （１）, （ア）, （ａ）
+        raw_text = re.sub('^（([0-9０-９]+|[ｱ-ﾝア-ン]+|[a-zａ-ｚ]+)）',
+                          '(\\1) ', raw_text)
         m_size = Form.font_size
         xl_size = m_size * 1.4
         xml_lines = self.xml_lines
