@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.01.27-08:27:13-JST>
+# Time-stamp:   <2024.02.15-01:35:42-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1977,7 +1977,8 @@ class XML:
             oe2 = XML.add_tag(oe1, 'w:w', opt)
         # FONT COLOR
         if chars_state.font_color is not None:
-            oe2 = XML.add_tag(oe1, 'w:color', {'w:val': chars_state.font_color})
+            oe2 = XML.add_tag(oe1, 'w:color',
+                              {'w:val': chars_state.font_color})
         # HIGHTLIGHT COLOR
         if chars_state.highlight_color is not None:
             opt = {'w:val': chars_state.highlight_color}
@@ -2635,7 +2636,8 @@ class Math:
             oe2 = XML.add_tag(oe1, 'w:w', opt)
         # FONT COLOR
         if chars_state.font_color is not None:
-            oe2 = XML.add_tag(oe1, 'w:color', {'w:val': chars_state.font_color})
+            oe2 = XML.add_tag(oe1, 'w:color',
+                              {'w:val': chars_state.font_color})
         # HIGHTLIGHT COLOR
         if chars_state.highlight_color is not None:
             opt = {'w:val': chars_state.highlight_color}
