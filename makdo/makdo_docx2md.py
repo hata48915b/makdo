@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.02.15-05:50:52-JST>
+# Time-stamp:   <2024.02.15-10:59:41-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -2292,6 +2292,19 @@ class CharsDatum:
             self.raw_pos_fds.append(fd)
 
     def append_fds(self, pre_fd, pos_fd):
+        siz_fds = ['---', '--', '++', '+++']
+        if pre_fd in siz_fds:
+            for sf in siz_fds:
+                if sf in self.pre_fds:
+                    self.pre_fds.remove(sf)
+                if sf in self.raw_pre_fds:
+                    self.raw_pre_fds.remove(sf)
+        if pos_fd in siz_fds:
+            for sf in siz_fds:
+                if sf in self.pos_fds:
+                    self.pos_fds.remove(sf)
+                if sf in self.raw_pos_fds:
+                    self.raw_pos_fds.remove(sf)
         # PRE FDS
         if pre_fd not in self.pre_fds:
             self.pre_fds.append(pre_fd)
@@ -3370,6 +3383,7 @@ class RawParagraph:
         is_changed = False
         fldchar = ''
         track_changes = ''  # ''|'del'|'ins'
+        ruby = ''  # ''|'rub'|'bas'
         cd = CharsDatum([], '', [])
         for xl in xml_lines:
             # EMPTY
@@ -3460,6 +3474,19 @@ class RawParagraph:
                 continue
             elif re.match('^</w:ins( .*[^/])?>$', xl):
                 track_changes = ''
+                continue
+            # RUBY
+            if re.match('^<w:ruby>$', xl):
+                chars_data.append(CharsDatum([], '^<', []))
+                ruby = 'rub'
+                continue
+            elif re.match('^<w:rubyBase>$', xl):
+                chars_data.append(CharsDatum([], '>/<', []))
+                ruby = 'bas'
+                continue
+            elif re.match('^</w:ruby>$', xl):
+                chars_data.append(CharsDatum([], '>$', []))
+                ruby = ''
                 continue
             # FONT
             if re.match('^<w:rFonts .*>$', xl):
@@ -3570,6 +3597,16 @@ class RawParagraph:
                         cd.append_fds('->', '<-')
                     elif track_changes == 'ins':
                         cd.append_fds('+>', '<+')
+                    # RUBY
+                    if ruby == 'rub':
+                        if '---' in cd.pre_fds:
+                            cd.pre_fds.remove('---')
+                        if '--' in cd.pre_fds:
+                            cd.pre_fds.remove('--')
+                        if '---' in cd.pos_fds:
+                            cd.pos_fds.remove('---')
+                        if '--' in cd.pos_fds:
+                            cd.pos_fds.remove('--')
                     chars_data.append(cd)
                 cd = CharsDatum([], '', [])
                 continue
@@ -4150,6 +4187,9 @@ class RawParagraph:
         raw_text = cls._convert_ivs(raw_text)  # IDEOGRAPHIC VARIATION SEQUENCE
         raw_text = cls._restore_charcters(raw_text)
         raw_text = cls._shrink_meaningless_font_decorations(raw_text)
+        # RUBY
+        res = '\\^<([^<>]{1,37})>/<([^<>]{1,37})>\\$'
+        raw_text = re.sub(res, '<\\2/\\1>', raw_text)
         # self.raw_text = raw_text
         return raw_text
 

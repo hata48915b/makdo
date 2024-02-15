@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.02.15-01:35:42-JST>
+# Time-stamp:   <2024.02.15-10:56:39-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -290,6 +290,7 @@ HELP_EPILOG = '''Markdownの記法:
             https://moji.or.jp/mojikibansearch/basic
     [^{foo}]でfooが上付文字（累乗等）になります（独自）
     [_{foo}]でfooが下付文字（添字等）になります（独自）
+    [<foo/bar>]でfooの上にbarというルビが振られます（独自）
     [\\[]と[\\]]とでLaTeX形式の文字列を挟むと数式が書けます（独自）
   エスケープ記号
     [\\]をコマンドの前に書くとコマンドが文字列になります
@@ -4331,25 +4332,42 @@ class Paragraph:
                 else:
                     chars_state.highlight_color = None
         elif re.match(NOT_ESCAPED + '\\->$', unit):
-            # BEGINNING OF DELETED
+            # "->" (BEGINNING OF DELETED)
             unit = re.sub('\\->$', '', unit)
             unit = XML.write_unit(ms_par._p, chars_state, unit)
             chars_state.track_changes = 'del'
         elif re.match(NOT_ESCAPED + '<\\-$', unit):
-            # END OF DELETED
+            # "<-" (END OF DELETED)
             unit = re.sub('<\\-$', '', unit)
             unit = XML.write_unit(ms_par._p, chars_state, unit)
             chars_state.track_changes = ''
         elif re.match(NOT_ESCAPED + '\\+>$', unit):
-            # BEGINNING OF INSERTED
+            # "+>" (BEGINNING OF INSERTED)
             unit = re.sub('\\+>$', '', unit)
             unit = XML.write_unit(ms_par._p, chars_state, unit)
             chars_state.track_changes = 'ins'
         elif re.match(NOT_ESCAPED + '<\\+$', unit):
-            # END OF INSERTED
+            # "<+" (END OF INSERTED)
             unit = re.sub('<\\+$', '', unit)
             unit = XML.write_unit(ms_par._p, chars_state, unit)
             chars_state.track_changes = ''
+        elif re.match(NOT_ESCAPED + '<([^<>]{1,37}?)/([^<>]{1,37}?)>$', unit):
+            # "<.+/.+>" (RUBY)
+            res = '<([^<>]{1,37}?)/([^<>]{1,37}?)>'
+            ruby = re.sub(NOT_ESCAPED + res + '$', '\\3', unit)
+            base = re.sub(NOT_ESCAPED + res + '$', '\\2', unit)
+            unit = re.sub(NOT_ESCAPED + res + '$', '\\1', unit)
+            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            ms_rb0 = XML.add_tag(ms_par._p, 'w:r', {})
+            ms_rb1 = XML.add_tag(ms_rb0, 'w:ruby', {})
+            ms_rb2 = XML.add_tag(ms_rb1, 'w:rubyPr', {})
+            XML.add_tag(ms_rb2, 'w:rubyAlign', {'w:val': 'center'})
+            ms_rb2 = XML.add_tag(ms_rb1, 'w:rt', {})
+            chars_state.font_size /= 2
+            XML.write_unit(ms_rb2, chars_state, ruby)
+            ms_rb2 = XML.add_tag(ms_rb1, 'w:rubyBase', {})
+            chars_state.font_size *= 2
+            XML.write_unit(ms_rb2, chars_state, base)
         elif re.match(NOT_ESCAPED + '(n|N)$', unit):
             if type == 'footer':
                 # "n|N" (PAGE NUMBER)
