@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.02.15-12:48:45-JST>
+# Time-stamp:   <2024.02.15-13:47:31-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1417,9 +1417,13 @@ class Form:
 
     @staticmethod
     def _configure_by_md_file(md_lines):
-        for ml in md_lines:
-            if ml.raw_text == '' or ml.text != '':
-                break
+        for i, ml in enumerate(md_lines):
+            if i == 0 and not re.match('^<!--.*$', ml.raw_text):
+                break  # NO CONFIGURATIONS
+            if i > 0 and re.match('^.*-->$', md_lines[i - 1].raw_text):
+                break  # END OF CONFIGURATIONS
+            if ml.text != '':
+                break  # BEGINNING OF TEXT
             com = ml.comment
             if re.match('^\\s*#', com):
                 continue
