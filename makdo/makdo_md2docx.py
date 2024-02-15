@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.02.15-10:56:39-JST>
+# Time-stamp:   <2024.02.15-11:28:48-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1418,9 +1418,9 @@ class Form:
     @staticmethod
     def _configure_by_md_file(md_lines):
         for ml in md_lines:
-            com = ml.comment
-            if ml.text != '':
+            if ml.raw_text == '' or ml.text != '':
                 break
+            com = ml.comment
             if re.match('^\\s*#', com):
                 continue
             res = '^\\s*([^:：]+)[:：]\\s*(.*)$'
