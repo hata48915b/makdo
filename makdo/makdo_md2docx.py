@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.02.15-11:28:48-JST>
+# Time-stamp:   <2024.02.15-12:48:45-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4715,7 +4715,7 @@ class ParagraphTable(Paragraph):
         m_size = Form.font_size
         t_size = m_size * TABLE_FONT_SCALE
         tab = self._get_table_data(self.md_lines)
-        # DOUBLE LINE
+        # NIL OR DOUBLE LINE
         row_line, col_line, tab = self._get_row_and_col_line(tab)
         conf_row, ali_list, wid_list = self._get_table_alignment_and_width(tab)
         if conf_row >= 0:
@@ -4766,11 +4766,19 @@ class ParagraphTable(Paragraph):
                 chars_state.font_size = m_size
                 ms_fmt = ms_par.paragraph_format
                 ms_fmt.alignment = cel_ali
-                # DOUBLE LINE
+                # NIL OR DOUBLE LINE
                 ms_tcpr = ms_cell._tc.get_or_add_tcPr()
                 ms_tcbr = XML.add_tag(ms_tcpr, 'w:tcBorders')
+                if i > 0 and row_line[i - 1] == 'nil':
+                    XML.add_tag(ms_tcbr, 'w:top', {'w:val': 'nil'})
+                if row_line[i] == 'nil':
+                    XML.add_tag(ms_tcbr, 'w:bottom', {'w:val': 'nil'})
                 if row_line[i] == 'double':
                     XML.add_tag(ms_tcbr, 'w:bottom', {'w:val': 'double'})
+                if j > 0 and col_line[j - 1] == 'nil':
+                    XML.add_tag(ms_tcbr, 'w:left', {'w:val': 'nil'})
+                if col_line[j] == 'nil':
+                    XML.add_tag(ms_tcbr, 'w:right', {'w:val': 'nil'})
                 if col_line[j] == 'double':
                     XML.add_tag(ms_tcbr, 'w:right', {'w:val': 'double'})
 
@@ -4802,8 +4810,14 @@ class ParagraphTable(Paragraph):
                 col[-1] += '|'
             tab.append(col)
             line = ''
-            # DOUBLE LINE
-            if re.match('^=+$', ml.text):
+            # NIL OR DOUBLE LINE
+            if re.match('^_+$', ml.text):
+                if len(tab[-1]) == 1:
+                    tab.pop(-1)
+                else:
+                    tab[-1].pop(-1)
+                tab.append(['_'])
+            elif re.match('^=+$', ml.text):
                 if len(tab[-1]) == 1:
                     tab.pop(-1)
                 else:
@@ -4822,7 +4836,7 @@ class ParagraphTable(Paragraph):
         #         tab[i][j] = re.sub('\\s+$', '', tab[i][j])
         return tab
 
-    # FOR DOUBLE LINE
+    # FOR NIL OR DOUBLE LINE
     @staticmethod
     def _get_row_and_col_line(tab):
         row_line = []
@@ -4830,23 +4844,30 @@ class ParagraphTable(Paragraph):
         for i in range(len(tab)):
             # ROW
             for j in range(len(tab[i])):
-                if j == 0 and tab[i][j] != '=':
+                if j == 0 and not re.match('^(_+|=+)$', tab[i][j]):
                     break
                 if j > 0 and tab[i][j] != '':
                     break
             else:
-                tab[i] = 'remove'
-                row_line[-1] = 'double'
+                if re.match('^_+$', tab[i][0]):
+                    row_line[-1] = 'nil'
+                else:
+                    row_line[-1] = 'double'
+                tab[i] = '^|remove|$'
                 continue
             # COLUMN
             for j in range(len(tab[i])):
-                if not re.match('^ *:?-*:? *=?$', tab[i][j]):
+                if not re.match('^ *:?-*:? *(_|=)?$', tab[i][j]):
                     break
             else:
                 for k in range(len(tab[i])):
-                    if re.match('^.*=$', tab[i][k]):
-                        tab[i][k] = re.sub('=$', '', tab[i][k])
-                        # tab[i][k] = re.sub('-', '--', tab[i][k], 1)
+                    if re.match('^.*_$', tab[i][k]):
+                        tab[i][k] = re.sub(':_$', '-:', tab[i][k])
+                        tab[i][k] = re.sub('_$', '-', tab[i][k])
+                        col_line.append('nil')
+                    elif re.match('^.*=$', tab[i][k]):
+                        tab[i][k] = re.sub(':=$', '-:', tab[i][k])
+                        tab[i][k] = re.sub('=$', '-', tab[i][k])
                         col_line.append('double')
                     else:
                         col_line.append('')
@@ -4860,8 +4881,8 @@ class ParagraphTable(Paragraph):
                 if m < n:
                     m = n
             col_line = ['' for x in range(m)]
-        while 'remove' in tab:
-            tab.remove('remove')
+        while '^|remove|$' in tab:
+            tab.remove('^|remove|$')
         return row_line, col_line, tab
 
     @staticmethod
@@ -4869,7 +4890,7 @@ class ParagraphTable(Paragraph):
         conf_row = -1
         for i in range(len(tab)):
             for j in range(len(tab[i])):
-                if not re.match('^ *:?-*:? *=?$', tab[i][j]):
+                if not re.match('^ *:?-*:? *(_|=)?$', tab[i][j]):
                     break
             else:
                 conf_row = i

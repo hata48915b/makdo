@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.02.15-10:59:41-JST>
+# Time-stamp:   <2024.02.15-12:47:44-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6012,17 +6012,27 @@ class ParagraphTable(Paragraph):
             elif xl == '</w:tr>':
                 tab.append(row)
                 is_in_row = False
-        # DOUBLE LINE
+        # NIL OR DOUBLE LINE
         row_line = []
         for i in range(len(tab)):
-            if '<w:bottom w:val="double"/>' in tab[i][0]:
-                row_line.append('double')
+            for tag in tab[i][0]:
+                if re.match('^<w:bottom w:val="nil"( .+)?/>$', tag):
+                    row_line.append('nil')
+                    break
+                if re.match('^<w:bottom w:val="double"( .+)?/>$', tag):
+                    row_line.append('double')
+                    break
             else:
                 row_line.append('')
         col_line = []
         for j in range(len(tab[0])):
-            if '<w:right w:val="double"/>' in tab[0][j]:
-                col_line.append('double')
+            for tag in tab[0][j]:
+                if re.match('^<w:right w:val="nil"( .+)?/>$', tag):
+                    col_line.append('nil')
+                    break
+                if re.match('^<w:right w:val="double"( .+)?/>$', tag):
+                    col_line.append('double')
+                    break
             else:
                 col_line.append('')
         # ALIGNMENT
@@ -6042,8 +6052,12 @@ class ParagraphTable(Paragraph):
                         break
                 else:
                     tmp.append(':' + '-' * (wid[j] - 1))
-                # DOUBLE LINE
-                if col_line[j] == 'double':
+                # NIL OR DOUBLE LINE
+                if col_line[j] == 'nil':
+                    tmp[-1] = re.sub('-', '', tmp[-1], 1)
+                    tmp[-1] += '_'
+                elif col_line[j] == 'double':
+                    tmp[-1] = re.sub('-', '', tmp[-1], 1)
                     tmp[-1] += '='
             ali.append(tmp)
         md_text = ''
@@ -6085,9 +6099,11 @@ class ParagraphTable(Paragraph):
                 raw_text = re.sub('\n', '<br>', raw_text)
                 md_text += '|' + raw_text + '|'
             md_text += '\n'
-            # DOUBLE LINE
+            # NIL OR DOUBLE LINE
             if row_line[i] == 'double':
                 md_text += '=\n'
+            elif row_line[i] == 'nil':
+                md_text += '_\n'
         tmp_text = ''
         for line in md_text.split('\n'):
             if re.match('^\\|.*\\|$', line):
