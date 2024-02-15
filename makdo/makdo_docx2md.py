@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.02.15-12:47:44-JST>
+# Time-stamp:   <2024.02.15-21:21:03-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4675,37 +4675,48 @@ class Paragraph:
         pc = self.paragraph_class
         if pc != 'chapter' and pc != 'section' and pc != 'list':
             return raw_text
-        if pc == 'section':
-            x, depth_del = self._get_section_depths(self.raw_text_del)
-            depth_ins = self.tail_section_depth
-        else:
-            depth_del = self._get_proper_depth(self.raw_text_del)
-            depth_ins = self.proper_depth
-        if depth_del > 0 and depth_ins > 0:
-            res_beg = '([第\\(（]?)'
-            res_del = '->([^ \t\u3000\\.．]+)<-'
-            res_ins = '\\+>([^ \t\u3000\\.．]+)<\\+'
-            res_end = \
-                '(' + \
-                '[編章節款目条\\)）]?(?:の[0-9０-９]+)*' + \
-                ParagraphSection.r9 + \
-                ')'
-            res = '^' + res_beg + res_del + res_ins + res_end
-            if re.match(res, raw_text):
-                raw_text = re.sub(res, '\\1\\3\\4', raw_text)
-            res = '^' + res_beg + res_ins + res_del + res_end
-            if re.match(res, raw_text):
-                raw_text = re.sub(res, '\\1\\2\\4', raw_text)
-            res_beg = '(第?[0-9０-９]+[編章節款目条]?[の0-9０-９]+)'
-            res_del = '->([の0-9０-９]+)<-'
-            res_ins = '\\+>([の0-9０-９]+)<\\+'
-            res_end = '(' + ParagraphSection.r9 + ')'
-            res = '^' + res_beg + res_del + res_ins + res_end
-            if re.match(res, raw_text):
-                raw_text = re.sub(res, '\\1\\3\\4', raw_text)
-            res = '^' + res_beg + res_ins + res_del + res_end
-            if re.match(res, raw_text):
-                raw_text = re.sub(res, '\\1\\2\\4', raw_text)
+        head_text = ''
+        track_changes = ''
+        tmp_text = raw_text
+        for i in range(len(raw_text)):
+            if re.match(NOT_ESCAPED + '\\->$', raw_text[:i + 1]):
+                head_text = head_text[:-1]
+                track_changes = 'del'
+                continue
+            if re.match(NOT_ESCAPED + '<\\-$', raw_text[:i + 1]):
+                # head_text = head_text[:-1]
+                track_changes = ''
+                continue
+            if re.match(NOT_ESCAPED + '\\+>$', raw_text[:i + 1]):
+                head_text = head_text[:-1]
+                track_changes = 'ins'
+                continue
+            if re.match(NOT_ESCAPED + '<\\+$', raw_text[:i + 1]):
+                head_text = head_text[:-1]
+                track_changes = ''
+                continue
+            if track_changes == 'del':
+                continue
+            head_text += raw_text[i]
+            # ParagraphChapter.res_separator
+            # ParagraphSection.r9
+            # ParagraphList.res_separator
+            if re.match('^.*(?:  ?|\t|\u3000|\\. |．)$', head_text):
+                tmp_text = head_text
+                if track_changes == 'del':
+                    tmp_text += '->'
+                elif track_changes == 'ins':
+                    tmp_text += '+>'
+                if i < len(raw_text) - 1:
+                    tmp_text += raw_text[i + 1:]
+                while re.match(NOT_ESCAPED + '\\-><\\-', tmp_text):
+                    tmp_text \
+                        = re.sub(NOT_ESCAPED + '\\-><\\-', '\\1', tmp_text)
+                while re.match(NOT_ESCAPED + '\\+><\\+', tmp_text):
+                    tmp_text \
+                        = re.sub(NOT_ESCAPED + '\\+><\\+', '\\1', tmp_text)
+                break
+        raw_text = tmp_text
         return raw_text
 
     @classmethod
