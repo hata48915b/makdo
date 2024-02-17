@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.02.17-09:29:20-JST>
+# Time-stamp:   <2024.02.17-17:56:16-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -2292,19 +2292,20 @@ class CharsDatum:
             self.raw_pos_fds.append(fd)
 
     def append_fds(self, pre_fd, pos_fd):
-        siz_fds = ['---', '--', '++', '+++']
-        if pre_fd in siz_fds:
-            for sf in siz_fds:
-                if sf in self.pre_fds:
-                    self.pre_fds.remove(sf)
-                if sf in self.raw_pre_fds:
-                    self.raw_pre_fds.remove(sf)
-        if pos_fd in siz_fds:
-            for sf in siz_fds:
-                if sf in self.pos_fds:
-                    self.pos_fds.remove(sf)
-                if sf in self.raw_pos_fds:
-                    self.raw_pos_fds.remove(sf)
+        group_fds = [['---', '--', '++', '+++'], ['>>>', '>>', '<<', '<<<']]
+        for gr_fds in group_fds:
+            if pre_fd in gr_fds:
+                for fd in gr_fds:
+                    if fd in self.pre_fds:
+                        self.pre_fds.remove(fd)
+                    if fd in self.raw_pre_fds:
+                        self.raw_pre_fds.remove(fd)
+            if pos_fd in gr_fds:
+                for fd in gr_fds:
+                    if fd in self.pos_fds:
+                        self.pos_fds.remove(fd)
+                    if fd in self.raw_pos_fds:
+                        self.raw_pos_fds.remove(fd)
         # PRE FDS
         if pre_fd not in self.pre_fds:
             self.pre_fds.append(pre_fd)
@@ -3384,6 +3385,7 @@ class RawParagraph:
         fldchar = ''
         track_changes = ''  # ''|'del'|'ins'
         ruby = ''  # ''|'rub'|'bas'
+        width = 100
         cd = CharsDatum([], '', [])
         for xl in xml_lines:
             # EMPTY
@@ -3541,6 +3543,7 @@ class RawParagraph:
                     cd.append_fds('<<<', '>>>')
                 elif w > 110:
                     cd.append_fds('<<', '>>')
+                width = w
                 continue
             # UNDERLINE
             if re.match('^<w:u( .*)?>$', xl):
@@ -3607,7 +3610,15 @@ class RawParagraph:
                             cd.pos_fds.remove('---')
                         if '--' in cd.pos_fds:
                             cd.pos_fds.remove('--')
+                    if cd.chars == '　' and width != 100:
+                        for fd in ['>>>', '>>', '<<', '<<<']:
+                            if fd in cd.pre_fds:
+                                cd.pre_fds.remove(fd)
+                            if fd in cd.pos_fds:
+                                cd.pos_fds.remove(fd)
+                        cd.chars = '<' + str(float(width / 100)) + '>'
                     chars_data.append(cd)
+                width = 100
                 cd = CharsDatum([], '', [])
                 continue
         # self.chars_data = chars_data

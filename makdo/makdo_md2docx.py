@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.02.17-09:29:37-JST>
+# Time-stamp:   <2024.02.17-18:08:56-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -291,6 +291,7 @@ HELP_EPILOG = '''Markdownの記法:
     [^{foo}]でfooが上付文字（累乗等）になります（独自）
     [_{foo}]でfooが下付文字（添字等）になります（独自）
     [<foo/bar>]でfooの上にbarというルビが振られます（独自）
+    [<N>]（Nは数字）で漢字N文字幅の空白が入ります（独自）
     [\\[]と[\\]]とでLaTeX形式の文字列を挟むと数式が書けます（独自）
   エスケープ記号
     [\\]をコマンドの前に書くとコマンドが文字列になります
@@ -4372,6 +4373,17 @@ class Paragraph:
             ms_rb2 = XML.add_tag(ms_rb1, 'w:rubyBase', {})
             chars_state.font_size *= 2
             XML.write_unit(ms_rb2, chars_state, base)
+        elif re.match(NOT_ESCAPED + '<((?:[0-9]*\\.)?[0-9]+)>$', unit):
+            # "<([0-9]*.)?[0-9]+>" (SPACE)
+            res = '<((?:[0-9]*\\.)?[0-9]+)>'
+            spac = re.sub(NOT_ESCAPED + res + '$', '\\2', unit)
+            unit = re.sub(NOT_ESCAPED + res + '$', '\\1', unit)
+            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            if float(spac) * chars_state.font_width >= 0.01:
+                fw = chars_state.font_width
+                chars_state.font_width *= float(spac)
+                XML.write_unit(ms_par._p, chars_state, '　')
+                chars_state.font_width = fw
         elif re.match(NOT_ESCAPED + '(n|N)$', unit):
             if type == 'footer':
                 # "n|N" (PAGE NUMBER)
