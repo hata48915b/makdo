@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.02.17-18:08:56-JST>
+# Time-stamp:   <2024.02.17-19:12:56-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4373,9 +4373,9 @@ class Paragraph:
             ms_rb2 = XML.add_tag(ms_rb1, 'w:rubyBase', {})
             chars_state.font_size *= 2
             XML.write_unit(ms_rb2, chars_state, base)
-        elif re.match(NOT_ESCAPED + '<((?:[0-9]*\\.)?[0-9]+)>$', unit):
-            # "<([0-9]*.)?[0-9]+>" (SPACE)
-            res = '<((?:[0-9]*\\.)?[0-9]+)>'
+        elif re.match(NOT_ESCAPED + '< *((?:[0-9]*\\.)?[0-9]+) *>$', unit):
+            # "< *([0-9]*.)?[0-9]+ *>" (SPACE)
+            res = '< *((?:[0-9]*\\.)?[0-9]+) *>'
             spac = re.sub(NOT_ESCAPED + res + '$', '\\2', unit)
             unit = re.sub(NOT_ESCAPED + res + '$', '\\1', unit)
             unit = XML.write_unit(ms_par._p, chars_state, unit)
