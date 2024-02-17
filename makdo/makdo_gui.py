@@ -1,9 +1,9 @@
 #!/usr/bin/python3
-# Name:         makdo.py
+# Name:         makdo-gui.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.02.17-13:53:50-JST>
+# Time-stamp:   <2024.02.17-18:54:39-JST>
 
-# makdo.py
+# makdo-gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
 #
 # This program is free software: you can redistribute it and/or modify
