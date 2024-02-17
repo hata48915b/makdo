@@ -1,7 +1,7 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.02.15-21:21:03-JST>
+# Time-stamp:   <2024.02.17-09:29:20-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
