@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.02.18-08:59:06-JST>
+# Time-stamp:   <2024.02.19-05:07:22-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -2348,11 +2348,11 @@ class CharsDatum:
         if re.match(NOT_ESCAPED + '\\+$', chars1) and re.match('^\\+', chars2):
             return chars1 + '<>' + chars2
         # ">" + ">"
-        # if re.match(NOT_ESCAPED + '>$', chars1) and re.match('^>', chars2):
-        #     return chars1 + '<>' + chars2
+        if re.match(NOT_ESCAPED + '>$', chars1) and re.match('^>', chars2):
+            return chars1 + '<>' + chars2
         # "<" + "<"
-        # if re.match(NOT_ESCAPED + '<$', chars1) and re.match('^<', chars2):
-        #     return chars1 + '<>' + chars2
+        if re.match(NOT_ESCAPED + '<$', chars1) and re.match('^<', chars2):
+            return chars1 + '<>' + chars2
         # "<" + ">"
         if re.match(NOT_ESCAPED + '<$', chars1) and re.match('^>', chars2):
             return chars1 + '<>' + chars2
@@ -3610,13 +3610,15 @@ class RawParagraph:
                             cd.pos_fds.remove('---')
                         if '--' in cd.pos_fds:
                             cd.pos_fds.remove('--')
-                    if cd.chars == '　' and width != 100:
+                    # SPACE
+                    if re.match('^\u3000+$', cd.chars) and width != 100:
+                        n = len(cd.chars)
                         for fd in ['>>>', '>>', '<<', '<<<']:
                             if fd in cd.pre_fds:
                                 cd.pre_fds.remove(fd)
                             if fd in cd.pos_fds:
                                 cd.pos_fds.remove(fd)
-                        cd.chars = '<' + str(float(width / 100)) + '>'
+                        cd.chars = '<' + str(float(width * n) / 100) + '>'
                     chars_data.append(cd)
                 width = 100
                 cd = CharsDatum([], '', [])

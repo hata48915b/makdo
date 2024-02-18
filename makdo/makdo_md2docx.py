@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.02.18-08:44:56-JST>
+# Time-stamp:   <2024.02.18-21:59:10-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4383,13 +4383,14 @@ class Paragraph:
             ori_fw = chars_state.font_width
             tmp_fw = float(spac) * chars_state.font_width
             if tmp_fw >= 0.01:
-                while tmp_fw > 0.0:
-                    if tmp_fw > 5.0:
-                        chars_state.font_width = 5.0
-                    else:
-                        chars_state.font_width = tmp_fw
-                    XML.write_unit(ms_par._p, chars_state, '　')
-                    tmp_fw -= 5.0
+                if tmp_fw >= 5.00:
+                    n = int(tmp_fw / 5.00)
+                    chars_state.font_width = 5.00
+                    XML.write_unit(ms_par._p, chars_state, '\u3000' * n)
+                    tmp_fw -= 5.00 * n
+                if tmp_fw >= 0.01:
+                    chars_state.font_width = tmp_fw
+                    XML.write_unit(ms_par._p, chars_state, '\u3000')
                 chars_state.font_width = ori_fw
         elif re.match(NOT_ESCAPED + '(n|N)$', unit):
             if type == 'footer':
