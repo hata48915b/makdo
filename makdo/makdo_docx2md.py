@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.02.17-17:56:16-JST>
+# Time-stamp:   <2024.02.18-08:59:06-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4201,6 +4201,15 @@ class RawParagraph:
         # RUBY
         res = '\\^<([^<>]{1,37})>/<([^<>]{1,37})>\\$'
         raw_text = re.sub(res, '<\\2/\\1>', raw_text)
+        # SPACE
+        res = NOT_ESCAPED + '<((?:[0-9]*\\.)?[0-9]+)>' * 2 + '((?:.|\n)*)$'
+        while re.match(res, raw_text):
+            head_text = re.sub(res, '\\1', raw_text)
+            num1_text = re.sub(res, '\\2', raw_text)
+            num2_text = re.sub(res, '\\3', raw_text)
+            tail_text = re.sub(res, '\\4', raw_text)
+            numb_text = str(round(float(num1_text) + float(num2_text), 2))
+            raw_text = head_text + '<' + numb_text + '>' + tail_text
         # self.raw_text = raw_text
         return raw_text
 

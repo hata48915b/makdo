@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.02.17-19:12:56-JST>
+# Time-stamp:   <2024.02.18-08:44:56-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1979,8 +1979,9 @@ class XML:
         # oe2 = XML.add_tag(oe1, 'w:szCs', {'w:val': str(size * 2)})
         # FONT WIDTH
         if chars_state.font_width != 1.00:
-            opt = {'w:val': str(int(chars_state.font_width * 100))}
-            oe2 = XML.add_tag(oe1, 'w:w', opt)
+            fw = round(chars_state.font_width * 100)
+            if fw > 0:
+                oe2 = XML.add_tag(oe1, 'w:w', {'w:val': str(fw)})
         # FONT COLOR
         if chars_state.font_color is not None:
             oe2 = XML.add_tag(oe1, 'w:color',
@@ -4379,11 +4380,17 @@ class Paragraph:
             spac = re.sub(NOT_ESCAPED + res + '$', '\\2', unit)
             unit = re.sub(NOT_ESCAPED + res + '$', '\\1', unit)
             unit = XML.write_unit(ms_par._p, chars_state, unit)
-            if float(spac) * chars_state.font_width >= 0.01:
-                fw = chars_state.font_width
-                chars_state.font_width *= float(spac)
-                XML.write_unit(ms_par._p, chars_state, '　')
-                chars_state.font_width = fw
+            ori_fw = chars_state.font_width
+            tmp_fw = float(spac) * chars_state.font_width
+            if tmp_fw >= 0.01:
+                while tmp_fw > 0.0:
+                    if tmp_fw > 5.0:
+                        chars_state.font_width = 5.0
+                    else:
+                        chars_state.font_width = tmp_fw
+                    XML.write_unit(ms_par._p, chars_state, '　')
+                    tmp_fw -= 5.0
+                chars_state.font_width = ori_fw
         elif re.match(NOT_ESCAPED + '(n|N)$', unit):
             if type == 'footer':
                 # "n|N" (PAGE NUMBER)
