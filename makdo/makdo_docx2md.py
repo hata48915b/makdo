@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.02.19-05:07:22-JST>
+# Time-stamp:   <2024.02.19-13:40:14-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4212,6 +4212,23 @@ class RawParagraph:
             tail_text = re.sub(res, '\\4', raw_text)
             numb_text = str(round(float(num1_text) + float(num2_text), 2))
             raw_text = head_text + '<' + numb_text + '>' + tail_text
+        for i in range(1, 6):
+            j = str(round(0.6 * i, 1))
+            res = NOT_ESCAPED + '<<<<><' + j + '><>>>>' + '((?:.|\n)*)$'
+            while re.match(res, raw_text):
+                raw_text = re.sub(res, '\\1' + '\u3000' * i + '\\2', raw_text)
+            j = str(round(0.8 * i, 1))
+            res = NOT_ESCAPED + '<<<><' + j + '><>>>' + '((?:.|\n)*)$'
+            while re.match(res, raw_text):
+                raw_text = re.sub(res, '\\1' + '\u3000' * i + '\\2', raw_text)
+            j = str(round(1.2 * i, 1))
+            res = NOT_ESCAPED + '>><' + j + '><<' + '((?:.|\n)*)$'
+            while re.match(res, raw_text):
+                raw_text = re.sub(res, '\\1' + '\u3000' * i + '\\2', raw_text)
+            j = str(round(1.4 * i, 1))
+            res = NOT_ESCAPED + '>>><' + j + '><<<' + '((?:.|\n)*)$'
+            while re.match(res, raw_text):
+                raw_text = re.sub(res, '\\1' + '\u3000' * i + '\\2', raw_text)
         # self.raw_text = raw_text
         return raw_text
 
@@ -4258,7 +4275,7 @@ class RawParagraph:
         # LIST
         if re.match('^(\\-|\\+|[0-9]+\\.|[0-9]+\\))\\s+', raw_text):
             raw_text = '\\' + raw_text
-        # Table
+        # TABLE
         if re.match('^\\|((.|\n)*)\\|$', raw_text):
             raw_text = re.sub('^\\|((.|\n)*)\\|$', '\\\\|\\1\\\\|', raw_text)
         # IMAGE
