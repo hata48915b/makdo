@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.02.18-21:59:10-JST>
+# Time-stamp:   <2024.02.19-13:37:29-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4072,6 +4072,9 @@ class Paragraph:
 
     @staticmethod
     def _must_continue(tex, c):
+        # RELAX
+        if re.match(NOT_ESCAPED + '<>$', tex):
+            return False
         # MATH
         if re.match('^\\\\\\[', tex):
             if not re.match(NOT_ESCAPED + '\\\\\\]$', tex):
@@ -4114,10 +4117,14 @@ class Paragraph:
         res_ivs = '^((?:.|\n)*?)([^0-9\\\\])([0-9]+);$'
         res_foc = NOT_ESCAPED + '\\^([0-9A-Za-z]{0,11})\\^$'
         res_hlc = NOT_ESCAPED + '_([0-9A-Za-z]{1,11})_$'
-        if re.match(NOT_ESCAPED + '<$', unit) and c == '>':
+        if re.match(NOT_ESCAPED + '<>$', unit):
+            # '<>' (RELAX)
+            unit = re.sub('<>$', '', unit)
+            unit = self._manage_unit(ms_par, chars_state, unit, '', type)
+        elif re.match(NOT_ESCAPED + '<$', unit) and c == '>':
             # '<>' （RELAX） "<<<" (+ ">") = "<<" + "<" (+ ">")
             unit = re.sub('<$', '', unit)
-            unit = self._manage_unit(ms_par, chars_state, unit, '<', type)
+            unit = self._manage_unit(ms_par, chars_state, unit, '', type)
             unit += '<'
         elif re.match(NOT_ESCAPED + '\\\\\\[$', unit):
             # "\[" (BEGINNING OF MATH EXPRESSION) (MUST FIRST)
