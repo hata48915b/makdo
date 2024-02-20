@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo-gui.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.02.20-22:19:44-JST>
+# Time-stamp:   <2024.02.21-03:41:17-JST>
 
 # makdo-gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -28,6 +28,9 @@
 # 2023.06.07 v06 Shimo-Gion
 
 
+# USAGE
+# from makdo_md2docx import Md2Docx
+# from makdo_docx2md import Docx2Md
 # from makdo_gui import Makdo
 # Makdo()
 
@@ -39,8 +42,8 @@ import sys
 import os
 import re
 import tempfile
-from makdo_md2docx import Md2Docx
-from makdo_docx2md import Docx2Md
+# from makdo_md2docx import Md2Docx
+# from makdo_docx2md import Docx2Md
 
 
 WINDOW_SIZE = "552x276"

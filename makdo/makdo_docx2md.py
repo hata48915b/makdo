@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.02.19-13:40:14-JST>
+# Time-stamp:   <2024.02.21-03:41:33-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -28,6 +28,7 @@
 # 2023.06.07 v06 Shimo-Gion
 
 
+# USAGE
 # from makdo_docx2md import Docx2Md
 # d2m = Docx2Md('xxx.docx')
 # d2m.set_document_title('aaa')
