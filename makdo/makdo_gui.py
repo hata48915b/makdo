@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo-gui.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.02.17-18:54:39-JST>
+# Time-stamp:   <2024.02.20-22:19:44-JST>
 
 # makdo-gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -43,7 +43,7 @@ from makdo_md2docx import Md2Docx
 from makdo_docx2md import Docx2Md
 
 
-WINDOW_SIZE = "500x300"
+WINDOW_SIZE = "552x276"
 
 
 class Makdo:
@@ -85,10 +85,11 @@ class Makdo:
 
         win = TkinterDnD.Tk()
         win.geometry(WINDOW_SIZE)
-        win.title("MAKDO（mdファイル又はdocxファイルをドロップしてください）")
+        win.title("MAKDO（mdファイルをdocxファイルに、docxファイルをmdファイルに変換します）")
 
         frame = ttk.Frame(win)
-        textarea = tk.Text(frame, height=20, width=65)
+        textarea = tk.Text(frame, width=111, height=30)
+        # textarea = tk.Text(frame, width=74, height=20)
         textarea.drop_target_register(DND_FILES)
         textarea.insert('end', 'ここにmdファイル又はdocxファイルをドロップしてください\n\n')
         textarea.dnd_bind('<<Drop>>', drop)
