@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.02.22-11:33:50-JST>
+# Time-stamp:   <2024.02.24-08:57:15-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4964,11 +4964,11 @@ class ParagraphImage(Paragraph):
     res_feature = '^(?:\\s*' + RES_IMAGE + '\\s*)+$'
 
     def write_paragraph(self, ms_doc):
-        ttwwr = self.text_to_write_with_reviser
-        ttwwr = re.sub('\\s*(' + RES_IMAGE + ')\\s*', '\\1\n', ttwwr)
-        ttwwr = re.sub('\n+', '\n', ttwwr)
-        ttwwr = re.sub('^\n+', '', ttwwr)
-        ttwwr = re.sub('\n+$', '', ttwwr)
+        ttw = self.text_to_write
+        ttw = re.sub('\\s*(' + RES_IMAGE + ')\\s*', '\\1\n', ttw)
+        ttw = re.sub('\n+', '\n', ttw)
+        ttw = re.sub('^\n+', '', ttw)
+        ttw = re.sub('\n+$', '', ttw)
         is_large = False
         is_small = False
         text_width = PAPER_WIDTH[Form.paper_size] \
@@ -4976,7 +4976,7 @@ class ParagraphImage(Paragraph):
         text_height = PAPER_HEIGHT[Form.paper_size] \
             - Form.top_margin - Form.bottom_margin
         res = '^(.*):(' + RES_NUMBER + ')?(?:x(' + RES_NUMBER + ')?)?$'
-        for text in ttwwr.split('\n'):
+        for text in ttw.split('\n'):
             alte = re.sub(RES_IMAGE, '\\1', text)
             path = re.sub(RES_IMAGE, '\\2', text)
             cm_w = 0
