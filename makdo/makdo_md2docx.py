@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.02.24-11:03:59-JST>
+# Time-stamp:   <2024.02.24-17:04:33-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4984,6 +4984,11 @@ class ParagraphImage(Paragraph):
         for text in ttw.split('\n'):
             alte = re.sub(RES_IMAGE, '\\1', text)
             path = re.sub(RES_IMAGE, '\\2', text)
+            # CAPTION
+            capt = ''
+            if re.match('^(.*) "(.*)"$', path):
+                capt = re.sub('^(.*) "(.*)"$', '\\2', path)
+                path = re.sub('^(.*) "(.*)"$', '\\1', path)
             cm_w = 0
             cm_h = 0
             if re.match(res, alte):
@@ -5008,6 +5013,11 @@ class ParagraphImage(Paragraph):
                 else:
                     ms_doc.add_picture(path)
                 ms_doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
+                # CAPTION
+                if capt != '':
+                    ms_run = ms_doc.paragraphs[-1].add_run('\n' + capt)
+                    ms_run.font.name = self.chars_state.mincho_font
+                    ms_run.font.size = Pt(self.chars_state.font_size)
             except BaseException:
                 e = ms_doc.paragraphs[-1]._element
                 e.getparent().remove(e)

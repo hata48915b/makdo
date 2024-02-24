@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.02.24-11:09:07-JST>
+# Time-stamp:   <2024.02.24-17:08:49-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6218,16 +6218,23 @@ class ParagraphImage(Paragraph):
         rp = raw_paragraph
         rp_rtx = rp.raw_text_doi
         rp_img = rp.images
-        rp_rtx = re.sub(RES_IMAGE, '', rp_rtx)
+        rp_txt = re.sub(RES_IMAGE, '', rp_rtx)
+        rp_txt = re.sub('\n.*$', '', rp_txt)  # for caption
         if ParagraphTable.is_this_class(rp):
             return False
         if ParagraphConfiguration.is_this_class(rp):
             return False
-        if rp_rtx == '' and len(rp_img) > 0:
+        if rp_txt == '' and len(rp_img) > 0:
             return True
         return False
 
     def _get_md_text(self, raw_text):
+        # CAPTION
+        if re.match('^.*\\(.*\\)\n.*$', raw_text):
+            caption = re.sub('^.*\n', '', raw_text)
+            raw_text = re.sub('\n.*$', '', raw_text)
+            raw_text \
+                = re.sub('\\((.*)\\)$', '(\\1 "' + caption + '")', raw_text)
         alignment = self.alignment
         text_w = PAPER_WIDTH[Form.paper_size] \
             - Form.left_margin - Form.right_margin
