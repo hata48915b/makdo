@@ -1,4 +1,4 @@
-<!-- Time-stamp:   <2024.02.17-18:35:28-JST> -->
+<!-- Time-stamp:   <2024.02.24-09:59:27-JST> -->
 
 # MAKDO（魔苦怒）
 
@@ -14,58 +14,44 @@
 
 このアプリ（ライブラリ）は、Python3（Pythonのバージョン3）以上を想定しています。
 
-以下の説明では`python`という表記は、
-システムによっては`python3`等を意味する場合があります。
+以下の説明では`python`という表記は、システムによっては`python3`等を意味する場合があります。
 
-`python`をうまく実行できない場合には、
-`python`の実行ファイルをフルパスで指定するか、
+`python`をうまく実行できない場合には、`python`の実行ファイルをフルパスで指定するか、
 環境変数PATHの設定をお願いします。
 
 ## とりあえず使いたい方へ
 
-こんな感じで、Markdown形式のファイルからMS Word形式のファイルを作ったり、
-その逆ができたりします。
+※ 現在、macOSの開発環境がないため、macOS用の簡易実行ファイルはありません。
+どなたかご協力いただけますと助かります。
+
+こんな感じで、Markdown形式のファイルからMS Word形式のファイルを作ったり、その逆ができたりします。
 
 ↓↓↓ 簡易実行ファイルの実行の様子（Windowsの場合）
 
 ![簡易実行ファイルの実行の様子](https://raw.githubusercontent.com/hata48915b/makdo/main/image/simple-exec.gif "簡易実行ファイルの実行の様子")
 
-とりあえず使いたい方のために、簡易実行ファイルを用意しました
-（このREADMEは、簡易実行ファイルを作成するためのソースファイルの説明用です。）。
+とりあえず使いたい方のために、簡易実行ファイルを用意しました。
 
 簡易実行ファイルであれば、環境の設定やアプリのインストールが不要で、
 しかも、コマンドプロンプト（Windowsの場合）やターミナル（macOSの場合）上のコマンドではなく、
-マウスを使ってdrag & dropで実行できます。
+マウスを使ってドラッグ＆ドロップで実行できます。
 
 とりあえず使いたい方は、下記にアクセスして、
 OSに合ったZIPファイルをダウンロードして、展開してください。
 
 [簡易実行ファイルのダウンロードページ](https://hata-o.jp/kian/index?tools#makdo)
 
-展開したフォルダの中に実行ファイルがあります。
+展開したフォルダの中に実行ファイル
+（Windowsの場合は`makdo_win.exe`、macOSの場合は`makdo_mac`。）があります。
 
-"makdo_md2docx"
-（Windowsの場合は"makdo_md2docx.bat"、macOSの場合は"makdo_md2docx.app"）に、
-Markdown形式のファイルをドラッグ＆ドロップすると、
-公用文書書式のMS Word形式のファイルが作成されます。
-
-"makdo_docx2md"
-（Windowsの場合は"makdo_docx2md.bat"、macOSの場合は"makdo_docx2md.app"）に、
-公用文書書式のMS Word形式のファイルをドラッグ＆ドロップすると、
-Markdown形式のファイルが作成されます。
-
-なお、"makdo_docx2pdf"
-（Windowsの場合は"makdo_docx2pdf.bat"、macOSの場合は"makdo_docx2pdf.app"）に、
-公用文書書式のMS Word形式のファイルをドラッグ＆ドロップすると、
-PDF形式のファイルが作成されます。
-ただし、LibreOfficeがインストールされていることが必要です。
-
-[LibreOfficeのダウンロードページ](https://ja.libreoffice.org/download/download/)
+これを起動するとウィンドウが開きますので、そのウィンドウに、
+Markdown形式のファイルをドラッグ＆ドロップすると、MS Word形式のファイルが作成され、
+MS Word形式のファイルをドラッグ＆ドロップすると、Markdown形式のファイルが作成されます。
 
 ## これは何？
 
 **一言で言うと、テキストエディタ（メモ帳）で編集した原稿から、
-訴状、答弁書、準備書面、判決書のMS Wordファイルを簡単に作成できるアプリです。**
+公用文書書式（訴状、答弁書、準備書面、判決書等）のMS Wordファイルを簡単に作成できるアプリです。**
 
 **MS Wordや一太郎は使いませんので、なくても大丈夫です。**
 
@@ -106,9 +92,8 @@ pandocなどの優れたソフトを使わずに、あえて自作した理由�
 ここの記載は、開発者向けです。
 簡易実行ファイルをご利用の方は、関係がありません。
 
-Python3とpython-docxとchardetが動作すれば、
-Windowsでも、macOSでも、Linuxでも動作します
-（Windows 10、macOS Mojave、Ubuntu 20.04では動作確認済みです。）。
+Python3とpython-docx、chardet、tkinterdnd2が動作すれば、
+Windowsでも、macOSでも、Linuxでも動作します。
 
 [Pythonの公式サイト](https://www.python.org/)
 
@@ -129,22 +114,27 @@ Python2では動作しませんので、Python3をインストールする必要
 [macOS用のダウンロードページ](https://www.python.org/downloads/macos/)
 
 インストーラ−は、
-Windowsの場合は"python-(VERSION)-amd64.exe"、
-macOSの場合は"python-(VERSION)-macosx(macOSのVERSION).pkg"です。
+Windowsの場合は`python-(VERSION)-amd64.exe`、
+macOSの場合は`python-(VERSION)-macosx(macOSのVERSION).pkg`です。
 
 なお、公式ストアーやパッケージ管理ソフトからも、
 Python3をインストールできるはずで、
 もちろんそちらを使ってインストールした方が管理が楽かもしれません。
 
-### python-docxのインストール
+### Makdoのインストール
 
-python-docxをインストールする必要があります。
+下記のライブラリをインストールする必要があります。
+
+- python-docx / MS Word形式のファイルを作成するために必要です。
+- chardet     / 入力ファイルの文字コードを判別するために必要です。
+- tkinterdnd2 / GUIのために必要です。
+- makdo       / 本アプリです。
 
 コマンドプロンプト（Windowsの場合）又はターミナル（macOSの場合）で、
 次のコマンドを実行してインストールしてください。
 
 ```
-python -m pip install python-docx
+python -m pip install python-docx chardet tkinterdnd2 makdo
 ```
 
 SSL認証のエラーが出る場合は、`--trusted-host`を付けて、
@@ -152,167 +142,78 @@ SSL認証のエラーが出る場合は、`--trusted-host`を付けて、
 （見やすくするため改行していますが、実行する際には1行で入力してください。）。
 
 ```
-python -m pip install python-docx
+python -m pip install python-docx chardet tkinterdnd2 makdo
     --trusted-host pypi.python.org
     --trusted-host files.pythonhosted.org
     --trusted-host pypi.org
 ```
 
-### chardetのインストール
+### 実行ファイル`makdo.py`の作成
 
-文字コードはUTF-8を想定しています。
-
-しかし、現時点ではShift_JISも広く使われているため、
-chardetを使って入力ファイルの文字コードを判別し、対応するようにしています。
-
-コマンドプロンプト（Windowsの場合）又はターミナル（macOSの場合）で、
-次のコマンドを実行してインストールしてください。
+`makdo.py`という名前で、次の内容のファイルを作成します。
 
 ```
-python -m pip install chardet
+#!/usr/local/bin/python3
+from makdo import Makdo
+Makdo()
 ```
 
-SSL認証のエラーが出る場合は、`--trusted-host`を付けて、
-下記のコマンドを実行してください
-（見やすくするため改行していますが、実行する際には1行で入力してください。）。
+## 基本的な使い方
 
-```
-python -m pip install chardet
-    --trusted-host pypi.python.org
-    --trusted-host files.pythonhosted.org
-    --trusted-host pypi.org
-```
+### GUIによる場合
 
-### ライブラリとして使う場合
+簡易実行ファイル（Windowsの場合は`makdo_win.exe`、macOSの場合は`makdo_mac`）又は
+実行ファイル`makdo.py`をクリックして起動します。
 
-#### インストール
+開いたウィンドウに、
+Markdown形式のファイルをドラッグ＆ドロップすると、MS Word形式のファイルが作成され、
+MS Word形式のファイルをドラッグ＆ドロップすると、Markdown形式のファイルが作成されます。
 
-本アプリは、ライブラリとして使うことができます。
+### CUIによる場合
 
-その場合は、
-コマンドプロンプト（Windowsの場合）又はターミナル（macOSの場合）で、
-次のコマンドを実行してインストールしてください。
+#### Markdown形式からMS Word形式へ
 
-```
-python -m pip install makdo
-```
-
-#### 基本的な使い方
-
-##### Markdown形式からMS Word形式へ
-
-Markdown形式のファイルを用意します。
-ここでは仮に"foo.md"とします。
-
-コマンドプロンプト（Windowsの場合）又はターミナル（macOSの場合）で、
-次のように実行してください。
-
-```
-python
->>> import makdo
->>> m2d = makdo.Md2Docx("foo.md")
->>> m2d.save("bar.docx")
-```
-
-"bar.docx"というMS Word形式のファイルが生成されます。
-
-##### MS Word形式からMarkdown形式へ
-
-MS Word形式のファイルを用意します。
-ここでは仮に"bar.docx"とします。
-
-コマンドプロンプト（Windowsの場合）又はターミナル（macOSの場合）で、
-次のように実行してください。
-
-```
-python
->>> import makdo
->>> d2m = makdo.Docx2Md("bar.docx")
->>> d2m.save("foo.md")
-```
-
-"foo.md"というMS Word形式のファイルが生成されます。
-
-#### スクリプトからの実行
-
-##### Markdown形式からMS Word形式へ
-
-次のようなスクリプトを"md2docx.py"作ります。
+`md2docx.py`という名前で、次のような内容のファイル（スクリプト）を作成します。
 
 ```
 #!/usr/bin/python3
 import sys
-import makdo
+from makdo import Md2Docx
 m2d = makdo.Md2Docx(sys.argv[1])
 m2d.save(sys.argv[2])
 ```
 
-Markdown形式のファイルを用意し、次のように実行します。
+Markdown形式のファイルを用意し、
+コマンドプロンプト（Windowsの場合）又はターミナル（macOSの場合）で、
+次のように実行します。
 
 ```
 md2docx.py foo.md bar.docx
 ```
 
-##### MS Word形式からMarkdown形式へ
+`foo.md`というMarkdown形式のファイルから、`bar.docx`というMS Word形式のファイルが作成されます。
 
-次のようなスクリプトを"docx2md.py"作ります。
+#### MS Word形式からMarkdown形式へ
+
+`docx2md.py`という名前で、次のような内容のファイル（スクリプト）を作成します。
 
 ```
 #!/usr/bin/python3
 import sys
-d2m = makdo.Docx2Md(sys.argv[1])
+from makdo import Docx2Md
+d2m = Docx2Md(sys.argv[1])
 d2m.save(sys.argv[2])
 ```
 
-MS Word形式のファイルを用意し、次のように実行します。
+MS Word形式のファイルを用意し、
+コマンドプロンプト（Windowsの場合）又はターミナル（macOSの場合）で、
+次のように実行します。
 
 ```
 docx2md.py bar.docx foo.md
 ```
 
-### スクリプトとして使う場合
-
-本アプリは、直接スクリプトとして使うことができます。
-
-その場合、
-本アプリは、Python3で書かれたプログラムファイルを実行するだけなので、
-インストールは必要ありません。
-
-#### 公用文書書式のMS Word形式のファイルを作成する場合
-
-Markdown形式のファイルを用意し
-（"OOOO.md"というファイル名だと仮定します。）、
-"makdo_md2docx.py"のあるフォルダに移動させ、次のように実行してください。
-"XXXX.docx"というファイル名で、
-公用文書書式のMS Word形式のファイルが作成されます。
-
-```
-python3 makdo_md2docx.py OOOO.md XXXX.docx
-```
-
-オプションについては、`--help`でご確認ください。
-
-```
-python3 makdo_md2docx.py --help
-```
-
-#### Markdown形式のファイルを作成する場合
-
-公用文書書式のMS Word形式のファイルを用意し
-（"XXXX.docx"というファイル名だと仮定します。）
-"makdo_md2docx.py"のあるフォルダに移動させ、次のように実行してください。
-"OOOO.md"というファイル名で、
-Markdown形式のファイルが作成されます。
-
-```
-python3 makdo_docx2md.py XXXX.docx OOOO.md
-```
-
-オプションについては、`--help`でご確認ください。
-
-```
-python3 makdo_docx2md.py --help
-```
+`bar.docx`というMS Word形式のファイルから、`foo.md`というMarkdown形式のファイルが作成されます。
 
 ## Markdown形式とは
 
@@ -384,8 +285,8 @@ v=1（←１行下げる）
 　…
 
 　　　　　　　　　　　　　　　　　添付書類
-１．訴状副本　　１通
-２．資格証明書　１通
+①　訴状副本　　１通
+②　資格証明書　１通
 
 ```
 
@@ -435,7 +336,7 @@ AIが書面を読んだ際に意味の理解の妨げになる可能性があり
 そのため、均等割付けは実装しておりません。
 
 どうしても均等割付けが必要な場合には、
-`<N>`（`N`は数字）で任意の空白を入れられるようにしておりますので、
+`<N>`（`N`は数字で、小数も可）で任意の空白を入れられるようにしておりますので、
 こちらを使って割り付けてください。
 
 例えば「秦　　誠 一 郎」は、「秦<2.0>誠<0.5>一<0.5>郎」となります。
@@ -469,7 +370,27 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-## 連絡先
+## 自己紹介
+
+### 名前
+
+秦　誠一郎（はた　せいいちろう）
+
+### 本業
+
+広島弁護士会所属の弁護士です。
+
+国政法律事務所（広島市中区上八丁堀5番27号アーバンビュー上八丁堀701号）に勤務しています。
+
+### 経歴
+
+#### 広島県立安古市高校
+
+#### 大阪大学理学部物理学科（高エネルギー物理学）
+
+#### 京都大学大学院理学研究科（数理解析研究所）
+
+### 連絡先
 
 [弁護士 秦 誠一郎の公式ページ](https://hata-o.jp/hata48915b/)
 
