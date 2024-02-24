@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.02.24-08:57:15-JST>
+# Time-stamp:   <2024.02.24-11:03:59-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -337,6 +337,8 @@ DEFAULT_SPACE_BEFORE = ''
 DEFAULT_SPACE_AFTER = ''
 TABLE_SPACE_BEFORE = 0.45
 TABLE_SPACE_AFTER = 0.20
+IMAGE_SPACE_BEFORE = 0.68
+IMAGE_SPACE_AFTER = 0.00
 
 DEFAULT_AUTO_SPACE = False
 
@@ -3143,8 +3145,8 @@ class Document:
                         p_next.length_docx['space before'] -= 0.1
                     elif p_next.length_docx['space before'] >= 0.0:
                         p_next.length_docx['space before'] /= 2
-            # TABLE
-            if p.paragraph_class == 'table':
+            # TABLE OR IMAGE
+            if p.paragraph_class == 'table' or p.paragraph_class == 'image':
                 if i > 0:
                     if p.length_docx['space before'] < 0:
                         msg = '警告: ' \
@@ -3795,6 +3797,9 @@ class Paragraph:
         elif paragraph_class == 'table':
             length_clas['space before'] += TABLE_SPACE_BEFORE
             length_clas['space after'] += TABLE_SPACE_AFTER
+        elif paragraph_class == 'image':
+            length_clas['space before'] += IMAGE_SPACE_BEFORE
+            length_clas['space after'] += IMAGE_SPACE_AFTER
         elif paragraph_class == 'preformatted':
             if tail_section_depth > 0:
                 length_clas['first indent'] = 0.0
