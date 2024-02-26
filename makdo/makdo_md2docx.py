@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.02.24-17:04:33-JST>
+# Time-stamp:   <2024.02.26-17:22:23-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -288,8 +288,19 @@ HELP_EPILOG = '''Markdownの記法:
       cyan(C) darkCyan(DC) blue(B) darkBlue(DB) magenta(M) darkMagenta(DM)
       lightGray(G1) darkGray(G2) black(BK)
     [@foo@]で囲まれた文字列のフォントはfooになります（独自）
+      "ＭＳ 明朝" "ＭＳ Ｐ明朝" "ＭＳ ゴシック" "ＭＳ Ｐゴシック"
+      "游明朝" "游明朝 Light" "游明朝 Demibold"
+      "游ゴシック" "游ゴシック Light" "游ゴシック Medium"
+      "ヒラギノ明朝 Pro" "ヒラギノ明朝 ProN"
+      "ヒラギノ丸ゴ Pro" "ヒラギノ丸ゴ ProN"
+      "ヒラギノ角ゴ Pro" "ヒラギノ角ゴ ProN"
+      "ヒラギノ角ゴ Std" "ヒラギノ角ゴ StdN"
+      "IPA明朝" "IPA P明朝" "IPAex明朝"
+      "IPAゴシック" "IPA Pゴシック" "IPAexゴシック"
+      "Noto Serif JP" "Noto Serif JP Light" "Noto Serif JP Medium"
+      "Noto Sans JP" "Noto Sans JP Light" "Noto Sans JP Medium"
     [字N;]（N=0-239）で"字"の異字体（IVS）が使えます（独自）
-      ただし、IPAmj明朝フォント等がインストールされている必要があります
+      ただし、"IPAmj明朝"フォント等がインストールされている必要があります
       参考：https://moji.or.jp/mojikiban/font/
             https://moji.or.jp/mojikibansearch/basic
     [^{foo}]でfooが上付文字（累乗等）になります（独自）
