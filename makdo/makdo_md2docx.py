@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.02.26-17:22:23-JST>
+# Time-stamp:   <2024.03.03-04:17:56-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5472,18 +5472,19 @@ class MdLine:
     def __init__(self, line_number, raw_text):
         self.line_number = line_number
         self.raw_text = raw_text
-        self.spaced_text, self.comment = self.separate_comment()
-        self.beg_space, self.text, self.end_space = self.separate_spaces()
+        self.spaced_text, self.comment = self.separate_comment(self.raw_text)
+        self.beg_space, self.text, self.end_space \
+            = self.separate_spaces(self.spaced_text)
         self.warning_messages = []
 
-    def separate_comment(self):
-        rt = self.raw_text
+    @staticmethod
+    def separate_comment(raw_text):
         com_sep = ' / '
         del_sep = ' / '
         spaced_text = ''
         comment = ''
         tmp = ''
-        for i, c in enumerate(rt):
+        for i, c in enumerate(raw_text):
             tmp += c
             if not MdLine.is_in_comment:
                 if re.match(NOT_ESCAPED + '<!--$', tmp):
@@ -5510,8 +5511,8 @@ class MdLine:
         # self.spaced_text = spaced_text
         return spaced_text, comment
 
-    def separate_spaces(self):
-        spaced_text = self.spaced_text
+    @staticmethod
+    def separate_spaces(spaced_text):
         text = spaced_text
         res = '^(\\s+)(.*?)$'
         beg_space = ''
