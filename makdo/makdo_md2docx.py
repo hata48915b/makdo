@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.03.03-04:17:56-JST>
+# Time-stamp:   <2024.03.03-11:43:14-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5545,6 +5545,214 @@ class MdLine:
             sys.stderr.write(msg + '\n\n')
 
 
+class Script:
+
+    def __init__(self, md_lines):
+        self.valuables = {}
+        for i in range(1,10):
+            md_lines = self.execute(md_lines, i)
+        self.md_lines = md_lines
+
+    def execute(self, md_lines, n):
+        is_in_script = False
+        tmp_text = ''
+        for ml in md_lines:
+            old_text = ml.text
+            new_text = ''
+            for c in old_text:
+                tmp_text += c
+                if not is_in_script:
+                    if self.is_script_beginning(tmp_text, n):
+                        tmp_text = re.sub('{.?{$', '', tmp_text)
+                        new_text += tmp_text
+                        tmp_text = ''
+                        is_in_script = True
+                else:
+                    if self.is_script_end(tmp_text, n):
+                        tmp_text = re.sub('}.?}$', '', tmp_text)
+                        new_text += self.execute_script(tmp_text, ml)
+                        tmp_text = ''
+                        is_in_script = False
+            else:
+                if tmp_text != '':
+                    if not is_in_script:
+                        new_text += tmp_text
+                        tmp_text = ''
+                    else:
+                        new_text += self.execute_script(tmp_text, ml)
+                        tmp_text = ''
+            ml.text = new_text
+        return md_lines
+
+    @staticmethod
+    def is_script_beginning(text, n):
+        if n == 1:
+            if re.match(NOT_ESCAPED + '{1?{$', text):
+                return True
+        else:
+            if re.match(NOT_ESCAPED + '{' + str(n) + '{$', text):
+                return True
+        return False
+
+    @staticmethod
+    def is_script_end(text, n):
+        if n == 1:
+            if re.match(NOT_ESCAPED + '}1?}$', text):
+                return True
+        else:
+            if re.match(NOT_ESCAPED + '}' + str(n) + '}$', text):
+                return True
+        return False
+
+    def execute_script(self, script, md_line):
+        text_to_print = ''
+        scr = script
+        scr = re.sub('<br>$', '', scr)
+        scr = re.sub('\\s+$', '', scr)
+        scr += ';'
+        while scr != '':
+            one = re.sub('^(.*?);(.*)$', '\\1', scr)
+            scr = re.sub('^(.*?);(.*)$', '\\2', scr)
+            if re.match('^\\s*(.*?)\\s*(/|\\*|%|-|\\+)=\\s*(.*?)\\s*$', one):
+                one = re.sub('^\\s*(.*?)\\s*(/|\\*|%|-|\\+)=\\s*(.*?)\\s*$',
+                             '\\1 = \\1 \\2 \\3', one)
+            if one == '':
+                pass
+            elif re.match('^\\s*(.*?)\\s*=\\s*(.*?)\\s*$', one):
+                var = re.sub('^\\s*(.*?)\\s*=\\s*(.*?)\\s*$', '\\1', one)
+                val = re.sub('^\\s*(.*?)\\s*=\\s*(.*?)\\s*$', '\\2', one)
+                cal = self.calc_value(val, md_line)
+                self.valuables[var] = cal
+            elif re.match('^\\s*print\\s*\\((.*)\\)\\s*$', one):
+                val = re.sub('^\\s*print\\s*\\((.*)\\)\\s*$', '\\1', one)
+                val = re.sub('^\\s*str\\s*\\((.*)\\)\\s*$', '\\1', val)
+                cal = self.calc_value(val, md_line)
+                text_to_print += cal
+            else:
+                msg = '※ 警告: ' \
+                    + '「' + one + '」は不正なスクリプトです'
+                # msg = 'warning: ' \
+                #     + 'bad script'
+                md_line.append_warning_message(msg)
+        return text_to_print
+
+    def calc_value(self, value, md_line):
+        val = value
+        # FUNCTIONS AND PARENTHESES
+        new = ''
+        tmp = ''
+        dep = 0
+        for c in val:
+            if dep == 0 and c == '(':
+                new += tmp
+                tmp = ''
+                dep = 1
+            elif dep == 1 and c == ')':
+                cal = self.calc_value(tmp, md_line)
+                if re.match('(^|[^a-zA-Z0-9])int\\s*$', new):
+                    new = re.sub('int\\s*$', '', new) + str(int(float(cal)))
+                else:
+                    new += cal
+                tmp = ''
+                dep = 0
+            else:
+                tmp += c
+                if c == '(':
+                    dep += 1
+                elif c == ')':
+                    dep -= 1
+        else:
+            if tmp != '':
+                new += tmp
+        val = new
+        # SUBSTITUTE VARIABLE
+        res = '^(.*?)\\s*([a-zA-Z][a-zA-Z0-9]+)\\s*(.*)$'
+        while re.match(res, val):
+            var = re.sub(res, '\\2', val)
+            if var in self.valuables:
+                val = re.sub(res, '\\g<1>' + self.valuables[var] + '\\3', val)
+            else:
+                val = re.sub(res, '\\g<1>' + '0' + ' \\3', val)
+                msg = '※ 警告: ' \
+                    + '「' + var + '」という変数は未定義です'
+                # msg = 'warning: ' \
+                #     + 'variable "' + t + '" is undefined'
+                md_line.append_warning_message(msg)
+        # BINARY OPERATE
+        val = self.binary_operate('\\^|\\*\\*', val, md_line)  # x^y, x**y
+        val = self.binary_operate('/|\\*', val, md_line)       # x/y, x*y
+        val = self.binary_operate('%', val, md_line)           # x%y
+        val = self.binary_operate('\\-|\\+', val, md_line)     # x-y, x+y
+        # RETURN
+        return val
+
+    def binary_operate(self, res_ope, val, md_line):
+        res = '^(.*?)\\s*' + \
+            '(-?[0-9]+(?:\\.[0-9]+)?|〓)' + \
+            '\\s*(' + res_ope + ')\\s*' + \
+            '(-?[0-9]+(?:\\.[0-9]+)?|〓)' + \
+            '\\s*(.*)$'
+        while re.match(res, val):
+            s1 = re.sub(res, '\\2', val)
+            op = re.sub(res, '\\3', val)
+            s2 = re.sub(res, '\\4', val)
+            if s1 == '〓' or s2 == '〓':
+                return '〓'
+            if ('.' not in s1) and ('.' not in s2):
+                v1 = int(s1)
+                v2 = int(s2)
+            else:
+                v1 = float(s1)
+                v2 = float(s2)
+            if False:
+                pass
+            elif op == '^' or  op == '**':
+                if v1 < 0 and type(v2) == float:
+                    cal = '〓'
+                    msg = '※ 警告: ' \
+                        + '「' + val + '」は負数の小数乗です'
+                    # msg = 'warning: ' \
+                    #     + 'operation "' + val + '" is a decimal power'
+                    md_line.append_warning_message(msg)
+                elif v1 == 0 and v2 < 0:
+                    cal = '〓'
+                    msg = '※ 警告: ' \
+                        + '「' + val + '」はゼロの負数乗です'
+                    # msg = 'warning: ' \
+                    #     + 'operation "' + val + '" is a negative power'
+                    md_line.append_warning_message(msg)
+                else:
+                    cal = str(v1 ** v2)
+            elif op == '/':
+                if v2 == 0:
+                    cal = '〓'
+                    msg = '※ 警告: ' \
+                        + '「' + val + '」はゼロで割っています'
+                    # msg = 'warning: ' \
+                    #     + 'operation "' + val + '" is division by zero'
+                    md_line.append_warning_message(msg)
+                else:
+                    cal = str(v1 / v2)
+            elif op == '*':
+                cal = str(v1 * v2)
+            elif op == '%':
+                if v2 == 0:
+                    cal = '〓'
+                    msg = '※ 警告: ' \
+                        + '「' + val + '」はゼロで割っています'
+                    # msg = 'warning: ' \
+                    #     + 'operation "' + val + '" is modulo by zero'
+                    md_line.append_warning_message(msg)
+                else:
+                    cal = str(v1 % v2)
+            elif op == '-':
+                cal = str(v1 - v2)
+            elif op == '+':
+                cal = str(v1 + v2)
+            val = re.sub(res, '\\g<1>' + cal + '\\g<5>', val)
+        return val
+
+
 class Md2Docx:
 
     """A class to make a MS Word file from a Markdown file"""
@@ -5565,6 +5773,9 @@ class Md2Docx:
         frm.md_lines = doc.md_lines
         frm.args = args
         frm.configure()
+        # EXECUTE SCRIPT
+        scr = Script(doc.md_lines)
+        doc.md_lines = scr.md_lines
         # GET RAW PARAGRAPHS
         doc.raw_paragraphs = doc.get_raw_paragraphs(doc.md_lines)
 
