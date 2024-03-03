@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.03.03-13:33:11-JST>
+# Time-stamp:   <2024.03.04-07:54:27-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5556,8 +5556,8 @@ class MdLine:
 class Script:
 
     def __init__(self, md_lines):
-        self.valuables = {}
-        for i in range(1, 10):
+        self.valuables = {'pi': '3.141592653589793', 'e': '2.718281828459045'}
+        for i in range(0, 10):
             md_lines = self.execute(md_lines, i)
         self.md_lines = md_lines
 

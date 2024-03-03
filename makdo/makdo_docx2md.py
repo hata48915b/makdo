@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.02.24-17:08:49-JST>
+# Time-stamp:   <2024.03.04-07:53:10-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4189,6 +4189,8 @@ class RawParagraph:
         chars = chars.replace('<+', '\\<+')
         chars = chars.replace('\\[', '\\[')
         chars = chars.replace('\\]', '\\]')
+        chars = chars.replace('{{', '\\{{')
+        chars = chars.replace('}}', '\\}}')
         chars = chars.replace('&lt;', '\\&lt;')
         chars = chars.replace('&gt;', '\\&gt;')
         chars = chars.replace('\\&lt-;', '\\&lt;\\-')  # "<-"
