@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.03.03-11:43:14-JST>
+# Time-stamp:   <2024.03.03-12:45:46-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -307,7 +307,10 @@ HELP_EPILOG = '''Markdownの記法:
     [_{foo}]でfooが下付文字（添字等）になります（独自）
     [<foo/bar>]でfooの上にbarというルビ（ふりがな）が振られます（独自）
     [<N>]（Nは数字）で漢字N文字幅の空白が入ります（独自）
-    [\\[]と[\\]]とでLaTeX形式の文字列を挟むと数式が書けます（独自）
+    [\\[]と[\\]]でLaTeX形式の文字列を挟むと数式が書けます（独自）
+    [{{]と[}}]でPython風のスクリプトを挟むと簡単な計算できます（独自）
+      "x=1" "x^y" "x+y" "x-y" "x*y" "x/y" "x//y" "x%y" "int(x)" "print(x)"
+    [{N{]と[}N}]（Nは2-9）でスクリプトを挟むと後の結果を利用できます（独自）
   エスケープ記号
     [\\]をコマンドの前に書くとコマンドが文字列になります
     [\\\\]で"\\"が表示されます
@@ -5549,7 +5552,7 @@ class Script:
 
     def __init__(self, md_lines):
         self.valuables = {}
-        for i in range(1,10):
+        for i in range(1, 10):
             md_lines = self.execute(md_lines, i)
         self.md_lines = md_lines
 
@@ -5614,16 +5617,19 @@ class Script:
             one = re.sub('^(.*?);(.*)$', '\\1', scr)
             scr = re.sub('^(.*?);(.*)$', '\\2', scr)
             if re.match('^\\s*(.*?)\\s*(/|\\*|%|-|\\+)=\\s*(.*?)\\s*$', one):
+                # TRANSFORM ("x ?= y" -> "x = x ? y")
                 one = re.sub('^\\s*(.*?)\\s*(/|\\*|%|-|\\+)=\\s*(.*?)\\s*$',
-                             '\\1 = \\1 \\2 \\3', one)
+                             '\\1 = \\1 \\2 (\\3)', one)
             if one == '':
                 pass
             elif re.match('^\\s*(.*?)\\s*=\\s*(.*?)\\s*$', one):
+                # SUBSTITUTE ("x = y ? z")
                 var = re.sub('^\\s*(.*?)\\s*=\\s*(.*?)\\s*$', '\\1', one)
                 val = re.sub('^\\s*(.*?)\\s*=\\s*(.*?)\\s*$', '\\2', one)
                 cal = self.calc_value(val, md_line)
                 self.valuables[var] = cal
             elif re.match('^\\s*print\\s*\\((.*)\\)\\s*$', one):
+                # PRINT ("print(x ? y)")
                 val = re.sub('^\\s*print\\s*\\((.*)\\)\\s*$', '\\1', one)
                 val = re.sub('^\\s*str\\s*\\((.*)\\)\\s*$', '\\1', val)
                 cal = self.calc_value(val, md_line)
@@ -5666,7 +5672,7 @@ class Script:
                 new += tmp
         val = new
         # SUBSTITUTE VARIABLE
-        res = '^(.*?)\\s*([a-zA-Z][a-zA-Z0-9]+)\\s*(.*)$'
+        res = '^(.*?)\\s*([a-zA-Z][a-zA-Z0-9]*)\\s*(.*)$'
         while re.match(res, val):
             var = re.sub(res, '\\2', val)
             if var in self.valuables:
@@ -5678,11 +5684,10 @@ class Script:
                 # msg = 'warning: ' \
                 #     + 'variable "' + t + '" is undefined'
                 md_line.append_warning_message(msg)
-        # BINARY OPERATE
-        val = self.binary_operate('\\^|\\*\\*', val, md_line)  # x^y, x**y
-        val = self.binary_operate('/|\\*', val, md_line)       # x/y, x*y
-        val = self.binary_operate('%', val, md_line)           # x%y
-        val = self.binary_operate('\\-|\\+', val, md_line)     # x-y, x+y
+        # BINARY OPERATE (x^y, x**y, x/y, x//y, x%y, x*y, x-y, x+y)
+        val = self.binary_operate('\\^|\\*\\*', val, md_line)
+        val = self.binary_operate('/|//|%|\\*', val, md_line)
+        val = self.binary_operate('\\-|\\+', val, md_line)
         # RETURN
         return val
 
@@ -5706,7 +5711,7 @@ class Script:
                 v2 = float(s2)
             if False:
                 pass
-            elif op == '^' or  op == '**':
+            elif op == '^' or op == '**':
                 if v1 < 0 and type(v2) == float:
                     cal = '〓'
                     msg = '※ 警告: ' \
@@ -5733,8 +5738,16 @@ class Script:
                     md_line.append_warning_message(msg)
                 else:
                     cal = str(v1 / v2)
-            elif op == '*':
-                cal = str(v1 * v2)
+            elif op == '//':
+                if v2 == 0:
+                    cal = '〓'
+                    msg = '※ 警告: ' \
+                        + '「' + val + '」はゼロで割っています'
+                    # msg = 'warning: ' \
+                    #     + 'operation "' + val + '" is division by zero'
+                    md_line.append_warning_message(msg)
+                else:
+                    cal = str(v1 // v2)
             elif op == '%':
                 if v2 == 0:
                     cal = '〓'
@@ -5745,6 +5758,8 @@ class Script:
                     md_line.append_warning_message(msg)
                 else:
                     cal = str(v1 % v2)
+            elif op == '*':
+                cal = str(v1 * v2)
             elif op == '-':
                 cal = str(v1 - v2)
             elif op == '+':
