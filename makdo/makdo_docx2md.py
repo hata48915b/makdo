@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.03.04-07:53:10-JST>
+# Time-stamp:   <2024.03.04-17:53:53-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -3903,7 +3903,7 @@ class RawParagraph:
             md_cur.chars = re.sub('\\(<(.)(.)>$', '(<>', md_cur.chars)
         elif re.match('<m:endChr m:val="(.)"/>', xl):
             ec = re.sub('^<m:endChr m:val="(.)"/>$', '\\1', xl)
-            md_cur.chars = re.sub('\\(<(.)(.)>$', '(<\\1' + ec + '>',
+            md_cur.chars = re.sub('\\(<(.)(.)>$', '(<\\g<1>' + ec + '>',
                                   md_cur.chars)
         elif xl == '</m:d>':
             res = '(.*)\\(<(.?)(.?)>(.*)$'
