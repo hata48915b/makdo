@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.03.04-09:49:27-JST>
+# Time-stamp:   <2024.03.04-10:07:27-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5646,6 +5646,12 @@ class Script:
                 cal = self.calc_value(val, md_line)
                 adj = cal
                 # ADJUST
+                if opt != '' and opt != '3' and opt != '4' and opt != '4s':
+                    msg = '※ 警告: ' \
+                        + '「' + opt + '」は不正なオプションです'
+                    # msg = 'warning: ' \
+                    #    '"' + opt + '" is a bad option'
+                    md_line.append_warning_message(msg)
                 if opt != '':
                     if '.' not in cal:
                         inp = cal
