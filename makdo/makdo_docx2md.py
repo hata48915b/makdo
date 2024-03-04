@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.03.04-17:53:53-JST>
+# Time-stamp:   <2024.03.05-08:06:22-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6084,7 +6084,19 @@ class ParagraphTable(Paragraph):
             elif xl == '</w:tr>':
                 tab.append(row)
                 is_in_row = False
-        # NIL OR DOUBLE LINE
+        # GET LONGEST ROW
+        longest_row = 0
+        max_length = 0
+        for i, row in enumerate(tab):
+            if len(row) > max_length:
+                max_length = len(row)
+                longest_row = i
+        # GET CONFIGURE ROW
+        half_row = int(len(tab) / 2)
+        conf_row = half_row
+        if longest_row > 0:
+            conf_row = longest_row
+        # GET NIL OR DOUBLE LINE (ROW)
         row_line = []
         for i in range(len(tab)):
             for tag in tab[i][0]:
@@ -6096,9 +6108,11 @@ class ParagraphTable(Paragraph):
                     break
             else:
                 row_line.append('')
+        # GET NIL OR DOUBLE LINE (COLUMN)
+        i = longest_row
         col_line = []
-        for j in range(len(tab[0])):
-            for tag in tab[0][j]:
+        for j in range(len(tab[i])):
+            for tag in tab[i][j]:
                 if re.match('^<w:right w:val="nil"( .+)?/>$', tag):
                     col_line.append('nil')
                     break
@@ -6107,7 +6121,7 @@ class ParagraphTable(Paragraph):
                     break
             else:
                 col_line.append('')
-        # ALIGNMENT
+        # GET ALIGNMENT
         ali = []
         for row in tab:
             tmp = []
@@ -6132,13 +6146,13 @@ class ParagraphTable(Paragraph):
                     tmp[-1] = re.sub('-', '', tmp[-1], 1)
                     tmp[-1] += '='
             ali.append(tmp)
+        # GET MD TEXT
         md_text = ''
-        half_row = int(len(tab) / 2)
         is_in_head = True
         for i, row in enumerate(tab):
             if is_in_head:
-                if ali[i] == ali[half_row]:
-                    for cell in ali[half_row]:
+                if ali[i] == ali[conf_row]:
+                    for cell in ali[conf_row]:
                         md_text += '|' + cell + '|'
                     is_in_head = False
                     md_text += '\n'
@@ -6153,8 +6167,8 @@ class ParagraphTable(Paragraph):
                         elif re.match('^-+:$', ali[i][j]):
                             raw_text = raw_text + ' :'
                 else:
-                    if j < len(ali[half_row]) and \
-                       ali[i][j] != ali[half_row][j]:
+                    if j < len(ali[conf_row]) and \
+                       ali[i][j] != ali[conf_row][j]:
                         if re.match('^:-+:$', ali[i][j]):
                             raw_text = ': ' + raw_text + ' :'
                         elif re.match('^:-+$', ali[i][j]):
