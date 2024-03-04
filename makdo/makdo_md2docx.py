@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.03.04-13:18:51-JST>
+# Time-stamp:   <2024.03.04-13:22:01-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5637,11 +5637,9 @@ class Script:
                 # PRINT ("print(x ? y)")
                 val = re.sub('^\\s*print\\s*\\((.*)\\)\\s*$', '\\1', one)
                 opt = ''
-                if re.match('^(.*),\\s+(.*)$', val):
-                    opt = re.sub('^(.*),\\s+(.*)$', '\\2', val)
-                    val = re.sub('^(.*),\\s+(.*)$', '\\1', val)
-                    opt = re.sub("^'(.*)'$", '\\1', opt)
-                    opt = re.sub('^"(.*)"$', '\\1', opt)
+                if re.match('^(.*),\\s*["\'](.*)["\']$', val):
+                    opt = re.sub('^(.*),\\s*["\'](.*)["\']$', '\\2', val)
+                    val = re.sub('^(.*),\\s*["\'](.*)["\']$', '\\1', val)
                 val = re.sub('^\\s*str\\s*\\((.*)\\)\\s*$', '\\1', val)
                 cal = self.calc_value(val, md_line)
                 adj = cal
