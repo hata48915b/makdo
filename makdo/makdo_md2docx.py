@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.03.04-10:07:27-JST>
+# Time-stamp:   <2024.03.04-13:01:02-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -313,7 +313,7 @@ HELP_EPILOG = '''Markdownの記法:
       二項演算:   "x^y" "x+y" "x-y" "x*y" "x/y" "x//y" "x%y"
       複合計算:   "1+(2-3)" "4+(5-(6*7))" "x+(8.9-y)" "x*(y/z)"
       本文に印字: "print(1)" "print(2+3)" "print(x)" "print(x-y)"
-    [{N{]と[}N}]（Nは2-9）でスクリプトを挟むと後の結果を利用できます（独自）
+    [{N{]と[}N}]（Nは1-9）でスクリプトを挟むと後の結果を利用できます（独自）
       "{{ print(x) }}{{ x=1 }}"はエラーになりますが、
       "{2{ print(x) }2}{{ x=1 }}"では"1"が印字されます
   エスケープ記号
@@ -5616,7 +5616,7 @@ class Script:
         text_to_print = ''
         scr = script
         scr = re.sub('<br>$', '', scr)
-        scr = re.sub('\\s+$', '', scr)
+        scr = re.sub('([0-9]),([0-9])', '\\1\\2', scr)
         scr += ';'
         while scr != '':
             one = re.sub('^(.*?);(.*)$', '\\1', scr)
