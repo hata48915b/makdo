@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.03.04-13:22:01-JST>
+# Time-stamp:   <2024.03.04-14:11:43-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5736,9 +5736,9 @@ class Script:
 
     def binary_operate(self, res_ope, val, md_line):
         res = '^(.*?)\\s*' + \
-            '(-?(?:[0-9]*\\.)?.[0-9]+?|〓)' + \
+            '(-?(?:[0-9]*\\.)?[0-9]+|〓)' + \
             '\\s*(' + res_ope + ')\\s*' + \
-            '(-?(?:[0-9]*\\.)?.[0-9]+?|〓)' + \
+            '(-?(?:[0-9]*\\.)?[0-9]+|〓)' + \
             '\\s*(.*)$'
         while re.match(res, val):
             s1 = re.sub(res, '\\2', val)
