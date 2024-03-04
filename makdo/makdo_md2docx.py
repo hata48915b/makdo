@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.03.04-07:54:27-JST>
+# Time-stamp:   <2024.03.04-09:49:27-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5636,9 +5636,43 @@ class Script:
             elif re.match('^\\s*print\\s*\\((.*)\\)\\s*$', one):
                 # PRINT ("print(x ? y)")
                 val = re.sub('^\\s*print\\s*\\((.*)\\)\\s*$', '\\1', one)
+                opt = ''
+                if re.match('^(.*),\\s+(.*)$', val):
+                    opt = re.sub('^(.*),\\s+(.*)$', '\\2', val)
+                    val = re.sub('^(.*),\\s+(.*)$', '\\1', val)
+                    opt = re.sub("^'(.*)'$", '\\1', opt)
+                    opt = re.sub('^"(.*)"$', '\\1', opt)
                 val = re.sub('^\\s*str\\s*\\((.*)\\)\\s*$', '\\1', val)
                 cal = self.calc_value(val, md_line)
-                text_to_print += cal
+                adj = cal
+                # ADJUST
+                if opt != '':
+                    if '.' not in cal:
+                        inp = cal
+                        dep = ''
+                    else:
+                        inp = re.sub('^(.*)\\.(.*)$', '\\1', cal)
+                        dep = re.sub('^(.*)\\.(.*)$', '\\2', cal)
+                    if opt == '3':
+                        inp = '{:,}'.format(int(inp))
+                    elif opt == '4' or opt == '4s':
+                        if float(cal) >= 10000000000000000:
+                            inp = re.sub('^(.*)(.{16})$', '\\1京\\2', inp)
+                        if float(cal) >= 1000000000000:
+                            inp = re.sub('^(.*)(.{12})$', '\\1兆\\2', inp)
+                        if float(cal) >= 100000000:
+                            inp = re.sub('^(.*)(.{8})$', '\\1億\\2', inp)
+                        if float(cal) >= 10000:
+                            inp = re.sub('^(.*)(.{4})$', '\\1万\\2', inp)
+                    if opt == '4s':
+                        inp = re.sub('0000$', '', inp)
+                        inp = re.sub('0000万$', '', inp)
+                        inp = re.sub('0000億$', '', inp)
+                    if dep == '':
+                        adj = inp
+                    else:
+                        adj = inp + '.' + dep
+                text_to_print += adj
             else:
                 msg = '※ 警告: ' \
                     + '「' + one + '」は不正なスクリプトです'
