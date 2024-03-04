@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.03.04-14:11:43-JST>
+# Time-stamp:   <2024.03.05-08:53:21-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4900,6 +4900,7 @@ class ParagraphTable(Paragraph):
     def _get_row_and_col_line(tab):
         row_line = []
         col_line = []
+        has_conf_row = False
         for i in range(len(tab)):
             # ROW
             for j in range(len(tab[i])):
@@ -4916,6 +4917,8 @@ class ParagraphTable(Paragraph):
                 continue
             # COLUMN
             for j in range(len(tab[i])):
+                if has_conf_row == True:
+                    break
                 if not re.match('^ *:?-*:? *(_|=)?$', tab[i][j]):
                     break
             else:
@@ -4930,6 +4933,7 @@ class ParagraphTable(Paragraph):
                         col_line.append('double')
                     else:
                         col_line.append('')
+                has_conf_row = True
                 continue
             row_line.append('')
         # COLUMN (IF NO CONFIG LINE)
