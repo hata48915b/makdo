@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.03.05-08:53:21-JST>
+# Time-stamp:   <2024.03.05-10:08:34-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5620,7 +5620,6 @@ class Script:
         text_to_print = ''
         scr = script
         scr = re.sub('<br>$', '', scr)
-        scr = re.sub('([0-9]),([0-9])', '\\1\\2', scr)
         scr += ';'
         while scr != '':
             one = re.sub('^(.*?);(.*)$', '\\1', scr)
@@ -5646,6 +5645,8 @@ class Script:
                     val = re.sub('^(.*),\\s*["\'](.*)["\']$', '\\1', val)
                 val = re.sub('^\\s*str\\s*\\((.*)\\)\\s*$', '\\1', val)
                 cal = self.calc_value(val, md_line)
+                if re.match('^\\.[0-9]+$', cal):
+                    cal = '0' + cal
                 adj = cal
                 # ADJUST
                 if opt != '' and opt != '3' and opt != '4' and opt != '4s':
@@ -5654,13 +5655,13 @@ class Script:
                     # msg = 'warning: ' \
                     #    '"' + opt + '" is a bad option'
                     md_line.append_warning_message(msg)
-                if opt != '':
-                    if '.' not in cal:
+                if re.match('^([0-9]+\\.)?([0-9]+)$', cal) and (opt != ''):
+                    if not re.match('^([0-9]+)\\.([0-9]+)$', cal):
                         inp = cal
                         dep = ''
                     else:
-                        inp = re.sub('^(.*)\\.(.*)$', '\\1', cal)
-                        dep = re.sub('^(.*)\\.(.*)$', '\\2', cal)
+                        inp = re.sub('^([0-9]+)\\.([0-9]+)$', '\\1', cal)
+                        dep = re.sub('^([0-9]+)\\.([0-9]+)$', '\\2', cal)
                     if opt == '3':
                         inp = '{:,}'.format(int(inp))
                     elif opt == '4' or opt == '4s':
@@ -5680,6 +5681,9 @@ class Script:
                         adj = inp
                     else:
                         adj = inp + '.' + dep
+                # STRING
+                adj = re.sub("^'((?:.|\n)*)'$", '\\1', adj)
+                adj = re.sub('^"((?:.|\n)*)"$', '\\1', adj)
                 text_to_print += adj
             else:
                 msg = '※ 警告: ' \
@@ -5691,6 +5695,11 @@ class Script:
 
     def calc_value(self, value, md_line):
         val = value
+        # NEW LINE
+        val = re.sub('\\\\n', '\n', val)
+        # NUMBER
+        if re.match('^-?(?:[0-9,]*\\.)?[0-9,]+$', val):
+            val = val.replace(',', '')
         # FUNCTIONS AND PARENTHESES
         new = ''
         tmp = ''
@@ -5731,6 +5740,19 @@ class Script:
                 # msg = 'warning: ' \
                 #     + 'variable "' + t + '" is undefined'
                 md_line.append_warning_message(msg)
+        # STRING AND STRING
+        res = '^\\s*\'((?:.|\n)*)\'\\s*\\+\\s*\'((?:.|\n)*)\'\\s*$'
+        if re.match(res, val):
+            return re.sub(res, "'\\1\\2'", val)
+        res = '^\\s*\'((?:.|\n)*)\'\\s*\\+\\s*"((?:.|\n)*)"\\s*$'
+        if re.match(res, val):
+            return re.sub(res, "'\\1\\2'", val)
+        res = '^\\s*"((?:.|\n)*)"\\s*\\+\\s*\'((?:.|\n)*)\'\\s*$'
+        if re.match(res, val):
+            return re.sub(res, "'\\1\\2'", val)
+        res = '^\\s*"((?:.|\n)*)"\\s*\\+\\s*"((?:.|\n)*)"\\s*$'
+        if re.match(res, val):
+            return re.sub(res, "'\\1\\2'", val)
         # BINARY OPERATE (x^y, x**y, x/y, x//y, x%y, x*y, x-y, x+y)
         val = self.binary_operate('\\^|\\*\\*', val, md_line)
         val = self.binary_operate('/|//|%|\\*', val, md_line)
@@ -5739,15 +5761,17 @@ class Script:
         return val
 
     def binary_operate(self, res_ope, val, md_line):
-        res = '^(.*?)\\s*' + \
-            '(-?(?:[0-9]*\\.)?[0-9]+|〓)' + \
+        res = '^((?:.*?\\s+)?)' + \
+            '(-?(?:[0-9,]*\\.)?[0-9,]+|〓)' + \
             '\\s*(' + res_ope + ')\\s*' + \
-            '(-?(?:[0-9]*\\.)?[0-9]+|〓)' + \
-            '\\s*(.*)$'
+            '(-?(?:[0-9,]*\\.)?[0-9,]+|〓)' + \
+            '((?:\\s+.*)?)$'
         while re.match(res, val):
             s1 = re.sub(res, '\\2', val)
+            s1 = s1.replace(',', '')
             op = re.sub(res, '\\3', val)
             s2 = re.sub(res, '\\4', val)
+            s2 = s2.replace(',', '')
             if s1 == '〓' or s2 == '〓':
                 return '〓'
             if ('.' not in s1) and ('.' not in s2):
