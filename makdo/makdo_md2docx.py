@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.03.05-14:17:05-JST>
+# Time-stamp:   <2024.03.05-14:28:28-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -86,6 +86,7 @@ from docx.enum.style import WD_STYLE_TYPE
 from docx.shared import RGBColor
 from docx.enum.text import WD_COLOR_INDEX
 # from docx.enum.text import WD_UNDERLINE
+from docx.enum.section import WD_SECTION
 import socket   # host
 import getpass  # user
 
@@ -5382,10 +5383,15 @@ class ParagraphPagebreak(Paragraph):
     """A class to handle preformatted paragraph"""
 
     paragraph_class = 'pagebreak'
-    res_feature = '^(?:<div style="break-.*: page;"></div>|<pgbr/?>)$'
+    res_feature = '^(?:<div style="break-.*: page;"></div>|<pgbr/?>|<Pgbr/?>)$'
 
     def write_paragraph(self, ms_doc):
+        ttw = self.text_to_write
         ms_doc.add_page_break()
+        if re.match('<Pgbr/?>', ttw):
+            ms_doc.add_section(WD_SECTION.NEW_PAGE)
+            XML.add_tag(ms_doc.sections[-1]._sectPr,
+                        'w:pgNumType', {'w:start': '1'})
 
 
 class ParagraphHorizontalLine(Paragraph):
