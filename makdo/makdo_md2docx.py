@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.03.05-10:08:34-JST>
+# Time-stamp:   <2024.03.05-14:17:05-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1969,6 +1969,7 @@ class XML:
             oe2 = XML.add_tag(oe1, 'w:instrText', opts, 'PAGE')
         elif char == 'N':
             oe2 = XML.add_tag(oe1, 'w:instrText', opts, 'NUMPAGES')
+            # oe2 = XML.add_tag(oe1, 'w:instrText', opts, 'SECTIONPAGES')
         #
         oe1 = XML.add_tag(oe0, 'w:r')
         oe2 = XML._decorate_unit(oe1, chars_state)
@@ -4917,7 +4918,7 @@ class ParagraphTable(Paragraph):
                 continue
             # COLUMN
             for j in range(len(tab[i])):
-                if has_conf_row == True:
+                if has_conf_row:
                     break
                 if not re.match('^ *:?-*:? *(_|=)?$', tab[i][j]):
                     break
