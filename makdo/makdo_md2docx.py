@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.03.05-20:05:54-JST>
+# Time-stamp:   <2024.03.06-08:50:37-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1441,6 +1441,22 @@ class Form:
             # msg = 'warning: ' \
             #     + 'remarks(comments) is removed'
             sys.stderr.write(msg + '\n\n')
+        # FOR LIBREOFFICE (NOT SUPPORT "SECTIONPAGES")
+        has_two_or_more_sections = False
+        for i in range(len(self.md_lines)):
+            if not re.match('^\\s*<Pgbr>\\s*$', self.md_lines[i].text):
+                continue
+            if i > 0:
+                if self.md_lines[i - 1].text != '':
+                    continue
+            if i < len(self.md_lines) - 1:
+                if self.md_lines[i + 1].text != '':
+                    continue
+            has_two_or_more_sections = True
+        if not has_two_or_more_sections:
+            while re.match(NOT_ESCAPED + 'N', Form.page_number):
+                Form.page_number \
+                    = re.sub(NOT_ESCAPED + 'N', '\\1M', Form.page_number)
 
     @staticmethod
     def _configure_by_md_file(md_lines):
@@ -1969,9 +1985,10 @@ class XML:
         if char == 'n':
             oe2 = XML.add_tag(oe1, 'w:instrText', opts, 'PAGE')
         elif char == 'N':
-            oe2 = XML.add_tag(oe1, 'w:instrText', opts, 'NUMPAGES')
             # "SECTIONPAGES" IS NOT SUPPORTOD BY LIBREOFFICE
-            # oe2 = XML.add_tag(oe1, 'w:instrText', opts, 'SECTIONPAGES')
+            oe2 = XML.add_tag(oe1, 'w:instrText', opts, 'SECTIONPAGES')
+        elif char == 'M':
+            oe2 = XML.add_tag(oe1, 'w:instrText', opts, 'NUMPAGES')
         #
         oe1 = XML.add_tag(oe0, 'w:r')
         oe2 = XML._decorate_unit(oe1, chars_state)
@@ -4430,11 +4447,11 @@ class Paragraph:
                     chars_state.font_width = tmp_fw
                     XML.write_unit(ms_par._p, chars_state, '\u3000')
                 chars_state.font_width = ori_fw
-        elif re.match(NOT_ESCAPED + '(n|N)$', unit):
+        elif re.match(NOT_ESCAPED + '(n|N|M)$', unit):
             if type == 'footer':
-                # "n|N" (PAGE NUMBER)
-                char = re.sub(NOT_ESCAPED + '(n|N)$', '\\2', unit)
-                unit = re.sub(NOT_ESCAPED + '(n|N)$', '\\1', unit)
+                # "n|N|M" (PAGE NUMBER)
+                char = re.sub(NOT_ESCAPED + '(n|N|M)$', '\\2', unit)
+                unit = re.sub(NOT_ESCAPED + '(n|N|M)$', '\\1', unit)
                 unit = XML.write_unit(ms_par._p, chars_state, unit)
                 unit += XML.write_page_number(ms_par._p, chars_state, char)
         if c == '\0' and unit != '':

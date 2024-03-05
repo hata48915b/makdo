@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.03.05-20:04:36-JST>
+# Time-stamp:   <2024.03.06-08:50:35-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1483,6 +1483,20 @@ class Form:
             Form.set_page_number('False')
         # REVISE BY ARGUMENTS
         self._configure_by_args(self.args)
+        # FOR LIBREOFFICE (NOT SUPPORT "SECTIONPAGES")
+        has_two_or_more_sections = False
+        is_in_p = False
+        for xl in self.document_xml_lines:
+            if re.match('<w:p( .*)?>', xl):
+                is_in_p = True
+            if re.match('</w:p( .*)?>', xl):
+                is_in_p = False
+            if is_in_p and re.match('<w:sectPr( .*)?>', xl):
+                has_two_or_more_sections = True
+        if not has_two_or_more_sections:
+            while re.match(NOT_ESCAPED + 'M', Form.page_number):
+                Form.page_number \
+                    = re.sub(NOT_ESCAPED + 'M', '\\1N', Form.page_number)
 
     def _configure_by_document_xml(self, xml_lines):
         width_x = -1.0
@@ -4214,13 +4228,13 @@ class RawParagraph:
                     chars = re.sub(res, '\\1', chars)
                 if re.match('^ ?PAGE ?$', chars, re.I):
                     chars = 'n'
-                elif re.match('^ ?NUMPAGES ?$', chars, re.I):
-                    chars = 'N'
                 elif re.match('^ ?SECTIONPAGES ?$', chars, re.I):
                     # "SECTIONPAGES" IS NOT SUPPORTOD BY LIBREOFFICE
                     chars = 'N'
+                elif re.match('^ ?NUMPAGES ?$', chars, re.I):
+                    chars = 'M'
             else:
-                chars = re.sub('(n|N)', '\\\\\\1', chars)
+                chars = re.sub('(n|N|M)', '\\\\\\1', chars)
         # RETURN
         return chars
 
