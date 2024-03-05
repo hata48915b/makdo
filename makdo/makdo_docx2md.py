@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.03.05-14:15:40-JST>
+# Time-stamp:   <2024.03.05-19:59:08-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -2620,6 +2620,15 @@ class Document:
         paragraphs = []
         for rp in raw_paragraphs:
             if rp.paragraph_class == 'configuration':
+                if len(paragraphs) > 0:
+                    if paragraphs[-1].md_text == '<pgbr>':
+                        paragraphs[-1].md_text = '<Pgbr>'
+                    if paragraphs[-1].md_lines_text == '<pgbr>':
+                        paragraphs[-1].md_lines_text = '<Pgbr>'
+                    if paragraphs[-1].text_to_write == '<pgbr>':
+                        paragraphs[-1].text_to_write = '<Pgbr>'
+                    if paragraphs[-1].text_to_write_with_reviser == '<pgbr>':
+                        paragraphs[-1].text_to_write_with_reviser = '<Pgbr>'
                 continue
             p = rp.get_paragraph()
             paragraphs.append(p)
@@ -5487,8 +5496,6 @@ class ParagraphBlank(Paragraph):
     @classmethod
     def is_this_class(cls, raw_paragraph):
         rp = raw_paragraph
-        rp_xls = rp.xml_lines
-        rp_rcl = rp.raw_class
         rp_rtx = rp.raw_text_doi
         if ParagraphTable.is_this_class(rp):
             return False
@@ -6672,8 +6679,15 @@ class ParagraphConfiguration(Paragraph):
     @classmethod
     def is_this_class(cls, raw_paragraph):
         rp = raw_paragraph
+        rp_rtx = rp.raw_text_doi
+        rp_xls = rp.xml_lines
         if rp.raw_class == 'w:sectPr':
             return True
+        if rp_rtx == '':
+            for xl in rp_xls:
+                if re.match('<w:sectPr( .*)?>', xl):
+                    return True
+        return False
 
 
 class Docx2Md:
