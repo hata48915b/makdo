@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.03.05-14:28:28-JST>
+# Time-stamp:   <2024.03.05-20:05:54-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1970,6 +1970,7 @@ class XML:
             oe2 = XML.add_tag(oe1, 'w:instrText', opts, 'PAGE')
         elif char == 'N':
             oe2 = XML.add_tag(oe1, 'w:instrText', opts, 'NUMPAGES')
+            # "SECTIONPAGES" IS NOT SUPPORTOD BY LIBREOFFICE
             # oe2 = XML.add_tag(oe1, 'w:instrText', opts, 'SECTIONPAGES')
         #
         oe1 = XML.add_tag(oe0, 'w:r')

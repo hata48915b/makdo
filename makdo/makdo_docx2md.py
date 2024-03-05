@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.03.05-19:59:08-JST>
+# Time-stamp:   <2024.03.05-20:04:36-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4216,8 +4216,9 @@ class RawParagraph:
                     chars = 'n'
                 elif re.match('^ ?NUMPAGES ?$', chars, re.I):
                     chars = 'N'
-                # elif re.match('^ ?SECTIONPAGES ?$', chars, re.I):
-                #     chars = 'N'
+                elif re.match('^ ?SECTIONPAGES ?$', chars, re.I):
+                    # "SECTIONPAGES" IS NOT SUPPORTOD BY LIBREOFFICE
+                    chars = 'N'
             else:
                 chars = re.sub('(n|N)', '\\\\\\1', chars)
         # RETURN
