@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.03.06-08:50:37-JST>
+# Time-stamp:   <2024.03.06-09:27:47-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1457,6 +1457,14 @@ class Form:
             while re.match(NOT_ESCAPED + 'N', Form.page_number):
                 Form.page_number \
                     = re.sub(NOT_ESCAPED + 'N', '\\1M', Form.page_number)
+        elif re.match(NOT_ESCAPED + '(N|M)', Form.page_number):
+            msg = '※ 警告: ' \
+                + '"<Page>"を含む場合、' \
+                + 'Libreofficeでは総ページ番号を適切に表示できません'
+            # msg = 'warning: ' \
+            #     + 'If "<Page>" is present, ' \
+            #     + 'Libreoffice can\'t display total page numbers properly'
+            sys.stderr.write(msg + '\n\n')
 
     @staticmethod
     def _configure_by_md_file(md_lines):

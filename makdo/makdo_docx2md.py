@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.03.06-08:50:35-JST>
+# Time-stamp:   <2024.03.06-09:27:53-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1497,6 +1497,14 @@ class Form:
             while re.match(NOT_ESCAPED + 'M', Form.page_number):
                 Form.page_number \
                     = re.sub(NOT_ESCAPED + 'M', '\\1N', Form.page_number)
+        elif re.match(NOT_ESCAPED + '(N|M)', Form.page_number):
+            msg = '※ 警告: ' \
+                + '"<Page>"を含む場合、' \
+                + 'Libreofficeでは総ページ番号を適切に表示できません'
+            # msg = 'warning: ' \
+            #     + 'If "<Page>" is present, ' \
+            #     + 'Libreoffice can\'t display total page numbers properly'
+            sys.stderr.write(msg + '\n\n')
 
     def _configure_by_document_xml(self, xml_lines):
         width_x = -1.0
