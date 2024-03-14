@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.03.06-09:27:47-JST>
+# Time-stamp:   <2024.03.14-23:40:47-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5761,18 +5761,34 @@ class Script:
                 new += tmp
         val = new
         # SUBSTITUTE VARIABLE
-        res = '^(.*?)\\s*([a-zA-Z][a-zA-Z0-9]*)\\s*(.*)$'
-        while re.match(res, val):
-            var = re.sub(res, '\\2', val)
-            if var in self.valuables:
-                val = re.sub(res, '\\g<1>' + self.valuables[var] + '\\3', val)
-            else:
-                val = re.sub(res, '\\g<1>' + '0' + ' \\3', val)
-                msg = '※ 警告: ' \
-                    + '「' + var + '」という変数は未定義です'
-                # msg = 'warning: ' \
-                #     + 'variable "' + t + '" is undefined'
-                md_line.append_warning_message(msg)
+        tmp = ''
+        par = ''
+        for c in val + '\0':
+            res = '(.*?)([a-zA-Z][a-zA-Z0-9]*)$'
+            if par == '':
+                if re.match(res, tmp) and re.match('^[^a-zA-Z0-9]$', c):
+                    var = re.sub(res, '\\2', tmp)
+                    if var in self.valuables:
+                        tmp = re.sub(res, '\\g<1>' + self.valuables[var], tmp)
+                    else:
+                        msg = '※ 警告: ' \
+                            + '「' + var + '」という変数は未定義です'
+                        # msg = 'warning: ' \
+                        #     + 'variable "' + t + '" is undefined'
+                        md_line.append_warning_message(msg)
+            if re.match(NOT_ESCAPED + "'$", tmp + c):
+                if par == '':
+                    par = "'"
+                elif par == "'":
+                    par = ''
+            if re.match(NOT_ESCAPED + '"$', tmp + c):
+                if par == '':
+                    par = '"'
+                elif par == '"':
+                    par = ''
+            if c != '\0':
+                tmp += c
+        val = tmp
         # STRING AND STRING
         res = '^\\s*\'((?:.|\n)*)\'\\s*\\+\\s*\'((?:.|\n)*)\'\\s*$'
         if re.match(res, val):
