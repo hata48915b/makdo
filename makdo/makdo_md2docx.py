@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.03.14-23:40:47-JST>
+# Time-stamp:   <2024.03.23-07:49:02-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -241,6 +241,7 @@ def floats6(s):
 HELP_EPILOG = '''Markdownの記法:
   段落指示
     [<pgbr>]で改ページされます（独自）
+    [----]（ハイフン4個以上）で水平線が挿入されます（独自）
   行頭指示
     [$+=(数字) ]でチャプター番号を変えることができます（独自）
     [$+ (タイトル)]でチャプターが挿入されます（独自）
@@ -5425,7 +5426,7 @@ class ParagraphHorizontalLine(Paragraph):
     """A class to handle Horizontalline paragraph"""
 
     paragraph_class = 'horizontalline'
-    res_feature = '^(?:\\s*(?:\\-|\\*)\\s*){3,}$'
+    res_feature = '^(?:(?:\\s*\\-\\s*){4,}|(?:\\s*\\*\\s*){4,})$'
 
     def write_paragraph(self, ms_doc):
         length_revi = self.length_revi
