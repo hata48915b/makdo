@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo-gui.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.02.21-09:23:09-JST>
+# Time-stamp:   <2024.03.28-09:50:30-JST>
 
 # makdo-gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -49,40 +49,44 @@ WINDOW_SIZE = "552x276"
 
 class Makdo:
 
+    receipt_number = 0
+
     def __init__(self):
 
         def drop(event):
             textarea.delete('1.0', 'end')
+            Makdo.receipt_number += 1
+            textarea.insert('end', '受付番号：' + str(Makdo.receipt_number) + '\n')
             filename = event.data
             filename = re.sub('^{(.*)}$', '\\1', filename)
             basename = os.path.basename(filename)
-            textarea.insert('end', '"' + basename + '"を受け取りました\n\n')
+            textarea.insert('end', '"' + basename + '"を受け取りました\n')
             stderr = sys.stderr
             sys.stderr = tempfile.TemporaryFile(mode='w+')
             if re.match('^.*\\.(m|M)(d|D)$', filename):
-                textarea.insert('end', 'docxファイルを作成します\n\n')
+                textarea.insert('end', 'docxファイルを作成します\n')
                 try:
                     m2d = Md2Docx(filename)
                     m2d.save('')
-                    textarea.insert('end', 'docxファイルを作成しました\n\n')
+                    textarea.insert('end', 'docxファイルを作成しました\n')
                 except BaseException:
                     sys.stderr.seek(0)
                     textarea.insert('end', sys.stderr.read())
-                    textarea.insert('end', 'docxファイルを作成できませんでした\n\n')
+                    textarea.insert('end', 'docxファイルを作成できませんでした\n')
             elif re.match('^.*\\.(d|D)(o|O)(c|C)(x|X)$', filename):
-                textarea.insert('end', 'mdファイルを作成します\n\n')
+                textarea.insert('end', 'mdファイルを作成します\n')
                 try:
                     d2m = Docx2Md(filename)
                     d2m.save('')
-                    textarea.insert('end', 'mdファイルを作成しました\n\n')
+                    textarea.insert('end', 'mdファイルを作成しました\n')
                 except BaseException:
                     sys.stderr.seek(0)
                     textarea.insert('end', sys.stderr.read())
-                    textarea.insert('end', 'mdファイルを作成できませんでした\n\n')
+                    textarea.insert('end', 'mdファイルを作成できませんでした\n')
             else:
-                textarea.insert('end', '不適切なファイルです\n\n')
+                textarea.insert('end', '不適切なファイルです\n')
             sys.stderr = stderr
-            textarea.insert('end', 'ここにmdファイル又はdocxファイルをドロップしてください\n\n')
+            textarea.insert('end', '\nここにmdファイル又はdocxファイルをドロップしてください\n')
 
         win = TkinterDnD.Tk()
         win.geometry(WINDOW_SIZE)
@@ -92,7 +96,7 @@ class Makdo:
         textarea = tk.Text(frame, width=111, height=30)
         # textarea = tk.Text(frame, width=74, height=20)
         textarea.drop_target_register(DND_FILES)
-        textarea.insert('end', 'ここにmdファイル又はdocxファイルをドロップしてください\n\n')
+        textarea.insert('end', 'ここにmdファイル又はdocxファイルをドロップしてください\n')
         textarea.dnd_bind('<<Drop>>', drop)
 
         frame.pack(expand=True, fill=tk.X, padx=16, pady=8)
