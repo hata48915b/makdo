@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.03.28-10:24:03-JST>
+# Time-stamp:   <2024.03.29-10:32:59-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5765,9 +5765,9 @@ class Script:
         tmp = ''
         par = ''
         for c in val + '\0':
-            res = '(.*?)([a-zA-Z][a-zA-Z0-9]*)$'
+            res = '(.*?)([_a-zA-Z][_a-zA-Z0-9]*)$'
             if par == '':
-                if re.match(res, tmp) and re.match('^[^a-zA-Z0-9]$', c):
+                if re.match(res, tmp) and re.match('^[^_a-zA-Z0-9]$', c):
                     var = re.sub(res, '\\2', tmp)
                     if var in self.valuables:
                         tmp = re.sub(res, '\\g<1>' + self.valuables[var], tmp)
