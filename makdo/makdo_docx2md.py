@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.04.02-01:54:21-JST>
+# Time-stamp:   <2024.04.02-03:19:19-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6125,7 +6125,10 @@ class ParagraphTable(Paragraph):
                 max_length = len(row)
                 longest_row = i
         # GET CONFIGURE ROW
-        half_row = int(len(tab) / 2) + (len(tab) % 2)
+        if len(tab) == 1:
+            half_row = 0
+        else:
+            half_row = int(len(tab) / 2) + (len(tab) % 2)
         conf_row = half_row
         if longest_row > 0:
             conf_row = longest_row
