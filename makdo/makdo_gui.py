@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo-gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.04.02-02:08:33-JST>
+# Time-stamp:   <2024.04.02-03:25:09-JST>
 
 # makdo-gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -30,7 +30,7 @@
 
 
 # USAGE
-# from makdo_gui import Makdo
+# from makdo.makdo_gui import Makdo
 # Makdo()
 
 
