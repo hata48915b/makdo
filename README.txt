@@ -1,4 +1,4 @@
-<!-- Time-stamp:   <2024.02.24-09:59:27-JST> -->
+<!-- Time-stamp:   <2024.04.02-01:49:42-JST> -->
 
 # MAKDO（魔苦怒）
 
@@ -437,6 +437,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 修正を加えたリリースです。
 
 ### 2023.06.07 v06 Shimo-Gion リリース
+
+大幅な修正を加えたリリースです。
+
+### 2024.04.02 v07 Furuichibashi リリース
 
 大幅な修正を加えたリリースです。
 

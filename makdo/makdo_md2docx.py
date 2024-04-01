@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
-# Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.03.29-10:32:59-JST>
+# Version:      v07 Furuichibashi
+# Time-stamp:   <2024.04.02-01:58:20-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -26,6 +26,7 @@
 # 2023.01.07 v04 Mitaki
 # 2023.03.16 v05 Aki-Nagatsuka
 # 2023.06.07 v06 Shimo-Gion
+# 2024.04.02 v07 Furuichibashi
 
 
 # USAGE
@@ -91,7 +92,7 @@ import socket   # host
 import getpass  # user
 
 
-__version__ = 'v06 Shimo-Gion'
+__version__ = 'v07 Furuichibashi'
 
 
 def get_arguments():

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo-gui.py
-# Version:      v06 Shimo-Gion
-# Time-stamp:   <2024.03.28-09:50:30-JST>
+# Version:      v07 Furuichibashi
+# Time-stamp:   <2024.04.02-02:08:33-JST>
 
 # makdo-gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -26,6 +26,7 @@
 # 2023.01.07 v04 Mitaki
 # 2023.03.16 v05 Aki-Nagatsuka
 # 2023.06.07 v06 Shimo-Gion
+# 2024.04.02 v07 Furuichibashi
 
 
 # USAGE
@@ -42,6 +43,9 @@ import re
 import tempfile
 from makdo.makdo_md2docx import Md2Docx
 from makdo.makdo_docx2md import Docx2Md
+
+
+__version__ = 'v07 Furuichibashi'
 
 
 WINDOW_SIZE = "552x276"
