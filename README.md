@@ -1,6 +1,6 @@
-<!-- Time-stamp:   <2024.04.03-08:44:50-JST> -->
+<!-- Time-stamp:   <2024.04.03-08:51:19-JST> -->
 
-# MAKDO（魔苦怒）
+# MAKDO（MS Wordの互換アプリ）
 
 ![MAKDOのLOGO](https://raw.githubusercontent.com/hata48915b/makdo/main/image/md8docx.png "MAKDOのLOGO")
 
