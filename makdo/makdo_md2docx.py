@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.04.02-01:58:20-JST>
+# Time-stamp:   <2024.04.02-12:24:28-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5906,7 +5906,6 @@ class Md2Docx:
         formal_md_lines = io.read_md_file()
         doc.md_lines = doc.get_md_lines(formal_md_lines)
         # CONFIGURE
-        frm = Form()
         frm.md_lines = doc.md_lines
         frm.args = args
         frm.configure()
