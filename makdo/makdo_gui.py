@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo-gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.04.02-04:09:36-JST>
+# Time-stamp:   <2024.04.02-13:19:25-JST>
 
 # makdo-gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -41,8 +41,9 @@ import sys
 import os
 import re
 import tempfile
-from makdo.makdo_md2docx import Md2Docx
-from makdo.makdo_docx2md import Docx2Md
+import importlib
+import makdo.makdo_md2docx
+import makdo.makdo_docx2md
 
 
 __version__ = 'v07 Furuichibashi'
@@ -71,7 +72,8 @@ class Makdo:
             if re.match('^.*\\.(m|M)(d|D)$', filename):
                 textarea.insert('end', 'docxファイルを作成します\n')
                 try:
-                    m2d = Md2Docx(filename)
+                    importlib.reload(makdo.makdo_md2docx)
+                    m2d = makdo.makdo_md2docx.Md2Docx(filename)
                     m2d.save('')
                     textarea.insert('end', 'docxファイルを作成しました\n')
                 except BaseException:
@@ -81,7 +83,8 @@ class Makdo:
             elif re.match('^.*\\.(d|D)(o|O)(c|C)(x|X)$', filename):
                 textarea.insert('end', 'mdファイルを作成します\n')
                 try:
-                    d2m = Docx2Md(filename)
+                    importlib.reload(makdo.makdo_docx2md)
+                    d2m = makdo.makdo_docx2md.Docx2Md(filename)
                     d2m.save('')
                     textarea.insert('end', 'mdファイルを作成しました\n')
                 except BaseException:
