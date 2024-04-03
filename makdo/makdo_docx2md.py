@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.04.02-03:19:19-JST>
+# Time-stamp:   <2024.04.04-08:36:04-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5771,7 +5771,7 @@ class ParagraphSection(Paragraph):
                     numbering_revisers \
                         = self._get_numbering_revisers(xdepth, state)
                 head_symbol += '#' * (xdepth + 1) + '-#' * ydepth + ' '
-        raw_text = re.sub(ParagraphSection.r9, '', raw_text)
+        raw_text = re.sub('^' + ParagraphSection.r9, '', raw_text)
         # raw_text = re.sub('^(?:  ?|\t|\u3000|\\. ?|．)', '', raw_text)
         if head_symbol == '':
             self._step_states(0, 0)
