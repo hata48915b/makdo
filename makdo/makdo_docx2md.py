@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.04.04-08:36:04-JST>
+# Time-stamp:   <2024.04.30-07:32:47-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1622,7 +1622,8 @@ class Form:
         sa = ['0.0', '0.0', '0.0', '0.0', '0.0', '0.0']
         for xb in xml_blocks:
             name = ''
-            font = ''
+            afnt = ''
+            kfnt = ''
             sz_x = -1.0
             f_it = False
             f_bd = False
@@ -1636,9 +1637,8 @@ class Form:
             asn = -1
             for xl in xb:
                 name = XML.get_value('w:name', 'w:val', name, xl)
-                font = XML.get_value('w:rFonts', 'w:ascii', font, xl)
-                font = XML.get_value('w:rFonts', 'w:eastAsia', font, xl)
-                # font = XML.get_value('w:rFonts', '*', font, xl)
+                afnt = XML.get_value('w:rFonts', 'w:ascii', afnt, xl)
+                kfnt = XML.get_value('w:rFonts', 'w:eastAsia', kfnt, xl)
                 sz_x = XML.get_value('w:sz', 'w:val', sz_x, xl)
                 f_it = XML.is_this_tag('w:i', f_it, xl)
                 f_bd = XML.is_this_tag('w:b', f_bd, xl)
@@ -1652,7 +1652,15 @@ class Form:
                 asn = XML.get_value('w:autoSpaceDN', 'w:val', asn, xl)
             if name == 'makdo':
                 # MINCHO FONT
-                Form.mincho_font = font
+                if afnt != '' and kfnt != '':
+                    if afnt == kfnt:
+                        Form.mincho_font = afnt
+                    else:
+                        Form.mincho_font = afnt + ',' + kfnt
+                elif afnt != '' and kfnt == '':
+                    Form.mincho_font = afnt
+                elif afnt == '' and kfnt != '':
+                    Form.mincho_font = kfnt
                 # FONT SIZE
                 if sz_x > 0:
                     Form.font_size = round(sz_x / 2, 1)
@@ -1666,10 +1674,21 @@ class Form:
                     Form.auto_space = True
             elif name == 'makdo-g':
                 # GOTHIC FONT
-                Form.gothic_font = font
+                if afnt != '' and kfnt != '':
+                    if afnt == kfnt:
+                        Form.gothic_font = afnt
+                    else:
+                        Form.gothic_font = afnt + ',' + kfnt
+                elif afnt != '' and kfnt == '':
+                    Form.gothic_font = afnt
+                elif afnt == '' and kfnt != '':
+                    Form.gothic_font = kfnt
             elif name == 'makdo-i':
                 # IVS FONT
-                Form.ivs_font = font
+                if kfnt != '':
+                    Form.ivs_font = kfnt
+                elif afnt != '':
+                    Form.ivs_font = afnt
             else:
                 for i in range(6):
                     if name != 'makdo-' + str(i + 1):
@@ -3541,14 +3560,24 @@ class RawParagraph:
                 continue
             # FONT
             if re.match('^<w:rFonts .*>$', xl):
-                font = ''
-                font = XML.get_value('w:rFonts', 'w:ascii', font, xl)
-                font = XML.get_value('w:rFonts', 'w:eastAsia', font, xl)
+                afnt = XML.get_value('w:rFonts', 'w:ascii', '', xl)
+                kfnt = XML.get_value('w:rFonts', 'w:eastAsia', '', xl)
                 # SYMPTOMATIC TREATMENT
                 for mfs in MS_FONTS:
-                    for mf in mfs:
-                        if font == mf:
-                            font = mfs[0]
+                    if afnt in mfs:
+                        afnt = mfs[0]
+                    if kfnt in mfs:
+                        kfnt = mfs[0]
+                font = ''
+                if afnt != '' and kfnt != '':
+                    if afnt == kfnt:
+                        font = afnt
+                    else:
+                        font = afnt + ',' + kfnt
+                elif afnt != '' and kfnt == '':
+                    font = afnt
+                elif afnt == '' and kfnt != '':
+                    font = kfnt
                 if font != '':
                     if font == Form.mincho_font:
                         pass

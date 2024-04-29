@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.04.02-12:24:28-JST>
+# Time-stamp:   <2024.04.30-07:06:46-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -938,6 +938,20 @@ def concatenate_string(str1, str2):
         return str1 + str2
 
 
+def split_fonts(fonts):
+    fs = (fonts + ',').split(',')
+    af = fs[0]
+    af = re.sub('^\\s+', '', af)
+    af = re.sub('\\s+$', '', af)
+    kf = fs[1]
+    kf = re.sub('^\\s+', '', kf)
+    kf = re.sub('\\s+$', '', kf)
+    if kf != '':
+        return af, kf
+    else:
+        return af, af
+
+
 ############################################################
 # CLASS
 
@@ -1094,7 +1108,10 @@ class IO:
         ms_doc.styles['List Number 2'].font.size = Pt(m_size)
         ms_doc.styles['List Number 3'].font.size = Pt(m_size)
         # HEADER
-        # ms_doc.styles['Header'].font.name = self.mincho_font
+        # af, kf = split_fonts(Form.mincho_font)
+        # ms_doc.styles['Header'].font.name = af
+        # ms_doc.styles['Header'].element.rPr.rFonts.set(ns.qn('w:eastAsia'),
+        #                                                kf)
         # ms_doc.styles['Header'].font.size = Pt(m_size)
         if Form.header_string != '':
             # MDLINE
@@ -1121,8 +1138,11 @@ class IO:
             p.write_text(ms_par, p.chars_state, p.text_to_write_with_reviser)
             Paragraph.bridge_chars_state.initialize()
         # FOOTER
-        # ms_doc.styles['Footer'].font.name = self.mincho_font  # page number
-        # ms_doc.styles['Footer'].font.size = Pt(m_size)        # page number
+        # af, kf = split_fonts(Form.mincho_font)
+        # ms_doc.styles['Footer'].font.name = af
+        # ms_doc.styles['Footer'].element.rPr.rFonts.set(ns.qn('w:eastAsia'),
+        #                                                kf)
+        # ms_doc.styles['Footer'].font.size = Pt(m_size)
         if Form.page_number != '':
             # MDLINE
             ml = MdLine(-1, Form.page_number)
@@ -1165,7 +1185,10 @@ class IO:
         line_spacing = Form.line_spacing
         # NORMAL
         ms_doc.styles.add_style('makdo', WD_STYLE_TYPE.PARAGRAPH)
-        ms_doc.styles['makdo'].font.name = Form.mincho_font
+        af, kf = split_fonts(Form.mincho_font)
+        ms_doc.styles['makdo'].font.name = af
+        ms_doc.styles['makdo'].element.rPr.rFonts.set(ns.qn('w:eastAsia'),
+                                                      kf)
         ms_doc.styles['makdo'].font.size = Pt(m_size)
         ms_doc.styles['makdo'].paragraph_format.line_spacing \
             = Pt(line_spacing * m_size)
@@ -1177,10 +1200,15 @@ class IO:
             XML.add_tag(ms_ppr, 'w:autoSpaceDN', {'w:val': '0'})
         # GOTHIC
         ms_doc.styles.add_style('makdo-g', WD_STYLE_TYPE.PARAGRAPH)
-        ms_doc.styles['makdo-g'].font.name = Form.gothic_font
+        af, kf = split_fonts(Form.gothic_font)
+        ms_doc.styles['makdo-g'].font.name = af
+        ms_doc.styles['makdo-g'].element.rPr.rFonts.set(ns.qn('w:eastAsia'),
+                                                        kf)
         # IVS
         ms_doc.styles.add_style('makdo-i', WD_STYLE_TYPE.PARAGRAPH)
         ms_doc.styles['makdo-i'].font.name = Form.ivs_font
+        ms_doc.styles['makdo-i'].element.rPr.rFonts.set(ns.qn('w:eastAsia'),
+                                                        Form.ivs_font)
         # TABLE
         ms_doc.styles.add_style('makdo-t', WD_STYLE_TYPE.PARAGRAPH)
         ms_doc.styles['makdo-t'].font.size = Pt(s_size)
@@ -1215,9 +1243,10 @@ class IO:
         ms_doc.styles['makdo-r'].paragraph_format.first_line_indent = 0
         ms_doc.styles['makdo-r'].paragraph_format.left_indent = 0
         ms_doc.styles['makdo-r'].paragraph_format.right_indent = 0
-        ms_doc.styles['makdo-r'].font.name = Form.gothic_font
+        af, kf = split_fonts(Form.gothic_font)
+        ms_doc.styles['makdo-r'].font.name = af
         ms_doc.styles['makdo-r'].element.rPr.rFonts.set(ns.qn('w:eastAsia'),
-                                                        Form.gothic_font)
+                                                        kf)
         ms_doc.styles['makdo-r'].font.size = Pt(10.5)
         ms_doc.styles['makdo-r'].font.color.rgb = RGBColor(255, 255, 0)
         ms_doc.styles['makdo-r'].font.highlight_color = WD_COLOR_INDEX.BLUE
@@ -2015,7 +2044,8 @@ class XML:
             font = chars_state.gothic_font
         else:
             font = chars_state.mincho_font
-        opt = {'w:ascii': font, 'w:hAnsi': font, 'w:eastAsia': font}
+        af, kf = split_fonts(font)
+        opt = {'w:ascii': af, 'w:hAnsi': af, 'w:eastAsia': kf}
         oe2 = XML.add_tag(oe1, 'w:rFonts', opt)
         # ITALIC
         if chars_state.is_italic:
@@ -5069,7 +5099,9 @@ class ParagraphImage(Paragraph):
                 # CAPTION
                 if capt != '':
                     ms_run = ms_doc.paragraphs[-1].add_run('\n' + capt)
-                    ms_run.font.name = self.chars_state.mincho_font
+                    af, kf = split_fonts(self.chars_state.mincho_font)
+                    ms_run.font.name = af
+                    ms_run._element.rPr.rFonts.set(ns.qn('w:eastAsia'), kf)
                     ms_run.font.size = Pt(self.chars_state.font_size)
             except BaseException:
                 e = ms_doc.paragraphs[-1]._element
