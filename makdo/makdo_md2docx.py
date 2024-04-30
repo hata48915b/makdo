@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.04.30-07:06:46-JST>
+# Time-stamp:   <2024.04.30-11:24:00-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1170,6 +1170,21 @@ class IO:
             Paragraph.bridge_chars_state.initialize()
         # LINE NUMBER
         if Form.line_number:
+            # MS WORD
+            # if 'line number' not in ms_doc.styles:
+            #     ms_doc.styles.add_style('line number',
+            #                             WD_STYLE_TYPE.CHARACTER)
+            # ms_doc.styles['line number'].font.size = Pt(m_size / 2)
+            # LIBREOFFICE (ENGLISH)
+            if 'Line Numbering' not in ms_doc.styles:
+                ms_doc.styles.add_style('Line Numbering',
+                                        WD_STYLE_TYPE.CHARACTER)
+            ms_doc.styles['Line Numbering'].font.size = Pt(m_size / 2)
+            # LIBREOFFICE (JAPANESE)
+            if '行番号付け' not in ms_doc.styles:
+                ms_doc.styles.add_style('行番号付け',
+                                        WD_STYLE_TYPE.CHARACTER)
+            ms_doc.styles['行番号付け'].font.size = Pt(m_size / 2)
             opts = {}
             opts['w:countBy'] = '5'
             opts['w:restart'] = 'newPage'
