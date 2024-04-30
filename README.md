@@ -1,4 +1,4 @@
-<!-- Time-stamp:   <2024.04.04-13:26:58-JST> -->
+<!-- Time-stamp:   <2024.04.30-11:29:18-JST> -->
 
 # MAKDO（MS Wordの互換アプリ）
 
@@ -429,7 +429,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ## 名前の由来
 
-"MAKDO"は、"MAKe DOcx"です。
+"MAKDO"は、"MAKe DOcx"と"MArKDOwn"を兼ねています。
 
 "魔苦怒"は、
 「このアプリの"魔"法で、
