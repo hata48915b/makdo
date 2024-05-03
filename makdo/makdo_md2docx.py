@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.05.04-03:54:24-JST>
+# Time-stamp:   <2024.05.04-05:24:00-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -160,12 +160,12 @@ def get_arguments():
     parser.add_argument(
         '-m', '--mincho-font',
         type=str,
-        metavar='FONT_NAME or ASCII_FONT_NAME,KANJI_FONT_NAME',
+        metavar='FONT_NAME or ASCII_FONT_NAME/KANJI_FONT_NAME',
         help='明朝フォント')
     parser.add_argument(
         '-g', '--gothic-font',
         type=str,
-        metavar='FONT_NAME or ASCII_FONT_NAME,KANJI_FONT_NAME',
+        metavar='FONT_NAME or ASCII_FONT_NAME/KANJI_FONT_NAME',
         help='ゴシックフォント')
     parser.add_argument(
         '-i', '--ivs-font',
