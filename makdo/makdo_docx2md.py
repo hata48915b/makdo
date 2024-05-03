@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.05.03-13:02:19-JST>
+# Time-stamp:   <2024.05.04-01:45:31-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -247,7 +247,7 @@ DEFAULT_PAGE_NUMBER = ': n :'
 
 DEFAULT_LINE_NUMBER = False
 
-DEFAULT_MINCHO_FONT = 'Times New Roman,ＭＳ 明朝'
+DEFAULT_MINCHO_FONT = 'Times New Roman / ＭＳ 明朝'
 DEFAULT_GOTHIC_FONT = 'ＭＳ ゴシック'
 DEFAULT_IVS_FONT = 'IPAmj明朝'  # IPAmjMincho
 DEFAULT_MATH_FONT = 'Cambria Math'
@@ -1655,7 +1655,7 @@ class Form:
                     if afnt == kfnt:
                         Form.mincho_font = afnt
                     else:
-                        Form.mincho_font = afnt + ',' + kfnt
+                        Form.mincho_font = afnt + ' / ' + kfnt
                 elif afnt != '' and kfnt == '':
                     Form.mincho_font = afnt
                 elif afnt == '' and kfnt != '':
@@ -1677,7 +1677,7 @@ class Form:
                     if afnt == kfnt:
                         Form.gothic_font = afnt
                     else:
-                        Form.gothic_font = afnt + ',' + kfnt
+                        Form.gothic_font = afnt + ' / ' + kfnt
                 elif afnt != '' and kfnt == '':
                     Form.gothic_font = afnt
                 elif afnt == '' and kfnt != '':
@@ -2189,14 +2189,14 @@ class Form:
         cfgs += \
             '# 明朝体とゴシック体と異字体（IVS）のフォントを指定できます。'
         cfgs += '\n'
-        if ',' in cls.mincho_font:
+        if '/' in cls.mincho_font:
             cfgs += '明朝体: ' + cls.mincho_font + '\n'
         else:
-            cfgs += '明朝体: ,' + cls.mincho_font + '\n'
-        if ',' in cls.gothic_font:
+            cfgs += '明朝体: = / ' + cls.mincho_font + '\n'
+        if '/' in cls.gothic_font:
             cfgs += 'ゴシ体: ' + cls.gothic_font + '\n'
         else:
-            cfgs += 'ゴシ体: ,' + cls.gothic_font + '\n'
+            cfgs += 'ゴシ体: = / ' + cls.gothic_font + '\n'
         cfgs += '異字体: ' + cls.ivs_font + '\n'
         cfgs += '\n'
 
@@ -3578,7 +3578,7 @@ class RawParagraph:
                     if afnt == kfnt:
                         font = afnt
                     else:
-                        font = afnt + ',' + kfnt
+                        font = afnt + ' / ' + kfnt
                 elif afnt != '' and kfnt == '':
                     font = afnt
                 elif afnt == '' and kfnt != '':
