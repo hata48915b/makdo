@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.05.04-05:24:00-JST>
+# Time-stamp:   <2024.05.04-08:51:09-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4419,10 +4419,13 @@ class Paragraph:
             ivsu = int('0xE0100', 16) + int(ivsn)
             if int(ivsu) <= int('0xE01EF', 16):
                 unit = XML.write_unit(ms_par._p, chars_state, unit)
-                save_name = chars_state.mincho_font
-                chars_state.mincho_font = chars_state.ivs_font
+                is_mincho_font = False
+                if chars_state.mincho_font == Form.mincho_font:
+                    is_mincho_font = True
+                    chars_state.mincho_font = chars_state.ivs_font
                 unit = XML.write_unit(ms_par._p, chars_state, ivsc + chr(ivsu))
-                chars_state.mincho_font = save_name
+                if is_mincho_font:
+                    chars_state.mincho_font = Form.mincho_font
         elif re.match(res_foc, unit):
             # "^.*^" (FONT COLOR)
             col = re.sub(res_foc, '\\2', unit)

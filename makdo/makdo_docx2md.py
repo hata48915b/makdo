@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.05.04-05:24:19-JST>
+# Time-stamp:   <2024.05.04-07:24:13-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4400,9 +4400,17 @@ class RawParagraph:
             raw_text = re.sub(res, '\\1\\\\\\2;', raw_text, flags=re.DOTALL)
         ivs_beg = int('0xE0100', 16)
         ivs_end = int('0xE01EF', 16)
-        res = '^(.*)@' + ivs_font + '@' + \
-            '(.)([' + chr(ivs_beg) + '-' + chr(ivs_end) + '])' + \
-            '@' + ivs_font + '@(.*)$'
+        #
+        res = '^(.*)(@' + ivs_font + '@)' + \
+            '(.[' + chr(ivs_beg) + '-' + chr(ivs_end) + '])' + \
+            '(.*)$'
+        while re.match(res, raw_text):
+            raw_text = re.sub(res, '\\1\\3\\2\\4', raw_text)
+        #
+        res = '@' + ivs_font + '@@' + ivs_font + '@'
+        raw_text = re.sub(res, '', raw_text)
+        #
+        res = '^(.*)(.)([' + chr(ivs_beg) + '-' + chr(ivs_end) + '])(.*)$'
         while re.match(res, raw_text, flags=re.DOTALL):
             t1 = re.sub(res, '\\1', raw_text, flags=re.DOTALL)
             t2 = re.sub(res, '\\2', raw_text, flags=re.DOTALL)
