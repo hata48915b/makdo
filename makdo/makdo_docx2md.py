@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.04.30-07:32:47-JST>
+# Time-stamp:   <2024.05.03-13:02:19-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -144,12 +144,12 @@ def get_arguments():
     parser.add_argument(
         '-m', '--mincho-font',
         type=str,
-        metavar='FONT_NAME',
+        metavar='FONT_NAME or ASCII_FONT_NAME,KANJI_FONT_NAME',
         help='明朝フォント')
     parser.add_argument(
         '-g', '--gothic-font',
         type=str,
-        metavar='FONT_NAME',
+        metavar='FONT_NAME or ASCII_FONT_NAME,KANJI_FONT_NAME',
         help='ゴシックフォント')
     parser.add_argument(
         '-i', '--ivs-font',
@@ -247,7 +247,7 @@ DEFAULT_PAGE_NUMBER = ': n :'
 
 DEFAULT_LINE_NUMBER = False
 
-DEFAULT_MINCHO_FONT = 'ＭＳ 明朝'
+DEFAULT_MINCHO_FONT = 'Times New Roman,ＭＳ 明朝'
 DEFAULT_GOTHIC_FONT = 'ＭＳ ゴシック'
 DEFAULT_IVS_FONT = 'IPAmj明朝'  # IPAmjMincho
 DEFAULT_MATH_FONT = 'Cambria Math'
@@ -256,24 +256,23 @@ DEFAULT_FONT_SIZE = 12.0
 TABLE_FONT_SCALE = 0.8
 
 MS_FONTS = [
-    ['ＭＳ 明朝',
-     'ＭＳ明朝',
-     'ＭＳ 明朝;MS Mincho',
-     'MS Mincho;ＭＳ 明朝',
+    ['ＭＳ 明朝', 'ＭＳ明朝',
+     'ＭＳ 明朝;MS Mincho', 'MS Mincho;ＭＳ 明朝',
      'Mincho;MS Mincho'],
-    ['ＭＳゴシック',
-     'ＭＳ ゴシック;MS Gothic',
-     'MS Gothic;ＭＳ ゴシック',
+    ['ＭＳ ゴシック', 'ＭＳゴシック',
+     'ＭＳ ゴシック;MS Gothic', 'MS Gothic;ＭＳ ゴシック',
      'Gothic;MS Gothic'],
-    ['ＭＳ Ｐ明朝',
-     'ＭＳＰ明朝',
-     'ＭＳ Ｐ明朝;MS PMincho',
-     'MS PMincho;ＭＳ Ｐ明朝'
+    ['ＭＳ Ｐ明朝', 'ＭＳＰ明朝',
+     'ＭＳ Ｐ明朝;MS PMincho', 'MS PMincho;ＭＳ Ｐ明朝'
      'PMincho;MS PMincho'],
-    ['ＭＳ Ｐゴシック',
-     'ＭＳ Ｐゴシック;MS PGothic',
-     'MS PGothic; ＭＳ Ｐゴシック',
+    ['ＭＳ Ｐゴシック', 'ＭＳＰゴシック',
+     'ＭＳ Ｐゴシック;MS PGothic', 'MS PGothic; ＭＳ Ｐゴシック',
      'PGothic;MS PGothic'],
+    ['游明朝', 'Yu Mincho'],
+    ['游ゴシック', 'Yu Gothic'],
+    ['ヒラギノ明朝', 'Hiragino Mincho'],
+    ['ヒラギノ角ゴ', 'Hiragino Kaku Gothic'],
+    ['ヒラギノ丸ゴ', 'Hiragino Maru Gothic'],
 ]
 
 DEFAULT_LINE_SPACING = 2.14  # (2.0980+2.1812)/2=2.1396
@@ -2190,8 +2189,14 @@ class Form:
         cfgs += \
             '# 明朝体とゴシック体と異字体（IVS）のフォントを指定できます。'
         cfgs += '\n'
-        cfgs += '明朝体: ' + cls.mincho_font + '\n'
-        cfgs += 'ゴシ体: ' + cls.gothic_font + '\n'
+        if ',' in cls.mincho_font:
+            cfgs += '明朝体: ' + cls.mincho_font + '\n'
+        else:
+            cfgs += '明朝体: ,' + cls.mincho_font + '\n'
+        if ',' in cls.gothic_font:
+            cfgs += 'ゴシ体: ' + cls.gothic_font + '\n'
+        else:
+            cfgs += 'ゴシ体: ,' + cls.gothic_font + '\n'
         cfgs += '異字体: ' + cls.ivs_font + '\n'
         cfgs += '\n'
 

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.04.30-11:24:00-JST>
+# Time-stamp:   <2024.05.03-12:52:32-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -160,12 +160,12 @@ def get_arguments():
     parser.add_argument(
         '-m', '--mincho-font',
         type=str,
-        metavar='FONT_NAME',
+        metavar='FONT_NAME or ASCII_FONT_NAME,KANJI_FONT_NAME',
         help='明朝フォント')
     parser.add_argument(
         '-g', '--gothic-font',
         type=str,
-        metavar='FONT_NAME',
+        metavar='FONT_NAME or ASCII_FONT_NAME,KANJI_FONT_NAME',
         help='ゴシックフォント')
     parser.add_argument(
         '-i', '--ivs-font',
@@ -345,7 +345,7 @@ DEFAULT_PAGE_NUMBER = ': n :'
 
 DEFAULT_LINE_NUMBER = False
 
-DEFAULT_MINCHO_FONT = 'ＭＳ 明朝'
+DEFAULT_MINCHO_FONT = 'Times New Roman,ＭＳ 明朝'
 DEFAULT_GOTHIC_FONT = 'ＭＳ ゴシック'
 DEFAULT_IVS_FONT = 'IPAmj明朝'  # IPAmjMincho
 DEFAULT_MATH_FONT = 'Cambria Math'
@@ -946,10 +946,12 @@ def split_fonts(fonts):
     kf = fs[1]
     kf = re.sub('^\\s+', '', kf)
     kf = re.sub('\\s+$', '', kf)
-    if kf != '':
-        return af, kf
-    else:
+    if kf == '':
         return af, af
+    elif af == '':
+        return kf, kf
+    else:
+        return af, kf
 
 
 ############################################################
