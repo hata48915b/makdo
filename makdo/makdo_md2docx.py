@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.05.04-03:32:26-JST>
+# Time-stamp:   <2024.05.04-03:54:24-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1234,12 +1234,15 @@ class IO:
         ms_doc.styles['makdo-m'].font.size = Pt(m_size)
         # REMARKS
         ms_doc.styles.add_style('makdo-r', WD_STYLE_TYPE.PARAGRAPH)
-        ms_doc.styles['makdo-r'].paragraph_format.line_spacing = 0
+        ms_doc.styles['makdo-r'].paragraph_format.line_spacing = Pt(10.5)
         ms_doc.styles['makdo-r'].paragraph_format.space_before = Pt(10.5)
         ms_doc.styles['makdo-r'].paragraph_format.space_after = Pt(10.5)
+        text_width = PAPER_WIDTH[Form.paper_size] \
+            - Form.left_margin - Form.right_margin
+        half_width = text_width / 2
         ms_doc.styles['makdo-r'].paragraph_format.first_line_indent = 0
         ms_doc.styles['makdo-r'].paragraph_format.left_indent = 0
-        ms_doc.styles['makdo-r'].paragraph_format.right_indent = 0
+        ms_doc.styles['makdo-r'].paragraph_format.right_indent = Cm(half_width)
         XML.set_font(ms_doc.styles['makdo-r'], Form.gothic_font)
         ms_doc.styles['makdo-r'].font.size = Pt(10.5)
         ms_doc.styles['makdo-r'].font.color.rgb = RGBColor(255, 255, 0)
