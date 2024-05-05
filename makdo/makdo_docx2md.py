@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.05.05-14:19:28-JST>
+# Time-stamp:   <2024.05.06-03:12:43-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4766,8 +4766,14 @@ class Paragraph:
         md_text = self._get_md_text(raw_text)
         # PREFORMATTED
         if self.paragraph_class == 'preformatted':
-            head_font_revisers.remove('`')
-            tail_font_revisers.remove('`')
+            if '`' in head_font_revisers:
+                head_font_revisers.remove('`')
+            else:
+                head_font_revisers.append('`')
+            if '`' in tail_font_revisers:
+                tail_font_revisers.remove('`')
+            else:
+                tail_font_revisers.append('`')
         return numbering_revisers, head_font_revisers, tail_font_revisers, \
             md_text
 
