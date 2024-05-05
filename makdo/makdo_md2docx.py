@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.05.06-03:16:08-JST>
+# Time-stamp:   <2024.05.06-04:31:16-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -3284,11 +3284,11 @@ class Document:
                         p_next.length_docx['space before'] \
                             = mn + TABLE_SPACE_AFTER
         # SEARCH FOR ATTACHED PAGEBREAK
+        exception = ['empty', 'blank', 'table', 'pagebreak', 'horizontalline',
+                     'remarks']
         for i, p in enumerate(paragraphs):
             if i > 0:
                 p_prev = paragraphs[i - 1]
-            exception \
-                = ['empty', 'blank', 'table', 'horizontalline', 'remarks']
             if p.paragraph_class == 'pagebreak':
                 if p_prev.paragraph_class not in exception:
                     p.is_attached_pagebreak = True
