@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.05.04-07:24:13-JST>
+# Time-stamp:   <2024.05.05-13:57:51-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1499,10 +1499,10 @@ class Form:
                     = re.sub(NOT_ESCAPED + 'M', '\\1N', Form.page_number)
         elif re.match(NOT_ESCAPED + '(N|M)', Form.page_number):
             msg = '※ 警告: ' \
-                + '"<Page>"を含む場合、' \
+                + '"<Pgbr>"を含む場合、' \
                 + 'Libreofficeでは総ページ番号を適切に表示できません'
             # msg = 'warning: ' \
-            #     + 'If "<Page>" is present, ' \
+            #     + 'If "<Pgbr>" is present, ' \
             #     + 'Libreoffice can\'t display total page numbers properly'
             sys.stderr.write(msg + '\n\n')
 
@@ -2676,6 +2676,9 @@ class Document:
                         paragraphs[-1].text_to_write = '<Pgbr>'
                     if paragraphs[-1].text_to_write_with_reviser == '<pgbr>':
                         paragraphs[-1].text_to_write_with_reviser = '<Pgbr>'
+                    # ATTACHED PAGE BREAK
+                    if paragraphs[-1].attached_pagebreak == 'pgbr':
+                        paragraphs[-1].attached_pagebreak = 'Pgbr'
                 continue
             p = rp.get_paragraph()
             paragraphs.append(p)
@@ -3375,6 +3378,7 @@ class RawParagraph:
         self.xml_lines = []
         self.raw_class = ''
         self.horizontal_line = ''  # 'top'|'bottom'|'textbox'
+        self.attached_pagebreak = ''  # 'pgbr' | 'Pgbr'
         self.chars_data = []
         self.images = {}
         self.raw_text = ''
@@ -3394,6 +3398,7 @@ class RawParagraph:
         self.raw_class = self._get_raw_class(self.xml_lines)
         self.horizontal_line \
             = self._get_horizontal_line(self.raw_class, self.xml_lines)
+        self.attached_pagebreak = self.get_attached_pagebreak(self.xml_lines)
         self.chars_data, self.images \
             = self._get_chars_data_and_images(self.raw_class, self.xml_lines)
         self.raw_text = self._get_raw_text(self.chars_data)
@@ -3441,6 +3446,13 @@ class RawParagraph:
             if re.match(res, xl):
                 # HORIZONTAL LINE (TEXTBOX)
                 return 'textbox'
+        return ''
+
+    @staticmethod
+    def get_attached_pagebreak(xml_lines):
+        for xl in xml_lines:
+            if re.match('^<w:br w:type=[\'"]page[\'"]/>$', xl):
+                return 'pgbr'
         return ''
 
     @classmethod
@@ -4661,6 +4673,7 @@ class Paragraph:
         self.xml_lines = raw_paragraph.xml_lines
         self.raw_class = raw_paragraph.raw_class
         self.horizontal_line = raw_paragraph.horizontal_line
+        self.attached_pagebreak = raw_paragraph.attached_pagebreak
         self.chars_data = raw_paragraph.chars_data
         self.raw_text = raw_paragraph.raw_text
         self.head_space = raw_paragraph.head_space
@@ -5204,6 +5217,8 @@ class Paragraph:
         text_to_write = self.text_to_write
         pre_text_to_write = self.pre_text_to_write
         post_text_to_write = self.post_text_to_write
+        paragraph_class = self.paragraph_class
+        attached_pagebreak = self.attached_pagebreak
         # LEFT SYMBOL
         has_left_sharp = False
         has_left_colon = False
@@ -5244,6 +5259,12 @@ class Paragraph:
             ttwwr += ' :'
         if post_text_to_write != '':
             ttwwr += '\n' + post_text_to_write
+        # PAGE BREAK
+        if paragraph_class != 'pagebreak':
+            if attached_pagebreak == 'pgbr':
+                ttwwr += '\n\n<pgbr>'
+            if attached_pagebreak == 'Pgbr':
+                ttwwr += '\n\n<Pgbr>'
         text_to_write_with_reviser = ttwwr
         # self.text_to_write_with_reviser = text_to_write_with_reviser
         return text_to_write_with_reviser
@@ -6674,7 +6695,10 @@ class ParagraphPagebreak(Paragraph):
     @classmethod
     def is_this_class(cls, raw_paragraph):
         rp = raw_paragraph
+        rp_text = rp.raw_text
         rp_xl = rp.xml_lines
+        if rp_text != '':
+            return False
         for xl in rp_xl:
             if re.match('^<w:br w:type=[\'"]page[\'"]/>$', xl):
                 return True

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.05.04-08:51:09-JST>
+# Time-stamp:   <2024.05.05-14:02:07-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -3283,6 +3283,15 @@ class Document:
                     else:
                         p_next.length_docx['space before'] \
                             = mn + TABLE_SPACE_AFTER
+        # SEARCH FOR ATTACHED PAGEBREAK
+        for i, p in enumerate(paragraphs):
+            if i > 0:
+                p_prev = paragraphs[i - 1]
+            exception \
+                = ['empty', 'blank', 'table', 'horizontalline', 'remarks']
+            if p.paragraph_class == 'pagebreak':
+                if p_prev.paragraph_class not in exception:
+                    p.is_attached_pagebreak = True
         return self.paragraphs
 
     def write_property(self, ms_doc):
@@ -5465,9 +5474,18 @@ class ParagraphPagebreak(Paragraph):
     paragraph_class = 'pagebreak'
     res_feature = '^(?:<div style="break-.*: page;"></div>|<pgbr/?>|<Pgbr/?>)$'
 
+    def __init__(self, raw_paragraph):
+        super().__init__(raw_paragraph)
+        self.is_attached_pagebreak = False
+
     def write_paragraph(self, ms_doc):
+        is_attached_pagebreak = self.is_attached_pagebreak
         ttw = self.text_to_write
-        ms_doc.add_page_break()
+        if is_attached_pagebreak:
+            ms_run = XML.add_tag(ms_doc.paragraphs[-1]._p, 'w:r')
+            XML.add_tag(ms_run, 'w:br', {'w:type': 'page'})
+        else:
+            ms_doc.add_page_break()
         if re.match('<Pgbr/?>', ttw):
             ms_doc.add_section(WD_SECTION.NEW_PAGE)
             XML.add_tag(ms_doc.sections[-1]._sectPr,
