@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.05.20-08:10:46-JST>
+# Time-stamp:   <2024.05.20-08:29:50-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4997,23 +4997,25 @@ class ParagraphTable(Paragraph):
                     elif re.match('^:?-+$', c) or c == '':
                         col_alig_list.append(WD_TABLE_ALIGNMENT.LEFT)
                 continue
-            if True:
+            if tl != '':
                 if not re.match('^(:?-*:?)?(\\^+|=+)?$', tl):
                     row_rule_list.append('')
                     row_heig_list.append(0.0)
                     row_alig_list.append(WD_ALIGN_VERTICAL.CENTER)
-                # ROW RULE
-                if re.match('^.*\\^+$', tl):
-                    row_rule_list[-1] = '^'
-                    tl = re.sub('\\^+$', '', tl)
-                elif re.match('^.*=+$', tl):
-                    row_rule_list[-1] = '='
-                    tl = re.sub('=+$', '', tl)
-                # ROW HEIGHT
                 c = ''
-                if re.match('^(.*?)(:?-*:?)$', tl):
-                    c = re.sub('^(.*?)(:?-+:?)$', '\\2', tl)
-                    tl = re.sub('^(.*?)(:?-+:?)$', '\\1', tl)
+                res = '^(.*?)((?::?-+|:-*:|-*:)?(?:\\^+|=+)?)$'
+                if re.match(res, tl):
+                    c = re.sub(res, '\\2', tl)
+                    tl = re.sub(res, '\\1', tl)
+                # ROW RULE
+                if re.match('^.*\\^+$', c):
+                    row_rule_list[-1] = '^'
+                    c = re.sub('\\^+$', '', c)
+                elif re.match('^.*=+$', c):
+                    row_rule_list[-1] = '='
+                    tl = re.sub('=+$', '', c)
+                # ROW HEIGHT
+                if c != '':
                     row_heig_list[-1] = float(len(c)) / 2
                 # ROW ALIGN
                 if re.match('^:-*:$', c) or c == '':
