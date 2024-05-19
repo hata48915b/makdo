@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.05.19-12:38:19-JST>
+# Time-stamp:   <2024.05.20-08:07:36-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4858,7 +4858,7 @@ class ParagraphTable(Paragraph):
     """A class to handle table paragraph"""
 
     paragraph_class = 'table'
-    res_feature = '^\\|.*\\|(:?-+:?)?(\\^+|=+)?$'
+    res_feature = '^\\|.*\\|(:?-*:?)?(\\^+|=+)?$'
 
     def write_paragraph(self, ms_doc):
         md_lines = self.md_lines
@@ -4974,7 +4974,8 @@ class ParagraphTable(Paragraph):
         row_alig_list, row_heig_list, row_rule_list = [], [], []
         for tl in tab_lines:
             if conf_line_place == -1 and \
-               re.match('^(\\|(:?-+:?)?(\\^+|=+)?)+\\|$', tl):
+               re.match('^(\\|(:?-*:?)?(\\^+|=+)?)+\\|$', tl) and \
+               not re.match('^\\|+$', tl):
                 conf_line_place = float(len(tab)) - 0.5
                 tl = re.sub('^\\|(.*)\\|$', '\\1', tl)
                 for c in tl.split('|'):
@@ -4993,11 +4994,11 @@ class ParagraphTable(Paragraph):
                         col_alig_list.append(WD_TABLE_ALIGNMENT.CENTER)
                     elif re.match('^-*:$', c):
                         col_alig_list.append(WD_TABLE_ALIGNMENT.RIGHT)
-                    else:
+                    elif re.match('^:?-+$', c) or c == '':
                         col_alig_list.append(WD_TABLE_ALIGNMENT.LEFT)
                 continue
             if True:
-                if not re.match('^(:?-+:?)?(\\^+|=+)?$', tl):
+                if not re.match('^(:?-*:?)?(\\^+|=+)?$', tl):
                     row_rule_list.append('')
                     row_heig_list.append(0.0)
                     row_alig_list.append(WD_ALIGN_VERTICAL.CENTER)
@@ -5010,15 +5011,17 @@ class ParagraphTable(Paragraph):
                     tl = re.sub('=+$', '', tl)
                 # ROW HEIGHT
                 c = ''
-                if re.match('^(.*?)(:?-+:?)$', tl):
+                if re.match('^(.*?)(:?-*:?)$', tl):
                     c = re.sub('^(.*?)(:?-+:?)$', '\\2', tl)
                     tl = re.sub('^(.*?)(:?-+:?)$', '\\1', tl)
                     row_heig_list[-1] = float(len(c)) / 2
                 # ROW ALIGN
-                if re.match('^:-+$', c):
-                    row_alig_list[-1] = WD_ALIGN_VERTICAL.TOP
-                elif re.match('^-+:$', c):
+                if re.match('^:-*:$', c) or c =:
+                    row_alig_list[-1] = WD_ALIGN_VERTICAL.CENTER
+                elif re.match('^-*:$', c):
                     row_alig_list[-1] = WD_ALIGN_VERTICAL.BOTTOM
+                elif re.match('^:?-+$', c):
+                    row_alig_list[-1] = WD_ALIGN_VERTICAL.TOP
             if tl != '':
                 # TAB
                 cells = []
