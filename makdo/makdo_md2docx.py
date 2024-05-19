@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.05.20-08:07:36-JST>
+# Time-stamp:   <2024.05.20-08:10:46-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5016,7 +5016,7 @@ class ParagraphTable(Paragraph):
                     tl = re.sub('^(.*?)(:?-+:?)$', '\\1', tl)
                     row_heig_list[-1] = float(len(c)) / 2
                 # ROW ALIGN
-                if re.match('^:-*:$', c) or c =:
+                if re.match('^:-*:$', c) or c == '':
                     row_alig_list[-1] = WD_ALIGN_VERTICAL.CENTER
                 elif re.match('^-*:$', c):
                     row_alig_list[-1] = WD_ALIGN_VERTICAL.BOTTOM
