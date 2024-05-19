@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.05.06-04:31:16-JST>
+# Time-stamp:   <2024.05.19-12:38:19-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4858,56 +4858,63 @@ class ParagraphTable(Paragraph):
     """A class to handle table paragraph"""
 
     paragraph_class = 'table'
-    res_feature = '^\\|.*\\|$'
+    res_feature = '^\\|.*\\|(:?-+:?)?(\\^+|=+)?$'
 
     def write_paragraph(self, ms_doc):
+        md_lines = self.md_lines
         chars_state = self.chars_state
         m_size = Form.font_size
         t_size = m_size * TABLE_FONT_SCALE
-        tab = self._get_table_data(self.md_lines)
-        # NIL OR DOUBLE LINE
-        row_line, col_line, tab = self._get_row_and_col_line(tab)
-        conf_row, ali_list, wid_list = self._get_table_alignment_and_width(tab)
-        if conf_row >= 0:
-            tab.pop(conf_row)
+        # GET DATA
+        tab, conf_line_place, \
+            col_alig_list, col_widt_list, col_rule_list, \
+            row_alig_list, row_heig_list, row_rule_list \
+            = self._get_tab_and_place_and_list(md_lines)
+        cal, cwl, crl = col_alig_list, col_widt_list, col_rule_list
+        tab, col_alig_mtrx, col_widt_mtrx, col_rule_mtrx \
+            = self._get_col_data(tab, conf_line_place, cal, cwl, crl)
+        ral, rhl, rrl = row_alig_list, row_heig_list, row_rule_list
+        tab, row_alig_mtrx, row_heig_mtrx, row_rule_mtrx \
+            = self._get_row_data(tab, conf_line_place, ral, rhl, rrl)
+        # hori_alig_list = col_alig_list
+        hori_leng_list = col_widt_list
+        hori_rule_list = col_rule_list
+        # vert_alig_list = row_alig_list
+        vert_leng_list = row_heig_list
+        vert_rule_list = row_rule_list
+        hori_alig_mtrx = col_alig_mtrx
+        # hori_leng_mtrx = col_widt_mtrx
+        # hori_rule_mtrx = col_rule_mtrx
+        vert_alig_mtrx = row_alig_mtrx
+        # vert_leng_mtrx = row_heig_mtrx
+        # vert_rule_mtrx = row_rule_mtrx
+        # MAKE TABLE
         row = len(tab)
         col = len(tab[0])
         ms_tab = ms_doc.add_table(row, col, style='Table Grid')
+        ms_tab.alignment = WD_TABLE_ALIGNMENT.CENTER
         # ms_tab.autofit = True
+        # SET LENGTH AND ALIGNMENT
         for i in range(len(tab)):
             ms_tab.rows[i].height_rule = WD_ROW_HEIGHT_RULE.AUTO
+            if vert_leng_list[i] > 0:
+                ms_tab.rows[i].height = Pt(t_size * (vert_leng_list[i] + 1))
         for j in range(len(tab[0])):
-            ms_tab.columns[j].width = Pt((wid_list[j] + 2) * t_size)
-        ms_tab.alignment = WD_TABLE_ALIGNMENT.CENTER
+            if hori_leng_list[j] > 0:
+                ms_tab.columns[j].width = Pt(t_size * (hori_leng_list[j] + 2))
+        # SET CELLS
         for i in range(len(tab)):
-            # ms_tab.rows[i].height = Pt(1.5 * m_size)
             for j in range(len(tab[i])):
-                cell = tab[i][j]
-                if re.match('^\\s*:\\s(.*)\\s:\\s*$', cell):
-                    cell = re.sub('^\\s*:\\s(.*)\\s:\\s*$', '\\1', cell)
-                    cel_ali = WD_TABLE_ALIGNMENT.CENTER
-                elif re.match('^\\s*:\\s(.*)$', cell):
-                    cell = re.sub('\\s*:\\s(.*)', '\\1', cell)
-                    cel_ali = WD_TABLE_ALIGNMENT.LEFT
-                elif re.match('^(.*)\\s:\\s*$', cell):
-                    cell = re.sub('^(.*)\\s:\\s*$', '\\1', cell)
-                    cel_ali = WD_TABLE_ALIGNMENT.RIGHT
-                elif i < conf_row:
-                    cel_ali = WD_TABLE_ALIGNMENT.CENTER
-                else:
-                    cel_ali = ali_list[j]
-                if cel_ali == WD_TABLE_ALIGNMENT.LEFT:
-                    cell = re.sub('\\s+$', '', cell)
-                elif cel_ali == WD_TABLE_ALIGNMENT.CENTER:
-                    cell = re.sub('^\\s+', '', cell)
-                    cell = re.sub('\\s+$', '', cell)
-                elif cel_ali == WD_TABLE_ALIGNMENT.RIGHT:
-                    cell = re.sub('^\\s+', '', cell)
+                # ALIGNMENT
                 ms_cell = ms_tab.cell(i, j)
-                ms_cell.width = Pt((wid_list[j] + 2) * t_size)
-                ms_cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
+                ms_cell.horizontal_alignment = hori_alig_mtrx[i][j]
+                ms_cell.vertical_alignment = vert_alig_mtrx[i][j]
+                # ms_cell.width = Pt(t_size * (hori_leng_mtrx[i][j] + 2))
+                # ms_cell.height = Pt(t_size * (vert_leng_mtrx[i][j] + 1))
                 ms_par = ms_cell.paragraphs[0]
                 ms_par.style = 'makdo-t'
+                # TEXT
+                cell = tab[i][j]
                 # WORD WRAP (英単語の途中で改行する)
                 ms_ppr = ms_par._p.get_or_add_pPr()
                 XML.add_tag(ms_ppr, 'w:wordWrap', {'w:val': '0'})
@@ -4915,164 +4922,203 @@ class ParagraphTable(Paragraph):
                 self.write_text(ms_par, chars_state, cell)
                 chars_state.font_size = m_size
                 ms_fmt = ms_par.paragraph_format
-                ms_fmt.alignment = cel_ali
-                # NIL OR DOUBLE LINE
+                ms_fmt.alignment = hori_alig_mtrx[i][j]
+                # RULE
                 ms_tcpr = ms_cell._tc.get_or_add_tcPr()
                 ms_tcbr = XML.add_tag(ms_tcpr, 'w:tcBorders')
-                if i > 0 and row_line[i - 1] == 'nil':
+                if i > 0 and vert_rule_list[i - 1] == '^':
                     XML.add_tag(ms_tcbr, 'w:top', {'w:val': 'nil'})
-                if row_line[i] == 'nil':
+                if vert_rule_list[i] == '^':
                     XML.add_tag(ms_tcbr, 'w:bottom', {'w:val': 'nil'})
-                if row_line[i] == 'double':
+                if i > 0 and vert_rule_list[i - 1] == '=':
+                    XML.add_tag(ms_tcbr, 'w:top', {'w:val': 'double'})
+                if vert_rule_list[i] == '=':
                     XML.add_tag(ms_tcbr, 'w:bottom', {'w:val': 'double'})
-                if j > 0 and col_line[j - 1] == 'nil':
+                if j > 0 and hori_rule_list[j - 1] == '^':
                     XML.add_tag(ms_tcbr, 'w:left', {'w:val': 'nil'})
-                if col_line[j] == 'nil':
+                if hori_rule_list[j] == '^':
                     XML.add_tag(ms_tcbr, 'w:right', {'w:val': 'nil'})
-                if col_line[j] == 'double':
+                if j > 0 and hori_rule_list[j - 1] == '=':
+                    XML.add_tag(ms_tcbr, 'w:left', {'w:val': 'double'})
+                if hori_rule_list[j] == '=':
                     XML.add_tag(ms_tcbr, 'w:right', {'w:val': 'double'})
 
+    def _get_tab_and_place_and_list(self, md_lines):
+        tab_lines = self._get_tab_lines(md_lines)
+        tab, conf_line_place, \
+            col_alig_list, col_widt_list, col_rule_list, \
+            row_alig_list, row_heig_list, row_rule_list \
+            = self._get_tab_data(tab_lines)
+        return tab, conf_line_place, \
+            col_alig_list, col_widt_list, col_rule_list, \
+            row_alig_list, row_heig_list, row_rule_list
+
     @staticmethod
-    def _get_table_data(md_lines):
-        tab = []
-        line = ''
+    def _get_tab_lines(md_lines):
+        tab_lines = []
+        tab_line = ''
         for ml in md_lines:
-            if re.match('^\\\\?$', ml.text):
+            tab_line += re.sub('^\\s*', '', ml.text)
+            if re.match(NOT_ESCAPED + '\\\\$', tab_line):
+                tab_line = re.sub('\\s*\\\\$', '', tab_line)
                 continue
-            if re.match('^.*\\\\$', line):
-                line = re.sub('\\\\$', '', line)
-                line += re.sub('^\\s*', '', ml.text)
-            else:
-                line += ml.text
-            if re.match('^.*\\\\$', line):
-                continue
-            line = re.sub('^\\|', '', line)
-            line = re.sub('\\|$', '', line)
-            # SPLIT BY '|' NOT '\\|'
-            tmp_col = line.split('|')
-            col = []
-            for c in tmp_col:
-                if len(col) > 0 and re.match(NOT_ESCAPED + '\\\\$', col[-1]):
-                    col[-1] += '|' + c
-                else:
-                    col.append(c)
-            if len(col) > 0 and re.match(NOT_ESCAPED + '\\\\$', col[-1]):
-                col[-1] += '|'
-            tab.append(col)
-            line = ''
-            # NIL OR DOUBLE LINE
-            if re.match('^_+$', ml.text):
-                if len(tab[-1]) == 1:
-                    tab.pop(-1)
-                else:
-                    tab[-1].pop(-1)
-                tab.append(['_'])
-            elif re.match('^=+$', ml.text):
-                if len(tab[-1]) == 1:
-                    tab.pop(-1)
-                else:
-                    tab[-1].pop(-1)
-                tab.append(['='])
-        m = 0
-        for rw in tab:
-            if m < len(rw) - 1:
-                m = len(rw) - 1
-        for rw in tab:
-            while len(rw) - 1 < m:
-                rw.append('')
-        # for i in range(len(tab)):
-        #     for j in range(len(tab[i])):
-        #         tab[i][j] = re.sub('^\\s+', '', tab[i][j])
-        #         tab[i][j] = re.sub('\\s+$', '', tab[i][j])
-        return tab
+            tab_lines.append(tab_line)
+            tab_line = ''
+        return tab_lines
 
-    # FOR NIL OR DOUBLE LINE
     @staticmethod
-    def _get_row_and_col_line(tab):
-        row_line = []
-        col_line = []
-        has_conf_row = False
-        for i in range(len(tab)):
-            # ROW
-            for j in range(len(tab[i])):
-                if j == 0 and not re.match('^(_+|=+)$', tab[i][j]):
-                    break
-                if j > 0 and tab[i][j] != '':
-                    break
-            else:
-                if re.match('^_+$', tab[i][0]):
-                    row_line[-1] = 'nil'
-                else:
-                    row_line[-1] = 'double'
-                tab[i] = '^|remove|$'
-                continue
-            # COLUMN
-            for j in range(len(tab[i])):
-                if has_conf_row:
-                    break
-                if not re.match('^ *:?-*:? *(_|=)?$', tab[i][j]):
-                    break
-            else:
-                for k in range(len(tab[i])):
-                    if re.match('^.*_$', tab[i][k]):
-                        tab[i][k] = re.sub(':_$', '-:', tab[i][k])
-                        tab[i][k] = re.sub('_$', '-', tab[i][k])
-                        col_line.append('nil')
-                    elif re.match('^.*=$', tab[i][k]):
-                        tab[i][k] = re.sub(':=$', '-:', tab[i][k])
-                        tab[i][k] = re.sub('=$', '-', tab[i][k])
-                        col_line.append('double')
+    def _get_tab_data(tab_lines):
+        tab = []
+        conf_line_place = -1.0
+        col_alig_list, col_widt_list, col_rule_list = [], [], []
+        row_alig_list, row_heig_list, row_rule_list = [], [], []
+        for tl in tab_lines:
+            if conf_line_place == -1 and \
+               re.match('^(\\|(:?-+:?)?(\\^+|=+)?)+\\|$', tl):
+                conf_line_place = float(len(tab)) - 0.5
+                tl = re.sub('^\\|(.*)\\|$', '\\1', tl)
+                for c in tl.split('|'):
+                    # COL RULE
+                    if re.match('^.*\\^$', c):
+                        col_rule_list.append('^')
+                    elif re.match('^.*=$', c):
+                        col_rule_list.append('=')
                     else:
-                        col_line.append('')
-                has_conf_row = True
+                        col_rule_list.append('')
+                    c = re.sub('(\\^+|=+)$', '', c)
+                    # COL WIDTH
+                    col_widt_list.append(float(len(c)) / 2)
+                    # COL ALIGN
+                    if re.match('^:-*:$', c):
+                        col_alig_list.append(WD_TABLE_ALIGNMENT.CENTER)
+                    elif re.match('^-*:$', c):
+                        col_alig_list.append(WD_TABLE_ALIGNMENT.RIGHT)
+                    else:
+                        col_alig_list.append(WD_TABLE_ALIGNMENT.LEFT)
                 continue
-            row_line.append('')
-        # COLUMN (IF NO CONFIG LINE)
-        if col_line == []:
-            m = 0
-            for t in tab:
-                n = len(t)
-                if m < n:
-                    m = n
-            col_line = ['' for x in range(m)]
-        while '^|remove|$' in tab:
-            tab.remove('^|remove|$')
-        return row_line, col_line, tab
-
-    @staticmethod
-    def _get_table_alignment_and_width(tab):
-        conf_row = -1
+            if True:
+                if not re.match('^(:?-+:?)?(\\^+|=+)?$', tl):
+                    row_rule_list.append('')
+                    row_heig_list.append(0.0)
+                    row_alig_list.append(WD_ALIGN_VERTICAL.CENTER)
+                # ROW RULE
+                if re.match('^.*\\^+$', tl):
+                    row_rule_list[-1] = '^'
+                    tl = re.sub('\\^+$', '', tl)
+                elif re.match('^.*=+$', tl):
+                    row_rule_list[-1] = '='
+                    tl = re.sub('=+$', '', tl)
+                # ROW HEIGHT
+                c = ''
+                if re.match('^(.*?)(:?-+:?)$', tl):
+                    c = re.sub('^(.*?)(:?-+:?)$', '\\2', tl)
+                    tl = re.sub('^(.*?)(:?-+:?)$', '\\1', tl)
+                    row_heig_list[-1] = float(len(c)) / 2
+                # ROW ALIGN
+                if re.match('^:-+$', c):
+                    row_alig_list[-1] = WD_ALIGN_VERTICAL.TOP
+                elif re.match('^-+:$', c):
+                    row_alig_list[-1] = WD_ALIGN_VERTICAL.BOTTOM
+            if tl != '':
+                # TAB
+                cells = []
+                cell = ''
+                tl = re.sub('^\\|', '', tl)
+                tl = re.sub('\\|$', '', tl)
+                for c in tl.split('|'):
+                    cell += c
+                    if re.match(NOT_ESCAPED + '\\\\$', cell):
+                        cell = re.sub('\\\\$', '', cell) + '|'
+                    else:
+                        cells.append(cell)
+                        cell = ''
+                tab.append(cells)
+        # FOR SHORTAGE
+        max_row = 0
+        for row in tab:
+            if max_row < len(row):
+                max_row = len(row)
+        for row in tab:
+            while len(row) < max_row:
+                row.append('')
+            while len(col_alig_list) < max_row:
+                col_alig_list.append(WD_TABLE_ALIGNMENT.LEFT)
+            while len(col_widt_list) < max_row:
+                col_widt_list.append(0.0)
+            while len(col_rule_list) < max_row:
+                col_rule_list.append('')
+        # WIDTH
+        max_width = [0.0 for j in range(len(tab[0]))]
         for i in range(len(tab)):
             for j in range(len(tab[i])):
-                if not re.match('^ *:?-*:? *(_|=)?$', tab[i][j]):
-                    break
-            else:
-                conf_row = i
-                break
-        ali_list = []
-        wid_list = []
-        if conf_row >= 0:
-            for s in tab[conf_row]:
-                s = s.replace(' ', '')
-                if re.match('^:-*:$', s):
-                    ali_list.append(WD_TABLE_ALIGNMENT.CENTER)
-                elif re.match('^-+:$', s):
-                    ali_list.append(WD_TABLE_ALIGNMENT.RIGHT)
-                else:
-                    ali_list.append(WD_TABLE_ALIGNMENT.LEFT)
-                wid_list.append(float(len(s)) / 2)
-        else:
-            for i in range(len(tab)):
-                while len(ali_list) < len(tab[i]):
-                    ali_list.append(WD_TABLE_ALIGNMENT.LEFT)
-                while len(wid_list) < len(tab[i]):
-                    wid_list.append(0.0)
-                for j in range(len(tab[i])):
-                    s = tab[i][j]
-                    w = float(get_real_width(s)) / 2
-                    if wid_list[j] < w:
-                        wid_list[j] = w
-        return conf_row, ali_list, wid_list
+                line = ''
+                for t in tab[i][j].split('<br>'):
+                    if re.match(NOT_ESCAPED + '\\\\$', t):
+                        line += re.sub('\\\\$', '', t) + '<br>'
+                        continue
+                    line += t
+                    line = re.sub('^\\s*:\\s(.*)$', '\\1', line)
+                    line = re.sub(NOT_ESCAPED + '\\s:\\s*$', '\\1', line)
+                    for fd in FONT_DECORATORS + ['<>']:
+                        while re.match(NOT_ESCAPED + fd, line):
+                            line = re.sub(NOT_ESCAPED + fd, '\\1', line)
+                    w = get_real_width(line) / 2
+                    if max_width[j] < w:
+                        max_width[j] = w
+                    line = ''
+        for j in range(len(col_alig_list)):
+            if col_widt_list[j] == 0:
+                col_widt_list[j] = max_width[j]
+        # RETURN
+        return tab, conf_line_place, \
+            col_alig_list, col_widt_list, col_rule_list, \
+            row_alig_list, row_heig_list, row_rule_list
+
+    @staticmethod
+    def _get_col_data(tab, conf_line_place,
+                      col_alig_list, col_widt_list, col_rule_list):
+        col_alig_mtrx, col_widt_mtrx, col_rule_mtrx = [], [], []
+        for i in range(len(tab)):
+            ca, cw, cr = [], [], []
+            for j in range(len(tab[i])):
+                ca.append(col_alig_list[j])
+                cw.append(col_widt_list[j])
+                cr.append(col_rule_list[j])
+            col_alig_mtrx.append(ca)
+            col_widt_mtrx.append(cw)
+            col_rule_mtrx.append(cr)
+        # ALIGNMENT
+        for i in range(len(tab)):
+            for j in range(len(tab[i])):
+                cell = tab[i][j]
+                if re.match('^\\s*:\\s', cell) and \
+                   re.match(NOT_ESCAPED + '\\s:\\s*$', cell):
+                    col_alig_mtrx[i][j] = WD_TABLE_ALIGNMENT.CENTER
+                    tab[i][j] = re.sub('^\\s*:\\s(.*)\\s:\\s*$', '\\1', cell)
+                elif re.match('^\\s*:\\s', cell):
+                    col_alig_mtrx[i][j] = WD_TABLE_ALIGNMENT.LEFT
+                    tab[i][j] = re.sub('^\\s*:\\s(.*)$', '\\1', cell)
+                elif re.match(NOT_ESCAPED + '\\s:\\s*$', cell):
+                    col_alig_mtrx[i][j] = WD_TABLE_ALIGNMENT.RIGHT
+                    tab[i][j] = re.sub('^(.*)\\s:\\s*$', '\\1', cell)
+                elif conf_line_place > 0 and i < conf_line_place:
+                    col_alig_mtrx[i][j] = WD_TABLE_ALIGNMENT.CENTER
+        return tab, col_alig_mtrx, col_widt_mtrx, col_rule_mtrx
+
+    @staticmethod
+    def _get_row_data(tab, conf_line_place,
+                      row_alig_list, row_heig_list, row_rule_list):
+        row_alig_mtrx, row_heig_mtrx, row_rule_mtrx = [], [], []
+        for i in range(len(tab)):
+            ra, rh, rr = [], [], []
+            for j in range(len(tab[i])):
+                ra.append(row_alig_list[i])
+                rh.append(row_heig_list[i])
+                rr.append(row_rule_list[i])
+            row_alig_mtrx.append(ra)
+            row_heig_mtrx.append(rh)
+            row_rule_mtrx.append(rr)
+        return tab, row_alig_mtrx, row_heig_mtrx, row_rule_mtrx
 
 
 class ParagraphImage(Paragraph):

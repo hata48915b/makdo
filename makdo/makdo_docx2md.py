@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.05.06-03:12:43-JST>
+# Time-stamp:   <2024.05.19-12:27:22-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6171,11 +6171,22 @@ class ParagraphTable(Paragraph):
         is_in_cel = False
         tab = []
         wid = []
+        hei = []
         for xl in xml_lines:
-            res = '^<w:gridCol w:w=[\'"]([0-9]+)[\'"]/>$'
-            if re.match(res, xl):
-                w = round((float(re.sub(res, '\\1', xl)) / t_size / 10) - 4)
+            if re.match('^<w:gridCol(?: .*)?/>$', xl):
+                res = '^<(?:.* )?w:w=.*[\'"]([0-9]+)[\'"](?: .*)?/>$'
+                w = 0
+                if re.match(res, xl):
+                    wt = re.sub(res, '\\1', xl)
+                    w = round((float(wt) / t_size / 10) - 4)
                 wid.append(w)
+            if re.match('^<w:trHeight(?: .*)?/>$', xl):
+                h = 0
+                res = '^<(?:.* )?w:val=.*[\'"]([0-9]+)[\'"](?: .*)?/>$'
+                if re.match(res, xl):
+                    ht = re.sub(res, '\\1', xl)
+                    h = round((float(ht) / t_size / 10) - 2)
+                hei.append(h)
             if is_in_cel:
                 cell.append(xl)
             if re.match('<w:tr( .*)?>', xl):
@@ -6249,10 +6260,8 @@ class ParagraphTable(Paragraph):
                     tmp.append(':' + '-' * (wid[j] - 1))
                 # NIL OR DOUBLE LINE
                 if col_line[j] == 'nil':
-                    tmp[-1] = re.sub('-', '', tmp[-1], 1)
-                    tmp[-1] += '_'
+                    tmp[-1] += '^'
                 elif col_line[j] == 'double':
-                    tmp[-1] = re.sub('-', '', tmp[-1], 1)
                     tmp[-1] += '='
             ali.append(tmp)
         # GET MD TEXT
@@ -6293,12 +6302,21 @@ class ParagraphTable(Paragraph):
                 raw_text = re.sub('\\|', '\\\\|', raw_text)
                 raw_text = re.sub('\n', '<br>', raw_text)
                 md_text += '|' + raw_text + '|'
-            md_text += '\n'
+            # HEIGHT
+            if hei[i] > 0:
+                for xml in cell:
+                    if re.match('<w:vAlign w:val=[\'"]top[\'"]/>', xml):
+                        md_text += ':' + '-' * (hei[i] - 1)
+                    elif re.match('<w:vAlign w:val=[\'"]center[\'"]/>', xml):
+                        md_text += ':' + '-' * (hei[i] - 2) + ':'
+                    elif re.match('<w:vAlign w:val=[\'"]bottom[\'"]/>', xml):
+                        md_text += '-' * (hei[i] - 1) + ':'
             # NIL OR DOUBLE LINE
             if row_line[i] == 'double':
-                md_text += '=\n'
+                md_text += '='
             elif row_line[i] == 'nil':
-                md_text += '_\n'
+                md_text += '^'
+            md_text += '\n'
         tmp_text = ''
         for line in md_text.split('\n'):
             if re.match('^\\|.*\\|$', line):
