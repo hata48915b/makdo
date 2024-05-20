@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.05.20-08:29:50-JST>
+# Time-stamp:   <2024.05.21-05:34:51-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4974,7 +4974,7 @@ class ParagraphTable(Paragraph):
         row_alig_list, row_heig_list, row_rule_list = [], [], []
         for tl in tab_lines:
             if conf_line_place == -1 and \
-               re.match('^(\\|(:?-*:?)?(\\^+|=+)?)+\\|$', tl) and \
+               re.match('^(\\|\\s*(:?-*:?)?(\\^+|=+)?\\s*)+\\|$', tl) and \
                not re.match('^\\|+$', tl):
                 conf_line_place = float(len(tab)) - 0.5
                 tl = re.sub('^\\|(.*)\\|$', '\\1', tl)
@@ -5003,7 +5003,7 @@ class ParagraphTable(Paragraph):
                     row_heig_list.append(0.0)
                     row_alig_list.append(WD_ALIGN_VERTICAL.CENTER)
                 c = ''
-                res = '^(.*?)((?::?-+|:-*:|-*:)?(?:\\^+|=+)?)$'
+                res = '^(.*?)\\s*((?::?-+|:-*:|-*:)?(?:\\^+|=+)?)\\s*\\|?$'
                 if re.match(res, tl):
                     c = re.sub(res, '\\2', tl)
                     tl = re.sub(res, '\\1', tl)
@@ -5013,7 +5013,7 @@ class ParagraphTable(Paragraph):
                     c = re.sub('\\^+$', '', c)
                 elif re.match('^.*=+$', c):
                     row_rule_list[-1] = '='
-                    tl = re.sub('=+$', '', c)
+                    c = re.sub('=+$', '', c)
                 # ROW HEIGHT
                 if c != '':
                     row_heig_list[-1] = float(len(c)) / 2
