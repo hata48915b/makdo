@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.05.19-12:27:22-JST>
+# Time-stamp:   <2024.05.31-10:03:23-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -701,6 +701,8 @@ CONJUNCTIONS = [
     '逆に言えば',
     '通常',
 ]
+
+UNIX_TIME = datetime.datetime.timestamp(datetime.datetime.now())
 
 
 ############################################################
@@ -1483,6 +1485,9 @@ class Form:
             Form.set_page_number('False')
         # REVISE BY ARGUMENTS
         self._configure_by_args(self.args)
+        # DOCUMENT TITLE
+        if Form.document_title == '':
+            Form.document_title = hex(int(UNIX_TIME * 1000000))
         # FOR LIBREOFFICE (NOT SUPPORT "SECTIONPAGES")
         has_two_or_more_sections = False
         is_in_p = False

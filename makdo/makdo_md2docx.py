@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.05.21-05:34:51-JST>
+# Time-stamp:   <2024.05.31-10:00:32-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -579,6 +579,8 @@ HIGHLIGHT_COLOR = {
 #     'black':       WD_COLOR_INDEX.BLACK,
 #     'BK':          WD_COLOR_INDEX.BLACK,
 # }
+
+UNIX_TIME = datetime.datetime.timestamp(datetime.datetime.now())
 
 
 ############################################################
@@ -1469,6 +1471,9 @@ class Form:
             # msg = 'warning: ' \
             #     + 'remarks(comments) is removed'
             sys.stderr.write(msg + '\n\n')
+        # DOCUMENT TITLE
+        if Form.document_title == '':
+            Form.document_title = hex(int(UNIX_TIME * 1000000))
         # FOR LIBREOFFICE (NOT SUPPORT "SECTIONPAGES")
         has_two_or_more_sections = False
         for i in range(len(self.md_lines)):
