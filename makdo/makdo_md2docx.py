@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.05.31-10:00:32-JST>
+# Time-stamp:   <2024.06.01-12:29:17-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4870,6 +4870,7 @@ class ParagraphTable(Paragraph):
         chars_state = self.chars_state
         m_size = Form.font_size
         t_size = m_size * TABLE_FONT_SCALE
+        geta_height, geta_width = 1.5, 1.1
         # GET DATA
         tab, conf_line_place, \
             col_alig_list, col_widt_list, col_rule_list, \
@@ -4901,12 +4902,14 @@ class ParagraphTable(Paragraph):
         # ms_tab.autofit = True
         # SET LENGTH AND ALIGNMENT
         for i in range(len(tab)):
-            ms_tab.rows[i].height_rule = WD_ROW_HEIGHT_RULE.AUTO
-            if vert_leng_list[i] > 0:
-                ms_tab.rows[i].height = Pt(t_size * (vert_leng_list[i] + 1))
+            # ms_tab.rows[i].height_rule = WD_ROW_HEIGHT_RULE.AUTO
+            if vert_leng_list[i] >= 0:
+                ms_tab.rows[i].height \
+                    = Pt(t_size * (vert_leng_list[i] + geta_height))
         for j in range(len(tab[0])):
-            if hori_leng_list[j] > 0:
-                ms_tab.columns[j].width = Pt(t_size * (hori_leng_list[j] + 2))
+            if hori_leng_list[j] >= 0:
+                ms_tab.columns[j].width \
+                    = Pt(t_size * (hori_leng_list[j] + geta_width))
         # SET CELLS
         for i in range(len(tab)):
             for j in range(len(tab[i])):
@@ -4914,8 +4917,8 @@ class ParagraphTable(Paragraph):
                 ms_cell = ms_tab.cell(i, j)
                 ms_cell.horizontal_alignment = hori_alig_mtrx[i][j]
                 ms_cell.vertical_alignment = vert_alig_mtrx[i][j]
-                # ms_cell.width = Pt(t_size * (hori_leng_mtrx[i][j] + 2))
-                # ms_cell.height = Pt(t_size * (vert_leng_mtrx[i][j] + 1))
+                ms_cell.height = Pt(t_size * (vert_leng_list[i] + geta_height))
+                ms_cell.width = Pt(t_size * (hori_leng_list[j] + geta_width))
                 ms_par = ms_cell.paragraphs[0]
                 ms_par.style = 'makdo-t'
                 # TEXT
@@ -4995,11 +4998,11 @@ class ParagraphTable(Paragraph):
                     # COL WIDTH
                     col_widt_list.append(float(len(c)) / 2)
                     # COL ALIGN
-                    if re.match('^:-*:$', c):
-                        col_alig_list.append(WD_TABLE_ALIGNMENT.CENTER)
-                    elif re.match('^-*:$', c):
+                    if re.match('^-+:$', c):
                         col_alig_list.append(WD_TABLE_ALIGNMENT.RIGHT)
-                    elif re.match('^:?-+$', c) or c == '':
+                    elif c == ':' or re.match('^:-*:$', c):
+                        col_alig_list.append(WD_TABLE_ALIGNMENT.CENTER)
+                    else:  # c == '' or c == '-' or re.match('^:-+$', c)
                         col_alig_list.append(WD_TABLE_ALIGNMENT.LEFT)
                 continue
             if tl != '':
@@ -5008,7 +5011,7 @@ class ParagraphTable(Paragraph):
                     row_heig_list.append(0.0)
                     row_alig_list.append(WD_ALIGN_VERTICAL.CENTER)
                 c = ''
-                res = '^(.*?)\\s*((?::?-+|:-*:|-*:)?(?:\\^+|=+)?)\\s*\\|?$'
+                res = '^(.*?\\|)?\\s*((?::?-+|:-*:|-*:)?(?:\\^+|=+)?)\\s*\\|?$'
                 if re.match(res, tl):
                     c = re.sub(res, '\\2', tl)
                     tl = re.sub(res, '\\1', tl)
@@ -5023,11 +5026,11 @@ class ParagraphTable(Paragraph):
                 if c != '':
                     row_heig_list[-1] = float(len(c)) / 2
                 # ROW ALIGN
-                if re.match('^:-*:$', c) or c == '':
-                    row_alig_list[-1] = WD_ALIGN_VERTICAL.CENTER
-                elif re.match('^-*:$', c):
+                if re.match('^-+:$', c):
                     row_alig_list[-1] = WD_ALIGN_VERTICAL.BOTTOM
-                elif re.match('^:?-+$', c):
+                elif c == ':' or re.match('^:-*:$', c):
+                    row_alig_list[-1] = WD_ALIGN_VERTICAL.CENTER
+                else:  # c == '' or c == '-' or re.match('^:-+$', c)
                     row_alig_list[-1] = WD_ALIGN_VERTICAL.TOP
             if tl != '':
                 # TAB

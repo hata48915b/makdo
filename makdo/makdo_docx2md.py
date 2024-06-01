@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.05.31-10:03:23-JST>
+# Time-stamp:   <2024.06.01-11:59:42-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6174,6 +6174,7 @@ class ParagraphTable(Paragraph):
         xml_lines = self.xml_lines
         is_in_row = False
         is_in_cel = False
+        geta_height, geta_width = 1.5, 1.1
         tab = []
         wid = []
         hei = []
@@ -6183,14 +6184,14 @@ class ParagraphTable(Paragraph):
                 w = 0
                 if re.match(res, xl):
                     wt = re.sub(res, '\\1', xl)
-                    w = round((float(wt) / t_size / 10) - 4)
+                    w = round((float(wt) / t_size / 10) - (geta_width * 2))
                 wid.append(w)
             if re.match('^<w:trHeight(?: .*)?/>$', xl):
                 h = 0
                 res = '^<(?:.* )?w:val=.*[\'"]([0-9]+)[\'"](?: .*)?/>$'
                 if re.match(res, xl):
                     ht = re.sub(res, '\\1', xl)
-                    h = round((float(ht) / t_size / 10) - 2)
+                    h = round((float(ht) / t_size / 10) - (geta_height * 2))
                 hei.append(h)
             if is_in_cel:
                 cell.append(xl)
@@ -6253,10 +6254,18 @@ class ParagraphTable(Paragraph):
             for j, cell in enumerate(row):
                 for xml in cell:
                     if re.match('<w:jc w:val=[\'"]left[\'"]/>', xml):
-                        tmp.append(':' + '-' * (wid[j] - 1))
+                        if wid[j] == 0:
+                            tmp.append('')
+                        if wid[j] == 1:
+                            tmp.append('-')
+                        else:
+                            tmp.append(':' + '-' * (wid[j] - 1))
                         break
                     elif re.match('<w:jc w:val=[\'"]center[\'"]/>', xml):
-                        tmp.append(':' + '-' * (wid[j] - 2) + ':')
+                        if wid[j] == 1:
+                            tmp.append(':')
+                        else:
+                            tmp.append(':' + '-' * (wid[j] - 2) + ':')
                         break
                     elif re.match('<w:jc w:val=[\'"]right[\'"]/>', xml):
                         tmp.append('-' * (wid[j] - 1) + ':')
@@ -6276,9 +6285,9 @@ class ParagraphTable(Paragraph):
             if is_in_head:
                 if ali[i] == ali[conf_row]:
                     for cell in ali[conf_row]:
-                        md_text += '|' + cell + '|'
+                        md_text += '|' + cell
                     is_in_head = False
-                    md_text += '\n'
+                    md_text += '|\n'
             for j, cell in enumerate(row):
                 text_data, images \
                     = RawParagraph._get_chars_data_and_images('w:tbl', cell)
@@ -6306,14 +6315,21 @@ class ParagraphTable(Paragraph):
                     raw_text = re.sub('\\\\$', '', raw_text)
                 raw_text = re.sub('\\|', '\\\\|', raw_text)
                 raw_text = re.sub('\n', '<br>', raw_text)
-                md_text += '|' + raw_text + '|'
+                md_text += '|' + raw_text
+            md_text += '|'
             # HEIGHT
             if hei[i] > 0:
                 for xml in cell:
                     if re.match('<w:vAlign w:val=[\'"]top[\'"]/>', xml):
-                        md_text += ':' + '-' * (hei[i] - 1)
+                        if hei[i] == 1:
+                            md_text += '-'
+                        else:
+                            md_text += ':' + '-' * (hei[i] - 1)
                     elif re.match('<w:vAlign w:val=[\'"]center[\'"]/>', xml):
-                        md_text += ':' + '-' * (hei[i] - 2) + ':'
+                        if hei[i] == 1:
+                            md_text += ':'
+                        else:
+                            md_text += ':' + '-' * (hei[i] - 2) + ':'
                     elif re.match('<w:vAlign w:val=[\'"]bottom[\'"]/>', xml):
                         md_text += '-' * (hei[i] - 1) + ':'
             # NIL OR DOUBLE LINE
@@ -6322,16 +6338,6 @@ class ParagraphTable(Paragraph):
             elif row_line[i] == 'nil':
                 md_text += '^'
             md_text += '\n'
-        tmp_text = ''
-        for line in md_text.split('\n'):
-            if re.match('^\\|.*\\|$', line):
-                line = re.sub('^\\|', '', line)
-                line = re.sub('\\|$', '', line)
-                line = line.replace('||', '|')
-                line = '|' + line + '|'
-            tmp_text += line + '\n'
-        md_text = tmp_text
-        # md_text = md_text.replace('||', '|')
         md_text = md_text.replace('&lt;', '<')
         md_text = md_text.replace('&gt;', '>')
         md_text = re.sub('\n$', '', md_text)
