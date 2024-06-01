@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.01-12:29:17-JST>
+# Time-stamp:   <2024.06.02-03:55:36-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1187,8 +1187,8 @@ class IO:
 
     def make_styles(self, ms_doc):
         m_size = Form.font_size
-        s_size = m_size * 0.8
-        l_size = m_size * 1.2
+        s_size = m_size * TABLE_FONT_SCALE
+        l_size = s_size * 1.5
         line_spacing = Form.line_spacing
         # NORMAL
         ms_doc.styles.add_style('makdo', WD_STYLE_TYPE.PARAGRAPH)
@@ -4870,7 +4870,9 @@ class ParagraphTable(Paragraph):
         chars_state = self.chars_state
         m_size = Form.font_size
         t_size = m_size * TABLE_FONT_SCALE
-        geta_height, geta_width = 1.5, 1.1
+        pt_ls = ms_doc.styles['makdo-t'].paragraph_format.line_spacing
+        geta_height = pt_ls / Pt(t_size)  # = 1.5
+        geta_width = 1.1
         # GET DATA
         tab, conf_line_place, \
             col_alig_list, col_widt_list, col_rule_list, \
