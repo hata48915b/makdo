@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.02-03:55:36-JST>
+# Time-stamp:   <2024.06.02-13:00:06-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4872,7 +4872,7 @@ class ParagraphTable(Paragraph):
         t_size = m_size * TABLE_FONT_SCALE
         pt_ls = ms_doc.styles['makdo-t'].paragraph_format.line_spacing
         geta_height = pt_ls / Pt(t_size)  # = 1.5
-        geta_width = 1.1
+        geta_width = 1.5  # >= 1.1068
         # GET DATA
         tab, conf_line_place, \
             col_alig_list, col_widt_list, col_rule_list, \
@@ -5000,11 +5000,13 @@ class ParagraphTable(Paragraph):
                     # COL WIDTH
                     col_widt_list.append(float(len(c)) / 2)
                     # COL ALIGN
-                    if re.match('^-+:$', c):
-                        col_alig_list.append(WD_TABLE_ALIGNMENT.RIGHT)
+                    if c == '' or c == '-' or re.match('^:-+$', c):
+                        col_alig_list.append(WD_TABLE_ALIGNMENT.LEFT)
                     elif c == ':' or re.match('^:-*:$', c):
                         col_alig_list.append(WD_TABLE_ALIGNMENT.CENTER)
-                    else:  # c == '' or c == '-' or re.match('^:-+$', c)
+                    elif re.match('^-+:$', c):
+                        col_alig_list.append(WD_TABLE_ALIGNMENT.RIGHT)
+                    else:
                         col_alig_list.append(WD_TABLE_ALIGNMENT.LEFT)
                 continue
             if tl != '':
@@ -5028,12 +5030,12 @@ class ParagraphTable(Paragraph):
                 if c != '':
                     row_heig_list[-1] = float(len(c)) / 2
                 # ROW ALIGN
-                if re.match('^-+:$', c):
-                    row_alig_list[-1] = WD_ALIGN_VERTICAL.BOTTOM
+                if c == '-' or re.match('^:-+$', c):
+                    row_alig_list[-1] = WD_ALIGN_VERTICAL.TOP
                 elif c == ':' or re.match('^:-*:$', c):
                     row_alig_list[-1] = WD_ALIGN_VERTICAL.CENTER
-                else:  # c == '' or c == '-' or re.match('^:-+$', c)
-                    row_alig_list[-1] = WD_ALIGN_VERTICAL.TOP
+                elif re.match('^-+:$', c):
+                    row_alig_list[-1] = WD_ALIGN_VERTICAL.BOTTOM
             if tl != '':
                 # TAB
                 cells = []

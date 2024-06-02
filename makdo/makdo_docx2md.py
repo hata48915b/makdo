@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.01-11:59:42-JST>
+# Time-stamp:   <2024.06.02-12:36:16-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6174,7 +6174,7 @@ class ParagraphTable(Paragraph):
         xml_lines = self.xml_lines
         is_in_row = False
         is_in_cel = False
-        geta_height, geta_width = 1.5, 1.1
+        geta_height, geta_width = 1.5, 1.5
         tab = []
         wid = []
         hei = []
