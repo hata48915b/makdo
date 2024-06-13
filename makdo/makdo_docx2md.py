@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.02-12:36:16-JST>
+# Time-stamp:   <2024.06.13-15:12:17-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6186,7 +6186,7 @@ class ParagraphTable(Paragraph):
                     wt = re.sub(res, '\\1', xl)
                     w = round((float(wt) / t_size / 10) - (geta_width * 2))
                 wid.append(w)
-            if re.match('^<w:trHeight(?: .*)?/>$', xl):
+            if re.match('^<w:tr(?: .*)?>$', xl):
                 h = 0
                 res = '^<(?:.* )?w:val=.*[\'"]([0-9]+)[\'"](?: .*)?/>$'
                 if re.match(res, xl):
