@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.13-15:12:17-JST>
+# Time-stamp:   <2024.06.13-19:19:15-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6195,6 +6195,8 @@ class ParagraphTable(Paragraph):
                 hei.append(h)
             if is_in_cel:
                 cell.append(xl)
+                if ('</w:p>' in cell) and re.match('<w:p( .*)?>', xl):
+                    cell.append('\n')
             if re.match('<w:tr( .*)?>', xl):
                 row = []
                 is_in_row = True
@@ -6203,7 +6205,7 @@ class ParagraphTable(Paragraph):
                 is_in_cel = True
             elif xl == '</w:tc>':
                 row.append(cell)
-                is_in_cel = True
+                is_in_cel = False
             elif xl == '</w:tr>':
                 tab.append(row)
                 is_in_row = False
