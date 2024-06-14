@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.13-19:19:15-JST>
+# Time-stamp:   <2024.06.14-14:55:31-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1452,6 +1452,7 @@ class Form:
     styles = None
     rels = None
     remarks = None
+    numbering_styles = None
 
     def __init__(self):
         # DECLARE
@@ -1464,6 +1465,7 @@ class Form:
         self.footer2_xml_lines = None
         self.rels_xml_lines = None
         self.comments_xml_lines = None
+        self.numbering_xml_lines = None
         self.args = None
 
     def configure(self):
@@ -2312,6 +2314,65 @@ class Form:
             if is_in_remarks:
                 remark_str += xl
         return remarks
+
+    @staticmethod
+    def get_numbering_styles(xml_lines):
+        # 1ST STEP
+        s1_styles = {}
+        res_s1_beg = '^<w:abstractNum w:abstractNumId="([0-9]+)"(?: .*)?>$'
+        res_s1_end = '^</w:abstractNum>$'
+        res_s1_fmt = '^<w:numFmt w:val="(.+)"/>$'
+        res_s1_tex = '^<w:lvlText w:val="(.+)"/>$'
+        r9 = '(?:  ?|\t|\u3000|\\. |．)'
+        s1_num, s1_fmt = -1, ''
+        # 1ST STEP
+        s2_styles = {}
+        res_s2_beg = '^<w:num w:numId="([0-9]+)"(?: .*)?>$'
+        res_s2_end = '^</w:num(?: .*)?>$'
+        res_s2_num = '^<w:abstractNumId w:val="([0-9]+)"/>$'
+        s2_num = -1
+        for xl in xml_lines:
+            if False:
+                pass
+            # 1ST STEP
+            elif re.match(res_s1_beg, xl):
+                s1_num = int(re.sub(res_s1_beg, '\\1', xl))
+            elif re.match(res_s1_end, xl):
+                s1_num, s1_fmt = -1, ''
+            elif re.match(res_s1_fmt, xl):
+                s1_fmt = re.sub(res_s1_fmt, '\\1', xl)
+            elif re.match(res_s1_tex, xl):
+                s1_tex = re.sub(res_s1_tex, '\\1', xl)
+                if s1_num > 0 and s1_fmt != '':
+                    if s1_fmt == 'decimal' or s1_fmt == 'decimalFullWidth':
+                        if re.match('^第%1条?' + r9 + '?$', s1_tex):
+                            s1_styles[s1_num] = '##'
+                        elif re.match('^%1' + r9 + '?$', s1_tex):
+                            s1_styles[s1_num] = '###'
+                        elif re.match('^[\\(（]%1[\\)）]' + r9 + '?$', s1_tex):
+                            s1_styles[s1_num] = '####'
+                    elif s1_fmt == 'aiueo' or s1_fmt == 'aiueoFullWidth':
+                        if re.match('^%1' + r9 + '?$', s1_tex):
+                            s1_styles[s1_num] = '#####'
+                        elif re.match('^[\\(（]%1[\\)）]' + r9 + '?$', s1_tex):
+                            s1_styles[s1_num] = '######'
+                    elif s1_fmt == 'lowerLetter':
+                        if re.match('^%1' + r9 + '?$', s1_tex):
+                            s1_styles[s1_num] = '#######'
+                        elif re.match('^[\\(（]%1[\\)）]' + r9 + '?$', s1_tex):
+                            s1_styles[s1_num] = '########'
+            # 2ND STEP
+            elif re.match(res_s2_beg, xl):
+                s2_num = int(re.sub(res_s2_beg, '\\1', xl))
+            elif re.match(res_s2_end, xl):
+                s2_num = -1
+            elif re.match(res_s2_num, xl):
+                tmp_num = int(re.sub(res_s2_num, '\\1', xl))
+                if s2_num > 0:
+                    if tmp_num in s1_styles:
+                        s2_styles[s2_num] = s1_styles[tmp_num]
+        numbering_styles = s2_styles
+        return numbering_styles
 
 
 class CharsDatum:
@@ -4581,6 +4642,8 @@ class RawParagraph:
             return 'blank'
         elif ParagraphChapter.is_this_class(self):
             return 'chapter'
+        elif ParagraphSystemSection.is_this_class(self):
+            return 'systemsection'
         elif ParagraphSection.is_this_class(self):
             return 'section'
         elif ParagraphSystemlist.is_this_class(self):
@@ -4620,6 +4683,8 @@ class RawParagraph:
             return ParagraphBlank(self)
         elif paragraph_class == 'chapter':
             return ParagraphChapter(self)
+        elif paragraph_class == 'systemsection':
+            return ParagraphSystemSection(self)
         elif paragraph_class == 'section':
             return ParagraphSection(self)
         elif paragraph_class == 'systemlist':
@@ -5186,6 +5251,8 @@ class Paragraph:
             pass
         # elif paragraph_class == 'chapter':
         #     md_lines_text = Paragraph._split_into_lines(md_text)
+        elif paragraph_class == 'systemsection':
+            md_lines_text = Paragraph._split_into_lines(md_text)
         elif paragraph_class == 'section':
             md_lines_text = Paragraph._split_into_lines(md_text)
         # elif paragraph_class == 'list':
@@ -5717,6 +5784,60 @@ class ParagraphChapter(Paragraph):
         if re.match('[0-9０-９]+', nmsym):
             state[0] = c2n_n_arab(nmsym)
         return hdstr, rtext, state
+
+
+class ParagraphSystemSection(Paragraph):
+
+    """A class to handle systemsection paragraph"""
+
+    paragraph_class = 'systemsection'
+
+    res_xml_number_ms = '^<w:numId w:val=[\'"]([0-9]+)[\'"]/>$'
+    res_xml_number_lo = '^<w:pStyle w:val=[\'"]ListNumber([0-9]?)[\'"]/>$'
+
+    @classmethod
+    def is_this_class(cls, raw_paragraph):
+        rp = raw_paragraph
+        xml_lines = rp.xml_lines
+        res_xml_number_ms = cls.res_xml_number_ms
+        res_xml_number_lo = cls.res_xml_number_lo
+        for xl in xml_lines:
+            if re.match(res_xml_number_ms, xl):
+                numid = int(re.sub(res_xml_number_ms, '\\1', xl))
+                if numid in Form.numbering_styles:
+                    return True
+            elif re.match(res_xml_number_lo, xl):
+                numid = int(re.sub(res_xml_number_lo, '\\1', xl))
+                if numid in Form.numbering_styles:
+                    return True
+        return False
+
+    def _get_section_depths(self, raw_text, should_record=False):
+        xml_lines = self.xml_lines
+        res_xml_number_ms = self.res_xml_number_ms
+        res_xml_number_lo = self.res_xml_number_lo
+        depth = 0
+        for xl in xml_lines:
+            if re.match(res_xml_number_ms, xl):
+                numid = int(re.sub(res_xml_number_ms, '\\1', xl))
+                if numid in Form.numbering_styles:
+                    depth = len(Form.numbering_styles[numid])
+                    break
+            elif re.match(res_xml_number_lo, xl):
+                numid = int(re.sub(res_xml_number_lo, '\\1', xl))
+                if numid in Form.numbering_styles:
+                    depth = len(Form.numbering_styles[numid])
+                    break
+        if should_record:
+            Paragraph.previous_head_section_depth = depth
+            Paragraph.previous_tail_section_depth = depth
+        return depth, depth
+
+    def _get_proper_depth(self, raw_text):
+        return self.head_section_depth, self.tail_section_depth
+
+    def _get_md_text(self, raw_text):
+        return '#' * self.head_section_depth + ' ' + raw_text
 
 
 class ParagraphSection(Paragraph):
@@ -6847,6 +6968,7 @@ class Docx2Md:
         footer2_xml_lines = io.read_xml_file('/word/footer2.xml')
         rels_xml_lines = io.read_xml_file('/word/_rels/document.xml.rels')
         comments_xml_lines = io.read_xml_file('/word/comments.xml')
+        numbering_xml_lines = io.read_xml_file('/word/numbering.xml')
         # CONFIGURE
         frm.document_xml_lines = document_xml_lines
         frm.core_xml_lines = core_xml_lines
@@ -6857,6 +6979,7 @@ class Docx2Md:
         frm.footer2_xml_lines = footer2_xml_lines
         frm.rels_xml_lines = rels_xml_lines
         frm.comments_xml_lines = comments_xml_lines
+        frm.numbering_xml_lines = numbering_xml_lines
         frm.args = args
         frm.configure()
         # IMAGE LIST
@@ -6865,6 +6988,8 @@ class Docx2Md:
         Form.remarks = Form.get_remarks(comments_xml_lines)
         # STYLE LIST
         Form.styles = Form.get_styles(styles_xml_lines)
+        # NUMBERING
+        Form.numbering_styles = Form.get_numbering_styles(numbering_xml_lines)
         # PRESERVE
         doc.document_xml_lines = document_xml_lines
 
