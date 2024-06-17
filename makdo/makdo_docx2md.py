@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.17-09:20:20-JST>
+# Time-stamp:   <2024.06.18-07:47:39-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1508,7 +1508,7 @@ class Form:
     styles = None
     rels = None
     remarks = None
-    numbering_styles = None
+    auto_numbering_styles = None
 
     def __init__(self):
         # DECLARE
@@ -2372,7 +2372,7 @@ class Form:
         return remarks
 
     @staticmethod
-    def get_numbering_styles(xml_lines):
+    def get_auto_numbering_styles(xml_lines):
         # 1ST STEP
         s1_styles = {}
         res_s1a_beg = '^<w:abstractNum w:abstractNumId="([0-9]+)"(?: .+)?>$'
@@ -2417,26 +2417,26 @@ class Form:
                     s1_lef = int(re.sub(res_s1_lef, '\\1', xl))
             elif re.match(res_s1b_end, xl):
                 paragraph_class, proper_depth \
-                    = NumberingStyle.get_class_and_depth(s1_fmt, s1_txt)
+                    = AutoNumberingStyle.get_class_and_depth(s1_fmt, s1_txt)
                 if paragraph_class is not None and proper_depth is not None:
-                    ns = NumberingStyle()
-                    ns.paragraph_class = paragraph_class
-                    ns.proper_depth = proper_depth
-                    ns.number_format = s1_fmt
-                    ns.head_string = s1_txt
-                    ns.start = s1_str
+                    ans = AutoNumberingStyle()
+                    ans.paragraph_class = paragraph_class
+                    ans.proper_depth = proper_depth
+                    ans.number_format = s1_fmt
+                    ans.head_string = s1_txt
+                    ans.start = s1_str
                     if s1_fir is None:
                         s1_fir = 0.0
                     if s1_han is None:
                         s1_han = 0.0
                     if s1_lef is None:
                         s1_lef = 0.0
-                    ns.raw_first_indent = s1_fir - s1_han
-                    # ns.raw_firstline_indent = s1_fir
-                    # ns.raw_hanging_indent = s1_han
-                    ns.raw_left_indent = s1_lef
+                    ans.raw_first_indent = s1_fir - s1_han
+                    # ans.raw_firstline_indent = s1_fir
+                    # ans.raw_hanging_indent = s1_han
+                    ans.raw_left_indent = s1_lef
                     s1_key = str(s1a_num) + '-' + str(s1b_num)
-                    s1_styles[s1_key] = ns
+                    s1_styles[s1_key] = ans
                 s1b_num = -1
             elif re.match(res_s1a_end, xl):
                 s1a_num = -1
@@ -2452,13 +2452,13 @@ class Form:
                         s2_styles[s2_key] = s1_styles[s1_key]
             elif re.match(res_s2_end, xl):
                 s2_num = -1
-        numbering_styles = s2_styles
-        return numbering_styles
+        auto_numbering_styles = s2_styles
+        return auto_numbering_styles
 
 
-class NumberingStyle:
+class AutoNumberingStyle:
 
-    """A class to handle a numbering style"""
+    """A class to handle an auto numbering style"""
 
     def __init__(self):
         self.paragraph_class = None
@@ -2541,9 +2541,9 @@ class NumberingStyle:
                 numid = int(re.sub(res_xml_number_lo, '\\1', xl))
             elif re.match(res_xml_ilvl, xl):
                 ilvl = re.sub(res_xml_ilvl, '\\1', xl)
-        style_key = str(numid) + '-' + str(ilvl)
-        if style_key in Form.numbering_styles:
-            return style_key
+        ans_key = str(numid) + '-' + str(ilvl)
+        if ans_key in Form.auto_numbering_styles:
+            return ans_key
         return None
 
 
@@ -3913,39 +3913,37 @@ class RawParagraph:
             elif xl == '<w:vertAlign w:val="superscript"/>':
                 cd.append_fds('^{', '^}')
                 continue
-            # NUMBERING STYLE
-            res_xml_number_ms = '^<w:numId w:val=[\'"]([0-9]+)[\'"]/>$'
-            res_xml_number_lo = '^<w:pStyle w:val=[\'"]ListNumber([0-9]?)[\'"]/>$'
-            res_xml_ilvl = '<w:ilvl w:val="([0-9]+)"/>'
+            # AUTO NUMBERING STYLE
+            res_number_ms = '^<w:numId w:val=[\'"]([0-9]+)[\'"]/>$'
+            res_number_lo = '^<w:pStyle w:val=[\'"]ListNumber([0-9]?)[\'"]/>$'
+            res_ilvl = '<w:ilvl w:val="([0-9]+)"/>'
             if xl == '<w:numPr>':
                 numid, ilvl = -1, -1
                 continue
-            elif re.match(res_xml_number_ms, xl):
-                numid = re.sub(res_xml_number_ms, '\\1', xl)
+            elif re.match(res_number_ms, xl):
+                numid = re.sub(res_number_ms, '\\1', xl)
                 continue
-            elif re.match(res_xml_number_lo, xl):
-                numid = re.sub(res_xml_number_lo, '\\1', xl)
+            elif re.match(res_number_lo, xl):
+                numid = re.sub(res_number_lo, '\\1', xl)
                 continue
-            elif re.match(res_xml_ilvl, xl):
-                ilvl = re.sub(res_xml_ilvl, '\\1', xl)
+            elif re.match(res_ilvl, xl):
+                ilvl = re.sub(res_ilvl, '\\1', xl)
                 continue
             elif xl == '</w:numPr>':
-                key = str(numid) + '-' + str(ilvl)
-                if key in Form.numbering_styles:
-                    ns = Form.numbering_styles[key]
-                    n = ns.start + ns.state
-                    if (ns.number_format == 'decimal' or
-                        ns.number_format == 'decimalFullWidth'):
-                        hs = re.sub('%[1-9]', str(n), ns.head_string)
+                ans_key = str(numid) + '-' + str(ilvl)
+                if ans_key in Form.auto_numbering_styles:
+                    ans = Form.auto_numbering_styles[ans_key]
+                    n = ans.start + ans.state
+                    if re.match('^decimal(?:FullWidth)?$', ans.number_format):
+                        hs = re.sub('%[1-9]', str(n), ans.head_string)
                         cd.chars += hs + ' '
-                    elif (ns.number_format == 'aiueo' or
-                          ns.number_format == 'aiueoFullWidth'):
-                        hs = re.sub('%[1-9]', n2c_n_kata(n), ns.head_string)
+                    elif re.match('^aiueo(?:FullWidth)?$', ans.number_format):
+                        hs = re.sub('%[1-9]', n2c_n_kata(n), ans.head_string)
                         cd.chars += hs + ' '
-                    elif (ns.number_format == 'lowerLetter'):
-                        hs = re.sub('%[1-9]', n2c_n_alph(n), ns.head_string)
+                    elif re.match('lowerLetter', ans.number_format):
+                        hs = re.sub('%[1-9]', n2c_n_alph(n), ans.head_string)
                         cd.chars += hs + ' '
-                    ns.state += 1
+                    ans.state += 1
                 continue
             # TEXT
             if not re.match('^<.*>$', xl):
@@ -5314,17 +5312,18 @@ class Paragraph:
             if tail_section_depth > 0:
                 length_clas['first indent'] = 1.0
                 length_clas['left indent'] = tail_section_depth - 1.0
-            # NUMBERING STYLE
-            ns_key = NumberingStyle.get_style_key_from_xml_lines(xml_lines)
-            if ns_key is not None:
-                ns = Form.numbering_styles[ns_key]
+            # AUTO NUMBERING STYLE
+            ans_key \
+                = AutoNumberingStyle.get_style_key_from_xml_lines(xml_lines)
+            if ans_key is not None:
+                ans = Form.auto_numbering_styles[ans_key]
                 rf, rh, rl = None, None, None
                 for xl in xml_lines:
                     rf = XML.get_value('w:ind', 'w:firstLine', rfirs_par, xl)
                     rh = XML.get_value('w:ind', 'w:hanging', rhang_par, xl)
                     rl = XML.get_value('w:ind', 'w:left', rleft_par, xl)
                 if rf is None and rh is None:
-                    rf_de = ns.raw_first_indent
+                    rf_de = ans.raw_first_indent
                 else:
                     if rf is None:
                         rf = 0
@@ -5333,7 +5332,7 @@ class Paragraph:
                     rf_de = rf - rh
                 length_clas['first indent'] -= round(rf_de / 20 / m_size, 2)
                 if rl is None:
-                    rl_de = ns.raw_left_indent
+                    rl_de = ans.raw_left_indent
                 else:
                     rl_de = rl
                 length_clas['left indent'] -= round(rl_de / 20 / m_size, 2)
@@ -7159,8 +7158,9 @@ class Docx2Md:
         Form.remarks = Form.get_remarks(comments_xml_lines)
         # STYLE LIST
         Form.styles = Form.get_styles(styles_xml_lines)
-        # NUMBERING
-        Form.numbering_styles = Form.get_numbering_styles(numbering_xml_lines)
+        # AUTO NUMBERING STYLE
+        Form.auto_numbering_styles \
+            = Form.get_auto_numbering_styles(numbering_xml_lines)
         # PRESERVE
         doc.document_xml_lines = document_xml_lines
 
