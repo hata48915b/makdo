@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.15-11:54:15-JST>
+# Time-stamp:   <2024.06.17-09:20:20-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1040,6 +1040,62 @@ def c2n_c_kanj(s):
         # ㊀㊁㊂㊃㊄㊅㊆㊇㊈㊉
         return i - n
     return -1
+
+
+def n2c_n_kata(n, md_line=None):
+    if n >= 1 and n <= 5:
+        # アイウエオ
+        return chr(12448 + (2 * n))
+    elif n >= 1 and n <= 17:
+        # カキクケコサシスセソタチ
+        return chr(12448 + (2 * n) - 1)
+    elif n >= 1 and n <= 20:
+        # ツテト
+        return chr(12448 + (2 * n))
+    elif n >= 1 and n <= 25:
+        # ナニヌネノ
+        return chr(12448 + (1 * n) + 21)
+    elif n >= 1 and n <= 30:
+        # ハヒフヘホ
+        return chr(12448 + (3 * n) - 31)
+    elif n >= 1 and n <= 35:
+        # マミムメモ
+        return chr(12448 + (1 * n) + 31)
+    elif n >= 1 and n <= 38:
+        # ヤユヨ
+        return chr(12448 + (2 * n) - 4)
+    elif n >= 1 and n <= 43:
+        # ラリルレロ
+        return chr(12448 + (1 * n) + 34)
+    elif n >= 1 and n <= 48:
+        # ワヰヱヲン
+        return chr(12448 + (1 * n) + 35)
+    else:
+        msg = '※ 警告: ' \
+            + 'カタカナ番号は範囲を超えています'
+        # msg = 'warning: ' \
+        #     + 'overflowed katakana'
+        if md_line is None:
+            sys.stderr.write(msg + '\n\n')
+        else:
+            md_line.append_warning_message(msg)
+        return '〓'
+
+
+def n2c_n_alph(n, md_line=None):
+    if n >= 1 and n <= 26:
+        # ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ
+        return chr(65344 + n)
+    else:
+        msg = '※ 警告: ' \
+            + 'アルファベット番号は範囲を超えています'
+        # msg = 'warning: ' \
+        #     + 'overflowed alphabet'
+        if md_line is None:
+            sys.stderr.write(msg + '\n\n')
+        else:
+            md_line.append_warning_message(msg)
+        return '〓'
 
 
 ############################################################
@@ -2325,12 +2381,11 @@ class Form:
         res_s1b_end = '^</w:lvl>$'
         res_s1_str = '^<w:start w:val="([0-9]+)"/>$'
         res_s1_fmt = '^<w:numFmt w:val="(.+)"/>$'
-        res_s1_tex = '^<w:lvlText w:val="(.+)"/>$'
+        res_s1_txt = '^<w:lvlText w:val="(.+)"/>$'
         res_s1_ind = '^<w:ind .+/>$'
         res_s1_fir = '^.+ w:firstLine="([0-9]+)".+$'
         res_s1_han = '^.+ w:hanging="([0-9]+)".+$'
         res_s1_lef = '^.+ w:left="([0-9]+)".+$'
-        r9 = '(?:  ?|\t|\u3000|\\. |．)'
         # 2ND STEP
         s2_styles = {}
         res_s2_beg = '^<w:num w:numId="([0-9]+)"(?: .*)?>$'
@@ -2344,15 +2399,15 @@ class Form:
             elif re.match(res_s1a_beg, xl):
                 s1a_num = int(re.sub(res_s1a_beg, '\\1', xl))
             elif re.match(res_s1b_beg, xl):
-                s1_str, s1_fmt, s1_tex = None, '', ''
+                s1_str, s1_fmt, s1_txt = None, '', ''
                 s1_fir, s1_han, s1_lef = None, None, None
                 s1b_num = int(re.sub(res_s1b_beg, '\\1', xl))
             elif re.match(res_s1_str, xl):
                 s1_str = int(re.sub(res_s1_str, '\\1', xl))
             elif re.match(res_s1_fmt, xl):
                 s1_fmt = re.sub(res_s1_fmt, '\\1', xl)
-            elif re.match(res_s1_tex, xl):
-                s1_tex = re.sub(res_s1_tex, '\\1', xl)
+            elif re.match(res_s1_txt, xl):
+                s1_txt = re.sub(res_s1_txt, '\\1', xl)
             elif re.match(res_s1_ind, xl):
                 if re.match(res_s1_fir, xl):
                     s1_fir = int(re.sub(res_s1_fir, '\\1', xl))
@@ -2361,30 +2416,27 @@ class Form:
                 if re.match(res_s1_lef, xl):
                     s1_lef = int(re.sub(res_s1_lef, '\\1', xl))
             elif re.match(res_s1b_end, xl):
-                ns = NumberingStyle()
-                if s1_fmt == 'decimal' or s1_fmt == 'decimalFullWidth':
-                    if re.match('^第%1条?' + r9 + '?$', s1_tex):
-                        ns.depth = 2
-                    elif re.match('^%1' + r9 + '?$', s1_tex):
-                        ns.depth = 3
-                    elif re.match('^[\\(（]%1[\\)）]' + r9 + '?$', s1_tex):
-                        ns.depth = 4
-                elif s1_fmt == 'aiueo' or s1_fmt == 'aiueoFullWidth':
-                    if re.match('^%1' + r9 + '?$', s1_tex):
-                        ns.depth = 5
-                    elif re.match('^[\\(（]%1[\\)）]' + r9 + '?$', s1_tex):
-                        ns.depth = 6
-                elif s1_fmt == 'lowerLetter':
-                    if re.match('^%1' + r9 + '?$', s1_tex):
-                        ns.depth = 7
-                    elif re.match('^[\\(（]%1[\\)）]' + r9 + '?$', s1_tex):
-                        ns.depth = 8
-                if ns.depth is not None:
+                paragraph_class, proper_depth \
+                    = NumberingStyle.get_class_and_depth(s1_fmt, s1_txt)
+                if paragraph_class is not None and proper_depth is not None:
+                    ns = NumberingStyle()
+                    ns.paragraph_class = paragraph_class
+                    ns.proper_depth = proper_depth
+                    ns.number_format = s1_fmt
+                    ns.head_string = s1_txt
                     ns.start = s1_str
-                    ns.raw_first_indent = s1_fir
-                    ns.raw_hanging_indent = s1_han
+                    if s1_fir is None:
+                        s1_fir = 0.0
+                    if s1_han is None:
+                        s1_han = 0.0
+                    if s1_lef is None:
+                        s1_lef = 0.0
+                    ns.raw_first_indent = s1_fir - s1_han
+                    # ns.raw_firstline_indent = s1_fir
+                    # ns.raw_hanging_indent = s1_han
                     ns.raw_left_indent = s1_lef
-                    s1_styles[str(s1a_num) + '-' + str(s1b_num)] = ns
+                    s1_key = str(s1a_num) + '-' + str(s1b_num)
+                    s1_styles[s1_key] = ns
                 s1b_num = -1
             elif re.match(res_s1a_end, xl):
                 s1a_num = -1
@@ -2398,7 +2450,6 @@ class Form:
                     if re.match(res, s1_key):
                         s2_key = str(s2_num) + '-' + re.sub(res, '\\1', s1_key)
                         s2_styles[s2_key] = s1_styles[s1_key]
-                        s2_styles[s2_key].key = s2_key
             elif re.match(res_s2_end, xl):
                 s2_num = -1
         numbering_styles = s2_styles
@@ -2410,13 +2461,90 @@ class NumberingStyle:
     """A class to handle a numbering style"""
 
     def __init__(self):
-        self.key = None
-        self.depth = None
+        self.paragraph_class = None
+        self.proper_depth = None
+        self.number_format = None
+        self.head_string = None
         self.start = None
         self.state = 0
         self.raw_first_indent = None
-        self.raw_hanging_indent = None
+        # self.raw_firstline_indent = None
+        # self.raw_hanging_indent = None
         self.raw_left_indent = None
+
+    @staticmethod
+    def get_class_and_depth(fmt, txt):
+        # CHAPTER
+        res_sp = '(?:  ?|\t|\u3000)'
+        res_c1_a = '^第%[1-9]編' + res_sp + '?$'
+        res_c1_b = '^第[0-9０-９]+編(の[0-9０-９]+)*の%[1-9]' + res_sp + '?$'
+        res_c2_a = '^第%[1-9]章' + res_sp + '?$'
+        res_c2_b = '^第[0-9０-９]+章(の[0-9０-９]+)*の%[1-9]' + res_sp + '?$'
+        res_c3_a = '^第%[1-9]節' + res_sp + '?$'
+        res_c3_b = '^第[0-9０-９]+節(の[0-9０-９]+)*の%[1-9]' + res_sp + '?$'
+        res_c4_a = '^第%[1-9]款' + res_sp + '?$'
+        res_c4_b = '^第[0-9０-９]+款(の[0-9０-９]+)*の%[1-9]' + res_sp + '?$'
+        res_c5_a = '^第%[1-9]目' + res_sp + '?$'
+        res_c5_b = '^第[0-9０-９]+目(の[0-9０-９]+)*の%[1-9]' + res_sp + '?$'
+        if fmt == 'decimal' or fmt == 'decimalFullWidth':
+            if re.match(res_c1_a, txt) or re.match(res_c1_b, txt):
+                return 'chapter', 1
+            if re.match(res_c2_a, txt) or re.match(res_c2_b, txt):
+                return 'chapter', 2
+            if re.match(res_c3_a, txt) or re.match(res_c3_b, txt):
+                return 'chapter', 3
+            if re.match(res_c4_a, txt) or re.match(res_c4_b, txt):
+                return 'chapter', 4
+            if re.match(res_c5_a, txt) or re.match(res_c5_b, txt):
+                return 'chapter', 5
+        # SECTION
+        res_sp = '(?:  ?|\t|\u3000|\\. |．)'
+        res_s2_a = '^第%[1-9]条?' + res_sp + '?$'
+        res_s2_b = '^第[0-9０-９]+条?(の[0-9０-９]+)*の%[1-9]' + res_sp + '?$'
+        res_s3_a = '^%[1-9]' + res_sp + '?$'
+        res_s3_b = '^[0-9０-９]+(の[0-9０-９]+)*の%[1-9]' + res_sp + '?$'
+        res_s4_a = '^[\\(（]%[1-9][\\)）]' + res_sp + '?$'
+        res_s5_a = '^%[1-9]' + res_sp + '?$'
+        res_s6_a = '^[\\(（]%[1-9][\\)）]' + res_sp + '?$'
+        res_s7_a = '^%[1-9]' + res_sp + '?$'
+        res_s8_a = '^[\\(（]%[1-9][\\)）]' + res_sp + '?$'
+        if fmt == 'decimal' or fmt == 'decimalFullWidth':
+            if re.match(res_s2_a, txt) or re.match(res_s2_b, txt):
+                return 'section', 2
+            if re.match(res_s3_a, txt) or re.match(res_s3_a, txt):
+                return 'section', 3
+            if re.match(res_s4_a, txt):
+                return 'section', 4
+        if fmt == 'aiueo' or fmt == 'aiueoFullWidth':
+            if re.match(res_s5_a, txt):
+                return 'section', 5
+            if re.match(res_s6_a, txt):
+                return 'section', 6
+        if fmt == 'lowerLetter':
+            if re.match(res_s7_a, txt):
+                return 'section', 7
+            if re.match(res_s8_a, txt):
+                return 'section', 8
+        return None, None
+
+    @staticmethod
+    def get_style_key_from_xml_lines(xml_lines):
+        res_xml_number_ms = '^<w:numId w:val=[\'"]([0-9]+)[\'"]/>$'
+        res_xml_number_lo = '^<w:pStyle w:val=[\'"]ListNumber([0-9]?)[\'"]/>$'
+        res_xml_ilvl = '<w:ilvl w:val="([0-9]+)"/>'
+        numid = -1
+        ilvl = 0
+        for xl in xml_lines:
+            if re.match(res_xml_number_ms, xl):
+                numid = int(re.sub(res_xml_number_ms, '\\1', xl))
+            elif re.match(res_xml_number_lo, xl):
+                numid = int(re.sub(res_xml_number_lo, '\\1', xl))
+            elif re.match(res_xml_ilvl, xl):
+                ilvl = re.sub(res_xml_ilvl, '\\1', xl)
+        style_key = str(numid) + '-' + str(ilvl)
+        if style_key in Form.numbering_styles:
+            return style_key
+        return None
 
 
 class CharsDatum:
@@ -3785,6 +3913,40 @@ class RawParagraph:
             elif xl == '<w:vertAlign w:val="superscript"/>':
                 cd.append_fds('^{', '^}')
                 continue
+            # NUMBERING STYLE
+            res_xml_number_ms = '^<w:numId w:val=[\'"]([0-9]+)[\'"]/>$'
+            res_xml_number_lo = '^<w:pStyle w:val=[\'"]ListNumber([0-9]?)[\'"]/>$'
+            res_xml_ilvl = '<w:ilvl w:val="([0-9]+)"/>'
+            if xl == '<w:numPr>':
+                numid, ilvl = -1, -1
+                continue
+            elif re.match(res_xml_number_ms, xl):
+                numid = re.sub(res_xml_number_ms, '\\1', xl)
+                continue
+            elif re.match(res_xml_number_lo, xl):
+                numid = re.sub(res_xml_number_lo, '\\1', xl)
+                continue
+            elif re.match(res_xml_ilvl, xl):
+                ilvl = re.sub(res_xml_ilvl, '\\1', xl)
+                continue
+            elif xl == '</w:numPr>':
+                key = str(numid) + '-' + str(ilvl)
+                if key in Form.numbering_styles:
+                    ns = Form.numbering_styles[key]
+                    n = ns.start + ns.state
+                    if (ns.number_format == 'decimal' or
+                        ns.number_format == 'decimalFullWidth'):
+                        hs = re.sub('%[1-9]', str(n), ns.head_string)
+                        cd.chars += hs + ' '
+                    elif (ns.number_format == 'aiueo' or
+                          ns.number_format == 'aiueoFullWidth'):
+                        hs = re.sub('%[1-9]', n2c_n_kata(n), ns.head_string)
+                        cd.chars += hs + ' '
+                    elif (ns.number_format == 'lowerLetter'):
+                        hs = re.sub('%[1-9]', n2c_n_alph(n), ns.head_string)
+                        cd.chars += hs + ' '
+                    ns.state += 1
+                continue
             # TEXT
             if not re.match('^<.*>$', xl):
                 t = cls._prepare_chars(fldchar, xl, type)
@@ -4686,8 +4848,6 @@ class RawParagraph:
             return 'blank'
         elif ParagraphChapter.is_this_class(self):
             return 'chapter'
-        elif ParagraphSystemSection.is_this_class(self):
-            return 'systemsection'
         elif ParagraphSection.is_this_class(self):
             return 'section'
         elif ParagraphSystemlist.is_this_class(self):
@@ -4727,8 +4887,6 @@ class RawParagraph:
             return ParagraphBlank(self)
         elif paragraph_class == 'chapter':
             return ParagraphChapter(self)
-        elif paragraph_class == 'systemsection':
-            return ParagraphSystemSection(self)
         elif paragraph_class == 'section':
             return ParagraphSection(self)
         elif paragraph_class == 'systemlist':
@@ -5123,6 +5281,8 @@ class Paragraph:
         tail_section_depth = self.tail_section_depth
         section_states = self.section_states
         proper_depth = self.proper_depth
+        xml_lines = self.xml_lines
+        m_size = Form.font_size
         length_clas \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
@@ -5154,6 +5314,29 @@ class Paragraph:
             if tail_section_depth > 0:
                 length_clas['first indent'] = 1.0
                 length_clas['left indent'] = tail_section_depth - 1.0
+            # NUMBERING STYLE
+            ns_key = NumberingStyle.get_style_key_from_xml_lines(xml_lines)
+            if ns_key is not None:
+                ns = Form.numbering_styles[ns_key]
+                rf, rh, rl = None, None, None
+                for xl in xml_lines:
+                    rf = XML.get_value('w:ind', 'w:firstLine', rfirs_par, xl)
+                    rh = XML.get_value('w:ind', 'w:hanging', rhang_par, xl)
+                    rl = XML.get_value('w:ind', 'w:left', rleft_par, xl)
+                if rf is None and rh is None:
+                    rf_de = ns.raw_first_indent
+                else:
+                    if rf is None:
+                        rf = 0
+                    if rh is None:
+                        rh = 0
+                    rf_de = rf - rh
+                length_clas['first indent'] -= round(rf_de / 20 / m_size, 2)
+                if rl is None:
+                    rl_de = ns.raw_left_indent
+                else:
+                    rl_de = rl
+                length_clas['left indent'] -= round(rl_de / 20 / m_size, 2)
         if paragraph_class == 'section' or \
            paragraph_class == 'list' or \
            paragraph_class == 'preformatted' or \
@@ -5295,8 +5478,6 @@ class Paragraph:
             pass
         # elif paragraph_class == 'chapter':
         #     md_lines_text = Paragraph._split_into_lines(md_text)
-        elif paragraph_class == 'systemsection':
-            md_lines_text = Paragraph._split_into_lines(md_text)
         elif paragraph_class == 'section':
             md_lines_text = Paragraph._split_into_lines(md_text)
         # elif paragraph_class == 'list':
@@ -5362,11 +5543,11 @@ class Paragraph:
         ttwwr = ''
         if pre_text_to_write != '':
             ttwwr += pre_text_to_write + '\n'
-        for rev in numbering_revisers:
+        for rev in length_revisers:
             ttwwr += rev + ' '
         if re.match('^(.|\n)* $', ttwwr):
             ttwwr = re.sub(' $', '\n', ttwwr)
-        for rev in length_revisers:
+        for rev in numbering_revisers:
             ttwwr += rev + ' '
         if re.match('^(.|\n)* $', ttwwr):
             ttwwr = re.sub(' $', '\n', ttwwr)
@@ -5828,141 +6009,6 @@ class ParagraphChapter(Paragraph):
         if re.match('[0-9０-９]+', nmsym):
             state[0] = c2n_n_arab(nmsym)
         return hdstr, rtext, state
-
-
-class ParagraphSystemSection(Paragraph):
-
-    """A class to handle systemsection paragraph"""
-
-    paragraph_class = 'systemsection'
-
-    res_xml_number_ms = '^<w:numId w:val=[\'"]([0-9]+)[\'"]/>$'
-    res_xml_number_lo = '^<w:pStyle w:val=[\'"]ListNumber([0-9]?)[\'"]/>$'
-    res_xml_ilvl = '<w:ilvl w:val="([0-9]+)"/>'
-    states = [0,  # -
-              0,  # 第１
-              0,  # １
-              0,  # (1)
-              0,  # ア
-              0,  # (ｱ)
-              0,  # ａ
-              0]  # (a)
-
-    @classmethod
-    def is_this_class(cls, raw_paragraph):
-        rp = raw_paragraph
-        xml_lines = rp.xml_lines
-        style_id = cls._get_style_id(xml_lines)
-        if style_id is not None:
-            return True
-        return False
-
-    @classmethod
-    def _get_style_id(cls, xml_lines):
-        res_xml_number_ms = cls.res_xml_number_ms
-        res_xml_number_lo = cls.res_xml_number_lo
-        res_xml_ilvl = cls.res_xml_ilvl
-        numid = -1
-        ilvl = 0
-        for xl in xml_lines:
-            if re.match(res_xml_number_ms, xl):
-                numid = int(re.sub(res_xml_number_ms, '\\1', xl))
-            elif re.match(res_xml_number_lo, xl):
-                numid = int(re.sub(res_xml_number_lo, '\\1', xl))
-            elif re.match(res_xml_ilvl, xl):
-                ilvl = re.sub(res_xml_ilvl, '\\1', xl)
-        style_id = str(numid) + '-' + str(ilvl)
-        if style_id in Form.numbering_styles:
-            return style_id
-        return None
-
-    def _get_section_depths(self, raw_text, should_record=False):
-        xml_lines = self.xml_lines
-        style_id = self._get_style_id(xml_lines)
-        ns = Form.numbering_styles[style_id]
-        if should_record:
-            Paragraph.previous_head_section_depth = ns.depth
-            Paragraph.previous_tail_section_depth = ns.depth
-        self.numbering_style = ns
-        return ns.depth, ns.depth
-
-    def _get_proper_depth(self, raw_text):
-        return self.head_section_depth, self.tail_section_depth
-
-    def _get_length_clas(self):
-        # length_clas = super()._get_length_clas()
-        m_size = Form.font_size
-        xml_lines = self.xml_lines
-        numbering_style = self.numbering_style
-        states = self.states
-        tail_section_depth = self.tail_section_depth
-        # SET DEFAULT LENGTH
-        length_clas \
-            = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
-               'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
-        length_clas['first indent'] = -1.0
-        length_clas['left indent'] = numbering_style.depth - 1.0
-        # CANCEL LENGTH
-        length_clas['first indent'] += self.length_docx['first indent']
-        length_clas['left indent'] += self.length_docx['left indent']
-        # ADD LENGTH
-        rfirs_sty = numbering_style.raw_first_indent
-        rhang_sty = numbering_style.raw_hanging_indent
-        rleft_sty = numbering_style.raw_left_indent
-        rfirs_par = None
-        rhang_par = None
-        rleft_par = None
-        for xl in xml_lines:
-            rfirs_par = XML.get_value('w:ind', 'w:firstLine', rfirs_par, xl)
-            rhang_par = XML.get_value('w:ind', 'w:hanging', rhang_par, xl)
-            rleft_par = XML.get_value('w:ind', 'w:left', rleft_par, xl)
-        if rfirs_par is not None:
-            rfirs_sty = int(rfirs_par)
-            rhang_sty = 0.0
-        if rhang_par is not None:
-            rfirs_sty = 0.0
-            rhang_sty = int(rhang_par)
-        if rleft_par is not None:
-            rleft_sty = int(rleft_par)
-        if rfirs_sty is None:
-            rfirs_sty = 0.0
-        if rhang_sty is None:
-            rhang_sty = 0.0
-        if rleft_sty is None:
-            rleft_sty = 0.0
-        length_clas['first indent'] \
-            -= round((rfirs_sty - rhang_sty) / 20 / m_size, 2)
-        length_clas['left indent'] \
-            -= round(rleft_sty / 20 / m_size, 2)
-        # REVISE
-        if states[1] == 0 and tail_section_depth > 2:
-            length_clas['left indent'] -= 1.0
-        if Form.document_style == 'j':
-            if states[1] > 0 and tail_section_depth > 2:
-                length_clas['left indent'] -= 1.0
-        # RETURN
-        return length_clas
-
-    def _get_revisers_and_md_text(self, raw_text):
-        numbering_revisers, head_font_revisers, tail_font_revisers, md_text \
-            = super()._get_revisers_and_md_text(raw_text)
-        states = ParagraphSystemSection.states
-        ns = self.numbering_style
-        # ADD NUMBERING REVISER
-        ns.state += 1
-        states[ns.depth - 1] += 1
-        for i in range(ns.depth, len(states)):
-            states[i] = 0
-        n = ns.start + ns.state - 1
-        if states[ns.depth - 1] != n:
-            states[ns.depth - 1] = n
-            numbering_revisers.append(('#' * ns.depth) + '=' + str(n))
-        # RETURN
-        return numbering_revisers, head_font_revisers, tail_font_revisers, \
-            md_text
-
-    def _get_md_text(self, raw_text):
-        return '#' * self.head_section_depth + ' ' + raw_text
 
 
 class ParagraphSection(Paragraph):
