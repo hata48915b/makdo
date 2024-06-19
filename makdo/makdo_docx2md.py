@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.19-09:56:07-JST>
+# Time-stamp:   <2024.06.19-11:02:19-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -2400,7 +2400,7 @@ class Form:
                 s1a_num = int(re.sub(res_s1a_beg, '\\1', xl))
             elif re.match(res_s1b_beg, xl):
                 s1_str, s1_fmt, s1_txt = None, '', ''
-                s1_fir, s1_han, s1_lef = None, None, None
+                s1_fir, s1_han, s1_lef = 0.0, 0.0, 0.0
                 s1b_num = int(re.sub(res_s1b_beg, '\\1', xl))
             elif re.match(res_s1_str, xl):
                 s1_str = int(re.sub(res_s1_str, '\\1', xl))
@@ -2425,12 +2425,6 @@ class Form:
                     ans.number_format = s1_fmt
                     ans.head_string = s1_txt
                     ans.start = s1_str
-                    if s1_fir is None:
-                        s1_fir = 0.0
-                    if s1_han is None:
-                        s1_han = 0.0
-                    if s1_lef is None:
-                        s1_lef = 0.0
                     ans.raw_first_indent = s1_fir - s1_han
                     # ans.raw_firstline_indent = s1_fir
                     # ans.raw_hanging_indent = s1_han
@@ -5389,7 +5383,14 @@ class Paragraph:
         vs = cls._get_vlength_string(length_revi['line spacing'])
         if float(vs) < -0.05 or float(vs) > 0.05:
             length_revisers.append('X=' + vs)
-        hs = cls._get_hlength_string(- length_revi['first indent'])
+        # WHAT YOU SEE IS THE SUM OF 'first indent' AND 'left indent'
+        hs1 = cls._get_hlength_string(- length_revi['first indent']
+                                      - length_revi['left indent'])
+        hs2 = cls._get_hlength_string(- length_revi['left indent'])
+        hs = str(float(hs1) - float(hs2))
+        if float(hs) > 0:
+            hs = '+' + hs
+        # hs = cls._get_hlength_string(- length_revi['first indent'])
         if float(hs) < -0.05 or float(hs) > 0.05:
             length_revisers.append('<<=' + hs)
         hs = cls._get_hlength_string(- length_revi['left indent'])
