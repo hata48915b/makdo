@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.18-07:47:39-JST>
+# Time-stamp:   <2024.06.19-09:56:07-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5251,6 +5251,23 @@ class Paragraph:
             elif length_docx['space after'] >= 0:
                 length_docx['space after'] *= 2
         length_docx['first indent'] = round((fi_xml - hi_xml) / 20 / m_size, 2)
+        length_docx['left indent'] = round((li_xml + ti_xml) / 20 / m_size, 2)
+        length_docx['right indent'] = round(ri_xml / 20 / m_size, 2)
+        # AUTO NUMBERING STYLE
+        ans_key = AutoNumberingStyle.get_style_key_from_xml_lines(xls)
+        if ans_key is not None:
+            ans = Form.auto_numbering_styles[ans_key]
+            fi_xml, hi_xml, li_xml = None, None, None
+            for xl in xls:
+                fi_xml = XML.get_value('w:ind', 'w:firstLine', fi_xml, xl)
+                hi_xml = XML.get_value('w:ind', 'w:hanging', hi_xml, xl)
+                li_xml = XML.get_value('w:ind', 'w:left', li_xml, xl)
+            if fi_xml is None and hi_xml is None:
+                length_docx['first indent'] \
+                    = round(ans.raw_first_indent / 20 / m_size, 2)
+            if li_xml is None:
+                length_docx['left indent'] \
+                    = round(ans.raw_left_indent / 20 / m_size, 2)
         # （１）, （ア）, （ａ）
         paragraph_class = self.paragraph_class
         raw_text = self.raw_text
@@ -5258,8 +5275,6 @@ class Paragraph:
         if paragraph_class == 'section':
             if re.match(res, raw_text):
                 length_docx['first indent'] += 1.0
-        length_docx['left indent'] = round((li_xml + ti_xml) / 20 / m_size, 2)
-        length_docx['right indent'] = round(ri_xml / 20 / m_size, 2)
         if head_space != '':
             width = 0
             for sp in head_space:
@@ -5312,30 +5327,6 @@ class Paragraph:
             if tail_section_depth > 0:
                 length_clas['first indent'] = 1.0
                 length_clas['left indent'] = tail_section_depth - 1.0
-            # AUTO NUMBERING STYLE
-            ans_key \
-                = AutoNumberingStyle.get_style_key_from_xml_lines(xml_lines)
-            if ans_key is not None:
-                ans = Form.auto_numbering_styles[ans_key]
-                rf, rh, rl = None, None, None
-                for xl in xml_lines:
-                    rf = XML.get_value('w:ind', 'w:firstLine', rfirs_par, xl)
-                    rh = XML.get_value('w:ind', 'w:hanging', rhang_par, xl)
-                    rl = XML.get_value('w:ind', 'w:left', rleft_par, xl)
-                if rf is None and rh is None:
-                    rf_de = ans.raw_first_indent
-                else:
-                    if rf is None:
-                        rf = 0
-                    if rh is None:
-                        rh = 0
-                    rf_de = rf - rh
-                length_clas['first indent'] -= round(rf_de / 20 / m_size, 2)
-                if rl is None:
-                    rl_de = ans.raw_left_indent
-                else:
-                    rl_de = rl
-                length_clas['left indent'] -= round(rl_de / 20 / m_size, 2)
         if paragraph_class == 'section' or \
            paragraph_class == 'list' or \
            paragraph_class == 'preformatted' or \
