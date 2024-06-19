@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.02-13:00:06-JST>
+# Time-stamp:   <2024.06.20-08:46:32-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4867,6 +4867,7 @@ class ParagraphTable(Paragraph):
 
     def write_paragraph(self, ms_doc):
         md_lines = self.md_lines
+        length_docx = self.length_docx
         chars_state = self.chars_state
         m_size = Form.font_size
         t_size = m_size * TABLE_FONT_SCALE
@@ -4902,6 +4903,18 @@ class ParagraphTable(Paragraph):
         ms_tab = ms_doc.add_table(row, col, style='Table Grid')
         ms_tab.alignment = WD_TABLE_ALIGNMENT.CENTER
         # ms_tab.autofit = True
+        # LINE SPACING
+        ls = 1.5 * (1 + length_docx['line spacing'])
+        if ls >= 1.0:
+            pt_line_spacing = Pt(ls * t_size)
+        else:
+            pt_line_spacing = Pt(1.0 * t_size)
+            ls = 1.0
+            msg = '警告: ' \
+                + '段落後の余白「X」の値が少な過ぎます'
+            # msg = 'warning: ' \
+            #     + 'too small line spacing'
+            self.md_lines[0].append_warning_message(msg)
         # SET LENGTH AND ALIGNMENT
         for i in range(len(tab)):
             # ms_tab.rows[i].height_rule = WD_ROW_HEIGHT_RULE.AUTO
@@ -4933,6 +4946,7 @@ class ParagraphTable(Paragraph):
                 chars_state.font_size = m_size
                 ms_fmt = ms_par.paragraph_format
                 ms_fmt.alignment = hori_alig_mtrx[i][j]
+                ms_fmt.line_spacing = pt_line_spacing
                 # RULE
                 ms_tcpr = ms_cell._tc.get_or_add_tcPr()
                 ms_tcbr = XML.add_tag(ms_tcpr, 'w:tcBorders')
