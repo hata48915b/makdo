@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.20-12:45:43-JST>
+# Time-stamp:   <2024.06.21-08:39:49-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1940,6 +1940,168 @@ class CharsState:
         for v in vars(copy):
             vars(copy)[v] = vars(self)[v]
         return copy
+
+    def apply_font_decorators(self, font_decorators):
+        for fd in font_decorators:
+            if False:
+                pass
+            elif fd == '*' or fd == '//':
+                self.apply_is_italic_font_decorator(fd)
+            elif fd == '**':
+                self.apply_is_bold_font_decorator(fd)
+            elif fd == '***':
+                self.apply_is_italic_font_decorator(fd)
+                self.apply_is_bold_font_decorator(fd)
+            elif fd == '~~':
+                self.apply_has_strike_font_decorator(fd)
+            elif fd == '`':
+                self.apply_is_preformatted_font_decorator(fd)
+            elif fd == '---' or fd == '--' or fd == '++' or fd == '+++':
+                self.apply_font_scale_font_decorator(fd)
+            elif fd == '>>>' or fd == '>>' or fd == '<<' or fd == '<<<':
+                self.apply_font_width_font_decorator(fd)
+            elif re.match('^_[\\$=\\.#\\-~\\+]{,4}_$', fd):
+                self.apply_underline_font_decorator(fd)
+            elif re.match('^@[^@]{1,66}@$', fd):
+                self.apply_font_name_font_decorator(fd)
+            elif re.match('^\\^[0-9A-Za-z]{0,11}\\^$', fd):
+                self.apply_font_color_font_decorator(fd)
+            elif re.match('^_[0-9A-Za-z]{1,11}_$', fd):
+                self.apply_highlight_color_font_decorator(fd)
+            elif fd == '_{' or fd == '^{' or fd == '}':
+                self.apply_sub_or_sup_font_decorator(fd)
+            elif fd == '->' or fd == '<-' or fd == '+>' or fd == '<+':
+                self.apply_track_changes_font_decorator(fd)
+
+    def apply_is_italic_font_decorator(self, font_decorator='*'):
+        self.is_italic = not self.is_italic
+
+    def apply_is_bold_font_decorator(self, font_decorator='**'):
+        self.is_bold = not self.is_bold
+
+    def apply_has_strike_font_decorator(self, font_decorator='~~'):
+        self.has_strike = not self.has_strike
+
+    def apply_is_preformatted_font_decorator(self, font_decorator='`'):
+        self.is_preformatted = not self.is_preformatted
+
+    def apply_font_scale_font_decorator(self, font_decorator):
+        if font_decorator == '---':
+            if self.font_scale == 0.6:
+                self.font_scale = 1.0
+            else:
+                self.font_scale = 0.6
+        elif font_decorator == '--':
+            if self.font_scale == 0.8:
+                self.font_scale = 1.0
+            else:
+                self.font_scale = 0.8
+        elif font_decorator == '++':
+            if self.font_scale == 1.2:
+                self.font_scale = 1.0
+            else:
+                self.font_scale = 1.2
+        elif font_decorator == '+++':
+            if self.font_scale == 1.4:
+                self.font_scale = 1.0
+            else:
+                self.font_scale = 1.4
+        else:
+            self.font_scale = 1.0
+
+    def apply_font_width_font_decorator(self, font_decorator):
+        if font_decorator == '>>>':
+            if self.font_width == 1.4:
+                self.font_width = 1.0
+            else:
+                self.font_width = 0.6
+        elif font_decorator == '>>':
+            if self.font_width == 1.2:
+                self.font_width = 1.0
+            else:
+                self.font_width = 0.8
+        elif font_decorator == '<<':
+            if self.font_width == 0.8:
+                self.font_width = 1.0
+            else:
+                self.font_width = 1.2
+        elif font_decorator == '<<<':
+            if self.font_width == 0.6:
+                self.font_width = 1.0
+            else:
+                self.font_width = 1.4
+        else:
+            self.font_width = 1.0
+
+    def apply_underline_font_decorator(self, font_decorator='__'):
+        underline = re.sub('^_(.*)_$', '\\1', font_decorator)
+        if underline in UNDERLINE:
+            if self.underline == underline:
+                self.underline = None
+            else:
+                self.underline = UNDERLINE[underline]
+        else:
+            self.underline = None
+
+    def apply_font_name_font_decorator(self, font_decorator):
+        font = re.sub('^@(.*)@$', '\\1', font_decorator)
+        if self.mincho_font != font or self.gothic_font != font:
+            self.mincho_font = font
+            self.gothic_font = font
+        else:
+            self.mincho_font = Form.mincho_font
+            self.gothic_font = Form.gothic_font
+
+    # def apply_font_size_font_decorator(self, font_decorator):
+    #     self.font_size = Form.font_size
+
+    def apply_font_color_font_decorator(self, font_decorator):
+        color = re.sub('^\\^(.*)\\^$', '\\1', font_decorator)
+        if color == '':
+            color = 'FFFFFF'
+            self.font_color = 'FFFFFF'
+        elif re.match('^([0-9A-F])([0-9A-F])([0-9A-F])$', color):
+            color = re.sub('^([0-9A-F])([0-9A-F])([0-9A-F])$',
+                           '\\1\\1\\2\\2\\3\\3', color)
+        elif color in FONT_COLOR:
+            color = FONT_COLOR[color]
+        if self.font_color == color:
+            self.font_color = None
+        else:
+            self.font_color = color
+
+    def apply_highlight_color_font_decorator(self, font_decorator):
+        color = re.sub('^_(.*)_$', '\\1', font_decorator)
+        if color in HIGHLIGHT_COLOR:
+            color = HIGHLIGHT_COLOR[color]
+            if self.highlight_color == color:
+                self.highlight_color = None
+            else:
+                self.highlight_color = color
+        else:
+            self.highlight_color = None
+
+    def apply_sub_or_sup_font_decorator(self, font_decorator):
+        if font_decorator == '_{':
+            self.sub_or_sup = 'sub'
+        elif font_decorator == '^{':
+            self.sub_or_sup = 'sup'
+        elif font_decorator == '}':
+            self.sub_or_sup = ''
+        else:
+            self.sub_or_sup = ''
+
+    def apply_track_changes_font_decorator(self, font_decorator):
+        if font_decorator == '->' and self.track_changes == '':
+            self.track_changes = 'del'
+        elif font_decorator == '<-' and self.track_changes == 'del':
+            self.track_changes = ''
+        elif font_decorator == '+>' and self.track_changes == '':
+            self.track_changes = 'ins'
+        elif font_decorator == '<+' and self.track_changes == 'ins':
+            self.track_changes = ''
+        else:
+            self.track_changes = ''
 
 
 class XML:
@@ -4267,12 +4429,12 @@ class Paragraph:
               re.match(NOT_ESCAPED + '}$', unit)):
             # "}" (END OF SUB OR SUP)
             if re.match('^_{', unit):
-                chars_state.sub_or_sup = 'sub'
+                chars_state.apply_sub_or_sup_font_decorator('_{')
             else:
-                chars_state.sub_or_sup = 'sup'
+                chars_state.apply_sub_or_sup_font_decorator('^{')
             unit = re.sub('^(?:_|\\^){(.*)}', '\\1', unit)
             unit = self.write_text(ms_par, chars_state, unit, type)
-            chars_state.sub_or_sup = ''
+            chars_state.apply_sub_or_sup_font_decorator('}')
         elif re.match(NOT_ESCAPED + RES_IMAGE, unit):
             # "![.*](.+)" (IMAGE)
             path = re.sub(NOT_ESCAPED + RES_IMAGE, '\\3', unit)
@@ -4284,35 +4446,35 @@ class Paragraph:
             # "***" (ITALIC AND BOLD)
             unit = re.sub('\\*\\*\\*$', '', unit)
             unit = XML.write_unit(ms_par._p, chars_state, unit)
-            chars_state.is_bold = not chars_state.is_bold
-            chars_state.is_italic = not chars_state.is_italic
+            chars_state.apply_is_italic_font_decorator('***')
+            chars_state.apply_is_bold_font_decorator('***')
         elif re.match(NOT_ESCAPED + '\\*\\*$', unit):
             # "**" BOLD
             unit = re.sub('\\*\\*$', '', unit)
             unit = XML.write_unit(ms_par._p, chars_state, unit)
-            chars_state.is_bold = not chars_state.is_bold
+            chars_state.apply_is_bold_font_decorator('**')
         elif re.match(NOT_ESCAPED + '\\*$', unit):
             # "*" ITALIC
             unit = re.sub('\\*$', '', unit)
             unit = XML.write_unit(ms_par._p, chars_state, unit)
-            chars_state.is_italic = not chars_state.is_italic
+            chars_state.apply_is_italic_font_decorator('*')
         elif re.match(NOT_ESCAPED + '~~$', unit):
             # "~~" (STRIKETHROUGH)
             unit = re.sub('~~$', '', unit)
             unit = XML.write_unit(ms_par._p, chars_state, unit)
-            chars_state.has_strike = not chars_state.has_strike
+            chars_state.apply_has_strike_font_decorator('~~')
         elif re.match(NOT_ESCAPED + '`$', unit):
             # "`" (PREFORMATTED)
             unit = re.sub('`$', '', unit)
             unit = XML.write_unit(ms_par._p, chars_state, unit)
-            chars_state.is_preformatted = not chars_state.is_preformatted
+            chars_state.apply_is_preformatted_font_decorator('`')
         elif re.match(NOT_ESCAPED + '//$', unit):
             # "//" (ITALIC)
             if not re.match('^.*[a-z]+://$', unit):
                 # not http:// https:// ftp:// ...
                 unit = re.sub('//$', '', unit)
                 unit = XML.write_unit(ms_par._p, chars_state, unit)
-                chars_state.is_italic = not chars_state.is_italic
+                chars_state.apply_is_italic_font_decorator('//')
         elif re.match(NOT_ESCAPED + '_([\\$=\\.#\\-~\\+]{,4})_$', unit):
             # "_.*_" (UNDERLINE)
             sty = re.sub(NOT_ESCAPED + '_([\\$=\\.#\\-~\\+]{,4})_$', '\\2',
@@ -4320,88 +4482,61 @@ class Paragraph:
             if sty in UNDERLINE:
                 unit = re.sub('_([\\$=\\.#\\-~\\+]{,4})_$', '', unit, 1)
                 unit = XML.write_unit(ms_par._p, chars_state, unit)
-                ul = UNDERLINE[sty]
-                if chars_state.underline != ul:
-                    chars_state.underline = ul
-                else:
-                    chars_state.underline = None
+                chars_state.apply_underline_font_decorator('_' + sty + '_')
         elif re.match(NOT_ESCAPED + '\\-\\-\\-$', unit):
             # "---" (XSMALL)
             unit = re.sub('\\-\\-\\-$', '', unit)
             unit = XML.write_unit(ms_par._p, chars_state, unit)
             if chars_state.font_scale == 0.8:
-                chars_state.font_scale = 1.0
+                chars_state.apply_font_scale_font_decorator('--')
                 unit += '-'
-            elif chars_state.font_scale != 0.6:
-                chars_state.font_scale = 0.6
             else:
-                chars_state.font_scale = 1.0
+                chars_state.apply_font_scale_font_decorator('---')
         elif re.match(NOT_ESCAPED + '\\-\\-$', unit):
             # "--" (SMALL)
             unit = re.sub('\\-\\-$', '', unit)
             unit = XML.write_unit(ms_par._p, chars_state, unit)
-            if chars_state.font_scale != 0.8:
-                chars_state.font_scale = 0.8
-            else:
-                chars_state.font_scale = 1.0
+            chars_state.apply_font_scale_font_decorator('--')
         elif re.match(NOT_ESCAPED + '\\+\\+\\+$', unit):
             # "+++" (XLARGE)
             unit = re.sub('\\+\\+\\+$', '', unit)
             unit = XML.write_unit(ms_par._p, chars_state, unit)
             if chars_state.font_scale == 1.2:
-                chars_state.font_scale = 1.0
+                chars_state.apply_font_scale_font_decorator('++')
                 unit += '+'
-            elif chars_state.font_scale != 1.4:
-                chars_state.font_scale = 1.4
             else:
-                chars_state.font_scale = 1.0
+                chars_state.apply_font_scale_font_decorator('+++')
         elif re.match(NOT_ESCAPED + '\\+\\+$', unit):
             # "++" (LARGE)
             unit = re.sub('\\+\\+$', '', unit)
             unit = XML.write_unit(ms_par._p, chars_state, unit)
-            if chars_state.font_scale != 1.2:
-                chars_state.font_scale = 1.2
-            else:
-                chars_state.font_scale = 1.0
+            chars_state.apply_font_scale_font_decorator('++')
         elif re.match(NOT_ESCAPED + '<<<$', unit):
             # "<<<" (XWIDE or RESET)
             unit = re.sub('<<<$', '', unit)
             unit = XML.write_unit(ms_par._p, chars_state, unit)
-            if chars_state.font_width < 0.7:
-                chars_state.font_width = 1.0
-            elif chars_state.font_width < 1.0:
-                chars_state.font_width = 1.0
+            if chars_state.font_width == 0.8:
+                chars_state.apply_font_width_font_decorator('<<')
                 unit += '<'
             else:
-                chars_state.font_width = 1.4
+                chars_state.apply_font_width_font_decorator('<<<')
         elif re.match(NOT_ESCAPED + '<<$', unit):
             # "<<" (WIDE or RESET)
             unit = re.sub('<<$', '', unit)
             unit = XML.write_unit(ms_par._p, chars_state, unit)
-            if chars_state.font_width < 1.0:
-                chars_state.font_width = 1.0
-            else:
-                chars_state.font_width = 1.2
+            chars_state.apply_font_width_font_decorator('<<')
         elif re.match(NOT_ESCAPED + '>>>$', unit):
             # ">>>" (XNARROW or RESET)
-            if not re.match(NOT_ESCAPED + '<>>>$', unit):
-                unit = re.sub('>>>$', '', unit)
-                unit = XML.write_unit(ms_par._p, chars_state, unit)
-                if chars_state.font_width > 1.3:
-                    chars_state.font_width = 1.0
-                elif chars_state.font_width > 1.0:
-                    chars_state.font_width = 1.0
-                    unit += '>'
-                else:
-                    chars_state.font_width = 0.6
-            else:
+            if re.match(NOT_ESCAPED + '<>>>$', unit):
                 # "<>>>" = "<>" + ">>"
-                unit = re.sub('>>$', '', unit)
-                unit = XML.write_unit(ms_par._p, chars_state, unit)
-                if chars_state.font_width > 1.0:
-                    chars_state.font_width = 1.0
-                else:
-                    chars_state.font_width = 0.8
+                return unit
+            unit = re.sub('>>>$', '', unit)
+            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            if chars_state.font_width == 1.2:
+                chars_state.apply_font_width_font_decorator('>>')
+                unit += '>'
+            else:
+                chars_state.apply_font_width_font_decorator('>>>')
         elif re.match(NOT_ESCAPED + '>>$', unit):
             # ">>" (NARROW or RESET)
             if re.match(NOT_ESCAPED + '<>>$', unit):
@@ -4409,22 +4544,13 @@ class Paragraph:
                 return unit
             unit = re.sub('>>$', '', unit)
             unit = XML.write_unit(ms_par._p, chars_state, unit)
-            if chars_state.font_width > 1.0:
-                chars_state.font_width = 1.0
-            else:
-                chars_state.font_width = 0.8
+            chars_state.apply_font_width_font_decorator('>>')
         elif re.match(NOT_ESCAPED + '@([^@]{1,66})@$', unit):
             # "@.+@" (FONT)
             font = re.sub(NOT_ESCAPED + '@([^@]{1,66})@$', '\\2', unit)
             unit = re.sub(NOT_ESCAPED + '@([^@]{1,66})@$', '\\1', unit)
             unit = XML.write_unit(ms_par._p, chars_state, unit)
-            if chars_state.mincho_font != font or \
-               chars_state.gothic_font != font:
-                chars_state.mincho_font = font
-                chars_state.gothic_font = font
-            else:
-                chars_state.mincho_font = Form.mincho_font
-                chars_state.gothic_font = Form.gothic_font
+            chars_state.apply_font_name_font_decorator('@' + font + '@')
         elif re.match(res_ivs, unit):
             # .[0-9]+; (IVS (IDEOGRAPHIC VARIATION SEQUENCE))
             ivsn = re.sub(res_ivs, '\\3', unit)
@@ -4453,41 +4579,35 @@ class Paragraph:
             if re.match('^[0-9A-F]{6}$', col):
                 unit = re.sub('\\^([0-9A-Za-z]*)\\^$', '', unit)
                 unit = XML.write_unit(ms_par._p, chars_state, unit)
-                if chars_state.font_color != col:
-                    chars_state.font_color = col
-                else:
-                    chars_state.font_color = None
+                chars_state.apply_font_color_font_decorator('^' + col + '^')
         elif re.match(res_hlc, unit):
             # "_.+_" (HIGHLIGHT COLOR)
             col = re.sub(res_hlc, '\\2', unit)
             if col in HIGHLIGHT_COLOR:
                 unit = re.sub(res_hlc, '\\1', unit)
                 unit = XML.write_unit(ms_par._p, chars_state, unit)
-                col = HIGHLIGHT_COLOR[col]
-                if chars_state.highlight_color != col:
-                    chars_state.highlight_color = col
-                else:
-                    chars_state.highlight_color = None
+                fd = '_' + col + '_'
+                chars_state.apply_highlight_color_font_decorator(fd)
         elif re.match(NOT_ESCAPED + '\\->$', unit):
             # "->" (BEGINNING OF DELETED)
             unit = re.sub('\\->$', '', unit)
             unit = XML.write_unit(ms_par._p, chars_state, unit)
-            chars_state.track_changes = 'del'
+            chars_state.apply_track_changes_font_decorator('->')
         elif re.match(NOT_ESCAPED + '<\\-$', unit):
             # "<-" (END OF DELETED)
             unit = re.sub('<\\-$', '', unit)
             unit = XML.write_unit(ms_par._p, chars_state, unit)
-            chars_state.track_changes = ''
+            chars_state.apply_track_changes_font_decorator('<-')
         elif re.match(NOT_ESCAPED + '\\+>$', unit):
             # "+>" (BEGINNING OF INSERTED)
             unit = re.sub('\\+>$', '', unit)
             unit = XML.write_unit(ms_par._p, chars_state, unit)
-            chars_state.track_changes = 'ins'
+            chars_state.apply_track_changes_font_decorator('+>')
         elif re.match(NOT_ESCAPED + '<\\+$', unit):
             # "<+" (END OF INSERTED)
             unit = re.sub('<\\+$', '', unit)
             unit = XML.write_unit(ms_par._p, chars_state, unit)
-            chars_state.track_changes = ''
+            chars_state.apply_track_changes_font_decorator('<+')
         elif re.match(NOT_ESCAPED + '<([^<>]{1,37}?)/([^<>]{1,37}?)>$', unit):
             # "<.+/.+>" (RUBY)
             res = '<([^<>]{1,37}?)/([^<>]{1,37}?)>'
