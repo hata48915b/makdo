@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.21-09:23:25-JST>
+# Time-stamp:   <2024.06.21-09:31:17-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1900,15 +1900,6 @@ class Form:
             return False
         Form.original_file = value
         return True
-
-
-class CharsDatum:
-
-    """A class to keep characters data"""
-
-    def __init__(self, chars, chars_state):
-        self.chars = chars
-        self.chars_state = chars_state.copy()
 
 
 class CharsState:
