@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.21-10:45:05-JST>
+# Time-stamp:   <2024.06.21-11:15:23-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6454,10 +6454,22 @@ class ParagraphTable(Paragraph):
             return True
         return False
 
+    def _get_revisers_and_md_text(self, raw_text):
+        numbering_revisers = []
+        head_font_revisers, tail_font_revisers, raw_text \
+            = Paragraph._get_font_revisers_and_md_text(raw_text)
+        self.head_font_revisers = head_font_revisers
+        self.tail_font_revisers = tail_font_revisers
+        md_text = self._get_md_text(raw_text)
+        return numbering_revisers, head_font_revisers, tail_font_revisers, \
+            md_text
+
     def _get_md_text(self, raw_text):
         m_size = Form.font_size
         t_size = m_size * TABLE_FONT_SCALE
         xml_lines = self.xml_lines
+        head_font_revisers = self.head_font_revisers
+        tail_font_revisers = self.tail_font_revisers
         is_in_row = False
         is_in_cel = False
         geta_height, geta_width = 1.5, 1.5
@@ -6580,6 +6592,21 @@ class ParagraphTable(Paragraph):
                 text_data, images \
                     = RawParagraph._get_chars_data_and_images('w:tbl', cell)
                 raw_text = RawParagraph._get_raw_text(text_data)
+                # FONT REVISERS
+                while True:
+                    tmp_text = raw_text
+                    for hfr in head_font_revisers:
+                        for k in ['^', '$', '.', '*', '+']:
+                            hfr = hfr.replace(k, '\\' + k)
+                        tmp_text = re.sub('^' + hfr, '', tmp_text)
+                    for tfr in tail_font_revisers:
+                        for k in ['^', '$', '.', '*', '+']:
+                            tfr = tfr.replace(k, '\\' + k)
+                        tmp_text = re.sub(tfr + '$', '', tmp_text)
+                    if tmp_text == raw_text:
+                        raw_text = tmp_text
+                        break
+                    raw_text = tmp_text
                 if is_in_head:
                     if not re.match('^:-+:$', ali[i][j]):
                         if re.match('^:-+$', ali[i][j]):
@@ -6640,13 +6667,6 @@ class ParagraphTable(Paragraph):
                 md_text = re.sub('<br>([^\\|])', '<br>\\\n    \\1', md_text)
                 break
         return md_text
-
-    def get_text_to_write_with_reviser(self):
-        self.head_font_revisers = []
-        self.tail_font_revisers = []
-        text_to_write_with_reviser = super().get_text_to_write_with_reviser()
-        # self.text_to_write_with_reviser = text_to_write_with_reviser
-        return text_to_write_with_reviser
 
 
 class ParagraphImage(Paragraph):
