@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.21-08:39:49-JST>
+# Time-stamp:   <2024.06.21-09:23:25-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4243,7 +4243,7 @@ class Paragraph:
         return text_to_write_with_reviser
 
     def write_paragraph(self, ms_doc):
-        # CHAR STATE
+        # CHARS STATE
         self.beg_chars_state = Paragraph.bridge_chars_state.copy()
         self.chars_state = self.beg_chars_state.copy()
         paragraph_class = self.paragraph_class
@@ -4283,6 +4283,7 @@ class Paragraph:
             chars_state.font_scale = 1.0
         else:
             self.write_text(ms_par, chars_state, text_to_write_with_reviser)
+        # CHARS STATE
         self.end_chars_state = self.chars_state.copy()
         Paragraph.bridge_chars_state = self.end_chars_state.copy()
 
@@ -4986,6 +4987,10 @@ class ParagraphTable(Paragraph):
     res_feature = '^\\|.*\\|(:?-*:?)?(\\^+|=+)?$'
 
     def write_paragraph(self, ms_doc):
+        # CHARS STATE
+        self.beg_chars_state = Paragraph.bridge_chars_state.copy()
+        self.chars_state = self.beg_chars_state.copy()
+        self.chars_state.apply_font_decorators(self.head_font_revisers)
         md_lines = self.md_lines
         length_docx = self.length_docx
         chars_state = self.chars_state
@@ -5086,6 +5091,10 @@ class ParagraphTable(Paragraph):
                     XML.add_tag(ms_tcbr, 'w:left', {'w:val': 'double'})
                 if hori_rule_list[j] == '=':
                     XML.add_tag(ms_tcbr, 'w:right', {'w:val': 'double'})
+        # CHARS STATE
+        self.chars_state.apply_font_decorators(self.tail_font_revisers)
+        self.end_chars_state = self.chars_state.copy()
+        Paragraph.bridge_chars_state = self.end_chars_state.copy()
 
     def _get_tab_and_place_and_list(self, md_lines):
         tab_lines = self._get_tab_lines(md_lines)
