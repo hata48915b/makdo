@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.21-09:31:17-JST>
+# Time-stamp:   <2024.06.21-11:28:33-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -2027,7 +2027,7 @@ class CharsState:
     def apply_underline_font_decorator(self, font_decorator='__'):
         underline = re.sub('^_(.*)_$', '\\1', font_decorator)
         if underline in UNDERLINE:
-            if self.underline == underline:
+            if self.underline == UNDERLINE[underline]:
                 self.underline = None
             else:
                 self.underline = UNDERLINE[underline]

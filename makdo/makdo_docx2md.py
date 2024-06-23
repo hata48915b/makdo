@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.21-11:15:23-JST>
+# Time-stamp:   <2024.06.23-12:17:18-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5194,6 +5194,7 @@ class Paragraph:
         lnsp = Form.line_spacing
         xls = self.xml_lines
         head_space = self.head_space
+        paragraph_class = self.paragraph_class
         length_docx \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
@@ -5221,6 +5222,8 @@ class Paragraph:
             li_xml = XML.get_value('w:ind', 'w:left', li_xml, xl)
             ri_xml = XML.get_value('w:ind', 'w:right', ri_xml, xl)
             ti_xml = XML.get_value('w:tblInd', 'w:w', ti_xml, xl)
+        if paragraph_class == 'table':
+            ls_xml -= 288.0
         length_docx['space before'] = round(sb_xml / 20 / m_size / lnsp, 2)
         length_docx['space after'] = round(sa_xml / 20 / m_size / lnsp, 2)
         ls = 0.0
@@ -6455,217 +6458,449 @@ class ParagraphTable(Paragraph):
         return False
 
     def _get_revisers_and_md_text(self, raw_text):
+        xml_lines = self.xml_lines
         numbering_revisers = []
-        head_font_revisers, tail_font_revisers, raw_text \
-            = Paragraph._get_font_revisers_and_md_text(raw_text)
-        self.head_font_revisers = head_font_revisers
-        self.tail_font_revisers = tail_font_revisers
-        md_text = self._get_md_text(raw_text)
+        xml_tbl, v_rlen_clm, h_rlen_row = self.__get_raw_table_data(xml_lines)
+        txt_tbl = self.__get_txt_table(xml_tbl)
+        h_frs, t_frs = self.__get_font_revisers(txt_tbl)
+        head_font_revisers, tail_font_revisers = h_frs, t_frs
+        txt_tbl = self.__remove_or_settle_font_revisers(h_frs, t_frs, txt_tbl)
+        std_row, std_clm = self.__get_standard_row_and_column(txt_tbl)
+        num_row, num_clm \
+            = self.__get_number_of_row_and_column(txt_tbl, std_row, std_clm)
+        font_size = self.__get_font_size(h_frs, t_frs)
+        v_clen_clm, h_clen_row \
+            = self.__get_length_in_char_units(v_rlen_clm, h_rlen_row,
+                                              font_size)
+        v_alig_tbl, h_alig_tbl, v_rule_tbl, h_rule_tbl \
+            = self.__get_cell_state(xml_tbl)
+        v_conf_clm, h_conf_row = self.__get_confs(num_row, num_clm,
+                                                  std_row, std_clm,
+                                                  v_clen_clm, h_clen_row,
+                                                  v_alig_tbl, h_alig_tbl,
+                                                  v_rule_tbl, h_rule_tbl)
+        md_text = self.__get_md_text(txt_tbl, std_row, std_clm,
+                                     v_alig_tbl, h_alig_tbl,
+                                     v_rule_tbl, h_rule_tbl,
+                                     v_conf_clm, h_conf_row)
+        md_text = self.__split_long_lines(md_text)
         return numbering_revisers, head_font_revisers, tail_font_revisers, \
             md_text
 
-    def _get_md_text(self, raw_text):
-        m_size = Form.font_size
-        t_size = m_size * TABLE_FONT_SCALE
-        xml_lines = self.xml_lines
-        head_font_revisers = self.head_font_revisers
-        tail_font_revisers = self.tail_font_revisers
+    @staticmethod
+    def __get_raw_table_data(xml_lines):
+        xml_tbl, v_rlen_clm, h_rlen_row = [], [], []
+        res_row_beg = '^<w:tr( .*)?>$'
+        res_row_end = '^</w:tr( .*)?>$'
+        res_cel_beg = '^<w:tc( .*)?>$'
+        res_cel_end = '^</w:tc( .*)?>'
+        res_v_len = '^<w:trHeight(?: .*)? w:val=[\'"]([0-9]+)[\'"](?: .*)?/>$'
+        res_h_len = '^<w:gridCol(?: .*)? w:w=[\'"]([0-9]+)[\'"](?: .*)?/>$'
         is_in_row = False
         is_in_cel = False
-        geta_height, geta_width = 1.5, 1.5
-        tab = []
-        wid = []
-        hei = []
         for xl in xml_lines:
-            if re.match('^<w:gridCol(?: .*)?/>$', xl):
-                res = '^<(?:.* )?w:w=.*[\'"]([0-9]+)[\'"](?: .*)?/>$'
-                w = 0
-                if re.match(res, xl):
-                    wt = re.sub(res, '\\1', xl)
-                    w = round((float(wt) / t_size / 10) - (geta_width * 2))
-                wid.append(w)
-            if re.match('^<w:tr(?: .*)?>$', xl):
-                h = 0
-                res = '^<(?:.* )?w:val=.*[\'"]([0-9]+)[\'"](?: .*)?/>$'
-                if re.match(res, xl):
-                    ht = re.sub(res, '\\1', xl)
-                    h = round((float(ht) / t_size / 10) - (geta_height * 2))
-                hei.append(h)
-            if is_in_cel:
-                cell.append(xl)
-                if ('</w:p>' in cell) and re.match('<w:p( .*)?>', xl):
-                    cell.append('\n')
-            if re.match('<w:tr( .*)?>', xl):
-                row = []
+            if re.match(res_row_beg, xl):
+                xml_row = []
                 is_in_row = True
-            elif xl == '<w:tc>':
-                cell = []
-                is_in_cel = True
-            elif xl == '</w:tc>':
-                row.append(cell)
-                is_in_cel = False
-            elif xl == '</w:tr>':
-                tab.append(row)
+                continue
+            if re.match(res_row_end, xl):
                 is_in_row = False
-        # GET LONGEST ROW
-        longest_row = 0
-        max_length = 0
-        for i, row in enumerate(tab):
-            if len(row) > max_length:
-                max_length = len(row)
-                longest_row = i
-        # GET CONFIGURE ROW
-        if len(tab) == 1:
+                xml_tbl.append(xml_row)
+                continue
+            if re.match(res_cel_beg, xl):
+                xml_cel = []
+                is_in_cel = True
+                continue
+            if re.match(res_cel_end, xl):
+                xml_row.append(xml_cel)
+                is_in_cel = False
+                continue
+            if is_in_cel:
+                if ('</w:p>' in xml_cel) and re.match('<w:p( .*)?>', xl):
+                    xml_cel.append('<w:br/>')
+                xml_cel.append(xl)
+            if re.match(res_v_len, xl):
+                while len(v_rlen_clm) < len(xml_tbl):
+                    v_rlen_clm.append(0)
+                val = re.sub(res_v_len, '\\1', xl)
+                v_rlen_clm.append(int(val))
+            if re.match(res_h_len, xl):
+                val = re.sub(res_h_len, '\\1', xl)
+                h_rlen_row.append(int(val))
+        return xml_tbl, v_rlen_clm, h_rlen_row
+
+    @staticmethod
+    def __get_txt_table(xml_tbl):
+        txt_tbl = []
+        for row in xml_tbl:
+            txt_row = []
+            for cell in row:
+                chars_data, images \
+                    = RawParagraph._get_chars_data_and_images('w:tbl', cell)
+                raw_text = RawParagraph._get_raw_text(chars_data)
+                txt_row.append(raw_text)
+            txt_tbl.append(txt_row)
+        return txt_tbl
+
+    @staticmethod
+    def __get_font_revisers(txt_tab):
+        # GET CANDIDATES
+        head_font_revisers, tail_font_revisers = [], []
+        for row in txt_tab:
+            for cell in row:
+                h_frs, t_frs, _ \
+                    = Paragraph._get_font_revisers_and_md_text(cell)
+                for fr in h_frs:
+                    if fr not in head_font_revisers:
+                        head_font_revisers.append(fr)
+                for fr in t_frs:
+                    if fr not in tail_font_revisers:
+                        tail_font_revisers.append(fr)
+        tail_font_revisers.reverse()
+        # CHECK THE FREQUENCY
+        for h_fr in head_font_revisers:
+            n, m = 0, 0
+            efr = h_fr
+            for k in ['^', '$', '.', '*', '+']:
+                efr = efr.replace(k, '\\' + k)
+            for row in txt_tab:
+                for cell in row:
+                    if re.match('^' + efr + '.*$', cell):
+                        n += 1
+                    m += 1
+            if (n * 2) < m:
+                head_font_revisers.remove(h_fr)
+        for t_fr in tail_font_revisers:
+            n, m = 0, 0
+            efr = t_fr
+            for k in ['^', '$', '.', '*', '+']:
+                efr = efr.replace(k, '\\' + k)
+            for row in txt_tab:
+                for cell in row:
+                    if re.match('^.*' + efr + '$', cell):
+                        n += 1
+                    m += 1
+            if (n * 2) < m:
+                tail_font_revisers.remove(t_fr)
+        # FIND THE PARTNER
+        for h_fr in head_font_revisers:
+            t_fr = h_fr
+            t_fr = t_fr.replace('>', '\\>')
+            t_fr = t_fr.replace('<', '\\<')
+            t_fr = t_fr.replace('\\>', '<')
+            t_fr = t_fr.replace('\\<', '>')
+            if t_fr not in tail_font_revisers:
+                head_font_revisers.remove(h_fr)
+        for t_fr in tail_font_revisers:
+            h_fr = t_fr
+            h_fr = h_fr.replace('>', '\\>')
+            h_fr = h_fr.replace('<', '\\<')
+            h_fr = h_fr.replace('\\>', '<')
+            h_fr = h_fr.replace('\\<', '>')
+            if h_fr not in head_font_revisers:
+                tail_font_revisers.remove(t_fr)
+        return head_font_revisers, tail_font_revisers
+
+    @staticmethod
+    def __remove_or_settle_font_revisers(h_frs, t_frs, txt_tbl):
+        for i, row in enumerate(txt_tbl):
+            for j, cell in enumerate(row):
+                tmp_h_frs, tmp_t_frs = [], []
+                for fr in h_frs:
+                    tmp_h_frs.append(fr)
+                for fr in t_frs:
+                    tmp_t_frs.append(fr)
+                # REMOVE
+                cell_txt = cell
+                while True:
+                    tmp_txt = cell_txt
+                    for h_fr in tmp_h_frs:
+                        efr = h_fr
+                        for k in ['^', '$', '.', '*', '+']:
+                            efr = efr.replace(k, '\\' + k)
+                        res = '^' + efr + '((?:.|\n)*)$'
+                        if re.match(res, tmp_txt):
+                            tmp_txt = re.sub(res, '\\1', tmp_txt)
+                            tmp_h_frs.remove(h_fr)
+                    for t_fr in tmp_t_frs:
+                        efr = t_fr
+                        for k in ['^', '$', '.', '*', '+']:
+                            efr = fr.replace(k, '\\' + k)
+                        res = NOT_ESCAPED + efr + '$'
+                        if re.match(res, tmp_txt):
+                            tmp_txt = re.sub(res, '\\1', tmp_txt)
+                            tmp_t_frs.remove(t_fr)
+                    if tmp_txt == cell_txt:
+                        cell_txt = tmp_txt
+                        break
+                    cell_txt = tmp_txt
+                # SETTLE
+                for fr in tmp_h_frs:
+                    fr = fr.replace('>', '\\>')
+                    fr = fr.replace('<', '\\<')
+                    fr = fr.replace('\\>', '<')
+                    fr = fr.replace('\\<', '>')
+                    cell_txt = fr + cell_txt
+                for fr in tmp_t_frs:
+                    fr = fr.replace('>', '\\>')
+                    fr = fr.replace('<', '\\<')
+                    fr = fr.replace('\\>', '<')
+                    fr = fr.replace('\\<', '>')
+                    cell_txt = cell_txt + fr
+                txt_tbl[i][j] = cell_txt
+        return txt_tbl
+
+    @staticmethod
+    def __get_standard_row_and_column(txt_tbl):
+        shorest = -1
+        longest = -1
+        for i in range(len(txt_tbl)):
+            leng = len(txt_tbl[i])
+            if shorest == -1 or shorest > leng:
+                shorest = leng
+            #     sh_list = []
+            # if leng == shorest:
+            #     sh_list.append(i)
+            if longest == -1 or longest < leng:
+                longest = leng
+                lo_list = []
+            if leng == longest:
+                lo_list.append(i)
+        # ROW
+        tmp_len = len(lo_list)
+        if tmp_len == 1:
             half_row = 0
         else:
-            half_row = int(len(tab) / 2) + (len(tab) % 2)
-        conf_row = half_row
-        if longest_row > 0:
-            conf_row = longest_row
-        # GET NIL OR DOUBLE LINE (ROW)
-        row_line = []
-        for i in range(len(tab)):
-            for tag in tab[i][0]:
-                if re.match('^<w:bottom w:val="nil"( .+)?/>$', tag):
-                    row_line.append('nil')
-                    break
-                if re.match('^<w:bottom w:val="double"( .+)?/>$', tag):
-                    row_line.append('double')
-                    break
-            else:
-                row_line.append('')
-        # GET NIL OR DOUBLE LINE (COLUMN)
-        i = longest_row
-        col_line = []
-        for j in range(len(tab[i])):
-            for tag in tab[i][j]:
-                if re.match('^<w:right w:val="nil"( .+)?/>$', tag):
-                    col_line.append('nil')
-                    break
-                if re.match('^<w:right w:val="double"( .+)?/>$', tag):
-                    col_line.append('double')
-                    break
-            else:
-                col_line.append('')
-        # GET ALIGNMENT
-        ali = []
-        for row in tab:
-            tmp = []
+            half_row = int(tmp_len / 2) + int(tmp_len % 2)
+        std_row = lo_list[half_row]
+        # COLUMN
+        tmp_len = shorest
+        if tmp_len == 1:
+            half_clm = 0
+        else:
+            half_clm = int(tmp_len / 2) + int(tmp_len % 2)
+        std_clm = half_clm
+        # RETURN
+        return std_row, std_clm
+
+    @staticmethod
+    def __get_number_of_row_and_column(txt_tbl, std_row, std_clm):
+        num_row = len(txt_tbl)
+        num_clm = len(txt_tbl[std_row])
+        return num_row, num_clm
+
+    @staticmethod
+    def __get_font_size(h_frs, t_frs):
+        font_size = Form.font_size * 1.0
+        for fr in h_frs:
+            if fr == '---':
+                font_size = Form.font_size * 0.6
+            elif fr == '--':
+                font_size = Form.font_size * 0.8
+            elif fr == '++':
+                font_size = Form.font_size * 1.2
+            elif fr == '+++':
+                font_size = Form.font_size * 1.4
+        return font_size
+
+    @staticmethod
+    def __get_length_in_char_units(v_rlen_clm, h_rlen_row, font_size):
+        geta_height, geta_width = 1.5, 1.5
+        v_clen_clm, h_clen_row = [], []
+        for rlen in v_rlen_clm:
+            clen = round((float(rlen) / font_size / 5) - (geta_height * 2))
+            if clen < 0:
+                clen = 0
+            v_clen_clm.append(clen)
+        for rlen in h_rlen_row:
+            clen = round((float(rlen) / font_size / 5) - (geta_width * 2))
+            if clen < 0:
+                clen = 0
+            h_clen_row.append(clen)
+        return v_clen_clm, h_clen_row
+
+    @staticmethod
+    def __get_cell_state(xml_tbl):
+        v_alig_tbl, h_alig_tbl, v_rule_tbl, h_rule_tbl = [], [], [], []
+        res_v_top = '^<w:vAlign(?: .*)? w:val=[\'"]top[\'"](?: .*)?/>$'
+        res_v_cen = '^<w:vAlign(?: .*)? w:val=[\'"]center[\'"](?: .*)?/>$'
+        res_v_bot = '^<w:vAlign(?: .*)? w:val=[\'"]bottom[\'"](?: .*)?/>$'
+        res_h_lef = '^<w:jc(?: .*)? w:val=[\'"]left[\'"](?: .*)?/>$'
+        res_h_cen = '^<w:jc(?: .*)? w:val=[\'"]center[\'"](?: .*)?/>$'
+        res_h_rig = '^<w:jc(?: .*)? w:val=[\'"]right[\'"](?: .*)?/>$'
+        res_v_nil = '^<w:right(?: .*)? w:val=[\'"]nil[\'"]( .*)?/>$'
+        res_v_dbl = '^<w:right(?: .*)? w:val=[\'"]double[\'"]( .*)?/>$'
+        res_h_nil = '^<w:bottom(?: .*)? w:val=[\'"]nil[\'"]( .*)?/>$'
+        res_h_dbl = '^<w:bottom(?: .*)? w:val=[\'"]double[\'"]( .*)?/>$'
+        for i, row in enumerate(xml_tbl):
+            v_alig_row, h_alig_row, v_rule_row, h_rule_row = [], [], [], []
             for j, cell in enumerate(row):
+                v_alig_val, h_alig_val, v_rule_val, h_rule_val = '', '', '', ''
                 for xml in cell:
-                    if re.match('<w:jc w:val=[\'"]left[\'"]/>', xml):
-                        if wid[j] == 0:
-                            tmp.append('')
-                        if wid[j] == 1:
-                            tmp.append('-')
-                        else:
-                            tmp.append(':' + '-' * (wid[j] - 1))
-                        break
-                    elif re.match('<w:jc w:val=[\'"]center[\'"]/>', xml):
-                        if wid[j] == 1:
-                            tmp.append(':')
-                        else:
-                            tmp.append(':' + '-' * (wid[j] - 2) + ':')
-                        break
-                    elif re.match('<w:jc w:val=[\'"]right[\'"]/>', xml):
-                        tmp.append('-' * (wid[j] - 1) + ':')
-                        break
+                    if re.match(res_v_top, xml):
+                        v_alig_val = 'T'
+                    elif re.match(res_v_cen, xml):
+                        v_alig_val = 'C'
+                    elif re.match(res_v_bot, xml):
+                        v_alig_val = 'B'
+                    elif re.match(res_h_lef, xml):
+                        h_alig_val = 'L'
+                    elif re.match(res_h_cen, xml):
+                        h_alig_val = 'C'
+                    elif re.match(res_h_rig, xml):
+                        h_alig_val = 'R'
+                    elif re.match(res_v_nil, xml):
+                        v_rule_val = 'N'
+                    elif re.match(res_v_dbl, xml):
+                        v_rule_val = 'D'
+                    elif re.match(res_h_nil, xml):
+                        h_rule_val = 'N'
+                    elif re.match(res_h_dbl, xml):
+                        h_rule_val = 'D'
+                v_alig_row.append(v_alig_val)
+                h_alig_row.append(h_alig_val)
+                v_rule_row.append(v_rule_val)
+                h_rule_row.append(h_rule_val)
+            v_alig_tbl.append(v_alig_row)
+            h_alig_tbl.append(h_alig_row)
+            v_rule_tbl.append(v_rule_row)
+            h_rule_tbl.append(h_rule_row)
+        return v_alig_tbl, h_alig_tbl, v_rule_tbl, h_rule_tbl
+
+    @staticmethod
+    def __get_confs(num_row, num_clm,
+                    std_row, std_clm,
+                    v_clen_clm, h_clen_row,
+                    v_alig_tbl, h_alig_tbl,
+                    v_rule_tbl, h_rule_tbl):
+        v_conf_clm = ['' for i in range(num_row)]
+        h_conf_row = ['' for i in range(num_clm)]
+        for i in range(num_row):
+            # VERTUAL CONFIGURATIONS
+            # ""=C / "-"=T / ":"=C / ":-*"=T / ":-*:"=C / "-*:"=B
+            if v_alig_tbl[i][std_clm] == 'T':
+                if v_clen_clm[i] == 0:
+                    pass
+                elif v_clen_clm[i] == 1:
+                    v_conf_clm[i] += '-'
                 else:
-                    tmp.append(':' + '-' * (wid[j] - 1))
-                # NIL OR DOUBLE LINE
-                if col_line[j] == 'nil':
-                    tmp[-1] += '^'
-                elif col_line[j] == 'double':
-                    tmp[-1] += '='
-            ali.append(tmp)
-        # GET MD TEXT
+                    v_conf_clm[i] += ':' + '-' * (v_clen_clm[i] - 1)
+            elif v_alig_tbl[i][std_clm] == 'C':
+                if v_clen_clm[i] == 0:
+                    v_conf_clm[i] += ''
+                elif v_clen_clm[i] == 1:
+                    v_conf_clm[i] += ':'
+                else:
+                    v_conf_clm[i] += ':' + '-' * (v_clen_clm[i] - 2) + ':'
+            else:
+                if v_clen_clm[i] == 0:
+                    pass
+                elif v_clen_clm[i] == 1:
+                    pass
+                else:
+                    v_conf_clm[i] += '-' * (v_clen_clm[i] - 1) + ':'
+            if v_rule_tbl[i][std_clm] == 'N':
+                v_conf_clm[i] += '^'
+            elif v_rule_tbl[i][std_clm] == 'D':
+                v_conf_clm[i] += '='
+        for j in range(num_clm):
+            # HORIZONTAL CONFIGURATIONS
+            # ""=L / "-"=L / ":"=C / ":-*"=L / ":-*:"=C / "-*:"=R
+            if h_alig_tbl[std_row][j] == 'L':
+                if h_clen_row[j] == 0:
+                    h_conf_row[j] += ''
+                elif h_clen_row[j] == 1:
+                    h_conf_row[j] += '-'
+                else:
+                    h_conf_row[j] += ':' + '-' * (h_clen_row[j] - 1)
+            elif h_alig_tbl[std_row][j] == 'C':
+                if h_clen_row[j] == 0:
+                    pass
+                elif h_clen_row[j] == 1:
+                    h_conf_row[j] += ':'
+                else:
+                    h_conf_row[j] += ':' + '-' * (h_clen_row[j] - 2) + ':'
+            else:
+                if h_clen_row[j] == 0:
+                    pass
+                elif h_clen_row[j] == 1:
+                    pass
+                else:
+                    h_conf_row[j] += '-' * (h_clen_row[j] - 1) + ':'
+            if h_rule_tbl[std_row][j] == 'N':
+                h_conf_row[j] += '^'
+            elif h_rule_tbl[std_row][j] == 'D':
+                h_conf_row[j] += '='
+        return v_conf_clm, h_conf_row
+
+    @staticmethod
+    def __get_md_text(txt_tbl, std_row, std_clm,
+                      v_alig_tbl, h_alig_tbl, v_rule_tbl, h_rule_tbl,
+                      v_conf_clm, h_conf_row):
         md_text = ''
         is_in_head = True
-        for i, row in enumerate(tab):
-            if is_in_head:
-                if ali[i] == ali[conf_row]:
-                    for cell in ali[conf_row]:
-                        md_text += '|' + cell
-                    is_in_head = False
-                    md_text += '|\n'
+        for i, row in enumerate(txt_tbl):
+            # CONFIGURATION
+            if h_alig_tbl[i] == h_alig_tbl[std_row]:
+                for j, cell in enumerate(row):
+                    md_text += '|' + h_conf_row[j] + v_rule_tbl[std_row][j]
+                md_text += '|\n'
+                is_in_head = False
+            # DATA
             for j, cell in enumerate(row):
-                text_data, images \
-                    = RawParagraph._get_chars_data_and_images('w:tbl', cell)
-                raw_text = RawParagraph._get_raw_text(text_data)
-                # FONT REVISERS
-                while True:
-                    tmp_text = raw_text
-                    for hfr in head_font_revisers:
-                        for k in ['^', '$', '.', '*', '+']:
-                            hfr = hfr.replace(k, '\\' + k)
-                        tmp_text = re.sub('^' + hfr, '', tmp_text)
-                    for tfr in tail_font_revisers:
-                        for k in ['^', '$', '.', '*', '+']:
-                            tfr = tfr.replace(k, '\\' + k)
-                        tmp_text = re.sub(tfr + '$', '', tmp_text)
-                    if tmp_text == raw_text:
-                        raw_text = tmp_text
-                        break
-                    raw_text = tmp_text
-                if is_in_head:
-                    if not re.match('^:-+:$', ali[i][j]):
-                        if re.match('^:-+$', ali[i][j]):
-                            raw_text = ': ' + raw_text
-                        elif re.match('^-+:$', ali[i][j]):
-                            raw_text = raw_text + ' :'
+                cell = cell.replace('|', '\\|')
+                cell = cell.replace('\n', '<br>')
+                # SPACE AT BOTH SIDES
+                if re.match('^\\s+(?:.|\n)*$', cell):
+                    if h_alig_tbl[i][j] == 'R':
+                        cell = re.sub('^\\s+', '', cell)
+                    else:
+                        cell = '\\' + cell
+                if re.match('^(?:.|\n)*\\s+$', cell):
+                    if h_alig_tbl[i][j] == 'L':
+                        cell = re.sub('\\s+$', '', cell)
+                    else:
+                        cell = cell + '\\'
+                # TEXT
+                if h_alig_tbl[i][j] == 'L':
+                    if is_in_head or (h_alig_tbl[std_row][j] != 'L'):
+                        md_text += '|: ' + cell
+                    else:
+                        md_text += '|' + cell
+                elif h_alig_tbl[i][j] == 'C':
+                    if (not is_in_head) and (h_alig_tbl[std_row][j] != 'C'):
+                        md_text += '|: ' + cell + ' :'
+                    else:
+                        md_text += '|' + cell
                 else:
-                    if j < len(ali[conf_row]) and \
-                       ali[i][j] != ali[conf_row][j]:
-                        if re.match('^:-+:$', ali[i][j]):
-                            raw_text = ': ' + raw_text + ' :'
-                        elif re.match('^:-+$', ali[i][j]):
-                            raw_text = ': ' + raw_text
-                        elif re.match('^-+:$', ali[i][j]):
-                            raw_text = raw_text + ' :'
-                if re.match('^:-+:$', ali[i][j]):
-                    raw_text = re.sub('^(\\\\\\s+)', ' \\1', raw_text)
-                    raw_text = re.sub('(\\s+\\\\)$', '\\1 ', raw_text)
-                else:
-                    raw_text = re.sub('^\\\\', '', raw_text)
-                    raw_text = re.sub('\\\\$', '', raw_text)
-                raw_text = re.sub('\\|', '\\\\|', raw_text)
-                raw_text = re.sub('\n', '<br>', raw_text)
-                md_text += '|' + raw_text
-            md_text += '|'
-            # HEIGHT
-            if hei[i] > 0:
-                for xml in cell:
-                    if re.match('<w:vAlign w:val=[\'"]top[\'"]/>', xml):
-                        if hei[i] == 1:
-                            md_text += '-'
-                        else:
-                            md_text += ':' + '-' * (hei[i] - 1)
-                    elif re.match('<w:vAlign w:val=[\'"]center[\'"]/>', xml):
-                        if hei[i] == 1:
-                            md_text += ':'
-                        else:
-                            md_text += ':' + '-' * (hei[i] - 2) + ':'
-                    elif re.match('<w:vAlign w:val=[\'"]bottom[\'"]/>', xml):
-                        md_text += '-' * (hei[i] - 1) + ':'
-            # NIL OR DOUBLE LINE
-            if row_line[i] == 'double':
-                md_text += '='
-            elif row_line[i] == 'nil':
-                md_text += '^'
-            md_text += '\n'
-        md_text = md_text.replace('&lt;', '<')
-        md_text = md_text.replace('&gt;', '>')
+                    if is_in_head or (h_alig_tbl[std_row][j] != 'R'):
+                        md_text += '|' + cell + ' :'
+                    else:
+                        md_text += '|' + cell
+                if v_rule_tbl[i][j] == 'N':
+                    md_text += '^'
+                elif v_rule_tbl[i][j] == 'D':
+                    md_text += '='
+            md_text += '|' + v_conf_clm[i] + '\n'
+        # md_text = md_text.replace('&lt;', '<')
+        # md_text = md_text.replace('&gt;', '>')
         md_text = re.sub('\n$', '', md_text)
-        for line in md_text.split('\n'):
+        return md_text
+
+    @staticmethod
+    def __split_long_lines(md_text):
+        tmp_text = md_text
+        for line in tmp_text.split('\n'):
             if get_ideal_width(line) > MD_TEXT_WIDTH:
-                # md_text = re.sub('\\|\n', '|\n\\\n', md_text)
-                md_text = re.sub('\\|', '\\  |', md_text)
-                md_text = re.sub('(^|\n)\\\\  \\|', '\\1|', md_text)
-                md_text = re.sub('\\\\  \\|(\n|$)', '|\\1', md_text)
-                md_text = re.sub('\\\\  \\|', '\\\n  |', md_text)
-                md_text = re.sub('<br>(\\s+)', '<br>\\\\\\1', md_text)
-                md_text = re.sub('<br>([^\\|])', '<br>\\\n    \\1', md_text)
+                # tmp_text = re.sub('\\|\n', '|\n\\\n', tmp_text)
+                tmp_text = re.sub('\\|', '\\  |', tmp_text)
+                tmp_text = re.sub('(^|\n)\\\\  \\|', '\\1|', tmp_text)
+                tmp_text = re.sub('\\\\  \\|(\n|$)', '|\\1', tmp_text)
+                tmp_text = re.sub('\\\\  \\|', '\\\n  |', tmp_text)
+                tmp_text = re.sub('<br>(\\s+)', '<br>\\\\\\1', tmp_text)
+                tmp_text = re.sub('<br>([^\\|])', '<br>\\\n    \\1', tmp_text)
                 break
+        md_text = tmp_text
         return md_text
 
 
