@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.21-11:28:33-JST>
+# Time-stamp:   <2024.06.24-13:56:19-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -185,7 +185,7 @@ def get_arguments():
         '-s', '--line-spacing',
         type=float,
         metavar='NUMBER',
-        help='行間の高さ（単位文字）')
+        help='行間隔（単位文字）')
     parser.add_argument(
         '-B', '--space-before',
         type=floats6,
@@ -250,7 +250,7 @@ HELP_EPILOG = '''Markdownの記法:
     [#+ (タイトル)]でセクションが挿入されます
     [v=(数字) ]で段落の上の余白を行数だけ増減します（独自）
     [V=(数字) ]で段落の下の余白を行数だけ増減します（独自）
-    [X=(数字) ]で段落の改行幅を行数だけ増減します（独自）
+    [X=(数字) ]で段落の行間隔を行数だけ増減します（独自）
     [<<=(数字) ]で段落1行目の左の余白を文字数だけ増減します（独自）
     [<=(数字) ]で段落の左の余白を文字数だけ増減します（独自）
     [>=(数字) ]で段落の右の余白を文字数だけ増減します（独自）
@@ -1546,7 +1546,7 @@ class Form:
                 Form.set_ivs_font(val, nam)
             elif nam == 'font_size' or nam == '文字サ':
                 Form.set_font_size(val, nam)
-            elif nam == 'line_spacing' or nam == '行間高':
+            elif nam == 'line_spacing' or nam == '行間隔':
                 Form.set_line_spacing(val, nam)
             elif nam == 'space_before' or nam == '前余白':
                 Form.set_space_before(val, nam)
@@ -4320,7 +4320,7 @@ class Paragraph:
         else:
             ms_fmt.line_spacing = Pt(1.0 * m_size)
             msg = '警告: ' \
-                + '段落後の余白「X」の値が少な過ぎます'
+                + '行間隔「X」の値が少な過ぎます'
             # msg = 'warning: ' \
             #     + 'too small line spacing'
             self.md_lines[0].append_warning_message(msg)
@@ -5019,18 +5019,6 @@ class ParagraphTable(Paragraph):
         ms_tab = ms_doc.add_table(row, col, style='Table Grid')
         ms_tab.alignment = WD_TABLE_ALIGNMENT.CENTER
         # ms_tab.autofit = True
-        # LINE SPACING
-        ls = 1.5 * (1 + length_docx['line spacing'])
-        if ls >= 1.0:
-            pt_line_spacing = Pt(ls * t_size)
-        else:
-            pt_line_spacing = Pt(1.0 * t_size)
-            ls = 1.0
-            msg = '警告: ' \
-                + '段落後の余白「X」の値が少な過ぎます'
-            # msg = 'warning: ' \
-            #     + 'too small line spacing'
-            self.md_lines[0].append_warning_message(msg)
         # SET LENGTH AND ALIGNMENT
         for i in range(len(tab)):
             # ms_tab.rows[i].height_rule = WD_ROW_HEIGHT_RULE.AUTO
@@ -5062,7 +5050,18 @@ class ParagraphTable(Paragraph):
                 chars_state.font_size = m_size
                 ms_fmt = ms_par.paragraph_format
                 ms_fmt.alignment = hori_alig_mtrx[i][j]
-                ms_fmt.line_spacing = pt_line_spacing
+                # LINE SPACING
+                ls = 1.5 * (1 + length_docx['line spacing'])
+                if ls >= 1.0:
+                    ms_fmt.line_spacing = Pt(ls * t_size)
+                else:
+                    ms_fmt.line_spacing = Pt(1.0 * t_size)
+                    ls = 1.0
+                    msg = '警告: ' \
+                        + '行間隔「X」の値が少な過ぎます'
+                    # msg = 'warning: ' \
+                    #     + 'too small line spacing'
+                    self.md_lines[0].append_warning_message(msg)
                 # RULE
                 ms_tcpr = ms_cell._tc.get_or_add_tcPr()
                 ms_tcbr = XML.add_tag(ms_tcpr, 'w:tcBorders')
@@ -5475,7 +5474,7 @@ class ParagraphMath(Paragraph):
         else:
             ms_fmt.line_spacing = Pt(1.0 * m_size)
             msg = '警告: ' \
-                + '段落後の余白「X」の値が少な過ぎます'
+                + '行間隔「X」の値が少な過ぎます'
             # msg = 'warning: ' \
             #     + 'too small line spacing'
             self.md_lines[0].append_warning_message(msg)

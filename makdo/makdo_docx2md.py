@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.23-12:17:18-JST>
+# Time-stamp:   <2024.06.24-13:59:21-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -169,7 +169,7 @@ def get_arguments():
         '-s', '--line-spacing',
         type=float,
         metavar='NUMBER',
-        help='行間の高さ（単位文字）')
+        help='行間隔（単位文字）')
     parser.add_argument(
         '-B', '--space-before',
         type=floats6,
@@ -2270,13 +2270,13 @@ class Form:
         cfgs += '\n'
 
         cfgs += \
-            '# 行間の高さを基本の文字の高さの何倍にするかを指定できます。'
+            '# 行間隔を基本の文字の高さの何倍にするかを指定できます。'
         cfgs += '\n'
-        cfgs += '行間高: ' + str(round(cls.line_spacing, 2)) + ' 倍\n'
+        cfgs += '行間隔: ' + str(round(cls.line_spacing, 2)) + ' 倍\n'
         cfgs += '\n'
 
         cfgs += \
-            '# セクションタイトル前後の余白を行間の高さの倍数で指定できます。'
+            '# セクションタイトル前後の余白を行間隔の倍数で指定できます。'
         cfgs += '\n'
         cfgs += '前余白: ' + re.sub(',', ' 倍,', cls.space_before) + ' 倍\n'
         cfgs += '後余白: ' + re.sub(',', ' 倍,', cls.space_after) + ' 倍\n'
