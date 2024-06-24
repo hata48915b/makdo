@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.24-13:56:19-JST>
+# Time-stamp:   <2024.06.24-13:53:43-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -352,9 +352,9 @@ DEFAULT_MATH_FONT = 'Cambria Math'
 # DEFAULT_MATH_FONT = 'Liberation Serif'
 DEFAULT_LINE_NUMBER_FONT = 'Calibri'
 DEFAULT_FONT_SIZE = 12.0
-TABLE_FONT_SCALE = 0.8
 
 DEFAULT_LINE_SPACING = 2.14  # (2.0980+2.1812)/2=2.1396
+TABLE_LINE_SPACING = 1.5
 
 DEFAULT_SPACE_BEFORE = ''
 DEFAULT_SPACE_AFTER = ''
@@ -1187,8 +1187,6 @@ class IO:
 
     def make_styles(self, ms_doc):
         m_size = Form.font_size
-        s_size = m_size * TABLE_FONT_SCALE
-        l_size = s_size * 1.5
         line_spacing = Form.line_spacing
         # NORMAL
         ms_doc.styles.add_style('makdo', WD_STYLE_TYPE.PARAGRAPH)
@@ -1210,8 +1208,6 @@ class IO:
         XML.set_font(ms_doc.styles['makdo-i'], Form.ivs_font)
         # TABLE
         ms_doc.styles.add_style('makdo-t', WD_STYLE_TYPE.PARAGRAPH)
-        ms_doc.styles['makdo-t'].font.size = Pt(s_size)
-        ms_doc.styles['makdo-t'].paragraph_format.line_spacing = Pt(l_size)
         # ALIGNMENT
         # ms_doc.styles.add_style('makdo-a', WD_STYLE_TYPE.PARAGRAPH)
         # SECTION
@@ -3412,15 +3408,16 @@ class Document:
                         p.md_lines[0].append_warning_message(msg)
                         p.length_docx['space before'] = 0.0
                     sa = p_prev.length_docx['space after']
-                    sb = p.length_docx['space before'] - TABLE_SPACE_BEFORE
+                    sb = p.length_docx['space before'] \
+                        - p.length_clas['space before']
                     mx = max([0, sa, sb])
                     mn = min([0, sa, sb])
                     if mx > 0:
                         p_prev.length_docx['space after'] \
-                            = mx + TABLE_SPACE_BEFORE
+                            = mx + p.length_clas['space before']
                     else:
                         p_prev.length_docx['space after'] \
-                            = mn + TABLE_SPACE_BEFORE
+                            = mn + p.length_clas['space before']
                     p.length_docx['space before'] = 0.0
                 if i < m:
                     if p.length_docx['space after'] < 0:
@@ -3430,17 +3427,18 @@ class Document:
                         #     + '"space after" is too small'
                         p.md_lines[0].append_warning_message(msg)
                         p.length_docx['space after'] = 0.0
-                    sa = p.length_docx['space after'] - TABLE_SPACE_AFTER
+                    sa = p.length_docx['space after'] \
+                        - p.length_clas['space after']
                     sb = p_next.length_docx['space before']
                     mx = max([0, sa, sb])
                     mn = min([0, sa, sb])
                     p.length_docx['space after'] = 0.0
                     if mx > 0:
                         p_next.length_docx['space before'] \
-                            = mx + TABLE_SPACE_AFTER
+                            = mx + p.length_clas['space after']
                     else:
                         p_next.length_docx['space before'] \
-                            = mn + TABLE_SPACE_AFTER
+                            = mn + p.length_clas['space after']
         # SEARCH FOR ATTACHED PAGEBREAK
         exception = ['empty', 'blank', 'table', 'pagebreak', 'horizontalline',
                      'remarks']
@@ -4060,8 +4058,15 @@ class Paragraph:
             if tail_section_depth > 0:
                 length_clas['left indent'] += tail_section_depth - 1.0
         elif paragraph_class == 'table':
-            length_clas['space before'] += TABLE_SPACE_BEFORE
-            length_clas['space after'] += TABLE_SPACE_AFTER
+            ls = self.length_revi['line spacing']
+            if ls < 0.63:
+                length_clas['space before'] += 0.72 * ls + TABLE_SPACE_BEFORE
+            else:
+                length_clas['space before'] += 0.90
+            if ls < 0.92:
+                length_clas['space after'] += 0.23 * ls + TABLE_SPACE_AFTER
+            else:
+                length_clas['space after'] += 0.41
         elif paragraph_class == 'image':
             length_clas['space before'] += IMAGE_SPACE_BEFORE
             length_clas['space after'] += IMAGE_SPACE_AFTER
@@ -4985,11 +4990,10 @@ class ParagraphTable(Paragraph):
         md_lines = self.md_lines
         length_docx = self.length_docx
         chars_state = self.chars_state
-        m_size = Form.font_size
-        t_size = m_size * TABLE_FONT_SCALE
-        pt_ls = ms_doc.styles['makdo-t'].paragraph_format.line_spacing
-        geta_height = pt_ls / Pt(t_size)  # = 1.5
-        geta_width = 1.5  # >= 1.1068
+        m_size = chars_state.font_size
+        font_size = chars_state.font_size
+        font_scale = chars_state.font_scale
+        geta_height, geta_width = 1.5, 1.5  # geta_width >= 1.1068
         # GET DATA
         tab, conf_line_place, \
             col_alig_list, col_widt_list, col_rule_list, \
@@ -5023,12 +5027,12 @@ class ParagraphTable(Paragraph):
         for i in range(len(tab)):
             # ms_tab.rows[i].height_rule = WD_ROW_HEIGHT_RULE.AUTO
             if vert_leng_list[i] >= 0:
-                ms_tab.rows[i].height \
-                    = Pt(t_size * (vert_leng_list[i] + geta_height))
+                w = font_size * font_scale * (vert_leng_list[i] + geta_height)
+                ms_tab.rows[i].height = Pt(w)
         for j in range(len(tab[0])):
             if hori_leng_list[j] >= 0:
-                ms_tab.columns[j].width \
-                    = Pt(t_size * (hori_leng_list[j] + geta_width))
+                h = font_size * font_scale * (hori_leng_list[j] + geta_width)
+                ms_tab.columns[j].width = Pt(h)
         # SET CELLS
         for i in range(len(tab)):
             for j in range(len(tab[i])):
@@ -5036,8 +5040,8 @@ class ParagraphTable(Paragraph):
                 ms_cell = ms_tab.cell(i, j)
                 ms_cell.horizontal_alignment = hori_alig_mtrx[i][j]
                 ms_cell.vertical_alignment = vert_alig_mtrx[i][j]
-                ms_cell.height = Pt(t_size * (vert_leng_list[i] + geta_height))
-                ms_cell.width = Pt(t_size * (hori_leng_list[j] + geta_width))
+                ms_cell.height = Pt(m_size * (vert_leng_list[i] + geta_height))
+                ms_cell.width = Pt(m_size * (hori_leng_list[j] + geta_width))
                 ms_par = ms_cell.paragraphs[0]
                 ms_par.style = 'makdo-t'
                 # TEXT
@@ -5045,18 +5049,16 @@ class ParagraphTable(Paragraph):
                 # WORD WRAP (英単語の途中で改行する)
                 ms_ppr = ms_par._p.get_or_add_pPr()
                 XML.add_tag(ms_ppr, 'w:wordWrap', {'w:val': '0'})
-                chars_state.font_size = t_size
+                chars_state.font_size = m_size
                 self.write_text(ms_par, chars_state, cell)
                 chars_state.font_size = m_size
                 ms_fmt = ms_par.paragraph_format
                 ms_fmt.alignment = hori_alig_mtrx[i][j]
-                # LINE SPACING
-                ls = 1.5 * (1 + length_docx['line spacing'])
+                ls = TABLE_LINE_SPACING * (1 + length_docx['line spacing'])
                 if ls >= 1.0:
-                    ms_fmt.line_spacing = Pt(ls * t_size)
+                    ms_fmt.line_spacing = Pt(ls * m_size)
                 else:
-                    ms_fmt.line_spacing = Pt(1.0 * t_size)
-                    ls = 1.0
+                    ms_fmt.line_spacing = Pt(1.0 * m_size)
                     msg = '警告: ' \
                         + '行間隔「X」の値が少な過ぎます'
                     # msg = 'warning: ' \

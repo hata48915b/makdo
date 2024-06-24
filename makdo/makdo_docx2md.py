@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.24-13:59:21-JST>
+# Time-stamp:   <2024.06.24-13:45:00-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -253,7 +253,6 @@ DEFAULT_IVS_FONT = 'IPAmj明朝'  # IPAmjMincho
 DEFAULT_MATH_FONT = 'Cambria Math'
 # DEFAULT_MATH_FONT = 'Liberation Serif'
 DEFAULT_FONT_SIZE = 12.0
-TABLE_FONT_SCALE = 0.8
 
 MS_FONTS = [
     ['ＭＳ 明朝', 'ＭＳ明朝',
@@ -276,6 +275,7 @@ MS_FONTS = [
 ]
 
 DEFAULT_LINE_SPACING = 2.14  # (2.0980+2.1812)/2=2.1396
+TABLE_LINE_SPACING = 1.5
 
 DEFAULT_SPACE_BEFORE = ''
 DEFAULT_SPACE_AFTER = ''
@@ -3102,13 +3102,15 @@ class Document:
             # TABLE
             elif p.paragraph_class == 'table':
                 if p_prev is None or p_prev.paragraph_class == 'pagebreak':
-                    p.length_supp['space before'] += TABLE_SPACE_BEFORE
+                    p.length_supp['space before'] \
+                        += p.length_clas['space before']
                 else:
                     p.length_docx['space before'] \
                         = p_prev.length_docx['space after']
                     p_prev.length_docx['space after'] = 0.0
                 if p_next is None or p_next.paragraph_class == 'pagebreak':
-                    p.length_supp['space after'] += TABLE_SPACE_AFTER
+                    p.length_supp['space after'] \
+                        += p.length_clas['space after']
                 else:
                     p.length_docx['space after'] \
                         = p_next.length_docx['space before']
@@ -3692,10 +3694,7 @@ class RawParagraph:
 
     @classmethod
     def _get_chars_data_and_images(cls, raw_class, xml_lines, type='normal'):
-        if raw_class != 'w:tbl':
-            font_size = Form.font_size
-        else:
-            font_size = Form.font_size * TABLE_FONT_SCALE
+        font_size = Form.font_size
         chars_data = []
         images = {}
         img_rels = Form.rels
@@ -5222,14 +5221,16 @@ class Paragraph:
             li_xml = XML.get_value('w:ind', 'w:left', li_xml, xl)
             ri_xml = XML.get_value('w:ind', 'w:right', ri_xml, xl)
             ti_xml = XML.get_value('w:tblInd', 'w:w', ti_xml, xl)
-        if paragraph_class == 'table':
-            ls_xml -= 288.0
         length_docx['space before'] = round(sb_xml / 20 / m_size / lnsp, 2)
         length_docx['space after'] = round(sa_xml / 20 / m_size / lnsp, 2)
         ls = 0.0
         if ls_xml > 0.0:
-            ls = (ls_xml / 20 / m_size / lnsp) - 1
+            if paragraph_class != 'table':
+                ls = (ls_xml / 20 / m_size / lnsp) - 1
+            else:
+                ls = (ls_xml / 20 / m_size / TABLE_LINE_SPACING) - 1
         length_docx['line spacing'] = round(ls, 2)
+        ls = (ls_xml / 20 / m_size / lnsp) - 1
         ls75 = round(ls * .75, 2)
         ls25 = round(ls * .25, 2)
         if ls <= 0:
@@ -5289,6 +5290,7 @@ class Paragraph:
         return length_docx
 
     def _get_length_clas(self):
+        length_docx = self.length_docx
         paragraph_class = self.paragraph_class
         head_section_depth = self.head_section_depth
         tail_section_depth = self.tail_section_depth
@@ -6705,15 +6707,15 @@ class ParagraphTable(Paragraph):
 
     @staticmethod
     def __get_length_in_char_units(v_rlen_clm, h_rlen_row, font_size):
-        geta_height, geta_width = 1.5, 1.5
+        geta_height, geta_width = 1.5, 1.5  # geta_width >= 1.1068
         v_clen_clm, h_clen_row = [], []
         for rlen in v_rlen_clm:
-            clen = round((float(rlen) / font_size / 5) - (geta_height * 2))
+            clen = round((float(rlen) / font_size / 10) - (geta_height * 2))
             if clen < 0:
                 clen = 0
             v_clen_clm.append(clen)
         for rlen in h_rlen_row:
-            clen = round((float(rlen) / font_size / 5) - (geta_width * 2))
+            clen = round((float(rlen) / font_size / 10) - (geta_width * 2))
             if clen < 0:
                 clen = 0
             h_clen_row.append(clen)
