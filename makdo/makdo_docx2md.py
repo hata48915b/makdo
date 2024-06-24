@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.24-17:41:28-JST>
+# Time-stamp:   <2024.06.25-07:58:40-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5224,18 +5224,19 @@ class Paragraph:
             li_xml = XML.get_value('w:ind', 'w:left', li_xml, xl)
             ri_xml = XML.get_value('w:ind', 'w:right', ri_xml, xl)
             ti_xml = XML.get_value('w:tblInd', 'w:w', ti_xml, xl)
-        length_docx['space before'] = round(sb_xml / 20 / m_size / lnsp, 2)
-        length_docx['space after'] = round(sa_xml / 20 / m_size / lnsp, 2)
+        length_docx['space before'] = sb_xml / 20 / m_size / lnsp
+        length_docx['space after'] = sa_xml / 20 / m_size / lnsp
         ls = 0.0
-        if ls_xml > 0.0:
+        if ls_xml > 0:
             if paragraph_class != 'table':
-                ls = (ls_xml / 20 / m_size / lnsp) - 1
+                length_docx['line spacing'] \
+                    = (ls_xml / 20 / m_size / lnsp) - 1
             else:
-                ls = (ls_xml / 20 / m_size / TABLE_LINE_SPACING) - 1
-        length_docx['line spacing'] = round(ls, 2)
+                length_docx['line spacing'] \
+                    = (ls_xml / 20 / m_size / TABLE_LINE_SPACING) - 1
         ls = (ls_xml / 20 / m_size / lnsp) - 1
-        ls75 = round(ls * .75, 2)
-        ls25 = round(ls * .25, 2)
+        ls75 = ls * .75
+        ls25 = ls * .25
         if ls <= 0:
             if length_docx['space before'] >= ls75 * 2:
                 length_docx['space before'] += ls75
@@ -5254,9 +5255,9 @@ class Paragraph:
                 length_docx['space after'] += ls25
             elif length_docx['space after'] >= 0:
                 length_docx['space after'] *= 2
-        length_docx['first indent'] = round((fi_xml - hi_xml) / 20 / m_size, 2)
-        length_docx['left indent'] = round((li_xml + ti_xml) / 20 / m_size, 2)
-        length_docx['right indent'] = round(ri_xml / 20 / m_size, 2)
+        length_docx['first indent'] = (fi_xml - hi_xml) / 20 / m_size
+        length_docx['left indent'] = (li_xml + ti_xml) / 20 / m_size
+        length_docx['right indent'] = ri_xml / 20 / m_size
         # AUTO NUMBERING STYLE
         ans_key = AutoNumberingStyle.get_style_key_from_xml_lines(xls)
         if ans_key is not None:
@@ -5268,10 +5269,10 @@ class Paragraph:
                 li_xml = XML.get_value('w:ind', 'w:left', li_xml, xl)
             if fi_xml is None and hi_xml is None:
                 length_docx['first indent'] \
-                    = round(ans.raw_first_indent / 20 / m_size, 2)
+                    = ans.raw_first_indent / 20 / m_size
             if li_xml is None:
                 length_docx['left indent'] \
-                    = round(ans.raw_left_indent / 20 / m_size, 2)
+                    = ans.raw_left_indent / 20 / m_size
         # （１）, （ア）, （ａ）
         paragraph_class = self.paragraph_class
         raw_text = self.raw_text
@@ -5375,10 +5376,6 @@ class Paragraph:
         length_revi \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
-        for ln in length_revi:
-            lg = length_docx[ln] - length_clas[ln] \
-                - length_conf[ln] + length_supp[ln]
-            length_revi[ln] = round(lg, 2)
         # self.length_revi = length_revi
         return length_revi
 
@@ -6532,6 +6529,16 @@ class ParagraphTable(Paragraph):
             if re.match(res_h_len, xl):
                 val = re.sub(res_h_len, '\\1', xl)
                 h_rlen_row.append(int(val))
+        v_m = len(xml_tbl)
+        while len(v_rlen_clm) < v_m:
+            v_rlen_clm.append(0)
+        h_m = 0
+        for xt in xml_tbl:
+            n = len(xt)
+            if h_m < n:
+                h_m = n
+        while len(h_rlen_row) < h_m:
+            h_rlen_row.append(0)
         return xml_tbl, v_rlen_clm, h_rlen_row
 
     @staticmethod
