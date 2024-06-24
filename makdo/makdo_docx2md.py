@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.24-13:45:00-JST>
+# Time-stamp:   <2024.06.24-17:41:28-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -291,6 +291,9 @@ DEFAULT_VERSION_NUMBER = ''
 DEFAULT_CONTENT_STATUS = ''
 
 DEFAULT_HAS_COMPLETED = False
+
+BASIC_TABLE_CELL_HEIGHT = 1.5
+BASIC_TABLE_CELL_WIDTH = 1.5  # >= 1.1068
 
 NOT_ESCAPED = '^((?:(?:.|\n)*?[^\\\\])??(?:\\\\\\\\)*?)??'
 # NOT_ESCAPED = '^((?:(?:.|\n)*[^\\\\])?(?:\\\\\\\\)*)?'
@@ -4514,14 +4517,14 @@ class RawParagraph:
         chars = chars.replace('~~', '\\~\\~')
         chars = chars.replace('//', '\\/\\/')  # italic
         chars = re.sub('([a-z]+:)\\\\/\\\\/', '\\1//', chars)  # http https ftp
-        chars = chars.replace('---', '\\-\\-\\-')
-        chars = chars.replace('--', '\\-\\-')
-        chars = chars.replace('+++', '\\+\\+\\+')
-        chars = chars.replace('++', '\\+\\+')
-        chars = chars.replace('>>>', '\\>\\>\\>')
-        chars = chars.replace('>>', '\\>\\>')
-        chars = chars.replace('<<<', '\\<\\<\\<')
-        chars = chars.replace('<<', '\\<\\<')
+        chars = chars.replace('--', '\\-\\-')          # --
+        chars = chars.replace('\\-\\--', '\\-\\-\\-')  # ---
+        chars = chars.replace('++', '\\+\\+')          # ++
+        chars = chars.replace('\\+\\++', '\\+\\+\\+')  # +++
+        chars = chars.replace('>>', '\\>\\>')          # >>
+        chars = chars.replace('\\>\\>>', '\\>\\>\\>')  # >>>
+        chars = chars.replace('<<', '\\<\\<')          # <<
+        chars = chars.replace('\\<\\<<', '\\<\\<\\<')  # <<<
         # chars = chars.replace('__', '\\_\\_')
         chars = re.sub('@([^@]{1,66})@', '\\\\@\\1\\\\@', chars)
         chars = re.sub('_([\\$=\\.#\\-~\\+]*)_', '\\\\_\\1\\\\_', chars)
@@ -4531,8 +4534,8 @@ class RawParagraph:
         chars = chars.replace('<-', '\\<-')
         chars = chars.replace('+>', '\\+>')
         chars = chars.replace('<+', '\\<+')
-        chars = chars.replace('\\[', '\\[')
-        chars = chars.replace('\\]', '\\]')
+        # chars = chars.replace('\\[', '\\[')
+        # chars = chars.replace('\\]', '\\]')
         chars = chars.replace('{{', '\\{{')
         chars = chars.replace('}}', '\\}}')
         chars = chars.replace('&lt;', '\\&lt;')
@@ -6560,30 +6563,28 @@ class ParagraphTable(Paragraph):
                         tail_font_revisers.append(fr)
         tail_font_revisers.reverse()
         # CHECK THE FREQUENCY
-        for h_fr in head_font_revisers:
-            n, m = 0, 0
-            efr = h_fr
-            for k in ['^', '$', '.', '*', '+']:
-                efr = efr.replace(k, '\\' + k)
-            for row in txt_tab:
-                for cell in row:
-                    if re.match('^' + efr + '.*$', cell):
-                        n += 1
-                    m += 1
-            if (n * 2) < m:
-                head_font_revisers.remove(h_fr)
-        for t_fr in tail_font_revisers:
-            n, m = 0, 0
-            efr = t_fr
-            for k in ['^', '$', '.', '*', '+']:
-                efr = efr.replace(k, '\\' + k)
-            for row in txt_tab:
-                for cell in row:
-                    if re.match('^.*' + efr + '$', cell):
-                        n += 1
-                    m += 1
-            if (n * 2) < m:
-                tail_font_revisers.remove(t_fr)
+        total = 0
+        h_freq = [0 for i in head_font_revisers]
+        t_freq = [0 for i in tail_font_revisers]
+        for row in txt_tab:
+            for cell in row:
+                total += 1
+                h_frs, t_frs, _ \
+                    = Paragraph._get_font_revisers_and_md_text(cell)
+                for i, fr in enumerate(head_font_revisers):
+                    if fr in h_frs:
+                        h_freq[i] += 1
+                for i, fr in enumerate(tail_font_revisers):
+                    if fr in t_frs:
+                        t_freq[i] += 1
+        for i in range(len(h_freq) - 1, -1, -1):
+            if (h_freq[i] * 2) < total:
+                fr = head_font_revisers[i]
+                head_font_revisers.remove(fr)
+        for i in range(len(t_freq) - 1, -1, -1):
+            if (t_freq[i] * 2) < total:
+                fr = tail_font_revisers[i]
+                tail_font_revisers.remove(fr)
         # FIND THE PARTNER
         for h_fr in head_font_revisers:
             t_fr = h_fr
@@ -6607,35 +6608,26 @@ class ParagraphTable(Paragraph):
     def __remove_or_settle_font_revisers(h_frs, t_frs, txt_tbl):
         for i, row in enumerate(txt_tbl):
             for j, cell in enumerate(row):
+                if cell == '':
+                    continue
                 tmp_h_frs, tmp_t_frs = [], []
                 for fr in h_frs:
                     tmp_h_frs.append(fr)
                 for fr in t_frs:
                     tmp_t_frs.append(fr)
                 # REMOVE
-                cell_txt = cell
-                while True:
-                    tmp_txt = cell_txt
-                    for h_fr in tmp_h_frs:
-                        efr = h_fr
-                        for k in ['^', '$', '.', '*', '+']:
-                            efr = efr.replace(k, '\\' + k)
-                        res = '^' + efr + '((?:.|\n)*)$'
-                        if re.match(res, tmp_txt):
-                            tmp_txt = re.sub(res, '\\1', tmp_txt)
-                            tmp_h_frs.remove(h_fr)
-                    for t_fr in tmp_t_frs:
-                        efr = t_fr
-                        for k in ['^', '$', '.', '*', '+']:
-                            efr = fr.replace(k, '\\' + k)
-                        res = NOT_ESCAPED + efr + '$'
-                        if re.match(res, tmp_txt):
-                            tmp_txt = re.sub(res, '\\1', tmp_txt)
-                            tmp_t_frs.remove(t_fr)
-                    if tmp_txt == cell_txt:
-                        cell_txt = tmp_txt
-                        break
-                    cell_txt = tmp_txt
+                cel_h_frs, cel_t_frs, cel_txt \
+                    = Paragraph._get_font_revisers_and_md_text(cell)
+                for h_fr in tmp_h_frs:
+                    if h_fr in cel_h_frs:
+                        tmp_h_frs.remove(h_fr)
+                        cel_h_frs.remove(h_fr)
+                for t_fr in tmp_t_frs:
+                    if t_fr in cel_t_frs:
+                        tmp_t_frs.remove(t_fr)
+                        cel_t_frs.remove(t_fr)
+                cel_t_frs.reverse()
+                cell_txt = ''.join(cel_h_frs) + cel_txt + ''.join(cel_t_frs)
                 # SETTLE
                 for fr in tmp_h_frs:
                     fr = fr.replace('>', '\\>')
@@ -6707,15 +6699,17 @@ class ParagraphTable(Paragraph):
 
     @staticmethod
     def __get_length_in_char_units(v_rlen_clm, h_rlen_row, font_size):
-        geta_height, geta_width = 1.5, 1.5  # geta_width >= 1.1068
         v_clen_clm, h_clen_row = [], []
         for rlen in v_rlen_clm:
-            clen = round((float(rlen) / font_size / 10) - (geta_height * 2))
+            clen = rlen / font_size / 10
+            # clen = (rlen / font_size / 10) - (BASIC_TABLE_CELL_HEIGHT * 2)
+            clen = round(clen)
             if clen < 0:
                 clen = 0
             v_clen_clm.append(clen)
         for rlen in h_rlen_row:
-            clen = round((float(rlen) / font_size / 10) - (geta_width * 2))
+            clen = (rlen / font_size / 10) - (BASIC_TABLE_CELL_WIDTH * 2)
+            clen = round(clen)
             if clen < 0:
                 clen = 0
             h_clen_row.append(clen)
@@ -6777,8 +6771,9 @@ class ParagraphTable(Paragraph):
                     v_rule_tbl, h_rule_tbl):
         v_conf_clm = ['' for i in range(num_row)]
         h_conf_row = ['' for i in range(num_clm)]
+        # VERTUAL CONFIGURATIONS
         for i in range(num_row):
-            # VERTUAL CONFIGURATIONS
+            # ALIGNMENT AND LENGTH
             # ""=C / "-"=T / ":"=C / ":-*"=T / ":-*:"=C / "-*:"=B
             if v_alig_tbl[i][std_clm] == 'T':
                 if v_clen_clm[i] == 0:
@@ -6801,12 +6796,20 @@ class ParagraphTable(Paragraph):
                     pass
                 else:
                     v_conf_clm[i] += '-' * (v_clen_clm[i] - 1) + ':'
+            # RULE
             if v_rule_tbl[i][std_clm] == 'N':
                 v_conf_clm[i] += '^'
             elif v_rule_tbl[i][std_clm] == 'D':
                 v_conf_clm[i] += '='
+            # REMOVE DEFAULT CONFIGURATION
+            default_v_conf = ':' \
+                + '-' * round(BASIC_TABLE_CELL_HEIGHT - 0.5) \
+                + ':'
+            if re.match('^' + default_v_conf, v_conf_clm[i]):
+                v_conf_clm[i] = re.sub('^' + default_v_conf, '', v_conf_clm[i])
+        # HORIZONTAL CONFIGURATIONS
         for j in range(num_clm):
-            # HORIZONTAL CONFIGURATIONS
+            # ALIGNMENT AND LENGTH
             # ""=L / "-"=L / ":"=C / ":-*"=L / ":-*:"=C / "-*:"=R
             if h_alig_tbl[std_row][j] == 'L':
                 if h_clen_row[j] == 0:
@@ -6829,6 +6832,7 @@ class ParagraphTable(Paragraph):
                     pass
                 else:
                     h_conf_row[j] += '-' * (h_clen_row[j] - 1) + ':'
+            # RULE
             if h_rule_tbl[std_row][j] == 'N':
                 h_conf_row[j] += '^'
             elif h_rule_tbl[std_row][j] == 'D':
@@ -6843,11 +6847,12 @@ class ParagraphTable(Paragraph):
         is_in_head = True
         for i, row in enumerate(txt_tbl):
             # CONFIGURATION
-            if h_alig_tbl[i] == h_alig_tbl[std_row]:
-                for j, cell in enumerate(row):
-                    md_text += '|' + h_conf_row[j] + v_rule_tbl[std_row][j]
-                md_text += '|\n'
-                is_in_head = False
+            if is_in_head:
+                if h_alig_tbl[i] == h_alig_tbl[std_row]:
+                    for j, cell in enumerate(row):
+                        md_text += '|' + h_conf_row[j] + v_rule_tbl[std_row][j]
+                    md_text += '|\n'
+                    is_in_head = False
             # DATA
             for j, cell in enumerate(row):
                 cell = cell.replace('|', '\\|')
