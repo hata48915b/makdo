@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.26-07:45:17-JST>
+# Time-stamp:   <2024.06.26-08:22:19-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -2904,6 +2904,9 @@ class Document:
     def get_paragraphs(self, raw_paragraphs):
         paragraphs = []
         for rp in raw_paragraphs:
+            if rp.raw_text == '':
+                continue
+            print(rp.raw_text)
             if rp.paragraph_class == 'configuration':
                 if len(paragraphs) > 0:
                     if paragraphs[-1].md_text == '<pgbr>':
