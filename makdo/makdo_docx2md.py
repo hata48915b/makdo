@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.25-16:19:12-JST>
+# Time-stamp:   <2024.06.26-07:45:17-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6877,12 +6877,12 @@ class ParagraphTable(Paragraph):
             if is_in_head:
                 if h_alig_tbl[i] == h_alig_tbl[std_row]:
                     if tbl_alig == 'left':
-                        md_text += ':'
+                        md_text += ': '
                     for j, cell in enumerate(row):
                         md_text += '|' + h_conf_row[j]
                     md_text += '|'
                     if tbl_alig == 'right':
-                        md_text += ':'
+                        md_text += ' :'
                     md_text += '\n'
                     is_in_head = False
             # DATA

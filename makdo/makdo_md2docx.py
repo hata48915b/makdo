@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.25-16:21:21-JST>
+# Time-stamp:   <2024.06.26-07:56:00-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4990,7 +4990,7 @@ class ParagraphTable(Paragraph):
     """A class to handle table paragraph"""
 
     paragraph_class = 'table'
-    res_feature = '^:?\\|.*\\|(:?-*:?)?(\\^+|=+)?$'
+    res_feature = '^(?::\\s+)?\\|.*\\|(:?-*:?)?(\\^+|=+)?(?:\\s+:)?$'
 
     def write_paragraph(self, ms_doc):
         # CHARS STATE
@@ -5032,7 +5032,7 @@ class ParagraphTable(Paragraph):
         ms_tab = ms_doc.add_table(row, col, style='Table Grid')
         ms_tab.alignment = table_alignment
         # ms_tab.autofit = True
-        # SET LENGTH AND ALIGNMENT
+        # SET CELL LENGTH AND ALIGNMENT
         for i in range(len(tab)):
             # ms_tab.rows[i].height_rule = WD_ROW_HEIGHT_RULE.AUTO
             if vert_leng_list[i] == 0:
@@ -5046,7 +5046,7 @@ class ParagraphTable(Paragraph):
         # SET CELLS
         for i in range(len(tab)):
             for j in range(len(tab[i])):
-                # ALIGNMENT
+                # CELL ALIGNMENT
                 ms_cell = ms_tab.cell(i, j)
                 ms_cell.horizontal_alignment = hori_alig_mtrx[i][j]
                 ms_cell.vertical_alignment = vert_alig_mtrx[i][j]
@@ -5116,16 +5116,19 @@ class ParagraphTable(Paragraph):
         table_alignment = WD_TABLE_ALIGNMENT.CENTER
         col_alig_list, col_widt_list, col_rule_list = [], [], []
         row_alig_list, row_heig_list, row_rule_list = [], [], []
+        res_config_row \
+            = '^(?::\\s+)?(\\|\\s*(:?-*:?)?(\\^+|=+)?\\s*)+\\|(?:\\s+:)?$'
         for tl in tab_lines:
             if conf_line_place == -1 and \
-               re.match('^:?(\\|\\s*(:?-*:?)?(\\^+|=+)?\\s*)+\\|:?$', tl) and \
+               re.match(res_config_row, tl) and \
                not re.match('^\\|+$', tl):
                 conf_line_place = float(len(tab)) - 0.5
-                if re.match('^:\\|.*$', tl):
-                    tl = re.sub('^:', '', tl)
+                # TABLE ALIGNMENT
+                if re.match('^:\\s+\\|.*$', tl):
+                    tl = re.sub('^:\\s+', '', tl)
                     table_alignment = WD_TABLE_ALIGNMENT.LEFT
-                elif re.match('^.*\\|:$', tl):
-                    tl = re.sub(':$', '', tl)
+                elif re.match('^.*\\|\\s+:$', tl):
+                    tl = re.sub('\\s+:$', '', tl)
                     table_alignment = WD_TABLE_ALIGNMENT.RIGHT
                 tl = re.sub('^\\|(.*)\\|$', '\\1', tl)
                 for c in tl.split('|'):
