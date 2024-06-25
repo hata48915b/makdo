@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.25-16:05:47-JST>
+# Time-stamp:   <2024.06.25-16:19:12-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5290,6 +5290,8 @@ class Paragraph:
                 else:
                     width += 1.0
             length_docx['first indent'] += width
+        for ln in length_docx:
+            length_docx[ln] = round(length_docx[ln], 2)
         # self.length_docx = length_docx
         return length_docx
 
@@ -5342,6 +5344,8 @@ class Paragraph:
         if Form.document_style == 'j':
             if section_states[1][0] > 0 and tail_section_depth > 2:
                 length_clas['left indent'] -= 1.0
+        for ln in length_clas:
+            length_clas[ln] = round(length_clas[ln], 2)
         # self.length_clas = length_clas
         return length_clas
 
@@ -5358,6 +5362,8 @@ class Paragraph:
                 length_conf['space before'] += float(sb[hd - 1])
             if td <= len(sa) and sa[td - 1] != '':
                 length_conf['space after'] += float(sa[td - 1])
+        for ln in length_conf:
+            length_conf[ln] = round(length_conf[ln], 2)
         # self.length_conf = length_conf
         return length_conf
 
@@ -5365,6 +5371,8 @@ class Paragraph:
         length_supp \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
+        for ln in length_supp:
+            length_supp[ln] = round(length_supp[ln], 2)
         # self.length_supp = length_supp
         return length_supp
 
@@ -5379,6 +5387,7 @@ class Paragraph:
         for ln in length_revi:
             length_revi[ln] = length_docx[ln] \
                 - length_clas[ln] - length_conf[ln] + length_supp[ln]
+            length_revi[ln] = round(length_revi[ln], 2)
         # self.length_revi = length_revi
         return length_revi
 

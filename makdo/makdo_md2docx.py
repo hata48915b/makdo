@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.25-16:04:21-JST>
+# Time-stamp:   <2024.06.25-16:21:21-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4007,6 +4007,8 @@ class Paragraph:
                 length_revi['left indent'] -= float(re.sub(res_g, '\\1', lr))
             elif re.match(res_l, lr):
                 length_revi['right indent'] -= float(re.sub(res_l, '\\1', lr))
+        for ln in length_revi:
+            length_revi[ln] = round(length_revi[ln], 2)
         # self.length_revi = length_revi
         return length_revi
 
@@ -4031,6 +4033,8 @@ class Paragraph:
         if paragraph_class == 'section':
             if td <= len(sa) and sa[td - 1] != '':
                 length_conf['space after'] += float(sa[td - 1])
+        for ln in length_conf:
+            length_conf[ln] = round(length_conf[ln], 2)
         # self.length_conf = length_conf
         return length_conf
 
@@ -4089,6 +4093,8 @@ class Paragraph:
         if Form.document_style == 'j':
             if ParagraphSection.states[1][0] > 0 and tail_section_depth > 2:
                 length_clas['left indent'] -= 1.0
+        for ln in length_clas:
+            length_clas[ln] = round(length_clas[ln], 2)
         # self.length_clas = length_clas
         return length_clas
 
@@ -4123,6 +4129,8 @@ class Paragraph:
                 length_docx['space after'] -= ls25
             elif length_docx['space after'] >= 0:
                 length_docx['space after'] /= 2
+        for ln in length_docx:
+            length_docx[ln] = round(length_docx[ln], 2)
         # self.length_docx = length_docx
         return length_docx
 
