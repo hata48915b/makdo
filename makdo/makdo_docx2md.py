@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.25-10:30:38-JST>
+# Time-stamp:   <2024.06.25-13:26:44-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5376,6 +5376,9 @@ class Paragraph:
         length_revi \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
+        for ln in length_revi:
+            length_revi[ln] = length_docx[ln] \
+                - length_clas[ln] - length_conf[ln] + length_supp[ln]
         # self.length_revi = length_revi
         return length_revi
 
