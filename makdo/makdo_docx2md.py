@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.25-13:26:44-JST>
+# Time-stamp:   <2024.06.25-16:05:47-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6770,13 +6770,13 @@ class ParagraphTable(Paragraph):
                     elif re.match(res_h_rig, xml):
                         h_alig_val = 'R'
                     elif re.match(res_v_nil, xml):
-                        v_rule_val = 'N'
+                        v_rule_val = '^'  # nil
                     elif re.match(res_v_dbl, xml):
-                        v_rule_val = 'D'
+                        v_rule_val = '='  # double
                     elif re.match(res_h_nil, xml):
-                        h_rule_val = 'N'
+                        h_rule_val = '^'  # nil
                     elif re.match(res_h_dbl, xml):
-                        h_rule_val = 'D'
+                        h_rule_val = '='  # double
                 v_alig_row.append(v_alig_val)
                 h_alig_row.append(h_alig_val)
                 v_rule_row.append(v_rule_val)
@@ -6821,10 +6821,7 @@ class ParagraphTable(Paragraph):
                 else:
                     v_conf_clm[i] += '-' * (v_clen_clm[i] - 1) + ':'
             # RULE
-            if v_rule_tbl[i][std_clm] == 'N':
-                v_conf_clm[i] += '^'
-            elif v_rule_tbl[i][std_clm] == 'D':
-                v_conf_clm[i] += '='
+            v_conf_clm[i] += h_rule_tbl[i][std_clm]
             # REMOVE DEFAULT CONFIGURATION
             default_v_conf = ':' \
                 + '-' * round(BASIC_TABLE_CELL_HEIGHT - 0.5) \
@@ -6857,10 +6854,7 @@ class ParagraphTable(Paragraph):
                 else:
                     h_conf_row[j] += '-' * (h_clen_row[j] - 1) + ':'
             # RULE
-            if h_rule_tbl[std_row][j] == 'N':
-                h_conf_row[j] += '^'
-            elif h_rule_tbl[std_row][j] == 'D':
-                h_conf_row[j] += '='
+            h_conf_row[j] += v_rule_tbl[std_row][j]
         return v_conf_clm, h_conf_row
 
     @staticmethod
@@ -6876,7 +6870,7 @@ class ParagraphTable(Paragraph):
                     if tbl_alig == 'left':
                         md_text += ':'
                     for j, cell in enumerate(row):
-                        md_text += '|' + h_conf_row[j] + v_rule_tbl[std_row][j]
+                        md_text += '|' + h_conf_row[j]
                     md_text += '|'
                     if tbl_alig == 'right':
                         md_text += ':'
@@ -6913,10 +6907,7 @@ class ParagraphTable(Paragraph):
                         md_text += '|' + cell + ' :'
                     else:
                         md_text += '|' + cell
-                if v_rule_tbl[i][j] == 'N':
-                    md_text += '^'
-                elif v_rule_tbl[i][j] == 'D':
-                    md_text += '='
+                # md_text += v_rule_tbl[i][j]
             md_text += '|' + v_conf_clm[i] + '\n'
         # md_text = md_text.replace('&lt;', '<')
         # md_text = md_text.replace('&gt;', '>')

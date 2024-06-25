@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.25-10:03:48-JST>
+# Time-stamp:   <2024.06.25-16:04:21-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -3622,10 +3622,9 @@ class RawParagraph:
             if re.match('^.*(  |\t|\u3000)$', ml.spaced_text):
                 ml.text = re.sub('<br>$', '  ', ml.text)
             while True:
-                if False:
-                    pass
-                elif (re.match(res_tr, ml.text) and
-                      not re.match(res_hl, ml.text)):
+                if re.match(NOT_ESCAPED + '\\|:-+$', ml.text):
+                    break  # table vertical configuration
+                if re.match(res_tr, ml.text) and not re.match(res_hl, ml.text):
                     reviser = re.sub(res_tr, '\\2', ml.text)
                     ml.text = re.sub(res_tr, '\\1', ml.text)
                     tail_font_revisers.insert(0, reviser)
