@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.24-17:35:53-JST>
+# Time-stamp:   <2024.06.25-10:03:48-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4983,7 +4983,7 @@ class ParagraphTable(Paragraph):
     """A class to handle table paragraph"""
 
     paragraph_class = 'table'
-    res_feature = '^\\|.*\\|(:?-*:?)?(\\^+|=+)?$'
+    res_feature = '^:?\\|.*\\|(:?-*:?)?(\\^+|=+)?$'
 
     def write_paragraph(self, ms_doc):
         # CHARS STATE
@@ -4996,10 +4996,11 @@ class ParagraphTable(Paragraph):
         m_size = chars_state.font_size
         t_size = m_size * chars_state.font_scale
         # GET DATA
-        tab, conf_line_place, \
+        tab_lines = self._get_tab_lines(md_lines)
+        tab, conf_line_place, table_alignment, \
             col_alig_list, col_widt_list, col_rule_list, \
             row_alig_list, row_heig_list, row_rule_list \
-            = self._get_tab_and_place_and_list(md_lines)
+            = self._get_tab_data(tab_lines)
         cal, cwl, crl = col_alig_list, col_widt_list, col_rule_list
         tab, col_alig_mtrx, col_widt_mtrx, col_rule_mtrx \
             = self._get_col_data(tab, conf_line_place, cal, cwl, crl)
@@ -5022,7 +5023,7 @@ class ParagraphTable(Paragraph):
         row = len(tab)
         col = len(tab[0])
         ms_tab = ms_doc.add_table(row, col, style='Table Grid')
-        ms_tab.alignment = WD_TABLE_ALIGNMENT.CENTER
+        ms_tab.alignment = table_alignment
         # ms_tab.autofit = True
         # SET LENGTH AND ALIGNMENT
         for i in range(len(tab)):
@@ -5088,16 +5089,6 @@ class ParagraphTable(Paragraph):
         self.end_chars_state = self.chars_state.copy()
         Paragraph.bridge_chars_state = self.end_chars_state.copy()
 
-    def _get_tab_and_place_and_list(self, md_lines):
-        tab_lines = self._get_tab_lines(md_lines)
-        tab, conf_line_place, \
-            col_alig_list, col_widt_list, col_rule_list, \
-            row_alig_list, row_heig_list, row_rule_list \
-            = self._get_tab_data(tab_lines)
-        return tab, conf_line_place, \
-            col_alig_list, col_widt_list, col_rule_list, \
-            row_alig_list, row_heig_list, row_rule_list
-
     @staticmethod
     def _get_tab_lines(md_lines):
         tab_lines = []
@@ -5115,13 +5106,20 @@ class ParagraphTable(Paragraph):
     def _get_tab_data(tab_lines):
         tab = []
         conf_line_place = -1.0
+        table_alignment = WD_TABLE_ALIGNMENT.CENTER
         col_alig_list, col_widt_list, col_rule_list = [], [], []
         row_alig_list, row_heig_list, row_rule_list = [], [], []
         for tl in tab_lines:
             if conf_line_place == -1 and \
-               re.match('^(\\|\\s*(:?-*:?)?(\\^+|=+)?\\s*)+\\|$', tl) and \
+               re.match('^:?(\\|\\s*(:?-*:?)?(\\^+|=+)?\\s*)+\\|:?$', tl) and \
                not re.match('^\\|+$', tl):
                 conf_line_place = float(len(tab)) - 0.5
+                if re.match('^:\\|.*$', tl):
+                    tl = re.sub('^:', '', tl)
+                    table_alignment = WD_TABLE_ALIGNMENT.LEFT
+                elif re.match('^.*\\|:$', tl):
+                    tl = re.sub(':$', '', tl)
+                    table_alignment = WD_TABLE_ALIGNMENT.RIGHT
                 tl = re.sub('^\\|(.*)\\|$', '\\1', tl)
                 for c in tl.split('|'):
                     # COL RULE
@@ -5222,7 +5220,7 @@ class ParagraphTable(Paragraph):
             if col_widt_list[j] == 0:
                 col_widt_list[j] = max_width[j]
         # RETURN
-        return tab, conf_line_place, \
+        return tab, conf_line_place, table_alignment, \
             col_alig_list, col_widt_list, col_rule_list, \
             row_alig_list, row_heig_list, row_rule_list
 

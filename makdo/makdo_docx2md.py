@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.25-07:58:40-JST>
+# Time-stamp:   <2024.06.25-10:30:38-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6462,7 +6462,8 @@ class ParagraphTable(Paragraph):
     def _get_revisers_and_md_text(self, raw_text):
         xml_lines = self.xml_lines
         numbering_revisers = []
-        xml_tbl, v_rlen_clm, h_rlen_row = self.__get_raw_table_data(xml_lines)
+        tbl_alig, xml_tbl, v_rlen_clm, h_rlen_row \
+            = self.__get_raw_table_data(xml_lines)
         txt_tbl = self.__get_txt_table(xml_tbl)
         h_frs, t_frs = self.__get_font_revisers(txt_tbl)
         head_font_revisers, tail_font_revisers = h_frs, t_frs
@@ -6481,7 +6482,7 @@ class ParagraphTable(Paragraph):
                                                   v_clen_clm, h_clen_row,
                                                   v_alig_tbl, h_alig_tbl,
                                                   v_rule_tbl, h_rule_tbl)
-        md_text = self.__get_md_text(txt_tbl, std_row, std_clm,
+        md_text = self.__get_md_text(tbl_alig, txt_tbl, std_row, std_clm,
                                      v_alig_tbl, h_alig_tbl,
                                      v_rule_tbl, h_rule_tbl,
                                      v_conf_clm, h_conf_row)
@@ -6491,16 +6492,26 @@ class ParagraphTable(Paragraph):
 
     @staticmethod
     def __get_raw_table_data(xml_lines):
-        xml_tbl, v_rlen_clm, h_rlen_row = [], [], []
+        tbl_alig, xml_tbl, v_rlen_clm, h_rlen_row = 'center', [], [], []
+        res_tpr_beg = '^<w:tblPr( .*)?>$'
+        res_tpr_end = '^</w:tblPr( .*)?>$'
         res_row_beg = '^<w:tr( .*)?>$'
         res_row_end = '^</w:tr( .*)?>$'
         res_cel_beg = '^<w:tc( .*)?>$'
         res_cel_end = '^</w:tc( .*)?>'
+        res_tpr_alg = '^<w:jc(?: .*)? w:val=[\'"]([a-z]*)[\'"](?: .*)?/>$'
         res_v_len = '^<w:trHeight(?: .*)? w:val=[\'"]([0-9]+)[\'"](?: .*)?/>$'
         res_h_len = '^<w:gridCol(?: .*)? w:w=[\'"]([0-9]+)[\'"](?: .*)?/>$'
+        is_in_tpr = False
         is_in_row = False
         is_in_cel = False
         for xl in xml_lines:
+            if re.match(res_tpr_beg, xl):
+                is_in_tpr = True
+                continue
+            if re.match(res_tpr_end, xl):
+                is_in_tpr = False
+                continue
             if re.match(res_row_beg, xl):
                 xml_row = []
                 is_in_row = True
@@ -6517,6 +6528,9 @@ class ParagraphTable(Paragraph):
                 xml_row.append(xml_cel)
                 is_in_cel = False
                 continue
+            if re.match(res_tpr_alg, xl):
+                if is_in_tpr:
+                    tbl_alig = re.sub(res_tpr_alg, '\\1', xl)
             if is_in_cel:
                 if ('</w:p>' in xml_cel) and re.match('<w:p( .*)?>', xl):
                     xml_cel.append('<w:br/>')
@@ -6539,7 +6553,7 @@ class ParagraphTable(Paragraph):
                 h_m = n
         while len(h_rlen_row) < h_m:
             h_rlen_row.append(0)
-        return xml_tbl, v_rlen_clm, h_rlen_row
+        return tbl_alig, xml_tbl, v_rlen_clm, h_rlen_row
 
     @staticmethod
     def __get_txt_table(xml_tbl):
@@ -6847,7 +6861,7 @@ class ParagraphTable(Paragraph):
         return v_conf_clm, h_conf_row
 
     @staticmethod
-    def __get_md_text(txt_tbl, std_row, std_clm,
+    def __get_md_text(tbl_alig, txt_tbl, std_row, std_clm,
                       v_alig_tbl, h_alig_tbl, v_rule_tbl, h_rule_tbl,
                       v_conf_clm, h_conf_row):
         md_text = ''
@@ -6856,9 +6870,14 @@ class ParagraphTable(Paragraph):
             # CONFIGURATION
             if is_in_head:
                 if h_alig_tbl[i] == h_alig_tbl[std_row]:
+                    if tbl_alig == 'left':
+                        md_text += ':'
                     for j, cell in enumerate(row):
                         md_text += '|' + h_conf_row[j] + v_rule_tbl[std_row][j]
-                    md_text += '|\n'
+                    md_text += '|'
+                    if tbl_alig == 'right':
+                        md_text += ':'
+                    md_text += '\n'
                     is_in_head = False
             # DATA
             for j, cell in enumerate(row):
