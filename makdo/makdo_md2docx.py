@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.26-16:05:25-JST>
+# Time-stamp:   <2024.06.26-18:26:31-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5050,8 +5050,13 @@ class ParagraphTable(Paragraph):
                 ms_cell = ms_tab.cell(i, j)
                 ms_cell.horizontal_alignment = hori_alig_mtrx[i][j]
                 ms_cell.vertical_alignment = vert_alig_mtrx[i][j]
-                # ms_cell.height = Pt()
-                # ms_cell.width = Pt()
+                # FOR MS WORD
+                if vert_leng_list[i] == 0:
+                    ms_cell.height = Pt(t_size * BASIC_TABLE_CELL_HEIGHT)
+                elif vert_leng_list[i] > 0:
+                    ms_cell.height = Pt(t_size * vert_leng_list[i])
+                ms_cell.width \
+                    = Pt(t_size * (hori_leng_list[j] + BASIC_TABLE_CELL_WIDTH))
                 ms_par = ms_cell.paragraphs[0]
                 ms_par.style = 'makdo-t'
                 # TEXT

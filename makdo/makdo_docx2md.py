@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.26-17:40:03-JST>
+# Time-stamp:   <2024.06.26-18:45:52-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5235,6 +5235,8 @@ class Paragraph:
         xls = self.xml_lines
         head_space = self.head_space
         paragraph_class = self.paragraph_class
+        head_font_revisers = self.head_font_revisers
+        tail_font_revisers = self.tail_font_revisers
         length_docx \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
@@ -5270,8 +5272,17 @@ class Paragraph:
                 length_docx['line spacing'] \
                     = (ls_xml / 20 / m_size / lnsp) - 1
             else:
+                sc = 1.0
+                if '---' in head_font_revisers:
+                    sc = 0.6
+                elif '--' in head_font_revisers:
+                    sc = 0.8
+                elif '++' in head_font_revisers:
+                    sc = 1.2
+                elif '+++' in head_font_revisers:
+                    sc = 1.4
                 length_docx['line spacing'] \
-                    = (ls_xml / 20 / m_size / TABLE_LINE_SPACING) - 1
+                    = (ls_xml / 20 / m_size / sc / TABLE_LINE_SPACING) - 1
         if sb_xml != 0 or sa_xml != 0 or ls_xml != 0:
             ls = (ls_xml / 20 / m_size / lnsp) - 1
             ls75 = ls * .75
