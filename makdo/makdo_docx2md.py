@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.26-08:38:27-JST>
+# Time-stamp:   <2024.06.26-12:35:24-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -2953,6 +2953,8 @@ class Document:
         for i, p in enumerate(self.paragraphs):
             if p.has_removed:
                 continue
+            if re.match('^\\s+', p.text_to_write):
+                continue
             if p.paragraph_class == 'sentence':
                 if p.length_docx['first indent'] == 0:
                     if p.length_docx['left indent'] == 0:
@@ -3315,21 +3317,25 @@ class Document:
             while re.match(NOT_ESCAPED + '\\\\', rt):
                 rt = re.sub(NOT_ESCAPED + '\\\\', '\\1', rt)
             unit = 12 * 2.54 / 72 / 2
-            line_width_cm = float(get_real_width(rt)) * unit
+            line_width_in_cm = float(get_real_width(rt)) * unit
             indent = p.length_docx['first indent'] \
                 + p.length_docx['left indent'] \
                 + p.length_docx['right indent']
-            region_width_cm = PAPER_WIDTH[paper_size] \
+            region_width_in_cm = PAPER_WIDTH[paper_size] \
                 - left_margin - right_margin \
                 - (indent * unit)
-            if line_width_cm > region_width_cm:
+            if line_width_in_cm > region_width_in_cm:
                 continue
             indent \
                 = p.length_revi['first indent'] + p.length_revi['left indent']
-            if indent != 0:
+            if indent > -.25 and indent < +.25:
+                p.length_supp['first indent'] -= p.length_revi['first indent']
+                p.length_supp['left indent'] -= p.length_revi['left indent']
+            elif re.match('^\\s+', p.text_to_write):
+                p.length_supp['first indent'] += p.length_revi['left indent']
+                p.length_supp['left indent'] -= p.length_revi['left indent']
+            else:
                 continue
-            p.length_supp['first indent'] -= p.length_revi['first indent']
-            p.length_supp['left indent'] -= p.length_revi['left indent']
             # RENEW
             p.length_revi = p._get_length_revi()
             p.length_revisers = p._get_length_revisers(p.length_revi)
@@ -3362,9 +3368,9 @@ class Document:
                     w += 4.0
                 elif c == '\u3000':
                     w += 1.0
-            if w + p.length_revi['first indent'] != 0:
-                continue
-            p.length_supp['first indent'] = w
+            # if w + p.length_revi['first indent'] != 0:
+            #     continue
+            p.length_supp['first indent'] += w
             p.text_to_write = re.sub('^' + hsps, '', p.text_to_write)
             p.length_revi = p._get_length_revi()
             p.length_revisers = p._get_length_revisers(p.length_revi)
@@ -5236,27 +5242,28 @@ class Paragraph:
             else:
                 length_docx['line spacing'] \
                     = (ls_xml / 20 / m_size / TABLE_LINE_SPACING) - 1
-        ls = (ls_xml / 20 / m_size / lnsp) - 1
-        ls75 = ls * .75
-        ls25 = ls * .25
-        if ls <= 0:
-            if length_docx['space before'] >= ls75 * 2:
-                length_docx['space before'] += ls75
-            elif length_docx['space before'] >= 0:
-                length_docx['space before'] /= 2
-            if length_docx['space after'] >= ls25 * 2:
-                length_docx['space after'] += ls25
-            elif length_docx['space after'] >= 0:
-                length_docx['space after'] /= 2
-        else:
-            if length_docx['space before'] >= ls75:
-                length_docx['space before'] += ls75
-            elif length_docx['space before'] >= 0:
-                length_docx['space before'] *= 2
-            if length_docx['space after'] >= ls25:
-                length_docx['space after'] += ls25
-            elif length_docx['space after'] >= 0:
-                length_docx['space after'] *= 2
+        if sb_xml != 0 or sa_xml != 0 or ls_xml != 0:
+            ls = (ls_xml / 20 / m_size / lnsp) - 1
+            ls75 = ls * .75
+            ls25 = ls * .25
+            if ls <= 0:
+                if length_docx['space before'] >= ls75 * 2:
+                    length_docx['space before'] += ls75
+                elif length_docx['space before'] >= 0:
+                    length_docx['space before'] /= 2
+                if length_docx['space after'] >= ls25 * 2:
+                    length_docx['space after'] += ls25
+                elif length_docx['space after'] >= 0:
+                    length_docx['space after'] /= 2
+            else:
+                if length_docx['space before'] >= ls75:
+                    length_docx['space before'] += ls75
+                elif length_docx['space before'] >= 0:
+                    length_docx['space before'] *= 2
+                if length_docx['space after'] >= ls25:
+                    length_docx['space after'] += ls25
+                elif length_docx['space after'] >= 0:
+                    length_docx['space after'] *= 2
         length_docx['first indent'] = (fi_xml - hi_xml) / 20 / m_size
         length_docx['left indent'] = (li_xml + ti_xml) / 20 / m_size
         length_docx['right indent'] = ri_xml / 20 / m_size
