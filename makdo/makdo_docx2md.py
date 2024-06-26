@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.26-16:15:28-JST>
+# Time-stamp:   <2024.06.26-17:40:03-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1681,6 +1681,28 @@ class Form:
                         = dt.strftime('%Y-%m-%dT%H:%M:%S+09:00')
 
     def _configure_by_styles_xml(self, xml_lines):
+        # DEFAULT
+        afnt = ''
+        kfnt = ''
+        is_in_default = False
+        for xl in xml_lines:
+            if xl == '<w:docDefaults>':
+                is_in_default = True
+            if xl == '</w:docDefaults>':
+                break
+            if is_in_default:
+                afnt = XML.get_value('w:rFonts', 'w:ascii', afnt, xl)
+                kfnt = XML.get_value('w:rFonts', 'w:eastAsia', kfnt, xl)
+            # MINCHO FONT
+            if afnt != '' and kfnt != '':
+                if afnt == kfnt:
+                    Form.mincho_font = afnt
+                else:
+                    Form.mincho_font = afnt + ' / ' + kfnt
+            elif afnt != '' and kfnt == '':
+                Form.mincho_font = afnt
+            elif afnt == '' and kfnt != '':
+                Form.mincho_font = kfnt
         xml_body = XML.get_body('w:styles', xml_lines)
         xml_blocks = XML.get_blocks(xml_body)
         sb = ['0.0', '0.0', '0.0', '0.0', '0.0', '0.0']
@@ -3820,6 +3842,14 @@ class RawParagraph:
                 chars_data.append(CharsDatum([], '>$', []))
                 ruby = ''
                 continue
+            # RESET
+            if xl == '<w:rPr>':
+                for fd in cd.pre_fds[::-1]:
+                    if fd != '->' and fd != '+>':
+                        cd.pre_fds.remove(fd)
+                for fd in cd.pos_fds[::-1]:
+                    if fd != '<-' and fd != '<+':
+                        cd.pos_fds.remove(fd)
             # FONT
             if re.match('^<w:rFonts .*>$', xl):
                 afnt = XML.get_value('w:rFonts', 'w:ascii', '', xl)
@@ -6626,6 +6656,8 @@ class ParagraphTable(Paragraph):
         t_freq = [0 for i in tail_font_revisers]
         for row in txt_tab:
             for cell in row:
+                if cell == '':
+                    continue
                 total += 1
                 h_frs, t_frs, _ \
                     = Paragraph._get_font_revisers_and_md_text(cell)
