@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.26-12:35:24-JST>
+# Time-stamp:   <2024.06.26-16:15:28-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -2904,7 +2904,7 @@ class Document:
     def get_paragraphs(self, raw_paragraphs):
         paragraphs = []
         for rp in raw_paragraphs:
-            if rp.raw_text == '':
+            if rp.paragraph_class == 'empty':
                 continue
             if rp.paragraph_class == 'configuration':
                 if len(paragraphs) > 0:
@@ -5579,7 +5579,7 @@ class Paragraph:
         for rev in head_font_revisers:
             ttwwr += rev
         ttwwr += text_to_write
-        for rev in reversed(tail_font_revisers):
+        for rev in tail_font_revisers[::-1]:
             ttwwr += rev
         # RIGHT SYMBOL
         if has_right_colon:
@@ -5898,6 +5898,21 @@ class ParagraphEmpty(Paragraph):
 
     @classmethod
     def is_this_class(cls, raw_paragraph):
+        rp = raw_paragraph
+        xls = rp.xml_lines
+        if ParagraphConfiguration.is_this_class(rp):
+            return False
+        if ParagraphTable.is_this_class(rp):
+            return False
+        if ParagraphHorizontalLine.is_this_class(rp):
+            return False
+        if rp.raw_text == '':
+            has_run = False
+            for xl in xls:
+                if re.match('^<w:r( .*)?>$', xl):
+                    has_run = True
+            if not has_run:
+                return True
         return False
 
 
@@ -5921,7 +5936,8 @@ class ParagraphBlank(Paragraph):
             return False
         if ParagraphConfiguration.is_this_class(rp):
             return False
-        if re.match('^\\s*$', rp_rtx):
+        hfrs, tfrs, mtx = Paragraph._get_font_revisers_and_md_text(rp_rtx)
+        if re.match('^\\s*$', mtx):
             return True
         return False
 
@@ -6668,8 +6684,8 @@ class ParagraphTable(Paragraph):
                     if t_fr in cel_t_frs:
                         tmp_t_frs.remove(t_fr)
                         cel_t_frs.remove(t_fr)
-                cel_t_frs.reverse()
-                cell_txt = ''.join(cel_h_frs) + cel_txt + ''.join(cel_t_frs)
+                cell_txt \
+                    = ''.join(cel_h_frs) + cel_txt + ''.join(cel_t_frs[::-1])
                 # SETTLE
                 for fr in tmp_h_frs:
                     fr = fr.replace('>', '\\>')

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.26-07:56:00-JST>
+# Time-stamp:   <2024.06.26-16:05:25-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -3618,7 +3618,7 @@ class RawParagraph:
                     ml.text = re.sub('  $', '<br>', ml.text)
                 break
         # TAIL REVISERS
-        for ml in reversed(md_lines):
+        for ml in md_lines[::-1]:
             if re.match('^.*(  |\t|\u3000)$', ml.spaced_text):
                 ml.text = re.sub('<br>$', '  ', ml.text)
             while True:
