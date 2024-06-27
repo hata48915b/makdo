@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.26-18:45:52-JST>
+# Time-stamp:   <2024.06.27-11:48:03-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5283,28 +5283,19 @@ class Paragraph:
                     sc = 1.4
                 length_docx['line spacing'] \
                     = (ls_xml / 20 / m_size / sc / TABLE_LINE_SPACING) - 1
+        # MODIFY SPACE BEFORE AND AFTER
         if sb_xml != 0 or sa_xml != 0 or ls_xml != 0:
             ls = (ls_xml / 20 / m_size / lnsp) - 1
-            ls75 = ls * .75
-            ls25 = ls * .25
-            if ls <= 0:
-                if length_docx['space before'] >= ls75 * 2:
-                    length_docx['space before'] += ls75
-                elif length_docx['space before'] >= 0:
-                    length_docx['space before'] /= 2
-                if length_docx['space after'] >= ls25 * 2:
-                    length_docx['space after'] += ls25
-                elif length_docx['space after'] >= 0:
-                    length_docx['space after'] /= 2
+            ls80 = ls * .80
+            ls20 = ls * .20
+            if length_docx['space before'] >= ls80 * 0.33333:
+                length_docx['space before'] += ls80
             else:
-                if length_docx['space before'] >= ls75:
-                    length_docx['space before'] += ls75
-                elif length_docx['space before'] >= 0:
-                    length_docx['space before'] *= 2
-                if length_docx['space after'] >= ls25:
-                    length_docx['space after'] += ls25
-                elif length_docx['space after'] >= 0:
-                    length_docx['space after'] *= 2
+                length_docx['space before'] *= 4
+            if length_docx['space after'] >= ls20 * 0.33333:
+                length_docx['space after'] += ls20
+            else:
+                length_docx['space after'] *= 4
         length_docx['first indent'] = (fi_xml - hi_xml) / 20 / m_size
         length_docx['left indent'] = (li_xml + ti_xml) / 20 / m_size
         length_docx['right indent'] = ri_xml / 20 / m_size

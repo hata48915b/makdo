@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.26-18:26:31-JST>
+# Time-stamp:   <2024.06.27-11:40:07-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4008,7 +4008,7 @@ class Paragraph:
             elif re.match(res_l, lr):
                 length_revi['right indent'] -= float(re.sub(res_l, '\\1', lr))
         for ln in length_revi:
-            length_revi[ln] = round(length_revi[ln], 2)
+            length_revi[ln] = round(length_revi[ln], 3)
         # self.length_revi = length_revi
         return length_revi
 
@@ -4034,7 +4034,7 @@ class Paragraph:
             if td <= len(sa) and sa[td - 1] != '':
                 length_conf['space after'] += float(sa[td - 1])
         for ln in length_conf:
-            length_conf[ln] = round(length_conf[ln], 2)
+            length_conf[ln] = round(length_conf[ln], 3)
         # self.length_conf = length_conf
         return length_conf
 
@@ -4064,15 +4064,30 @@ class Paragraph:
             if tail_section_depth > 0:
                 length_clas['left indent'] += tail_section_depth - 1.0
         elif paragraph_class == 'table':
+            # ls     sb    sa
+            # -0.33  0.19  0.13
+            #  0.00  0.45  0.20
+            # +0.30  0.67  0.27
+            # +0.60  0.91  0.32
+            # +0.90  1.16  0.38
+            # +1.20  1.40  0.44
+            # +1.50  1.66  0.50
+            # +1.80  1.76  0.56
+            # +2.10  1.78  0.62
+            # +2.40  1.78  0.68
+            # +2.70  1.78  0.74
+            # +3.00  1.78  0.80
+            # +3.30  1.78  0.80
+            # +3.60  1.78  0.80
             ls = self.length_revi['line spacing']
-            if ls < 0.63:
-                length_clas['space before'] += 0.72 * ls + TABLE_SPACE_BEFORE
+            if ls <= 1.66:
+                length_clas['space before'] += 0.80 * ls + TABLE_SPACE_BEFORE
             else:
-                length_clas['space before'] += 0.90
-            if ls < 0.92:
-                length_clas['space after'] += 0.23 * ls + TABLE_SPACE_AFTER
+                length_clas['space before'] += 1.78
+            if ls <= 3.00:
+                length_clas['space after'] += 0.20 * ls + TABLE_SPACE_AFTER
             else:
-                length_clas['space after'] += 0.41
+                length_clas['space after'] += 0.80
         elif paragraph_class == 'image':
             length_clas['space before'] += IMAGE_SPACE_BEFORE
             length_clas['space after'] += IMAGE_SPACE_AFTER
@@ -4094,7 +4109,7 @@ class Paragraph:
             if ParagraphSection.states[1][0] > 0 and tail_section_depth > 2:
                 length_clas['left indent'] -= 1.0
         for ln in length_clas:
-            length_clas[ln] = round(length_clas[ln], 2)
+            length_clas[ln] = round(length_clas[ln], 3)
         # self.length_clas = length_clas
         return length_clas
 
@@ -4108,29 +4123,19 @@ class Paragraph:
         for ln in length_docx:
             length_docx[ln] \
                 = length_revi[ln] + length_conf[ln] + length_clas[ln]
-        # LINE SPACING
-        ls75 = length_docx['line spacing'] * .75
-        ls25 = length_docx['line spacing'] * .25
-        if length_docx['line spacing'] <= 0:
-            if length_docx['space before'] >= ls75:
-                length_docx['space before'] -= ls75
-            elif length_docx['space before'] >= 0:
-                length_docx['space before'] *= 2
-            if length_docx['space after'] >= ls25:
-                length_docx['space after'] -= ls25
-            elif length_docx['space after'] >= 0:
-                length_docx['space after'] *= 2
+        # MODIFY SPACE BEFORE AND AFTER
+        ls80 = length_docx['line spacing'] * .80
+        ls20 = length_docx['line spacing'] * .20
+        if length_docx['space before'] >= ls80 * 1.33333:
+            length_docx['space before'] -= ls80
         else:
-            if length_docx['space before'] >= ls75 * 2:
-                length_docx['space before'] -= ls75
-            elif length_docx['space before'] >= 0:
-                length_docx['space before'] /= 2
-            if length_docx['space after'] >= ls25 * 2:
-                length_docx['space after'] -= ls25
-            elif length_docx['space after'] >= 0:
-                length_docx['space after'] /= 2
+            length_docx['space before'] /= 4
+        if length_docx['space after'] >= ls20 * 1.33333:
+            length_docx['space after'] -= ls20
+        else:
+            length_docx['space after'] /= 4
         for ln in length_docx:
-            length_docx[ln] = round(length_docx[ln], 2)
+            length_docx[ln] = round(length_docx[ln], 3)
         # self.length_docx = length_docx
         return length_docx
 
