@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.27-11:48:03-JST>
+# Time-stamp:   <2024.06.27-19:38:44-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5666,8 +5666,9 @@ class Paragraph:
             # ' ' + '[^ ]'
             if re.match('^ $', c) and (not re.match('^ $', c2)):
                 if tmp != '':
-                    phrases.append(tmp)
-                    tmp = ''
+                    if not re.match('^@.{1,66}$', tmp):
+                        phrases.append(tmp)
+                        tmp = ''
             # '[[{(]' + '[^[{(]'
             # res = '^[\\[{\\(]$'
             # if re.match('^ $', c) and (not re.match(res, c2)):
@@ -5722,6 +5723,15 @@ class Paragraph:
                     tmp = ''
             if re.match('^.*' + res + '$', tmp):
                 if tmp != '':
+                    phrases.append(tmp)
+                    tmp = ''
+            # '@.+@' (FONT)
+            if not re.match('^@', tmp):
+                if re.match(NOT_ESCAPED + '@$', tmp + c2):
+                    phrases.append(tmp)
+                    tmp = ''
+            if re.match('^@.{1,66}@$', tmp):
+                if re.match(NOT_ESCAPED + '@$', tmp):
                     phrases.append(tmp)
                     tmp = ''
         return phrases
