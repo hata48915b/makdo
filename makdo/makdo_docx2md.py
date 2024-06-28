@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.27-19:38:44-JST>
+# Time-stamp:   <2024.06.28-12:57:25-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -3671,6 +3671,10 @@ class RawParagraph:
         self.attached_pagebreak = self.get_attached_pagebreak(self.xml_lines)
         self.chars_data, self.images \
             = self._get_chars_data_and_images(self.raw_class, self.xml_lines)
+        self.chars_data = self._reduce_font_name(self.chars_data)
+        #self.chars_data.reverse()
+        #self.chars_data = self._reduce_font_name(self.chars_data)
+        #self.chars_data.reverse()
         self.raw_text = self._get_raw_text(self.chars_data)
         self.head_space, self.raw_text \
             = self._separate_head_space(self.raw_text,
@@ -4599,6 +4603,88 @@ class RawParagraph:
                 chars = re.sub('(n|N|M)', '\\\\\\1', chars)
         # RETURN
         return chars
+
+    @classmethod
+    def _reduce_font_name(cls, chars_data):
+        # FORM
+        frm_font = Form.mincho_font
+        frm_afont, frm_kfont = cls._get_ascii_and_kanji_font(frm_font)
+        for i, cur_cd in enumerate(chars_data):
+            # PREVIOUS
+            pre_font = ''
+            if i > 0:
+                pre_cd = chars_data[i - 1]
+                pre_state = cls._get_chars_state(pre_cd.chars)
+                pre_font = ''
+                for fd in pre_cd.pre_fds:
+                    if re.match('^@.+@$', fd):
+                        pre_font = re.sub('^@(.+)@$', '\\1', fd)
+                pre_afont, pre_kfont = cls._get_ascii_and_kanji_font(pre_font)
+            # CURRENT
+            if True:
+                cur_state = cls._get_chars_state(cur_cd.chars)
+                cur_font = ''
+                for fd in cur_cd.pre_fds:
+                    if re.match('^@.+@$', fd):
+                        cur_font = re.sub('^@(.+)@$', '\\1', fd)
+                cur_afont, cur_kfont = cls._get_ascii_and_kanji_font(cur_font)
+            # REDUCE
+            if cur_font != '' and '@' + cur_font + '@' not in cur_cd.pos_fds:
+                continue
+            if (cur_state == 'ascii' and cur_afont == frm_afont) or \
+               (cur_state == 'kanji' and cur_kfont == frm_kfont) or \
+               (cur_state == 'mix' and cur_font == frm_font):
+                cur_cd.pre_fds.remove('@' + cur_font + '@')
+                cur_cd.pos_fds.remove('@' + cur_font + '@')
+                cur_font, cur_afont, cur_kfont = '', '', ''
+            # REDUCE
+            if pre_font != '' and '@' + pre_font + '@' not in pre_cd.pos_fds:
+                continue
+            if pre_font == '':
+                continue
+            if pre_font == cur_font:
+                continue
+            for j in range(i + 1, len(chars_data)):
+                if '@' + pre_font + '@' in chars_data[j].pre_fds:
+                    if '@' + pre_font + '@' in chars_data[j].pos_fds:
+                        break
+            else:
+                continue
+            if cur_font != '':
+                tmp_font, tmp_afont, tmp_kfont = cur_font, cur_afont, cur_kfont
+            else:
+                tmp_font, tmp_afont, tmp_kfont = frm_font, frm_afont, frm_kfont
+            if (cur_state == 'ascii' and tmp_afont == pre_afont) or \
+               (cur_state == 'kanji' and tmp_kfont == pre_kfont) or \
+               (cur_state == 'mix' and tmp_font == pre_font):
+                if cur_font != '':
+                    cur_cd.pre_fds.remove('@' + cur_font + '@')
+                    cur_cd.pos_fds.remove('@' + cur_font + '@')
+                cur_cd.pre_fds.append('@' + pre_font + '@')
+                cur_cd.pos_fds.append('@' + pre_font + '@')
+        return chars_data
+
+    @staticmethod
+    def _get_chars_state(chars):
+        if re.match('^[\t -~]*$', chars):
+            state = 'ascii'
+        elif re.match('^[^\t -~]*$', chars):
+            state = 'kanji'
+        else:
+            state = 'mix'
+        return state
+
+    @staticmethod
+    def _get_ascii_and_kanji_font(font):
+        if re.match('^(.*) / (.*)$', font):
+            ascii_font = re.sub('^(.*) / (.*)$', '\\1', font)
+            kanji_font = re.sub('^(.*) / (.*)$', '\\2', font)
+        else:
+            ascii_font = font
+            kanji_font = font
+        if ascii_font == '=':
+            ascii_font = kanji_font
+        return ascii_font, kanji_font
 
     @classmethod
     def _get_raw_text(cls, chars_data):
@@ -5660,6 +5746,15 @@ class Paragraph:
                 break
             c2 = line[i + 1]
             tmp2 = line[i + 1:]
+            # '@.+@' (FONT)
+            if not re.match('^@', tmp):
+                if re.match(NOT_ESCAPED + '@$', tmp + c2):
+                    phrases.append(tmp)
+                    tmp = ''
+            if re.match('^@.{1,66}@$', tmp):
+                if re.match(NOT_ESCAPED + '@$', tmp):
+                    phrases.append(tmp)
+                    tmp = ''
             # + ' '
             if re.match('^ $', c2):
                 continue
@@ -5723,15 +5818,6 @@ class Paragraph:
                     tmp = ''
             if re.match('^.*' + res + '$', tmp):
                 if tmp != '':
-                    phrases.append(tmp)
-                    tmp = ''
-            # '@.+@' (FONT)
-            if not re.match('^@', tmp):
-                if re.match(NOT_ESCAPED + '@$', tmp + c2):
-                    phrases.append(tmp)
-                    tmp = ''
-            if re.match('^@.{1,66}@$', tmp):
-                if re.match(NOT_ESCAPED + '@$', tmp):
                     phrases.append(tmp)
                     tmp = ''
         return phrases
@@ -5911,6 +5997,14 @@ class Paragraph:
         if tmp != '':
             tex += tmp + '\n'
             tmp = ''
+        tmp = ''
+        for t in tex.split('\n'):
+            if re.match('^\\s+.*$', t):
+                t = '\\' + t
+            if re.match('^.*\\s+$', t):
+                t = t + '\\'
+            tmp += t + '\n'
+        tex = tmp
         tex = re.sub('\n$', '', tex)
         tex = re.sub('(  |\t|\u3000)(\n)', '\\1\\\\\\2', tex)
         return tex
