@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.28-12:57:25-JST>
+# Time-stamp:   <2024.06.28-13:32:57-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5655,6 +5655,7 @@ class Paragraph:
         return text_to_write
 
     def get_text_to_write_with_reviser(self):
+        paragraph_class = self.paragraph_class
         numbering_revisers = self.numbering_revisers
         length_revisers = self.length_revisers
         head_font_revisers = self.head_font_revisers
@@ -5696,7 +5697,11 @@ class Paragraph:
             ttwwr += ': '
         for rev in head_font_revisers:
             ttwwr += rev
+        if paragraph_class == 'sentence' and len(head_font_revisers) > 0:
+            ttwwr += '\n'
         ttwwr += text_to_write
+        if paragraph_class == 'sentence' and len(tail_font_revisers) > 0:
+            ttwwr += '\n'
         for rev in tail_font_revisers[::-1]:
             ttwwr += rev
         # RIGHT SYMBOL
@@ -5905,6 +5910,13 @@ class Paragraph:
                 if get_ideal_width(tmp + p) > MD_TEXT_WIDTH:
                     tex = _extend_tex(tmp)
                     tmp = ''
+            # FONT NAME
+            if re.match('^@.*$', p) and re.match(NOT_ESCAPED + '@$', p):
+                tex = _extend_tex(tmp)
+                tmp = ''
+            if re.match('^@.*$', tmp) and re.match(NOT_ESCAPED + '@$', tmp):
+                tex = _extend_tex(tmp)
+                tmp = ''
             # TOO LONG
             tmp += p
             while get_ideal_width(tmp) > MD_TEXT_WIDTH:
