@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.28-13:32:57-JST>
+# Time-stamp:   <2024.06.29-06:46:10-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -3857,6 +3857,8 @@ class RawParagraph:
             # FONT
             if re.match('^<w:rFonts .*>$', xl):
                 afnt = XML.get_value('w:rFonts', 'w:ascii', '', xl)
+                # (FOR COMPLEX SCRIPT)
+                kfnt = XML.get_value('w:rFonts', 'w:cs', '', xl)
                 kfnt = XML.get_value('w:rFonts', 'w:eastAsia', '', xl)
                 # SYMPTOMATIC TREATMENT
                 for mfs in MS_FONTS:
@@ -3896,6 +3898,8 @@ class RawParagraph:
                 continue
             # FONT SIZE
             s = XML.get_value('w:sz', 'w:val', -1.0, xl) / 2
+            # (FOR COMPLEX SCRIPT)
+            s = XML.get_value('w:szCs', 'w:val', -1.0, xl) / 2
             if s > 0:
                 if s < font_size * 0.7:
                     cd.append_fds('---', '---')
