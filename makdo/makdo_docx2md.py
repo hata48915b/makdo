@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.29-06:46:10-JST>
+# Time-stamp:   <2024.06.29-09:21:30-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1579,6 +1579,8 @@ class Form:
         bottom_x = -1.0
         left_x = -1.0
         right_x = -1.0
+        # STATISTICS
+        afonts, jfonts, fsizes = {}, {}, {}
         for xl in xml_lines:
             width_x = XML.get_value('w:pgSz', 'w:w', width_x, xl)
             height_x = XML.get_value('w:pgSz', 'w:h', height_x, xl)
@@ -1586,6 +1588,17 @@ class Form:
             bottom_x = XML.get_value('w:pgMar', 'w:bottom', bottom_x, xl)
             left_x = XML.get_value('w:pgMar', 'w:left', left_x, xl)
             right_x = XML.get_value('w:pgMar', 'w:right', right_x, xl)
+            # STATISTICS
+            if re.match('^.* w:ascii=[\'"]([^\'"]*)[\'"].*$', xl):
+                afonts = XML.count_values('w:rFonts', 'w:ascii', afonts, xl)
+            else:
+                afonts = XML.count_values('w:rFonts', 'w:cs', afonts, xl)
+            if re.match('^.* w:eastAsia=[\'"]([^\'"]*)[\'"].*$', xl):
+                jfonts = XML.count_values('w:rFonts', 'w:eastAsia', jfonts, xl)
+            else:
+                jfonts = XML.count_values('w:rFonts', 'w:cs', jfonts, xl)
+            fsizes = XML.count_values('w:sz', 'w:val', fsizes, xl)
+            fsizes = XML.count_values('w:szCs', 'w:val', fsizes, xl)
             # LINE NUMBER
             if re.match('^<w:lnNumType( .*)?>$', xl):
                 Form.line_number = True
@@ -1635,6 +1648,26 @@ class Form:
                 Form.document_style = 'k'
             else:
                 Form.document_style = 'j'
+        # STATISTICS
+        afont = self._get_max(afonts)
+        jfont = self._get_max(jfonts)
+        if jfont != '':
+            if afont == '' or afont == jfont:
+                Form.mincho_font = '= / ' + jfont
+            else:
+                Form.mincho_font = afont + ' / ' + jfont
+        fsize = self._get_max(fsizes)
+        if re.match('^[0-9]+$', fsize):
+            Form.font_size = round(float(fsize) / 2, 1)
+
+    @staticmethod
+    def _get_max(values):
+        maximum, value = 0, ''
+        for v in values:
+            if maximum < values[v]:
+                maximum = values[v]
+                value = v
+        return value
 
     def _configure_by_core_xml(self, xml_lines):
         for i, xl in enumerate(xml_lines):
@@ -1683,7 +1716,7 @@ class Form:
     def _configure_by_styles_xml(self, xml_lines):
         # DEFAULT
         afnt = ''
-        kfnt = ''
+        jfnt = ''
         is_in_default = False
         for xl in xml_lines:
             if xl == '<w:docDefaults>':
@@ -1692,17 +1725,17 @@ class Form:
                 break
             if is_in_default:
                 afnt = XML.get_value('w:rFonts', 'w:ascii', afnt, xl)
-                kfnt = XML.get_value('w:rFonts', 'w:eastAsia', kfnt, xl)
+                jfnt = XML.get_value('w:rFonts', 'w:eastAsia', jfnt, xl)
             # MINCHO FONT
-            if afnt != '' and kfnt != '':
-                if afnt == kfnt:
+            if afnt != '' and jfnt != '':
+                if afnt == jfnt:
                     Form.mincho_font = afnt
                 else:
-                    Form.mincho_font = afnt + ' / ' + kfnt
-            elif afnt != '' and kfnt == '':
+                    Form.mincho_font = afnt + ' / ' + jfnt
+            elif afnt != '' and jfnt == '':
                 Form.mincho_font = afnt
-            elif afnt == '' and kfnt != '':
-                Form.mincho_font = kfnt
+            elif afnt == '' and jfnt != '':
+                Form.mincho_font = jfnt
         xml_body = XML.get_body('w:styles', xml_lines)
         xml_blocks = XML.get_blocks(xml_body)
         sb = ['0.0', '0.0', '0.0', '0.0', '0.0', '0.0']
@@ -1710,7 +1743,7 @@ class Form:
         for xb in xml_blocks:
             name = ''
             afnt = ''
-            kfnt = ''
+            jfnt = ''
             sz_x = -1.0
             f_it = False
             f_bd = False
@@ -1725,7 +1758,7 @@ class Form:
             for xl in xb:
                 name = XML.get_value('w:name', 'w:val', name, xl)
                 afnt = XML.get_value('w:rFonts', 'w:ascii', afnt, xl)
-                kfnt = XML.get_value('w:rFonts', 'w:eastAsia', kfnt, xl)
+                jfnt = XML.get_value('w:rFonts', 'w:eastAsia', jfnt, xl)
                 sz_x = XML.get_value('w:sz', 'w:val', sz_x, xl)
                 f_it = XML.is_this_tag('w:i', f_it, xl)
                 f_bd = XML.is_this_tag('w:b', f_bd, xl)
@@ -1739,15 +1772,15 @@ class Form:
                 asn = XML.get_value('w:autoSpaceDN', 'w:val', asn, xl)
             if name == 'makdo':
                 # MINCHO FONT
-                if afnt != '' and kfnt != '':
-                    if afnt == kfnt:
+                if afnt != '' and jfnt != '':
+                    if afnt == jfnt:
                         Form.mincho_font = afnt
                     else:
-                        Form.mincho_font = afnt + ' / ' + kfnt
-                elif afnt != '' and kfnt == '':
+                        Form.mincho_font = afnt + ' / ' + jfnt
+                elif afnt != '' and jfnt == '':
                     Form.mincho_font = afnt
-                elif afnt == '' and kfnt != '':
-                    Form.mincho_font = kfnt
+                elif afnt == '' and jfnt != '':
+                    Form.mincho_font = jfnt
                 # FONT SIZE
                 if sz_x > 0:
                     Form.font_size = round(sz_x / 2, 1)
@@ -1761,19 +1794,19 @@ class Form:
                     Form.auto_space = True
             elif name == 'makdo-g':
                 # GOTHIC FONT
-                if afnt != '' and kfnt != '':
-                    if afnt == kfnt:
+                if afnt != '' and jfnt != '':
+                    if afnt == jfnt:
                         Form.gothic_font = afnt
                     else:
-                        Form.gothic_font = afnt + ' / ' + kfnt
-                elif afnt != '' and kfnt == '':
+                        Form.gothic_font = afnt + ' / ' + jfnt
+                elif afnt != '' and jfnt == '':
                     Form.gothic_font = afnt
-                elif afnt == '' and kfnt != '':
-                    Form.gothic_font = kfnt
+                elif afnt == '' and jfnt != '':
+                    Form.gothic_font = jfnt
             elif name == 'makdo-i':
                 # IVS FONT
-                if kfnt != '':
-                    Form.ivs_font = kfnt
+                if jfnt != '':
+                    Form.ivs_font = jfnt
                 elif afnt != '':
                     Form.ivs_font = afnt
             else:
@@ -2858,39 +2891,51 @@ class XML:
         return xml_blocks
 
     @staticmethod
-    def get_value(tag_name, value_name, init_value, tag):
+    def get_value(tag_name, value_name, cur_value, tag):
+        if re.match('<' + tag_name + ' .+>', tag):
+            res = '^.* ' + value_name + '=[\'"]([^\'"]*)[\'"].*$'
+            if re.match(res, tag):
+                new_value = re.sub(res, '\\1', tag)
+                if type(cur_value) is int:
+                    # INT
+                    if re.match('^[-\\+]?[0-9]+$', new_value):
+                        return int(new_value)
+                    if re.match('^true$', new_value, re.IGNORECASE):
+                        return 1
+                    if re.match('^false$', new_value, re.IGNORECASE):
+                        return -1
+                    return cur_value  # bad value
+                if type(cur_value) is float:
+                    # FLOAT
+                    if re.match('^' + RES_NUMBER + '$', new_value):
+                        return float(new_value)
+                    return cur_value  # bad value
+                if type(cur_value) is bool:
+                    # BOOL
+                    if re.match('^true$', new_value, re.IGNORECASE):
+                        return True
+                    if re.match('^false$', new_value, re.IGNORECASE):
+                        return False
+                    if new_value == '1':
+                        return True
+                    if new_value == '-1':
+                        return False
+                    return cur_value  # bad value
+                # STRING
+                return new_value
+        return cur_value
+
+    @staticmethod
+    def count_values(tag_name, value_name, value_dict, tag):
         if re.match('<' + tag_name + ' .+>', tag):
             res = '^.* ' + value_name + '=[\'"]([^\'"]*)[\'"].*$'
             if re.match(res, tag):
                 value = re.sub(res, '\\1', tag)
-                if type(init_value) is int:
-                    # INT
-                    if re.match('^[-\\+]?[0-9]+$', value):
-                        return int(value)
-                    if re.match('^true$', value, re.IGNORECASE):
-                        return 1
-                    if re.match('^false$', value, re.IGNORECASE):
-                        return -1
-                    return init_value  # bad value
-                if type(init_value) is float:
-                    # FLOAT
-                    if re.match('^' + RES_NUMBER + '$', value):
-                        return float(value)
-                    return init_value  # bad value
-                if type(init_value) is bool:
-                    # BOOL
-                    if re.match('^true$', value, re.IGNORECASE):
-                        return True
-                    if re.match('^false$', value, re.IGNORECASE):
-                        return False
-                    if value == '1':
-                        return True
-                    if value == '-1':
-                        return False
-                    return init_value  # bad value
-                # STRING
-                return value
-        return init_value
+                if value in value_dict:
+                    value_dict[value] += 1
+                else:
+                    value_dict[value] = 1
+        return value_dict
 
     @staticmethod
     def is_this_tag(tag_name, init_value, tag):
@@ -3858,24 +3903,26 @@ class RawParagraph:
             if re.match('^<w:rFonts .*>$', xl):
                 afnt = XML.get_value('w:rFonts', 'w:ascii', '', xl)
                 # (FOR COMPLEX SCRIPT)
-                kfnt = XML.get_value('w:rFonts', 'w:cs', '', xl)
-                kfnt = XML.get_value('w:rFonts', 'w:eastAsia', '', xl)
+                if re.match('^.* w:eastAsia=[\'"]([^\'"]*)[\'"].*$', xl):
+                    jfnt = XML.get_value('w:rFonts', 'w:eastAsia', '', xl)
+                else:
+                    jfnt = XML.get_value('w:rFonts', 'w:cs', '', xl)
                 # SYMPTOMATIC TREATMENT
                 for mfs in MS_FONTS:
                     if afnt in mfs:
                         afnt = mfs[0]
-                    if kfnt in mfs:
-                        kfnt = mfs[0]
+                    if jfnt in mfs:
+                        jfnt = mfs[0]
                 font = ''
-                if afnt != '' and kfnt != '':
-                    if afnt == kfnt:
+                if afnt != '' and jfnt != '':
+                    if afnt == jfnt:
                         font = afnt
                     else:
-                        font = afnt + ' / ' + kfnt
-                elif afnt != '' and kfnt == '':
+                        font = afnt + ' / ' + jfnt
+                elif afnt != '' and jfnt == '':
                     font = afnt
-                elif afnt == '' and kfnt != '':
-                    font = kfnt
+                elif afnt == '' and jfnt != '':
+                    font = jfnt
                 if font != '':
                     if font == Form.mincho_font:
                         pass
@@ -4612,7 +4659,7 @@ class RawParagraph:
     def _reduce_font_name(cls, chars_data):
         # FORM
         frm_font = Form.mincho_font
-        frm_afont, frm_kfont = cls._get_ascii_and_kanji_font(frm_font)
+        frm_afont, frm_jfont = cls._get_ascii_and_kanji_font(frm_font)
         for i, cur_cd in enumerate(chars_data):
             # PREVIOUS
             pre_font = ''
@@ -4623,7 +4670,7 @@ class RawParagraph:
                 for fd in pre_cd.pre_fds:
                     if re.match('^@.+@$', fd):
                         pre_font = re.sub('^@(.+)@$', '\\1', fd)
-                pre_afont, pre_kfont = cls._get_ascii_and_kanji_font(pre_font)
+                pre_afont, pre_jfont = cls._get_ascii_and_kanji_font(pre_font)
             # CURRENT
             if True:
                 cur_state = cls._get_chars_state(cur_cd.chars)
@@ -4631,16 +4678,16 @@ class RawParagraph:
                 for fd in cur_cd.pre_fds:
                     if re.match('^@.+@$', fd):
                         cur_font = re.sub('^@(.+)@$', '\\1', fd)
-                cur_afont, cur_kfont = cls._get_ascii_and_kanji_font(cur_font)
+                cur_afont, cur_jfont = cls._get_ascii_and_kanji_font(cur_font)
             # REDUCE
             if cur_font != '' and '@' + cur_font + '@' not in cur_cd.pos_fds:
                 continue
             if (cur_state == 'ascii' and cur_afont == frm_afont) or \
-               (cur_state == 'kanji' and cur_kfont == frm_kfont) or \
+               (cur_state == 'kanji' and cur_jfont == frm_jfont) or \
                (cur_state == 'mix' and cur_font == frm_font):
                 cur_cd.pre_fds.remove('@' + cur_font + '@')
                 cur_cd.pos_fds.remove('@' + cur_font + '@')
-                cur_font, cur_afont, cur_kfont = '', '', ''
+                cur_font, cur_afont, cur_jfont = '', '', ''
             # REDUCE
             if pre_font != '' and '@' + pre_font + '@' not in pre_cd.pos_fds:
                 continue
@@ -4655,11 +4702,11 @@ class RawParagraph:
             else:
                 continue
             if cur_font != '':
-                tmp_font, tmp_afont, tmp_kfont = cur_font, cur_afont, cur_kfont
+                tmp_font, tmp_afont, tmp_jfont = cur_font, cur_afont, cur_jfont
             else:
-                tmp_font, tmp_afont, tmp_kfont = frm_font, frm_afont, frm_kfont
+                tmp_font, tmp_afont, tmp_jfont = frm_font, frm_afont, frm_jfont
             if (cur_state == 'ascii' and tmp_afont == pre_afont) or \
-               (cur_state == 'kanji' and tmp_kfont == pre_kfont) or \
+               (cur_state == 'kanji' and tmp_jfont == pre_jfont) or \
                (cur_state == 'mix' and tmp_font == pre_font):
                 if cur_font != '':
                     cur_cd.pre_fds.remove('@' + cur_font + '@')
