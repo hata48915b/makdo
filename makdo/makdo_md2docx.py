@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.06.27-11:40:07-JST>
+# Time-stamp:   <2024.07.02-08:00:02-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -2336,15 +2336,16 @@ class Math:
                 tex = re.sub(res1, '\\1{\\2}', tex)
             tex = re.sub(NOT_ESCAPED + '(\\\\\\\\)$', '\\1{\\2}', tex)
             # FONT SIZE
-            tex = re.sub('{\\\\tiny}$', '{\\\\footnotesize}', tex)
-            tex = re.sub('{\\\\scriptsize}$', '{\\\\footnotesize}', tex)
-            tex = re.sub('{\\\\huge}$', '{\\\\Large}', tex)
-            tex = re.sub('{\\\\Huge}$', '{\\\\Large}', tex)
+            tex = re.sub('{\\\\tiny}$', '{\\\\tiny}{', tex)
+            tex = re.sub('{\\\\scriptsize}$', '{\\\\scriptsize}{', tex)
             tex = re.sub('{{\\\\footnotesize}$', '{\\\\footnotesize}{', tex)
             tex = re.sub('{{\\\\small}$', '{\\\\small}{', tex)
             tex = re.sub('{{\\\\normalsize}$', '{\\\\normalsize}{', tex)
             tex = re.sub('{{\\\\large}$', '{\\\\large}{', tex)
             tex = re.sub('{{\\\\Large}$', '{\\\\Large}{', tex)
+            tex = re.sub('{{\\\\LARGE}$', '{\\\\LARGE}{', tex)
+            tex = re.sub('{{\\\\huge}$', '{\\\\huge}{', tex)
+            tex = re.sub('{{\\\\Huge}$', '{\\\\Huge}{', tex)
             # SPACE
             tex = re.sub('\\\\%$', '%0', tex)                   # "%"  -> "%0"
             tex = re.sub(NOT_ESCAPED + '\\\\,$', '\\1%1', tex)  # "\," -> "%1"
@@ -2521,7 +2522,10 @@ class Math:
                             nubs[-2] = re.sub('{$', '', nubs[-2])
                             nubs[-1] = re.sub('^}', '', nubs[-1])
                 # FONT SIZE
-                res = '^{\\\\(?:Large|large|small|footnotesize)}$'
+                res = '^{\\\\(?:' \
+                    + 'tiny|scriptsize|footnotesize|small|' \
+                    + 'normalsize|large|Large|LARGE|huge|Huge' \
+                    + ')}$'
                 if (len(nubs) >= 2) and re.match(res, nubs[-2]):
                     nubs[-2], nubs[-1] = cls._close_func(nubs[-2], nubs[-1])
                 # PARENTHESES
@@ -2782,6 +2786,14 @@ class Math:
             cls._write_math_exp(oe0, chars_state, nubs[1])
             chars_state.must_break_line = False
         # FONT SIZE
+        elif len(nubs) == 2 and nubs[0] == '{\\tiny}':
+            chars_state.font_scale = 0.2
+            cls._write_math_exp(oe0, chars_state, nubs[1])
+            chars_state.font_scale = 1.0
+        elif len(nubs) == 2 and nubs[0] == '{\\scriptsize}':
+            chars_state.font_scale = 0.4
+            cls._write_math_exp(oe0, chars_state, nubs[1])
+            chars_state.font_scale = 1.0
         elif len(nubs) == 2 and nubs[0] == '{\\footnotesize}':
             chars_state.font_scale = 0.6
             cls._write_math_exp(oe0, chars_state, nubs[1])
@@ -2790,12 +2802,28 @@ class Math:
             chars_state.font_scale = 0.8
             cls._write_math_exp(oe0, chars_state, nubs[1])
             chars_state.font_scale = 1.0
+        elif len(nubs) == 2 and nubs[0] == '{\\normalsize}':
+            chars_state.font_scale = 1.0
+            cls._write_math_exp(oe0, chars_state, nubs[1])
+            chars_state.font_scale = 1.0
         elif len(nubs) == 2 and nubs[0] == '{\\large}':
             chars_state.font_scale = 1.2
             cls._write_math_exp(oe0, chars_state, nubs[1])
             chars_state.font_scale = 1.0
         elif len(nubs) == 2 and nubs[0] == '{\\Large}':
             chars_state.font_scale = 1.4
+            cls._write_math_exp(oe0, chars_state, nubs[1])
+            chars_state.font_scale = 1.0
+        elif len(nubs) == 2 and nubs[0] == '{\\LARGE}':
+            chars_state.font_scale = 1.6
+            cls._write_math_exp(oe0, chars_state, nubs[1])
+            chars_state.font_scale = 1.0
+        elif len(nubs) == 2 and nubs[0] == '{\\huge}':
+            chars_state.font_scale = 1.8
+            cls._write_math_exp(oe0, chars_state, nubs[1])
+            chars_state.font_scale = 1.0
+        elif len(nubs) == 2 and nubs[0] == '{\\Huge}':
+            chars_state.font_scale = 2.0
             cls._write_math_exp(oe0, chars_state, nubs[1])
             chars_state.font_scale = 1.0
         # ROMAN
@@ -4415,7 +4443,7 @@ class Paragraph:
         if re.match(NOT_ESCAPED + '<>$', unit):
             # '<>' (RELAX)
             unit = re.sub('<>$', '', unit)
-            unit = self._manage_unit(ms_par, chars_state, unit, '', type)
+            unit = XML.write_unit(ms_par._p, chars_state, unit)
         elif re.match(NOT_ESCAPED + '<$', unit) and c == '>':
             # '<>' （RELAX） "<<<" (+ ">") = "<<" + "<" (+ ">")
             unit = re.sub('<$', '', unit)
@@ -5887,6 +5915,7 @@ class Script:
         self.md_lines = md_lines
 
     def execute(self, md_lines, n):
+        is_in_math = False
         is_in_script = False
         tmp_text = ''
         for ml in md_lines:
@@ -5894,18 +5923,26 @@ class Script:
             new_text = ''
             for c in old_text:
                 tmp_text += c
+                if re.match(NOT_ESCAPED + '\\\\\\[', tmp_text):
+                    is_in_math = True
+                if re.match(NOT_ESCAPED + '\\\\\\]', tmp_text):
+                    is_in_math = False
                 if not is_in_script:
                     if self.is_script_beginning(tmp_text, n):
-                        tmp_text = re.sub('{.?{$', '', tmp_text)
-                        new_text += tmp_text
-                        tmp_text = ''
-                        is_in_script = True
+                        if (not is_in_math) or \
+                           (not re.match('^(.|\n)*{{', tmp_text)):
+                            tmp_text = re.sub('{.?{$', '', tmp_text)
+                            new_text += tmp_text
+                            tmp_text = ''
+                            is_in_script = True
                 else:
                     if self.is_script_end(tmp_text, n):
-                        tmp_text = re.sub('}.?}$', '', tmp_text)
-                        new_text += self.execute_script(tmp_text, ml)
-                        tmp_text = ''
-                        is_in_script = False
+                        if (not is_in_math) or \
+                           (not re.match('^(.|\n)*}}', tmp_text)):
+                            tmp_text = re.sub('}.?}$', '', tmp_text)
+                            new_text += self.execute_script(tmp_text, ml)
+                            tmp_text = ''
+                            is_in_script = False
             else:
                 if tmp_text != '':
                     if not is_in_script:
