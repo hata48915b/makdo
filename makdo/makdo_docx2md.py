@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.02-08:54:56-JST>
+# Time-stamp:   <2024.07.02-13:17:22-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -2604,46 +2604,46 @@ class CharsDatum:
 
     """A class to keep characters data"""
 
-    def __init__(self, fr_str_fds, raw_chars, bk_str_fds):
+    def __init__(self, fr_fd_lst, raw_chars, bk_fd_lst):
         self.chars = ''
-        self.fr_fds = FontDecorator([])
-        self.bk_fds = FontDecorator([])
+        self.fr_fd_cls = FontDecorator([])
+        self.bk_fd_cls = FontDecorator([])
         self.set_chars(raw_chars)
-        self.set_fds(fr_str_fds, bk_str_fds)
+        self.set_fds(fr_fd_lst, bk_fd_lst)
 
     def set_chars(self, raw_chars):
         self.chars = raw_chars
 
-    def set_fds(self, fr_str_fds, bk_str_fds):
+    def set_fds(self, fr_fd_lst, bk_fd_lst):
         # str -> list
-        if type(fr_str_fds) == str:
-            fr_str_fds = [fr_str_fds]
-        if type(bk_str_fds) == str:
-            bk_str_fds = [bk_str_fds]
+        if type(fr_fd_lst) == str:
+            fr_fd_lst = [fr_fd_lst]
+        if type(bk_fd_lst) == str:
+            bk_fd_lst = [bk_fd_lst]
         # '}' -> '_}'
-        if ('_{' in fr_str_fds) and ('^{' not in fr_str_fds):
-            if ('}' in bk_str_fds) and ('_}' not in bk_str_fds):
-                bk_str_fds = ['_}' if i == '}' else i for i in bk_str_fds]
+        if ('_{' in fr_fd_lst) and ('^{' not in fr_fd_lst):
+            if ('}' in bk_fd_lst) and ('_}' not in bk_fd_lst):
+                bk_fd_lst = ['_}' if fd == '}' else fd for fd in bk_fd_lst]
         # '}' -> '^}'
-        if ('^{' in fr_str_fds) and ('_{' not in fr_str_fds):
-            if ('}' in bk_str_fds) and ('^}' not in bk_str_fds):
-                bk_str_fds = ['^}' if i == '}' else i for i in bk_str_fds]
-        self.set_fr_fds(fr_str_fds)
-        self.set_bk_fds(bk_str_fds)
+        if ('^{' in fr_fd_lst) and ('_{' not in fr_fd_lst):
+            if ('}' in bk_fd_lst) and ('^}' not in bk_fd_lst):
+                bk_fd_lst = ['^}' if fd == '}' else fd for fd in bk_fd_lst]
+        self.set_fr_fd_cls(fr_fd_lst)
+        self.set_bk_fd_cls(bk_fd_lst)
 
-    def set_fr_fds(self, str_fds):
-        if type(str_fds) == str:
-            str_fds = [str_fds]
-        self.fr_fds.set_fds(str_fds)
+    def set_fr_fd_cls(self, fr_fd_lst):
+        if type(fr_fd_lst) == str:
+            fr_fd_lst = [fr_fd_lst]
+        self.fr_fd_cls.set_fds(fr_fd_lst)
 
-    def set_bk_fds(self, str_fds):
-        if type(str_fds) == str:
-            str_fds = [str_fds]
-        self.bk_fds.set_fds(str_fds)
+    def set_bk_fd_cls(self, bk_fd_lst):
+        if type(bk_fd_lst) == str:
+            bk_fd_lst = [bk_fd_lst]
+        self.bk_fd_cls.set_fds(bk_fd_lst)
 
     def reset_fds(self):
-        self.fr_fds.reset_fds()
-        self.bk_fds.reset_fds()
+        self.fr_fd_cls.reset_fds()
+        self.bk_fd_cls.reset_fds()
 
     def get_chars_with_fds(self):
         cwf = self.chars
@@ -2653,30 +2653,8 @@ class CharsDatum:
         cwf = self.concatenate_chars(cwf, bks)
         return cwf
 
-    def get_fr_fds_chars(self):
-        return self.fr_fds._get_ord_fds()
-
-    def get_bk_fds_chars(self):
-        return self.bk_fds._get_rev_fds()
-
-    def is_empty(self):
-        if self.chars != '':
-            return False
-        # if not self.fr_fds.is_empty():
-        #     return False
-        # if not self.bk_fds.is_empty():
-        #     return False
-        return True
-
     @staticmethod
-    def cancel_fds(prev_cd, next_cd):
-        prev_cd.bk_fds, next_cd.fr_fds \
-            = FontDecorator._cancel_fds(prev_cd.bk_fds, next_cd.fr_fds)
-        return prev_cd, next_cd
-
-    @staticmethod
-    def prepare_chars(fldchar, input_chars, type='normal'):
-        chars = input_chars
+    def prepare_chars(fldchar, chars, type='normal'):
         # ESCAPE
         chars = chars.replace('\\', '\\\\')
         chars = chars.replace('*', '\\*')
@@ -2801,40 +2779,33 @@ class CharsDatum:
         #     return chars1 + '<>' + chars2
         return chars1 + chars2
 
-    @staticmethod
-    def are_consecutive(chars_datum1, chars_datum2):
-        bk_fds = chars_datum1.bk_fds
-        fr_fds = chars_datum2.fr_fds
-        if fr_fds.font_name != bk_fds.font_name:
-            return False  # FONT NAME (` / @.+@)
-        if fr_fds.font_size != bk_fds.font_size:
-            return False  # FONT SIZE (@.+@)
-        if fr_fds.font_scale != bk_fds.font_scale:
-            return False  # FONT SCALE (--- / -- / ++ / +++)
-        if (fr_fds.font_width != '>>>' or bk_fds.font_width != '<<<') and \
-           (fr_fds.font_width != '>>' or bk_fds.font_width != '<<') and \
-           (fr_fds.font_width != '<<' or bk_fds.font_width != '>>') and \
-           (fr_fds.font_width != '<<<' or bk_fds.font_width != '>>>'):
-            return False  # FONT WIDTH (>>> / >> / << / <<<)
-        if fr_fds.italic != bk_fds.italic:
-            return False  # ITALIC (*)
-        if fr_fds.bold != bk_fds.bold:
-            return False  # BOLD (**)
-        if fr_fds.strike != bk_fds.strike:
-            return False  # STRIKE (~~)
-        if fr_fds.underline != bk_fds.underline:
-            return False  # UNDERLINE (_.+_)
-        if fr_fds.font_color != bk_fds.font_color:
-            return False  # FONT COLOR (^.*^)
-        if fr_fds.highlight_color != bk_fds.highlight_color:
-            return False  # HIGHLIGHT COLOR (_.+_)
-        if (fr_fds.sub_or_sup != '_{' or bk_fds.sub_or_sup != '_}') and \
-           (fr_fds.sub_or_sup != '^{' or bk_fds.sub_or_sup != '^}'):
-            return False  # SUB OR SUP (_{ / _} / ^{ / ^})
-        if (fr_fds.track_changes != '->' or bk_fds.track_changes != '<-') and \
-           (fr_fds.track_changes != '+>' or bk_fds.track_changes != '<+'):
-            return False  # TRACK CHANGES (-> / <- / +> / <+)
+    def get_fr_fds_chars(self):
+        return self.fr_fd_cls._get_ord_fds()
+
+    def get_bk_fds_chars(self):
+        return self.bk_fd_cls._get_rev_fds()
+
+    def is_empty(self):
+        if self.chars != '':
+            return False
+        if not self._is_same_fds():
+            return False
         return True
+
+    def _is_same_fds(self):
+        if FontDecorators._is_same(self.fr_fd_cls, self.bk_fd_cls):
+            return True
+        return False
+
+    @staticmethod
+    def cancel_fds(l_cd, r_cd):
+        r_cd.fr_fd_cls, l_cd.bk_fd_cls \
+            = FontDecorator._cancel_fds(r_cd.fr_fd_cls, l_cd.bk_fd_cls)
+        return l_cd, r_cd
+
+    @staticmethod
+    def are_consecutive(l_cd, r_cd):
+        return FontDecorator._is_same(r_cd.fr_fd_cls, l_cd.bk_fd_cls)
 
 
 class FontDecorator:
@@ -2858,34 +2829,34 @@ class FontDecorator:
         self.sub_or_sup = ''        # SUB OR SUP (_{ / _} / ^{ / ^})
         # self.track_changes = ''     # TRACK CHANGES (-> / <- / +> / <+)
 
-    def set_fd(self, fd):
-        if re.match('^`$', fd):
-            self.font_name = fd        # FONT NAME (`)
-        elif (re.match('^@.+@$', fd) and
-              not re.match('^@' + RES_NUMBER + '@$', fd)):
-            self.font_name = fd        # FONT NAME (@.+@)
-        elif re.match('^@' + RES_NUMBER + '@$', fd):
-            self.font_size = fd        # FONT SIZE (@.+@)
-        elif fd == '---' or fd == '--' or fd == '++' or fd == '+++':
-            self.font_scale = fd       # FONT SCALE (--- / -- / ++ / +++)
-        elif fd == '>>>' or fd == '>>' or fd == '<<' or fd == '<<<':
-            self.font_scale = fd       # FONT WIDTH (>>> / >> / << / <<<)
-        elif fd == '*':
-            self.italic = fd           # ITALIC (*)
-        elif fd == '**':
-            self.bold = fd             # BOLD (**)
-        elif fd == '~~':
-            self.strike = fd           # STRIKE (~~)
-        elif re.match('_[\\$=\\.#\\-~\\+]{,4}_', fd):
-            self.underline = fd        # UNDERLINE (_.+_)
-        elif re.match('\\^[0-9A-Za-z]{0,11}\\^', fd):
-            self.font_color = fd       # FONT COLOR (^.*^)
-        elif re.match('_[0-9A-Za-z]{1,11}_', fd):
-            self.highlight_color = fd  # HIGHLIGHT COLOR (_.+_)
-        elif fd == '_{' or fd == '_}' or fd == '^{' or fd == '^}':
-            self.sub_or_sup = fd       # SUB OR SUP (_{ / _} / ^{ / ^})
-        elif fd == '->' or fd == '<-' or fd == '+>' or fd == '<+':
-            self.track_changes = fd    # TRACK CHANGES (-> / <- / +> / <+)
+    def set_fd(self, fd_str):
+        if re.match('^`$', fd_str):
+            self.font_name = fd_str        # FONT NAME (`)
+        elif (re.match('^@.+@$', fd_str) and
+              not re.match('^@' + RES_NUMBER + '@$', fd_str)):
+            self.font_name = fd_str        # FONT NAME (@.+@)
+        elif re.match('^@' + RES_NUMBER + '@$', fd_str):
+            self.font_size = fd_str        # FONT SIZE (@.+@)
+        elif re.match('^\\-\\-\\-|\\-\\-|\\+\\+|\\+\\+\\+$', fd_str):
+            self.font_scale = fd_str       # FONT SCALE (--- / -- / ++ / +++)
+        elif re.match('^>>>|>>|<<|<<<$', fd_str):
+            self.font_scale = fd_str       # FONT WIDTH (>>> / >> / << / <<<)
+        elif fd_str == '*':
+            self.italic = fd_str           # ITALIC (*)
+        elif fd_str == '**':
+            self.bold = fd_str             # BOLD (**)
+        elif fd_str == '~~':
+            self.strike = fd_str           # STRIKE (~~)
+        elif re.match('_[\\$=\\.#\\-~\\+]{,4}_', fd_str):
+            self.underline = fd_str        # UNDERLINE (_.+_)
+        elif re.match('\\^[0-9A-Za-z]{0,11}\\^', fd_str):
+            self.font_color = fd_str       # FONT COLOR (^.*^)
+        elif re.match('_[0-9A-Za-z]{1,11}_', fd_str):
+            self.highlight_color = fd_str  # HIGHLIGHT COLOR (_.+_)
+        elif re.match('^_{|_}|\\^{|\\^}$', fd_str):
+            self.sub_or_sup = fd_str       # SUB OR SUP (_{ / _} / ^{ / ^})
+        elif re.match('^\\->|<\\-|\\+>|<\\+$', fd_str):
+            self.track_changes = fd_str    # TRACK CHANGES (-> / <- / +> / <+)
 
     def set_fds(self, fds):
         for fd in fds:
@@ -2919,34 +2890,69 @@ class FontDecorator:
         return True
 
     @staticmethod
-    def _cancel_fds(bk_fds, fr_fds):
-        if fr_fds.font_name == bk_fds.font_name:
-            fr_fds.font_name, bk_fds.font_name = '', ''
-        if fr_fds.font_size == bk_fds.font_size:
-            fr_fds.font_size, bk_fds.font_size = '', ''
-        if fr_fds.font_scale == bk_fds.font_scale:
-            fr_fds.font_scale, bk_fds.font_scale = '', ''
-        if fr_fds.font_width == bk_fds.font_width:
-            fr_fds.font_width, bk_fds.font_width = '', ''
-        if fr_fds.italic == bk_fds.italic:
-            fr_fds.italic, bk_fds.italic = '', ''
-        if fr_fds.bold == bk_fds.bold:
-            fr_fds.bold, bk_fds.bold = '', ''
-        if fr_fds.strike == bk_fds.strike:
-            fr_fds.strike, bk_fds.strike = '', ''
-        if fr_fds.underline == bk_fds.underline:
-            fr_fds.underline, bk_fds.underline = '', ''
-        if fr_fds.font_color == bk_fds.font_color:
-            fr_fds.font_color, bk_fds.font_color = '', ''
-        if fr_fds.highlight_color == bk_fds.highlight_color:
-            fr_fds.highlight_color, bk_fds.highlight_color = '', ''
-        if (fr_fds.sub_or_sup == '_{' and bk_fds.sub_or_sup == '_}') or \
-           (fr_fds.sub_or_sup == '^{' and bk_fds.sub_or_sup == '^}'):
-            fr_fds.sub_or_sup, bk_fds.sub_or_sup = '', ''
-        if (fr_fds.track_changes == '->' and bk_fds.track_changes == '<-') or \
-           (fr_fds.track_changes == '+>' and bk_fds.track_changes == '<+'):
-            fr_fds.track_changes, bk_fds.track_changes = '', ''
-        return bk_fds, fr_fds
+    def _is_same(fr_fd_cls, bk_fd_cls):
+        fr, bk = fr_fd_cls, bk_fd_cls
+        if fr.font_name != bk.font_name:
+            return False
+        if fr.font_size != bk.font_size:
+            return False
+        if fr.font_scale != bk.font_scale:
+            return False
+        if fr.font_width != '>>>' or bk.font_width != '<<<':
+            if fr.font_width != '>>' or bk.font_width != '<<':
+                if fr.font_width != '<<' or bk.font_width != '>>':
+                    if fr.font_width != '<<<' or bk.font_width != '>>>':
+                        return False
+        if fr.italic != bk.italic:
+            return False
+        if fr.bold != bk.bold:
+            return False
+        if fr.strike != bk.strike:
+            return False
+        if fr.underline != bk.underline:
+            return False
+        if fr.font_color != bk.font_color:
+            return False
+        if fr.highlight_color != bk.highlight_color:
+            return False
+        if fr.sub_or_sup != '_{' or bk.sub_or_sup != '_}':
+            if fr.sub_or_sup != '^{' or bk.sub_or_sup != '^}':
+                return False
+        if fr.track_changes != '->' or bk.track_changes != '<-':
+            if fr.track_changes != '+>' or bk.track_changes != '<+':
+                return False
+        return True
+
+    @staticmethod
+    def _cancel_fds(fr_fd_cls, bk_fd_cls):
+        fr, bk = fr_fd_cls, bk_fd_cls
+        if fr.font_name == bk.font_name:
+            fr.font_name, bk.font_name = '', ''
+        if fr.font_size == bk.font_size:
+            fr.font_size, bk.font_size = '', ''
+        if fr.font_scale == bk.font_scale:
+            fr.font_scale, bk.font_scale = '', ''
+        if fr.font_width == bk.font_width:
+            fr.font_width, bk.font_width = '', ''
+        if fr.italic == bk.italic:
+            fr.italic, bk.italic = '', ''
+        if fr.bold == bk.bold:
+            fr.bold, bk.bold = '', ''
+        if fr.strike == bk.strike:
+            fr.strike, bk.strike = '', ''
+        if fr.underline == bk.underline:
+            fr.underline, bk.underline = '', ''
+        if fr.font_color == bk.font_color:
+            fr.font_color, bk.font_color = '', ''
+        if fr.highlight_color == bk.highlight_color:
+            fr.highlight_color, bk.highlight_color = '', ''
+        if (fr.sub_or_sup == '_{' and bk.sub_or_sup == '_}') or \
+           (fr.sub_or_sup == '^{' and bk.sub_or_sup == '^}'):
+            fr.sub_or_sup, bk.sub_or_sup = '', ''
+        if (fr.track_changes == '->' and bk.track_changes == '<-') or \
+           (fr.track_changes == '+>' and bk.track_changes == '<+'):
+            fr.track_changes, bk.track_changes = '', ''
+        return fr_fd_cls, bk_fd_cls
 
 
 class MathDatum:
@@ -2965,45 +2971,45 @@ class MathDatum:
         # FONT COLOR (c=...)
         # HIGILIGHT COLOR (h=...)
         # DEL OR INS (d, d, i, i)
-        self.fr_lst = []
-        self.bk_lst = []
+        self.fr_fd_lst = []
+        self.bk_fd_lst = []
         self.is_math_function = False
 
     def set_chars(self, raw_chars):
         self.chars = raw_chars
 
-    def append_fr_and_bk_lst(self, fr_str, bk_str):
-        if fr_str != '':
-            if re.match('^[swrbsuchdi]', fr_str):
-                if fr_str not in self.fr_lst:
-                    self.fr_lst.append(fr_str)
+    def append_fr_and_bk_fds(self, fr_fd_str, bk_fd_str):
+        if fr_fd_str != '':
+            if re.match('^[swrbsuchdi]', fr_fd_str):
+                if fr_fd_str not in self.fr_fd_lst:
+                    self.fr_fd_lst.append(fr_fd_str)
             else:
                 if True:
-                    self.fr_lst.append(fr_str)
-        if bk_str != '':
-            if re.match('^[swrbsuchdi]', fr_str):
-                if bk_str not in self.bk_lst:
-                    self.bk_lst.append(bk_str)
+                    self.fr_fd_lst.append(fr_fd_str)
+        if bk_fd_str != '':
+            if re.match('^[swrbsuchdi]', fr_fd_str):
+                if bk_fd_str not in self.bk_fd_lst:
+                    self.bk_fd_lst.append(bk_fd_str)
             else:
                 if True:
-                    self.bk_lst.append(bk_str)
+                    self.bk_fd_lst.append(bk_fd_str)
 
-    def remove_fr_and_bk_lst(self, fr_str, bk_str):
-        if fr_str != '':
-            if fr_str in self.fr_lst:
-                self.fr_lst.remove(fr_str)
-        if bk_str != '':
-            if bk_str in self.bk_lst:
-                self.bk_lst.remove(bk_str)
+    def remove_fr_and_bk_fds(self, fr_fd_str, bk_fd_str):
+        if fr_fd_str != '':
+            if fr_fd_str in self.fr_fd_lst:
+                self.fr_fd_lst.remove(fr_fd_str)
+        if bk_fd_str != '':
+            if bk_fd_str in self.bk_fd_lst:
+                self.bk_fd_lst.remove(bk_fd_str)
 
     def reset_fds(self):
-        self.fr_lst = []
-        self.bk_lst = []
+        self.fr_fd_lst = []
+        self.bk_fd_lst = []
 
     def is_empty(self):
         if self.chars == '':
-            if self.fr_lst == []:
-                if self.bk_lst == []:
+            if self.fr_fd_lst == []:
+                if self.bk_fd_lst == []:
                     return True
         return False
 
@@ -3012,80 +3018,80 @@ class MathDatum:
 
     def get_fr_chars(self):
         fr_chars = ''
-        for i in self.fr_lst:
+        for fd in self.fr_fd_lst:
             if False:
                 pass
-            elif i == 's-4':
+            elif fd == 's-4':
                 fr_chars += '{\\tiny{'
-            elif i == 's-3':
+            elif fd == 's-3':
                 fr_chars += '{\\scriptsize{'
-            elif i == 's-2':
+            elif fd == 's-2':
                 fr_chars += '{\\footnotesize{'
-            elif i == 's-1':
+            elif fd == 's-1':
                 fr_chars += '{\\small{'
-            elif i == 's+1':
+            elif fd == 's+1':
                 fr_chars += '{\\large{'
-            elif i == 's+2':
+            elif fd == 's+2':
                 fr_chars += '{\\Large{'
-            elif i == 's+3':
+            elif fd == 's+3':
                 fr_chars += '{\\LARGE{'
-            elif i == 's+4':
+            elif fd == 's+4':
                 fr_chars += '{\\huge{'
-            elif i == 's+5':
+            elif fd == 's+5':
                 fr_chars += '{\\Huge{'
-            elif re.match('^w-[1-4]$', i) or re.match('^w-[1-5]$', i):
+            elif re.match('^w-[1-4]$', fd) or re.match('^w-[1-5]$', fd):
                 fr_chars += '{{'  # width (not implemented)
-            elif i == 'r':
+            elif fd == 'r':
                 fr_chars += '{\\mathrm{'
-            elif i == 'b':
+            elif fd == 'b':
                 fr_chars += '{\\mathbf{'
-            elif i == 's':
+            elif fd == 's':
                 fr_chars += '{\\sout{'
-            elif i == 'u':
+            elif fd == 'u':
                 fr_chars += '{\\underline{'
-            elif re.match('^c=.*$', i):
-                c = re.sub('^c=', '', i)
+            elif re.match('^c=.*$', fd):
+                c = re.sub('^c=', '', fd)
                 fr_chars += '{\\textcolor{' + c + '}{'
-            elif re.match('^h=.*$', i):
-                c = re.sub('^h=', '', i)
+            elif re.match('^h=.*$', fd):
+                c = re.sub('^h=', '', fd)
                 fr_chars += '{\\colorbox{' + c + '}{'
-            elif i == 'd':
+            elif fd == 'd':
                 fr_chars += '->'
-            elif i == 'i':
+            elif fd == 'i':
                 fr_chars += '+>'
             else:
-                fr_chars += i
+                fr_chars += fd
         return fr_chars
 
     def get_bk_chars(self):
         bk_chars = ''
-        for i in self.bk_lst[::-1]:
+        for fd in self.bk_fd_lst[::-1]:
             if False:
                 pass
-            elif re.match('^s-[1-4]$', i) or re.match('^s\\+[1-5]$', i):
+            elif re.match('^s-[1-4]$', fd) or re.match('^s\\+[1-5]$', fd):
                 bk_chars += '}}'  # size
-            elif re.match('w-[1-4]', i) or re.match('w\\+[1-5]', i):
+            elif re.match('w-[1-4]', fd) or re.match('w\\+[1-5]', fd):
                 bk_chars += '}}'  # width
-            elif i == 'r':
+            elif fd == 'r':
                 bk_chars += '}}'  # roman
-            elif i == 'b':
+            elif fd == 'b':
                 bk_chars += '}}'  # bold
-            elif i == 's':
+            elif fd == 's':
                 bk_chars += '}}'  # strike through
-            elif i == 'u':
+            elif fd == 'u':
                 bk_chars += '}}'  # underline
-            elif re.match('^c=.*$', i):
+            elif re.match('^c=.*$', fd):
                 bk_chars += '}}'  # fort color
-            elif re.match('^h=.*$', i):
+            elif re.match('^h=.*$', fd):
                 bk_chars += '}}'  # highlight color
-            elif i == 'd':
+            elif fd == 'd':
                 bk_chars += '<-'  # delete
-            elif i == 'i':
+            elif fd == 'i':
                 bk_chars += '<+'  # insert
-            elif i == '_}' or i == '^}':
+            elif fd == '_}' or fd == '^}':
                 bk_chars += '}'  # sub or sup
             else:
-                bk_chars += i
+                bk_chars += fd
         return bk_chars
 
     @staticmethod
@@ -3096,13 +3102,13 @@ class MathDatum:
         for i in range(len(math_data)):
             if i == 0:
                 continue
-            bk_lst = math_data[i - 1].bk_lst
-            fr_lst = math_data[i].fr_lst
-            for c in fr_lst[::-1]:
-                if c in bk_lst:
-                    if re.match('^[swrbsuchdi]', c):
-                        fr_lst.remove(c)
-                        bk_lst.remove(c)
+            bk_fd_lst = math_data[i - 1].bk_fd_lst
+            fr_fd_lst = math_data[i].fr_fd_lst
+            for fd in fr_fd_lst[::-1]:
+                if fd in bk_fd_lst:
+                    if re.match('^[swrbsuchdi]', fd):
+                        fr_fd_lst.remove(fd)
+                        bk_fd_lst.remove(fd)
         return math_data
 
 
@@ -3712,10 +3718,10 @@ class Document:
                 continue
             if not re.match(res, p.chars_data[0].chars):
                 continue
-            if p.chars_data[0].fr_fds.font_scale != '' or \
-               p.chars_data[0].fr_fds.font_width != '' or \
-               p.chars_data[0].bk_fds.font_scale != '' or \
-               p.chars_data[0].bk_fds.font_width != '':
+            if p.chars_data[0].fr_fd_cls.font_scale != '' or \
+               p.chars_data[0].fr_fd_cls.font_width != '' or \
+               p.chars_data[0].bk_fd_cls.font_scale != '' or \
+               p.chars_data[0].bk_fd_cls.font_width != '':
                 continue
             hsps = re.sub(res, '\\1', p.chars_data[0].chars)
             w = 0
@@ -4137,27 +4143,27 @@ class RawParagraph:
                     = cls._get_img_md_text(img_file_name, img_size, font_size)
                 cd_img = CharsDatum([fr], '', [bk])
                 if track_changes == 'del':
-                    cd_img.fr_fds.del_or_ins = '->'
-                    cd_img.bk_fds.del_or_ins = '<-'
+                    cd_img.fr_fd_cls.del_or_ins = '->'
+                    cd_img.bk_fd_cls.del_or_ins = '<-'
                 elif track_changes == 'ins':
-                    cd_img.fr_fds.del_or_ins = '+>'
-                    cd_img.bk_fds.del_or_ins = '<+'
+                    cd_img.fr_fd_cls.del_or_ins = '+>'
+                    cd_img.bk_fd_cls.del_or_ins = '<+'
                 if re.match('^---(.*)---$', imt):
                     imt = re.sub('^---(.*)---$', '\\1', imt)
-                    cd_img.fr_fds.scale = '---'
-                    cd_img.bk_fds.scale = '---'
+                    cd_img.fr_fd_cls.scale = '---'
+                    cd_img.bk_fd_cls.scale = '---'
                 elif re.match('^--(.*)--$', imt):
                     imt = re.sub('^--(.*)--$', '\\1', imt)
-                    cd_img.fr_fds.scale = '--'
-                    cd_img.bk_fds.scale = '--'
+                    cd_img.fr_fd_cls.scale = '--'
+                    cd_img.bk_fd_cls.scale = '--'
                 elif re.match('^\\+\\+\\+(.*)\\+\\+\\+$', imt):
                     imt = re.sub('^\\+\\+\\+(.*)\\+\\+\\+$', '\\1', imt)
-                    cd_img.fr_fds.scale = '+++'
-                    cd_img.bk_fds.scale = '+++'
+                    cd_img.fr_fd_cls.scale = '+++'
+                    cd_img.bk_fd_cls.scale = '+++'
                 elif re.match('^\\+\\+(.*)\\+\\+$', imt):
                     imt = re.sub('^\\+\\+(.*)\\+\\+$', '\\1', imt)
-                    cd_img.fr_fds.scale = '++'
-                    cd_img.bk_fds.scale = '++'
+                    cd_img.fr_fd_cls.scale = '++'
+                    cd_img.bk_fd_cls.scale = '++'
                 cd_img.chars = '<>' + imt  # '<>' is to avoid being escaped
                 chars_data.append(cd_img)
                 img_file_name = ''
@@ -4221,11 +4227,11 @@ class RawParagraph:
                     if font == Form.mincho_font:
                         pass
                     elif font == Form.gothic_font:
-                        cd.fr_fds.font_name = '`'
-                        cd.bk_fds.font_name = '`'
+                        cd.fr_fd_cls.font_name = '`'
+                        cd.bk_fd_cls.font_name = '`'
                     else:
-                        cd.fr_fds.font_name = '@' + font + '@'
-                        cd.bk_fds.font_name = '@' + font + '@'
+                        cd.fr_fd_cls.font_name = '@' + font + '@'
+                        cd.bk_fd_cls.font_name = '@' + font + '@'
                 continue
             # FONT SIZE AND SCALE
             v = XML.get_value('w:sz', 'w:val', -1.0, xl)
@@ -4233,57 +4239,57 @@ class RawParagraph:
             if v > 0:
                 s = round(v / 2, 1)
                 if s < Form.font_size * 0.5:
-                    cd.fr_fds.font_size = '@' + str(s) + '@'
-                    cd.bk_fds.font_size = '@' + str(s) + '@'
+                    cd.fr_fd_cls.font_size = '@' + str(s) + '@'
+                    cd.bk_fd_cls.font_size = '@' + str(s) + '@'
                 elif s < Form.font_size * 0.7:
-                    cd.fr_fds.font_scale = '---'
-                    cd.bk_fds.font_scale = '---'
+                    cd.fr_fd_cls.font_scale = '---'
+                    cd.bk_fd_cls.font_scale = '---'
                 elif s < Form.font_size * 0.9:
-                    cd.fr_fds.font_scale = '--'
-                    cd.bk_fds.font_scale = '--'
+                    cd.fr_fd_cls.font_scale = '--'
+                    cd.bk_fd_cls.font_scale = '--'
                 elif s < Form.font_size * 1.1:
                     pass
                 elif s < Form.font_size * 1.3:
-                    cd.fr_fds.font_scale = '++'
-                    cd.bk_fds.font_scale = '++'
+                    cd.fr_fd_cls.font_scale = '++'
+                    cd.bk_fd_cls.font_scale = '++'
                 elif s < Form.font_size * 1.5:
-                    cd.fr_fds.font_scale = '+++'
-                    cd.bk_fds.font_scale = '+++'
+                    cd.fr_fd_cls.font_scale = '+++'
+                    cd.bk_fd_cls.font_scale = '+++'
                 else:
-                    cd.fr_fds.font_size = '@' + str(s) + '@'
-                    cd.bk_fds.font_size = '@' + str(s) + '@'
+                    cd.fr_fd_cls.font_size = '@' + str(s) + '@'
+                    cd.bk_fd_cls.font_size = '@' + str(s) + '@'
                 continue
             # FONT WIDTH
             w = XML.get_value('w:w', 'w:val', -1.0, xl)
             if w > 0:
                 if w < 70:
-                    cd.fr_fds.font_width = '>>>'
-                    cd.bk_fds.font_width = '<<<'
+                    cd.fr_fd_cls.font_width = '>>>'
+                    cd.bk_fd_cls.font_width = '<<<'
                 elif w < 90:
-                    cd.fr_fds.font_width = '>>'
-                    cd.bk_fds.font_width = '<<'
+                    cd.fr_fd_cls.font_width = '>>'
+                    cd.bk_fd_cls.font_width = '<<'
                 elif w > 130:
-                    cd.fr_fds.font_width = '<<<'
-                    cd.bk_fds.font_width = '>>>'
+                    cd.fr_fd_cls.font_width = '<<<'
+                    cd.bk_fd_cls.font_width = '>>>'
                 elif w > 110:
-                    cd.fr_fds.font_width = '<<'
-                    cd.bk_fds.font_width = '>>'
+                    cd.fr_fd_cls.font_width = '<<'
+                    cd.bk_fd_cls.font_width = '>>'
                 width = w
                 continue
             # ITALIC
             if re.match('^<w:i/?>$', xl):
-                cd.fr_fds.italic = '*'
-                cd.bk_fds.italic = '*'
+                cd.fr_fd_cls.italic = '*'
+                cd.bk_fd_cls.italic = '*'
                 continue
             # BOLD
             if re.match('^<w:b/?>$', xl):
-                cd.fr_fds.bold = '**'
-                cd.bk_fds.bold = '**'
+                cd.fr_fd_cls.bold = '**'
+                cd.bk_fd_cls.bold = '**'
                 continue
             # STRIKETHROUGH
             if re.match('^<w:strike/?>$', xl):
-                cd.fr_fds.strike = '~~'
-                cd.bk_fds.strike = '~~'
+                cd.fr_fd_cls.strike = '~~'
+                cd.bk_fd_cls.strike = '~~'
                 continue
             # UNDERLINE
             if re.match('^<w:u( .*)?>$', xl):
@@ -4293,8 +4299,8 @@ class RawParagraph:
                     val = re.sub(res, '\\1', xl)
                     if val in UNDERLINE:
                         underline = UNDERLINE[val]
-                cd.fr_fds.underline = '_' + underline + '_'
-                cd.bk_fds.underline = '_' + underline + '_'
+                cd.fr_fd_cls.underline = '_' + underline + '_'
+                cd.bk_fd_cls.underline = '_' + underline + '_'
                 continue
             # FONT COLOR
             if re.match('^<w:color w:val="[0-9A-F]+"( .*)?/?>$', xl):
@@ -4306,24 +4312,24 @@ class RawParagraph:
                     font_color = FONT_COLOR[val]
                 else:
                     font_color = val
-                cd.fr_fds.font_color = '^' + font_color + '^'
-                cd.bk_fds.font_color = '^' + font_color + '^'
+                cd.fr_fd_cls.font_color = '^' + font_color + '^'
+                cd.bk_fd_cls.font_color = '^' + font_color + '^'
                 continue
             # HIGHLIGHT COLOR
             if re.match('^<w:highlight w:val="[a-zA-Z]+"( .*)?/?>$', xl):
                 val = re.sub('^<.* w:val="([a-zA-Z]+)".*>$', '\\1', xl)
                 highlight = val
-                cd.fr_fds.highlight_color = '_' + highlight + '_'
-                cd.bk_fds.highlight_color = '_' + highlight + '_'
+                cd.fr_fd_cls.highlight_color = '_' + highlight + '_'
+                cd.bk_fd_cls.highlight_color = '_' + highlight + '_'
                 continue
             # SUBSCRIPT OR SUPERSCRIPT
             if xl == '<w:vertAlign w:val="subscript"/>':
-                cd.fr_fds.sub_or_sup = '_{'
-                cd.bk_fds.sub_or_sup = '_}'
+                cd.fr_fd_cls.sub_or_sup = '_{'
+                cd.bk_fd_cls.sub_or_sup = '_}'
                 continue
             elif xl == '<w:vertAlign w:val="superscript"/>':
-                cd.fr_fds.sub_or_sup = '^{'
-                cd.bk_fds.sub_or_sup = '^}'
+                cd.fr_fd_cls.sub_or_sup = '^{'
+                cd.bk_fd_cls.sub_or_sup = '^}'
                 continue
             # AUTO NUMBERING STYLE
             res_number_ms = '^<w:numId w:val=[\'"]([0-9]+)[\'"]/>$'
@@ -4374,20 +4380,20 @@ class RawParagraph:
             elif re.match('^</w:r>$', xl):
                 if cd.chars != '':
                     if track_changes == 'del':
-                        cd.fr_fds.track_changes = '->'
-                        cd.bk_fds.track_changes = '<-'
+                        cd.fr_fd_cls.track_changes = '->'
+                        cd.bk_fd_cls.track_changes = '<-'
                     elif track_changes == 'ins':
-                        cd.fr_fds.track_changes = '+>'
-                        cd.bk_fds.track_changes = '<+'
+                        cd.fr_fd_cls.track_changes = '+>'
+                        cd.bk_fd_cls.track_changes = '<+'
                     # RUBY
                     if ruby == 'rub':
-                        cd.fr_fds.font_scale = ''
-                        cd.bk_fds.font_scale = ''
+                        cd.fr_fd_cls.font_scale = ''
+                        cd.bk_fd_cls.font_scale = ''
                     # SPACE
                     if re.match('^\u3000+$', cd.chars) and width != 100:
                         n = len(cd.chars)
-                        cd.fr_fds.font_width = ''
-                        cd.bk_fds.font_width = ''
+                        cd.fr_fd_cls.font_width = ''
+                        cd.bk_fd_cls.font_width = ''
                         cd.chars = '<' + str(float(width * n) / 100) + '>'
                     chars_data.append(cd)
                 width = 100
@@ -4529,68 +4535,68 @@ class RawParagraph:
         if v > 0:
             s = round(v / 2, 1)
             if s < f_size * 0.3:
-                md_cur.append_fr_and_bk_lst('s-4', 's-4')  # tiny
+                md_cur.append_fr_and_bk_fds('s-4', 's-4')  # tiny
             elif s < f_size * 0.5:
-                md_cur.append_fr_and_bk_lst('s-3', 's-3')  # scriptsize
+                md_cur.append_fr_and_bk_fds('s-3', 's-3')  # scriptsize
             elif s < f_size * 0.7:
-                md_cur.append_fr_and_bk_lst('s-2', 's-2')  # footnotesize
+                md_cur.append_fr_and_bk_fds('s-2', 's-2')  # footnotesize
             elif s < f_size * 0.9:
-                md_cur.append_fr_and_bk_lst('s-1', 's-1')  # small
+                md_cur.append_fr_and_bk_fds('s-1', 's-1')  # small
             elif s < f_size * 1.1:
                 pass                                       # normalsize
             elif s < f_size * 1.3:
-                md_cur.append_fr_and_bk_lst('s+1', 's+1')  # large
+                md_cur.append_fr_and_bk_fds('s+1', 's+1')  # large
             elif s < f_size * 1.5:
-                md_cur.append_fr_and_bk_lst('s+2', 's+2')  # Large
+                md_cur.append_fr_and_bk_fds('s+2', 's+2')  # Large
             elif s < f_size * 1.7:
-                md_cur.append_fr_and_bk_lst('s+3', 's+3')  # LARGE
+                md_cur.append_fr_and_bk_fds('s+3', 's+3')  # LARGE
             elif s < f_size * 1.9:
-                md_cur.append_fr_and_bk_lst('s+4', 's+4')  # huge
+                md_cur.append_fr_and_bk_fds('s+4', 's+4')  # huge
             else:
-                md_cur.append_fr_and_bk_lst('s+5', 's+5')  # Huge
+                md_cur.append_fr_and_bk_fds('s+5', 's+5')  # Huge
             return math_data, chars_data
         # FONT WIDTH
         v = XML.get_value('w:w', 'w:val', -1.0, xl)
         if v > 0:
             if v < 30:
-                md_cur.append_fr_and_bk_lst('w-4', 'w-4')
+                md_cur.append_fr_and_bk_fds('w-4', 'w-4')
             elif v < 50:
-                md_cur.append_fr_and_bk_lst('w-3', 'w-3')
+                md_cur.append_fr_and_bk_fds('w-3', 'w-3')
             elif v < 70:
-                md_cur.append_fr_and_bk_lst('w-2', 'w-2')
+                md_cur.append_fr_and_bk_fds('w-2', 'w-2')
             elif v < 90:
-                md_cur.append_fr_and_bk_lst('w-1', 'w-1')
+                md_cur.append_fr_and_bk_fds('w-1', 'w-1')
             elif v < 110:
                 pass
             elif v < 130:
-                md_cur.append_fr_and_bk_lst('w+1', 'w+1')
+                md_cur.append_fr_and_bk_fds('w+1', 'w+1')
             elif v < 150:
-                md_cur.append_fr_and_bk_lst('w+2', 'w+2')
+                md_cur.append_fr_and_bk_fds('w+2', 'w+2')
             elif v < 170:
-                md_cur.append_fr_and_bk_lst('w+3', 'w+3')
+                md_cur.append_fr_and_bk_fds('w+3', 'w+3')
             elif v < 190:
-                md_cur.append_fr_and_bk_lst('w+4', 'w+4')
+                md_cur.append_fr_and_bk_fds('w+4', 'w+4')
             else:
-                md_cur.append_fr_and_bk_lst('w+5', 'w+5')
+                md_cur.append_fr_and_bk_fds('w+5', 'w+5')
             return math_data, chars_data
         # BOLD OR ROMAN
         v = XML.get_value('m:sty', 'm:val', '', xl)
         if v != '':
             # ROMAN
             if v == 'p' or v == 'b':
-                md_cur.append_fr_and_bk_lst('r', 'r')
+                md_cur.append_fr_and_bk_fds('r', 'r')
             # BOLD
             if v == 'bi' or v == 'b':
-                md_cur.append_fr_and_bk_lst('b', 'b')
+                md_cur.append_fr_and_bk_fds('b', 'b')
             return math_data, chars_data
         # STRIKETHROUGH
         if re.match('^<w:strike/?>$', xl):
-            md_cur.append_fr_and_bk_lst('s', 's')
+            md_cur.append_fr_and_bk_fds('s', 's')
             return math_data, chars_data
         # UNDERLINE
         v = XML.get_value('w:u', 'w:val', '', xl)
         if v != '':
-            md_cur.append_fr_and_bk_lst('u', 'u')
+            md_cur.append_fr_and_bk_fds('u', 'u')
             return math_data, chars_data
         # FONT COLOR
         v = XML.get_value('w:color', 'w:val', '', xl)
@@ -4601,25 +4607,25 @@ class RawParagraph:
                 c = FONT_COLOR[v]
             else:
                 c = v
-            md_cur.append_fr_and_bk_lst('c=' + c, 'c=' + c)
+            md_cur.append_fr_and_bk_fds('c=' + c, 'c=' + c)
             return math_data, chars_data
         # HIGILIGHT COLOR
         v = XML.get_value('w:highlight', 'w:val', '', xl)
         if v != '':
-            md_cur.append_fr_and_bk_lst('h=' + v, 'h=' + v)
+            md_cur.append_fr_and_bk_fds('h=' + v, 'h=' + v)
             return math_data, chars_data
         # DEL OR INS
         if xl == '<w:del>':
-            md_cur.append_fr_and_bk_lst('d', '')
+            md_cur.append_fr_and_bk_fds('d', '')
             return math_data, chars_data
         if xl == '</w:del>':
-            md_cur.append_fr_and_bk_lst('', 'd')
+            md_cur.append_fr_and_bk_fds('', 'd')
             return math_data, chars_data
         elif xl == '<w:ins>':
-            md_cur.append_fr_and_bk_lst('i', '')
+            md_cur.append_fr_and_bk_fds('i', '')
             return math_data, chars_data
         elif xl == '</w:ins>':
-            md_cur.append_fr_and_bk_lst('', 'i')
+            md_cur.append_fr_and_bk_fds('', 'i')
             return math_data, chars_data
         # ELEMENT, RUN PROPERTY, RUN, TEXT, LINE BREAK, FUNCTION NAME
         # --------------------------------------------------
@@ -4634,13 +4640,13 @@ class RawParagraph:
         # --------------------------------------------------
         # ELEMENT
         if xl == '<m:e>':
-            md_cur.append_fr_and_bk_lst('{', '')
+            md_cur.append_fr_and_bk_fds('{', '')
             return math_data, chars_data
         if xl == '</m:e>':
-            md_pre.append_fr_and_bk_lst('', '}')
+            md_pre.append_fr_and_bk_fds('', '}')
             return math_data, chars_data
         if xl == '<m:e/>':
-            md_cur.append_fr_and_bk_lst('{}', '')
+            md_cur.append_fr_and_bk_fds('{}', '')
             return math_data, chars_data
         # RUN PROPERTY (SAVE FUNCTION NAME)
         if (xl == '</w:rPr>' or xl == '<w:rPr/>') and md_cur.chars != '':
@@ -4655,7 +4661,7 @@ class RawParagraph:
             # FUNCTION (lim)
             if md_cur.is_math_function:
                 md_cur.chars += '\\'
-                md_cur.remove_fr_and_bk_lst('r', 'r')
+                md_cur.remove_fr_and_bk_fds('r', 'r')
             xl = re.sub('{', '\\{', xl)    # "{" -> "\{"
             xl = re.sub('}', '\\}', xl)    # "}" <- "\}"
             xl = re.sub(' ', '\\\\,', xl)  # " " -> "\," (space)
@@ -4713,21 +4719,21 @@ class RawParagraph:
         # = {}_{A}B_{C}
         # --------------------------------------------------
         if xl == '<m:sPre>':
-            md_cur.append_fr_and_bk_lst('{}', '')
+            md_cur.append_fr_and_bk_fds('{}', '')
             return math_data, chars_data
         if xl == '</m:sPre>':
             return math_data, chars_data
         if xl == '<m:sub>':
-            md_cur.append_fr_and_bk_lst('_{', '')
+            md_cur.append_fr_and_bk_fds('_{', '')
             return math_data, chars_data
         if xl == '</m:sub>':
-            md_pre.append_fr_and_bk_lst('', '_}')
+            md_pre.append_fr_and_bk_fds('', '_}')
             return math_data, chars_data
         if xl == '<m:sup>':
-            md_cur.append_fr_and_bk_lst('^{', '')
+            md_cur.append_fr_and_bk_fds('^{', '')
             return math_data, chars_data
         if xl == '</m:sup>':
-            md_pre.append_fr_and_bk_lst('', '^}')
+            md_pre.append_fr_and_bk_fds('', '^}')
             return math_data, chars_data
         # VECTOR
         # --------------------------------------------------
@@ -4779,16 +4785,16 @@ class RawParagraph:
         if xl == '</m:f>':
             return math_data, chars_data
         if xl == '<m:num>':
-            md_cur.append_fr_and_bk_lst('{', '')
+            md_cur.append_fr_and_bk_fds('{', '')
             return math_data, chars_data
         if xl == '</m:num>':
-            md_pre.append_fr_and_bk_lst('', '}')
+            md_pre.append_fr_and_bk_fds('', '}')
             return math_data, chars_data
         if xl == '<m:den>':
-            md_cur.append_fr_and_bk_lst('{', '')
+            md_cur.append_fr_and_bk_fds('{', '')
             return math_data, chars_data
         if xl == '</m:den>':
-            md_pre.append_fr_and_bk_lst('', '}')
+            md_pre.append_fr_and_bk_fds('', '}')
             return math_data, chars_data
         # RADICAL ROOT
         # --------------------------------------------------
@@ -4815,10 +4821,10 @@ class RawParagraph:
             md_cur.chars += '\\sqrt'
             return math_data, chars_data
         if xl == '<m:deg>':
-            md_cur.append_fr_and_bk_lst('[', '')
+            md_cur.append_fr_and_bk_fds('[', '')
             return math_data, chars_data
         if xl == '</m:deg>':
-            md_pre.append_fr_and_bk_lst('', ']')
+            md_pre.append_fr_and_bk_fds('', ']')
             return math_data, chars_data
         # LIMIT
         # --------------------------------------------------
@@ -4846,15 +4852,15 @@ class RawParagraph:
         # = \lim_{A}{B}
         # --------------------------------------------------
         if xl == '<m:lim>':
-            md_cur.append_fr_and_bk_lst('_{', '')
+            md_cur.append_fr_and_bk_fds('_{', '')
             if md_pre.chars == '\\lim':
-                if '{' in md_pre.fr_lst:
-                    md_pre.fr_lst.remove('{')
-                if '}' in md_pre.bk_lst:
-                    md_pre.bk_lst.remove('}')
+                if '{' in md_pre.fr_fd_lst:
+                    md_pre.fr_fd_lst.remove('{')
+                if '}' in md_pre.bk_fd_lst:
+                    md_pre.bk_fd_lst.remove('}')
             return math_data, chars_data
         if xl == '</m:lim>':
-            md_pre.append_fr_and_bk_lst('', '}')
+            md_pre.append_fr_and_bk_fds('', '}')
             return math_data, chars_data
         # INTEGRAL, DOUBLE INTEGRAL, TRIPLE INTEGRAL, LINE INTEGRAL
         # --------------------------------------------------
@@ -5033,10 +5039,10 @@ class RawParagraph:
                         end = '\\}'
                     math_data[i].chars = pre + beg + pos
                     # FRONT AND BACK LIST
-                    for j in math_data[i].fr_lst:
-                        md_cur.append_fr_and_bk_lst(j, '')
-                    for j in math_data[i].bk_lst:
-                        md_cur.append_fr_and_bk_lst('', j)
+                    for fd in math_data[i].fr_fd_lst:
+                        md_cur.append_fr_and_bk_fds(fd, '')
+                    for fd in math_data[i].bk_fd_lst:
+                        md_cur.append_fr_and_bk_fds('', fd)
                     break
             md_cur.chars += end
             math_data.append(MathDatum())
@@ -5050,7 +5056,7 @@ class RawParagraph:
             math_data.append(MathDatum())
             return math_data, chars_data
         if xl == '</m:mr>':
-            md_cur.fr_lst.insert(0, '\\\\')
+            md_cur.fr_fd_lst.insert(0, '\\\\')
             return math_data, chars_data
         return math_data, chars_data
 
@@ -5135,33 +5141,35 @@ class RawParagraph:
             if i > 0:
                 pre_cd = chars_data[i - 1]
                 pre_state = cls._get_chars_state(pre_cd.chars)
-                pre_font = pre_cd.fr_fds.font_name
+                pre_font = pre_cd.fr_fd_cls.font_name
                 pre_afont, pre_jfont = cls._get_ascii_and_kanji_font(pre_font)
+                pre_fd = '@' + pre_font + '@'
             # CURRENT
             if True:
                 cur_state = cls._get_chars_state(cur_cd.chars)
-                cur_font = cur_cd.fr_fds.font_name
+                cur_font = cur_cd.fr_fd_cls.font_name
                 cur_afont, cur_jfont = cls._get_ascii_and_kanji_font(cur_font)
+                cur_fd = '@' + cur_font + '@'
             # REDUCE
             if cur_font != '':
-                if cur_cd.bk_fds.font_name != '@' + cur_font + '@':
+                if cur_cd.bk_fd_cls.font_name != cur_fd:
                     continue
             if (cur_state == 'ascii' and cur_afont == frm_afont) or \
                (cur_state == 'kanji' and cur_jfont == frm_jfont) or \
                (cur_state == 'mix' and cur_font == frm_font):
-                cur_cd.fr_fds.font_name = ''
+                cur_cd.fr_fd_cls.font_name = ''
                 cur_font, cur_afont, cur_jfont = '', '', ''
             # REDUCE
             if pre_font != '':
-                if pre_cd.bk_fds.font_name != '@' + pre_font + '@':
+                if pre_cd.bk_fd_cls.font_name != pre_fd:
                     continue
             if pre_font == '':
                 continue
             if pre_font == cur_font:
                 continue
             for j in range(i + 1, len(chars_data)):
-                if chars_data[j].fr_fds.font_name == '@' + pre_font + '@':
-                    if chars_data[j].bk_fds.font_name == '@' + pre_font + '@':
+                if chars_data[j].fr_fd_cls.font_name == pre_fd:
+                    if chars_data[j].bk_fd_cls.font_name == pre_fd:
                         break  # There is same font backward
             else:
                 continue  # There is no same font backward
@@ -5172,8 +5180,8 @@ class RawParagraph:
             if (cur_state == 'ascii' and tmp_afont == pre_afont) or \
                (cur_state == 'kanji' and tmp_jfont == pre_jfont) or \
                (cur_state == 'mix' and tmp_font == pre_font):
-                cur_cd.fr_fds.font_name = '@' + pre_font + '@'
-                cur_cd.bk_fds.font_name = '@' + pre_font + '@'
+                cur_cd.fr_fd_cls.font_name = pre_fd
+                cur_cd.bk_fd_cls.font_name = pre_fd
         return chars_data
 
     @staticmethod
