@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.02-08:00:02-JST>
+# Time-stamp:   <2024.07.02-15:01:40-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -75,12 +75,12 @@ import datetime
 import docx
 import chardet
 from docx.shared import Cm, Pt
-from docx.enum.text import WD_LINE_SPACING
+# from docx.enum.text import WD_LINE_SPACING
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.table import WD_ALIGN_VERTICAL
-from docx.enum.table import WD_ROW_HEIGHT_RULE
+# from docx.enum.table import WD_ROW_HEIGHT_RULE
 from docx.oxml import OxmlElement, ns
 # from docx.oxml.ns import qn
 from docx.enum.style import WD_STYLE_TYPE
@@ -348,8 +348,7 @@ DEFAULT_LINE_NUMBER = False
 DEFAULT_MINCHO_FONT = 'Times New Roman / ＭＳ 明朝'
 DEFAULT_GOTHIC_FONT = 'ＭＳ ゴシック'
 DEFAULT_IVS_FONT = 'IPAmj明朝'  # IPAmjMincho
-DEFAULT_MATH_FONT = 'Cambria Math'
-# DEFAULT_MATH_FONT = 'Liberation Serif'
+# DEFAULT_MATH_FONT = 'Cambria Math'  # 'Liberation Serif'
 DEFAULT_LINE_NUMBER_FONT = 'Calibri'
 DEFAULT_FONT_SIZE = 12.0
 
@@ -3210,7 +3209,6 @@ class Math:
             else:
                 mtrx.append(row)
                 row = []
-        nrow = len(mtrx[0])
         #
         oe1 = XML.add_tag(oe0, 'm:d', {})
         #
@@ -3267,7 +3265,6 @@ class Document:
         self.docx_file = ''
         self.formal_md_lines = []
         self.md_lines = []
-        self.all_paragraphs = []
         self.paragraphs = []
 
     def get_md_lines(self, formal_md_lines):
@@ -4045,9 +4042,7 @@ class Paragraph:
         hd = self.head_section_depth
         td = self.tail_section_depth
         sds = self.section_depth_setters
-        has_section_depth_setters = False
         if paragraph_class != 'section' and len(sds) > 0:
-            has_section_depth_setters = True
             hd = len(sds[0])
             td = len(sds[-1])
         length_conf \
@@ -5332,8 +5327,6 @@ class ParagraphImage(Paragraph):
         ttw = re.sub('\n+', '\n', ttw)
         ttw = re.sub('^\n+', '', ttw)
         ttw = re.sub('\n+$', '', ttw)
-        is_large = False
-        is_small = False
         text_width = PAPER_WIDTH[Form.paper_size] \
             - Form.left_margin - Form.right_margin
         text_height = PAPER_HEIGHT[Form.paper_size] \
@@ -5841,7 +5834,6 @@ class MdLine:
     @staticmethod
     def separate_comment(raw_text):
         com_sep = ' / '
-        del_sep = ' / '
         spaced_text = ''
         comment = ''
         tmp = ''

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.02-13:17:22-JST>
+# Time-stamp:   <2024.07.02-15:03:33-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -2564,7 +2564,7 @@ class AutoNumberingStyle:
         if fmt == 'decimal' or fmt == 'decimalFullWidth':
             if re.match(res_s2_a, txt) or re.match(res_s2_b, txt):
                 return 'section', 2
-            if re.match(res_s3_a, txt) or re.match(res_s3_a, txt):
+            if re.match(res_s3_a, txt) or re.match(res_s3_b, txt):
                 return 'section', 3
             if re.match(res_s4_a, txt):
                 return 'section', 4
@@ -3098,7 +3098,6 @@ class MathDatum:
     def cancel_fds(math_data):
         if len(math_data) == 0:
             return math_data
-        candidates = []
         for i in range(len(math_data)):
             if i == 0:
                 continue
@@ -3587,9 +3586,6 @@ class Document:
         # |               ->  |段落
         # |               ->  |
         # self.paragraphs = self._modpar_spaced_and_centered()
-        res_gg = '^<<=(' + RES_NUMBER + ')$'
-        res_g = '^<=(' + RES_NUMBER + ')$'
-        res_l = '^>=(' + RES_NUMBER + ')$'
         for i, p in enumerate(self.paragraphs):
             if i == 0:
                 continue
@@ -7732,7 +7728,7 @@ class ParagraphMath(Paragraph):
         if alignment == 'left':
             ttw = re.sub('^\\\\\\[', '\\\\\\[: ', ttw)
         elif alignment == 'right':
-            ttow = re.sub('\\\\\\]$', ' :\\\\\\]', ttw)
+            ttw = re.sub('\\\\\\]$', ' :\\\\\\]', ttw)
         com = '\\\\(?:int|iint|iiint|oint|sum|prod)'
         ttw = self.shift_paren(com, 5, '_{.*}\\^{.*}{.*}', ttw)
         com = '\\\\(?:int|iint|iiint|oint|sum|prod)'
@@ -7864,7 +7860,7 @@ class ParagraphAlignment(Paragraph):
             return False
         if ParagraphConfiguration.is_this_class(rp):
             return False
-        if rp.alignment != '':
+        if rp_alg != '':
             return True
         return False
 
