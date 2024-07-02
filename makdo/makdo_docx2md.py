@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.02-15:03:33-JST>
+# Time-stamp:   <2024.07.03-06:56:49-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -3013,9 +3013,6 @@ class MathDatum:
                     return True
         return False
 
-    def get_full_chars(self):
-        return self.get_fr_chars() + self.chars + self.get_bk_chars()
-
     def get_fr_chars(self):
         fr_chars = ''
         for fd in self.fr_fd_lst:
@@ -3109,6 +3106,741 @@ class MathDatum:
                         fr_fd_lst.remove(fd)
                         bk_fd_lst.remove(fd)
         return math_data
+
+    @classmethod
+    def get_math_data(cls, xl, math_data):
+        f_size = Form.font_size
+        if re.match('^<m:oMath>$', xl):
+            math_data = []
+            math_data.append(MathDatum())
+            math_data.append(MathDatum())
+            return math_data, None
+        elif re.match('^</m:oMath>$', xl):
+            if math_data[0].is_empty():
+                math_data.pop(0)
+            if math_data[-1].is_empty():
+                math_data.pop(-1)
+            math_chars_datum = cls._get_math_chars_datum(math_data)
+            math_data = None
+            return None, math_chars_datum
+        if math_data is None:
+            return None, None
+        md_pre = math_data[-2]
+        md_cur = math_data[-1]
+        # FONT NAME (NOT IMPLEMENTED)
+        # FONT SIZE AND SCALE
+        v = XML.get_value('w:sz', 'w:val', -1.0, xl)
+        # (FOR COMPLEX SCRIPT)
+        v = XML.get_value('w:szCs', 'w:val', v, xl)
+        if v > 0:
+            s = round(v / 2, 1)
+            if s < f_size * 0.3:
+                md_cur.append_fr_and_bk_fds('s-4', 's-4')  # tiny
+            elif s < f_size * 0.5:
+                md_cur.append_fr_and_bk_fds('s-3', 's-3')  # scriptsize
+            elif s < f_size * 0.7:
+                md_cur.append_fr_and_bk_fds('s-2', 's-2')  # footnotesize
+            elif s < f_size * 0.9:
+                md_cur.append_fr_and_bk_fds('s-1', 's-1')  # small
+            elif s < f_size * 1.1:
+                pass                                       # normalsize
+            elif s < f_size * 1.3:
+                md_cur.append_fr_and_bk_fds('s+1', 's+1')  # large
+            elif s < f_size * 1.5:
+                md_cur.append_fr_and_bk_fds('s+2', 's+2')  # Large
+            elif s < f_size * 1.7:
+                md_cur.append_fr_and_bk_fds('s+3', 's+3')  # LARGE
+            elif s < f_size * 1.9:
+                md_cur.append_fr_and_bk_fds('s+4', 's+4')  # huge
+            else:
+                md_cur.append_fr_and_bk_fds('s+5', 's+5')  # Huge
+            return math_data, None
+        # FONT WIDTH
+        v = XML.get_value('w:w', 'w:val', -1.0, xl)
+        if v > 0:
+            if v < 30:
+                md_cur.append_fr_and_bk_fds('w-4', 'w-4')
+            elif v < 50:
+                md_cur.append_fr_and_bk_fds('w-3', 'w-3')
+            elif v < 70:
+                md_cur.append_fr_and_bk_fds('w-2', 'w-2')
+            elif v < 90:
+                md_cur.append_fr_and_bk_fds('w-1', 'w-1')
+            elif v < 110:
+                pass
+            elif v < 130:
+                md_cur.append_fr_and_bk_fds('w+1', 'w+1')
+            elif v < 150:
+                md_cur.append_fr_and_bk_fds('w+2', 'w+2')
+            elif v < 170:
+                md_cur.append_fr_and_bk_fds('w+3', 'w+3')
+            elif v < 190:
+                md_cur.append_fr_and_bk_fds('w+4', 'w+4')
+            else:
+                md_cur.append_fr_and_bk_fds('w+5', 'w+5')
+            return math_data, None
+        # BOLD OR ROMAN
+        v = XML.get_value('m:sty', 'm:val', '', xl)
+        if v != '':
+            # ROMAN
+            if v == 'p' or v == 'b':
+                md_cur.append_fr_and_bk_fds('r', 'r')
+            # BOLD
+            if v == 'bi' or v == 'b':
+                md_cur.append_fr_and_bk_fds('b', 'b')
+            return math_data, None
+        # STRIKETHROUGH
+        if re.match('^<w:strike/?>$', xl):
+            md_cur.append_fr_and_bk_fds('s', 's')
+            return math_data, None
+        # UNDERLINE
+        v = XML.get_value('w:u', 'w:val', '', xl)
+        if v != '':
+            md_cur.append_fr_and_bk_fds('u', 'u')
+            return math_data, None
+        # FONT COLOR
+        v = XML.get_value('w:color', 'w:val', '', xl)
+        if v != '':
+            if v == 'FFFFFF':
+                c = 'white'
+            elif v in FONT_COLOR:
+                c = FONT_COLOR[v]
+            else:
+                c = v
+            md_cur.append_fr_and_bk_fds('c=' + c, 'c=' + c)
+            return math_data, None
+        # HIGILIGHT COLOR
+        v = XML.get_value('w:highlight', 'w:val', '', xl)
+        if v != '':
+            md_cur.append_fr_and_bk_fds('h=' + v, 'h=' + v)
+            return math_data, None
+        # DEL OR INS
+        if xl == '<w:del>':
+            md_cur.append_fr_and_bk_fds('d', '')
+            return math_data, None
+        if xl == '</w:del>':
+            md_cur.append_fr_and_bk_fds('', 'd')
+            return math_data, None
+        elif xl == '<w:ins>':
+            md_cur.append_fr_and_bk_fds('i', '')
+            return math_data, None
+        elif xl == '</w:ins>':
+            md_cur.append_fr_and_bk_fds('', 'i')
+            return math_data, None
+        # ELEMENT, RUN PROPERTY, RUN, TEXT, LINE BREAK, FUNCTION NAME
+        # --------------------------------------------------
+        # <m:e> or <m:fName>
+        #     <m:r>
+        #         <m:rPr/>
+        #           or
+        #         <m:rPr>...</m:rPr>
+        #         A
+        #     </m:r>
+        # </m:e> or </m:fName>
+        # --------------------------------------------------
+        # ELEMENT
+        if xl == '<m:e>':
+            md_cur.append_fr_and_bk_fds('{', '')
+            return math_data, None
+        if xl == '</m:e>':
+            md_pre.append_fr_and_bk_fds('', '}')
+            return math_data, None
+        if xl == '<m:e/>':
+            md_cur.append_fr_and_bk_fds('{}', '')
+            return math_data, None
+        # RUN PROPERTY (SAVE FUNCTION NAME)
+        if (xl == '</w:rPr>' or xl == '<w:rPr/>') and md_cur.chars != '':
+            math_data.append(MathDatum())
+            return math_data, None
+        # RUN (SAVE TEXT)
+        if xl == '</m:r>' or xl == '<m:r/>':
+            math_data.append(MathDatum())
+            return math_data, None
+        # TEXT
+        if not re.match('^<.*>$', xl):
+            # FUNCTION (lim)
+            if md_cur.is_math_function:
+                md_cur.chars += '\\'
+                md_cur.remove_fr_and_bk_fds('r', 'r')
+            xl = re.sub('{', '\\{', xl)    # "{" -> "\{"
+            xl = re.sub('}', '\\}', xl)    # "}" <- "\}"
+            xl = re.sub(' ', '\\\\,', xl)  # " " -> "\," (space)
+            md_cur.chars += xl
+            return math_data, None
+        # LINE BREAK
+        if re.match('^<m:brk( .*)?/>$', xl):
+            md_cur.chars += '\\\\'
+            return math_data, None
+        # FUNCTION NAME
+        if xl == '<m:fName>':
+            md_cur.is_math_function = True
+            return math_data, None
+        if xl == '</m:fName>':
+            # md_pre.is_math_function = False
+            return math_data, None
+        # SUP AND SUB
+        # --------------------------------------------------
+        # <m:e>
+        #     <m:r>
+        #         A
+        #     </m:r>
+        # </m:e>
+        # <m:sub>  # SUBSCIPT
+        #   or
+        # <m:sup>  # SUPERSCRIPT
+        #     <m:r>
+        #         B
+        #     </m:r>
+        # </m:sub>  # SUBSCIPT
+        #   or
+        # </m:sup>  # SUPERSCRIPT
+        # = A_{B}  # SUBSCIPT
+        #   or
+        # = A^{B}  # SUPERSCRIPT
+        # --------------------------------------------------
+        # <m:sPre>
+        #     <m:sub>
+        #         <m:r>
+        #             A
+        #         </m:r>
+        #     </m:sub>
+        #     <m:sup/>
+        #     <m:e>
+        #         <m:r>
+        #             B
+        #         </m:r>
+        #     </m:e>
+        #     <m:sub>
+        #         <m:r>
+        #             C
+        #         </m:r>
+        #     </m:sub>
+        # </m:sPre>
+        # = {}_{A}B_{C}
+        # --------------------------------------------------
+        if xl == '<m:sPre>':
+            md_cur.append_fr_and_bk_fds('{}', '')
+            return math_data, None
+        if xl == '</m:sPre>':
+            return math_data, None
+        if xl == '<m:sub>':
+            md_cur.append_fr_and_bk_fds('_{', '')
+            return math_data, None
+        if xl == '</m:sub>':
+            md_pre.append_fr_and_bk_fds('', '_}')
+            return math_data, None
+        if xl == '<m:sup>':
+            md_cur.append_fr_and_bk_fds('^{', '')
+            return math_data, None
+        if xl == '</m:sup>':
+            md_pre.append_fr_and_bk_fds('', '^}')
+            return math_data, None
+        # VECTOR
+        # --------------------------------------------------
+        # <m:acc>
+        #     <m:chr m:val="→"/>  # MS OFFICE (\u2192)
+        #       or
+        #     <m:chr m:val="⃗"/>    # LIBREOFFICE (\u20D7)
+        #     <w:rPr/> or <w:rPr>...</w:rPr>
+        #     <m:e>
+        #         <m:r>
+        #             A
+        #         </m:r>
+        #     </m:e>
+        # </m:acc>
+        # = \vec{A}
+        # --------------------------------------------------
+        if re.match('<m:chr m:val="(\u2192|\u20D7)"/>', xl):
+            md_cur.chars += '\\vec'
+            return math_data, None
+        # FRACTION, BINOMIAL
+        # --------------------------------------------------
+        # <m:f>
+        #     (none)                   # FRACTION
+        #       or
+        #     <m:type m:val="noBar"/>  # BINOMIAL
+        #     <w:rPr/> or <w:rPr>...</w:rPr>
+        #     <m:num>
+        #         <m:r>
+        #             A
+        #         </m:r>
+        #     </m:num>
+        #     <m:den>
+        #         <m:r>
+        #             B
+        #         </m:r>
+        #     </m:den>
+        # </m:f>
+        # = \frac{A}{B}
+        #   or
+        # = \binom{A}{B}
+        # --------------------------------------------------
+        if xl == '<m:f>':
+            md_cur.chars += '\\frac'
+            return math_data, None
+        if xl == '<m:type m:val="noBar"/>':
+            if md_cur.chars == '\\frac':
+                md_cur.chars = '\\Xbinom'
+            return math_data, None
+        if xl == '</m:f>':
+            return math_data, None
+        if xl == '<m:num>':
+            md_cur.append_fr_and_bk_fds('{', '')
+            return math_data, None
+        if xl == '</m:num>':
+            md_pre.append_fr_and_bk_fds('', '}')
+            return math_data, None
+        if xl == '<m:den>':
+            md_cur.append_fr_and_bk_fds('{', '')
+            return math_data, None
+        if xl == '</m:den>':
+            md_pre.append_fr_and_bk_fds('', '}')
+            return math_data, None
+        # RADICAL ROOT
+        # --------------------------------------------------
+        # <m:rad>
+        #     <w:rPr/> or <w:rPr>...</w:rPr>
+        #     <m:deg/>
+        #       or
+        #     <m:deg>
+        #         <m:r>
+        #             A
+        #         </m:r>
+        #     </m:deg>
+        #     <m:e>
+        #         <m:r>
+        #             B
+        #         </m:r>
+        #     </m:e>
+        # </m:rad>
+        # = \sqrt{B}
+        #   or
+        # = \sqrt[A]{B}
+        # --------------------------------------------------
+        if xl == '<m:rad>':
+            md_cur.chars += '\\sqrt'
+            return math_data, None
+        if xl == '<m:deg>':
+            md_cur.append_fr_and_bk_fds('[', '')
+            return math_data, None
+        if xl == '</m:deg>':
+            md_pre.append_fr_and_bk_fds('', ']')
+            return math_data, None
+        # LIMIT
+        # --------------------------------------------------
+        # <m:fName>
+        #     <m:e>
+        #         <m:r>
+        #             lim
+        #         </m:r>
+        #     </m:e>
+        #     <m:lim/>
+        #       or
+        #     <m:lim>
+        #         <m:r>
+        #             A
+        #         </m:r>
+        #     </m:lim>
+        #     <m:e>
+        #         <m:r>
+        #             B
+        #         </m:r>
+        #     </m:e>
+        # </m:fName>
+        # = \lim{B}
+        #   or
+        # = \lim_{A}{B}
+        # --------------------------------------------------
+        if xl == '<m:lim>':
+            md_cur.append_fr_and_bk_fds('_{', '')
+            if md_pre.chars == '\\lim':
+                if '{' in md_pre.fr_fd_lst:
+                    md_pre.fr_fd_lst.remove('{')
+                if '}' in md_pre.bk_fd_lst:
+                    md_pre.bk_fd_lst.remove('}')
+            return math_data, None
+        if xl == '</m:lim>':
+            md_pre.append_fr_and_bk_fds('', '}')
+            return math_data, None
+        # INTEGRAL, DOUBLE INTEGRAL, TRIPLE INTEGRAL, LINE INTEGRAL
+        # --------------------------------------------------
+        # <m:nary>
+        #     (none)
+        #       or
+        #     <m:chr m:val="∬"/>  # \u222C
+        #       or
+        #     <m:chr m:val="∭"/>  # \u222D
+        #       or
+        #     <m:chr m:val="∭"/>  # \u222D
+        #       or
+        #     <m:chr m:val="∮"/>  # \u222e
+        #     <w:rPr/> or <w:rPr>...</w:rPr>
+        #     <m:sub/>
+        #       or
+        #     <m:sub>
+        #         <m:r>
+        #             A
+        #         </m:r>
+        #     </m:sub>
+        #     <m:sup/>
+        #       or
+        #     <m:sup>
+        #         <m:r>
+        #             B
+        #         </m:r>
+        #     </m:sup>
+        #     <m:e>
+        #         <m:r>
+        #             C
+        #         </m:r>
+        #     </m:e>
+        # </m:nary>
+        # = \int{A}
+        #   or
+        # = \int{C}
+        #   or
+        # = \int_{A}^{B}{C}
+        #   or
+        # = \iint{A}
+        #   or
+        # = \iint_{A}^{B}{C}
+        #   or
+        # = \iiint{A}
+        #   or
+        # = \iiint_{A}^{B}{C}
+        #   or
+        # = \oint{A}
+        #   or
+        # = \oint_{A}^{B}{C}
+        # --------------------------------------------------
+        if xl == '<m:nary>':
+            md_cur.chars += '\\int'
+            return math_data, None
+        if xl == '<m:chr m:val="∬"/>':
+            md_cur.chars = re.sub('\\\\int$', '\\\\iint', md_cur.chars)
+            return math_data, None
+        if xl == '<m:chr m:val="∭"/>':
+            md_cur.chars = re.sub('\\\\int$', '\\\\iiint', md_cur.chars)
+            return math_data, None
+        if xl == '<m:chr m:val="∮"/>':
+            md_cur.chars = re.sub('\\\\int$', '\\\\oint', md_cur.chars)
+            return math_data, None
+        # SIGMA, PRODUCT
+        # --------------------------------------------------
+        # <m:nary>
+        #     <m:chr m:val="∑"/>  # \u2211
+        #       or
+        #     <m:chr m:val="∏"/>  # \u220F
+        #     <w:rPr/> or <w:rPr>...</w:rPr>
+        #     <m:subHide m:val="1"/>
+        #     <m:supHide m:val="1"/>
+        #       or
+        #     <m:sub>
+        #         <m:r>
+        #             A
+        #         </m:r>
+        #     </m:sub>
+        #     <m:sup>
+        #         <m:r>
+        #             B
+        #         </m:r>
+        #     </m:sup>
+        #     <m:e>
+        #         <m:r>
+        #             C
+        #         </m:r>
+        #     </m:e>
+        # </m:nary>
+        # = \sum{C}
+        #   or
+        # = \sum_{A}^{B}{C}
+        #   or
+        # = \prod{C}
+        #   or
+        # = \prod_{A}^{B}{C}
+        # --------------------------------------------------
+        if xl == '<m:chr m:val="∑"/>':
+            md_cur.chars = re.sub('\\\\int$', '\\\\sum', md_cur.chars)
+            return math_data, None
+        if xl == '<m:chr m:val="∏"/>':
+            md_cur.chars = re.sub('\\\\int$', '\\\\prod', md_cur.chars)
+            return math_data, None
+        # MATRIX
+        # --------------------------------------------------
+        # <m:d>
+        #     (NONE)
+        #     or
+        #     <m:begChr m:val="["/>
+        #     <m:endChr m:val="]"/>
+        #     <w:rPr/> or <w:rPr>...</w:rPr>
+        #     <m:e>
+        #         <m:m>
+        #             <m:mr>
+        #                 <m:e>
+        #                     <m:r>
+        #                         A
+        #                     </m:r>
+        #                 </m:e>
+        #                 <m:e>
+        #                     <m:r>
+        #                         B
+        #                     </m:r>
+        #                 </m:e>
+        #             </m:mr>
+        #             <m:mr>
+        #                 <m:e>
+        #                     <m:r>
+        #                         C
+        #                     </m:r>
+        #                 </m:e>
+        #                 <m:e>
+        #                     <m:r>
+        #                         D
+        #                     </m:r>
+        #                 </m:e>
+        #             </m:mr>
+        #         </m:m>
+        #     </m:e>
+        # </m:d>
+        # = \begin{pmatrix}A&B\\C&D\\\end{pmatrix}
+        # or
+        # = \begin{bmatrix}A&B\\C&D\\\end{bmatrix}
+        # --------------------------------------------------
+        # MATRIX (BEGIN)
+        if xl == '<m:d>':
+            md_cur.chars += '(<()>'
+            return math_data, None
+        if re.match('^<m:begChr m:val="(.?)"/>$', xl):
+            bc = re.sub('^<m:begChr m:val="(.?)"/>$', '\\1', xl)
+            md_cur.chars = re.sub('\\(<(.)(.?)>$', '(<' + bc + '\\2>',
+                                  md_cur.chars)
+            return math_data, None
+        if re.match('<m:endChr m:val="(.?)"/>', xl):
+            ec = re.sub('^<m:endChr m:val="(.?)"/>$', '\\1', xl)
+            md_cur.chars = re.sub('\\(<(.?)(.)>$', '(<\\g<1>' + ec + '>',
+                                  md_cur.chars)
+            return math_data, None
+        # MATRIX (END)
+        if xl == '</m:d>':
+            res = '(.*)\\(<(.?)(.?)>(.*)$'
+            end = ')'
+            md_beg_chars = None
+            for i in range(len(math_data) - 1, -1, -1):
+                if re.match(res, math_data[i].chars):
+                    # CHARS
+                    md_beg_chars = math_data[i].chars
+                    pre = re.sub(res, '\\1', md_beg_chars)
+                    beg = re.sub(res, '\\2', md_beg_chars)
+                    end = re.sub(res, '\\3', md_beg_chars)
+                    pos = re.sub(res, '\\4', md_beg_chars)
+                    if beg == '{':
+                        beg = '\\{'
+                    if end == '}':
+                        end = '\\}'
+                    math_data[i].chars = pre + beg + pos
+                    # FRONT AND BACK LIST
+                    for fd in math_data[i].fr_fd_lst:
+                        md_cur.append_fr_and_bk_fds(fd, '')
+                    for fd in math_data[i].bk_fd_lst:
+                        md_cur.append_fr_and_bk_fds('', fd)
+                    break
+            md_cur.chars += end
+            math_data.append(MathDatum())
+            return math_data, None
+        # MATRIX (CELLS)
+        if xl == '<m:m>':
+            md_cur.chars += '\\Xbegin{matrix}'
+            return math_data, None
+        if xl == '</m:m>':
+            md_cur.chars += '\\Xend{matrix}'
+            math_data.append(MathDatum())
+            return math_data, None
+        if xl == '</m:mr>':
+            md_cur.fr_fd_lst.insert(0, '\\\\')
+            return math_data, None
+        return math_data, None
+
+    @classmethod
+    def _get_math_chars_datum(cls, math_data):
+        math_data = cls.cancel_fds(math_data)
+        math_str = ''
+        for i, md in enumerate(math_data):
+            if i == 0:
+                math_str += md.get_fr_chars() + md.chars + md.get_bk_chars()
+            elif i < len(math_data) - 1:
+                math_str += md.get_fr_chars() + md.chars + md.get_bk_chars()
+            else:
+                math_str += md.get_fr_chars() + md.chars + md.get_bk_chars()
+        math_str = cls._shape_math_matrix(math_str)
+        math_str = cls._shape_math_binomial(math_str)
+        math_str = cls._shape_sub_and_sup(math_str)
+        math_str = re.sub('\\\\mathrm{([=\\-\\+\\±])}', '\\1', math_str)
+        math_str \
+            = re.sub('\\\\mathrm{(' + RES_NUMBER + ')}', '\\1', math_str)
+        math_str = re.sub('{([=\\-\\+\\±])}', '\\1', math_str)
+        math_chars_datum = CharsDatum([], '\\[' + math_str + '\\]', [])
+        return math_chars_datum
+
+    @staticmethod
+    def _shape_math_matrix(math_str):
+        # FONT DECRATIONS
+        res = '{.*\\\\Xbegin{matrix}.*\\\\Xend{matrix}}{.*\\)}+'
+        math_str = MathDatum.shift_paren('\\(', 2, res, math_str)
+        math_str = MathDatum.cancel_multi_paren(math_str)
+        math_str = re.sub('{(\\\\Xbegin{matrix})}', '\\1', math_str)
+        math_str = re.sub('(\\\\Xend{matrix}}){\\)}', '\\1)', math_str)
+        # CONFIRM TYPE
+        tlist = [['\\(', '\\)', 'p'], ['\\[', '\\]', 'b'],
+                 ['\\|', '\\|', 'v'], ['‖', '‖', 'V']]
+        tmp = ''
+        while tmp != math_str:
+            tmp = math_str
+            for t in tlist:
+                beg_fr = '^(.*)' + t[0] + '({)\\\\Xbegin{matrix}(.*)$'
+                beg_to = '\\1\\2\\\\Xbegin{' + t[2] + 'matrix}\\3'
+                math_str = re.sub(beg_fr, beg_to, math_str)
+                end_fr = '^(.*)\\\\Xend{matrix}(})' + t[1] + '(.*)$'
+                end_to = '\\1\\\\Xend{' + t[2] + 'matrix}\\2\\3'
+                math_str = re.sub(end_fr, end_to, math_str)
+        # SHAPE CELL
+        res = '^(.*?){' + \
+            '\\\\Xbegin({.?matrix})(.*?)\\\\Xend({.?matrix})' + \
+            '}(.*?)$'
+        while re.match(res, math_str):
+            str1 = re.sub(res, '\\1', math_str)
+            mtx1 = re.sub(res, '\\2', math_str)
+            roco = re.sub(res, '\\3', math_str)
+            mtx2 = re.sub(res, '\\4', math_str)
+            str2 = re.sub(res, '\\5', math_str)
+            d = 0
+            s = ''
+            for c in roco:
+                s += c
+                if c == '{':
+                    d += 1
+                if c == '}':
+                    d -= 1
+                if d == 0 and c == '}':
+                    s += '&'
+                if re.match('.*&\\\\\\\\$', s):
+                    s = re.sub('&\\\\\\\\$', '\\\\\\\\', s)
+            roco = re.sub('\\\\\\\\$', '', s)
+            math_str = str1 + '\\begin' + mtx1 \
+                + roco \
+                + '\\end' + mtx2 + str2
+        return math_str
+
+    @staticmethod
+    def shift_paren(com, cnt, res, math_str):
+        res_com = NOT_ESCAPED + '(' + com + ')(}+)$'
+        tmp = ''
+        while tmp != math_str:
+            tmp = math_str
+            tj = -1
+            for j in range(len(math_str)):
+                if re.match(res_com, math_str[:j]) and math_str[j] != '}':
+                    tj = j
+                    break
+            if tj == -1:
+                break
+            tk = -1
+            dep = []
+            d = 0
+            for k in range(tj, len(math_str)):
+                if math_str[k] == '{':
+                    d += 1
+                if math_str[k] == '}':
+                    d -= 1
+                dep.append(d)
+                if cnt == -1 and re.match(res, math_str[tj:k]):
+                    tk = k
+                    break
+                if dep.count(0) == cnt and re.match(res, math_str[tj:k]):
+                    tk = k
+                    break
+            if tk == -1:
+                break
+            pre_bpa_fds_com_epa = math_str[:tj]
+            pre_bpa_fds = re.sub(res_com, '\\1', pre_bpa_fds_com_epa)
+            com = re.sub(res_com, '\\2', pre_bpa_fds_com_epa)
+            epa = re.sub(res_com, '\\3', pre_bpa_fds_com_epa)
+            arg = math_str[tj:tk]
+            pos = math_str[tk:]
+            ti = -1
+            d = - len(epa)
+            for i in range(len(pre_bpa_fds) - 1, -1, -1):
+                if math_str[i] == '{':
+                    d += 1
+                if math_str[i] == '}':
+                    d -= 1
+                if d == 0:
+                    ti = i
+                    break
+            if ti == -1:
+                break
+            bpa_fds = pre_bpa_fds[ti:]
+            r = '^(.*)(\\\\[A-Za-z]+(?:{[^{}]+})?)(.*)$'
+            while re.match(r, bpa_fds):
+                f = re.sub(r, '\\2', bpa_fds)
+                f = '\\' + re.sub('{[^{}]*}', '{[^{}]*}', f)
+                arg = re.sub(f, '', arg)
+                bpa_fds = re.sub(r, '\\1\\3', bpa_fds)
+            math_str = pre_bpa_fds + com + arg + epa + pos
+        return math_str
+
+    @staticmethod
+    def cancel_multi_paren(math_str):
+        # {{..}} -> {}
+        rm = []
+        for i in range(len(math_str) - 1):
+            if math_str[i] != '{' or math_str[i + 1] != '{':
+                continue
+            dep = [0]
+            d = 0
+            for j in range(i, len(math_str)):
+                if math_str[j] == '{':
+                    d += 1
+                if math_str[j] == '}':
+                    d -= 1
+                dep.append(d)
+                if d == 0:
+                    if math_str[j - 1] == '}' or math_str[j] == '}':
+                        dep.pop(0)
+                        dep.pop(0)
+                        dep.pop(-1)
+                        dep.pop(-1)
+                        if 1 not in dep:
+                            rm.append(i)
+                            rm.append(j)
+                    break
+        rm.sort()
+        rm.reverse()
+        u = list(math_str)
+        for r in rm:
+            u.pop(r)
+        math_str = ''.join(u)
+        return math_str
+
+    @staticmethod
+    def _shape_math_binomial(math_str):
+        res = '\\({\\\\Xbinom{(.*?)}{(.*?)}}\\)'
+        tmp = ''
+        while tmp != math_str:
+            tmp = math_str
+            math_str = re.sub(res, '\\\\binom{\\1}{\\2}', math_str)
+        return math_str
+
+    @staticmethod
+    def _shape_sub_and_sup(math_str):
+        # {}_{A}{{B}_{C}} -> {}_{A}{B}_{C}
+        res = '{}_{([^{}]*(?:{[^{}]*})?[^{}]*)}' \
+            + '{{([^{}]*(?:{[^{}]*})?[^{}]*)}' \
+            + '_{([^{}]*(?:{[^{}]*})?[^{}]*)}}'
+        tmp = ''
+        while tmp != math_str:
+            tmp = math_str
+            math_str = re.sub(res, '{}_{\\1}{\\2}_{\\3}', math_str)
+        return math_str
 
 
 class XML:
@@ -4106,8 +4838,11 @@ class RawParagraph:
             # MATH
             if 'math_data' not in locals():
                 math_data = None
-            math_data, chars_data \
-                = cls._manage_math_expression(xl, math_data, chars_data)
+            math_data, math_chars_datum \
+                = MathDatum.get_math_data(xl, math_data)
+            if math_chars_datum is not None:
+                chars_data.append(math_chars_datum)
+                math_chars_datum = None
             if math_data is not None:
                 continue
             # IMAGE
@@ -4491,640 +5226,6 @@ class RawParagraph:
             img_md_text = '![' + img_file_name + ':' + img_size + ']' \
                 + '(' + relative_dir + '/' + img_file_name + ')'
         return fr, img_md_text, bk
-
-    @classmethod
-    def _manage_math_expression(cls, xl, math_data, chars_data):
-        f_size = Form.font_size
-        if re.match('^<m:oMath>$', xl):
-            math_data = []
-            math_data.append(MathDatum())
-            math_data.append(MathDatum())
-            return math_data, chars_data
-        elif re.match('^</m:oMath>$', xl):
-            if math_data[0].is_empty():
-                math_data.pop(0)
-            if math_data[-1].is_empty():
-                math_data.pop(-1)
-            math_data = MathDatum.cancel_fds(math_data)
-            math_str = ''
-            for md in math_data:
-                math_str += md.get_full_chars()
-            math_str = cls._shape_math_matrix(math_str)
-            math_str = cls._shape_math_binomial(math_str)
-            math_str = cls._shape_sub_and_sup(math_str)
-            math_str = re.sub('\\\\mathrm{([=\\-\\+\\±])}', '\\1', math_str)
-            math_str \
-                = re.sub('\\\\mathrm{(' + RES_NUMBER + ')}', '\\1', math_str)
-            math_str = re.sub('{([=\\-\\+\\±])}', '\\1', math_str)
-            chars_data.append(CharsDatum([], '\\[' + math_str + '\\]', []))
-            math_data = None
-            return math_data, chars_data
-        if math_data is None:
-            return math_data, chars_data
-        md_pre = math_data[-2]
-        md_cur = math_data[-1]
-        # FONT NAME (NOT IMPLEMENTED)
-        # FONT SIZE AND SCALE
-        v = XML.get_value('w:sz', 'w:val', -1.0, xl)
-        # (FOR COMPLEX SCRIPT)
-        v = XML.get_value('w:szCs', 'w:val', v, xl)
-        if v > 0:
-            s = round(v / 2, 1)
-            if s < f_size * 0.3:
-                md_cur.append_fr_and_bk_fds('s-4', 's-4')  # tiny
-            elif s < f_size * 0.5:
-                md_cur.append_fr_and_bk_fds('s-3', 's-3')  # scriptsize
-            elif s < f_size * 0.7:
-                md_cur.append_fr_and_bk_fds('s-2', 's-2')  # footnotesize
-            elif s < f_size * 0.9:
-                md_cur.append_fr_and_bk_fds('s-1', 's-1')  # small
-            elif s < f_size * 1.1:
-                pass                                       # normalsize
-            elif s < f_size * 1.3:
-                md_cur.append_fr_and_bk_fds('s+1', 's+1')  # large
-            elif s < f_size * 1.5:
-                md_cur.append_fr_and_bk_fds('s+2', 's+2')  # Large
-            elif s < f_size * 1.7:
-                md_cur.append_fr_and_bk_fds('s+3', 's+3')  # LARGE
-            elif s < f_size * 1.9:
-                md_cur.append_fr_and_bk_fds('s+4', 's+4')  # huge
-            else:
-                md_cur.append_fr_and_bk_fds('s+5', 's+5')  # Huge
-            return math_data, chars_data
-        # FONT WIDTH
-        v = XML.get_value('w:w', 'w:val', -1.0, xl)
-        if v > 0:
-            if v < 30:
-                md_cur.append_fr_and_bk_fds('w-4', 'w-4')
-            elif v < 50:
-                md_cur.append_fr_and_bk_fds('w-3', 'w-3')
-            elif v < 70:
-                md_cur.append_fr_and_bk_fds('w-2', 'w-2')
-            elif v < 90:
-                md_cur.append_fr_and_bk_fds('w-1', 'w-1')
-            elif v < 110:
-                pass
-            elif v < 130:
-                md_cur.append_fr_and_bk_fds('w+1', 'w+1')
-            elif v < 150:
-                md_cur.append_fr_and_bk_fds('w+2', 'w+2')
-            elif v < 170:
-                md_cur.append_fr_and_bk_fds('w+3', 'w+3')
-            elif v < 190:
-                md_cur.append_fr_and_bk_fds('w+4', 'w+4')
-            else:
-                md_cur.append_fr_and_bk_fds('w+5', 'w+5')
-            return math_data, chars_data
-        # BOLD OR ROMAN
-        v = XML.get_value('m:sty', 'm:val', '', xl)
-        if v != '':
-            # ROMAN
-            if v == 'p' or v == 'b':
-                md_cur.append_fr_and_bk_fds('r', 'r')
-            # BOLD
-            if v == 'bi' or v == 'b':
-                md_cur.append_fr_and_bk_fds('b', 'b')
-            return math_data, chars_data
-        # STRIKETHROUGH
-        if re.match('^<w:strike/?>$', xl):
-            md_cur.append_fr_and_bk_fds('s', 's')
-            return math_data, chars_data
-        # UNDERLINE
-        v = XML.get_value('w:u', 'w:val', '', xl)
-        if v != '':
-            md_cur.append_fr_and_bk_fds('u', 'u')
-            return math_data, chars_data
-        # FONT COLOR
-        v = XML.get_value('w:color', 'w:val', '', xl)
-        if v != '':
-            if v == 'FFFFFF':
-                c = 'white'
-            elif v in FONT_COLOR:
-                c = FONT_COLOR[v]
-            else:
-                c = v
-            md_cur.append_fr_and_bk_fds('c=' + c, 'c=' + c)
-            return math_data, chars_data
-        # HIGILIGHT COLOR
-        v = XML.get_value('w:highlight', 'w:val', '', xl)
-        if v != '':
-            md_cur.append_fr_and_bk_fds('h=' + v, 'h=' + v)
-            return math_data, chars_data
-        # DEL OR INS
-        if xl == '<w:del>':
-            md_cur.append_fr_and_bk_fds('d', '')
-            return math_data, chars_data
-        if xl == '</w:del>':
-            md_cur.append_fr_and_bk_fds('', 'd')
-            return math_data, chars_data
-        elif xl == '<w:ins>':
-            md_cur.append_fr_and_bk_fds('i', '')
-            return math_data, chars_data
-        elif xl == '</w:ins>':
-            md_cur.append_fr_and_bk_fds('', 'i')
-            return math_data, chars_data
-        # ELEMENT, RUN PROPERTY, RUN, TEXT, LINE BREAK, FUNCTION NAME
-        # --------------------------------------------------
-        # <m:e> or <m:fName>
-        #     <m:r>
-        #         <m:rPr/>
-        #           or
-        #         <m:rPr>...</m:rPr>
-        #         A
-        #     </m:r>
-        # </m:e> or </m:fName>
-        # --------------------------------------------------
-        # ELEMENT
-        if xl == '<m:e>':
-            md_cur.append_fr_and_bk_fds('{', '')
-            return math_data, chars_data
-        if xl == '</m:e>':
-            md_pre.append_fr_and_bk_fds('', '}')
-            return math_data, chars_data
-        if xl == '<m:e/>':
-            md_cur.append_fr_and_bk_fds('{}', '')
-            return math_data, chars_data
-        # RUN PROPERTY (SAVE FUNCTION NAME)
-        if (xl == '</w:rPr>' or xl == '<w:rPr/>') and md_cur.chars != '':
-            math_data.append(MathDatum())
-            return math_data, chars_data
-        # RUN (SAVE TEXT)
-        if xl == '</m:r>' or xl == '<m:r/>':
-            math_data.append(MathDatum())
-            return math_data, chars_data
-        # TEXT
-        if not re.match('^<.*>$', xl):
-            # FUNCTION (lim)
-            if md_cur.is_math_function:
-                md_cur.chars += '\\'
-                md_cur.remove_fr_and_bk_fds('r', 'r')
-            xl = re.sub('{', '\\{', xl)    # "{" -> "\{"
-            xl = re.sub('}', '\\}', xl)    # "}" <- "\}"
-            xl = re.sub(' ', '\\\\,', xl)  # " " -> "\," (space)
-            md_cur.chars += xl
-            return math_data, chars_data
-        # LINE BREAK
-        if re.match('^<m:brk( .*)?/>$', xl):
-            md_cur.chars += '\\\\'
-            return math_data, chars_data
-        # FUNCTION NAME
-        if xl == '<m:fName>':
-            md_cur.is_math_function = True
-            return math_data, chars_data
-        if xl == '</m:fName>':
-            # md_pre.is_math_function = False
-            return math_data, chars_data
-        # SUP AND SUB
-        # --------------------------------------------------
-        # <m:e>
-        #     <m:r>
-        #         A
-        #     </m:r>
-        # </m:e>
-        # <m:sub>  # SUBSCIPT
-        #   or
-        # <m:sup>  # SUPERSCRIPT
-        #     <m:r>
-        #         B
-        #     </m:r>
-        # </m:sub>  # SUBSCIPT
-        #   or
-        # </m:sup>  # SUPERSCRIPT
-        # = A_{B}  # SUBSCIPT
-        #   or
-        # = A^{B}  # SUPERSCRIPT
-        # --------------------------------------------------
-        # <m:sPre>
-        #     <m:sub>
-        #         <m:r>
-        #             A
-        #         </m:r>
-        #     </m:sub>
-        #     <m:sup/>
-        #     <m:e>
-        #         <m:r>
-        #             B
-        #         </m:r>
-        #     </m:e>
-        #     <m:sub>
-        #         <m:r>
-        #             C
-        #         </m:r>
-        #     </m:sub>
-        # </m:sPre>
-        # = {}_{A}B_{C}
-        # --------------------------------------------------
-        if xl == '<m:sPre>':
-            md_cur.append_fr_and_bk_fds('{}', '')
-            return math_data, chars_data
-        if xl == '</m:sPre>':
-            return math_data, chars_data
-        if xl == '<m:sub>':
-            md_cur.append_fr_and_bk_fds('_{', '')
-            return math_data, chars_data
-        if xl == '</m:sub>':
-            md_pre.append_fr_and_bk_fds('', '_}')
-            return math_data, chars_data
-        if xl == '<m:sup>':
-            md_cur.append_fr_and_bk_fds('^{', '')
-            return math_data, chars_data
-        if xl == '</m:sup>':
-            md_pre.append_fr_and_bk_fds('', '^}')
-            return math_data, chars_data
-        # VECTOR
-        # --------------------------------------------------
-        # <m:acc>
-        #     <m:chr m:val="→"/>  # MS OFFICE (\u2192)
-        #       or
-        #     <m:chr m:val="⃗"/>    # LIBREOFFICE (\u20D7)
-        #     <w:rPr/> or <w:rPr>...</w:rPr>
-        #     <m:e>
-        #         <m:r>
-        #             A
-        #         </m:r>
-        #     </m:e>
-        # </m:acc>
-        # = \vec{A}
-        # --------------------------------------------------
-        if re.match('<m:chr m:val="(\u2192|\u20D7)"/>', xl):
-            md_cur.chars += '\\vec'
-            return math_data, chars_data
-        # FRACTION, BINOMIAL
-        # --------------------------------------------------
-        # <m:f>
-        #     (none)                   # FRACTION
-        #       or
-        #     <m:type m:val="noBar"/>  # BINOMIAL
-        #     <w:rPr/> or <w:rPr>...</w:rPr>
-        #     <m:num>
-        #         <m:r>
-        #             A
-        #         </m:r>
-        #     </m:num>
-        #     <m:den>
-        #         <m:r>
-        #             B
-        #         </m:r>
-        #     </m:den>
-        # </m:f>
-        # = \frac{A}{B}
-        #   or
-        # = \binom{A}{B}
-        # --------------------------------------------------
-        if xl == '<m:f>':
-            md_cur.chars += '\\frac'
-            return math_data, chars_data
-        if xl == '<m:type m:val="noBar"/>':
-            if md_cur.chars == '\\frac':
-                md_cur.chars = '\\Xbinom'
-            return math_data, chars_data
-        if xl == '</m:f>':
-            return math_data, chars_data
-        if xl == '<m:num>':
-            md_cur.append_fr_and_bk_fds('{', '')
-            return math_data, chars_data
-        if xl == '</m:num>':
-            md_pre.append_fr_and_bk_fds('', '}')
-            return math_data, chars_data
-        if xl == '<m:den>':
-            md_cur.append_fr_and_bk_fds('{', '')
-            return math_data, chars_data
-        if xl == '</m:den>':
-            md_pre.append_fr_and_bk_fds('', '}')
-            return math_data, chars_data
-        # RADICAL ROOT
-        # --------------------------------------------------
-        # <m:rad>
-        #     <w:rPr/> or <w:rPr>...</w:rPr>
-        #     <m:deg/>
-        #       or
-        #     <m:deg>
-        #         <m:r>
-        #             A
-        #         </m:r>
-        #     </m:deg>
-        #     <m:e>
-        #         <m:r>
-        #             B
-        #         </m:r>
-        #     </m:e>
-        # </m:rad>
-        # = \sqrt{B}
-        #   or
-        # = \sqrt[A]{B}
-        # --------------------------------------------------
-        if xl == '<m:rad>':
-            md_cur.chars += '\\sqrt'
-            return math_data, chars_data
-        if xl == '<m:deg>':
-            md_cur.append_fr_and_bk_fds('[', '')
-            return math_data, chars_data
-        if xl == '</m:deg>':
-            md_pre.append_fr_and_bk_fds('', ']')
-            return math_data, chars_data
-        # LIMIT
-        # --------------------------------------------------
-        # <m:fName>
-        #     <m:e>
-        #         <m:r>
-        #             lim
-        #         </m:r>
-        #     </m:e>
-        #     <m:lim/>
-        #       or
-        #     <m:lim>
-        #         <m:r>
-        #             A
-        #         </m:r>
-        #     </m:lim>
-        #     <m:e>
-        #         <m:r>
-        #             B
-        #         </m:r>
-        #     </m:e>
-        # </m:fName>
-        # = \lim{B}
-        #   or
-        # = \lim_{A}{B}
-        # --------------------------------------------------
-        if xl == '<m:lim>':
-            md_cur.append_fr_and_bk_fds('_{', '')
-            if md_pre.chars == '\\lim':
-                if '{' in md_pre.fr_fd_lst:
-                    md_pre.fr_fd_lst.remove('{')
-                if '}' in md_pre.bk_fd_lst:
-                    md_pre.bk_fd_lst.remove('}')
-            return math_data, chars_data
-        if xl == '</m:lim>':
-            md_pre.append_fr_and_bk_fds('', '}')
-            return math_data, chars_data
-        # INTEGRAL, DOUBLE INTEGRAL, TRIPLE INTEGRAL, LINE INTEGRAL
-        # --------------------------------------------------
-        # <m:nary>
-        #     (none)
-        #       or
-        #     <m:chr m:val="∬"/>  # \u222C
-        #       or
-        #     <m:chr m:val="∭"/>  # \u222D
-        #       or
-        #     <m:chr m:val="∭"/>  # \u222D
-        #       or
-        #     <m:chr m:val="∮"/>  # \u222e
-        #     <w:rPr/> or <w:rPr>...</w:rPr>
-        #     <m:sub/>
-        #       or
-        #     <m:sub>
-        #         <m:r>
-        #             A
-        #         </m:r>
-        #     </m:sub>
-        #     <m:sup/>
-        #       or
-        #     <m:sup>
-        #         <m:r>
-        #             B
-        #         </m:r>
-        #     </m:sup>
-        #     <m:e>
-        #         <m:r>
-        #             C
-        #         </m:r>
-        #     </m:e>
-        # </m:nary>
-        # = \int{A}
-        #   or
-        # = \int{C}
-        #   or
-        # = \int_{A}^{B}{C}
-        #   or
-        # = \iint{A}
-        #   or
-        # = \iint_{A}^{B}{C}
-        #   or
-        # = \iiint{A}
-        #   or
-        # = \iiint_{A}^{B}{C}
-        #   or
-        # = \oint{A}
-        #   or
-        # = \oint_{A}^{B}{C}
-        # --------------------------------------------------
-        if xl == '<m:nary>':
-            md_cur.chars += '\\int'
-            return math_data, chars_data
-        if xl == '<m:chr m:val="∬"/>':
-            md_cur.chars = re.sub('\\\\int$', '\\\\iint', md_cur.chars)
-            return math_data, chars_data
-        if xl == '<m:chr m:val="∭"/>':
-            md_cur.chars = re.sub('\\\\int$', '\\\\iiint', md_cur.chars)
-            return math_data, chars_data
-        if xl == '<m:chr m:val="∮"/>':
-            md_cur.chars = re.sub('\\\\int$', '\\\\oint', md_cur.chars)
-            return math_data, chars_data
-        # SIGMA, PRODUCT
-        # --------------------------------------------------
-        # <m:nary>
-        #     <m:chr m:val="∑"/>  # \u2211
-        #       or
-        #     <m:chr m:val="∏"/>  # \u220F
-        #     <w:rPr/> or <w:rPr>...</w:rPr>
-        #     <m:subHide m:val="1"/>
-        #     <m:supHide m:val="1"/>
-        #       or
-        #     <m:sub>
-        #         <m:r>
-        #             A
-        #         </m:r>
-        #     </m:sub>
-        #     <m:sup>
-        #         <m:r>
-        #             B
-        #         </m:r>
-        #     </m:sup>
-        #     <m:e>
-        #         <m:r>
-        #             C
-        #         </m:r>
-        #     </m:e>
-        # </m:nary>
-        # = \sum{C}
-        #   or
-        # = \sum_{A}^{B}{C}
-        #   or
-        # = \prod{C}
-        #   or
-        # = \prod_{A}^{B}{C}
-        # --------------------------------------------------
-        if xl == '<m:chr m:val="∑"/>':
-            md_cur.chars = re.sub('\\\\int$', '\\\\sum', md_cur.chars)
-            return math_data, chars_data
-        if xl == '<m:chr m:val="∏"/>':
-            md_cur.chars = re.sub('\\\\int$', '\\\\prod', md_cur.chars)
-            return math_data, chars_data
-        # MATRIX
-        # --------------------------------------------------
-        # <m:d>
-        #     (NONE)
-        #     or
-        #     <m:begChr m:val="["/>
-        #     <m:endChr m:val="]"/>
-        #     <w:rPr/> or <w:rPr>...</w:rPr>
-        #     <m:e>
-        #         <m:m>
-        #             <m:mr>
-        #                 <m:e>
-        #                     <m:r>
-        #                         A
-        #                     </m:r>
-        #                 </m:e>
-        #                 <m:e>
-        #                     <m:r>
-        #                         B
-        #                     </m:r>
-        #                 </m:e>
-        #             </m:mr>
-        #             <m:mr>
-        #                 <m:e>
-        #                     <m:r>
-        #                         C
-        #                     </m:r>
-        #                 </m:e>
-        #                 <m:e>
-        #                     <m:r>
-        #                         D
-        #                     </m:r>
-        #                 </m:e>
-        #             </m:mr>
-        #         </m:m>
-        #     </m:e>
-        # </m:d>
-        # = \begin{pmatrix}A&B\\C&D\\\end{pmatrix}
-        # or
-        # = \begin{bmatrix}A&B\\C&D\\\end{bmatrix}
-        # --------------------------------------------------
-        # MATRIX (BEGIN)
-        if xl == '<m:d>':
-            md_cur.chars += '(<()>'
-            return math_data, chars_data
-        if re.match('^<m:begChr m:val="(.?)"/>$', xl):
-            bc = re.sub('^<m:begChr m:val="(.?)"/>$', '\\1', xl)
-            md_cur.chars = re.sub('\\(<(.)(.?)>$', '(<' + bc + '\\2>',
-                                  md_cur.chars)
-            return math_data, chars_data
-        if re.match('<m:endChr m:val="(.?)"/>', xl):
-            ec = re.sub('^<m:endChr m:val="(.?)"/>$', '\\1', xl)
-            md_cur.chars = re.sub('\\(<(.?)(.)>$', '(<\\g<1>' + ec + '>',
-                                  md_cur.chars)
-            return math_data, chars_data
-        # MATRIX (END)
-        if xl == '</m:d>':
-            res = '(.*)\\(<(.?)(.?)>(.*)$'
-            end = ')'
-            md_beg_chars = None
-            for i in range(len(math_data) - 1, -1, -1):
-                if re.match(res, math_data[i].chars):
-                    # CHARS
-                    md_beg_chars = math_data[i].chars
-                    pre = re.sub(res, '\\1', md_beg_chars)
-                    beg = re.sub(res, '\\2', md_beg_chars)
-                    end = re.sub(res, '\\3', md_beg_chars)
-                    pos = re.sub(res, '\\4', md_beg_chars)
-                    if beg == '{':
-                        beg = '\\{'
-                    if end == '}':
-                        end = '\\}'
-                    math_data[i].chars = pre + beg + pos
-                    # FRONT AND BACK LIST
-                    for fd in math_data[i].fr_fd_lst:
-                        md_cur.append_fr_and_bk_fds(fd, '')
-                    for fd in math_data[i].bk_fd_lst:
-                        md_cur.append_fr_and_bk_fds('', fd)
-                    break
-            md_cur.chars += end
-            math_data.append(MathDatum())
-            return math_data, chars_data
-        # MATRIX (CELLS)
-        if xl == '<m:m>':
-            md_cur.chars += '\\Xbegin{matrix}'
-            return math_data, chars_data
-        if xl == '</m:m>':
-            md_cur.chars += '\\Xend{matrix}'
-            math_data.append(MathDatum())
-            return math_data, chars_data
-        if xl == '</m:mr>':
-            md_cur.fr_fd_lst.insert(0, '\\\\')
-            return math_data, chars_data
-        return math_data, chars_data
-
-    @staticmethod
-    def _shape_math_matrix(math_str):
-        # FONT DECRATIONS
-        res = '{.*\\\\Xbegin{matrix}.*\\\\Xend{matrix}}{.*\\)}+'
-        math_str = ParagraphMath.shift_paren('\\(', 2, res, math_str)
-        math_str = ParagraphMath.cancel_multi_paren(math_str)
-        math_str = re.sub('{(\\\\Xbegin{matrix})}', '\\1', math_str)
-        math_str = re.sub('(\\\\Xend{matrix}}){\\)}', '\\1)', math_str)
-        # CONFIRM TYPE
-        tlist = [['\\(', '\\)', 'p'], ['\\[', '\\]', 'b'],
-                 ['\\|', '\\|', 'v'], ['‖', '‖', 'V']]
-        tmp = ''
-        while tmp != math_str:
-            tmp = math_str
-            for t in tlist:
-                beg_fr = '^(.*)' + t[0] + '({)\\\\Xbegin{matrix}(.*)$'
-                beg_to = '\\1\\2\\\\Xbegin{' + t[2] + 'matrix}\\3'
-                math_str = re.sub(beg_fr, beg_to, math_str)
-                end_fr = '^(.*)\\\\Xend{matrix}(})' + t[1] + '(.*)$'
-                end_to = '\\1\\\\Xend{' + t[2] + 'matrix}\\2\\3'
-                math_str = re.sub(end_fr, end_to, math_str)
-        # SHAPE CELL
-        res = '^(.*?){' + \
-            '\\\\Xbegin({.?matrix})(.*?)\\\\Xend({.?matrix})' + \
-            '}(.*?)$'
-        while re.match(res, math_str):
-            str1 = re.sub(res, '\\1', math_str)
-            mtx1 = re.sub(res, '\\2', math_str)
-            roco = re.sub(res, '\\3', math_str)
-            mtx2 = re.sub(res, '\\4', math_str)
-            str2 = re.sub(res, '\\5', math_str)
-            d = 0
-            s = ''
-            for c in roco:
-                s += c
-                if c == '{':
-                    d += 1
-                if c == '}':
-                    d -= 1
-                if d == 0 and c == '}':
-                    s += '&'
-                if re.match('.*&\\\\\\\\$', s):
-                    s = re.sub('&\\\\\\\\$', '\\\\\\\\', s)
-            roco = re.sub('\\\\\\\\$', '', s)
-            math_str = str1 + '\\begin' + mtx1 \
-                + roco \
-                + '\\end' + mtx2 + str2
-        return math_str
-
-    @staticmethod
-    def _shape_math_binomial(math_str):
-        res = '\\({\\\\Xbinom{(.*?)}{(.*?)}}\\)'
-        tmp = ''
-        while tmp != math_str:
-            tmp = math_str
-            math_str = re.sub(res, '\\\\binom{\\1}{\\2}', math_str)
-        return math_str
-
-    @staticmethod
-    def _shape_sub_and_sup(math_str):
-        # {}_{A}{{B}_{C}} -> {}_{A}{B}_{C}
-        res = '{}_{([^{}]*(?:{[^{}]*})?[^{}]*)}' \
-            + '{{([^{}]*(?:{[^{}]*})?[^{}]*)}' \
-            + '_{([^{}]*(?:{[^{}]*})?[^{}]*)}}'
-        tmp = ''
-        while tmp != math_str:
-            tmp = math_str
-            math_str = re.sub(res, '{}_{\\1}{\\2}_{\\3}', math_str)
-        return math_str
 
     @classmethod
     def _reduce_font_name(cls, chars_data):
@@ -7726,118 +7827,28 @@ class ParagraphMath(Paragraph):
         ttw = super().get_text_to_write()
         alignment = self.alignment
         if alignment == 'left':
-            ttw = re.sub('^\\\\\\[', '\\\\\\[: ', ttw)
+            ttw = re.sub('^\\\\\\[', '\\\\[:', ttw)
         elif alignment == 'right':
-            ttw = re.sub('\\\\\\]$', ' :\\\\\\]', ttw)
+            ttw = re.sub('\\\\\\]$', ':\\\\]', ttw)
         com = '\\\\(?:int|iint|iiint|oint|sum|prod)'
-        ttw = self.shift_paren(com, 5, '_{.*}\\^{.*}{.*}', ttw)
+        ttw = MathDatum.shift_paren(com, 5, '_{.*}\\^{.*}{.*}', ttw)
         com = '\\\\(?:int|iint|iiint|oint|sum|prod)'
-        ttw = self.shift_paren(com, 1, '{.*}', ttw)
+        ttw = MathDatum.shift_paren(com, 1, '{.*}', ttw)
         com = '\\\\(?:log|lim)'
-        ttw = self.shift_paren(com, 3, '_{.*}{.*}', ttw)
+        ttw = MathDatum.shift_paren(com, 3, '_{.*}{.*}', ttw)
         com = '\\\\(?:sin|cos|tan)'
-        ttw = self.shift_paren(com, 3, '\\^{.*}{.*}', ttw)
+        ttw = MathDatum.shift_paren(com, 3, '\\^{.*}{.*}', ttw)
         com = '\\\\(?:log|sin|cos|tan|exp|vec)'
-        ttw = self.shift_paren(com, 1, '{.*}', ttw)
-        ttw = self.cancel_multi_paren(ttw)
+        ttw = MathDatum.shift_paren(com, 1, '{.*}', ttw)
+        ttw = MathDatum.cancel_multi_paren(ttw)
         ttw = re.sub('(\\\\begin{[^{}]+})', '\\n\\1\n', ttw)
         ttw = re.sub('(\\\\end{[^{}]+})', '\\n\\1\n', ttw)
         ttw = ttw.replace('\\\\', '\\\\\n')
-        ttw = re.sub('^\\\\\\[', '\\[\n', ttw)
-        ttw = re.sub('\\\\\\]$', '\n\\]', ttw)
+        ttw = re.sub('^(\\\\\\[:?)', '\\1\n', ttw)
+        ttw = re.sub('(:?\\\\\\])$', '\n\\1', ttw)
         ttw = re.sub('\n+', '\n', ttw)
         text_to_write = ttw
         return text_to_write
-
-    @staticmethod
-    def shift_paren(com, cnt, res, unit):
-        res_com = NOT_ESCAPED + '(' + com + ')(}+)$'
-        tmp = ''
-        while tmp != unit:
-            tmp = unit
-            tj = -1
-            for j in range(len(unit)):
-                if re.match(res_com, unit[:j]) and unit[j] != '}':
-                    tj = j
-                    break
-            if tj == -1:
-                break
-            tk = -1
-            dep = []
-            d = 0
-            for k in range(tj, len(unit)):
-                if unit[k] == '{':
-                    d += 1
-                if unit[k] == '}':
-                    d -= 1
-                dep.append(d)
-                if cnt == -1 and re.match(res, unit[tj:k]):
-                    tk = k
-                    break
-                if dep.count(0) == cnt and re.match(res, unit[tj:k]):
-                    tk = k
-                    break
-            if tk == -1:
-                break
-            pre_bpa_fds_com_epa = unit[:tj]
-            pre_bpa_fds = re.sub(res_com, '\\1', pre_bpa_fds_com_epa)
-            com = re.sub(res_com, '\\2', pre_bpa_fds_com_epa)
-            epa = re.sub(res_com, '\\3', pre_bpa_fds_com_epa)
-            arg = unit[tj:tk]
-            pos = unit[tk:]
-            ti = -1
-            d = - len(epa)
-            for i in range(len(pre_bpa_fds) - 1, -1, -1):
-                if unit[i] == '{':
-                    d += 1
-                if unit[i] == '}':
-                    d -= 1
-                if d == 0:
-                    ti = i
-                    break
-            if ti == -1:
-                break
-            bpa_fds = pre_bpa_fds[ti:]
-            r = '^(.*)(\\\\[A-Za-z]+(?:{[^{}]+})?)(.*)$'
-            while re.match(r, bpa_fds):
-                f = re.sub(r, '\\2', bpa_fds)
-                f = '\\' + re.sub('{[^{}]*}', '{[^{}]*}', f)
-                arg = re.sub(f, '', arg)
-                bpa_fds = re.sub(r, '\\1\\3', bpa_fds)
-            unit = pre_bpa_fds + com + arg + epa + pos
-        return unit
-
-    @staticmethod
-    def cancel_multi_paren(unit):
-        rm = []
-        for i in range(len(unit) - 1):
-            if unit[i] != '{' or unit[i + 1] != '{':
-                continue
-            dep = [0]
-            d = 0
-            for j in range(i, len(unit)):
-                if unit[j] == '{':
-                    d += 1
-                if unit[j] == '}':
-                    d -= 1
-                dep.append(d)
-                if d == 0:
-                    if unit[j - 1] == '}' or unit[j] == '}':
-                        dep.pop(0)
-                        dep.pop(0)
-                        dep.pop(-1)
-                        dep.pop(-1)
-                        if 1 not in dep:
-                            rm.append(i)
-                            rm.append(j)
-                    break
-        rm.sort()
-        rm.reverse()
-        u = list(unit)
-        for r in rm:
-            u.pop(r)
-        unit = ''.join(u)
-        return unit
 
 
 class ParagraphAlignment(Paragraph):
