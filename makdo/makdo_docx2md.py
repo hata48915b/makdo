@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.03-13:43:11-JST>
+# Time-stamp:   <2024.07.03-14:02:04-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6289,11 +6289,6 @@ class Paragraph:
         if re.match('^# (.|\n)*$', text_to_write):
             text_to_write = re.sub('^# ', '', text_to_write)
             has_left_sharp = True
-        # RIGHT SYMBOL
-        has_right_colon = False
-        if re.match('^(.|\n)* :$', text_to_write):
-            text_to_write = re.sub(' :$', '', text_to_write)
-            has_right_colon = True
         ttwwr = ''
         if pre_text_to_write != '':
             ttwwr += pre_text_to_write + '\n'
@@ -6312,14 +6307,13 @@ class Paragraph:
             ttwwr += rev
         if len(head_font_revisers) > 0:
             ttwwr += '\n'
+        # TEXT
         ttwwr += text_to_write
+        # RIGHT SYMBOL
         if len(tail_font_revisers) > 0:
             ttwwr += '\n'
         for rev in tail_font_revisers[::-1]:
             ttwwr += rev
-        # RIGHT SYMBOL
-        if has_right_colon:
-            ttwwr += ' :'
         if post_text_to_write != '':
             ttwwr += '\n' + post_text_to_write
         # PAGE BREAK
