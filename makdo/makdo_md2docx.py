@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.02-15:01:40-JST>
+# Time-stamp:   <2024.07.03-10:23:00-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -276,6 +276,7 @@ HELP_EPILOG = '''Markdownの記法:
     [--]で挟まれた文字列は文字が小さくなります（独自）
     [++]で挟まれた文字列は文字が大きくなります（独自）
     [+++]で挟まれた文字列は文字がとても大きくなります（独自）
+    [@N@]で囲まれた文字列は文字がNポイントの大きさになります（独自）
     [<<<]と[>>>]に挟まれた文字列は文字幅がとても広がります（独自）
     [<<]と[>>]に挟まれた文字列は文字幅が広がります（独自）
     [>>]と[<<]に挟まれた文字列は文字幅が狭まります（独自）
@@ -401,6 +402,7 @@ FONT_DECORATORS_VISIBLE = [
     '_[\\$=\\.#\\-~\\+]{,4}_',  # underline
     '_[0-9A-Za-z]{1,11}_',      # higilight color
     '`',                        # preformatted
+    '@' + RES_NUMBER + '@'      # font size
     '@[^@]{1,66}@',             # font
 ]
 FONT_DECORATORS = FONT_DECORATORS_INVISIBLE + FONT_DECORATORS_VISIBLE
@@ -1951,6 +1953,8 @@ class CharsState:
                 self.apply_font_width_font_decorator(fd)
             elif re.match('^_[\\$=\\.#\\-~\\+]{,4}_$', fd):
                 self.apply_underline_font_decorator(fd)
+            elif re.match('^@' + RES_NUMBER + '@$', fd):
+                self.apply_font_size_font_decorator(fd)
             elif re.match('^@[^@]{1,66}@$', fd):
                 self.apply_font_name_font_decorator(fd)
             elif re.match('^\\^[0-9A-Za-z]{0,11}\\^$', fd):
@@ -2032,6 +2036,13 @@ class CharsState:
         else:
             self.underline = None
 
+    def apply_font_size_font_decorator(self, font_decorator):
+        font_size = int(re.sub('^@(.*)@$', '\\1', font_decorator))
+        if self.font_size == font_size:
+            self.font_size = Form.font_size
+        else:
+            self.font_size = font_size
+
     def apply_font_name_font_decorator(self, font_decorator):
         font = re.sub('^@(.*)@$', '\\1', font_decorator)
         if self.mincho_font != font or self.gothic_font != font:
@@ -2040,9 +2051,6 @@ class CharsState:
         else:
             self.mincho_font = Form.mincho_font
             self.gothic_font = Form.gothic_font
-
-    # def apply_font_size_font_decorator(self, font_decorator):
-    #     self.font_size = Form.font_size
 
     def apply_font_color_font_decorator(self, font_decorator):
         color = re.sub('^\\^(.*)\\^$', '\\1', font_decorator)
@@ -4580,6 +4588,12 @@ class Paragraph:
             unit = re.sub('>>$', '', unit)
             unit = XML.write_unit(ms_par._p, chars_state, unit)
             chars_state.apply_font_width_font_decorator('>>')
+        elif re.match(NOT_ESCAPED + '@' + RES_NUMBER + '@$', unit):
+            # "@.+@" (FONT SIZE)
+            font_size = re.sub(NOT_ESCAPED + '@([^@]+)@$', '\\2', unit)
+            unit = re.sub(NOT_ESCAPED + '@([^@]+)@$', '\\1', unit)
+            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            chars_state.apply_font_size_font_decorator('@' + font_size + '@')
         elif re.match(NOT_ESCAPED + '@([^@]{1,66})@$', unit):
             # "@.+@" (FONT)
             font = re.sub(NOT_ESCAPED + '@([^@]{1,66})@$', '\\2', unit)

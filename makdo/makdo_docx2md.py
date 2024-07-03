@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.03-06:56:49-JST>
+# Time-stamp:   <2024.07.03-10:31:31-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -2325,7 +2325,10 @@ class Form:
         cfgs += \
             '# 基本の文字の大きさをポイント単位で指定できます。'
         cfgs += '\n'
-        cfgs += '文字サ: ' + str(round(cls.font_size, 1)) + ' pt\n'
+        if cls.font_size.is_integer():
+            cfgs += '文字サ: ' + str(int(cls.font_size)) + ' pt\n'
+        else:
+            cfgs += '文字サ: ' + str(round(cls.font_size, 1)) + ' pt\n'
         cfgs += '\n'
 
         cfgs += \
@@ -2864,7 +2867,7 @@ class FontDecorator:
 
     def _get_ordered_list(self):
         return [self.font_name,
-                self.font_size,
+                re.sub('\\.0', '', self.font_size),
                 self.font_scale,
                 self.font_width,
                 self.italic,
