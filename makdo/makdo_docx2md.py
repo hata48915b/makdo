@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.03-14:25:45-JST>
+# Time-stamp:   <2024.07.04-06:32:36-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5128,7 +5128,10 @@ class RawParagraph:
                         n = len(cd.chars)
                         cd.fr_fd_cls.font_width = ''
                         cd.bk_fd_cls.font_width = ''
-                        cd.chars = '<' + str(float(width * n) / 100) + '>'
+                        w = float(width * n) / 100
+                        if w.is_integer():
+                            w = int(w)
+                        cd.chars = '<' + str(w) + '>'
                     chars_data.append(cd)
                 width = 100
                 cd = CharsDatum([], '', [])
@@ -6878,11 +6881,10 @@ class ParagraphSection(Paragraph):
                     head_section_depth = xdepth + 1
                 tail_section_depth = xdepth + 1
         if head_section_depth == 0 and tail_section_depth == 0:
-            for xdepth in range(1, len(rss)):
-                res = '^(?:\\\\\\s+)?' + rfd + rss[0] + rfd + '$'
-                if re.match(res, raw_text):
-                    head_section_depth = 1
-                    tail_section_depth = 1
+            res = '^(?:\\\\\\s+)?' + rfd + rss[0] + rfd + '$'
+            if re.match(res, raw_text):
+                head_section_depth = 1
+                tail_section_depth = 1
         if should_record:
             Paragraph.previous_head_section_depth = head_section_depth
             Paragraph.previous_tail_section_depth = tail_section_depth

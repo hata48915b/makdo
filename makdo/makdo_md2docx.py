@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.03-12:05:24-JST>
+# Time-stamp:   <2024.07.04-06:28:51-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -59,7 +59,7 @@
 ############################################################
 # POLICY
 
-# document -> paragraph -> text -> string -> unit
+# document -> paragraph -> text -> string -> chars
 
 
 ############################################################
@@ -2117,10 +2117,10 @@ class XML:
         return oe1
 
     @staticmethod
-    def write_unit(oe0, chars_state, unit):
-        if unit == '':
+    def write_chars(oe0, chars_state, chars):
+        if chars == '':
             return ''
-        unit = XML._prepare_unit(unit)
+        chars = XML._prepare_chars(chars)
         if chars_state.track_changes == 'del':
             oe1 = XML.add_tag(oe0, 'w:del', {'w:id': '1'})
             tag = 'w:delText'
@@ -2131,13 +2131,13 @@ class XML:
             oe1 = oe0
             tag = 'w:t'
         oe2 = XML.add_tag(oe1, 'w:r')
-        XML._decorate_unit(oe2, chars_state)
+        XML._decorate_chars(oe2, chars_state)
         res = '^([^\t\n]*)([\t\n\0])((?:.|\n)*)$'
-        unit += '\0'
-        while re.match(res, unit):
-            rest = re.sub(res, '\\1', unit)
-            char = re.sub(res, '\\2', unit)
-            unit = re.sub(res, '\\3', unit)
+        chars += '\0'
+        while re.match(res, chars):
+            rest = re.sub(res, '\\1', chars)
+            char = re.sub(res, '\\2', chars)
+            chars = re.sub(res, '\\3', chars)
             oe3 = XML.add_tag(oe2, tag, {}, rest)
             if char == '\t':
                 oe3 = XML.add_tag(oe2, 'w:tab', {})
@@ -2148,38 +2148,38 @@ class XML:
         return ''
 
     @staticmethod
-    def _prepare_unit(unit):
+    def _prepare_chars(chars):
         # REMOVE RELAX SYMBOL ("<>" -> "" / "\<\>" -> "\<\>")
         d = []
-        for i in range(len(unit)):
-            if re.match(NOT_ESCAPED + '<$', unit[:i]):
-                if re.match('^>', unit[i:]):
+        for i in range(len(chars)):
+            if re.match(NOT_ESCAPED + '<$', chars[:i]):
+                if re.match('^>', chars[i:]):
                     d.append(i)
-        us = list(unit)
+        us = list(chars)
         for i in d[::-1]:
             us.pop(i)
             us.pop(i - 1)
-        unit = ''.join(us)
+        chars = ''.join(us)
         # REMOVE ESCAPE SYMBOL (BACKSLASH)
-        unit = re.sub('\\\\', '-\\\\', unit)
-        unit = re.sub('-\\\\-\\\\', '-\\\\\\\\', unit)
-        unit = re.sub('-\\\\', '', unit)
+        chars = re.sub('\\\\', '-\\\\', chars)
+        chars = re.sub('-\\\\-\\\\', '-\\\\\\\\', chars)
+        chars = re.sub('-\\\\', '', chars)
         # TRANSFORM
-        # unit = unit.replace('&', '&amp;')
-        # unit = unit.replace('>', '&gt;')
-        # unit = unit.replace('"', '&quot;')
-        # unit = unit.replace('<', '&lt;')
+        # chars = chars.replace('&', '&amp;')
+        # chars = chars.replace('>', '&gt;')
+        # chars = chars.replace('"', '&quot;')
+        # chars = chars.replace('<', '&lt;')
         # RETURN
-        return unit
+        return chars
 
     @staticmethod
     def write_page_number(oe0, chars_state, char):
         oe1 = XML.add_tag(oe0, 'w:r')
-        oe2 = XML._decorate_unit(oe1, chars_state)
+        oe2 = XML._decorate_chars(oe1, chars_state)
         oe2 = XML.add_tag(oe1, 'w:fldChar', {'w:fldCharType': 'begin'})
         #
         oe1 = XML.add_tag(oe0, 'w:r')
-        oe2 = XML._decorate_unit(oe1, chars_state)
+        oe2 = XML._decorate_chars(oe1, chars_state)
         opts = {}
         # opts = {'xml:space': 'preserve'}
         if char == 'n':
@@ -2191,13 +2191,13 @@ class XML:
             oe2 = XML.add_tag(oe1, 'w:instrText', opts, 'NUMPAGES')
         #
         oe1 = XML.add_tag(oe0, 'w:r')
-        oe2 = XML._decorate_unit(oe1, chars_state)
+        oe2 = XML._decorate_chars(oe1, chars_state)
         oe2 = XML.add_tag(oe1, 'w:fldChar', {'w:fldCharType': 'end'})
         #
         return ''
 
     @staticmethod
-    def _decorate_unit(oe0, chars_state):
+    def _decorate_chars(oe0, chars_state):
         size = round(chars_state.font_size * chars_state.font_scale, 1)
         oe1 = XML.add_tag(oe0, 'w:rPr', {})
         # FONT
@@ -2306,38 +2306,38 @@ class Math:
     }
 
     @classmethod
-    def write_unit(cls, oe0, chars_state, unit):
+    def write_chars(cls, oe0, chars_state, chars):
         # ADD VARIABLES
         chars_state.is_italic = True
         chars_state.must_break_line = False
         # ADD MATH TAG
         oe1 = XML.add_tag(oe0, 'm:oMath')
         # PREPARE
-        unit = cls._prepare(unit)
+        chars = cls._prepare(chars)
         # WRITE
-        unit = cls._write_math_exp(oe1, chars_state, unit)
+        chars = cls._write_math_exp(oe1, chars_state, chars)
         # RETURN
-        return unit
+        return chars
 
     @classmethod
-    def _prepare(cls, unit):
-        unit = re.sub('^\\\\\\[(.*)\\\\\\]$', '{\\1}', unit)
-        unit = cls._envelop_command(unit)
-        unit = cls._replace_symbol(unit)
-        unit = unit.replace(' ', '')  # ' ' -> ''
-        unit = cls._prepare_func(unit)
-        unit = cls._close_paren(unit)
-        unit = cls._envelop_all(unit)
-        unit = cls._cancel_multi_paren(unit)
-        return unit
+    def _prepare(cls, chars):
+        chars = re.sub('^\\\\\\[(.*)\\\\\\]$', '{\\1}', chars)
+        chars = cls._envelop_command(chars)
+        chars = cls._replace_symbol(chars)
+        chars = chars.replace(' ', '')  # ' ' -> ''
+        chars = cls._prepare_func(chars)
+        chars = cls._close_paren(chars)
+        chars = cls._envelop_all(chars)
+        chars = cls._cancel_multi_paren(chars)
+        return chars
 
     @staticmethod
-    def _envelop_command(unit):
+    def _envelop_command(chars):
         # TEX COMMAND
         tex = ''
         res1 = NOT_ESCAPED + '(\\\\[A-Za-z]+)$'
         res9 = '^[^A-Za-z]$'
-        for c in unit + '\0':
+        for c in chars + '\0':
             # ALPHABET COMMAND
             if re.match(res9, c):
                 tex = re.sub(res1, '\\1{\\2}', tex)
@@ -2399,19 +2399,19 @@ class Math:
             # ADD CHAR
             if c != '\0':
                 tex += c
-        unit = tex
-        return unit
+        chars = tex
+        return chars
 
     @staticmethod
-    def _replace_symbol(unit):
+    def _replace_symbol(chars):
         for com in Math.symbols:
-            unit = re.sub('{\\' + com + '}', Math.symbols[com], unit)
-        return unit
+            chars = re.sub('{\\' + com + '}', Math.symbols[com], chars)
+        return chars
 
     @classmethod
-    def _prepare_func(cls, unit):
+    def _prepare_func(cls, chars):
         tex = ''
-        for c in unit + '\0':
+        for c in chars + '\0':
             nubs = cls._get_nubs(tex)
             tmps = []
             while tmps != nubs:
@@ -2556,8 +2556,8 @@ class Math:
                 nubs = cls._get_nubs(tex)
             if c != '\0':
                 tex += c
-        unit = tex
-        return unit
+        chars = tex
+        return chars
 
     @staticmethod
     def _close_func(beg_str, end_str):
@@ -2607,47 +2607,47 @@ class Math:
         return nubs[::-1]
 
     @staticmethod
-    def _close_paren(unit):
+    def _close_paren(chars):
         d = 0
         t = ''
-        for c in unit:
+        for c in chars:
             t += c
             if re.match(NOT_ESCAPED + '{$', t):
                 d += 1
             if re.match(NOT_ESCAPED + '}$', t):
                 d -= 1
         if d > 0:
-            unit = unit + ('}' * d)
+            chars = chars + ('}' * d)
         if d < 0:
-            unit = ('{' * (d * -1)) + unit
-        return unit
+            chars = ('{' * (d * -1)) + chars
+        return chars
 
     @staticmethod
-    def _envelop_all(unit):
+    def _envelop_all(chars):
         tmp = ''
-        while tmp != unit:
-            tmp = unit
-            unit = re.sub('{([^{}]+){', '{{\\1}{', unit)
-            unit = re.sub('}([^{}]+)}', '}{\\1}}', unit)
-            unit = re.sub('}([^{}]+){', '}{\\1}{', unit)
-        return unit
+        while tmp != chars:
+            tmp = chars
+            chars = re.sub('{([^{}]+){', '{{\\1}{', chars)
+            chars = re.sub('}([^{}]+)}', '}{\\1}}', chars)
+            chars = re.sub('}([^{}]+){', '}{\\1}{', chars)
+        return chars
 
     @staticmethod
-    def _cancel_multi_paren(unit):
+    def _cancel_multi_paren(chars):
         rm = []
-        for i in range(len(unit) - 1):
-            if unit[i] != '{' or unit[i + 1] != '{':
+        for i in range(len(chars) - 1):
+            if chars[i] != '{' or chars[i + 1] != '{':
                 continue
             dep = [0]
             d = 0
-            for j in range(i, len(unit)):
-                if unit[j] == '{':
+            for j in range(i, len(chars)):
+                if chars[j] == '{':
                     d += 1
-                if unit[j] == '}':
+                if chars[j] == '}':
                     d -= 1
                 dep.append(d)
                 if d == 0:
-                    if unit[j - 1] == '}' or unit[j] == '}':
+                    if chars[j - 1] == '}' or chars[j] == '}':
                         dep.pop(0)
                         dep.pop(0)
                         dep.pop(-1)
@@ -2658,17 +2658,17 @@ class Math:
                     break
         rm.sort()
         rm.reverse()
-        u = list(unit)
+        u = list(chars)
         for r in rm:
             u.pop(r)
-        unit = ''.join(u)
-        return unit
+        chars = ''.join(u)
+        return chars
 
     @classmethod
-    def _write_math_exp(cls, oe0, chars_state, unit):
+    def _write_math_exp(cls, oe0, chars_state, chars):
         # REMOVE ENCLOSING PARENTHESIS
-        if re.match('^{(.*)}$', unit):
-            u = re.sub('^{(.*)}$', '\\1', unit)
+        if re.match('^{(.*)}$', chars):
+            u = re.sub('^{(.*)}$', '\\1', chars)
             t = ''
             d = 0
             for c in u:
@@ -2680,13 +2680,13 @@ class Math:
                 if d < 0:
                     break
             else:
-                unit = u
+                chars = u
         tmp = ''
         # ONE NUB
-        if re.match('^[^{}]+$', unit):
-            cls._write_nub(oe0, chars_state, unit)
+        if re.match('^[^{}]+$', chars):
+            cls._write_nub(oe0, chars_state, chars)
             return ''
-        nubs = cls._get_nubs(unit)
+        nubs = cls._get_nubs(chars)
         # FUNCITON
         if False:
             pass
@@ -2777,15 +2777,15 @@ class Math:
             cls._write_mtx(oe0, chars_state, c, nubs)
         # S PAREN
         elif len(nubs) >= 2 and nubs[0] == '{(-}' and nubs[-1] == '{-)}':
-            t = re.sub('{\\(-}(.*){-\\)}', '\\1', unit)
+            t = re.sub('{\\(-}(.*){-\\)}', '\\1', chars)
             cls._write_prn(oe0, chars_state, '()', '{' + t + '}')
         # M PAREN
         elif len(nubs) >= 2 and nubs[0] == '{(=}' and nubs[-1] == '{=)}':
-            t = re.sub('{\\(=}(.*){=\\)}', '\\1', unit)
+            t = re.sub('{\\(=}(.*){=\\)}', '\\1', chars)
             cls._write_prn(oe0, chars_state, '{}', '{' + t + '}')
         # L PAREN
         elif len(nubs) >= 2 and nubs[0] == '{[}' and nubs[-1] == '{]}':
-            t = re.sub('{\\[}(.*){\\]}', '\\1', unit)
+            t = re.sub('{\\[}(.*){\\]}', '\\1', chars)
             cls._write_prn(oe0, chars_state, '[]', '{' + t + '}')
         # LINE BREAK
         elif len(nubs) == 2 and nubs[0] == '{\\\\}':
@@ -2874,7 +2874,7 @@ class Math:
             chars_state.track_changes = ''
         # ERROR
         elif (len(nubs) == 1) and (not re.match('^{.*}$', nubs[0])):
-            cls._write_nub(oe0, chars_state, unit)
+            cls._write_nub(oe0, chars_state, chars)
         # RECURSION
         else:
             for n in nubs:
@@ -4380,13 +4380,13 @@ class Paragraph:
 
     def write_text(self, ms_par, chars_state, text, type='normal'):
         text = self._replace_br_tag(text)
-        unit = ''
+        chars = ''
         for c in text + '\0':
-            if not self._must_continue(unit, c):
-                unit = self._manage_unit(ms_par, chars_state, unit, c, type)
+            if not self._must_continue(chars, c):
+                chars = self._manage_chars(ms_par, chars_state, chars, c, type)
             if c != '\0':
-                unit += c
-        return unit
+                chars += c
+        return chars
 
     @staticmethod
     def _replace_br_tag(text):
@@ -4399,7 +4399,7 @@ class Paragraph:
     @staticmethod
     def _must_continue(tex, c):
         # RELAX
-        if re.match(NOT_ESCAPED + RELAX_SYMBOL +'$', tex):
+        if re.match(NOT_ESCAPED + RELAX_SYMBOL + '$', tex):
             return True      # "...<>"
         # MATH
         if re.match('^\\\\\\[', tex):
@@ -4430,6 +4430,8 @@ class Paragraph:
                 return True  # "...+" + "+"
         # RELAX AND NARROW
         if re.match(NOT_ESCAPED + '>$', tex):
+            if re.match(NOT_ESCAPED + RELAX_SYMBOL + '>$', tex):
+                return True  # "...<>>"
             if re.match(NOT_ESCAPED + RELAX_SYMBOL + '>>$', tex) and c == '>':
                 return True  # "...<>>>" + '>'
         # NARROW
@@ -4443,182 +4445,190 @@ class Paragraph:
         # ELSE
         return False
 
-    def _manage_unit(self, ms_par, chars_state, unit, c, type='normal'):
+    def _manage_chars(self, ms_par, chars_state, chars, c, type='normal'):
         res_ivs = '^((?:.|\n)*?)([^0-9\\\\])([0-9]+);$'
         res_foc = NOT_ESCAPED + '\\^([0-9A-Za-z]{0,11})\\^$'
         res_hlc = NOT_ESCAPED + '_([0-9A-Za-z]{1,11})_$'
         if False:
             pass
-        elif re.match(NOT_ESCAPED + '<$', unit) and c == '>':
+        elif re.match(NOT_ESCAPED + '<$', chars) and c == '>':
             # '<>' （RELAX） "<<<" (+ ">") = "<<" + "<" (+ ">")
-            unit = re.sub('<$', '', unit)
-            unit = self._manage_unit(ms_par, chars_state, unit, '', type)
-            unit += '<'
-        elif re.match(NOT_ESCAPED + '\\\\\\[$', unit):
+            chars = re.sub('<$', '', chars)
+            chars = self._manage_chars(ms_par, chars_state, chars, '', type)
+            chars += '<'
+        elif re.match(NOT_ESCAPED + '\\\\\\[$', chars):
             # "\[" (BEGINNING OF MATH EXPRESSION) (MUST FIRST)
-            unit = re.sub('\\\\\\[$', '', unit)
-            unit = XML.write_unit(ms_par._p, chars_state, unit)
-            unit = '\\['
-        elif (re.match('^\\\\\\[', unit) and
-              re.match(NOT_ESCAPED + '\\\\\\]$', unit)):
+            chars = re.sub('\\\\\\[$', '', chars)
+            chars = XML.write_chars(ms_par._p, chars_state, chars)
+            chars = '\\['
+        elif (re.match('^\\\\\\[', chars) and
+              re.match(NOT_ESCAPED + '\\\\\\]$', chars)):
             # "\]" (END OF MATH EXPRESSION (MUST FIRST)
-            unit = re.sub('^\\\\\\[(.*)\\\\\\]$', '\\1', unit)
-            unit = Math.write_unit(ms_par._p, CharsState(), unit)
-        elif re.match(NOT_ESCAPED + '((?:_|\\^){)$', unit):
+            chars = re.sub('^\\\\\\[(.*)\\\\\\]$', '\\1', chars)
+            chars = Math.write_chars(ms_par._p, CharsState(), chars)
+        elif re.match(NOT_ESCAPED + '((?:_|\\^){)$', chars):
             # "_{" or "^{" (BEGINNIG OF SUB OR SUP)
-            subp = re.sub(NOT_ESCAPED + '((?:_|\\^){)$', '\\2', unit)
-            unit = re.sub(NOT_ESCAPED + '((?:_|\\^){)$', '\\1', unit)
-            unit = XML.write_unit(ms_par._p, chars_state, unit)
-            unit = subp
-        elif (re.match('^(?:_|\\^){', unit) and
-              re.match(NOT_ESCAPED + '}$', unit)):
+            subp = re.sub(NOT_ESCAPED + '((?:_|\\^){)$', '\\2', chars)
+            chars = re.sub(NOT_ESCAPED + '((?:_|\\^){)$', '\\1', chars)
+            chars = XML.write_chars(ms_par._p, chars_state, chars)
+            chars = subp
+        elif (re.match('^(?:_|\\^){', chars) and
+              re.match(NOT_ESCAPED + '}$', chars)):
             # "}" (END OF SUB OR SUP)
-            if re.match('^_{', unit):
+            if re.match('^_{', chars):
                 chars_state.apply_sub_or_sup_font_decorator('_{')
             else:
                 chars_state.apply_sub_or_sup_font_decorator('^{')
-            unit = re.sub('^(?:_|\\^){(.*)}', '\\1', unit)
-            unit = self.write_text(ms_par, chars_state, unit, type)
+            chars = re.sub('^(?:_|\\^){(.*)}', '\\1', chars)
+            chars = self.write_text(ms_par, chars_state, chars, type)
             chars_state.apply_sub_or_sup_font_decorator('}')
-        elif re.match(NOT_ESCAPED + RES_IMAGE, unit):
+        elif re.match(NOT_ESCAPED + RES_IMAGE, chars):
             # "![.*](.+)" (IMAGE)
-            path = re.sub(NOT_ESCAPED + RES_IMAGE, '\\3', unit)
-            alte = re.sub(NOT_ESCAPED + RES_IMAGE, '\\2', unit)
-            unit = re.sub(NOT_ESCAPED + RES_IMAGE, '\\1', unit)
-            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            path = re.sub(NOT_ESCAPED + RES_IMAGE, '\\3', chars)
+            alte = re.sub(NOT_ESCAPED + RES_IMAGE, '\\2', chars)
+            chars = re.sub(NOT_ESCAPED + RES_IMAGE, '\\1', chars)
+            chars = XML.write_chars(ms_par._p, chars_state, chars)
             self._write_image(ms_par, chars_state, alte, path)
-        elif re.match(NOT_ESCAPED + '\\*\\*\\*$', unit):
+        elif re.match(NOT_ESCAPED + '\\*\\*\\*$', chars):
             # "***" (ITALIC AND BOLD)
-            unit = re.sub('\\*\\*\\*$', '', unit)
-            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            chars = re.sub('\\*\\*\\*$', '', chars)
+            chars = XML.write_chars(ms_par._p, chars_state, chars)
             chars_state.apply_is_italic_font_decorator('***')
             chars_state.apply_is_bold_font_decorator('***')
-        elif re.match(NOT_ESCAPED + '\\*\\*$', unit):
+        elif re.match(NOT_ESCAPED + '\\*\\*$', chars):
             # "**" BOLD
-            unit = re.sub('\\*\\*$', '', unit)
-            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            chars = re.sub('\\*\\*$', '', chars)
+            chars = XML.write_chars(ms_par._p, chars_state, chars)
             chars_state.apply_is_bold_font_decorator('**')
-        elif re.match(NOT_ESCAPED + '\\*$', unit):
+        elif re.match(NOT_ESCAPED + '\\*$', chars):
             # "*" ITALIC
-            unit = re.sub('\\*$', '', unit)
-            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            chars = re.sub('\\*$', '', chars)
+            chars = XML.write_chars(ms_par._p, chars_state, chars)
             chars_state.apply_is_italic_font_decorator('*')
-        elif re.match(NOT_ESCAPED + '~~$', unit):
+        elif re.match(NOT_ESCAPED + '~~$', chars):
             # "~~" (STRIKETHROUGH)
-            unit = re.sub('~~$', '', unit)
-            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            chars = re.sub('~~$', '', chars)
+            chars = XML.write_chars(ms_par._p, chars_state, chars)
             chars_state.apply_has_strike_font_decorator('~~')
-        elif re.match(NOT_ESCAPED + '`$', unit):
+        elif re.match(NOT_ESCAPED + '`$', chars):
             # "`" (PREFORMATTED)
-            unit = re.sub('`$', '', unit)
-            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            chars = re.sub('`$', '', chars)
+            chars = XML.write_chars(ms_par._p, chars_state, chars)
             chars_state.apply_is_preformatted_font_decorator('`')
-        elif re.match(NOT_ESCAPED + '//$', unit):
+        elif re.match(NOT_ESCAPED + '//$', chars):
             # "//" (ITALIC)
-            if not re.match('^.*[a-z]+://$', unit):
+            if not re.match('^.*[a-z]+://$', chars):
                 # not http:// https:// ftp:// ...
-                unit = re.sub('//$', '', unit)
-                unit = XML.write_unit(ms_par._p, chars_state, unit)
+                chars = re.sub('//$', '', chars)
+                chars = XML.write_chars(ms_par._p, chars_state, chars)
                 chars_state.apply_is_italic_font_decorator('//')
-        elif re.match(NOT_ESCAPED + '_([\\$=\\.#\\-~\\+]{,4})_$', unit):
+        elif re.match(NOT_ESCAPED + '_([\\$=\\.#\\-~\\+]{,4})_$', chars):
             # "_.*_" (UNDERLINE)
             sty = re.sub(NOT_ESCAPED + '_([\\$=\\.#\\-~\\+]{,4})_$', '\\2',
-                         unit)
+                         chars)
             if sty in UNDERLINE:
-                unit = re.sub('_([\\$=\\.#\\-~\\+]{,4})_$', '', unit, 1)
-                unit = XML.write_unit(ms_par._p, chars_state, unit)
+                chars = re.sub('_([\\$=\\.#\\-~\\+]{,4})_$', '', chars, 1)
+                chars = XML.write_chars(ms_par._p, chars_state, chars)
                 chars_state.apply_underline_font_decorator('_' + sty + '_')
-        elif re.match(NOT_ESCAPED + '\\-\\-\\-$', unit):
+        elif re.match(NOT_ESCAPED + '\\-\\-\\-$', chars):
             # "---" (XSMALL)
-            unit = re.sub('\\-\\-\\-$', '', unit)
-            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            chars = re.sub('\\-\\-\\-$', '', chars)
+            chars = XML.write_chars(ms_par._p, chars_state, chars)
             if chars_state.font_scale == 0.8:
                 chars_state.apply_font_scale_font_decorator('--')
-                unit += '-'
+                chars += '-'
             else:
                 chars_state.apply_font_scale_font_decorator('---')
-        elif re.match(NOT_ESCAPED + '\\-\\-$', unit):
+        elif re.match(NOT_ESCAPED + '\\-\\-$', chars):
             # "--" (SMALL)
-            unit = re.sub('\\-\\-$', '', unit)
-            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            chars = re.sub('\\-\\-$', '', chars)
+            chars = XML.write_chars(ms_par._p, chars_state, chars)
             chars_state.apply_font_scale_font_decorator('--')
-        elif re.match(NOT_ESCAPED + '\\+\\+\\+$', unit):
+        elif re.match(NOT_ESCAPED + '\\+\\+\\+$', chars):
             # "+++" (XLARGE)
-            unit = re.sub('\\+\\+\\+$', '', unit)
-            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            chars = re.sub('\\+\\+\\+$', '', chars)
+            chars = XML.write_chars(ms_par._p, chars_state, chars)
             if chars_state.font_scale == 1.2:
                 chars_state.apply_font_scale_font_decorator('++')
-                unit += '+'
+                chars += '+'
             else:
                 chars_state.apply_font_scale_font_decorator('+++')
-        elif re.match(NOT_ESCAPED + '\\+\\+$', unit):
+        elif re.match(NOT_ESCAPED + '\\+\\+$', chars):
             # "++" (LARGE)
-            unit = re.sub('\\+\\+$', '', unit)
-            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            chars = re.sub('\\+\\+$', '', chars)
+            chars = XML.write_chars(ms_par._p, chars_state, chars)
             chars_state.apply_font_scale_font_decorator('++')
-        elif re.match(NOT_ESCAPED + '<<<$', unit):
+        elif re.match(NOT_ESCAPED + '<<<$', chars):
             # "<<<" (XWIDE or RESET)
-            unit = re.sub('<<<$', '', unit)
-            unit = XML.write_unit(ms_par._p, chars_state, unit)
-            if chars_state.font_width == 0.8:
+            if c == '>':
+                # "<<<" + ">" = "<<" + "<>"
+                chars = re.sub('<<<$', '', chars)
+                chars = XML.write_chars(ms_par._p, chars_state, chars)
+                chars += '<'
                 chars_state.apply_font_width_font_decorator('<<')
-                unit += '<'
             else:
-                chars_state.apply_font_width_font_decorator('<<<')
-        elif re.match(NOT_ESCAPED + '<<$', unit):
-            unit = re.sub('<<$', '', unit)
-            unit = XML.write_unit(ms_par._p, chars_state, unit)
+                chars = re.sub('<<<$', '', chars)
+                chars = XML.write_chars(ms_par._p, chars_state, chars)
+                if chars_state.font_width == 0.8:
+                    chars_state.apply_font_width_font_decorator('<<')
+                    chars += '<'
+                else:
+                    chars_state.apply_font_width_font_decorator('<<<')
+        elif re.match(NOT_ESCAPED + '<<$', chars):
+            chars = re.sub('<<$', '', chars)
+            chars = XML.write_chars(ms_par._p, chars_state, chars)
             chars_state.apply_font_width_font_decorator('<<')
-        elif re.match(NOT_ESCAPED + '>>>$', unit):
+        elif re.match(NOT_ESCAPED + '>>>$', chars):
             # ">>>" (XNARROW or RESET)
-            if re.match(NOT_ESCAPED + RELAX_SYMBOL + '>>$', unit):
+            if re.match(NOT_ESCAPED + RELAX_SYMBOL + '>>$', chars):
                 # "<>>>" + "." = "<>" + ">>" + "."
-                unit = re.sub('>>$', '', unit)
-                unit = XML.write_unit(ms_par._p, chars_state, unit)
+                chars = re.sub('>>$', '', chars)
+                chars = XML.write_chars(ms_par._p, chars_state, chars)
                 chars_state.apply_font_width_font_decorator('>>')
             else:
-                unit = re.sub('>>>$', '', unit)
-                unit = XML.write_unit(ms_par._p, chars_state, unit)
+                chars = re.sub('>>>$', '', chars)
+                chars = XML.write_chars(ms_par._p, chars_state, chars)
                 if chars_state.font_width == 1.2:
                     chars_state.apply_font_width_font_decorator('>>')
-                    unit += '>'
+                    chars += '>'
                 else:
                     chars_state.apply_font_width_font_decorator('>>>')
-        elif re.match(NOT_ESCAPED + '>>$', unit):
+        elif re.match(NOT_ESCAPED + '>>$', chars):
             # ">>" (NARROW or RESET)
-            unit = re.sub('>>$', '', unit)
-            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            chars = re.sub('>>$', '', chars)
+            chars = XML.write_chars(ms_par._p, chars_state, chars)
             chars_state.apply_font_width_font_decorator('>>')
-        elif re.match(NOT_ESCAPED + '@' + RES_NUMBER + '@$', unit):
+        elif re.match(NOT_ESCAPED + '@' + RES_NUMBER + '@$', chars):
             # "@.+@" (FONT SIZE)
-            font_size = re.sub(NOT_ESCAPED + '@([^@]+)@$', '\\2', unit)
-            unit = re.sub(NOT_ESCAPED + '@([^@]+)@$', '\\1', unit)
-            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            font_size = re.sub(NOT_ESCAPED + '@([^@]+)@$', '\\2', chars)
+            chars = re.sub(NOT_ESCAPED + '@([^@]+)@$', '\\1', chars)
+            chars = XML.write_chars(ms_par._p, chars_state, chars)
             chars_state.apply_font_size_font_decorator('@' + font_size + '@')
-        elif re.match(NOT_ESCAPED + '@([^@]{1,66})@$', unit):
+        elif re.match(NOT_ESCAPED + '@([^@]{1,66})@$', chars):
             # "@.+@" (FONT)
-            font = re.sub(NOT_ESCAPED + '@([^@]{1,66})@$', '\\2', unit)
-            unit = re.sub(NOT_ESCAPED + '@([^@]{1,66})@$', '\\1', unit)
-            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            font = re.sub(NOT_ESCAPED + '@([^@]{1,66})@$', '\\2', chars)
+            chars = re.sub(NOT_ESCAPED + '@([^@]{1,66})@$', '\\1', chars)
+            chars = XML.write_chars(ms_par._p, chars_state, chars)
             chars_state.apply_font_name_font_decorator('@' + font + '@')
-        elif re.match(res_ivs, unit):
+        elif re.match(res_ivs, chars):
             # .[0-9]+; (IVS (IDEOGRAPHIC VARIATION SEQUENCE))
-            ivsn = re.sub(res_ivs, '\\3', unit)
-            ivsc = re.sub(res_ivs, '\\2', unit)
-            unit = re.sub(res_ivs, '\\1', unit)
+            ivsn = re.sub(res_ivs, '\\3', chars)
+            ivsc = re.sub(res_ivs, '\\2', chars)
+            chars = re.sub(res_ivs, '\\1', chars)
             ivsu = int('0xE0100', 16) + int(ivsn)
             if int(ivsu) <= int('0xE01EF', 16):
-                unit = XML.write_unit(ms_par._p, chars_state, unit)
+                chars = XML.write_chars(ms_par._p, chars_state, chars)
                 is_mincho_font = False
                 if chars_state.mincho_font == Form.mincho_font:
                     is_mincho_font = True
                     chars_state.mincho_font = chars_state.ivs_font
-                unit = XML.write_unit(ms_par._p, chars_state, ivsc + chr(ivsu))
+                chars \
+                    = XML.write_chars(ms_par._p, chars_state, ivsc + chr(ivsu))
                 if is_mincho_font:
                     chars_state.mincho_font = Form.mincho_font
-        elif re.match(res_foc, unit):
+        elif re.match(res_foc, chars):
             # "^.*^" (FONT COLOR)
-            col = re.sub(res_foc, '\\2', unit)
+            col = re.sub(res_foc, '\\2', chars)
             if col == '':
                 col = 'FFFFFF'
             elif re.match('^([0-9A-F])([0-9A-F])([0-9A-F])$', col):
@@ -4627,83 +4637,83 @@ class Paragraph:
             elif col in FONT_COLOR:
                 col = FONT_COLOR[col]
             if re.match('^[0-9A-F]{6}$', col):
-                unit = re.sub('\\^([0-9A-Za-z]*)\\^$', '', unit)
-                unit = XML.write_unit(ms_par._p, chars_state, unit)
+                chars = re.sub('\\^([0-9A-Za-z]*)\\^$', '', chars)
+                chars = XML.write_chars(ms_par._p, chars_state, chars)
                 chars_state.apply_font_color_font_decorator('^' + col + '^')
-        elif re.match(res_hlc, unit):
+        elif re.match(res_hlc, chars):
             # "_.+_" (HIGHLIGHT COLOR)
-            col = re.sub(res_hlc, '\\2', unit)
+            col = re.sub(res_hlc, '\\2', chars)
             if col in HIGHLIGHT_COLOR:
-                unit = re.sub(res_hlc, '\\1', unit)
-                unit = XML.write_unit(ms_par._p, chars_state, unit)
+                chars = re.sub(res_hlc, '\\1', chars)
+                chars = XML.write_chars(ms_par._p, chars_state, chars)
                 fd = '_' + col + '_'
                 chars_state.apply_highlight_color_font_decorator(fd)
-        elif re.match(NOT_ESCAPED + '\\->$', unit):
+        elif re.match(NOT_ESCAPED + '\\->$', chars):
             # "->" (BEGINNING OF DELETED)
-            unit = re.sub('\\->$', '', unit)
-            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            chars = re.sub('\\->$', '', chars)
+            chars = XML.write_chars(ms_par._p, chars_state, chars)
             chars_state.apply_track_changes_font_decorator('->')
-        elif re.match(NOT_ESCAPED + '<\\-$', unit):
+        elif re.match(NOT_ESCAPED + '<\\-$', chars):
             # "<-" (END OF DELETED)
-            unit = re.sub('<\\-$', '', unit)
-            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            chars = re.sub('<\\-$', '', chars)
+            chars = XML.write_chars(ms_par._p, chars_state, chars)
             chars_state.apply_track_changes_font_decorator('<-')
-        elif re.match(NOT_ESCAPED + '\\+>$', unit):
+        elif re.match(NOT_ESCAPED + '\\+>$', chars):
             # "+>" (BEGINNING OF INSERTED)
-            unit = re.sub('\\+>$', '', unit)
-            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            chars = re.sub('\\+>$', '', chars)
+            chars = XML.write_chars(ms_par._p, chars_state, chars)
             chars_state.apply_track_changes_font_decorator('+>')
-        elif re.match(NOT_ESCAPED + '<\\+$', unit):
+        elif re.match(NOT_ESCAPED + '<\\+$', chars):
             # "<+" (END OF INSERTED)
-            unit = re.sub('<\\+$', '', unit)
-            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            chars = re.sub('<\\+$', '', chars)
+            chars = XML.write_chars(ms_par._p, chars_state, chars)
             chars_state.apply_track_changes_font_decorator('<+')
-        elif re.match(NOT_ESCAPED + '<([^<>]{1,37}?)/([^<>]{1,37}?)>$', unit):
+        elif re.match(NOT_ESCAPED + '<([^<>]{1,37}?)/([^<>]{1,37}?)>$', chars):
             # "<.+/.+>" (RUBY)
             res = '<([^<>]{1,37}?)/([^<>]{1,37}?)>'
-            ruby = re.sub(NOT_ESCAPED + res + '$', '\\3', unit)
-            base = re.sub(NOT_ESCAPED + res + '$', '\\2', unit)
-            unit = re.sub(NOT_ESCAPED + res + '$', '\\1', unit)
-            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            ruby = re.sub(NOT_ESCAPED + res + '$', '\\3', chars)
+            base = re.sub(NOT_ESCAPED + res + '$', '\\2', chars)
+            chars = re.sub(NOT_ESCAPED + res + '$', '\\1', chars)
+            chars = XML.write_chars(ms_par._p, chars_state, chars)
             ms_rb0 = XML.add_tag(ms_par._p, 'w:r', {})
             ms_rb1 = XML.add_tag(ms_rb0, 'w:ruby', {})
             ms_rb2 = XML.add_tag(ms_rb1, 'w:rubyPr', {})
             XML.add_tag(ms_rb2, 'w:rubyAlign', {'w:val': 'center'})
             ms_rb2 = XML.add_tag(ms_rb1, 'w:rt', {})
             chars_state.font_size /= 2
-            XML.write_unit(ms_rb2, chars_state, ruby)
+            XML.write_chars(ms_rb2, chars_state, ruby)
             ms_rb2 = XML.add_tag(ms_rb1, 'w:rubyBase', {})
             chars_state.font_size *= 2
-            XML.write_unit(ms_rb2, chars_state, base)
-        elif re.match(NOT_ESCAPED + '< *((?:[0-9]*\\.)?[0-9]+) *>$', unit):
+            XML.write_chars(ms_rb2, chars_state, base)
+        elif re.match(NOT_ESCAPED + '< *((?:[0-9]*\\.)?[0-9]+) *>$', chars):
             # "< *([0-9]*.)?[0-9]+ *>" (SPACE)
             res = '< *((?:[0-9]*\\.)?[0-9]+) *>'
-            spac = re.sub(NOT_ESCAPED + res + '$', '\\2', unit)
-            unit = re.sub(NOT_ESCAPED + res + '$', '\\1', unit)
-            unit = XML.write_unit(ms_par._p, chars_state, unit)
+            spac = re.sub(NOT_ESCAPED + res + '$', '\\2', chars)
+            chars = re.sub(NOT_ESCAPED + res + '$', '\\1', chars)
+            chars = XML.write_chars(ms_par._p, chars_state, chars)
             ori_fw = chars_state.font_width
             tmp_fw = float(spac) * chars_state.font_width
             if tmp_fw >= 0.01:
                 if tmp_fw >= 5.00:
                     n = int(tmp_fw / 5.00)
                     chars_state.font_width = 5.00
-                    XML.write_unit(ms_par._p, chars_state, '\u3000' * n)
+                    XML.write_chars(ms_par._p, chars_state, '\u3000' * n)
                     tmp_fw -= 5.00 * n
                 if tmp_fw >= 0.01:
                     chars_state.font_width = tmp_fw
-                    XML.write_unit(ms_par._p, chars_state, '\u3000')
+                    XML.write_chars(ms_par._p, chars_state, '\u3000')
                 chars_state.font_width = ori_fw
-        elif re.match(NOT_ESCAPED + '(n|N|M)$', unit):
+        elif re.match(NOT_ESCAPED + '(n|N|M)$', chars):
             if type == 'footer':
                 # "n|N|M" (PAGE NUMBER)
-                char = re.sub(NOT_ESCAPED + '(n|N|M)$', '\\2', unit)
-                unit = re.sub(NOT_ESCAPED + '(n|N|M)$', '\\1', unit)
-                unit = XML.write_unit(ms_par._p, chars_state, unit)
-                unit += XML.write_page_number(ms_par._p, chars_state, char)
-        if c == '\0' and unit != '':
+                char = re.sub(NOT_ESCAPED + '(n|N|M)$', '\\2', chars)
+                chars = re.sub(NOT_ESCAPED + '(n|N|M)$', '\\1', chars)
+                chars = XML.write_chars(ms_par._p, chars_state, chars)
+                chars += XML.write_page_number(ms_par._p, chars_state, char)
+        if c == '\0' and chars != '':
             # LAST
-            unit = XML.write_unit(ms_par._p, chars_state, unit)
-        return unit
+            chars = XML.write_chars(ms_par._p, chars_state, chars)
+        return chars
 
     def _write_image(self, ms_par, chars_state, alte, path):
         size = round(chars_state.font_size * chars_state.font_scale, 1)
@@ -5477,7 +5487,7 @@ class ParagraphMath(Paragraph):
         self._set_alignment(ms_par, ms_mpa)
         self._set_lenght(ms_par)
         self._set_font_revisers(hfr)
-        unit = Math.write_unit(ms_par._p, CharsState(), ttw)
+        chars = Math.write_chars(ms_par._p, CharsState(), ttw)
         self._set_font_revisers(tfr)
 
     def _set_alignment(self, ms_par, ms_mpa):
