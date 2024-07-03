@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.03-14:02:04-JST>
+# Time-stamp:   <2024.07.03-14:25:45-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6877,7 +6877,8 @@ class ParagraphSection(Paragraph):
                 if head_section_depth == 0:
                     head_section_depth = xdepth + 1
                 tail_section_depth = xdepth + 1
-            if head_section_depth == 0 and tail_section_depth == 0:
+        if head_section_depth == 0 and tail_section_depth == 0:
+            for xdepth in range(1, len(rss)):
                 res = '^(?:\\\\\\s+)?' + rfd + rss[0] + rfd + '$'
                 if re.match(res, raw_text):
                     head_section_depth = 1
