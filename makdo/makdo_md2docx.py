@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.03-10:23:00-JST>
+# Time-stamp:   <2024.07.03-12:05:24-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4399,43 +4399,47 @@ class Paragraph:
     @staticmethod
     def _must_continue(tex, c):
         # RELAX
-        if re.match(NOT_ESCAPED + '<>$', tex):
-            return False
+        if re.match(NOT_ESCAPED + RELAX_SYMBOL +'$', tex):
+            return True      # "...<>"
         # MATH
         if re.match('^\\\\\\[', tex):
             if not re.match(NOT_ESCAPED + '\\\\\\]$', tex):
-                return True
+                return True  # "\[..."
         # SUB OR SUP
         if re.match('^(_|\\^){', tex):
             if not re.match(NOT_ESCAPED + '}$', tex):
-                return True
+                return True  # "_{..."|"^{..."
             t, d = '', 0
             for c in tex:
                 t += c
                 d += 1 if re.match(NOT_ESCAPED + '{$', t) else 0
                 d -= 1 if re.match(NOT_ESCAPED + '}$', t) else 0
             if d != 0:
-                return True
+                return True  # "_{...{...}..."|"^{...{...}..."
         # ITALIC AND BOLD
         if re.match(NOT_ESCAPED + '\\*$', tex):
             if not re.match(NOT_ESCAPED + '\\*\\*\\*$', tex) and c == '*':
-                return True
+                return True  # "...*" + "*"
         # SMALL
         if re.match(NOT_ESCAPED + '\\-$', tex):
             if not re.match(NOT_ESCAPED + '\\-\\-\\-$', tex) and c == '-':
-                return True
+                return True  # "...-" + "-"
         # LARGE
         if re.match(NOT_ESCAPED + '\\+$', tex):
             if not re.match(NOT_ESCAPED + '\\+\\+\\+$', tex) and c == '+':
-                return True
+                return True  # "...+" + "+"
+        # RELAX AND NARROW
+        if re.match(NOT_ESCAPED + '>$', tex):
+            if re.match(NOT_ESCAPED + RELAX_SYMBOL + '>>$', tex) and c == '>':
+                return True  # "...<>>>" + '>'
         # NARROW
         if re.match(NOT_ESCAPED + '>$', tex):
             if not re.match(NOT_ESCAPED + '>>>$', tex) and c == '>':
-                return True
+                return True  # "...>" + '>'
         # WIDE
         if re.match(NOT_ESCAPED + '<$', tex):
             if not re.match(NOT_ESCAPED + '<<<$', tex) and c == '<':
-                return True
+                return True  # "...<" + '<'
         # ELSE
         return False
 
@@ -4443,10 +4447,8 @@ class Paragraph:
         res_ivs = '^((?:.|\n)*?)([^0-9\\\\])([0-9]+);$'
         res_foc = NOT_ESCAPED + '\\^([0-9A-Za-z]{0,11})\\^$'
         res_hlc = NOT_ESCAPED + '_([0-9A-Za-z]{1,11})_$'
-        if re.match(NOT_ESCAPED + '<>$', unit):
-            # '<>' (RELAX)
-            unit = re.sub('<>$', '', unit)
-            unit = XML.write_unit(ms_par._p, chars_state, unit)
+        if False:
+            pass
         elif re.match(NOT_ESCAPED + '<$', unit) and c == '>':
             # '<>' （RELAX） "<<<" (+ ">") = "<<" + "<" (+ ">")
             unit = re.sub('<$', '', unit)
@@ -4564,27 +4566,26 @@ class Paragraph:
             else:
                 chars_state.apply_font_width_font_decorator('<<<')
         elif re.match(NOT_ESCAPED + '<<$', unit):
-            # "<<" (WIDE or RESET)
             unit = re.sub('<<$', '', unit)
             unit = XML.write_unit(ms_par._p, chars_state, unit)
             chars_state.apply_font_width_font_decorator('<<')
         elif re.match(NOT_ESCAPED + '>>>$', unit):
             # ">>>" (XNARROW or RESET)
-            if re.match(NOT_ESCAPED + '<>>>$', unit):
-                # "<>>>" = "<>" + ">>"
-                return unit
-            unit = re.sub('>>>$', '', unit)
-            unit = XML.write_unit(ms_par._p, chars_state, unit)
-            if chars_state.font_width == 1.2:
+            if re.match(NOT_ESCAPED + RELAX_SYMBOL + '>>$', unit):
+                # "<>>>" + "." = "<>" + ">>" + "."
+                unit = re.sub('>>$', '', unit)
+                unit = XML.write_unit(ms_par._p, chars_state, unit)
                 chars_state.apply_font_width_font_decorator('>>')
-                unit += '>'
             else:
-                chars_state.apply_font_width_font_decorator('>>>')
+                unit = re.sub('>>>$', '', unit)
+                unit = XML.write_unit(ms_par._p, chars_state, unit)
+                if chars_state.font_width == 1.2:
+                    chars_state.apply_font_width_font_decorator('>>')
+                    unit += '>'
+                else:
+                    chars_state.apply_font_width_font_decorator('>>>')
         elif re.match(NOT_ESCAPED + '>>$', unit):
             # ">>" (NARROW or RESET)
-            if re.match(NOT_ESCAPED + '<>>$', unit):
-                # "<>>" = "<>" + ">"
-                return unit
             unit = re.sub('>>$', '', unit)
             unit = XML.write_unit(ms_par._p, chars_state, unit)
             chars_state.apply_font_width_font_decorator('>>')
@@ -5266,7 +5267,7 @@ class ParagraphTable(Paragraph):
                     line += t
                     line = re.sub('^\\s*:\\s(.*)$', '\\1', line)
                     line = re.sub(NOT_ESCAPED + '\\s:\\s*$', '\\1', line)
-                    for fd in FONT_DECORATORS + ['<>']:
+                    for fd in FONT_DECORATORS + [RELAX_SYMBOL]:
                         while re.match(NOT_ESCAPED + fd, line):
                             line = re.sub(NOT_ESCAPED + fd, '\\1', line)
                     w = get_real_width(line) / 2
