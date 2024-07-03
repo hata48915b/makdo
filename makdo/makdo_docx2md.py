@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.03-13:18:23-JST>
+# Time-stamp:   <2024.07.03-13:43:11-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6286,13 +6286,9 @@ class Paragraph:
         attached_pagebreak = self.attached_pagebreak
         # LEFT SYMBOL
         has_left_sharp = False
-        has_left_colon = False
         if re.match('^# (.|\n)*$', text_to_write):
             text_to_write = re.sub('^# ', '', text_to_write)
             has_left_sharp = True
-        elif re.match('^: (.|\n)*$', text_to_write):
-            text_to_write = re.sub('^: ', '', text_to_write)
-            has_left_colon = True
         # RIGHT SYMBOL
         has_right_colon = False
         if re.match('^(.|\n)* :$', text_to_write):
@@ -6312,8 +6308,6 @@ class Paragraph:
         # LEFT SYMBOL
         if has_left_sharp:
             ttwwr += '# '
-        elif has_left_colon:
-            ttwwr += ': '
         for rev in head_font_revisers:
             ttwwr += rev
         if len(head_font_revisers) > 0:
@@ -7894,13 +7888,6 @@ class ParagraphAlignment(Paragraph):
                     md_text += ': ' + ln + '\n'
         md_text = re.sub('\n$', '', md_text)
         return md_text
-
-    def get_text_to_write_with_reviser(self):
-        ttwwr = super().get_text_to_write_with_reviser()
-        ttwwr = ttwwr.replace('\n', '')
-        text_to_write_with_reviser = ttwwr
-        # self.text_to_write_with_reviser = text_to_write_with_reviser
-        return text_to_write_with_reviser
 
 
 class ParagraphPreformatted(Paragraph):
