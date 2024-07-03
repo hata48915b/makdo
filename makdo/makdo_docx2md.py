@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.03-10:31:31-JST>
+# Time-stamp:   <2024.07.03-13:03:29-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6142,13 +6142,13 @@ class Paragraph:
     def _get_length_revisers(cls, length_revi):
         length_revisers = []
         vs = cls._get_vlength_string(length_revi['space before'])
-        if float(vs) < -0.05 or float(vs) > 0.05:
+        if float(vs) < -0.1 or float(vs) > 0.1:
             length_revisers.append('v=' + vs)
         vs = cls._get_vlength_string(length_revi['space after'])
-        if float(vs) < -0.05 or float(vs) > 0.05:
+        if float(vs) < -0.1 or float(vs) > 0.1:
             length_revisers.append('V=' + vs)
         vs = cls._get_vlength_string(length_revi['line spacing'])
-        if float(vs) < -0.05 or float(vs) > 0.05:
+        if float(vs) < -0.1 or float(vs) > 0.1:
             length_revisers.append('X=' + vs)
         # WHAT YOU SEE IS THE SUM OF 'first indent' AND 'left indent'
         hs1 = cls._get_hlength_string(- length_revi['first indent']
@@ -6158,13 +6158,13 @@ class Paragraph:
         if float(hs) > 0:
             hs = '+' + hs
         # hs = cls._get_hlength_string(- length_revi['first indent'])
-        if float(hs) < -0.05 or float(hs) > 0.05:
+        if float(hs) < -0.1 or float(hs) > 0.1:
             length_revisers.append('<<=' + hs)
         hs = cls._get_hlength_string(- length_revi['left indent'])
-        if float(hs) < -0.05 or float(hs) > 0.05:
+        if float(hs) < -0.1 or float(hs) > 0.1:
             length_revisers.append('<=' + hs)
         hs = cls._get_hlength_string(- length_revi['right indent'])
-        if float(hs) < -0.05 or float(hs) > 0.05:
+        if float(hs) < -0.1 or float(hs) > 0.1:
             length_revisers.append('>=' + hs)
         # self.length_revisers = length_revisers
         return length_revisers
@@ -6180,18 +6180,18 @@ class Paragraph:
             porm = '+'
         i_part = str(int(abs(length)))
         d_part = abs(length - int(length))
-        if d_part > 0.329 and d_part < 0.340:
-            return porm + i_part + '.33'  # 1/3=0.3333...
-        if d_part > 0.660 and d_part < 0.671:
-            return porm + i_part + '.67'  # 2/3=0.6666...
-        if d_part > 0.245 and d_part < 0.255:
-            return porm + i_part + '.25'  # 1/4=0.25
-        if d_part > 0.745 and d_part < 0.755:
-            return porm + i_part + '.75'  # 3/4=0.75
-        if d_part > 0.160 and d_part < 0.171:
-            return porm + i_part + '.17'  # 1/6=0.1666...
-        if d_part > 0.829 and d_part < 0.840:
-            return porm + i_part + '.83'  # 5/6=0.8333...
+        if d_part > 0.313 and d_part < 0.353:  # 1/3=0.3333...
+            return porm + i_part + '.33'
+        if d_part > 0.647 and d_part < 0.687:  # 2/3=0.6666...
+            return porm + i_part + '.67'
+        if d_part > 0.230 and d_part < 0.270:  # 1/4=0.25
+            return porm + i_part + '.25'
+        if d_part > 0.730 and d_part < 0.770:  # 3/4=0.75
+            return porm + i_part + '.75'
+        if d_part > 0.147 and d_part < 0.187:  # 1/6=0.1666...
+            return porm + i_part + '.17'
+        if d_part > 0.813 and d_part < 0.853:  # 5/6=0.8333...
+            return porm + i_part + '.83'
         # DECIMAL
         rounded = round(length, 1)
         if rounded < 0:
