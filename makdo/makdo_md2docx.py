@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.04-06:28:51-JST>
+# Time-stamp:   <2024.07.04-07:07:54-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -59,7 +59,7 @@
 ############################################################
 # POLICY
 
-# document -> paragraph -> text -> string -> chars
+# document -> paragraph -> text -> chars -> imm
 
 
 ############################################################
@@ -937,7 +937,7 @@ def n2c_c_kanj(n, md_line=None):
         return '〓'
 
 
-def concatenate_string(str1, str2):
+def concatenate_text(str1, str2):
     res = '[0-9A-Za-z,\\.\\)}\\]]'
     if re.match('^.*' + res + '$', str1) and re.match('^' + res + '.*$', str2):
         return str1 + ' ' + str2
@@ -2334,72 +2334,72 @@ class Math:
     @staticmethod
     def _envelop_command(chars):
         # TEX COMMAND
-        tex = ''
+        imm = ''
         res1 = NOT_ESCAPED + '(\\\\[A-Za-z]+)$'
         res9 = '^[^A-Za-z]$'
         for c in chars + '\0':
             # ALPHABET COMMAND
             if re.match(res9, c):
-                tex = re.sub(res1, '\\1{\\2}', tex)
-            tex = re.sub(NOT_ESCAPED + '(\\\\\\\\)$', '\\1{\\2}', tex)
+                imm = re.sub(res1, '\\1{\\2}', imm)
+            imm = re.sub(NOT_ESCAPED + '(\\\\\\\\)$', '\\1{\\2}', imm)
             # FONT SIZE
-            tex = re.sub('{\\\\tiny}$', '{\\\\tiny}{', tex)
-            tex = re.sub('{\\\\scriptsize}$', '{\\\\scriptsize}{', tex)
-            tex = re.sub('{{\\\\footnotesize}$', '{\\\\footnotesize}{', tex)
-            tex = re.sub('{{\\\\small}$', '{\\\\small}{', tex)
-            tex = re.sub('{{\\\\normalsize}$', '{\\\\normalsize}{', tex)
-            tex = re.sub('{{\\\\large}$', '{\\\\large}{', tex)
-            tex = re.sub('{{\\\\Large}$', '{\\\\Large}{', tex)
-            tex = re.sub('{{\\\\LARGE}$', '{\\\\LARGE}{', tex)
-            tex = re.sub('{{\\\\huge}$', '{\\\\huge}{', tex)
-            tex = re.sub('{{\\\\Huge}$', '{\\\\Huge}{', tex)
+            imm = re.sub('{\\\\tiny}$', '{\\\\tiny}{', imm)
+            imm = re.sub('{\\\\scriptsize}$', '{\\\\scriptsize}{', imm)
+            imm = re.sub('{{\\\\footnotesize}$', '{\\\\footnotesize}{', imm)
+            imm = re.sub('{{\\\\small}$', '{\\\\small}{', imm)
+            imm = re.sub('{{\\\\normalsize}$', '{\\\\normalsize}{', imm)
+            imm = re.sub('{{\\\\large}$', '{\\\\large}{', imm)
+            imm = re.sub('{{\\\\Large}$', '{\\\\Large}{', imm)
+            imm = re.sub('{{\\\\LARGE}$', '{\\\\LARGE}{', imm)
+            imm = re.sub('{{\\\\huge}$', '{\\\\huge}{', imm)
+            imm = re.sub('{{\\\\Huge}$', '{\\\\Huge}{', imm)
             # SPACE
-            tex = re.sub('\\\\%$', '%0', tex)                   # "%"  -> "%0"
-            tex = re.sub(NOT_ESCAPED + '\\\\,$', '\\1%1', tex)  # "\," -> "%1"
-            tex = re.sub(NOT_ESCAPED + '\\\\:$', '\\1%2', tex)  # "\:" -> "%2"
-            tex = re.sub(NOT_ESCAPED + '\\\\;$', '\\1%3', tex)  # "\;" -> "%3"
-            tex = re.sub(NOT_ESCAPED + '\\\\ $', '\\1%4', tex)  # "\ " -> "%4"
-            tex = re.sub(NOT_ESCAPED + '\\\\!$', '\\1%5', tex)  # "\!" -> "%5"
+            imm = re.sub('\\\\%$', '%0', imm)                   # "%"  -> "%0"
+            imm = re.sub(NOT_ESCAPED + '\\\\,$', '\\1%1', imm)  # "\," -> "%1"
+            imm = re.sub(NOT_ESCAPED + '\\\\:$', '\\1%2', imm)  # "\:" -> "%2"
+            imm = re.sub(NOT_ESCAPED + '\\\\;$', '\\1%3', imm)  # "\;" -> "%3"
+            imm = re.sub(NOT_ESCAPED + '\\\\ $', '\\1%4', imm)  # "\ " -> "%4"
+            imm = re.sub(NOT_ESCAPED + '\\\\!$', '\\1%5', imm)  # "\!" -> "%5"
             # PARENTHESES
-            tex = re.sub('{\\\\[Bb]igg?}', '', tex)
-            tex = re.sub('{\\\\(?:left|right)}', '', tex)
-            tex = re.sub('\\($', '{(-}', tex)      # "("  -> "{(-}"
-            tex = re.sub('\\)$', '{-)}', tex)      # ")"  -> "{-)}"
-            tex = re.sub(NOT_ESCAPED + '\\\\{$',
-                         '\\1{(=}', tex)           # "\{" -> "{(=}"
-            tex = re.sub(NOT_ESCAPED + '\\\\}$',
-                         '\\1{=)}', tex)           # "\}" -> "{=)}"
-            tex = re.sub('\\[$', '{[}', tex)       # "["  -> "{[}"
-            tex = re.sub('\\]$', '{]}', tex)       # "]"  -> "{]}"
+            imm = re.sub('{\\\\[Bb]igg?}', '', imm)
+            imm = re.sub('{\\\\(?:left|right)}', '', imm)
+            imm = re.sub('\\($', '{(-}', imm)      # "("  -> "{(-}"
+            imm = re.sub('\\)$', '{-)}', imm)      # ")"  -> "{-)}"
+            imm = re.sub(NOT_ESCAPED + '\\\\{$',
+                         '\\1{(=}', imm)           # "\{" -> "{(=}"
+            imm = re.sub(NOT_ESCAPED + '\\\\}$',
+                         '\\1{=)}', imm)           # "\}" -> "{=)}"
+            imm = re.sub('\\[$', '{[}', imm)       # "["  -> "{[}"
+            imm = re.sub('\\]$', '{]}', imm)       # "]"  -> "{]}"
             # TEX COMMAND OPTION
             sqrt = '{\\\\sqrt}' + '{\\[}([^\\[\\]]*' \
                 + ('(?:\\[[^\\[\\]]*' * 3) + ('\\][^\\[\\]]*)*' * 3) \
                 + '){\\]}$'
-            tex = re.sub(NOT_ESCAPED + sqrt, '\\1{\\\\sqrt}{[\\2]}', tex)
+            imm = re.sub(NOT_ESCAPED + sqrt, '\\1{\\\\sqrt}{[\\2]}', imm)
             # DEL AND INS
-            tex = re.sub(NOT_ESCAPED + '\\->$', '\\1{{->}{', tex)
-            tex = re.sub(NOT_ESCAPED + '<\\-$', '\\1}{<-}}', tex)
-            tex = re.sub(NOT_ESCAPED + '\\+>$', '\\1{{+>}{', tex)
-            tex = re.sub(NOT_ESCAPED + '<\\+$', '\\1}{<+}}', tex)
+            imm = re.sub(NOT_ESCAPED + '\\->$', '\\1{{->}{', imm)
+            imm = re.sub(NOT_ESCAPED + '<\\-$', '\\1}{<-}}', imm)
+            imm = re.sub(NOT_ESCAPED + '\\+>$', '\\1{{+>}{', imm)
+            imm = re.sub(NOT_ESCAPED + '<\\+$', '\\1}{<+}}', imm)
             # SUB, SUP (NO PARENTHESES)
             oc = '^([^ \\\\_\\^\\(\\){}\\[\\]\0])$'
-            if re.match(NOT_ESCAPED + '(_|\\^)$', tex + c):
-                if tex[-1] != '}':
-                    if re.match(oc, tex[-1]):
-                        tex = re.sub('(.)$', '{\\1}', tex)
+            if re.match(NOT_ESCAPED + '(_|\\^)$', imm + c):
+                if imm[-1] != '}':
+                    if re.match(oc, imm[-1]):
+                        imm = re.sub('(.)$', '{\\1}', imm)
                     else:
-                        tex += '{}'
-            if re.match(NOT_ESCAPED + '(_|\\^)$', tex):
+                        imm += '{}'
+            if re.match(NOT_ESCAPED + '(_|\\^)$', imm):
                 if c != '{':
                     if re.match(oc, c):
-                        tex += '{' + c + '}'
+                        imm += '{' + c + '}'
                         c = ''
                     else:
-                        tex += '{}'
+                        imm += '{}'
             # ADD CHAR
             if c != '\0':
-                tex += c
-        chars = tex
+                imm += c
+        chars = imm
         return chars
 
     @staticmethod
@@ -2410,9 +2410,9 @@ class Math:
 
     @classmethod
     def _prepare_func(cls, chars):
-        tex = ''
+        imm = ''
         for c in chars + '\0':
-            nubs = cls._get_nubs(tex)
+            nubs = cls._get_nubs(imm)
             tmps = []
             while tmps != nubs:
                 tmps = []
@@ -2552,11 +2552,11 @@ class Math:
                             nubs[i], nubs[-1] \
                                 = cls._close_func(nubs[i], nubs[-1])
                 # REMAKE
-                tex = ''.join(nubs)
-                nubs = cls._get_nubs(tex)
+                imm = ''.join(nubs)
+                nubs = cls._get_nubs(imm)
             if c != '\0':
-                tex += c
-        chars = tex
+                imm += c
+        chars = imm
         return chars
 
     @staticmethod
@@ -2573,11 +2573,11 @@ class Math:
         return beg_str, end_str
 
     @staticmethod
-    def _get_nubs(tex):
+    def _get_nubs(imm):
         nubs = []
         nub = ''
         dep = 0
-        for n, c in enumerate(tex[::-1] + '\0'):
+        for n, c in enumerate(imm[::-1] + '\0'):
             if c == '{':
                 dep -= 1
             if c == '}':
@@ -2609,12 +2609,12 @@ class Math:
     @staticmethod
     def _close_paren(chars):
         d = 0
-        t = ''
+        imm = ''
         for c in chars:
-            t += c
-            if re.match(NOT_ESCAPED + '{$', t):
+            imm += c
+            if re.match(NOT_ESCAPED + '{$', imm):
                 d += 1
-            if re.match(NOT_ESCAPED + '}$', t):
+            if re.match(NOT_ESCAPED + '}$', imm):
                 d -= 1
         if d > 0:
             chars = chars + ('}' * d)
@@ -2668,19 +2668,19 @@ class Math:
     def _write_math_exp(cls, oe0, chars_state, chars):
         # REMOVE ENCLOSING PARENTHESIS
         if re.match('^{(.*)}$', chars):
-            u = re.sub('^{(.*)}$', '\\1', chars)
-            t = ''
-            d = 0
-            for c in u:
-                t += c
-                if re.match(NOT_ESCAPED + '{$', t):
-                    d += 1
-                if re.match(NOT_ESCAPED + '}$', t):
-                    d -= 1
-                if d < 0:
+            ers = re.sub('^{(.*)}$', '\\1', chars)
+            imm = ''
+            dep = 0
+            for c in ers:
+                imm += c
+                if re.match(NOT_ESCAPED + '{$', imm):
+                    dep += 1
+                if re.match(NOT_ESCAPED + '}$', imm):
+                    dep -= 1
+                if dep < 0:
                     break
             else:
-                chars = u
+                chars = ers
         tmp = ''
         # ONE NUB
         if re.match('^[^{}]+$', chars):
@@ -4269,7 +4269,7 @@ class Paragraph:
         md_lines = self.md_lines
         text_to_write = ''
         for ml in md_lines:
-            text_to_write = concatenate_string(text_to_write, ml.text)
+            text_to_write = concatenate_text(text_to_write, ml.text)
         # self.text_to_write = text_to_write
         return text_to_write
 

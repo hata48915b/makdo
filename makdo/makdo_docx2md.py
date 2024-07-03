@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.04-06:32:36-JST>
+# Time-stamp:   <2024.07.04-07:08:32-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -59,7 +59,7 @@
 ############################################################
 # POLICY
 
-# document -> paragraph -> text -> string -> chars
+# document -> paragraph -> text -> chars -> imm
 
 
 ############################################################
