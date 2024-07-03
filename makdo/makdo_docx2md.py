@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.03-13:03:29-JST>
+# Time-stamp:   <2024.07.03-13:18:23-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6283,7 +6283,6 @@ class Paragraph:
         text_to_write = self.text_to_write
         pre_text_to_write = self.pre_text_to_write
         post_text_to_write = self.post_text_to_write
-        paragraph_class = self.paragraph_class
         attached_pagebreak = self.attached_pagebreak
         # LEFT SYMBOL
         has_left_sharp = False
@@ -7895,6 +7894,13 @@ class ParagraphAlignment(Paragraph):
                     md_text += ': ' + ln + '\n'
         md_text = re.sub('\n$', '', md_text)
         return md_text
+
+    def get_text_to_write_with_reviser(self):
+        ttwwr = super().get_text_to_write_with_reviser()
+        ttwwr = ttwwr.replace('\n', '')
+        text_to_write_with_reviser = ttwwr
+        # self.text_to_write_with_reviser = text_to_write_with_reviser
+        return text_to_write_with_reviser
 
 
 class ParagraphPreformatted(Paragraph):
