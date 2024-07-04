@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.04-07:08:32-JST>
+# Time-stamp:   <2024.07.04-11:17:29-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -3113,11 +3113,13 @@ class MathDatum:
     @classmethod
     def get_math_data(cls, xl, math_data):
         f_size = Form.font_size
+        # BEGINNING
         if re.match('^<m:oMath>$', xl):
             math_data = []
             math_data.append(MathDatum())
             math_data.append(MathDatum())
             return math_data, None
+        # END
         elif re.match('^</m:oMath>$', xl):
             if math_data[0].is_empty():
                 math_data.pop(0)
@@ -3322,7 +3324,7 @@ class MathDatum:
         # = {}_{A}B_{C}
         # --------------------------------------------------
         if xl == '<m:sPre>':
-            md_cur.append_fr_and_bk_fds('{}', '')
+            md_cur.append_fr_and_bk_fds('{}', '')  # "{}_{...}" or "{}^{...}"
             return math_data, None
         if xl == '</m:sPre>':
             return math_data, None
@@ -3387,12 +3389,14 @@ class MathDatum:
             return math_data, None
         if xl == '</m:f>':
             return math_data, None
+        # NUMERATOR
         if xl == '<m:num>':
             md_cur.append_fr_and_bk_fds('{', '')
             return math_data, None
         if xl == '</m:num>':
             md_pre.append_fr_and_bk_fds('', '}')
             return math_data, None
+        # DENOMINATOR
         if xl == '<m:den>':
             md_cur.append_fr_and_bk_fds('{', '')
             return math_data, None
@@ -3456,6 +3460,7 @@ class MathDatum:
         # --------------------------------------------------
         if xl == '<m:lim>':
             md_cur.append_fr_and_bk_fds('_{', '')
+            # "{\lim}" -> "\lim"
             if md_pre.chars == '\\lim':
                 if '{' in md_pre.fr_fd_lst:
                     md_pre.fr_fd_lst.remove('{')
@@ -3609,7 +3614,16 @@ class MathDatum:
         # or
         # = \begin{bmatrix}A&B\\C&D\\\end{bmatrix}
         # --------------------------------------------------
-        # MATRIX (BEGIN)
+        # MATRIX (BEGINNING)
+        if xl == '<m:m>':
+            md_cur.chars += '\\Xbegin{matrix}'
+            return math_data, None
+        # MATRIX (END)
+        if xl == '</m:m>':
+            md_cur.chars += '\\Xend{matrix}'
+            math_data.append(MathDatum())
+            return math_data, None
+        # MATRIX (PARENTHESES BEGINNING)
         if xl == '<m:d>':
             md_cur.chars += '(<()>'
             return math_data, None
@@ -3623,7 +3637,7 @@ class MathDatum:
             md_cur.chars = re.sub('\\(<(.?)(.)>$', '(<\\g<1>' + ec + '>',
                                   md_cur.chars)
             return math_data, None
-        # MATRIX (END)
+        # MATRIX (PARENTHESES END)
         if xl == '</m:d>':
             res = '(.*)\\(<(.?)(.?)>(.*)$'
             end = ')'
@@ -3648,16 +3662,9 @@ class MathDatum:
                         md_cur.append_fr_and_bk_fds('', fd)
                     break
             md_cur.chars += end
-            math_data.append(MathDatum())
+            math_data.append(MathDatum())  # no "<w:rPr/>" or "</w:rPr>"
             return math_data, None
-        # MATRIX (CELLS)
-        if xl == '<m:m>':
-            md_cur.chars += '\\Xbegin{matrix}'
-            return math_data, None
-        if xl == '</m:m>':
-            md_cur.chars += '\\Xend{matrix}'
-            math_data.append(MathDatum())
-            return math_data, None
+        # BREAK ROW
         if xl == '</m:mr>':
             md_cur.fr_fd_lst.insert(0, '\\\\')
             return math_data, None
