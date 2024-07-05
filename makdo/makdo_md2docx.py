@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.04-07:07:54-JST>
+# Time-stamp:   <2024.07.05-17:12:28-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1186,10 +1186,10 @@ class IO:
             opts['w:restart'] = 'newPage'
             opts['w:distance'] = '567'  # 567≒20*72/2.54=1cm
             XML.add_tag(ms_doc.sections[0]._sectPr, 'w:lnNumType', opts)
-        self.make_styles(ms_doc)
+        self._make_styles(ms_doc)
         return ms_doc
 
-    def make_styles(self, ms_doc):
+    def _make_styles(self, ms_doc):
         m_size = Form.font_size
         line_spacing = Form.line_spacing
         # NORMAL
@@ -2205,7 +2205,7 @@ class XML:
             font = chars_state.gothic_font
         else:
             font = chars_state.mincho_font
-        af, kf = XML.get_ascii_and_kanji_font(font)
+        af, kf = XML._get_ascii_and_kanji_font(font)
         opt = {'w:ascii': af, 'w:hAnsi': af, 'w:eastAsia': kf}
         oe2 = XML.add_tag(oe1, 'w:rFonts', opt)
         # ITALIC
@@ -2245,13 +2245,13 @@ class XML:
 
     @staticmethod
     def set_font(style_or_run, font):
-        af, kf = XML.get_ascii_and_kanji_font(font)
+        af, kf = XML._get_ascii_and_kanji_font(font)
         style_or_run.font.name = af
         style_or_run.element.rPr.rFonts.set(ns.qn('w:eastAsia'), kf)
         # style_or_run._element.rPr.rFonts.set(ns.qn('w:eastAsia'), kf)
 
     @staticmethod
-    def get_ascii_and_kanji_font(font):
+    def _get_ascii_and_kanji_font(font):
         fs = (font + '/').split('/')
         af = fs[0]
         af = re.sub('^\\s+', '', af)
@@ -2313,14 +2313,20 @@ class Math:
         # ADD MATH TAG
         oe1 = XML.add_tag(oe0, 'm:oMath')
         # PREPARE
-        chars = cls._prepare(chars)
+        chars = cls._prepare_chars(chars)
         # WRITE
+        is_italic = chars_state.is_italic
+        chars_state.is_italic = True
         chars = cls._write_math_exp(oe1, chars_state, chars)
+        chars_state.is_italic = is_italic
         # RETURN
         return chars
 
     @classmethod
-    def _prepare(cls, chars):
+    def _prepare_chars(cls, chars):
+        # FONT WIDTH
+        chars \
+            = re.sub('(\\\\scalebox{' + RES_NUMBER + '})\\[1\\]', '\\1', chars)
         chars = re.sub('^\\\\\\[(.*)\\\\\\]$', '{\\1}', chars)
         chars = cls._envelop_command(chars)
         chars = cls._replace_symbol(chars)
@@ -2343,16 +2349,18 @@ class Math:
                 imm = re.sub(res1, '\\1{\\2}', imm)
             imm = re.sub(NOT_ESCAPED + '(\\\\\\\\)$', '\\1{\\2}', imm)
             # FONT SIZE
-            imm = re.sub('{\\\\tiny}$', '{\\\\tiny}{', imm)
-            imm = re.sub('{\\\\scriptsize}$', '{\\\\scriptsize}{', imm)
-            imm = re.sub('{{\\\\footnotesize}$', '{\\\\footnotesize}{', imm)
-            imm = re.sub('{{\\\\small}$', '{\\\\small}{', imm)
-            imm = re.sub('{{\\\\normalsize}$', '{\\\\normalsize}{', imm)
-            imm = re.sub('{{\\\\large}$', '{\\\\large}{', imm)
-            imm = re.sub('{{\\\\Large}$', '{\\\\Large}{', imm)
-            imm = re.sub('{{\\\\LARGE}$', '{\\\\LARGE}{', imm)
-            imm = re.sub('{{\\\\huge}$', '{\\\\huge}{', imm)
-            imm = re.sub('{{\\\\Huge}$', '{\\\\Huge}{', imm)
+            # imm = re.sub('{{\\\\tiny}$', '{\\\\tiny}{', imm)
+            # imm = re.sub('{{\\\\scriptsize}$', '{\\\\scriptsize}{', imm)
+            # imm = re.sub('{{\\\\footnotesize}$', '{\\\\footnotesize}{', imm)
+            # imm = re.sub('{{\\\\small}$', '{\\\\small}{', imm)
+            # imm = re.sub('{{\\\\normalsize}$', '{\\\\normalsize}{', imm)
+            # imm = re.sub('{{\\\\large}$', '{\\\\large}{', imm)
+            # imm = re.sub('{{\\\\Large}$', '{\\\\Large}{', imm)
+            # imm = re.sub('{{\\\\LARGE}$', '{\\\\LARGE}{', imm)
+            # imm = re.sub('{{\\\\huge}$', '{\\\\huge}{', imm)
+            # imm = re.sub('{{\\\\Huge}$', '{\\\\Huge}{', imm)
+            # FONT WIDTH
+            # imm = re.sub('{{\\\\scalebox}$', '{\\\\scalebox}{', imm)
             # SPACE
             imm = re.sub('\\\\%$', '%0', imm)                   # "%"  -> "%0"
             imm = re.sub(NOT_ESCAPED + '\\\\,$', '\\1%1', imm)  # "\," -> "%1"
@@ -2412,7 +2420,7 @@ class Math:
     def _prepare_func(cls, chars):
         imm = ''
         for c in chars + '\0':
-            nubs = cls._get_nubs(imm)
+            nubs = cls.__get_nubs(imm)
             tmps = []
             while tmps != nubs:
                 tmps = []
@@ -2534,7 +2542,14 @@ class Math:
                     + 'normalsize|large|Large|LARGE|huge|Huge' \
                     + ')}$'
                 if (len(nubs) >= 2) and re.match(res, nubs[-2]):
-                    nubs[-2], nubs[-1] = cls._close_func(nubs[-2], nubs[-1])
+                    # nubs[-2], nubs[-1] = cls._close_func(nubs[-2], nubs[-1])
+                    pass
+                # FONT WIDTH
+                if (len(nubs) >= 3) \
+                   and re.match('{\\\\scalebox}', nubs[-3]) \
+                   and re.match('{' + RES_NUMBER + '}', nubs[-2]):
+                    # nubs[-3], nubs[-1] = cls._close_func(nubs[-3], nubs[-1])
+                    pass
                 # PARENTHESES
                 if (len(nubs) >= 1) and (nubs[-1] == '{-)}'):
                     for i in range(len(nubs) - 1, -1, -1):
@@ -2553,7 +2568,7 @@ class Math:
                                 = cls._close_func(nubs[i], nubs[-1])
                 # REMAKE
                 imm = ''.join(nubs)
-                nubs = cls._get_nubs(imm)
+                nubs = cls.__get_nubs(imm)
             if c != '\0':
                 imm += c
         chars = imm
@@ -2573,7 +2588,7 @@ class Math:
         return beg_str, end_str
 
     @staticmethod
-    def _get_nubs(imm):
+    def __get_nubs(imm):
         nubs = []
         nub = ''
         dep = 0
@@ -2684,9 +2699,9 @@ class Math:
         tmp = ''
         # ONE NUB
         if re.match('^[^{}]+$', chars):
-            cls._write_nub(oe0, chars_state, chars)
+            cls.__write_nub(oe0, chars_state, chars)
             return ''
-        nubs = cls._get_nubs(chars)
+        nubs = cls.__get_nubs(chars)
         # FUNCITON
         if False:
             pass
@@ -2833,6 +2848,13 @@ class Math:
             chars_state.font_scale = 2.0
             cls._write_math_exp(oe0, chars_state, nubs[1])
             chars_state.font_scale = 1.0
+        # FONT WIDTH
+        elif len(nubs) == 3 and nubs[0] == '{\\scalebox}':
+            if re.match('{(' + RES_NUMBER + ')}', nubs[1]):
+                wid = re.sub('{(' + RES_NUMBER + ')}', '\\1', nubs[1])
+                chars_state.font_width = float(wid)
+                cls._write_math_exp(oe0, chars_state, nubs[2])
+                chars_state.font_width = 1.0
         # ROMAN
         elif len(nubs) == 2 and nubs[0] == '{\\mathrm}':
             chars_state.is_italic = False
@@ -2874,7 +2896,7 @@ class Math:
             chars_state.track_changes = ''
         # ERROR
         elif (len(nubs) == 1) and (not re.match('^{.*}$', nubs[0])):
-            cls._write_nub(oe0, chars_state, chars)
+            cls.__write_nub(oe0, chars_state, chars)
         # RECURSION
         else:
             for n in nubs:
@@ -2882,7 +2904,7 @@ class Math:
         return ''
 
     @classmethod
-    def _write_nub(cls, oe0, chars_state, nub):
+    def __write_nub(cls, oe0, chars_state, nub):
         if nub == '':
             return
         nub = re.sub('%9', '  ', nub)
@@ -2897,16 +2919,16 @@ class Math:
             oe2 = XML.add_tag(oe1, 'w:ins', {})
         else:
             oe2 = oe1
-        cls._decorate_nub(oe2, chars_state)
+        cls.__decorate_nub(oe2, chars_state)
         oe3 = XML.add_tag(oe2, 'm:t', {}, nub)
 
     @classmethod
-    def _decorate_nub(cls, oe0, chars_state):
-        cls._decorate_nub_m(oe0, chars_state)
-        cls._decorate_nub_w(oe0, chars_state)
+    def __decorate_nub(cls, oe0, chars_state):
+        cls.__decorate_nub_m(oe0, chars_state)
+        cls.__decorate_nub_w(oe0, chars_state)
 
     @staticmethod
-    def _decorate_nub_m(oe0, chars_state):
+    def __decorate_nub_m(oe0, chars_state):
         oe1 = XML.add_tag(oe0, 'm:rPr', {})
         # LINE BREAK
         if chars_state.must_break_line:
@@ -2920,7 +2942,7 @@ class Math:
             oe2 = XML.add_tag(oe1, 'm:sty', {'m:val': 'p'})
 
     @staticmethod
-    def _decorate_nub_w(oe0, chars_state):
+    def __decorate_nub_w(oe0, chars_state):
         m_size = round(chars_state.font_size * chars_state.font_scale, 1)
         oe1 = XML.add_tag(oe0, 'w:rPr', {})
         # (FONT, ITALIC, BOLD)
@@ -2961,7 +2983,7 @@ class Math:
             oe3 = XML.add_tag(oe2, 'm:supHide', {'m:val': '1'})
         #
         oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        cls._decorate_nub_w(oe3, chars_state)
+        cls.__decorate_nub_w(oe3, chars_state)
         #
         oe2 = XML.add_tag(oe1, 'm:sub', {})
         if not (t1 == '' or t1 == '{}'):
@@ -2985,7 +3007,7 @@ class Math:
             oe3 = XML.add_tag(oe2, 'm:supHide', {'m:val': '1'})
         #
         oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        cls._decorate_nub_w(oe3, chars_state)
+        cls.__decorate_nub_w(oe3, chars_state)
         #
         oe2 = XML.add_tag(oe1, 'm:sub', {})
         if not (t1 == '' or t1 == '{}'):
@@ -3003,7 +3025,7 @@ class Math:
         #
         oe2 = XML.add_tag(oe1, 'm:sSubSupPr', {})
         oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        cls._decorate_nub_w(oe3, chars_state)
+        cls.__decorate_nub_w(oe3, chars_state)
         #
         oe2 = XML.add_tag(oe1, 'm:e', {})
         cls._write_math_exp(oe2, chars_state, t1)
@@ -3019,7 +3041,7 @@ class Math:
         #
         oe2 = XML.add_tag(oe1, 'm:sPrePr', {})
         oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        cls._decorate_nub_w(oe3, chars_state)
+        cls.__decorate_nub_w(oe3, chars_state)
         #
         oe2 = XML.add_tag(oe1, 'm:sub', {})
         cls._write_math_exp(oe2, chars_state, t2)
@@ -3030,7 +3052,7 @@ class Math:
         #
         oe4 = XML.add_tag(oe3, 'm:sSubPr', {})
         oe5 = XML.add_tag(oe4, 'm:ctrlPr', {})
-        cls._decorate_nub_w(oe5, chars_state)
+        cls.__decorate_nub_w(oe5, chars_state)
         #
         oe4 = XML.add_tag(oe3, 'm:e', {})
         cls._write_math_exp(oe4, chars_state, t1)
@@ -3045,7 +3067,7 @@ class Math:
         #
         oe2 = XML.add_tag(oe1, 'm:funcPr', {})
         oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        cls._decorate_nub_w(oe3, chars_state)
+        cls.__decorate_nub_w(oe3, chars_state)
         #
         oe2 = XML.add_tag(oe1, 'm:fName', {})
         if s == '_' or s == '{_}':
@@ -3055,7 +3077,7 @@ class Math:
         oe4 = XML.add_tag(oe3, 'm:e', {})
         oe5 = XML.add_tag(oe4, 'm:r', {})
         #
-        cls._decorate_nub_m(oe5, chars_state)
+        cls.__decorate_nub_m(oe5, chars_state)
         oe6 = XML.add_tag(oe5, 'm:t', {}, c)
         #
         if s == '_' or s == '{_}':
@@ -3078,7 +3100,7 @@ class Math:
             oe1 = XML.add_tag(oe0, 'm:sSup', {})
             oe2 = XML.add_tag(oe1, 'm:sSupPr', {})
         oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        cls._decorate_nub_w(oe3, chars_state)
+        cls.__decorate_nub_w(oe3, chars_state)
         oe2 = XML.add_tag(oe1, 'm:e', {})
         cls._write_math_exp(oe2, chars_state, t1)
         if s == '_' or s == '{_}':
@@ -3095,7 +3117,7 @@ class Math:
         #
         oe2 = XML.add_tag(oe1, 'm:fPr', {})
         oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        cls._decorate_nub_w(oe3, chars_state)
+        cls.__decorate_nub_w(oe3, chars_state)
         #
         oe2 = XML.add_tag(oe1, 'm:num', {})
         cls._write_math_exp(oe2, chars_state, t1)
@@ -3110,7 +3132,7 @@ class Math:
         oe2 = XML.add_tag(oe1, 'm:dPr', {})
         #
         oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        cls._decorate_nub(oe3, chars_state)
+        cls.__decorate_nub(oe3, chars_state)
         #
         oe2 = XML.add_tag(oe1, 'm:e', {})
         oe3 = XML.add_tag(oe2, 'm:f', {})
@@ -3118,7 +3140,7 @@ class Math:
         oe4 = XML.add_tag(oe3, 'm:fPr', {})
         oe5 = XML.add_tag(oe4, 'm:type', {'m:val': 'noBar'})
         oe5 = XML.add_tag(oe4, 'm:ctrlPr', {})
-        cls._decorate_nub_w(oe5, chars_state)
+        cls.__decorate_nub_w(oe5, chars_state)
         #
         oe4 = XML.add_tag(oe3, 'm:num', {})
         cls._write_math_exp(oe4, chars_state, t1)
@@ -3136,7 +3158,7 @@ class Math:
             oe3 = XML.add_tag(oe2, 'm:degHide', {'m:val': '1'})
         #
         oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        cls._decorate_nub_w(oe3, chars_state)
+        cls.__decorate_nub_w(oe3, chars_state)
         #
         oe2 = XML.add_tag(oe1, 'm:deg', {})
         cls._write_math_exp(oe2, chars_state, t1)
@@ -3151,19 +3173,19 @@ class Math:
         #
         oe2 = XML.add_tag(oe1, 'm:funcPr', {})
         oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        cls._decorate_nub_w(oe3, chars_state)
+        cls.__decorate_nub_w(oe3, chars_state)
         #
         oe2 = XML.add_tag(oe1, 'm:fName', {})
         oe3 = XML.add_tag(oe2, 'm:limLow', {})
         #
         oe4 = XML.add_tag(oe3, 'm:limLowPr', {})
         oe5 = XML.add_tag(oe4, 'm:ctrlPr', {})
-        cls._decorate_nub_w(oe5, chars_state)
+        cls.__decorate_nub_w(oe5, chars_state)
         #
         oe4 = XML.add_tag(oe3, 'm:e', {})
         oe5 = XML.add_tag(oe4, 'm:r', {})
         #
-        cls._decorate_nub_m(oe5, chars_state)
+        cls.__decorate_nub_m(oe5, chars_state)
         oe6 = XML.add_tag(oe5, 'm:t', {}, 'lim')
         oe4 = XML.add_tag(oe3, 'm:lim', {})
         cls._write_math_exp(oe4, chars_state, t1)
@@ -3178,12 +3200,12 @@ class Math:
         #
         oe2 = XML.add_tag(oe1, 'm:funcPr', {})
         oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        cls._decorate_nub_w(oe3, chars_state)
+        cls.__decorate_nub_w(oe3, chars_state)
         #
         oe2 = XML.add_tag(oe1, 'm:fName', {})
         oe3 = XML.add_tag(oe2, 'm:r', {})
         #
-        cls._decorate_nub_m(oe3, chars_state)
+        cls.__decorate_nub_m(oe3, chars_state)
         oe4 = XML.add_tag(oe3, 'm:t', {}, c)
         oe2 = XML.add_tag(oe1, 'm:e', {})
         cls._write_math_exp(oe2, chars_state, t1)
@@ -3197,7 +3219,7 @@ class Math:
         oe2 = XML.add_tag(oe1, 'm:accPr', {})
         oe3 = XML.add_tag(oe2, 'm:chr', {'m:val': '⃗'})
         oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        cls._decorate_nub(oe3, chars_state)
+        cls.__decorate_nub(oe3, chars_state)
         #
         oe2 = XML.add_tag(oe1, 'm:e', {})
         cls._write_math_exp(oe2, chars_state, t1)
@@ -3237,14 +3259,14 @@ class Math:
             oe3 = XML.add_tag(oe2, 'm:begChr', {'m:val': ''})
             oe3 = XML.add_tag(oe2, 'm:endChr', {'m:val': ''})
         oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        cls._decorate_nub(oe3, chars_state)
+        cls.__decorate_nub(oe3, chars_state)
         #
         oe2 = XML.add_tag(oe1, 'm:e', {})
         oe3 = XML.add_tag(oe2, 'm:m', {})
         #
         oe4 = XML.add_tag(oe3, 'm:mPr', {})
         oe5 = XML.add_tag(oe4, 'm:ctrlPr', {})
-        cls._decorate_nub(oe5, chars_state)
+        cls.__decorate_nub(oe5, chars_state)
         #
         for row in mtrx:
             oe4 = XML.add_tag(oe3, 'm:mr', {})
@@ -3260,7 +3282,7 @@ class Math:
         oe3 = XML.add_tag(oe2, 'm:begChr', {'m:val': t1[0]})
         oe3 = XML.add_tag(oe2, 'm:endChr', {'m:val': t1[1]})
         oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
-        cls._decorate_nub(oe3, chars_state)
+        cls.__decorate_nub(oe3, chars_state)
         oe2 = XML.add_tag(oe1, 'm:e', {})
         cls._write_math_exp(oe2, chars_state, t2)
 
@@ -3490,11 +3512,11 @@ class Document:
         host = socket.gethostname()
         if host is None:
             host = '-'
-        hh = self._get_hash(host)
+        hh = self.__get_hash(host)
         user = getpass.getuser()
         if user is None:
             user = '='
-        hu = self._get_hash(user)
+        hu = self.__get_hash(user)
         tt = Form.document_title
         if Form.document_style == 'n':
             ct = '（普通）'
@@ -3533,7 +3555,7 @@ class Document:
         # ms_cp.language = ''          # 言語
 
     @staticmethod
-    def _get_hash(st):
+    def __get_hash(st):
         # ''  owicwvnu
         # '-' sojfooxd
         # '=' empzhdhk
@@ -3897,7 +3919,7 @@ class Paragraph:
                                          self.md_lines)
         ParagraphList._apply_revisers(self.list_revisers,
                                       self.md_lines)
-        ParagraphList.reset_states(self.paragraph_class)
+        ParagraphList._reset_states(self.paragraph_class)
         # GET LENGTH
         self.length_revi = self._get_length_revi()
         self.length_conf = self._get_length_conf()
@@ -3975,10 +3997,10 @@ class Paragraph:
                 xdepth = len(trunk) - 1
                 ydepth = len(branc.replace(char, ''))
                 value = int(chval) - 1
-                cls._set_state(xdepth, ydepth, value, md_line)
+                cls.__set_state(xdepth, ydepth, value, md_line)
 
     @classmethod
-    def _set_state(cls, xdepth, ydepth, value, md_line):
+    def __set_state(cls, xdepth, ydepth, value, md_line):
         paragraph_class_ja = cls.paragraph_class_ja
         paragraph_class = cls.paragraph_class
         states = cls.states
@@ -4008,7 +4030,7 @@ class Paragraph:
                             md_line.append_warning_message(msg)
                     elif y == ydepth:
                         if value is None:
-                            states[x][y] += 1
+                            states[x][y] += 1  # step state
                         else:
                             states[x][y] = value
                     else:
@@ -4232,7 +4254,7 @@ class Paragraph:
                         ml.append_warning_message(msg)
                     pdepth = xdepth
                     head_strings += self._get_head_string(xdepth, ydepth, ml)
-                    self._step_state(xdepth, ydepth, ml)
+                    self.__step_state(xdepth, ydepth, ml)
                 if mlt != ml.text:
                     title = mlt
                     if re.match('^\\s+', title):
@@ -4262,8 +4284,8 @@ class Paragraph:
         return
 
     @classmethod
-    def _step_state(cls, xdepth, ydepth, md_line):
-        cls._set_state(xdepth, ydepth, None, md_line)
+    def __step_state(cls, xdepth, ydepth, md_line):
+        cls.__set_state(xdepth, ydepth, None, md_line)
 
     def _get_text_to_write(self):
         md_lines = self.md_lines
@@ -4297,14 +4319,14 @@ class Paragraph:
         if text_to_write_with_reviser == '':
             return
         if paragraph_class == 'alignment':
-            ms_par = self._get_ms_par(ms_doc)
+            ms_par = self.__get_ms_par(ms_doc)
             # WORD WRAP (英単語の途中で改行する)
             ms_ppr = ms_par._p.get_or_add_pPr()
             XML.add_tag(ms_ppr, 'w:wordWrap', {'w:val': '0'})
         elif paragraph_class == 'preformatted':
-            ms_par = self._get_ms_par(ms_doc, 'makdo-g')
+            ms_par = self.__get_ms_par(ms_doc, 'makdo-g')
         else:
-            ms_par = self._get_ms_par(ms_doc)
+            ms_par = self.__get_ms_par(ms_doc)
         if alignment == 'left':
             ms_par.alignment = WD_ALIGN_PARAGRAPH.LEFT
         elif alignment == 'center':
@@ -4329,7 +4351,7 @@ class Paragraph:
         self.end_chars_state = self.chars_state.copy()
         Paragraph.bridge_chars_state = self.end_chars_state.copy()
 
-    def _get_ms_par(self, ms_doc, par_style='makdo'):
+    def __get_ms_par(self, ms_doc, par_style='makdo'):
         length_docx = self.length_docx
         m_size = Form.font_size
         ms_par = ms_doc.add_paragraph(style=par_style)
@@ -4379,17 +4401,17 @@ class Paragraph:
         return ms_par
 
     def write_text(self, ms_par, chars_state, text, type='normal'):
-        text = self._replace_br_tag(text)
+        text = self.__replace_br_tag(text)
         chars = ''
         for c in text + '\0':
-            if not self._must_continue(chars, c):
-                chars = self._manage_chars(ms_par, chars_state, chars, c, type)
+            if not self.__must_continue(chars, c):
+                chars = self.__write_chars(ms_par, chars_state, chars, c, type)
             if c != '\0':
                 chars += c
         return chars
 
     @staticmethod
-    def _replace_br_tag(text):
+    def __replace_br_tag(text):
         tmp = ''
         res = NOT_ESCAPED + '<br/?>'
         while re.match(res, text):
@@ -4397,7 +4419,7 @@ class Paragraph:
         return text
 
     @staticmethod
-    def _must_continue(tex, c):
+    def __must_continue(tex, c):
         # RELAX
         if re.match(NOT_ESCAPED + RELAX_SYMBOL + '$', tex):
             return True      # "...<>"
@@ -4445,7 +4467,7 @@ class Paragraph:
         # ELSE
         return False
 
-    def _manage_chars(self, ms_par, chars_state, chars, c, type='normal'):
+    def __write_chars(self, ms_par, chars_state, chars, c, type='normal'):
         res_ivs = '^((?:.|\n)*?)([^0-9\\\\])([0-9]+);$'
         res_foc = NOT_ESCAPED + '\\^([0-9A-Za-z]{0,11})\\^$'
         res_hlc = NOT_ESCAPED + '_([0-9A-Za-z]{1,11})_$'
@@ -4454,7 +4476,7 @@ class Paragraph:
         elif re.match(NOT_ESCAPED + '<$', chars) and c == '>':
             # '<>' （RELAX） "<<<" (+ ">") = "<<" + "<" (+ ">")
             chars = re.sub('<$', '', chars)
-            chars = self._manage_chars(ms_par, chars_state, chars, '', type)
+            chars = self.__write_chars(ms_par, chars_state, chars, '', type)
             chars += '<'
         elif re.match(NOT_ESCAPED + '\\\\\\[$', chars):
             # "\[" (BEGINNING OF MATH EXPRESSION) (MUST FIRST)
@@ -4465,7 +4487,10 @@ class Paragraph:
               re.match(NOT_ESCAPED + '\\\\\\]$', chars)):
             # "\]" (END OF MATH EXPRESSION (MUST FIRST)
             chars = re.sub('^\\\\\\[(.*)\\\\\\]$', '\\1', chars)
-            chars = Math.write_chars(ms_par._p, CharsState(), chars)
+            is_italic = chars_state.is_italic
+            chars_state.is_italic = True
+            chars = Math.write_chars(ms_par._p, chars_state, chars)
+            chars_state.is_italic = is_italic
         elif re.match(NOT_ESCAPED + '((?:_|\\^){)$', chars):
             # "_{" or "^{" (BEGINNIG OF SUB OR SUP)
             subp = re.sub(NOT_ESCAPED + '((?:_|\\^){)$', '\\2', chars)
@@ -4488,7 +4513,7 @@ class Paragraph:
             alte = re.sub(NOT_ESCAPED + RES_IMAGE, '\\2', chars)
             chars = re.sub(NOT_ESCAPED + RES_IMAGE, '\\1', chars)
             chars = XML.write_chars(ms_par._p, chars_state, chars)
-            self._write_image(ms_par, chars_state, alte, path)
+            self.__write_image(ms_par, chars_state, alte, path)
         elif re.match(NOT_ESCAPED + '\\*\\*\\*$', chars):
             # "***" (ITALIC AND BOLD)
             chars = re.sub('\\*\\*\\*$', '', chars)
@@ -4715,7 +4740,7 @@ class Paragraph:
             chars = XML.write_chars(ms_par._p, chars_state, chars)
         return chars
 
-    def _write_image(self, ms_par, chars_state, alte, path):
+    def __write_image(self, ms_par, chars_state, alte, path):
         size = round(chars_state.font_size * chars_state.font_scale, 1)
         indent \
             = self.length_docx['first indent'] \
@@ -4961,8 +4986,8 @@ class ParagraphList(Paragraph):
         # self.tail_section_depth = tail_section_depth
         return head_section_depth, tail_section_depth
 
-    @staticmethod
-    def _get_proper_depth(full_text):
+    @classmethod
+    def _get_proper_depth(cls, full_text):
         full_text = re.sub('\u3000', '  ', full_text)
         full_text = re.sub('\t', '  ', full_text)
         full_text = re.sub('  ', ' ', full_text)
@@ -5031,7 +5056,7 @@ class ParagraphList(Paragraph):
         self.md_lines[n].text = head_strings + '\u3000' + line
 
     @classmethod
-    def reset_states(cls, paragraph_class):
+    def _reset_states(cls, paragraph_class):
         if paragraph_class != 'list':
             for s in cls.states:
                 s[0] = 0
@@ -5056,17 +5081,17 @@ class ParagraphTable(Paragraph):
         m_size = chars_state.font_size
         t_size = m_size * chars_state.font_scale
         # GET DATA
-        tab_lines = self._get_tab_lines(md_lines)
+        tab_lines = self.__get_tab_lines(md_lines)
         tab, conf_line_place, table_alignment, \
             col_alig_list, col_widt_list, col_rule_list, \
             row_alig_list, row_heig_list, row_rule_list \
-            = self._get_tab_data(tab_lines)
+            = self.__get_tab_data(tab_lines)
         cal, cwl, crl = col_alig_list, col_widt_list, col_rule_list
         tab, col_alig_mtrx, col_widt_mtrx, col_rule_mtrx \
-            = self._get_col_data(tab, conf_line_place, cal, cwl, crl)
+            = self.__get_col_data(tab, conf_line_place, cal, cwl, crl)
         ral, rhl, rrl = row_alig_list, row_heig_list, row_rule_list
         tab, row_alig_mtrx, row_heig_mtrx, row_rule_mtrx \
-            = self._get_row_data(tab, conf_line_place, ral, rhl, rrl)
+            = self.__get_row_data(tab, conf_line_place, ral, rhl, rrl)
         # hori_alig_list = col_alig_list
         hori_leng_list = col_widt_list
         hori_rule_list = col_rule_list
@@ -5155,7 +5180,7 @@ class ParagraphTable(Paragraph):
         Paragraph.bridge_chars_state = self.end_chars_state.copy()
 
     @staticmethod
-    def _get_tab_lines(md_lines):
+    def __get_tab_lines(md_lines):
         tab_lines = []
         tab_line = ''
         for ml in md_lines:
@@ -5168,7 +5193,7 @@ class ParagraphTable(Paragraph):
         return tab_lines
 
     @staticmethod
-    def _get_tab_data(tab_lines):
+    def __get_tab_data(tab_lines):
         tab = []
         conf_line_place = -1.0
         table_alignment = WD_TABLE_ALIGNMENT.CENTER
@@ -5293,8 +5318,8 @@ class ParagraphTable(Paragraph):
             row_alig_list, row_heig_list, row_rule_list
 
     @staticmethod
-    def _get_col_data(tab, conf_line_place,
-                      col_alig_list, col_widt_list, col_rule_list):
+    def __get_col_data(tab, conf_line_place,
+                       col_alig_list, col_widt_list, col_rule_list):
         col_alig_mtrx, col_widt_mtrx, col_rule_mtrx = [], [], []
         for i in range(len(tab)):
             ca, cw, cr = [], [], []
@@ -5324,8 +5349,8 @@ class ParagraphTable(Paragraph):
         return tab, col_alig_mtrx, col_widt_mtrx, col_rule_mtrx
 
     @staticmethod
-    def _get_row_data(tab, conf_line_place,
-                      row_alig_list, row_heig_list, row_rule_list):
+    def __get_row_data(tab, conf_line_place,
+                       row_alig_list, row_heig_list, row_rule_list):
         row_alig_mtrx, row_heig_mtrx, row_rule_mtrx = [], [], []
         for i in range(len(tab)):
             ra, rh, rr = [], [], []
@@ -5397,7 +5422,7 @@ class ParagraphImage(Paragraph):
             except BaseException:
                 e = ms_doc.paragraphs[-1]._element
                 e.getparent().remove(e)
-                ms_par = self._get_ms_par(ms_doc)
+                ms_par = self.__get_ms_par(ms_doc)
                 ms_par.add_run(text)
                 ms_par.alignment = WD_ALIGN_PARAGRAPH.CENTER
                 msg = '警告: ' \
@@ -5481,16 +5506,17 @@ class ParagraphMath(Paragraph):
         ttw = self.text_to_write
         hfr = self.head_font_revisers
         tfr = self.tail_font_revisers
+        chars_state = self.chars_state
         ms_par = ms_doc.add_paragraph()
         ms_par.style = 'makdo-m'
         ms_mpa = OxmlElement('m:oMathPara')
-        self._set_alignment(ms_par, ms_mpa)
-        self._set_lenght(ms_par)
-        self._set_font_revisers(hfr)
-        chars = Math.write_chars(ms_par._p, CharsState(), ttw)
-        self._set_font_revisers(tfr)
+        self.__set_alignment(ms_par, ms_mpa)
+        self.__set_length(ms_par)
+        self.__set_font_revisers(hfr)
+        chars = Math.write_chars(ms_par._p, chars_state, ttw)
+        self.__set_font_revisers(tfr)
 
-    def _set_alignment(self, ms_par, ms_mpa):
+    def __set_alignment(self, ms_par, ms_mpa):
         ms_mpp = OxmlElement('m:oMathParaPr')
         ms_mpa.append(ms_mpp)
         oe = OxmlElement('m:jc')
@@ -5505,7 +5531,7 @@ class ParagraphMath(Paragraph):
             oe.set(ns.qn('m:val'), 'center')                  # ms office
         ms_mpp.append(oe)
 
-    def _set_lenght(self, ms_par):
+    def __set_length(self, ms_par):
         length_docx = self.length_docx
         m_size = Form.font_size
         ms_fmt = ms_par.paragraph_format
@@ -5546,28 +5572,38 @@ class ParagraphMath(Paragraph):
             self.md_lines[0].append_warning_message(msg)
         ms_fmt.line_spacing = Pt(ls * m_size)
 
-    @staticmethod
-    def _set_font_revisers(font_revisers):
+    def __set_font_revisers(self, font_revisers):
+        chars_state = self.chars_state
         for fr in font_revisers:
             if False:
                 pass
             elif fr == '---':
-                Paragraph.font_scale = 0.6
+                chars_state.font_scale = 0.6
             elif fr == '--':
-                Paragraph.font_scale = 0.8
+                chars_state.font_scale = 0.8
             elif fr == '++':
-                Paragraph.font_scale = 1.2
+                chars_state.font_scale = 1.2
             elif fr == '+++':
-                Paragraph.font_scale = 1.4
+                chars_state.font_scale = 1.4
+            elif fr == '**':
+                if chars_state.is_bold:
+                    chars_state.is_bold = False
+                else:
+                    chars_state.is_bold = True
+            elif fr == '~~':
+                if chars_state.has_strike:
+                    chars_state.has_strike = False
+                else:
+                    chars_state.has_strike = True
             elif re.match('^_([\\$=\\.#\\-~\\+]{,4})_$', fr):
                 sty = re.sub('^_([\\$=\\.#\\-~\\+]{,4})_$', '\\1', fr)
                 if sty in UNDERLINE:
-                    if Paragraph.underline is None:
-                        Paragraph.underline = sty
-                    elif Paragraph.underline != sty:
-                        Paragraph.underline = sty
+                    if chars_state.underline is None:
+                        chars_state.underline = sty
+                    elif chars_state.underline != sty:
+                        chars_state.underline = sty
                     else:
-                        Paragraph.underline = None
+                        chars_state.underline = None
             elif re.match('^\\^([0-9A-Za-z]{0,11})\\^$', fr):
                 col = re.sub('^\\^([0-9A-Za-z]{0,11})\\^$', '\\1', fr)
                 if col == '':
@@ -5578,22 +5614,22 @@ class ParagraphMath(Paragraph):
                 elif col in FONT_COLOR:
                     col = FONT_COLOR[col]
                 if re.match('^[0-9A-F]{6}$', col):
-                    if Paragraph.font_color is None:
-                        Paragraph.font_color = col
-                    elif Paragraph.font_color is col:
-                        Paragraph.font_color = col
+                    if chars_state.font_color is None:
+                        chars_state.font_color = col
+                    elif chars_state.font_color is col:
+                        chars_state.font_color = col
                     else:
-                        Paragraph.font_color = None
+                        chars_state.font_color = None
             elif re.match('^_([0-9A-Za-z]{1,11})_$', fr):
                 col = re.sub('^_([0-9A-Za-z]{1,11})_$', '\\1', fr)
                 if col in HIGHLIGHT_COLOR:
                     hc = HIGHLIGHT_COLOR[col]
-                    if Paragraph.highlight_color is None:
-                        Paragraph.highlight_color = hc
-                    elif Paragraph.highlight_color != hc:
-                        Paragraph.highlight_color = hc
+                    if chars_state.highlight_color is None:
+                        chars_state.highlight_color = hc
+                    elif chars_state.highlight_color != hc:
+                        chars_state.highlight_color = hc
                     else:
-                        Paragraph.highlight_color = None
+                        chars_state.highlight_color = None
 
 
 class ParagraphAlignment(Paragraph):
@@ -5851,13 +5887,13 @@ class MdLine:
     def __init__(self, line_number, raw_text):
         self.line_number = line_number
         self.raw_text = raw_text
-        self.spaced_text, self.comment = self.separate_comment(self.raw_text)
+        self.spaced_text, self.comment = self._separate_comment(self.raw_text)
         self.beg_space, self.text, self.end_space \
-            = self.separate_spaces(self.spaced_text)
+            = self._separate_spaces(self.spaced_text)
         self.warning_messages = []
 
     @staticmethod
-    def separate_comment(raw_text):
+    def _separate_comment(raw_text):
         com_sep = ' / '
         spaced_text = ''
         comment = ''
@@ -5890,7 +5926,7 @@ class MdLine:
         return spaced_text, comment
 
     @staticmethod
-    def separate_spaces(spaced_text):
+    def _separate_spaces(spaced_text):
         text = spaced_text
         res = '^(\\s+)(.*?)$'
         beg_space = ''
@@ -5925,13 +5961,19 @@ class MdLine:
 
 class Script:
 
+    constant = {'pi': '3.141592653589793', 'e': '2.718281828459045'}
+
     def __init__(self, md_lines):
-        self.valuables = {'pi': '3.141592653589793', 'e': '2.718281828459045'}
-        for i in range(0, 10):
-            md_lines = self.execute(md_lines, i)
         self.md_lines = md_lines
 
-    def execute(self, md_lines, n):
+    def execute(self):
+        md_lines = self.md_lines
+        for i in range(0, 10):
+            md_lines = self.__execute_at_level(md_lines, i)
+        # self.md_lines = md_lines
+        return md_lines
+
+    def __execute_at_level(self, md_lines, n):
         is_in_math = False
         is_in_script = False
         tmp_text = ''
@@ -5945,7 +5987,7 @@ class Script:
                 if re.match(NOT_ESCAPED + '\\\\\\]', tmp_text):
                     is_in_math = False
                 if not is_in_script:
-                    if self.is_script_beginning(tmp_text, n):
+                    if self.__is_script_beginning(tmp_text, n):
                         if (not is_in_math) or \
                            (not re.match('^(.|\n)*{{', tmp_text)):
                             tmp_text = re.sub('{.?{$', '', tmp_text)
@@ -5953,11 +5995,11 @@ class Script:
                             tmp_text = ''
                             is_in_script = True
                 else:
-                    if self.is_script_end(tmp_text, n):
+                    if self.__is_script_end(tmp_text, n):
                         if (not is_in_math) or \
                            (not re.match('^(.|\n)*}}', tmp_text)):
                             tmp_text = re.sub('}.?}$', '', tmp_text)
-                            new_text += self.execute_script(tmp_text, ml)
+                            new_text += self.__execute_script(tmp_text, ml)
                             tmp_text = ''
                             is_in_script = False
             else:
@@ -5966,13 +6008,13 @@ class Script:
                         new_text += tmp_text
                         tmp_text = ''
                     else:
-                        new_text += self.execute_script(tmp_text, ml)
+                        new_text += self.__execute_script(tmp_text, ml)
                         tmp_text = ''
             ml.text = new_text
         return md_lines
 
     @staticmethod
-    def is_script_beginning(text, n):
+    def __is_script_beginning(text, n):
         if n == 1:
             if re.match(NOT_ESCAPED + '{1?{$', text):
                 return True
@@ -5982,7 +6024,7 @@ class Script:
         return False
 
     @staticmethod
-    def is_script_end(text, n):
+    def __is_script_end(text, n):
         if n == 1:
             if re.match(NOT_ESCAPED + '}1?}$', text):
                 return True
@@ -5991,7 +6033,7 @@ class Script:
                 return True
         return False
 
-    def execute_script(self, script, md_line):
+    def __execute_script(self, script, md_line):
         text_to_print = ''
         scr = script
         scr = re.sub('<br>$', '', scr)
@@ -6009,8 +6051,8 @@ class Script:
                 # SUBSTITUTE ("x = y ? z")
                 var = re.sub('^\\s*(.*?)\\s*=\\s*(.*?)\\s*$', '\\1', one)
                 val = re.sub('^\\s*(.*?)\\s*=\\s*(.*?)\\s*$', '\\2', one)
-                cal = self.calc_value(val, md_line)
-                self.valuables[var] = cal
+                cal = self.__calc_value(val, md_line)
+                self.constant[var] = cal
             elif re.match('^\\s*print\\s*\\((.*)\\)\\s*$', one):
                 # PRINT ("print(x ? y)")
                 val = re.sub('^\\s*print\\s*\\((.*)\\)\\s*$', '\\1', one)
@@ -6019,7 +6061,7 @@ class Script:
                     opt = re.sub('^(.*),\\s*["\'](.*)["\']$', '\\2', val)
                     val = re.sub('^(.*),\\s*["\'](.*)["\']$', '\\1', val)
                 val = re.sub('^\\s*str\\s*\\((.*)\\)\\s*$', '\\1', val)
-                cal = self.calc_value(val, md_line)
+                cal = self.__calc_value(val, md_line)
                 if re.match('^\\.[0-9]+$', cal):
                     cal = '0' + cal
                 adj = cal
@@ -6068,7 +6110,7 @@ class Script:
                 md_line.append_warning_message(msg)
         return text_to_print
 
-    def calc_value(self, value, md_line):
+    def __calc_value(self, value, md_line):
         val = value
         # NEW LINE
         val = re.sub('\\\\n', '\n', val)
@@ -6085,7 +6127,7 @@ class Script:
                 tmp = ''
                 dep = 1
             elif dep == 1 and c == ')':
-                cal = self.calc_value(tmp, md_line)
+                cal = self.__calc_value(tmp, md_line)
                 if re.match('(^|[^a-zA-Z0-9])int\\s*$', new):
                     new = re.sub('int\\s*$', '', new) + str(int(float(cal)))
                 else:
@@ -6110,8 +6152,8 @@ class Script:
             if par == '':
                 if re.match(res, tmp) and re.match('^[^_a-zA-Z0-9]$', c):
                     var = re.sub(res, '\\2', tmp)
-                    if var in self.valuables:
-                        tmp = re.sub(res, '\\g<1>' + self.valuables[var], tmp)
+                    if var in self.constant:
+                        tmp = re.sub(res, '\\g<1>' + self.constant[var], tmp)
                     else:
                         msg = '※ 警告: ' \
                             + '「' + var + '」という変数は未定義です'
@@ -6145,13 +6187,13 @@ class Script:
         if re.match(res, val):
             return re.sub(res, "'\\1\\2'", val)
         # BINARY OPERATE (x^y, x**y, x/y, x//y, x%y, x*y, x-y, x+y)
-        val = self.binary_operate('\\^|\\*\\*', val, md_line)
-        val = self.binary_operate('/|//|%|\\*', val, md_line)
-        val = self.binary_operate('\\-|\\+', val, md_line)
+        val = self.__binary_operate('\\^|\\*\\*', val, md_line)
+        val = self.__binary_operate('/|//|%|\\*', val, md_line)
+        val = self.__binary_operate('\\-|\\+', val, md_line)
         # RETURN
         return val
 
-    def binary_operate(self, res_ope, val, md_line):
+    def __binary_operate(self, res_ope, val, md_line):
         res = '^((?:.*?\\s+)?)' + \
             '(-?(?:[0-9,]*\\.)?[0-9,]+|〓)' + \
             '\\s*(' + res_ope + ')\\s*' + \
@@ -6250,8 +6292,7 @@ class Md2Docx:
         frm.args = args
         frm.configure()
         # EXECUTE SCRIPT
-        scr = Script(doc.md_lines)
-        doc.md_lines = scr.md_lines
+        doc.md_lines = Script(doc.md_lines).execute()
         # GET RAW PARAGRAPHS
         doc.raw_paragraphs = doc.get_raw_paragraphs(doc.md_lines)
 

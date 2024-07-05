@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.04-11:17:29-JST>
+# Time-stamp:   <2024.07.05-18:14:53-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1117,20 +1117,54 @@ class IO:
         self.inputed_md_file = None
         self.docx_file = None
         self.md_file = None
-        self.temp_dir_inst = None
+        self.temp_dir_instance = None
         self.temp_dir = None
         self.docx_input = None
-        self.md_file_inst = None
+        self.md_file_instance = None
         # SUBSTITUTE
-        self.temp_dir_inst = tempfile.TemporaryDirectory()
-        self.temp_dir = self.temp_dir_inst.name
+        self.temp_dir_instance = tempfile.TemporaryDirectory()
+        self.temp_dir = self.temp_dir_instance.name
 
     def set_docx_file(self, inputed_docx_file):
         docx_file = inputed_docx_file
-        if not self._verify_input_file(docx_file):
+        if not self.__verify_input_file(docx_file):
             return False
         self.inputed_docx_file = inputed_docx_file
         self.docx_file = docx_file
+        return True
+
+    @staticmethod
+    def __verify_input_file(input_file):
+        if input_file == '-':
+            return True
+        if not os.path.exists(input_file):
+            msg = '※ エラー: ' \
+                + '入力ファイル「' + input_file + '」がありません'
+            # msg = 'error: ' \
+            #     + 'no input file "' + input_file + '"'
+            sys.stderr.write(msg + '\n\n')
+            if __name__ == '__main__':
+                sys.exit(101)
+            return False
+        if not os.path.isfile(input_file):
+            msg = '※ エラー: ' \
+                + '入力「' + input_file + '」はファイルではありません'
+            # msg = 'error: ' \
+            #     + 'not a file "' + input_file + '"'
+            sys.stderr.write(msg + '\n\n')
+            if __name__ == '__main__':
+                sys.exit(102)
+            return False
+        if not os.access(input_file, os.R_OK):
+            msg = '※ エラー: ' \
+                + '入力ファイル「' + input_file + '」に読込権限が' \
+                + 'ありません'
+            # msg = 'error: ' \
+            #     + 'unreadable "' + input_file + '"'
+            sys.stderr.write(msg + '\n\n')
+            if __name__ == '__main__':
+                sys.exit(103)
+            return False
         return True
 
     def unpack_docx_file(self):
@@ -1160,23 +1194,65 @@ class IO:
                 md_file = re.sub('\\.docx$', '.md', inputed_docx_file)
             else:
                 md_file = inputed_docx_file + '.md'
-        if not self._verify_output_file(md_file):
+        if not self.__verify_output_file(md_file):
             return False
-        if not self._verify_older(docx_file, md_file):
+        if not self.__verify_older(docx_file, md_file):
             return False
         self.inputed_md_file = inputed_md_file
         self.md_file = md_file
         return True
 
+    @staticmethod
+    def __verify_output_file(output_file):
+        if output_file == '-':
+            return True
+        if not os.path.exists(output_file):
+            return True
+        if not os.path.isfile(output_file):
+            msg = '※ エラー: ' \
+                + '出力「' + output_file + '」はファイルではありません'
+            # msg = 'error: ' \
+            #     + 'not a file "' + output_file + '"'
+            sys.stderr.write(msg + '\n\n')
+            if __name__ == '__main__':
+                sys.exit(202)
+            return False
+        if not os.access(output_file, os.W_OK):
+            msg = '※ エラー: ' \
+                + '出力ファイル「' + output_file + '」に書込権限が' \
+                + 'ありません'
+            # msg = 'error: ' \
+            #     + 'unwritable "' + output_file + '"'
+            sys.stderr.write(msg + '\n\n')
+            if __name__ == '__main__':
+                sys.exit(203)
+            return False
+        return True
+
+    @staticmethod
+    def __verify_older(input_file, output_file):
+        if input_file != '-' and os.path.exists(input_file) and \
+           output_file != '-' and os.path.exists(output_file):
+            if os.path.getmtime(input_file) < os.path.getmtime(output_file):
+                msg = '※ エラー: ' \
+                    + '出力ファイルの方が入力ファイルよりも新しいです'
+                # msg = 'error: ' \
+                #     + 'overwriting a newer file'
+                sys.stderr.write(msg + '\n\n')
+                if __name__ == '__main__':
+                    sys.exit(301)
+                return False
+        return True
+
     def open_md_file(self):
-        self.md_file_inst = MdFile(self.md_file)
-        self.md_file_inst.open()
+        self.md_file_instance = MdFile(self.md_file)
+        self.md_file_instance.open_file()
 
     def write_md_file(self, article):
-        self.md_file_inst.write(article)
+        self.md_file_instance.write_file(article)
 
     def close_md_file(self):
-        self.md_file_inst.close()
+        self.md_file_instance.close_file()
 
     def save_images(self, images):
         media_dir = self.media_dir
@@ -1184,11 +1260,11 @@ class IO:
             return
         if media_dir == '':
             return
-        self._make_media_dir(media_dir)
-        self._copy_images(images)
+        self.__make_media_dir(media_dir)
+        self.__copy_images(images)
 
     @staticmethod
-    def _make_media_dir(media_dir):
+    def __make_media_dir(media_dir):
         if os.path.exists(media_dir):
             if not os.path.isdir(media_dir):
                 msg = '※ 警告: ' \
@@ -1210,7 +1286,7 @@ class IO:
                 sys.stderr.write(msg + '\n\n')
                 return False
 
-    def _copy_images(self, images):
+    def __copy_images(self, images):
         temp_dir = self.temp_dir
         media_dir = self.media_dir
         for img in images:
@@ -1261,82 +1337,6 @@ class IO:
                 media_dir = md_file + '.dir'
         # self.media_dir = media_dir
         return media_dir
-
-    @staticmethod
-    def _verify_input_file(input_file):
-        if input_file == '-':
-            return True
-        if not os.path.exists(input_file):
-            msg = '※ エラー: ' \
-                + '入力ファイル「' + input_file + '」がありません'
-            # msg = 'error: ' \
-            #     + 'no input file "' + input_file + '"'
-            sys.stderr.write(msg + '\n\n')
-            if __name__ == '__main__':
-                sys.exit(101)
-            return False
-        if not os.path.isfile(input_file):
-            msg = '※ エラー: ' \
-                + '入力「' + input_file + '」はファイルではありません'
-            # msg = 'error: ' \
-            #     + 'not a file "' + input_file + '"'
-            sys.stderr.write(msg + '\n\n')
-            if __name__ == '__main__':
-                sys.exit(102)
-            return False
-        if not os.access(input_file, os.R_OK):
-            msg = '※ エラー: ' \
-                + '入力ファイル「' + input_file + '」に読込権限が' \
-                + 'ありません'
-            # msg = 'error: ' \
-            #     + 'unreadable "' + input_file + '"'
-            sys.stderr.write(msg + '\n\n')
-            if __name__ == '__main__':
-                sys.exit(103)
-            return False
-        return True
-
-    @staticmethod
-    def _verify_output_file(output_file):
-        if output_file == '-':
-            return True
-        if not os.path.exists(output_file):
-            return True
-        if not os.path.isfile(output_file):
-            msg = '※ エラー: ' \
-                + '出力「' + output_file + '」はファイルではありません'
-            # msg = 'error: ' \
-            #     + 'not a file "' + output_file + '"'
-            sys.stderr.write(msg + '\n\n')
-            if __name__ == '__main__':
-                sys.exit(202)
-            return False
-        if not os.access(output_file, os.W_OK):
-            msg = '※ エラー: ' \
-                + '出力ファイル「' + output_file + '」に書込権限が' \
-                + 'ありません'
-            # msg = 'error: ' \
-            #     + 'unwritable "' + output_file + '"'
-            sys.stderr.write(msg + '\n\n')
-            if __name__ == '__main__':
-                sys.exit(203)
-            return False
-        return True
-
-    @staticmethod
-    def _verify_older(input_file, output_file):
-        if input_file != '-' and os.path.exists(input_file) and \
-           output_file != '-' and os.path.exists(output_file):
-            if os.path.getmtime(input_file) < os.path.getmtime(output_file):
-                msg = '※ エラー: ' \
-                    + '出力ファイルの方が入力ファイルよりも新しいです'
-                # msg = 'error: ' \
-                #     + 'overwriting a newer file'
-                sys.stderr.write(msg + '\n\n')
-                if __name__ == '__main__':
-                    sys.exit(301)
-                return False
-        return True
 
 
 class DocxFile:
@@ -1424,13 +1424,13 @@ class MdFile:
         # SUBSTITUTE
         self.md_file = md_file
 
-    def open(self):
+    def open_file(self):
         md_file = self.md_file
         # OPEN
         if md_file == '-':
             md_output = sys.stdout
         else:
-            self._save_old_file(md_file)
+            self.__save_old_file(md_file)
             try:
                 md_output = open(md_file, 'w', encoding='utf-8', newline='\n')
             except BaseException:
@@ -1445,14 +1445,14 @@ class MdFile:
         self.md_output = md_output
         return True
 
-    def write(self, article):
+    def write_file(self, article):
         self.md_output.write(article)
 
-    def close(self):
+    def close_file(self):
         self.md_output.close()
 
     @staticmethod
-    def _save_old_file(output_file):
+    def __save_old_file(output_file):
         if output_file == '-':
             return True
         backup_file = output_file + '~'
@@ -1649,19 +1649,19 @@ class Form:
             else:
                 Form.document_style = 'j'
         # STATISTICS
-        afont = self._get_max(afonts)
-        jfont = self._get_max(jfonts)
+        afont = self.__get_max(afonts)
+        jfont = self.__get_max(jfonts)
         if jfont != '':
             if afont == '' or afont == jfont:
                 Form.mincho_font = '= / ' + jfont
             else:
                 Form.mincho_font = afont + ' / ' + jfont
-        fsize = self._get_max(fsizes)
+        fsize = self.__get_max(fsizes)
         if re.match('^[0-9]+$', fsize):
             Form.font_size = round(float(fsize) / 2, 1)
 
     @staticmethod
-    def _get_max(values):
+    def __get_max(values):
         maximum, value = 0, ''
         for v in values:
             if maximum < values[v]:
@@ -1848,8 +1848,8 @@ class Form:
         # HEADER STRING
         chars_data, images \
             = RawParagraph._get_chars_data_and_images('', xml_lines, 'header')
-        raw_text = RawParagraph._get_raw_text(chars_data)
-        alignment = RawParagraph._get_alignment(xml_lines)
+        raw_text = RawParagraph.get_raw_text(chars_data)
+        alignment = RawParagraph.get_alignment(xml_lines)
         if alignment == 'center':
             raw_text = ': ' + raw_text + ' :'
         elif alignment == 'right':
@@ -1862,8 +1862,8 @@ class Form:
         # PAGE NUMBER
         chars_data, images \
             = RawParagraph._get_chars_data_and_images('', xml_lines, 'footer')
-        raw_text = RawParagraph._get_raw_text(chars_data)
-        alignment = RawParagraph._get_alignment(xml_lines)
+        raw_text = RawParagraph.get_raw_text(chars_data)
+        alignment = RawParagraph.get_alignment(xml_lines)
         if alignment == 'center':
             raw_text = ': ' + raw_text + ' :'
         elif alignment == 'right':
@@ -1978,22 +1978,22 @@ class Form:
 
     @staticmethod
     def set_top_margin(value, item='top_margin'):
-        return Form._set_margin(value, item)
+        return Form.__set_margin(value, item)
 
     @staticmethod
     def set_bottom_margin(value, item='bottom_margin'):
-        return Form._set_margin(value, item)
+        return Form.__set_margin(value, item)
 
     @staticmethod
     def set_left_margin(value, item='left_margin'):
-        return Form._set_margin(value, item)
+        return Form.__set_margin(value, item)
 
     @staticmethod
     def set_right_margin(value, item='right_margin'):
-        return Form._set_margin(value, item)
+        return Form.__set_margin(value, item)
 
     @staticmethod
-    def _set_margin(value, item):
+    def __set_margin(value, item):
         if value is None:
             return False
         value = unicodedata.normalize('NFKC', value)
@@ -2198,11 +2198,11 @@ class Form:
 
     @classmethod
     def get_configurations(cls):
-        return cls.get_configurations_in_japanese()
-        # return cls.get_configurations_in_english()
+        return cls._get_configurations_in_japanese()
+        # return cls._get_configurations_in_english()
 
     @classmethod
-    def get_configurations_in_english(cls):
+    def _get_configurations_in_english(cls):
         cfgs = ''
         cfgs += \
             '<!-----------------------[CONFIGRATIONS]-------------------------'
@@ -2236,7 +2236,7 @@ class Form:
         return cfgs
 
     @classmethod
-    def get_configurations_in_japanese(cls):
+    def _get_configurations_in_japanese(cls):
         cfgs = ''
 
         cfgs += \
@@ -2631,15 +2631,15 @@ class CharsDatum:
         if ('^{' in fr_fd_lst) and ('_{' not in fr_fd_lst):
             if ('}' in bk_fd_lst) and ('^}' not in bk_fd_lst):
                 bk_fd_lst = ['^}' if fd == '}' else fd for fd in bk_fd_lst]
-        self.set_fr_fd_cls(fr_fd_lst)
-        self.set_bk_fd_cls(bk_fd_lst)
+        self.__set_fr_fd_cls(fr_fd_lst)
+        self.__set_bk_fd_cls(bk_fd_lst)
 
-    def set_fr_fd_cls(self, fr_fd_lst):
+    def __set_fr_fd_cls(self, fr_fd_lst):
         if type(fr_fd_lst) == str:
             fr_fd_lst = [fr_fd_lst]
         self.fr_fd_cls.set_fds(fr_fd_lst)
 
-    def set_bk_fd_cls(self, bk_fd_lst):
+    def __set_bk_fd_cls(self, bk_fd_lst):
         if type(bk_fd_lst) == str:
             bk_fd_lst = [bk_fd_lst]
         self.bk_fd_cls.set_fds(bk_fd_lst)
@@ -2650,165 +2650,165 @@ class CharsDatum:
 
     def get_chars_with_fds(self):
         cwf = self.chars
-        frs = self.get_fr_fds_chars()
-        bks = self.get_bk_fds_chars()
-        cwf = self.concatenate_chars(frs, cwf)
-        cwf = self.concatenate_chars(cwf, bks)
+        frs = self.__get_fr_fds_chars()
+        bks = self.__get_bk_fds_chars()
+        cwf = self.concatenate_imm(frs, cwf)
+        cwf = self.concatenate_imm(cwf, bks)
         return cwf
 
     @staticmethod
-    def prepare_chars(fldchar, chars, type='normal'):
+    def prepare_imm(fldchar, imm, type='normal'):
         # ESCAPE
-        chars = chars.replace('\\', '\\\\')
-        chars = chars.replace('*', '\\*')
-        chars = chars.replace('`', '\\`')
-        chars = chars.replace('~~', '\\~\\~')
-        chars = chars.replace('//', '\\/\\/')  # italic
-        chars = re.sub('([a-z]+:)\\\\/\\\\/', '\\1//', chars)  # http https ftp
-        chars = chars.replace('--', '\\-\\-')          # --
-        chars = chars.replace('\\-\\--', '\\-\\-\\-')  # ---
-        chars = chars.replace('++', '\\+\\+')          # ++
-        chars = chars.replace('\\+\\++', '\\+\\+\\+')  # +++
-        chars = chars.replace('>>', '\\>\\>')          # >>
-        chars = chars.replace('\\>\\>>', '\\>\\>\\>')  # >>>
-        chars = chars.replace('<<', '\\<\\<')          # <<
-        chars = chars.replace('\\<\\<<', '\\<\\<\\<')  # <<<
-        # chars = chars.replace('__', '\\_\\_')
-        chars = re.sub('@([^@]{1,66})@', '\\\\@\\1\\\\@', chars)
-        chars = re.sub('_([\\$=\\.#\\-~\\+]*)_', '\\\\_\\1\\\\_', chars)
-        chars = re.sub('\\^([0-9a-zA-Z]+)\\^', '\\\\^\\1\\\\^', chars)
-        chars = re.sub('_([0-9a-zA-Z]+)_', '\\\\_\\1\\\\_', chars)
-        chars = chars.replace('->', '\\->')
-        chars = chars.replace('<-', '\\<-')
-        chars = chars.replace('+>', '\\+>')
-        chars = chars.replace('<+', '\\<+')
-        # chars = chars.replace('\\[', '\\[')
-        # chars = chars.replace('\\]', '\\]')
-        chars = chars.replace('{{', '\\{{')
-        chars = chars.replace('}}', '\\}}')
-        chars = chars.replace('&lt;', '\\&lt;')
-        chars = chars.replace('&gt;', '\\&gt;')
-        chars = chars.replace('\\&lt-;', '\\&lt;\\-')  # "<-"
-        chars = chars.replace('-\\&gt;', '\\-\\&gt;')  # "->"
-        chars = chars.replace('\\&lt;+', '\\&lt;\\+')  # "<+"
-        chars = chars.replace('+\\&gt;', '\\+\\&gt;')  # "+>"
+        imm = imm.replace('\\', '\\\\')
+        imm = imm.replace('*', '\\*')
+        imm = imm.replace('`', '\\`')
+        imm = imm.replace('~~', '\\~\\~')
+        imm = imm.replace('//', '\\/\\/')  # italic
+        imm = re.sub('([a-z]+:)\\\\/\\\\/', '\\1//', imm)  # http https ftp
+        imm = imm.replace('--', '\\-\\-')          # --
+        imm = imm.replace('\\-\\--', '\\-\\-\\-')  # ---
+        imm = imm.replace('++', '\\+\\+')          # ++
+        imm = imm.replace('\\+\\++', '\\+\\+\\+')  # +++
+        imm = imm.replace('>>', '\\>\\>')          # >>
+        imm = imm.replace('\\>\\>>', '\\>\\>\\>')  # >>>
+        imm = imm.replace('<<', '\\<\\<')          # <<
+        imm = imm.replace('\\<\\<<', '\\<\\<\\<')  # <<<
+        # imm = imm.replace('__', '\\_\\_')
+        imm = re.sub('@([^@]{1,66})@', '\\\\@\\1\\\\@', imm)
+        imm = re.sub('_([\\$=\\.#\\-~\\+]*)_', '\\\\_\\1\\\\_', imm)
+        imm = re.sub('\\^([0-9a-zA-Z]+)\\^', '\\\\^\\1\\\\^', imm)
+        imm = re.sub('_([0-9a-zA-Z]+)_', '\\\\_\\1\\\\_', imm)
+        imm = imm.replace('->', '\\->')
+        imm = imm.replace('<-', '\\<-')
+        imm = imm.replace('+>', '\\+>')
+        imm = imm.replace('<+', '\\<+')
+        # imm = imm.replace('\\[', '\\[')
+        # imm = imm.replace('\\]', '\\]')
+        imm = imm.replace('{{', '\\{{')
+        imm = imm.replace('}}', '\\}}')
+        imm = imm.replace('&lt;', '\\&lt;')
+        imm = imm.replace('&gt;', '\\&gt;')
+        imm = imm.replace('\\&lt-;', '\\&lt;\\-')  # "<-"
+        imm = imm.replace('-\\&gt;', '\\-\\&gt;')  # "->"
+        imm = imm.replace('\\&lt;+', '\\&lt;\\+')  # "<+"
+        imm = imm.replace('+\\&gt;', '\\+\\&gt;')  # "+>"
         # PAGE NUMBER
         if type == 'footer':
             if fldchar == 'begin':
                 res = '^ ?(\\S*)\\s*\\\\\\\\\\\\\\* MERGEFORMAT ?$'
-                if re.match(res, chars):
-                    chars = re.sub(res, '\\1', chars)
-                if re.match('^ ?PAGE ?$', chars, re.I):
-                    chars = 'n'
-                elif re.match('^ ?SECTIONPAGES ?$', chars, re.I):
+                if re.match(res, imm):
+                    imm = re.sub(res, '\\1', imm)
+                if re.match('^ ?PAGE ?$', imm, re.I):
+                    imm = 'n'
+                elif re.match('^ ?SECTIONPAGES ?$', imm, re.I):
                     # "SECTIONPAGES" IS NOT SUPPORTOD BY LIBREOFFICE
-                    chars = 'N'
-                elif re.match('^ ?NUMPAGES ?$', chars, re.I):
-                    chars = 'M'
+                    imm = 'N'
+                elif re.match('^ ?NUMPAGES ?$', imm, re.I):
+                    imm = 'M'
             else:
-                chars = re.sub('(n|N|M)', '\\\\\\1', chars)
+                imm = re.sub('(n|N|M)', '\\\\\\1', imm)
         # RETURN
-        return chars
+        return imm
 
     @staticmethod
-    def concatenate_chars(chars1, chars2):
+    def concatenate_imm(imm1, imm2):
         # "~" + "~"
-        if re.match(NOT_ESCAPED + '~$', chars1) and re.match('^~', chars2):
-            return chars1 + '<>' + chars2
+        if re.match(NOT_ESCAPED + '~$', imm1) and re.match('^~', imm2):
+            return imm1 + '<>' + imm2
         # "/" + "/"
-        if re.match(NOT_ESCAPED + '/$', chars1) and re.match('^/', chars2):
-            return chars1 + '<>' + chars2
+        if re.match(NOT_ESCAPED + '/$', imm1) and re.match('^/', imm2):
+            return imm1 + '<>' + imm2
         # "-" + "-"
-        if re.match(NOT_ESCAPED + '-$', chars1) and re.match('^-', chars2):
-            return chars1 + '<>' + chars2
+        if re.match(NOT_ESCAPED + '-$', imm1) and re.match('^-', imm2):
+            return imm1 + '<>' + imm2
         # "+" + "+"
-        if re.match(NOT_ESCAPED + '\\+$', chars1) and re.match('^\\+', chars2):
-            return chars1 + '<>' + chars2
+        if re.match(NOT_ESCAPED + '\\+$', imm1) and re.match('^\\+', imm2):
+            return imm1 + '<>' + imm2
         # ">" + ">"
-        if re.match(NOT_ESCAPED + '>$', chars1) and re.match('^>', chars2):
-            return chars1 + '<>' + chars2
+        if re.match(NOT_ESCAPED + '>$', imm1) and re.match('^>', imm2):
+            return imm1 + '<>' + imm2
         # "<" + "<"
-        if re.match(NOT_ESCAPED + '<$', chars1) and re.match('^<', chars2):
-            return chars1 + '<>' + chars2
+        if re.match(NOT_ESCAPED + '<$', imm1) and re.match('^<', imm2):
+            return imm1 + '<>' + imm2
         # "<" + ">"
-        if re.match(NOT_ESCAPED + '<$', chars1) and re.match('^>', chars2):
-            return chars1 + '<>' + chars2
+        if re.match(NOT_ESCAPED + '<$', imm1) and re.match('^>', imm2):
+            return imm1 + '<>' + imm2
         # "@.*" + ".*@"
-        if re.match(NOT_ESCAPED + '@([^@]{0,66})$', chars1) and \
-           not re.match(NOT_ESCAPED + '@([^@]{1,66})@[^@]*$', chars1) and \
-           re.match('^([^@]{0,66})@(.|\n)*', chars2) and \
-           not re.match('^[^@]*@([^@]{1,66})@(.|\n)*', chars2):
-            c1 = re.sub(NOT_ESCAPED + '@([^@]{0,66})$', '\\2', chars1)
-            c2 = re.sub('^([^@]{0,66})@(.|\n)*', '\\1', chars2)
+        if re.match(NOT_ESCAPED + '@([^@]{0,66})$', imm1) and \
+           not re.match(NOT_ESCAPED + '@([^@]{1,66})@[^@]*$', imm1) and \
+           re.match('^([^@]{0,66})@(.|\n)*', imm2) and \
+           not re.match('^[^@]*@([^@]{1,66})@(.|\n)*', imm2):
+            c1 = re.sub(NOT_ESCAPED + '@([^@]{0,66})$', '\\2', imm1)
+            c2 = re.sub('^([^@]{0,66})@(.|\n)*', '\\1', imm2)
             if len(c1 + c2) <= 66:
-                return chars1 + '<>' + chars2
+                return imm1 + '<>' + imm2
         # "_.*" + ".*_"
-        if re.match(NOT_ESCAPED + '_([\\$=\\.#\\-~\\+]*)$', chars1) and \
-           re.match('^([\\$=\\.#\\-~\\+]*)_(.|\n)*', chars2):
-            c1 = re.sub(NOT_ESCAPED + '_([\\$=\\.#\\-~\\+]*)$', '\\2', chars1)
-            c2 = re.sub('^([\\$=\\.#\\-~\\+]*)_(.|\n)*', '\\1', chars2)
+        if re.match(NOT_ESCAPED + '_([\\$=\\.#\\-~\\+]*)$', imm1) and \
+           re.match('^([\\$=\\.#\\-~\\+]*)_(.|\n)*', imm2):
+            c1 = re.sub(NOT_ESCAPED + '_([\\$=\\.#\\-~\\+]*)$', '\\2', imm1)
+            c2 = re.sub('^([\\$=\\.#\\-~\\+]*)_(.|\n)*', '\\1', imm2)
             for ul in UNDERLINE:
                 if c1 + c2 == UNDERLINE[ul]:
-                    return chars1 + '<>' + chars2
+                    return imm1 + '<>' + imm2
         # "^.*" + ".*^"
-        if re.match(NOT_ESCAPED + '\\^([0-9a-zA-Z]*)$', chars1) and \
-           re.match('^([0-9a-zA-Z]*)\\^(.|\n)*', chars2):
-            c1 = re.sub(NOT_ESCAPED + '\\^([0-9a-zA-Z]*)$', '\\2', chars1)
-            c2 = re.sub('^([0-9a-zA-Z]*)\\^(.|\n)*', '\\1', chars2)
+        if re.match(NOT_ESCAPED + '\\^([0-9a-zA-Z]*)$', imm1) and \
+           re.match('^([0-9a-zA-Z]*)\\^(.|\n)*', imm2):
+            c1 = re.sub(NOT_ESCAPED + '\\^([0-9a-zA-Z]*)$', '\\2', imm1)
+            c2 = re.sub('^([0-9a-zA-Z]*)\\^(.|\n)*', '\\1', imm2)
             if re.match('^([0-9A-F]{3})([0-9A-F]{3})?$', c1 + c2):
-                return chars1 + '<>' + chars2
+                return imm1 + '<>' + imm2
             for fc in FONT_COLOR:
                 if c1 + c2 == FONT_COLOR[fc]:
-                    return chars1 + '<>' + chars2
+                    return imm1 + '<>' + imm2
         # "_.*" + ".*_"
-        if re.match(NOT_ESCAPED + '_([0-9a-zA-Z]*)$', chars1) and \
-           re.match('^([0-9a-zA-Z]*)_(.|\n)*', chars2):
-            c1 = re.sub(NOT_ESCAPED + '_([0-9a-zA-Z]*)$', '\\2', chars1)
-            c2 = re.sub('^([0-9a-zA-Z]*)_(.|\n)*', '\\1', chars2)
+        if re.match(NOT_ESCAPED + '_([0-9a-zA-Z]*)$', imm1) and \
+           re.match('^([0-9a-zA-Z]*)_(.|\n)*', imm2):
+            c1 = re.sub(NOT_ESCAPED + '_([0-9a-zA-Z]*)$', '\\2', imm1)
+            c2 = re.sub('^([0-9a-zA-Z]*)_(.|\n)*', '\\1', imm2)
             for hc in HIGHLIGHT_COLOR:
                 if (c1 + c2 == hc) or (c1 + c2 == HIGHLIGHT_COLOR[hc]):
-                    return chars1 + '<>' + chars2
+                    return imm1 + '<>' + imm2
         # "-|+" + ">"
-        # if re.match(NOT_ESCAPED + '(-|\\+)$', chars1) and \
-        #    re.match('^>', chars2):
-        #     return chars1 + '<>' + chars2
+        # if re.match(NOT_ESCAPED + '(-|\\+)$', imm1) and \
+        #    re.match('^>', imm2):
+        #     return imm1 + '<>' + imm2
         # "<" + "-|+"
-        # if re.match(NOT_ESCAPED + '<$', chars1) and \
-        #    re.match('^(-|\\+)', chars2):
-        #     return chars1 + '<>' + chars2
+        # if re.match(NOT_ESCAPED + '<$', imm1) and \
+        #    re.match('^(-|\\+)', imm2):
+        #     return imm1 + '<>' + imm2
         # "\" + "[|]"
-        # if re.match(NOT_ESCAPED + '\\\\$', chars1) and \
-        #    re.match('^(\\[|\\])', chars2):
-        #     return chars1 + '<>' + chars2
-        return chars1 + chars2
+        # if re.match(NOT_ESCAPED + '\\\\$', imm1) and \
+        #    re.match('^(\\[|\\])', imm2):
+        #     return imm1 + '<>' + imm2
+        return imm1 + imm2
 
-    def get_fr_fds_chars(self):
-        return self.fr_fd_cls._get_ord_fds()
+    def __get_fr_fds_chars(self):
+        return self.fr_fd_cls.get_ord_fds()
 
-    def get_bk_fds_chars(self):
-        return self.bk_fd_cls._get_rev_fds()
+    def __get_bk_fds_chars(self):
+        return self.bk_fd_cls.get_rev_fds()
 
-    def is_empty(self):
-        if self.chars != '':
-            return False
-        if not self._is_same_fds():
-            return False
-        return True
+    # def is_empty(self):
+    #     if self.chars != '':
+    #         return False
+    #     if not self.__is_same_fds():
+    #         return False
+    #     return True
 
-    def _is_same_fds(self):
-        if FontDecorators._is_same(self.fr_fd_cls, self.bk_fd_cls):
-            return True
-        return False
-
-    @staticmethod
-    def cancel_fds(l_cd, r_cd):
-        r_cd.fr_fd_cls, l_cd.bk_fd_cls \
-            = FontDecorator._cancel_fds(r_cd.fr_fd_cls, l_cd.bk_fd_cls)
-        return l_cd, r_cd
+    # def __is_same_fds(self):
+    #     if FontDecorators.is_same(self.fr_fd_cls, self.bk_fd_cls):
+    #         return True
+    #     return False
 
     @staticmethod
-    def are_consecutive(l_cd, r_cd):
-        return FontDecorator._is_same(r_cd.fr_fd_cls, l_cd.bk_fd_cls)
+    def cancel_fd_cls(lft_cd, rgt_cd):
+        rgt_cd.fr_fd_cls, lft_cd.bk_fd_cls \
+            = FontDecorator.cancel_fds(rgt_cd.fr_fd_cls, lft_cd.bk_fd_cls)
+        return lft_cd, rgt_cd
+
+    @staticmethod
+    def are_consecutive(lft_cd, rgt_cd):
+        return FontDecorator.is_same(rgt_cd.fr_fd_cls, lft_cd.bk_fd_cls)
 
 
 class FontDecorator:
@@ -2832,7 +2832,11 @@ class FontDecorator:
         self.sub_or_sup = ''        # SUB OR SUP (_{ / _} / ^{ / ^})
         # self.track_changes = ''     # TRACK CHANGES (-> / <- / +> / <+)
 
-    def set_fd(self, fd_str):
+    def set_fds(self, fds):
+        for fd in fds:
+            self.__set_fd(fd)
+
+    def __set_fd(self, fd_str):
         if re.match('^`$', fd_str):
             self.font_name = fd_str        # FONT NAME (`)
         elif (re.match('^@.+@$', fd_str) and
@@ -2861,11 +2865,20 @@ class FontDecorator:
         elif re.match('^\\->|<\\-|\\+>|<\\+$', fd_str):
             self.track_changes = fd_str    # TRACK CHANGES (-> / <- / +> / <+)
 
-    def set_fds(self, fds):
-        for fd in fds:
-            self.set_fd(fd)
+    # def is_empty(self):
+    #     if self.get_ord_fds() != '':
+    #         return False
+    #     if self.get_rev_fds() != '':
+    #         return False
+    #     return True
 
-    def _get_ordered_list(self):
+    def get_ord_fds(self):
+        return ''.join(self.__get_ordered_list())
+
+    def get_rev_fds(self):
+        return ''.join(self.__get_ordered_list()[::-1])
+
+    def __get_ordered_list(self):
         return [self.font_name,
                 re.sub('\\.0', '', self.font_size),
                 self.font_scale,
@@ -2879,21 +2892,8 @@ class FontDecorator:
                 re.sub('^[_\\^]}$', '}', self.sub_or_sup),
                 self.track_changes]
 
-    def _get_ord_fds(self):
-        return ''.join(self._get_ordered_list())
-
-    def _get_rev_fds(self):
-        return ''.join(self._get_ordered_list()[::-1])
-
-    def is_empty(self):
-        if self._get_ord_fds() != '':
-            return False
-        if self._get_rev_fds() != '':
-            return False
-        return True
-
     @staticmethod
-    def _is_same(fr_fd_cls, bk_fd_cls):
+    def is_same(fr_fd_cls, bk_fd_cls):
         fr, bk = fr_fd_cls, bk_fd_cls
         if fr.font_name != bk.font_name:
             return False
@@ -2927,7 +2927,7 @@ class FontDecorator:
         return True
 
     @staticmethod
-    def _cancel_fds(fr_fd_cls, bk_fd_cls):
+    def cancel_fds(fr_fd_cls, bk_fd_cls):
         fr, bk = fr_fd_cls, bk_fd_cls
         if fr.font_name == bk.font_name:
             fr.font_name, bk.font_name = '', ''
@@ -3005,9 +3005,9 @@ class MathDatum:
             if bk_fd_str in self.bk_fd_lst:
                 self.bk_fd_lst.remove(bk_fd_str)
 
-    def reset_fds(self):
-        self.fr_fd_lst = []
-        self.bk_fd_lst = []
+    # def reset_fds(self):
+    #     self.fr_fd_lst = []
+    #     self.bk_fd_lst = []
 
     def is_empty(self):
         if self.chars == '':
@@ -3016,7 +3016,12 @@ class MathDatum:
                     return True
         return False
 
-    def get_fr_chars(self):
+    def get_chars_with_fds(self):
+        chars_with_fds \
+            = self.__get_fr_chars() + self.chars + self.__get_bk_chars()
+        return chars_with_fds
+
+    def __get_fr_chars(self):
         fr_chars = ''
         for fd in self.fr_fd_lst:
             if False:
@@ -3039,8 +3044,24 @@ class MathDatum:
                 fr_chars += '{\\huge{'
             elif fd == 's+5':
                 fr_chars += '{\\Huge{'
-            elif re.match('^w-[1-4]$', fd) or re.match('^w-[1-5]$', fd):
-                fr_chars += '{{'  # width (not implemented)
+            elif fd == 'w-4':
+                fr_chars += '{\\scalebox{0.2}[1]{'
+            elif fd == 'w-3':
+                fr_chars += '{\\scalebox{0.4}[1]{'
+            elif fd == 'w-2':
+                fr_chars += '{\\scalebox{0.6}[1]{'
+            elif fd == 'w-1':
+                fr_chars += '{\\scalebox{0.8}[1]{'
+            elif fd == 'w+1':
+                fr_chars += '{\\scalebox{1.2}[1]{'
+            elif fd == 'w+2':
+                fr_chars += '{\\scalebox{1.4}[1]{'
+            elif fd == 'w+3':
+                fr_chars += '{\\scalebox{1.6}[1]{'
+            elif fd == 'w+4':
+                fr_chars += '{\\scalebox{1.8}[1]{'
+            elif fd == 'w+5':
+                fr_chars += '{\\scalebox{2.0}[1]{'
             elif fd == 'r':
                 fr_chars += '{\\mathrm{'
             elif fd == 'b':
@@ -3063,7 +3084,7 @@ class MathDatum:
                 fr_chars += fd
         return fr_chars
 
-    def get_bk_chars(self):
+    def __get_bk_chars(self):
         bk_chars = ''
         for fd in self.bk_fd_lst[::-1]:
             if False:
@@ -3095,7 +3116,7 @@ class MathDatum:
         return bk_chars
 
     @staticmethod
-    def cancel_fds(math_data):
+    def cancel_fd_lst(math_data):
         if len(math_data) == 0:
             return math_data
         for i in range(len(math_data)):
@@ -3672,15 +3693,14 @@ class MathDatum:
 
     @classmethod
     def _get_math_chars_datum(cls, math_data):
-        math_data = cls.cancel_fds(math_data)
+        math_data = cls.cancel_fd_lst(math_data)
+        fr_fd_cls, math_data[0].fr_fd_lst \
+            = MathDatum.extract_fr_fd_cls(math_data[0].fr_fd_lst)
+        bk_fd_cls, math_data[-1].bk_fd_lst \
+            = MathDatum.extract_bk_fd_cls(math_data[-1].bk_fd_lst)
         math_str = ''
-        for i, md in enumerate(math_data):
-            if i == 0:
-                math_str += md.get_fr_chars() + md.chars + md.get_bk_chars()
-            elif i < len(math_data) - 1:
-                math_str += md.get_fr_chars() + md.chars + md.get_bk_chars()
-            else:
-                math_str += md.get_fr_chars() + md.chars + md.get_bk_chars()
+        for md in math_data:
+            math_str += md.get_chars_with_fds()
         math_str = cls._shape_math_matrix(math_str)
         math_str = cls._shape_math_binomial(math_str)
         math_str = cls._shape_sub_and_sup(math_str)
@@ -3689,6 +3709,8 @@ class MathDatum:
             = re.sub('\\\\mathrm{(' + RES_NUMBER + ')}', '\\1', math_str)
         math_str = re.sub('{([=\\-\\+\\±])}', '\\1', math_str)
         math_chars_datum = CharsDatum([], '\\[' + math_str + '\\]', [])
+        math_chars_datum.fr_fd_cls = fr_fd_cls
+        math_chars_datum.bk_fd_cls = bk_fd_cls
         return math_chars_datum
 
     @staticmethod
@@ -3851,6 +3873,98 @@ class MathDatum:
             tmp = math_str
             math_str = re.sub(res, '{}_{\\1}{\\2}_{\\3}', math_str)
         return math_str
+
+    @staticmethod
+    def extract_fr_fd_cls(fr_fd_lst):
+        fr_fd_cls, fr_fd_lst = MathDatum.extract_xx_fd_cls(fr_fd_lst)
+        for fd in fr_fd_lst[::-1]:
+            if False:
+                pass
+            elif fd == 'w-2':
+                fr_fd_cls.font_width = '>>>'
+                fr_fd_lst.remove(fd)
+            elif fd == 'w-1':
+                fr_fd_cls.font_width = '>>'
+                fr_fd_lst.remove(fd)
+            elif fd == 'w+1':
+                fr_fd_cls.font_width = '<<'
+                fr_fd_lst.remove(fd)
+            elif fd == 'w+2':
+                fr_fd_cls.font_width = '<<<'
+                fr_fd_lst.remove(fd)
+            elif fd == 'd':
+                fr_fd_cls.font_width = '->'
+                fr_fd_lst.remove(fd)
+            elif fd == 'i':
+                fr_fd_cls.font_width = '+>'
+                fr_fd_lst.remove(fd)
+        return fr_fd_cls, fr_fd_lst
+
+    @staticmethod
+    def extract_bk_fd_cls(bk_fd_lst):
+        bk_fd_cls, bk_fd_lst = MathDatum.extract_xx_fd_cls(bk_fd_lst)
+        for fd in bk_fd_lst[::-1]:
+            if False:
+                pass
+            elif fd == 'w-2':
+                bk_fd_cls.font_width = '<<<'
+                bk_fd_lst.remove(fd)
+            elif fd == 'w-1':
+                bk_fd_cls.font_width = '<<'
+                bk_fd_lst.remove(fd)
+            elif fd == 'w+1':
+                bk_fd_cls.font_width = '>>'
+                bk_fd_lst.remove(fd)
+            elif fd == 'w+2':
+                bk_fd_cls.font_width = '>>>'
+                bk_fd_lst.remove(fd)
+            elif fd == 'd':
+                bk_fd_cls.font_width = '<-'
+                bk_fd_lst.remove(fd)
+            elif fd == 'i':
+                bk_fd_cls.font_width = '<+'
+                bk_fd_lst.remove(fd)
+        return bk_fd_cls, bk_fd_lst
+
+    @staticmethod
+    def extract_xx_fd_cls(xx_fd_lst):
+        xx_fd_cls = FontDecorator([])
+        for fd in xx_fd_lst[::-1]:
+            if False:
+                pass
+            elif fd == 's-2':
+                xx_fd_cls.font_scale = '---'
+                xx_fd_lst.remove(fd)
+            elif fd == 's-1':
+                xx_fd_cls.font_scale = '--'
+                xx_fd_lst.remove(fd)
+            elif fd == 's+1':
+                xx_fd_cls.font_scale = '++'
+                xx_fd_lst.remove(fd)
+            elif fd == 's+2':
+                xx_fd_cls.font_scale = '+++'
+                xx_fd_lst.remove(fd)
+            elif fd == 'b':
+                xx_fd_cls.bold = '**'
+                xx_fd_lst.remove(fd)
+            elif fd == 's':
+                xx_fd_cls.strike = '~~'
+                xx_fd_lst.remove(fd)
+            elif fd == 'u':
+                xx_fd_cls.strike = '__'
+                xx_fd_lst.remove(fd)
+            elif re.match('^c=', fd):
+                c = re.sub('^c=', '', fd)
+                if c == 'white':
+                    xx_fd_cls.font_color = '^^'
+                else:
+                    xx_fd_cls.font_color = '^' + c + '^'
+                xx_fd_lst.remove(fd)
+            elif re.match('^h=', fd):
+                c = re.sub('^h=', '', fd)
+                xx_fd_cls.font_color = '_' + c + '_'
+                xx_fd_lst.remove(fd)
+        return xx_fd_cls, xx_fd_lst
 
 
 class XML:
@@ -4070,9 +4184,9 @@ class Document:
                         mt = re.sub('\n+$', '', mt)
                         p.md_text = mt
                         p.md_lines_text = p._get_md_lines_text(p.md_text)
-                        p.text_to_write = p.get_text_to_write()
+                        p.text_to_write = p._get_text_to_write()
                         p.text_to_write_with_reviser \
-                            = p.get_text_to_write_with_reviser()
+                            = p._get_text_to_write_with_reviser()
         return self.paragraphs
 
     def _modpar_blank_paragraph_to_space_before(self):
@@ -4084,7 +4198,7 @@ class Document:
         for i, p in enumerate(self.paragraphs):
             if p.has_removed:
                 continue
-            p_next = self._get_next_paragraph(self.paragraphs, i)
+            p_next = self.__get_next_paragraph(self.paragraphs, i)
             if p.paragraph_class == 'blank':
                 v_line = p.md_text.count('\n') + 1.0
                 p.md_text = ''
@@ -4093,9 +4207,9 @@ class Document:
                 p.length_revi = p._get_length_revi()
                 p.length_revisers = p._get_length_revisers(p.length_revi)
                 # p.md_lines_text = p._get_md_lines_text(p.md_text)
-                # p.text_to_write = p.get_text_to_write()
+                # p.text_to_write = p._get_text_to_write()
                 p.text_to_write_with_reviser \
-                    = p.get_text_to_write_with_reviser()
+                    = p._get_text_to_write_with_reviser()
                 p.paragraph_class = 'empty'
             if p.paragraph_class == 'empty' and p_next is not None:
                 lg_sb = p.length_revi['space before']
@@ -4111,17 +4225,17 @@ class Document:
                 p.length_revi = p._get_length_revi()
                 p.length_revisers = p._get_length_revisers(p.length_revi)
                 # p.md_lines_text = p._get_md_lines_text(p.md_text)
-                # p.text_to_write = p.get_text_to_write()
+                # p.text_to_write = p._get_text_to_write()
                 p.text_to_write_with_reviser \
-                    = p.get_text_to_write_with_reviser()
+                    = p._get_text_to_write_with_reviser()
                 p_next.length_revi = p_next._get_length_revi()
                 p_next.length_revisers \
                     = p_next._get_length_revisers(p_next.length_revi)
                 # p_next.md_lines_text \
                 #     = p_next._get_md_lines_text(p_next.md_text)
-                # p_next.text_to_write = p_next.get_text_to_write()
+                # p_next.text_to_write = p_next._get_text_to_write()
                 p_next.text_to_write_with_reviser \
-                    = p_next.get_text_to_write_with_reviser()
+                    = p_next._get_text_to_write_with_reviser()
         return self.paragraphs
 
     # ARTICLE TITLE (MIMI=EAR)
@@ -4142,7 +4256,7 @@ class Document:
         for i, p in enumerate(self.paragraphs):
             if p.has_removed:
                 continue
-            p_prev = self._get_prev_paragraph(self.paragraphs, i)
+            p_prev = self.__get_prev_paragraph(self.paragraphs, i)
             if p.paragraph_class == 'section' and \
                p.head_section_depth == 2 and \
                p.tail_section_depth == 2 and \
@@ -4158,15 +4272,15 @@ class Document:
                     = p_prev._get_length_revisers(p_prev.length_revi)
                 # p_prev.md_lines_text \
                 #     = p_prev._get_md_lines_text(p_prev.md_text)
-                # p_prev.text_to_write = p_prev.get_text_to_write()
+                # p_prev.text_to_write = p_prev._get_text_to_write()
                 p_prev.text_to_write_with_reviser \
-                    = p_prev.get_text_to_write_with_reviser()
+                    = p_prev._get_text_to_write_with_reviser()
                 p.length_revi = p._get_length_revi()
                 p.length_revisers = p._get_length_revisers(p.length_revi)
                 # p.md_lines_text = p._get_md_lines_text(p.md_text)
-                # p.text_to_write = p.get_text_to_write()
+                # p.text_to_write = p._get_text_to_write()
                 p.text_to_write_with_reviser \
-                    = p.get_text_to_write_with_reviser()
+                    = p._get_text_to_write_with_reviser()
         return self.paragraphs
 
     def _modpar_section_space_before_and_after(self):
@@ -4182,8 +4296,8 @@ class Document:
         for i, p in enumerate(self.paragraphs):
             if p.has_removed:
                 continue
-            p_prev = self._get_prev_paragraph(self.paragraphs, i)
-            p_next = self._get_next_paragraph(self.paragraphs, i)
+            p_prev = self.__get_prev_paragraph(self.paragraphs, i)
+            p_next = self.__get_next_paragraph(self.paragraphs, i)
             # TITLE
             ds = ParagraphSection._get_section_depths(p.raw_text_doi,
                                                       not p.has_removed)
@@ -4249,25 +4363,25 @@ class Document:
                     = p_prev._get_length_revisers(p_prev.length_revi)
                 # p_prev.md_lines_text \
                 #     = p_prev._get_md_lines_text(p_prev.md_text)
-                # p_prev.text_to_write = p_prev.get_text_to_write()
+                # p_prev.text_to_write = p_prev._get_text_to_write()
                 p_prev.text_to_write_with_reviser \
-                    = p_prev.get_text_to_write_with_reviser()
+                    = p_prev._get_text_to_write_with_reviser()
             if True:
                 p.length_revi = p._get_length_revi()
                 p.length_revisers = p._get_length_revisers(p.length_revi)
                 # p.md_lines_text = p._get_md_lines_text(p.md_text)
-                # p.text_to_write = p.get_text_to_write()
+                # p.text_to_write = p._get_text_to_write()
                 p.text_to_write_with_reviser \
-                    = p.get_text_to_write_with_reviser()
+                    = p._get_text_to_write_with_reviser()
             if p_next is not None:
                 p_next.length_revi = p_next._get_length_revi()
                 p_next.length_revisers \
                     = p_next._get_length_revisers(p_next.length_revi)
                 # p_next.md_lines_text \
                 #     = p_next._get_md_lines_text(p_next.md_text)
-                # p_next.text_to_write = p_next.get_text_to_write()
+                # p_next.text_to_write = p_next._get_text_to_write()
                 p_next.text_to_write_with_reviser \
-                    = p_next.get_text_to_write_with_reviser()
+                    = p_next._get_text_to_write_with_reviser()
         return self.paragraphs
 
     def _modpar_spaced_and_centered(self):
@@ -4287,7 +4401,7 @@ class Document:
         for i, p in enumerate(self.paragraphs):
             if p.has_removed:
                 continue
-            p_next = self._get_next_paragraph(self.paragraphs, i)
+            p_next = self.__get_next_paragraph(self.paragraphs, i)
             if p.paragraph_class == 'alignment' and \
                p.alignment == 'center' and \
                p.length_revi['space before'] == 1.0:
@@ -4315,8 +4429,8 @@ class Document:
             p.length_revi = p._get_length_revi()
             p.length_revisers = p._get_length_revisers(p.length_revi)
             # p.md_lines_text = p._get_md_lines_text(p.md_text)
-            # p.text_to_write = p.get_text_to_write()
-            p.text_to_write_with_reviser = p.get_text_to_write_with_reviser()
+            # p.text_to_write = p._get_text_to_write()
+            p.text_to_write_with_reviser = p._get_text_to_write_with_reviser()
         return self.paragraphs
 
     def _modpar_length_reviser_to_depth_setter(self):
@@ -4331,7 +4445,7 @@ class Document:
         for i, p in enumerate(self.paragraphs):
             if i == 0:
                 continue
-            p_prev = self._get_prev_paragraph(self.paragraphs, i)
+            p_prev = self.__get_prev_paragraph(self.paragraphs, i)
             if p.paragraph_class != 'sentence':
                 continue
             is_in_reviser = False
@@ -4381,8 +4495,8 @@ class Document:
             p.length_revisers = p._get_length_revisers(p.length_revi)
             # ParagraphList.reset_states(p.paragraph_class)
             # p.md_lines_text = p._get_md_lines_text(p.md_text)
-            # p.text_to_write = p.get_text_to_write()
-            p.text_to_write_with_reviser = p.get_text_to_write_with_reviser()
+            # p.text_to_write = p._get_text_to_write()
+            p.text_to_write_with_reviser = p._get_text_to_write_with_reviser()
         return self.paragraphs
 
     def _modpar_one_line_paragraph(self):
@@ -4406,9 +4520,9 @@ class Document:
                     p.length_revi = p._get_length_revi()
                     p.length_revisers = p._get_length_revisers(p.length_revi)
                     p.md_lines_text = p._get_md_lines_text(p.md_text)
-                    # p.text_to_write = p.get_text_to_write()
+                    # p.text_to_write = p._get_text_to_write()
                     p.text_to_write_with_reviser \
-                        = p.get_text_to_write_with_reviser()
+                        = p._get_text_to_write_with_reviser()
                 continue
             rt = p.raw_text
             for fd in FONT_DECORATORS:
@@ -4441,8 +4555,8 @@ class Document:
             p.length_revi = p._get_length_revi()
             p.length_revisers = p._get_length_revisers(p.length_revi)
             # p.md_lines_text = p._get_md_lines_text(p.md_text)
-            # p.text_to_write = p.get_text_to_write()
-            p.text_to_write_with_reviser = p.get_text_to_write_with_reviser()
+            # p.text_to_write = p._get_text_to_write()
+            p.text_to_write_with_reviser = p._get_text_to_write_with_reviser()
         return self.paragraphs
 
     def _modpar_cancel_first_indent(self):
@@ -4477,8 +4591,8 @@ class Document:
             p.length_revi = p._get_length_revi()
             p.length_revisers = p._get_length_revisers(p.length_revi)
             # p.md_lines_text = p._get_md_lines_text(p.md_text)
-            # p.text_to_write = p.get_text_to_write()
-            p.text_to_write_with_reviser = p.get_text_to_write_with_reviser()
+            # p.text_to_write = p._get_text_to_write()
+            p.text_to_write_with_reviser = p._get_text_to_write_with_reviser()
         return self.paragraphs
 
     def _modpar_vertical_length(self):
@@ -4502,8 +4616,8 @@ class Document:
         # |                  ->  |
         m = len(self.paragraphs) - 1
         for i, p in enumerate(self.paragraphs):
-            p_prev = self._get_prev_paragraph(self.paragraphs, i)
-            p_next = self._get_next_paragraph(self.paragraphs, i)
+            p_prev = self.__get_prev_paragraph(self.paragraphs, i)
+            p_next = self.__get_next_paragraph(self.paragraphs, i)
             for lr in p.length_revisers:
                 # PREV
                 if p_prev is not None and re.match('^v=-.*', lr):
@@ -4522,7 +4636,7 @@ class Document:
                     if must_remove:
                         p.length_revisers.remove(lr)
             # RENEW
-            p.text_to_write_with_reviser = p.get_text_to_write_with_reviser()
+            p.text_to_write_with_reviser = p._get_text_to_write_with_reviser()
         return self.paragraphs
 
     def _modpar_isolate_revisers(self):
@@ -4542,7 +4656,7 @@ class Document:
             curr_cd = CharsDatum(curr_head, '', curr_tail)
             next_head = []
             next_tail = []
-            p_next = self._get_next_paragraph(self.paragraphs, i)
+            p_next = self.__get_next_paragraph(self.paragraphs, i)
             if p_next is not None:
                 next_head = p_next.head_font_revisers
                 next_tail = p_next.tail_font_revisers
@@ -4588,18 +4702,18 @@ class Document:
                         p.post_text_to_write += '\n' + tex_fd
                     base_cd = None
             # RENEW
-            p.text_to_write_with_reviser = p.get_text_to_write_with_reviser()
+            p.text_to_write_with_reviser = p._get_text_to_write_with_reviser()
         return self.paragraphs
 
     @staticmethod
-    def _get_prev_paragraph(paras, base):
+    def __get_prev_paragraph(paras, base):
         for i in range(base - 1, -1, -1):
             if not paras[i].has_removed:
                 return paras[i]
         return None
 
     @staticmethod
-    def _get_next_paragraph(paras, base):
+    def __get_next_paragraph(paras, base):
         for i in range(base + 1, len(paras)):
             if not paras[i].has_removed:
                 return paras[i]
@@ -4644,9 +4758,9 @@ class Style:
         self.raw_length \
             = {'space before': None, 'space after': None, 'line spacing': None,
                'first indent': None, 'left indent': None, 'right indent': None}
-        self.substitute_values()
+        self._substitute_values()
 
-    def substitute_values(self):
+    def _substitute_values(self):
         type = None
         stid = None
         name = None
@@ -4749,14 +4863,14 @@ class RawParagraph:
         self.raw_class = self._get_raw_class(self.xml_lines)
         self.horizontal_line \
             = self._get_horizontal_line(self.raw_class, self.xml_lines)
-        self.attached_pagebreak = self.get_attached_pagebreak(self.xml_lines)
+        self.attached_pagebreak = self._get_attached_pagebreak(self.xml_lines)
         self.chars_data, self.images \
             = self._get_chars_data_and_images(self.raw_class, self.xml_lines)
         self.chars_data = self._reduce_font_name(self.chars_data)
         # self.chars_data.reverse()
         # self.chars_data = self._reduce_font_name(self.chars_data)
         # self.chars_data.reverse()
-        self.raw_text = self._get_raw_text(self.chars_data)
+        self.raw_text = self.get_raw_text(self.chars_data)
         self.head_space, self.raw_text \
             = self._separate_head_space(self.raw_text,
                                         '->', '<-', '\\+>', '<\\+')
@@ -4775,7 +4889,7 @@ class RawParagraph:
             self.has_removed = True
         self.remarks = self._get_remarks(xml_lines)
         self.style = self._get_style(xml_lines)
-        self.alignment = self._get_alignment(self.xml_lines)
+        self.alignment = self.get_alignment(self.xml_lines)
         self.paragraph_class = self._get_paragraph_class()
 
     @staticmethod
@@ -4804,7 +4918,7 @@ class RawParagraph:
         return ''
 
     @staticmethod
-    def get_attached_pagebreak(xml_lines):
+    def _get_attached_pagebreak(xml_lines):
         for xl in xml_lines:
             if re.match('^<w:br w:type=[\'"]page[\'"]/>$', xl):
                 return 'pgbr'
@@ -4860,14 +4974,14 @@ class RawParagraph:
             if re.match(RES_XML_IMG_MS, xl):
                 # IMAGE MS WORD
                 img_rel_name, img_file_name \
-                    = cls._get_img_file_names_ms(xl, img_rels)
+                    = cls.__get_img_file_names_ms(xl, img_rels)
                 Document.images[img_rel_name] = img_file_name
                 images[img_rel_name] = img_file_name
                 must_continue = True
             elif re.match(RES_XML_IMG_PY_ID, xl):
                 # IMAGE PYTHON-DOCX ID
                 img_rel_name, img_file_name \
-                    = cls._get_img_file_names_py(xl, img_rels, img_py_name)
+                    = cls.__get_img_file_names_py(xl, img_rels, img_py_name)
                 Document.images[img_rel_name] = img_file_name
                 images[img_rel_name] = img_file_name
                 must_continue = True
@@ -4877,11 +4991,11 @@ class RawParagraph:
                 must_continue = True
             elif re.match(RES_XML_IMG_SIZE, xl):
                 # IMAGE SIZE
-                img_size = cls._get_img_size(xl)
+                img_size = cls.__get_img_size(xl)
                 must_continue = True
             if img_file_name != '' and img_size != '':
                 fr, imt, bk \
-                    = cls._get_img_md_text(img_file_name, img_size, font_size)
+                    = cls.__get_img_md_text(img_file_name, img_size, font_size)
                 cd_img = CharsDatum([fr], '', [bk])
                 if track_changes == 'del':
                     cd_img.fr_fd_cls.del_or_ins = '->'
@@ -5106,8 +5220,8 @@ class RawParagraph:
                 continue
             # TEXT
             if not re.match('^<.*>$', xl):
-                t = CharsDatum.prepare_chars(fldchar, xl, type)
-                cd.chars = CharsDatum.concatenate_chars(cd.chars, t)
+                imm = CharsDatum.prepare_imm(fldchar, xl, type)
+                cd.chars = CharsDatum.concatenate_imm(cd.chars, imm)
                 continue
             elif re.match('^<w:tab/?>$', xl):
                 cd.chars += '\t'
@@ -5148,7 +5262,7 @@ class RawParagraph:
         return chars_data, images
 
     @staticmethod
-    def _get_img_file_names_ms(xl, img_rels):
+    def __get_img_file_names_ms(xl, img_rels):
         img_id = re.sub(RES_XML_IMG_MS, '\\1', xl)
         img_rel_name = img_rels[img_id]
         img_ext = re.sub('^.*\\.', '', img_rel_name)
@@ -5169,7 +5283,7 @@ class RawParagraph:
         return img_rel_name, img_file_name
 
     @staticmethod
-    def _get_img_file_names_py(xl, img_rels, img_py_name):
+    def __get_img_file_names_py(xl, img_rels, img_py_name):
         img_id = re.sub(RES_XML_IMG_PY_ID, '\\1', xl)
         img_rel_name = img_rels[img_id]
         img_ext = re.sub('^.*\\.', '', img_rel_name)
@@ -5190,7 +5304,7 @@ class RawParagraph:
         return img_rel_name, img_file_name
 
     @staticmethod
-    def _get_img_size(xl):
+    def __get_img_size(xl):
         sz_w = re.sub(RES_XML_IMG_SIZE, '\\1', xl)
         sz_h = re.sub(RES_XML_IMG_SIZE, '\\2', xl)
         cm_w = float(sz_w) * 2.54 / 72 / 12700
@@ -5207,7 +5321,7 @@ class RawParagraph:
         return img_size
 
     @staticmethod
-    def _get_img_md_text(img_file_name, img_size, font_size):
+    def __get_img_md_text(img_file_name, img_size, font_size):
         relative_dir = os.path.basename(IO.media_dir)
         m_size_cm = font_size * 2.54 / 72
         xs_size_cm = m_size_cm * 0.6
@@ -5244,28 +5358,28 @@ class RawParagraph:
     def _reduce_font_name(cls, chars_data):
         # FORM
         frm_font = Form.mincho_font
-        frm_afont, frm_jfont = cls._get_ascii_and_kanji_font(frm_font)
+        frm_afont, frm_jfont = cls.__get_ascii_and_kanji_font(frm_font)
         for i, cur_cd in enumerate(chars_data):
             # PREVIOUS
             pre_font = ''
             if i > 0:
                 pre_cd = chars_data[i - 1]
-                pre_state = cls._get_chars_state(pre_cd.chars)
+                pre_state = cls.__get_chars_state(pre_cd.chars)
                 pre_font = pre_cd.fr_fd_cls.font_name
-                pre_afont, pre_jfont = cls._get_ascii_and_kanji_font(pre_font)
+                pre_afont, pre_jfont = cls.__get_ascii_and_kanji_font(pre_font)
                 pre_fd = '@' + pre_font + '@'
             # CURRENT
             if True:
-                cur_state = cls._get_chars_state(cur_cd.chars)
+                cur_state = cls.__get_chars_state(cur_cd.chars)
                 cur_font = cur_cd.fr_fd_cls.font_name
-                cur_afont, cur_jfont = cls._get_ascii_and_kanji_font(cur_font)
+                cur_afont, cur_jfont = cls.__get_ascii_and_kanji_font(cur_font)
                 cur_fd = '@' + cur_font + '@'
             # REDUCE
             if cur_font != '':
                 if cur_cd.bk_fd_cls.font_name != cur_fd:
                     continue
-            if (cur_state == 'ascii' and cur_afont == frm_afont) or \
-               (cur_state == 'kanji' and cur_jfont == frm_jfont) or \
+            if (cur_state == 'only ascii' and cur_afont == frm_afont) or \
+               (cur_state == 'only kanji' and cur_jfont == frm_jfont) or \
                (cur_state == 'mix' and cur_font == frm_font):
                 cur_cd.fr_fd_cls.font_name = ''
                 cur_font, cur_afont, cur_jfont = '', '', ''
@@ -5287,25 +5401,25 @@ class RawParagraph:
                 tmp_font, tmp_afont, tmp_jfont = cur_font, cur_afont, cur_jfont
             else:
                 tmp_font, tmp_afont, tmp_jfont = frm_font, frm_afont, frm_jfont
-            if (cur_state == 'ascii' and tmp_afont == pre_afont) or \
-               (cur_state == 'kanji' and tmp_jfont == pre_jfont) or \
+            if (cur_state == 'only ascii' and tmp_afont == pre_afont) or \
+               (cur_state == 'only kanji' and tmp_jfont == pre_jfont) or \
                (cur_state == 'mix' and tmp_font == pre_font):
                 cur_cd.fr_fd_cls.font_name = pre_fd
                 cur_cd.bk_fd_cls.font_name = pre_fd
         return chars_data
 
     @staticmethod
-    def _get_chars_state(chars):
+    def __get_chars_state(chars):
         if re.match('^[\t -~]*$', chars):
-            state = 'ascii'
+            state = 'only ascii'
         elif re.match('^[^\t -~]*$', chars):
-            state = 'kanji'
+            state = 'only kanji'
         else:
             state = 'mix'
         return state
 
     @staticmethod
-    def _get_ascii_and_kanji_font(font):
+    def __get_ascii_and_kanji_font(font):
         if re.match('^(.*) / (.*)$', font):
             ascii_font = re.sub('^(.*) / (.*)$', '\\1', font)
             kanji_font = re.sub('^(.*) / (.*)$', '\\2', font)
@@ -5317,12 +5431,14 @@ class RawParagraph:
         return ascii_font, kanji_font
 
     @classmethod
-    def _get_raw_text(cls, chars_data):
-        raw_text = cls._join_data(chars_data)
-        raw_text = cls._escape_symbols(raw_text)
-        raw_text = cls._convert_ivs(raw_text)  # IDEOGRAPHIC VARIATION SEQUENCE
-        raw_text = cls._restore_charcters(raw_text)
-        raw_text = cls._shrink_meaningless_font_decorations(raw_text)
+    def get_raw_text(cls, chars_data):
+        chars_data = cls.__cancel_fds(chars_data)
+        raw_text = cls.__join_data(chars_data)
+        raw_text = cls.__escape_symbols(raw_text)
+        # IVS (IDEOGRAPHIC VARIATION SEQUENCE)
+        raw_text = cls.__convert_ivs(raw_text)
+        raw_text = cls.__restore_charcters(raw_text)
+        raw_text = cls.__shrink_meaningless_font_decorations(raw_text)
         # RUBY
         res = '\\^<([^<>]{1,37})>/<([^<>]{1,37})>\\$'
         raw_text = re.sub(res, '<\\2/\\1>', raw_text)
@@ -5356,29 +5472,65 @@ class RawParagraph:
         return raw_text
 
     @classmethod
-    def _join_data(cls, chars_data):
-        chars_data = cls._cancel_fds(chars_data)
-        raw_text = ''
-        for cd in chars_data:
-            cwf = cd.get_chars_with_fds()
-            raw_text = CharsDatum.concatenate_chars(raw_text, cwf)
-        return raw_text
+    def _get_raw_text_del(cls, raw_text):
+        raw_text_del \
+            = cls._get_raw_text_del_or_ins(raw_text,
+                                           '\\+>', '<\\+', '->', '<-')
+        return raw_text_del
 
     @classmethod
-    def _cancel_fds(cls, chars_data):
+    def _get_raw_text_ins(cls, raw_text):
+        raw_text_ins \
+            = cls._get_raw_text_del_or_ins(raw_text,
+                                           '->', '<-', '\\+>', '<\\+')
+        return raw_text_ins
+
+    @staticmethod
+    def _get_raw_text_del_or_ins(raw_text,
+                                 beg_erase, end_erase,
+                                 beg_leave, end_leave):
+        raw_text_erase = ''
+        raw_text_leave = ''
+        track_changes = ''
+        in_to_erase = False
+        for c in raw_text:
+            if in_to_erase:
+                raw_text_erase += c
+                if re.match(NOT_ESCAPED + end_erase + '$', raw_text_erase):
+                    in_to_erase = False
+                raw_text_erase = re.sub(end_erase + '$', '', raw_text_erase)
+            else:
+                raw_text_leave += c
+                if re.match(NOT_ESCAPED + beg_erase + '$', raw_text_leave):
+                    in_to_erase = True
+                raw_text_leave = re.sub(beg_erase + '$', '', raw_text_leave)
+                raw_text_leave = re.sub(beg_leave + '$', '', raw_text_leave)
+                raw_text_leave = re.sub(end_leave + '$', '', raw_text_leave)
+        return raw_text_leave
+
+    @classmethod
+    def __cancel_fds(cls, chars_data):
         for i, cd in enumerate(chars_data):
             if i < len(chars_data) - 1:
                 j = i + 1
                 chars_data[i], chars_data[j] \
-                    = CharsDatum.cancel_fds(chars_data[i], chars_data[j])
+                    = CharsDatum.cancel_fd_cls(chars_data[i], chars_data[j])
             if (cd.chars == '\n') and (i > 0) and (i < len(chars_data) - 1):
                 j, k = i - 1, i + 1
                 chars_data[j], chars_data[k] \
-                    = CharsDatum.cancel_fds(chars_data[j], chars_data[k])
+                    = CharsDatum.cancel_fd_cls(chars_data[j], chars_data[k])
         return chars_data
 
+    @classmethod
+    def __join_data(cls, chars_data):
+        raw_text = ''
+        for cd in chars_data:
+            cwf = cd.get_chars_with_fds()
+            raw_text = CharsDatum.concatenate_imm(raw_text, cwf)
+        return raw_text
+
     @staticmethod
-    def _escape_symbols(raw_text):
+    def __escape_symbols(raw_text):
         # SPACE
         raw_text = re.sub('(\n)([ \t\u3000]+)', '\\1\\\\\\2', raw_text)
         raw_text = re.sub('([ \t\u3000]+)(\n)', '\\1\\\\\\2', raw_text)
@@ -5428,7 +5580,7 @@ class RawParagraph:
 
     # IVS (IDEOGRAPHIC VARIATION SEQUENCE)
     @staticmethod
-    def _convert_ivs(raw_text):
+    def __convert_ivs(raw_text):
         ivs_font = Form.ivs_font
         res = '^(.*[^\\\\0-9])([0-9]+);'
         while re.match(res, raw_text, flags=re.DOTALL):
@@ -5456,7 +5608,7 @@ class RawParagraph:
         return raw_text
 
     @staticmethod
-    def _restore_charcters(raw_text):
+    def __restore_charcters(raw_text):
         raw_text = raw_text.replace('&lt;', '<')
         raw_text = raw_text.replace('&gt;', '>')
         raw_text = raw_text.replace('&quot;', '"')
@@ -5464,7 +5616,7 @@ class RawParagraph:
         return raw_text
 
     @staticmethod
-    def _shrink_meaningless_font_decorations(raw_text):
+    def __shrink_meaningless_font_decorations(raw_text):
         tmp_text = ''
         while tmp_text != raw_text:
             tmp_text = raw_text
@@ -5516,43 +5668,6 @@ class RawParagraph:
         left = re.sub(ins_beg + ins_end, '', left)
         return space, left + right
 
-    @classmethod
-    def _get_raw_text_del(cls, raw_text):
-        raw_text_del \
-            = cls._get_raw_text_del_or_ins(raw_text,
-                                           '\\+>', '<\\+', '->', '<-')
-        return raw_text_del
-
-    @classmethod
-    def _get_raw_text_ins(cls, raw_text):
-        raw_text_ins \
-            = cls._get_raw_text_del_or_ins(raw_text,
-                                           '->', '<-', '\\+>', '<\\+')
-        return raw_text_ins
-
-    @staticmethod
-    def _get_raw_text_del_or_ins(raw_text,
-                                 beg_erase, end_erase,
-                                 beg_leave, end_leave):
-        raw_text_erase = ''
-        raw_text_leave = ''
-        track_changes = ''
-        in_to_erase = False
-        for c in raw_text:
-            if in_to_erase:
-                raw_text_erase += c
-                if re.match(NOT_ESCAPED + end_erase + '$', raw_text_erase):
-                    in_to_erase = False
-                raw_text_erase = re.sub(end_erase + '$', '', raw_text_erase)
-            else:
-                raw_text_leave += c
-                if re.match(NOT_ESCAPED + beg_erase + '$', raw_text_leave):
-                    in_to_erase = True
-                raw_text_leave = re.sub(beg_erase + '$', '', raw_text_leave)
-                raw_text_leave = re.sub(beg_leave + '$', '', raw_text_leave)
-                raw_text_leave = re.sub(end_leave + '$', '', raw_text_leave)
-        return raw_text_leave
-
     @staticmethod
     def _get_remarks(xml_lines):
         remarks = []
@@ -5581,7 +5696,7 @@ class RawParagraph:
         return style
 
     @staticmethod
-    def _get_alignment(xml_lines):
+    def get_alignment(xml_lines):
         alignment = ''
         for xl in xml_lines:
             alignment = XML.get_value('w:jc', 'w:val', alignment, xl)
@@ -5757,9 +5872,9 @@ class Paragraph:
                                                self.length_revisers)
         # EXECUTION
         self.md_lines_text = self._get_md_lines_text(self.md_text)
-        self.text_to_write = self.get_text_to_write()
+        self.text_to_write = self._get_text_to_write()
         self.text_to_write_with_reviser \
-            = self.get_text_to_write_with_reviser()
+            = self._get_text_to_write_with_reviser()
 
     @classmethod
     def _get_section_depths(cls, raw_text, should_record=False):
@@ -5768,13 +5883,6 @@ class Paragraph:
         # self.head_section_depth = head_section_depth
         # self.tail_section_depth = tail_section_depth
         return head_section_depth, tail_section_depth
-
-    @staticmethod
-    def _get_section_states():
-        ss = ParagraphSection.states
-        states \
-            = [[ss[i][j] for j in range(len(ss[i]))] for i in range(len(ss))]
-        return states
 
     @classmethod
     def _get_proper_depth(cls, raw_text):
@@ -5847,6 +5955,13 @@ class Paragraph:
                 numbering_revisers.append(rev)
                 cls.states[xdepth][ydepth] = value
         return numbering_revisers
+
+    @staticmethod
+    def _get_section_states():
+        ss = ParagraphSection.states
+        states \
+            = [[ss[i][j] for j in range(len(ss[i]))] for i in range(len(ss))]
+        return states
 
     def _get_md_text(self, raw_text):
         md_text = raw_text
@@ -6151,36 +6266,36 @@ class Paragraph:
     @classmethod
     def _get_length_revisers(cls, length_revi):
         length_revisers = []
-        vs = cls._get_vlength_string(length_revi['space before'])
+        vs = cls.__get_vlength_string(length_revi['space before'])
         if float(vs) < -0.1 or float(vs) > 0.1:
             length_revisers.append('v=' + vs)
-        vs = cls._get_vlength_string(length_revi['space after'])
+        vs = cls.__get_vlength_string(length_revi['space after'])
         if float(vs) < -0.1 or float(vs) > 0.1:
             length_revisers.append('V=' + vs)
-        vs = cls._get_vlength_string(length_revi['line spacing'])
+        vs = cls.__get_vlength_string(length_revi['line spacing'])
         if float(vs) < -0.1 or float(vs) > 0.1:
             length_revisers.append('X=' + vs)
         # WHAT YOU SEE IS THE SUM OF 'first indent' AND 'left indent'
-        hs1 = cls._get_hlength_string(- length_revi['first indent']
-                                      - length_revi['left indent'])
-        hs2 = cls._get_hlength_string(- length_revi['left indent'])
+        hs1 = cls.__get_hlength_string(- length_revi['first indent']
+                                       - length_revi['left indent'])
+        hs2 = cls.__get_hlength_string(- length_revi['left indent'])
         hs = str(float(hs1) - float(hs2))
         if float(hs) > 0:
             hs = '+' + hs
-        # hs = cls._get_hlength_string(- length_revi['first indent'])
+        # hs = cls.__get_hlength_string(- length_revi['first indent'])
         if float(hs) < -0.1 or float(hs) > 0.1:
             length_revisers.append('<<=' + hs)
-        hs = cls._get_hlength_string(- length_revi['left indent'])
+        hs = cls.__get_hlength_string(- length_revi['left indent'])
         if float(hs) < -0.1 or float(hs) > 0.1:
             length_revisers.append('<=' + hs)
-        hs = cls._get_hlength_string(- length_revi['right indent'])
+        hs = cls.__get_hlength_string(- length_revi['right indent'])
         if float(hs) < -0.1 or float(hs) > 0.1:
             length_revisers.append('>=' + hs)
         # self.length_revisers = length_revisers
         return length_revisers
 
     @staticmethod
-    def _get_vlength_string(length):
+    def __get_vlength_string(length):
         # FRACTION
         if length < 0:
             porm = '-'
@@ -6212,7 +6327,7 @@ class Paragraph:
             return '+' + str(rounded)
 
     @staticmethod
-    def _get_hlength_string(length):
+    def __get_hlength_string(length):
         rounded = round(length * 2) / 2  # half-width units
         if rounded < 0:
             return str(rounded)
@@ -6245,18 +6360,18 @@ class Paragraph:
         if False:
             pass
         # elif paragraph_class == 'chapter':
-        #     md_lines_text = Paragraph._split_into_lines(md_text)
+        #     md_lines_text = self.__split_into_lines(md_text)
         elif paragraph_class == 'section':
-            md_lines_text = Paragraph._split_into_lines(md_text)
+            md_lines_text = self.__split_into_lines(md_text)
         # elif paragraph_class == 'list':
-        #     md_lines_text = Paragraph._split_into_lines(md_text)
+        #     md_lines_text = self.__split_into_lines(md_text)
         elif paragraph_class == 'sentence':
-            md_lines_text = Paragraph._split_into_lines(md_text)
+            md_lines_text = self.__split_into_lines(md_text)
         else:
             md_lines_text = md_text
         return md_lines_text
 
-    def get_text_to_write(self):
+    def _get_text_to_write(self):
         paper_size = Form.paper_size
         top_margin = Form.top_margin
         bottom_margin = Form.bottom_margin
@@ -6284,7 +6399,7 @@ class Paragraph:
         # self.text_to_write = text_to_write
         return text_to_write
 
-    def get_text_to_write_with_reviser(self):
+    def _get_text_to_write_with_reviser(self):
         paragraph_class = self.paragraph_class
         numbering_revisers = self.numbering_revisers
         length_revisers = self.length_revisers
@@ -6337,7 +6452,7 @@ class Paragraph:
         return text_to_write_with_reviser
 
     @classmethod
-    def _split_into_lines(cls, md_text):
+    def __split_into_lines(cls, md_text):
         md_lines_text = ''
         for line in md_text.split('\n'):
             res = NOT_ESCAPED + '(' + RES_IMAGE + ')(.*)$'
@@ -6348,14 +6463,14 @@ class Paragraph:
                 if re.match(RES_IMAGE, text):
                     phrases.append(text)
                 else:
-                    phrases += cls._split_into_phrases(text)
-            splited = cls._concatenate_phrases(phrases)
+                    phrases += cls.__split_into_phrases(text)
+            splited = cls.__concatenate_phrases(phrases)
             md_lines_text += splited + '<br>\n'
         md_lines_text = re.sub('<br>\n$', '', md_lines_text)
         return md_lines_text
 
     @staticmethod
-    def _split_into_phrases(line):
+    def __split_into_phrases(line):
         phrases = []
         tmp = ''
         m = len(line) - 1
@@ -6445,8 +6560,8 @@ class Paragraph:
         return phrases
 
     @staticmethod
-    def _concatenate_phrases(phrases):
-        def _extend_tex(extension):
+    def __concatenate_phrases(phrases):
+        def __extend_tex(extension):
             # JUST TO MAKE SURE
             if extension == '':
                 return tex
@@ -6463,12 +6578,12 @@ class Paragraph:
         for p in phrases:
             # MATH MODE (MUST BE FIRST)
             if (not is_in_math) and p == '\\[':
-                tex = _extend_tex(tmp)
+                tex = __extend_tex(tmp)
                 tmp = ''
                 is_in_math = True
                 continue
             if is_in_math and p == '\\]':
-                tex = _extend_tex('\\[' + tmp + '\\]')
+                tex = __extend_tex('\\[' + tmp + '\\]')
                 tmp = ''
                 is_in_math = False
                 continue
@@ -6477,23 +6592,23 @@ class Paragraph:
                 continue
             # DELETED
             if (not is_in_deleted) and p == '->':
-                tex = _extend_tex(tmp)
+                tex = __extend_tex(tmp)
                 tmp = ''
                 is_in_deleted = True
                 continue
             if is_in_deleted and p == '<-':
-                tex = _extend_tex(tmp)
+                tex = __extend_tex(tmp)
                 tmp = ''
                 is_in_deleted = False
                 continue
             # INSERTED
             if (not is_in_inserted) and p == '+>':
-                tex = _extend_tex(tmp)
+                tex = __extend_tex(tmp)
                 tmp = ''
                 is_in_inserted = True
                 continue
             if is_in_inserted and p == '<+':
-                tex = _extend_tex(tmp)
+                tex = __extend_tex(tmp)
                 tmp = ''
                 is_in_inserted = False
                 continue
@@ -6503,36 +6618,36 @@ class Paragraph:
                 if re.match('^' + res + '$', tmp):
                     if not re.match('^' + res + '.*$', p):
                         if re.match('^.*[.．。]$', phrases[-1]):
-                            tex = _extend_tex(re.sub('\\s+$', '', tmp))
-                            # tex = _extend_tex(tmp + '\\')
+                            tex = __extend_tex(re.sub('\\s+$', '', tmp))
+                            # tex = __extend_tex(tmp + '\\')
                             tmp = ''
             # IMAGE
             if re.match(RES_IMAGE, p):
-                tex = _extend_tex(tmp + '\n' + p)
+                tex = __extend_tex(tmp + '\n' + p)
                 tmp = ''
                 continue
             # CONJUNCTIONS
             if re.match('^.*[,，、]$', tmp):
                 for c in CONJUNCTIONS:
                     if re.match('^' + c + '[,，、]$', tmp):
-                        tex = _extend_tex(tmp)
+                        tex = __extend_tex(tmp)
                         tmp = ''
                         break
             # END OF A SENTENCE
             if re.match('^.*[．。]$', tmp):
-                tex = _extend_tex(tmp)
+                tex = __extend_tex(tmp)
                 tmp = ''
             # RIGTH LENGTH
             if tmp != '':
                 if get_ideal_width(tmp + p) > MD_TEXT_WIDTH:
-                    tex = _extend_tex(tmp)
+                    tex = __extend_tex(tmp)
                     tmp = ''
             # FONT NAME
             if re.match('^@.*$', p) and re.match(NOT_ESCAPED + '@$', p):
-                tex = _extend_tex(tmp)
+                tex = __extend_tex(tmp)
                 tmp = ''
             if re.match('^@.*$', tmp) and re.match(NOT_ESCAPED + '@$', tmp):
-                tex = _extend_tex(tmp)
+                tex = __extend_tex(tmp)
                 tmp = ''
             # TOO LONG
             tmp += p
@@ -6547,13 +6662,13 @@ class Paragraph:
                         continue
                     if re.match('^.*を$', s1):
                         if s1 != '':
-                            tex = _extend_tex(s1)
+                            tex = __extend_tex(s1)
                             tmp = s2
                             break
                     if re.match('^.*[ぁ-ん，、．。]$', s1) and \
                        re.match('^[^ぁ-ん，、．。].*$', s2):
                         if s1 != '':
-                            tex = _extend_tex(s1)
+                            tex = __extend_tex(s1)
                             tmp = s2
                             break
                 else:
@@ -6787,7 +6902,7 @@ class ParagraphChapter(Paragraph):
             res = '^' + rss[xdepth] + rre + '$'
             if re.match(res, raw_text):
                 head_string, raw_text, state \
-                    = self._decompose_text(res, raw_text, -1, -1)
+                    = self.__decompose_text(res, raw_text, -1, -1)
                 ydepth = len(state) - 1
                 if head_tc != '->':
                     self._step_states(xdepth, ydepth)
@@ -6799,7 +6914,7 @@ class ParagraphChapter(Paragraph):
             head_tc + head_symbol + raw_text + tail_tc
 
     @staticmethod
-    def _decompose_text(res, raw_text, num1, num2):
+    def __decompose_text(res, raw_text, num1, num2):
         hdstr = re.sub(res, '\\1', raw_text)
         nmsym = re.sub(res, '\\2', raw_text)
         branc = re.sub(res, '\\3', raw_text)
@@ -6935,7 +7050,7 @@ class ParagraphSection(Paragraph):
                     beg_num = (3 * xdepth) - 5
                     end_num = 20
                 head_string, raw_text, state \
-                    = self._decompose_text(res, raw_text, beg_num, end_num)
+                    = self.__decompose_text(res, raw_text, beg_num, end_num)
                 ydepth = len(state) - 1
                 if head_tc != '->':
                     self._step_states(xdepth, ydepth)
@@ -6976,7 +7091,7 @@ class ParagraphSection(Paragraph):
             head_tc + head_symbol + raw_text + tail_tc
 
     @staticmethod
-    def _decompose_text(res, raw_text, beg_num, end_num):
+    def __decompose_text(res, raw_text, beg_num, end_num):
         hdstr_rep = '\\' + str(beg_num) + '\\' + str(beg_num + 2)
         nmsym_rep = '\\' + str(beg_num + 1)
         branc_rep = '\\' + str(beg_num + 2)
@@ -7210,7 +7325,7 @@ class ParagraphList(Paragraph):
                     head_symbol = '  ' * xdepth + '- '
                 else:
                     head_string, raw_text, state \
-                        = self._decompose_text(res, raw_text, xdepth, -1)
+                        = self.__decompose_text(res, raw_text, xdepth, -1)
                     head_symbol = '  ' * xdepth + '1. '
                     self._step_states(xdepth, 0)
                     numbering_revisers \
@@ -7220,7 +7335,7 @@ class ParagraphList(Paragraph):
             head_symbol + raw_text
 
     @staticmethod
-    def _decompose_text(res, raw_text, xdepth, num):
+    def __decompose_text(res, raw_text, xdepth, num):
         hdstr = re.sub(res, '\\1', raw_text)
         nmsym = re.sub(res, '\\2', raw_text)
         branc = re.sub(res, '\\3', raw_text)
@@ -7365,7 +7480,7 @@ class ParagraphTable(Paragraph):
             for cell in row:
                 chars_data, images \
                     = RawParagraph._get_chars_data_and_images('w:tbl', cell)
-                raw_text = RawParagraph._get_raw_text(chars_data)
+                raw_text = RawParagraph.get_raw_text(chars_data)
                 txt_row.append(raw_text)
             txt_tbl.append(txt_row)
         return txt_tbl
@@ -7823,8 +7938,8 @@ class ParagraphMath(Paragraph):
                     return True
         return False
 
-    def get_text_to_write(self):
-        ttw = super().get_text_to_write()
+    def _get_text_to_write(self):
+        ttw = super()._get_text_to_write()
         alignment = self.alignment
         if alignment == 'left':
             ttw = re.sub('^\\\\\\[', '\\\\[:', ttw)
@@ -7995,11 +8110,11 @@ class ParagraphHorizontalLine(Paragraph):
         # length_docx = self.length_docx
         return length_docx
 
-    def get_text_to_write_with_reviser(self):
+    def _get_text_to_write_with_reviser(self):
         xml_lines = self.xml_lines
         tmp_ttw = self.text_to_write
         self.text_to_write = '----------------'
-        ttwwr = super().get_text_to_write_with_reviser()
+        ttwwr = super()._get_text_to_write_with_reviser()
         self.text_to_write = tmp_ttw
         if xml_lines[-1] == '<horizontalLine:top>':
             if tmp_ttw != '':
@@ -8065,7 +8180,7 @@ class ParagraphRemarks(Paragraph):
             return True
         return False
 
-    def get_text_to_write_with_reviser(self):
+    def _get_text_to_write_with_reviser(self):
         md_lines_text = self.md_lines_text
         ttwwr = md_lines_text
         ttwwr = re.sub('^●', '"" ', ttwwr)
