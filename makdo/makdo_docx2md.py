@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.05-18:14:53-JST>
+# Time-stamp:   <2024.07.06-08:50:40-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -344,6 +344,7 @@ FONT_DECORATORS_VISIBLE = [
     '_[\\$=\\.#\\-~\\+]{,4}_',  # underline
     '_[0-9A-Za-z]{1,11}_',      # higilight color
     '`',                        # preformatted
+    '@' + RES_NUMBER + '@',     # font scale
     '@[^@]{1,66}@',             # font
 ]
 FONT_DECORATORS = FONT_DECORATORS_INVISIBLE + FONT_DECORATORS_VISIBLE
@@ -2820,8 +2821,8 @@ class FontDecorator:
 
     def reset_fds(self):
         self.font_name = ''         # FONT NAME (` / @.+@)
-        self.font_size = ''         # FONT SIZE (@.+@)
-        self.font_scale = ''        # FONT SCALE (--- / -- / ++ / +++)
+        # self.font_size = ''         # FONT SIZE
+        self.font_scale = ''        # FONT SCALE (@.+@ / --- / -- / ++ / +++)
         self.font_width = ''        # FONT WIDTH (>>> / >> / << / <<<)
         self.italic = ''            # ITALIC (*)
         self.bold = ''              # BOLD (**)
@@ -2843,11 +2844,11 @@ class FontDecorator:
               not re.match('^@' + RES_NUMBER + '@$', fd_str)):
             self.font_name = fd_str        # FONT NAME (@.+@)
         elif re.match('^@' + RES_NUMBER + '@$', fd_str):
-            self.font_size = fd_str        # FONT SIZE (@.+@)
+            self.font_scale = fd_str       # FONT SCALE (@.+@)
         elif re.match('^\\-\\-\\-|\\-\\-|\\+\\+|\\+\\+\\+$', fd_str):
             self.font_scale = fd_str       # FONT SCALE (--- / -- / ++ / +++)
         elif re.match('^>>>|>>|<<|<<<$', fd_str):
-            self.font_scale = fd_str       # FONT WIDTH (>>> / >> / << / <<<)
+            self.font_width = fd_str       # FONT WIDTH (>>> / >> / << / <<<)
         elif fd_str == '*':
             self.italic = fd_str           # ITALIC (*)
         elif fd_str == '**':
@@ -2880,8 +2881,8 @@ class FontDecorator:
 
     def __get_ordered_list(self):
         return [self.font_name,
-                re.sub('\\.0', '', self.font_size),
-                self.font_scale,
+                # self.font_size
+                re.sub('\\.0', '', self.font_scale),
                 self.font_width,
                 self.italic,
                 self.bold,
@@ -2897,8 +2898,8 @@ class FontDecorator:
         fr, bk = fr_fd_cls, bk_fd_cls
         if fr.font_name != bk.font_name:
             return False
-        if fr.font_size != bk.font_size:
-            return False
+        # if fr.font_size != bk.font_size:
+        #     return False
         if fr.font_scale != bk.font_scale:
             return False
         if fr.font_width != '>>>' or bk.font_width != '<<<':
@@ -2931,8 +2932,8 @@ class FontDecorator:
         fr, bk = fr_fd_cls, bk_fd_cls
         if fr.font_name == bk.font_name:
             fr.font_name, bk.font_name = '', ''
-        if fr.font_size == bk.font_size:
-            fr.font_size, bk.font_size = '', ''
+        # if fr.font_size == bk.font_size:
+        #     fr.font_size, bk.font_size = '', ''
         if fr.font_scale == bk.font_scale:
             fr.font_scale, bk.font_scale = '', ''
         if fr.font_width == bk.font_width:
@@ -4096,6 +4097,318 @@ class XML:
             return init_value
 
 
+class LineTruncation:
+
+    """A class to truncate lines"""
+
+    def __init__(self, md_text):
+        self.md_text = md_text
+
+    def get_truncated_md_text(self):
+        md_text = self.md_text
+        md_lines_text = ''
+        for line in md_text.split('\n'):
+            res = NOT_ESCAPED + '(' + RES_IMAGE + ')(.*)$'
+            line = re.sub(res, '\\1\n\\2\n\\5', line)
+            line = re.sub('\n+', '\n', line)
+            phrases = []
+            for text in line.split('\n'):
+                if re.match(RES_IMAGE, text):
+                    phrases.append(text)
+                else:
+                    phrases += self._split_into_phrases(text)
+            splited = self._concatenate_phrases(phrases)
+            md_lines_text += splited + '<br>\n'
+        md_lines_text = re.sub('<br>\n$', '', md_lines_text)
+        return md_lines_text
+
+    @staticmethod
+    def _split_into_phrases(line):
+        phrases = []
+        tmp = ''
+        m = len(line) - 1
+        for i, c in enumerate(line):
+            tmp += c
+            if i == m:
+                if tmp != '':
+                    phrases.append(tmp)
+                    tmp = ''
+                break
+            c2 = line[i + 1]
+            tmp2 = line[i + 1:]
+            # '@.+@' (FONT)
+            if not re.match('^@', tmp):
+                if re.match(NOT_ESCAPED + '@$', tmp + c2):
+                    phrases.append(tmp)
+                    tmp = ''
+            if re.match('^@.{1,66}@$', tmp):
+                if re.match(NOT_ESCAPED + '@$', tmp):
+                    phrases.append(tmp)
+                    tmp = ''
+            # + ' '
+            if re.match('^ $', c2):
+                continue
+            # ' ' + '[^ ]'
+            if re.match('^ $', c) and (not re.match('^ $', c2)):
+                if tmp != '':
+                    if not re.match('^@.{1,66}$', tmp):
+                        phrases.append(tmp)
+                        tmp = ''
+            # '[[{(]' + '[^[{(]'
+            # res = '^[\\[{\\(]$'
+            # if re.match('^ $', c) and (not re.match(res, c2)):
+            #     if tmp != '':
+            #         phrases.append(tmp)
+            #         tmp = ''
+            # '[,.)}]]' + '[^,.)}] ]'
+            res = '^[,\\.\\)}\\]]$'
+            if re.match(res, c) and (not re.match(res, c2)) \
+               and (not re.match('^ $', c2)):
+                if re.match('^[,\\.]$', c) and \
+                   ((i > 0) and re.match('^[0-9０-９]$', line[i - 1])) and \
+                   ((i < m) and re.match('^[0-9０-９]$', line[i + 1])):
+                    continue
+                if tmp != '':
+                    phrases.append(tmp)
+                    tmp = ''
+            # '[^『「｛（＜]' + '[『「｛（＜]'
+            res = '^[『「｛（＜]$'
+            if (not re.match(res, c)) and re.match(res, c2):
+                if tmp != '':
+                    phrases.append(tmp)
+                    tmp = ''
+            # '[，、．。＞）｝」』]' + '[^，、．。＞）｝」』]'
+            res = '^[，、．。＞）｝」』]$'
+            if re.match(res, c) and (not re.match(res, c2)) \
+               and (not re.match('^ $', c2)):
+                if re.match('^[，．]$', c) and \
+                   ((i > 0) and re.match('^[0-9０-９]$', line[i - 1])) and \
+                   ((i < m) and re.match('^[0-9０-９]$', line[i + 1])):
+                    continue
+                if tmp != '':
+                    phrases.append(tmp)
+                    tmp = ''
+            # '->' or '<-' or '+>' or '<+' (TRACK CHANGES)
+            res = '(?:\\->|<\\-|\\+>|<\\+)'
+            if re.match(NOT_ESCAPED + 'x$', tmp + 'x') and \
+               re.match('^' + res + '.*$', tmp2):
+                if tmp != '':
+                    phrases.append(tmp)
+                    tmp = ''
+            if re.match('^.*' + res + '$', tmp):
+                if tmp != '':
+                    phrases.append(tmp)
+                    tmp = ''
+            # '\[' or '\]' (MATH MODE)
+            res = '(?:\\\\\\[|\\\\\\])'
+            if re.match(NOT_ESCAPED + 'x$', tmp + 'x') and \
+               re.match('^' + res + '.*$', tmp2):
+                if tmp != '':
+                    phrases.append(tmp)
+                    tmp = ''
+            if re.match('^.*' + res + '$', tmp):
+                if tmp != '':
+                    phrases.append(tmp)
+                    tmp = ''
+        return phrases
+
+    @staticmethod
+    def _concatenate_phrases(phrases):
+        def __extend_tex(extension):
+            # JUST TO MAKE SURE
+            if extension == '':
+                return tex
+            if is_in_deleted:
+                return tex + '->' + extension + '<-\n'
+            if is_in_inserted:
+                return tex + '+>' + extension + '<+\n'
+            return tex + extension + '\n'
+        tex = ''
+        tmp = ''
+        is_in_deleted = False
+        is_in_inserted = False
+        is_in_math = False
+        for p in phrases:
+            # MATH MODE (MUST BE FIRST)
+            if (not is_in_math) and p == '\\[':
+                tex = __extend_tex(tmp)
+                tmp = ''
+                is_in_math = True
+                continue
+            if is_in_math and p == '\\]':
+                tex = __extend_tex('\\[' + tmp + '\\]')
+                tmp = ''
+                is_in_math = False
+                continue
+            if is_in_math:
+                tmp += p
+                continue
+            # DELETED
+            if (not is_in_deleted) and p == '->':
+                tex = __extend_tex(tmp)
+                tmp = ''
+                is_in_deleted = True
+                continue
+            if is_in_deleted and p == '<-':
+                tex = __extend_tex(tmp)
+                tmp = ''
+                is_in_deleted = False
+                continue
+            # INSERTED
+            if (not is_in_inserted) and p == '+>':
+                tex = __extend_tex(tmp)
+                tmp = ''
+                is_in_inserted = True
+                continue
+            if is_in_inserted and p == '<+':
+                tex = __extend_tex(tmp)
+                tmp = ''
+                is_in_inserted = False
+                continue
+            # SECTION WITHOUT A TITLE
+            res = '(?:#+(?:\\-#)* )+'
+            if tex == '':
+                if re.match('^' + res + '$', tmp):
+                    if not re.match('^' + res + '.*$', p):
+                        if re.match('^.*[.．。]$', phrases[-1]):
+                            tex = __extend_tex(re.sub('\\s+$', '', tmp))
+                            # tex = __extend_tex(tmp + '\\')
+                            tmp = ''
+            # IMAGE
+            if re.match(RES_IMAGE, p):
+                tex = __extend_tex(tmp + '\n' + p)
+                tmp = ''
+                continue
+            # CONJUNCTIONS
+            if re.match('^.*[,，、]$', tmp):
+                for c in CONJUNCTIONS:
+                    if re.match('^' + c + '[,，、]$', tmp):
+                        tex = __extend_tex(tmp)
+                        tmp = ''
+                        break
+            # END OF A SENTENCE
+            if re.match('^.*[．。]$', tmp):
+                tex = __extend_tex(tmp)
+                tmp = ''
+            # RIGTH LENGTH
+            if tmp != '':
+                if get_ideal_width(tmp + p) > MD_TEXT_WIDTH:
+                    tex = __extend_tex(tmp)
+                    tmp = ''
+            # FONT SCALE (NOT SIZE)
+            if re.match('^@.*$', p) and re.match(NOT_ESCAPED + '@$', p):
+                if not re.match('^@' + RES_NUMBER + '@$', p):
+                    tex = __extend_tex(tmp)
+                    tmp = ''
+            if re.match('^@.*$', tmp) and re.match(NOT_ESCAPED + '@$', tmp):
+                if not re.match('^@' + RES_NUMBER + '@$', tmp):
+                    tex = __extend_tex(tmp)
+                    tmp = ''
+            # TOO LONG
+            tmp += p
+            while get_ideal_width(tmp) > MD_TEXT_WIDTH:
+                for i in range(len(tmp), -1, -1):
+                    s1 = tmp[:i]
+                    s2 = tmp[i:]
+                    if get_ideal_width(s1) > MD_TEXT_WIDTH:
+                        continue
+                    if re.match('^.*[０-９][，．]$', s1) and \
+                       re.match('^[０-９].*$', s2):
+                        continue
+                    if re.match('^.*を$', s1):
+                        if s1 != '':
+                            tex = __extend_tex(s1)
+                            tmp = s2
+                            break
+                    if re.match('^.*[ぁ-ん，、．。]$', s1) and \
+                       re.match('^[^ぁ-ん，、．。].*$', s2):
+                        if s1 != '':
+                            tex = __extend_tex(s1)
+                            tmp = s2
+                            break
+                else:
+                    for i in range(len(tmp), -1, -1):
+                        s1 = tmp[:i]
+                        s2 = tmp[i:]
+                        # '\' +
+                        if re.match('^.*\\\\$', s1):
+                            continue
+                        # + '\'
+                        # if re.match('^\\\\.*$', s2):
+                        #     continue
+                        # '*' + '*' (BOLD)
+                        if re.match('^.*\\*$', s1) and re.match('^\\*.*$', s2):
+                            continue
+                        # '~' + '~' (STRIKETHROUGH)
+                        if re.match('^.*~$', s1) and re.match('^~.*$', s2):
+                            continue
+                        # '`' + '`' (PREFORMATTED)
+                        if re.match('^.*`$', s1) and re.match('^`.*$', s2):
+                            continue
+                        # '/' + '/' (ITALIC)
+                        if re.match('^.*/$', s1) and re.match('^/.*$', s2):
+                            continue
+                        # '-' + '-' (SMALL)
+                        if re.match('^.*\\-$', s1) and re.match('^\\-.*$', s2):
+                            continue
+                        # '+' + '+' (LARGE)
+                        if re.match('^.*\\+$', s1) and re.match('^\\+.*$', s2):
+                            continue
+                        # '_.*' + '.*_' (UNDERLINE)
+                        if re.match('^.*_[\\$=\\.#\\-~\\+]*$', s1) and \
+                           re.match('^[\\$=\\.#\\-~\\+]*_.*$', s2):
+                            continue
+                        # '^.*' + '.*^' (FONT COLOR)
+                        if re.match('^.*\\^[0-9A-Za-z]*$', s1) and \
+                           re.match('^[0-9A-Za-z]*\\^.*$', s2):
+                            continue
+                        # '_.+' + '.+_' (HIGHLIGHT COLOR)
+                        if re.match('^.*_[0-9A-Za-z]+$', s1) and \
+                           re.match('^[0-9A-Za-z]+_.*$', s2):
+                            continue
+                        # '@.+' + '.+@' (FONT)
+                        if re.match('^.*@[^@]{1,66}$', s1) and \
+                           re.match('^[^@]{1,66}@.*$', s2):
+                            continue
+                        # ' ' + ' ' (LINE BREAK)
+                        if re.match('^.* $', s1) and re.match('^ .*$', s2):
+                            continue
+                        # '<' + '[-+]' (TRACK CHANGES)
+                        if re.match('^.*<$', s1) and \
+                           re.match('^[\\-\\+].*$', s2):
+                            continue
+                        # '[-+]' + '>' (TRACK CHANGES)
+                        if re.match('^.*[\\-\\+]$', s1) and \
+                           re.match('^>.*$', s2):
+                            continue
+                        # '</?.*' + '.*>'
+                        if re.match('^.*</?[0-9a-z]*$', s1) and \
+                           re.match('^/?[0-9a-z]*>.*$', s2):
+                            continue
+                        if get_ideal_width(s1) <= MD_TEXT_WIDTH:
+                            if s1 != '':
+                                tex += s1 + '\n'
+                                tmp = s2
+                                break
+                    else:
+                        tex += tmp + '\n'
+                        tmp = ''
+        if tmp != '':
+            tex += tmp + '\n'
+            tmp = ''
+        tmp = ''
+        for t in tex.split('\n'):
+            if re.match('^\\s+.*$', t):
+                t = '\\' + t
+            if re.match('^.*\\s+$', t):
+                t = t + '\\'
+            tmp += t + '\n'
+        tex = tmp
+        tex = re.sub('\n$', '', tex)
+        tex = re.sub('(  |\t|\u3000)(\n)', '\\1\\\\\\2', tex)
+        return tex
+
+
 class Document:
 
     """A class to handle document"""
@@ -5094,8 +5407,8 @@ class RawParagraph:
             if v > 0:
                 s = round(v / 2, 1)
                 if s < Form.font_size * 0.5:
-                    cd.fr_fd_cls.font_size = '@' + str(s) + '@'
-                    cd.bk_fd_cls.font_size = '@' + str(s) + '@'
+                    cd.fr_fd_cls.font_scale = '@' + str(s) + '@'
+                    cd.bk_fd_cls.font_scale = '@' + str(s) + '@'
                 elif s < Form.font_size * 0.7:
                     cd.fr_fd_cls.font_scale = '---'
                     cd.bk_fd_cls.font_scale = '---'
@@ -5111,8 +5424,8 @@ class RawParagraph:
                     cd.fr_fd_cls.font_scale = '+++'
                     cd.bk_fd_cls.font_scale = '+++'
                 else:
-                    cd.fr_fd_cls.font_size = '@' + str(s) + '@'
-                    cd.bk_fd_cls.font_size = '@' + str(s) + '@'
+                    cd.fr_fd_cls.font_scale = '@' + str(s) + '@'
+                    cd.bk_fd_cls.font_scale = '@' + str(s) + '@'
                 continue
             # FONT WIDTH
             w = XML.get_value('w:w', 'w:val', -1.0, xl)
@@ -6061,7 +6374,7 @@ class Paragraph:
         cls._set_states(xdepth, ydepth, value)
 
     def _get_length_docx(self):
-        m_size = Form.font_size
+        f_size = Form.font_size
         lnsp = Form.line_spacing
         xls = self.xml_lines
         head_space = self.head_space
@@ -6095,13 +6408,13 @@ class Paragraph:
             li_xml = XML.get_value('w:ind', 'w:left', li_xml, xl)
             ri_xml = XML.get_value('w:ind', 'w:right', ri_xml, xl)
             ti_xml = XML.get_value('w:tblInd', 'w:w', ti_xml, xl)
-        length_docx['space before'] = sb_xml / 20 / m_size / lnsp
-        length_docx['space after'] = sa_xml / 20 / m_size / lnsp
+        length_docx['space before'] = sb_xml / 20 / f_size / lnsp
+        length_docx['space after'] = sa_xml / 20 / f_size / lnsp
         ls = 0.0
         if ls_xml > 0:
             if paragraph_class != 'table':
                 length_docx['line spacing'] \
-                    = (ls_xml / 20 / m_size / lnsp) - 1
+                    = (ls_xml / 20 / f_size / lnsp) - 1
             else:
                 sc = 1.0
                 if '---' in head_font_revisers:
@@ -6112,11 +6425,17 @@ class Paragraph:
                     sc = 1.2
                 elif '+++' in head_font_revisers:
                     sc = 1.4
+                for fr in head_font_revisers:
+                    res = '^@(' + RES_NUMBER + ')@$'
+                    if re.match(res, fr):
+                        c_size = float(re.sub(res, '\\1', fr))
+                        if c_size > 0:
+                            sc = c_size / Form.font_size
                 length_docx['line spacing'] \
-                    = (ls_xml / 20 / m_size / sc / TABLE_LINE_SPACING) - 1
+                    = (ls_xml / 20 / f_size / sc / TABLE_LINE_SPACING) - 1
         # MODIFY SPACE BEFORE AND AFTER
         if sb_xml != 0 or sa_xml != 0 or ls_xml != 0:
-            ls = (ls_xml / 20 / m_size / lnsp) - 1
+            ls = (ls_xml / 20 / f_size / lnsp) - 1
             ls80 = ls * .80
             ls20 = ls * .20
             if length_docx['space before'] >= ls80 * 0.33333:
@@ -6127,9 +6446,9 @@ class Paragraph:
                 length_docx['space after'] += ls20
             else:
                 length_docx['space after'] *= 4
-        length_docx['first indent'] = (fi_xml - hi_xml) / 20 / m_size
-        length_docx['left indent'] = (li_xml + ti_xml) / 20 / m_size
-        length_docx['right indent'] = ri_xml / 20 / m_size
+        length_docx['first indent'] = (fi_xml - hi_xml) / 20 / f_size
+        length_docx['left indent'] = (li_xml + ti_xml) / 20 / f_size
+        length_docx['right indent'] = ri_xml / 20 / f_size
         # AUTO NUMBERING STYLE
         ans_key = AutoNumberingStyle.get_style_key_from_xml_lines(xls)
         if ans_key is not None:
@@ -6141,10 +6460,10 @@ class Paragraph:
                 li_xml = XML.get_value('w:ind', 'w:left', li_xml, xl)
             if fi_xml is None and hi_xml is None:
                 length_docx['first indent'] \
-                    = ans.raw_first_indent / 20 / m_size
+                    = ans.raw_first_indent / 20 / f_size
             if li_xml is None:
                 length_docx['left indent'] \
-                    = ans.raw_left_indent / 20 / m_size
+                    = ans.raw_left_indent / 20 / f_size
         # （１）, （ア）, （ａ）
         paragraph_class = self.paragraph_class
         raw_text = self.raw_text
@@ -6175,7 +6494,6 @@ class Paragraph:
         section_states = self.section_states
         proper_depth = self.proper_depth
         xml_lines = self.xml_lines
-        m_size = Form.font_size
         length_clas \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
@@ -6360,13 +6678,13 @@ class Paragraph:
         if False:
             pass
         # elif paragraph_class == 'chapter':
-        #     md_lines_text = self.__split_into_lines(md_text)
+        #     md_lines_text = LineTruncation(md_text).get_truncated_md_text()
         elif paragraph_class == 'section':
-            md_lines_text = self.__split_into_lines(md_text)
+            md_lines_text = LineTruncation(md_text).get_truncated_md_text()
         # elif paragraph_class == 'list':
-        #     md_lines_text = self.__split_into_lines(md_text)
+        #     md_lines_text = LineTruncation(md_text).get_truncated_md_text()
         elif paragraph_class == 'sentence':
-            md_lines_text = self.__split_into_lines(md_text)
+            md_lines_text = LineTruncation(md_text).get_truncated_md_text()
         else:
             md_lines_text = md_text
         return md_lines_text
@@ -6450,308 +6768,6 @@ class Paragraph:
         text_to_write_with_reviser = ttwwr
         # self.text_to_write_with_reviser = text_to_write_with_reviser
         return text_to_write_with_reviser
-
-    @classmethod
-    def __split_into_lines(cls, md_text):
-        md_lines_text = ''
-        for line in md_text.split('\n'):
-            res = NOT_ESCAPED + '(' + RES_IMAGE + ')(.*)$'
-            line = re.sub(res, '\\1\n\\2\n\\5', line)
-            line = re.sub('\n+', '\n', line)
-            phrases = []
-            for text in line.split('\n'):
-                if re.match(RES_IMAGE, text):
-                    phrases.append(text)
-                else:
-                    phrases += cls.__split_into_phrases(text)
-            splited = cls.__concatenate_phrases(phrases)
-            md_lines_text += splited + '<br>\n'
-        md_lines_text = re.sub('<br>\n$', '', md_lines_text)
-        return md_lines_text
-
-    @staticmethod
-    def __split_into_phrases(line):
-        phrases = []
-        tmp = ''
-        m = len(line) - 1
-        for i, c in enumerate(line):
-            tmp += c
-            if i == m:
-                if tmp != '':
-                    phrases.append(tmp)
-                    tmp = ''
-                break
-            c2 = line[i + 1]
-            tmp2 = line[i + 1:]
-            # '@.+@' (FONT)
-            if not re.match('^@', tmp):
-                if re.match(NOT_ESCAPED + '@$', tmp + c2):
-                    phrases.append(tmp)
-                    tmp = ''
-            if re.match('^@.{1,66}@$', tmp):
-                if re.match(NOT_ESCAPED + '@$', tmp):
-                    phrases.append(tmp)
-                    tmp = ''
-            # + ' '
-            if re.match('^ $', c2):
-                continue
-            # ' ' + '[^ ]'
-            if re.match('^ $', c) and (not re.match('^ $', c2)):
-                if tmp != '':
-                    if not re.match('^@.{1,66}$', tmp):
-                        phrases.append(tmp)
-                        tmp = ''
-            # '[[{(]' + '[^[{(]'
-            # res = '^[\\[{\\(]$'
-            # if re.match('^ $', c) and (not re.match(res, c2)):
-            #     if tmp != '':
-            #         phrases.append(tmp)
-            #         tmp = ''
-            # '[,.)}]]' + '[^,.)}] ]'
-            res = '^[,\\.\\)}\\]]$'
-            if re.match(res, c) and (not re.match(res, c2)) \
-               and (not re.match('^ $', c2)):
-                if re.match('^[,\\.]$', c) and \
-                   ((i > 0) and re.match('^[0-9０-９]$', line[i - 1])) and \
-                   ((i < m) and re.match('^[0-9０-９]$', line[i + 1])):
-                    continue
-                if tmp != '':
-                    phrases.append(tmp)
-                    tmp = ''
-            # '[^『「｛（＜]' + '[『「｛（＜]'
-            res = '^[『「｛（＜]$'
-            if (not re.match(res, c)) and re.match(res, c2):
-                if tmp != '':
-                    phrases.append(tmp)
-                    tmp = ''
-            # '[，、．。＞）｝」』]' + '[^，、．。＞）｝」』]'
-            res = '^[，、．。＞）｝」』]$'
-            if re.match(res, c) and (not re.match(res, c2)) \
-               and (not re.match('^ $', c2)):
-                if re.match('^[，．]$', c) and \
-                   ((i > 0) and re.match('^[0-9０-９]$', line[i - 1])) and \
-                   ((i < m) and re.match('^[0-9０-９]$', line[i + 1])):
-                    continue
-                if tmp != '':
-                    phrases.append(tmp)
-                    tmp = ''
-            # '->' or '<-' or '+>' or '<+' (TRACK CHANGES)
-            res = '(?:\\->|<\\-|\\+>|<\\+)'
-            if re.match(NOT_ESCAPED + 'x$', tmp + 'x') and \
-               re.match('^' + res + '.*$', tmp2):
-                if tmp != '':
-                    phrases.append(tmp)
-                    tmp = ''
-            if re.match('^.*' + res + '$', tmp):
-                if tmp != '':
-                    phrases.append(tmp)
-                    tmp = ''
-            # '\[' or '\]' (MATH MODE)
-            res = '(?:\\\\\\[|\\\\\\])'
-            if re.match(NOT_ESCAPED + 'x$', tmp + 'x') and \
-               re.match('^' + res + '.*$', tmp2):
-                if tmp != '':
-                    phrases.append(tmp)
-                    tmp = ''
-            if re.match('^.*' + res + '$', tmp):
-                if tmp != '':
-                    phrases.append(tmp)
-                    tmp = ''
-        return phrases
-
-    @staticmethod
-    def __concatenate_phrases(phrases):
-        def __extend_tex(extension):
-            # JUST TO MAKE SURE
-            if extension == '':
-                return tex
-            if is_in_deleted:
-                return tex + '->' + extension + '<-\n'
-            if is_in_inserted:
-                return tex + '+>' + extension + '<+\n'
-            return tex + extension + '\n'
-        tex = ''
-        tmp = ''
-        is_in_deleted = False
-        is_in_inserted = False
-        is_in_math = False
-        for p in phrases:
-            # MATH MODE (MUST BE FIRST)
-            if (not is_in_math) and p == '\\[':
-                tex = __extend_tex(tmp)
-                tmp = ''
-                is_in_math = True
-                continue
-            if is_in_math and p == '\\]':
-                tex = __extend_tex('\\[' + tmp + '\\]')
-                tmp = ''
-                is_in_math = False
-                continue
-            if is_in_math:
-                tmp += p
-                continue
-            # DELETED
-            if (not is_in_deleted) and p == '->':
-                tex = __extend_tex(tmp)
-                tmp = ''
-                is_in_deleted = True
-                continue
-            if is_in_deleted and p == '<-':
-                tex = __extend_tex(tmp)
-                tmp = ''
-                is_in_deleted = False
-                continue
-            # INSERTED
-            if (not is_in_inserted) and p == '+>':
-                tex = __extend_tex(tmp)
-                tmp = ''
-                is_in_inserted = True
-                continue
-            if is_in_inserted and p == '<+':
-                tex = __extend_tex(tmp)
-                tmp = ''
-                is_in_inserted = False
-                continue
-            # SECTION WITHOUT A TITLE
-            res = '(?:#+(?:\\-#)* )+'
-            if tex == '':
-                if re.match('^' + res + '$', tmp):
-                    if not re.match('^' + res + '.*$', p):
-                        if re.match('^.*[.．。]$', phrases[-1]):
-                            tex = __extend_tex(re.sub('\\s+$', '', tmp))
-                            # tex = __extend_tex(tmp + '\\')
-                            tmp = ''
-            # IMAGE
-            if re.match(RES_IMAGE, p):
-                tex = __extend_tex(tmp + '\n' + p)
-                tmp = ''
-                continue
-            # CONJUNCTIONS
-            if re.match('^.*[,，、]$', tmp):
-                for c in CONJUNCTIONS:
-                    if re.match('^' + c + '[,，、]$', tmp):
-                        tex = __extend_tex(tmp)
-                        tmp = ''
-                        break
-            # END OF A SENTENCE
-            if re.match('^.*[．。]$', tmp):
-                tex = __extend_tex(tmp)
-                tmp = ''
-            # RIGTH LENGTH
-            if tmp != '':
-                if get_ideal_width(tmp + p) > MD_TEXT_WIDTH:
-                    tex = __extend_tex(tmp)
-                    tmp = ''
-            # FONT NAME
-            if re.match('^@.*$', p) and re.match(NOT_ESCAPED + '@$', p):
-                tex = __extend_tex(tmp)
-                tmp = ''
-            if re.match('^@.*$', tmp) and re.match(NOT_ESCAPED + '@$', tmp):
-                tex = __extend_tex(tmp)
-                tmp = ''
-            # TOO LONG
-            tmp += p
-            while get_ideal_width(tmp) > MD_TEXT_WIDTH:
-                for i in range(len(tmp), -1, -1):
-                    s1 = tmp[:i]
-                    s2 = tmp[i:]
-                    if get_ideal_width(s1) > MD_TEXT_WIDTH:
-                        continue
-                    if re.match('^.*[０-９][，．]$', s1) and \
-                       re.match('^[０-９].*$', s2):
-                        continue
-                    if re.match('^.*を$', s1):
-                        if s1 != '':
-                            tex = __extend_tex(s1)
-                            tmp = s2
-                            break
-                    if re.match('^.*[ぁ-ん，、．。]$', s1) and \
-                       re.match('^[^ぁ-ん，、．。].*$', s2):
-                        if s1 != '':
-                            tex = __extend_tex(s1)
-                            tmp = s2
-                            break
-                else:
-                    for i in range(len(tmp), -1, -1):
-                        s1 = tmp[:i]
-                        s2 = tmp[i:]
-                        # '\' +
-                        if re.match('^.*\\\\$', s1):
-                            continue
-                        # + '\'
-                        # if re.match('^\\\\.*$', s2):
-                        #     continue
-                        # '*' + '*' (BOLD)
-                        if re.match('^.*\\*$', s1) and re.match('^\\*.*$', s2):
-                            continue
-                        # '~' + '~' (STRIKETHROUGH)
-                        if re.match('^.*~$', s1) and re.match('^~.*$', s2):
-                            continue
-                        # '`' + '`' (PREFORMATTED)
-                        if re.match('^.*`$', s1) and re.match('^`.*$', s2):
-                            continue
-                        # '/' + '/' (ITALIC)
-                        if re.match('^.*/$', s1) and re.match('^/.*$', s2):
-                            continue
-                        # '-' + '-' (SMALL)
-                        if re.match('^.*\\-$', s1) and re.match('^\\-.*$', s2):
-                            continue
-                        # '+' + '+' (LARGE)
-                        if re.match('^.*\\+$', s1) and re.match('^\\+.*$', s2):
-                            continue
-                        # '_.*' + '.*_' (UNDERLINE)
-                        if re.match('^.*_[\\$=\\.#\\-~\\+]*$', s1) and \
-                           re.match('^[\\$=\\.#\\-~\\+]*_.*$', s2):
-                            continue
-                        # '^.*' + '.*^' (FONT COLOR)
-                        if re.match('^.*\\^[0-9A-Za-z]*$', s1) and \
-                           re.match('^[0-9A-Za-z]*\\^.*$', s2):
-                            continue
-                        # '_.+' + '.+_' (HIGHLIGHT COLOR)
-                        if re.match('^.*_[0-9A-Za-z]+$', s1) and \
-                           re.match('^[0-9A-Za-z]+_.*$', s2):
-                            continue
-                        # '@.+' + '.+@' (FONT)
-                        if re.match('^.*@[^@]{1,66}$', s1) and \
-                           re.match('^[^@]{1,66}@.*$', s2):
-                            continue
-                        # ' ' + ' ' (LINE BREAK)
-                        if re.match('^.* $', s1) and re.match('^ .*$', s2):
-                            continue
-                        # '<' + '[-+]' (TRACK CHANGES)
-                        if re.match('^.*<$', s1) and \
-                           re.match('^[\\-\\+].*$', s2):
-                            continue
-                        # '[-+]' + '>' (TRACK CHANGES)
-                        if re.match('^.*[\\-\\+]$', s1) and \
-                           re.match('^>.*$', s2):
-                            continue
-                        # '</?.*' + '.*>'
-                        if re.match('^.*</?[0-9a-z]*$', s1) and \
-                           re.match('^/?[0-9a-z]*>.*$', s2):
-                            continue
-                        if get_ideal_width(s1) <= MD_TEXT_WIDTH:
-                            if s1 != '':
-                                tex += s1 + '\n'
-                                tmp = s2
-                                break
-                    else:
-                        tex += tmp + '\n'
-                        tmp = ''
-        if tmp != '':
-            tex += tmp + '\n'
-            tmp = ''
-        tmp = ''
-        for t in tex.split('\n'):
-            if re.match('^\\s+.*$', t):
-                t = '\\' + t
-            if re.match('^.*\\s+$', t):
-                t = t + '\\'
-            tmp += t + '\n'
-        tex = tmp
-        tex = re.sub('\n$', '', tex)
-        tex = re.sub('(  |\t|\u3000)(\n)', '\\1\\\\\\2', tex)
-        return tex
 
     def get_document(self):
         paragraph_class = self.paragraph_class
@@ -7016,8 +7032,7 @@ class ParagraphSection(Paragraph):
         # （１）, （ア）, （ａ）
         raw_text = re.sub('^（([0-9０-９]+|[ｱ-ﾝア-ン]+|[a-zａ-ｚ]+)）',
                           '(\\1) ', raw_text)
-        m_size = Form.font_size
-        xl_size = m_size * 1.4
+        xl_size = Form.font_size * 1.4
         xml_lines = self.xml_lines
         rss = self.res_symbols
         rre = self.res_rest
@@ -7627,7 +7642,12 @@ class ParagraphTable(Paragraph):
     def __get_font_size(h_frs, t_frs):
         font_size = Form.font_size * 1.0
         for fr in h_frs:
-            if fr == '---':
+            res = '^@(' + RES_NUMBER + ')@$'
+            if re.match(res, fr):
+                c_size = float(re.sub(res, '\\1', fr))
+                if c_size > 0:
+                    font_size = c_size
+            elif fr == '---':
                 font_size = Form.font_size * 0.6
             elif fr == '--':
                 font_size = Form.font_size * 0.8
@@ -8063,7 +8083,7 @@ class ParagraphHorizontalLine(Paragraph):
     def _get_length_docx(self):
         if self.horizontal_line == 'textbox':
             return super()._get_length_docx()
-        m_size = Form.font_size
+        f_size = Form.font_size
         lnsp = Form.line_spacing
         xls = self.xml_lines
         length_docx \
@@ -8090,10 +8110,10 @@ class ParagraphHorizontalLine(Paragraph):
         tmp_ls = 0.0
         tmp_sb = (sb_xml / 20)
         tmp_sa = (sa_xml / 20)
-        tmp_sb = tmp_sb - ((lnsp - 1) * 0.75 + 0.5) * m_size
-        tmp_sa = tmp_sa - ((lnsp - 1) * 0.25 + 0.5) * m_size
-        tmp_sb = tmp_sb / lnsp / m_size
-        tmp_sa = tmp_sa / lnsp / m_size
+        tmp_sb = tmp_sb - ((lnsp - 1) * 0.75 + 0.5) * f_size
+        tmp_sa = tmp_sa - ((lnsp - 1) * 0.25 + 0.5) * f_size
+        tmp_sb = tmp_sb / lnsp / f_size
+        tmp_sa = tmp_sa / lnsp / f_size
         tmp_sb = round(tmp_sb, 2)
         tmp_sa = round(tmp_sa, 2)
         if tmp_sb == tmp_sa:
@@ -8104,9 +8124,9 @@ class ParagraphHorizontalLine(Paragraph):
         length_docx['space before'] = tmp_sb
         length_docx['space after'] = tmp_sa
         # HORIZONTAL SPACE
-        length_docx['first indent'] = round((fi_xml - hi_xml) / 20 / m_size, 2)
-        length_docx['left indent'] = round((li_xml + ti_xml) / 20 / m_size, 2)
-        length_docx['right indent'] = round(ri_xml / 20 / m_size, 2)
+        length_docx['first indent'] = round((fi_xml - hi_xml) / 20 / f_size, 2)
+        length_docx['left indent'] = round((li_xml + ti_xml) / 20 / f_size, 2)
+        length_docx['right indent'] = round(ri_xml / 20 / f_size, 2)
         # length_docx = self.length_docx
         return length_docx
 
