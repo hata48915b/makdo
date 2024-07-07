@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.06-08:50:40-JST>
+# Time-stamp:   <2024.07.07-09:29:00-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -3000,10 +3000,10 @@ class MathDatum:
 
     def remove_fr_and_bk_fds(self, fr_fd_str, bk_fd_str):
         if fr_fd_str != '':
-            if fr_fd_str in self.fr_fd_lst:
+            while fr_fd_str in self.fr_fd_lst:
                 self.fr_fd_lst.remove(fr_fd_str)
         if bk_fd_str != '':
-            if bk_fd_str in self.bk_fd_lst:
+            while bk_fd_str in self.bk_fd_lst:
                 self.bk_fd_lst.remove(bk_fd_str)
 
     # def reset_fds(self):
@@ -3128,8 +3128,10 @@ class MathDatum:
             for fd in fr_fd_lst[::-1]:
                 if fd in bk_fd_lst:
                     if re.match('^[swrbsuchdi]', fd):
-                        fr_fd_lst.remove(fd)
-                        bk_fd_lst.remove(fd)
+                        while fd in fr_fd_lst:
+                            fr_fd_lst.remove(fd)
+                        while fd in bk_fd_lst:
+                            bk_fd_lst.remove(fd)
         return math_data
 
     @classmethod
@@ -4730,9 +4732,9 @@ class Document:
                        p_next.section_states[2][1] == 0:
                         p.pre_text_to_write += ' ##=1'
                         p.pre_text_to_write += ' ###=1'
-                        if '##=1' in p_next.numbering_revisers:
+                        while '##=1' in p_next.numbering_revisers:
                             p_next.numbering_revisers.remove('##=1')
-                        if '###=1' in p_next.numbering_revisers:
+                        while '###=1' in p_next.numbering_revisers:
                             p_next.numbering_revisers.remove('###=1')
                 p.pre_text_to_write += '\n'
                 p.length_supp['space before'] -= 1.0
@@ -4931,7 +4933,7 @@ class Document:
         for i, p in enumerate(self.paragraphs):
             p_prev = self.__get_prev_paragraph(self.paragraphs, i)
             p_next = self.__get_next_paragraph(self.paragraphs, i)
-            for lr in p.length_revisers:
+            for lr in p.length_revisers[::-1]:
                 # PREV
                 if p_prev is not None and re.match('^v=-.*', lr):
                     must_remove = True
@@ -4939,7 +4941,8 @@ class Document:
                         if re.match('^V=-.*', plr):
                             must_remove = False
                     if must_remove:
-                        p.length_revisers.remove(lr)
+                        if lr in p.length_revisers:
+                            p.length_revisers.remove(lr)
                 # NEXT
                 if p_next is not None and re.match('^V=-.*', lr):
                     must_remove = True
@@ -4947,7 +4950,8 @@ class Document:
                         if re.match('^v=-.*', nlr):
                             must_remove = False
                     if must_remove:
-                        p.length_revisers.remove(lr)
+                        if lr in p.length_revisers:
+                            p.length_revisers.remove(lr)
             # RENEW
             p.text_to_write_with_reviser = p._get_text_to_write_with_reviser()
         return self.paragraphs
