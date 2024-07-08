@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.06-08:06:34-JST>
+# Time-stamp:   <2024.07.08-11:56:49-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5655,27 +5655,6 @@ class ParagraphAlignment(Paragraph):
         md_lines = self.md_lines
         alignment = self.alignment
         for ml in md_lines:
-            if alignment == 'left':
-                if ml.text != '' and not re.match('^:\\s.*$', ml.text):
-                    msg = '※ 警告: ' \
-                        + '左寄せでない行が含まれています'
-                    # msg = 'warning: ' \
-                    #     + ' not left alignment'
-                    ml.append_warning_message(msg)
-            if alignment == 'center':
-                if ml.text != '' and not re.match('^:\\s.*\\s:$', ml.text):
-                    msg = '※ 警告: ' \
-                        + '中寄せでない行が含まれています'
-                    # msg = 'warning: ' \
-                    #     + ' not center alignment'
-                    ml.append_warning_message(msg)
-            if alignment == 'right':
-                if ml.text != '' and not re.match('^.*\\s:$', ml.text):
-                    msg = '※ 警告: ' \
-                        + '右寄せでない行が含まれています'
-                    # msg = 'warning: ' \
-                    #     + ' not right alignment'
-                    ml.append_warning_message(msg)
             if alignment == 'left' or alignment == 'center':
                 if re.match('^:\\s{2,}.*$', ml.text):
                     msg = '※ 警告: ' \
@@ -5693,20 +5672,6 @@ class ParagraphAlignment(Paragraph):
                     #     + ' spaces at the end'
                     ml.append_warning_message(msg)
 
-    def _edit_data(self):
-        md_lines = self.md_lines
-        for ml in md_lines:
-            if self.alignment == 'left' or self.alignment == 'center':
-                ml.text = re.sub('^:\\s', '', ml.text)
-                # SPACE POLICY
-                # ml.text = re.sub('^:\\s*', '', ml.text)
-            if self.alignment == 'center' or self.alignment == 'right':
-                ml.text = re.sub('\\s:$', '', ml.text)
-                # SPACE POLICY
-                # ml.text = re.sub('\\s*:$', '', ml.text)
-            if ml.text == ':':
-                ml.text = ''
-
     def _get_text_to_write(self):
         md_lines = self.md_lines
         alignment = self.alignment
@@ -5714,19 +5679,28 @@ class ParagraphAlignment(Paragraph):
         for ml in md_lines:
             if ml.text == '':
                 continue
-            # REMOVED 23.05.03 >
-            # if alignment == 'left':
-            #     if not re.match('^:\\s+.*$', ml.raw_text):
-            #         continue
-            # elif alignment == 'center':
-            #     if not re.match('^:\\s+.*\\s+:$', ml.raw_text):
-            #         continue
-            # elif alignment == 'right':
-            #     if not re.match('^.*\\s+:$', ml.raw_text):
-            #         continue
-            # <
-            text_to_write += ml.text + '\n'
-        text_to_write = re.sub('\n$', '', text_to_write)
+            if alignment == 'left':
+                if re.match('^:\\s(.|\n)*$', ml.text):
+                    ml.text = re.sub('^:\\s', '\n', ml.text)
+                    # ml.text = re.sub('^:\\s+', '\n', ml.text)
+            elif alignment == 'center':
+                if re.match('^:\\s(.|\n)*$', ml.text):
+                    ml.text = re.sub('^:\\s', '\n', ml.text)
+                    # ml.text = re.sub('^:\\s+', '\n', ml.text)
+                if re.match('^(.|\n)*\\s:$', ml.text):
+                    ml.text = re.sub('\\s:$', '\n', ml.text)
+                    # ml.text = re.sub('\\s+:$', '\n', ml.text)
+            elif alignment == 'right':
+                if re.match('^(.|\n)*\\s:$', ml.text):
+                    ml.text = re.sub('\\s:$', '\n', ml.text)
+                    # ml.text = re.sub('\\s+:$', '\n', ml.text)
+            text_to_write += ml.text
+        if alignment == 'center':
+            text_to_write = text_to_write.replace('\n\n', '\n')
+        if alignment == 'left' or alignment == 'center':
+            text_to_write = re.sub('^\n', '', text_to_write)
+        if alignment == 'center' or alignment == 'right':
+            text_to_write = re.sub('\n$', '', text_to_write)
         return text_to_write
 
 
