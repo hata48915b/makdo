@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.07-09:29:00-JST>
+# Time-stamp:   <2024.07.08-11:15:39-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4104,114 +4104,230 @@ class LineTruncation:
     """A class to truncate lines"""
 
     def __init__(self, md_text):
-        self.md_text = md_text
+        self.old_text = md_text
+        phrases = self._split_into_phrases(md_text)
+        self.new_text = self._concatenate_phrases(phrases)
 
     def get_truncated_md_text(self):
-        md_text = self.md_text
-        md_lines_text = ''
-        for line in md_text.split('\n'):
-            res = NOT_ESCAPED + '(' + RES_IMAGE + ')(.*)$'
-            line = re.sub(res, '\\1\n\\2\n\\5', line)
-            line = re.sub('\n+', '\n', line)
-            phrases = []
-            for text in line.split('\n'):
-                if re.match(RES_IMAGE, text):
-                    phrases.append(text)
-                else:
-                    phrases += self._split_into_phrases(text)
-            splited = self._concatenate_phrases(phrases)
-            md_lines_text += splited + '<br>\n'
-        md_lines_text = re.sub('<br>\n$', '', md_lines_text)
-        return md_lines_text
+        return self.new_text
 
     @staticmethod
-    def _split_into_phrases(line):
+    def __save_1(phrases, res, tmp1):
+        m1 = re.sub(res, '\\1', tmp1)
+        m2 = re.sub(res, '\\2', tmp1)
+        phrases.append(m1)
+        return phrases, m2
+
+    @staticmethod
+    def __save_2(phrases, res, tmp1):
+        m1 = re.sub(res, '\\1', tmp1)
+        m2 = re.sub(res, '\\2', tmp1)
+        phrases.append(m1)
+        phrases.append(m2)
+        return phrases, ''
+
+    @staticmethod
+    def __must_continue(res1, res2, tmp1, tmp2):
+        if re.match(NOT_ESCAPED + res1 + '$', tmp1):
+            if re.match('^' + res2 + '(?:.|\n)*$', tmp2):
+                return True
+        return False
+
+    @classmethod
+    def _split_into_phrases(cls, old_text):
         phrases = []
-        tmp = ''
-        m = len(line) - 1
-        for i, c in enumerate(line):
-            tmp += c
-            if i == m:
-                if tmp != '':
-                    phrases.append(tmp)
-                    tmp = ''
-                break
-            c2 = line[i + 1]
-            tmp2 = line[i + 1:]
-            # '@.+@' (FONT)
-            if not re.match('^@', tmp):
-                if re.match(NOT_ESCAPED + '@$', tmp + c2):
-                    phrases.append(tmp)
-                    tmp = ''
-            if re.match('^@.{1,66}@$', tmp):
-                if re.match(NOT_ESCAPED + '@$', tmp):
-                    phrases.append(tmp)
-                    tmp = ''
-            # + ' '
-            if re.match('^ $', c2):
+        fds = ''
+        tmp1 = ''
+        m = len(old_text) - 1
+        for i in range(len(old_text)):
+            j = i + 1
+            c1 = (old_text + '\0')[i]
+            c2 = (old_text + '\0')[j]
+            tmp1 += c1
+            tmp2 = (old_text + '\0')[j:]
+            # FONT DECORATORS
+            must_continue = False
+            if not must_continue:
+                res = NOT_ESCAPED + '(`)$'
+                if re.match(res, tmp1):
+                    # "`"
+                    phrases, m2 = cls.__save_1(phrases, res, tmp1)
+                    fds += m2
+                    tmp1 = ''
+                    must_continue = True
+            if not must_continue:
+                for c in ['\\*', '\\-', '\\+', '>', '<', '~', '/']:
+                    res3 = NOT_ESCAPED + '(' + c * 3 + ')$'
+                    res2 = NOT_ESCAPED + '(' + c * 2 + ')$'
+                    res1 = NOT_ESCAPED + '(' + c * 1 + ')$'
+                    if re.match(res3, tmp1):
+                        if c != '~' and c != '/':
+                            # "***", "---", "+++", ">>>", "<<<"
+                            phrases, m2 = cls.__save_1(phrases, res3, tmp1)
+                            fds += m2
+                            tmp1 = ''
+                            must_continue = True
+                            break
+                    elif re.match(res2, tmp1):
+                        if c == '~' or c == '/':
+                            # "~~", "//"
+                            phrases, m2 = cls.__save_1(phrases, res2, tmp1)
+                            fds += m2
+                            tmp1 = ''
+                            must_continue = True
+                            break
+                        elif re.match('^' + c, tmp2):
+                            must_continue = True
+                            break
+                        else:
+                            # **, --, ++, >>, <<
+                            phrases, m2 = cls.__save_1(phrases, res2, tmp1)
+                            fds += m2
+                            tmp1 = ''
+                            must_continue = True
+                            break
+                    elif re.match(res1, tmp1):
+                        if re.match('^' + c, tmp2):
+                            must_continue = True
+                            break
+                        elif c == '\\*':
+                            # *
+                            phrases, m2 = cls.__save_1(phrases, res1, tmp1)
+                            fds += m2
+                            tmp1 = ''
+                            must_continue = True
+                            break
+            if not must_continue:
+                for ress in [[NOT_ESCAPED + '(@[^@]{1,66}@)$',
+                              NOT_ESCAPED + '@[^@]{,66}$',
+                              '^([^@]{,66}@)'],
+                             [NOT_ESCAPED + '(\\^[0-9A-Za-z]{,11}\\^)$',
+                              NOT_ESCAPED + '\\^[0-9A-Za-z]{,11}$',
+                              '^[0-9A-Za-z]{,11}\\^'],
+                             [NOT_ESCAPED + '(_[0-9A-Za-z]{1,11}_)$',
+                              NOT_ESCAPED + '_[0-9A-Za-z]{,11}$',
+                              '^[0-9A-Za-z]{,11}_'],
+                             [NOT_ESCAPED + '(_[\\$=\\.#\\-~\\+]{,4}_)$',
+                              NOT_ESCAPED + '_[\\$=\\.#\\-~\\+]{,4}$',
+                              '^[\\$=\\.#\\-~\\+]{,4}_']]:
+                    if re.match(ress[0], tmp1):
+                        # @.+@, _.+_, ^.+^
+                        phrases, m2 = cls.__save_1(phrases, ress[0], tmp1)
+                        fds += m2
+                        tmp1 = ''
+                        must_continue = True
+                        break
+                    elif re.match(ress[1], tmp1) and re.match(ress[2], tmp2):
+                        must_continue = True
+                        break
+            if (not must_continue) or (i == m):
+                if fds != '':
+                    phrases.append(fds)
+                    fds = ''
+            if must_continue:
                 continue
-            # ' ' + '[^ ]'
-            if re.match('^ $', c) and (not re.match('^ $', c2)):
-                if tmp != '':
-                    if not re.match('^@.{1,66}$', tmp):
-                        phrases.append(tmp)
-                        tmp = ''
-            # '[[{(]' + '[^[{(]'
-            # res = '^[\\[{\\(]$'
-            # if re.match('^ $', c) and (not re.match(res, c2)):
-            #     if tmp != '':
-            #         phrases.append(tmp)
-            #         tmp = ''
-            # '[,.)}]]' + '[^,.)}] ]'
-            res = '^[,\\.\\)}\\]]$'
-            if re.match(res, c) and (not re.match(res, c2)) \
-               and (not re.match('^ $', c2)):
-                if re.match('^[,\\.]$', c) and \
-                   ((i > 0) and re.match('^[0-9０-９]$', line[i - 1])) and \
-                   ((i < m) and re.match('^[0-9０-９]$', line[i + 1])):
+            # SPACE
+            if re.match('^[ \t\u3000](?:.|\n)$', tmp2):
+                continue
+            if re.match('^(?:.|\n)*[\t\u3000]$', tmp1):
+                continue
+            # SUB OR SUP
+            if re.match('^[_\\^]{[^{}]*}', tmp2):
+                continue
+            if cls.__must_continue('[_\\^]', '{', tmp1, tmp2):
+                continue
+            if cls.__must_continue('[_\\^]{[^{}]*', '[^{}]*}', tmp1, tmp2):
+                continue
+            # LINE BREAK
+            res = '^((?:.|\n)*)(\n)$'
+            if re.match(res, tmp1):
+                phrases, tmp1 = cls.__save_1(phrases, res, tmp1)
+                phrases.append('<br>')
+                tmp1 = ''
+                continue
+            # IMAGE
+            res = NOT_ESCAPED + '(' + RES_IMAGE + ')$'
+            if re.match(res, tmp1):
+                phrases, tmp1 = cls.__save_2(phrases, res, tmp1)
+                continue
+            if cls.__must_continue('!',
+                                    '\\[[^\\[\\]]*\\]' + '\\([^\\(\\)]*\\)',
+                                    tmp1, tmp2):
+                continue  # ! + [....](....)
+            if cls.__must_continue('!' + '\\[[^\\[\\]]*',
+                                    '[^\\[\\]]*\\]' + '\\([^\\(\\)]*\\)',
+                                    tmp1, tmp2):
+                continue  # ![.. + ..](....)
+            if cls.__must_continue('!' + '\\[[^\\[\\]]*\\]',
+                                    '\\([^\\(\\)]*\\)',
+                                    tmp1, tmp2):
+                continue  # ![....] + (....)
+            if cls.__must_continue('!' + '\\[[^\\[\\]]*\\]\\([^\\(\\)]*',
+                                    '[^\\(\\)]*\\)',
+                                    tmp1, tmp2):
+                continue  # ![....](.. + ..)
+            # NUMBER
+            if re.match('^.*[0-9０-９]+[,\\.，．]$', tmp1):
+                if re.match('^[0-9０-９]+.*$', tmp2):
                     continue
-                if tmp != '':
-                    phrases.append(tmp)
-                    tmp = ''
-            # '[^『「｛（＜]' + '[『「｛（＜]'
-            res = '^[『「｛（＜]$'
-            if (not re.match(res, c)) and re.match(res, c2):
-                if tmp != '':
-                    phrases.append(tmp)
-                    tmp = ''
-            # '[，、．。＞）｝」』]' + '[^，、．。＞）｝」』]'
-            res = '^[，、．。＞）｝」』]$'
-            if re.match(res, c) and (not re.match(res, c2)) \
-               and (not re.match('^ $', c2)):
-                if re.match('^[，．]$', c) and \
-                   ((i > 0) and re.match('^[0-9０-９]$', line[i - 1])) and \
-                   ((i < m) and re.match('^[0-9０-９]$', line[i + 1])):
+            # MATH
+            res = NOT_ESCAPED + '(\\\\\\[)'
+            if re.match(res, tmp1):
+                phrases, tmp1 = cls.__save_2(phrases, res, tmp1)
+                continue
+            res = NOT_ESCAPED + '(\\\\\\])'
+            if re.match(res, tmp1):
+                phrases, tmp1 = cls.__save_2(phrases, res, tmp1)
+                continue
+            if cls.__must_continue('\\\\', '[\\[\\]]', tmp1, tmp2):
+                continue
+            # TRACK CHANGES
+            res = NOT_ESCAPED + '([\\-\\+]>)$'
+            if re.match(res, tmp1):
+                phrases, tmp1 = cls.__save_2(phrases, res, tmp1)
+                continue
+            res = NOT_ESCAPED + '(<[\\-\\+])$'
+            if re.match(res, tmp1):
+                phrases, tmp1 = cls.__save_2(phrases, res, tmp1)
+                continue
+            if cls.__must_continue('[\\-\\+]', '>', tmp1, tmp2):
+                continue
+            if cls.__must_continue('<', '[\\-\\+]', tmp1, tmp2):
+                continue
+            # PARENTHESES
+            must_continue = False
+            for res_par in ['[\\[{\\(<［〔『「｛（＜〈《]+',
+                            '[\\]}\\)>］〕』」｝）＞〉》]+']:
+                res = '^(.*?)(' + res_par + ')$'
+                if re.match(res, tmp1):
+                    if not re.match('^' + res_par, tmp2):
+                        phrases, tmp1 = cls.__save_2(phrases, res, tmp1)
+                    must_continue = True
+                    break
+            if must_continue:
+                continue
+            # PUNCTUATION
+            res_pun = '[,\\.，、．。]'
+            if re.match('^(.|\n)*' + res_pun + '$', tmp1):
+                if not re.match('^' + res_pun, tmp2):
+                    phrases.append(tmp1)
+                    tmp1 = ''
                     continue
-                if tmp != '':
-                    phrases.append(tmp)
-                    tmp = ''
-            # '->' or '<-' or '+>' or '<+' (TRACK CHANGES)
-            res = '(?:\\->|<\\-|\\+>|<\\+)'
-            if re.match(NOT_ESCAPED + 'x$', tmp + 'x') and \
-               re.match('^' + res + '.*$', tmp2):
-                if tmp != '':
-                    phrases.append(tmp)
-                    tmp = ''
-            if re.match('^.*' + res + '$', tmp):
-                if tmp != '':
-                    phrases.append(tmp)
-                    tmp = ''
-            # '\[' or '\]' (MATH MODE)
-            res = '(?:\\\\\\[|\\\\\\])'
-            if re.match(NOT_ESCAPED + 'x$', tmp + 'x') and \
-               re.match('^' + res + '.*$', tmp2):
-                if tmp != '':
-                    phrases.append(tmp)
-                    tmp = ''
-            if re.match('^.*' + res + '$', tmp):
-                if tmp != '':
-                    phrases.append(tmp)
-                    tmp = ''
+            # SPACE
+            if re.match('^(.|\n)* $', tmp1) and (not re.match('^ ', tmp1)):
+                if re.match('^@[^@]{1,66}$', tmp1):
+                    continue  # font scale or name
+                phrases.append(tmp1)
+                tmp1 = ''
+                continue
+             # END
+            if i == m:
+                if tmp1 != '':
+                    phrases.append(tmp1)
+                break
+        # REMOVE EMPTY
+        while '' in phrases:
+            phrases.remove('')
         return phrases
 
     @staticmethod
@@ -4267,8 +4383,13 @@ class LineTruncation:
                 tmp = ''
                 is_in_inserted = False
                 continue
+            # LINE BREAK
+            if p == '<br>':
+                tex = __extend_tex(tmp + '\n' + p)
+                tmp = ''
+                continue
             # SECTION WITHOUT A TITLE
-            res = '(?:#+(?:\\-#)* )+'
+            res = '(?:#+(?:\\-#)* +)'
             if tex == '':
                 if re.match('^' + res + '$', tmp):
                     if not re.match('^' + res + '.*$', p):
@@ -4292,7 +4413,7 @@ class LineTruncation:
             if re.match('^.*[．。]$', tmp):
                 tex = __extend_tex(tmp)
                 tmp = ''
-            # RIGTH LENGTH
+            # RIGHT LENGTH
             if tmp != '':
                 if get_ideal_width(tmp + p) > MD_TEXT_WIDTH:
                     tex = __extend_tex(tmp)
@@ -4306,8 +4427,9 @@ class LineTruncation:
                 if not re.match('^@' + RES_NUMBER + '@$', tmp):
                     tex = __extend_tex(tmp)
                     tmp = ''
-            # TOO LONG
+            # CONCATENATE
             tmp += p
+            # TOO LONG
             while get_ideal_width(tmp) > MD_TEXT_WIDTH:
                 for i in range(len(tmp), -1, -1):
                     s1 = tmp[:i]
@@ -4408,7 +4530,8 @@ class LineTruncation:
         tex = tmp
         tex = re.sub('\n$', '', tex)
         tex = re.sub('(  |\t|\u3000)(\n)', '\\1\\\\\\2', tex)
-        return tex
+        new_text = tex
+        return new_text
 
 
 class Document:
