@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.08-11:15:39-JST>
+# Time-stamp:   <2024.07.08-13:19:20-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -2853,6 +2853,9 @@ class FontDecorator:
             self.italic = fd_str           # ITALIC (*)
         elif fd_str == '**':
             self.bold = fd_str             # BOLD (**)
+        elif fd_str == '***':
+            self.italic = '*'              # ITALIC (*)
+            self.bold = '**'               # BOLD (**)
         elif fd_str == '~~':
             self.strike = fd_str           # STRIKE (~~)
         elif re.match('_[\\$=\\.#\\-~\\+]{,4}_', fd_str):
@@ -2902,11 +2905,12 @@ class FontDecorator:
         #     return False
         if fr.font_scale != bk.font_scale:
             return False
-        if fr.font_width != '>>>' or bk.font_width != '<<<':
-            if fr.font_width != '>>' or bk.font_width != '<<':
-                if fr.font_width != '<<' or bk.font_width != '>>':
-                    if fr.font_width != '<<<' or bk.font_width != '>>>':
-                        return False
+        if fr.font_width != '' or bk.font_width != '':
+            if fr.font_width != '>>>' or bk.font_width != '<<<':
+                if fr.font_width != '>>' or bk.font_width != '<<':
+                    if fr.font_width != '<<' or bk.font_width != '>>':
+                        if fr.font_width != '<<<' or bk.font_width != '>>>':
+                            return False
         if fr.italic != bk.italic:
             return False
         if fr.bold != bk.bold:
@@ -2919,12 +2923,14 @@ class FontDecorator:
             return False
         if fr.highlight_color != bk.highlight_color:
             return False
-        if fr.sub_or_sup != '_{' or bk.sub_or_sup != '_}':
-            if fr.sub_or_sup != '^{' or bk.sub_or_sup != '^}':
-                return False
-        if fr.track_changes != '->' or bk.track_changes != '<-':
-            if fr.track_changes != '+>' or bk.track_changes != '<+':
-                return False
+        if fr.sub_or_sup != '' or bk.sub_or_sup != '':
+            if fr.sub_or_sup != '_{' or bk.sub_or_sup != '_}':
+                if fr.sub_or_sup != '^{' or bk.sub_or_sup != '^}':
+                    return False
+        if fr.track_changes != '' or bk.track_changes != '':
+            if fr.track_changes != '->' or bk.track_changes != '<-':
+                if fr.track_changes != '+>' or bk.track_changes != '<+':
+                    return False
         return True
 
     @staticmethod
@@ -5321,7 +5327,7 @@ class RawParagraph:
         self.tail_space = rts[::-1]
         self.raw_text_del = self._get_raw_text_del(self.raw_text)
         self.raw_text_ins = self._get_raw_text_ins(self.raw_text)
-        if self.raw_text_ins != '':
+        if Paragraph.get_font_revisers_and_md_text(self.raw_text_ins)[2] != '':
             self.raw_text_doi = self.raw_text_ins
         else:
             self.raw_text_doi = self.raw_text_del
@@ -6333,7 +6339,7 @@ class Paragraph:
     def _get_revisers_and_md_text(self, raw_text):
         numbering_revisers = []
         head_font_revisers, tail_font_revisers, raw_text \
-            = Paragraph._get_font_revisers_and_md_text(raw_text)
+            = Paragraph.get_font_revisers_and_md_text(raw_text)
         md_text = self._get_md_text(raw_text)
         # PREFORMATTED
         if self.paragraph_class == 'preformatted':
@@ -6349,7 +6355,7 @@ class Paragraph:
             md_text
 
     @staticmethod
-    def _get_font_revisers_and_md_text(raw_text):
+    def get_font_revisers_and_md_text(raw_text):
         head_font_revisers = []
         tail_font_revisers = []
         while True:
@@ -6959,7 +6965,7 @@ class ParagraphBlank(Paragraph):
             return False
         if ParagraphConfiguration.is_this_class(rp):
             return False
-        hfrs, tfrs, mtx = Paragraph._get_font_revisers_and_md_text(rp_rtx)
+        hfrs, tfrs, mtx = Paragraph.get_font_revisers_and_md_text(rp_rtx)
         if re.match('^\\s*$', mtx):
             return True
         return False
@@ -7025,7 +7031,7 @@ class ParagraphChapter(Paragraph):
         rre = self.res_rest
         numbering_revisers = []
         head_font_revisers, tail_font_revisers, raw_text \
-            = Paragraph._get_font_revisers_and_md_text(raw_text)
+            = Paragraph.get_font_revisers_and_md_text(raw_text)
         head_tc = ''
         tail_tc = ''
         if re.match('^->(.|\n)*$', raw_text):
@@ -7166,7 +7172,7 @@ class ParagraphSection(Paragraph):
         rnm = self.res_number
         numbering_revisers = []
         head_font_revisers, tail_font_revisers, raw_text \
-            = Paragraph._get_font_revisers_and_md_text(raw_text)
+            = Paragraph.get_font_revisers_and_md_text(raw_text)
         head_tc = ''
         tail_tc = ''
         if re.match('^->(.|\n)*$', raw_text):
@@ -7455,7 +7461,7 @@ class ParagraphList(Paragraph):
         rss = rsbs + rsns
         numbering_revisers = []
         head_font_revisers, tail_font_revisers, raw_text \
-            = Paragraph._get_font_revisers_and_md_text(raw_text)
+            = Paragraph.get_font_revisers_and_md_text(raw_text)
         head_symbol = ''
         for i in range(len(rss)):
             res = '^' + rss[i] + rre + '$'
@@ -7634,7 +7640,7 @@ class ParagraphTable(Paragraph):
         for row in txt_tab:
             for cell in row:
                 h_frs, t_frs, _ \
-                    = Paragraph._get_font_revisers_and_md_text(cell)
+                    = Paragraph.get_font_revisers_and_md_text(cell)
                 for fr in h_frs:
                     if fr not in head_font_revisers:
                         head_font_revisers.append(fr)
@@ -7652,7 +7658,7 @@ class ParagraphTable(Paragraph):
                     continue
                 total += 1
                 h_frs, t_frs, _ \
-                    = Paragraph._get_font_revisers_and_md_text(cell)
+                    = Paragraph.get_font_revisers_and_md_text(cell)
                 for i, fr in enumerate(head_font_revisers):
                     if fr in h_frs:
                         h_freq[i] += 1
@@ -7699,7 +7705,7 @@ class ParagraphTable(Paragraph):
                     tmp_t_frs.append(fr)
                 # REMOVE
                 cel_h_frs, cel_t_frs, cel_txt \
-                    = Paragraph._get_font_revisers_and_md_text(cell)
+                    = Paragraph.get_font_revisers_and_md_text(cell)
                 for h_fr in tmp_h_frs:
                     if h_fr in cel_h_frs:
                         tmp_h_frs.remove(h_fr)
