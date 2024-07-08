@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.08-14:18:42-JST>
+# Time-stamp:   <2024.07.08-16:38:19-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -409,6 +409,8 @@ FONT_DECORATORS = FONT_DECORATORS_INVISIBLE + FONT_DECORATORS_VISIBLE
 
 RELAX_SYMBOL = '<>'
 
+TAB_WIDTH = 4
+
 HORIZONTAL_BAR = '[ー−—－―‐]'
 
 UNDERLINE = {
@@ -596,7 +598,7 @@ def get_real_width(s):
     wid = 0.0
     for c in s:
         if (c == '\t'):
-            wid = (wid + 8) // 8 * 8
+            wid += (int(wid / TAB_WIDTH) + 1) * TAB_WIDTH
             continue
         w = unicodedata.east_asian_width(c)
         if c == '':

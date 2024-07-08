@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.08-14:20:11-JST>
+# Time-stamp:   <2024.07.08-16:40:33-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -351,6 +351,8 @@ FONT_DECORATORS = FONT_DECORATORS_INVISIBLE + FONT_DECORATORS_VISIBLE
 RES_FONT_DECORATORS = '((?:' + '|'.join(FONT_DECORATORS) + ')*)'
 
 RELAX_SYMBOL = '<>'
+
+TAB_WIDTH = 4
 
 MD_TEXT_WIDTH = 68
 
@@ -718,7 +720,7 @@ def get_real_width(s):
     wid = 0.0
     for c in s:
         if (c == '\t'):
-            wid = (wid + 8) // 8 * 8
+            wid += (int(wid / TAB_WIDTH) + 1) * TAB_WIDTH
             continue
         w = unicodedata.east_asian_width(c)
         if c == '':
@@ -795,7 +797,7 @@ def get_ideal_width(s):
     wid = 0
     for c in s:
         if (c == '\t'):
-            wid = (wid + 8) // 8 * 8
+            wid += (int(wid / TAB_WIDTH) + 1) * TAB_WIDTH
             continue
         w = unicodedata.east_asian_width(c)
         if (w == 'F'):    # Full alphabet ...
@@ -5010,37 +5012,32 @@ class Document:
 
     def _modpar_cancel_first_indent(self):
         # |             ->  |
-        # |<<=+1.0      ->  |1行の段落
-        # |　1行の段落  ->  |
+        # |　1行の段落  ->  |<<=-1.0
+        # |             ->  |1行の段落
         # |             ->  |
         res = '^([ \t\u3000]+)((?:.|\n)*)$'
         for p in self.paragraphs:
-            if len(p.chars_data) == 0:
-                continue
-            if not re.match(res, p.chars_data[0].chars):
+            if p.head_space == '':
                 continue
             if p.chars_data[0].fr_fd_cls.font_scale != '' or \
                p.chars_data[0].fr_fd_cls.font_width != '' or \
                p.chars_data[0].bk_fd_cls.font_scale != '' or \
                p.chars_data[0].bk_fd_cls.font_width != '':
                 continue
-            hsps = re.sub(res, '\\1', p.chars_data[0].chars)
             w = 0
-            for c in hsps:
+            for c in p.head_space:
                 if c == ' ':
                     w += 0.5
                 elif c == '\t':
-                    w += 4.0
+                    w += (int(wid / TAB_WIDTH) + 1) * TAB_WIDTH
                 elif c == '\u3000':
                     w += 1.0
-            # if w + p.length_revi['first indent'] != 0:
-            #     continue
+            p.head_space = ''
             p.length_supp['first indent'] += w
-            p.text_to_write = re.sub('^' + hsps, '', p.text_to_write)
             p.length_revi = p._get_length_revi()
             p.length_revisers = p._get_length_revisers(p.length_revi)
             # p.md_lines_text = p._get_md_lines_text(p.md_text)
-            # p.text_to_write = p._get_text_to_write()
+            p.text_to_write = p._get_text_to_write()
             p.text_to_write_with_reviser = p._get_text_to_write_with_reviser()
         return self.paragraphs
 
@@ -6515,7 +6512,6 @@ class Paragraph:
         f_size = Form.font_size
         lnsp = Form.line_spacing
         xls = self.xml_lines
-        head_space = self.head_space
         paragraph_class = self.paragraph_class
         head_font_revisers = self.head_font_revisers
         tail_font_revisers = self.tail_font_revisers
@@ -6609,16 +6605,6 @@ class Paragraph:
         if paragraph_class == 'section':
             if re.match(res, raw_text):
                 length_docx['first indent'] += 1.0
-        if head_space != '':
-            width = 0
-            for sp in head_space:
-                if sp == ' ':
-                    width += 0.5
-                elif sp == '\t':
-                    width = (int(width / 4) + 1) * 4.0
-                else:
-                    width += 1.0
-            length_docx['first indent'] += width
         for ln in length_docx:
             length_docx[ln] = round(length_docx[ln], 2)
         # self.length_docx = length_docx
@@ -6835,6 +6821,7 @@ class Paragraph:
         right_margin = Form.right_margin
         md_lines_text = self.md_lines_text
         length_docx = self.length_docx
+        head_space = self.head_space
         indent = length_docx['first indent'] \
             + length_docx['left indent'] \
             + length_docx['right indent']
@@ -6844,7 +6831,7 @@ class Paragraph:
         height_cm = PAPER_HEIGHT[paper_size] - top_margin - bottom_margin
         region_cm = (width_cm, height_cm)
         res = '^((?:.|\n)*)(' + RES_IMAGE_WITH_SIZE + ')((?:.|\n)*)$'
-        text_to_write = ''
+        text_to_write = head_space
         while re.match(res, md_lines_text):
             text_to_write += re.sub(res, '\\1', md_lines_text)
             img_text = re.sub(res, '\\2', md_lines_text)
