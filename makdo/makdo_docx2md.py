@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.08-13:19:20-JST>
+# Time-stamp:   <2024.07.08-14:20:11-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4257,20 +4257,20 @@ class LineTruncation:
                 phrases, tmp1 = cls.__save_2(phrases, res, tmp1)
                 continue
             if cls.__must_continue('!',
-                                    '\\[[^\\[\\]]*\\]' + '\\([^\\(\\)]*\\)',
-                                    tmp1, tmp2):
+                                   '\\[[^\\[\\]]*\\]' + '\\([^\\(\\)]*\\)',
+                                   tmp1, tmp2):
                 continue  # ! + [....](....)
             if cls.__must_continue('!' + '\\[[^\\[\\]]*',
-                                    '[^\\[\\]]*\\]' + '\\([^\\(\\)]*\\)',
-                                    tmp1, tmp2):
+                                   '[^\\[\\]]*\\]' + '\\([^\\(\\)]*\\)',
+                                   tmp1, tmp2):
                 continue  # ![.. + ..](....)
             if cls.__must_continue('!' + '\\[[^\\[\\]]*\\]',
-                                    '\\([^\\(\\)]*\\)',
-                                    tmp1, tmp2):
+                                   '\\([^\\(\\)]*\\)',
+                                   tmp1, tmp2):
                 continue  # ![....] + (....)
             if cls.__must_continue('!' + '\\[[^\\[\\]]*\\]\\([^\\(\\)]*',
-                                    '[^\\(\\)]*\\)',
-                                    tmp1, tmp2):
+                                   '[^\\(\\)]*\\)',
+                                   tmp1, tmp2):
                 continue  # ![....](.. + ..)
             # NUMBER
             if re.match('^.*[0-9０-９]+[,\\.，．]$', tmp1):
@@ -4326,7 +4326,7 @@ class LineTruncation:
                 phrases.append(tmp1)
                 tmp1 = ''
                 continue
-             # END
+            # END
             if i == m:
                 if tmp1 != '':
                     phrases.append(tmp1)
@@ -4391,6 +4391,11 @@ class LineTruncation:
                 continue
             # LINE BREAK
             if p == '<br>':
+                tex = __extend_tex(tmp + '\n' + p)
+                tmp = ''
+                continue
+            # FONT DECORATORS
+            if re.match('^' + RES_FONT_DECORATORS + '+$', p):
                 tex = __extend_tex(tmp + '\n' + p)
                 tmp = ''
                 continue
@@ -4536,7 +4541,7 @@ class LineTruncation:
         tex = tmp
         tex = re.sub('\n$', '', tex)
         tex = re.sub('(  |\t|\u3000)(\n)', '\\1\\\\\\2', tex)
-        new_text = tex
+        new_text = re.sub('\n+', '\n', tex)
         return new_text
 
 

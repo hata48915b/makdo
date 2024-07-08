@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.08-11:56:49-JST>
+# Time-stamp:   <2024.07.08-14:18:42-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4252,6 +4252,7 @@ class Paragraph:
                     trunk = re.sub(res, '\\1', mlt)
                     branc = re.sub(res, '\\2', mlt)
                     mlt = re.sub(res, '\\3', mlt)
+                    mlt = re.sub('\\\\$', '', mlt)  # remove a escape symbol
                     xdepth = len(trunk) - 1
                     ydepth = len(branc.replace(char, ''))
                     if pdepth > 0 and xdepth != pdepth + 1:
