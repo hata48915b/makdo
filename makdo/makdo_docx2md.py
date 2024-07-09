@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.09-12:12:43-JST>
+# Time-stamp:   <2024.07.09-13:01:39-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4326,6 +4326,7 @@ class LineTruncation:
                     else:
                         is_too_long = True
                         break
+                # ADD
                 if is_too_long:
                     phrases.append(t1)
                     k = len(phrases) - 1
@@ -4352,6 +4353,9 @@ class LineTruncation:
                     phrases.append(tmp1)
                     tmp1 = ''
                     closing_point = -1
+                res = '^(.|\n)*[0-9０-９a-zｑａ-ｚA-ZＡ-Ｚ]+[\\)）]$'
+                if re.match(res, tmp1):
+                    continue  # 1), １）, a), ａ）, A), Ａ）...
                 if not re.match(cls.res_clos, c2):
                     res = '^((?:.|\n)*?)(' + cls.res_clos + '+)$'
                     phrases, tmp1 = cls.__save_two(phrases, res, tmp1)
