@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.08-16:40:33-JST>
+# Time-stamp:   <2024.07.09-12:12:43-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4111,6 +4111,9 @@ class LineTruncation:
 
     """A class to truncate lines"""
 
+    res_open = '[「『（\\(]'
+    res_clos = '[\\)）』」]'
+
     def __init__(self, md_text):
         self.old_text = md_text
         phrases = self._split_into_phrases(md_text)
@@ -4120,14 +4123,14 @@ class LineTruncation:
         return self.new_text
 
     @staticmethod
-    def __save_1(phrases, res, tmp1):
+    def __save_one(phrases, res, tmp1):
         m1 = re.sub(res, '\\1', tmp1)
         m2 = re.sub(res, '\\2', tmp1)
         phrases.append(m1)
         return phrases, m2
 
     @staticmethod
-    def __save_2(phrases, res, tmp1):
+    def __save_two(phrases, res, tmp1):
         m1 = re.sub(res, '\\1', tmp1)
         m2 = re.sub(res, '\\2', tmp1)
         phrases.append(m1)
@@ -4146,6 +4149,7 @@ class LineTruncation:
         phrases = []
         fds = ''
         tmp1 = ''
+        closing_point = -1
         m = len(old_text) - 1
         for i in range(len(old_text)):
             j = i + 1
@@ -4159,7 +4163,7 @@ class LineTruncation:
                 res = NOT_ESCAPED + '(`)$'
                 if re.match(res, tmp1):
                     # "`"
-                    phrases, m2 = cls.__save_1(phrases, res, tmp1)
+                    phrases, m2 = cls.__save_one(phrases, res, tmp1)
                     fds += m2
                     tmp1 = ''
                     must_continue = True
@@ -4171,7 +4175,7 @@ class LineTruncation:
                     if re.match(res3, tmp1):
                         if c != '~' and c != '/':
                             # "***", "---", "+++", ">>>", "<<<"
-                            phrases, m2 = cls.__save_1(phrases, res3, tmp1)
+                            phrases, m2 = cls.__save_one(phrases, res3, tmp1)
                             fds += m2
                             tmp1 = ''
                             must_continue = True
@@ -4179,7 +4183,7 @@ class LineTruncation:
                     elif re.match(res2, tmp1):
                         if c == '~' or c == '/':
                             # "~~", "//"
-                            phrases, m2 = cls.__save_1(phrases, res2, tmp1)
+                            phrases, m2 = cls.__save_one(phrases, res2, tmp1)
                             fds += m2
                             tmp1 = ''
                             must_continue = True
@@ -4189,7 +4193,7 @@ class LineTruncation:
                             break
                         else:
                             # **, --, ++, >>, <<
-                            phrases, m2 = cls.__save_1(phrases, res2, tmp1)
+                            phrases, m2 = cls.__save_one(phrases, res2, tmp1)
                             fds += m2
                             tmp1 = ''
                             must_continue = True
@@ -4200,7 +4204,7 @@ class LineTruncation:
                             break
                         elif c == '\\*':
                             # *
-                            phrases, m2 = cls.__save_1(phrases, res1, tmp1)
+                            phrases, m2 = cls.__save_one(phrases, res1, tmp1)
                             fds += m2
                             tmp1 = ''
                             must_continue = True
@@ -4220,7 +4224,7 @@ class LineTruncation:
                               '^[\\$=\\.#\\-~\\+]{,4}_']]:
                     if re.match(ress[0], tmp1):
                         # @.+@, _.+_, ^.+^
-                        phrases, m2 = cls.__save_1(phrases, ress[0], tmp1)
+                        phrases, m2 = cls.__save_one(phrases, ress[0], tmp1)
                         fds += m2
                         tmp1 = ''
                         must_continue = True
@@ -4249,14 +4253,14 @@ class LineTruncation:
             # LINE BREAK
             res = '^((?:.|\n)*)(\n)$'
             if re.match(res, tmp1):
-                phrases, tmp1 = cls.__save_1(phrases, res, tmp1)
+                phrases, tmp1 = cls.__save_one(phrases, res, tmp1)
                 phrases.append('<br>')
                 tmp1 = ''
                 continue
             # IMAGE
             res = NOT_ESCAPED + '(' + RES_IMAGE + ')$'
             if re.match(res, tmp1):
-                phrases, tmp1 = cls.__save_2(phrases, res, tmp1)
+                phrases, tmp1 = cls.__save_two(phrases, res, tmp1)
                 continue
             if cls.__must_continue('!',
                                    '\\[[^\\[\\]]*\\]' + '\\([^\\(\\)]*\\)',
@@ -4281,38 +4285,76 @@ class LineTruncation:
             # MATH
             res = NOT_ESCAPED + '(\\\\\\[)'
             if re.match(res, tmp1):
-                phrases, tmp1 = cls.__save_2(phrases, res, tmp1)
+                phrases, tmp1 = cls.__save_two(phrases, res, tmp1)
                 continue
             res = NOT_ESCAPED + '(\\\\\\])'
             if re.match(res, tmp1):
-                phrases, tmp1 = cls.__save_2(phrases, res, tmp1)
+                phrases, tmp1 = cls.__save_two(phrases, res, tmp1)
                 continue
             if cls.__must_continue('\\\\', '[\\[\\]]', tmp1, tmp2):
                 continue
             # TRACK CHANGES
             res = NOT_ESCAPED + '([\\-\\+]>)$'
             if re.match(res, tmp1):
-                phrases, tmp1 = cls.__save_2(phrases, res, tmp1)
+                phrases, tmp1 = cls.__save_two(phrases, res, tmp1)
                 continue
             res = NOT_ESCAPED + '(<[\\-\\+])$'
             if re.match(res, tmp1):
-                phrases, tmp1 = cls.__save_2(phrases, res, tmp1)
+                phrases, tmp1 = cls.__save_two(phrases, res, tmp1)
                 continue
             if cls.__must_continue('[\\-\\+]', '>', tmp1, tmp2):
                 continue
             if cls.__must_continue('<', '[\\-\\+]', tmp1, tmp2):
                 continue
-            # PARENTHESES
-            must_continue = False
-            for res_par in ['[\\[{\\(<［〔『「｛（＜〈《]+',
-                            '[\\]}\\)>］〕』」｝）＞〉》]+']:
-                res = '^(.*?)(' + res_par + ')$'
-                if re.match(res, tmp1):
-                    if not re.match('^' + res_par, tmp2):
-                        phrases, tmp1 = cls.__save_2(phrases, res, tmp1)
-                    must_continue = True
-                    break
-            if must_continue:
+            # PARENTHESES (OPEN)
+            if re.match(cls.res_open, c1):
+                res = '^((?:.|\n)*?)(' + cls.res_open + '+)$'
+                t1, t2 = re.sub(res, '\\1', tmp1), re.sub(res, '\\2', tmp1)
+                t, d = t2, len(t2)
+                is_too_long = False
+                # FIND CLOSING POINT
+                for k in range(j, m + 1):
+                    c = old_text[k]
+                    t = t + c
+                    d += 1 if re.match(cls.res_open, c) else 0
+                    d -= 1 if re.match(cls.res_clos, c) else 0
+                    if get_ideal_width(t) <= int(MD_TEXT_WIDTH / 2):
+                        if d == 0:
+                            if closing_point < k:
+                                closing_point = k
+                            break
+                    else:
+                        is_too_long = True
+                        break
+                if is_too_long:
+                    phrases.append(t1)
+                    k = len(phrases) - 1
+                    while k >= 0:
+                        if phrases[k] != '':
+                            break
+                        k -= 1
+                    res = '^' + cls.res_open + '+$'
+                    if k >= 0 and re.match(res, phrases[k]):
+                        phrases[k] += t2    # not new
+                    else:
+                        phrases.append(t2)  # new
+                    closing_point = -1
+                    tmp1 = ''
+                elif not re.match('^' + cls.res_open, tmp1):
+                    phrases.append(t1)
+                    tmp1 = t2
+                continue
+            # PARENTHESES (CLOSE)
+            if re.match(cls.res_clos, c1):
+                if i < closing_point:
+                    continue
+                if i == closing_point:
+                    phrases.append(tmp1)
+                    tmp1 = ''
+                    closing_point = -1
+                if not re.match(cls.res_clos, c2):
+                    res = '^((?:.|\n)*?)(' + cls.res_clos + '+)$'
+                    phrases, tmp1 = cls.__save_two(phrases, res, tmp1)
                 continue
             # PUNCTUATION
             res_pun = '[,\\.，、．。]'
@@ -4338,8 +4380,8 @@ class LineTruncation:
             phrases.remove('')
         return phrases
 
-    @staticmethod
-    def _concatenate_phrases(phrases):
+    @classmethod
+    def _concatenate_phrases(cls, phrases):
         def __extend_tex(extension):
             # JUST TO MAKE SURE
             if extension == '':
@@ -4393,12 +4435,21 @@ class LineTruncation:
                 continue
             # LINE BREAK
             if p == '<br>':
-                tex = __extend_tex(tmp + '\n' + p)
+                tex = __extend_tex(tmp)
+                tex = __extend_tex(p)
                 tmp = ''
                 continue
             # FONT DECORATORS
             if re.match('^' + RES_FONT_DECORATORS + '+$', p):
-                tex = __extend_tex(tmp + '\n' + p)
+                tex = __extend_tex(tmp)
+                tex = __extend_tex(p)
+                tmp = ''
+                continue
+            # PARENTHESES
+            if re.match('^' + cls.res_open + '+$', p) or \
+               re.match('^' + cls.res_clos + '+$', p):
+                tex = __extend_tex(tmp)
+                tex = __extend_tex(p)
                 tmp = ''
                 continue
             # SECTION WITHOUT A TITLE
@@ -4412,7 +4463,8 @@ class LineTruncation:
                             tmp = ''
             # IMAGE
             if re.match(RES_IMAGE, p):
-                tex = __extend_tex(tmp + '\n' + p)
+                tex = __extend_tex(tmp)
+                tex = __extend_tex(p)
                 tmp = ''
                 continue
             # CONJUNCTIONS
