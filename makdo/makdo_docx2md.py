@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.10-14:34:50-JST>
+# Time-stamp:   <2024.07.11-06:07:32-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4409,13 +4409,30 @@ class LineTruncation:
                 if re.match('^[0-9０-９]+.*$', tmp2):
                     continue
             # MATH
-            res = NOT_ESCAPED + '(\\\\\\[)'
+            res = NOT_ESCAPED + '(\\\\\\[)$'
             if re.match(res, tmp1):
-                phrases, tmp1 = cls.__save_two(phrases, res, tmp1)
+                t, tex = old_text[j:], ''
+                res_tex = NOT_ESCAPED + '\\\\\\]((?:.|\n)*)'
+                if re.match(res_tex, t):
+                    tex = re.sub(res_tex, '\\1', t)
+                wid = get_ideal_width('\\[' + tex + '\\]')
+                if wid <= int(MD_TEXT_WIDTH / 2):
+                    phrases, tmp1 = cls.__save_one(phrases, res, tmp1)
+                else:
+                    phrases, tmp1 = cls.__save_two(phrases, res, tmp1)
                 continue
-            res = NOT_ESCAPED + '(\\\\\\])'
+            res = NOT_ESCAPED + '(\\\\\\])$'
             if re.match(res, tmp1):
-                phrases, tmp1 = cls.__save_two(phrases, res, tmp1)
+                t = old_text[:j]
+                res_tex = NOT_ESCAPED + '\\\\\\[((?:.|\n)*)'
+                while re.match(res_tex, t):
+                    t = re.sub(res_tex, '\\2', t)
+                wid = get_ideal_width('\\[' + t)
+                if wid <= int(MD_TEXT_WIDTH / 2):
+                    phrases.append(tmp1)
+                    tmp1 = ''
+                else:
+                    phrases, tmp1 = cls.__save_two(phrases, res, tmp1)
                 continue
             if cls.__must_continue('\\\\', '[\\[\\]]', tmp1, tmp2):
                 continue
@@ -4516,21 +4533,20 @@ class LineTruncation:
         tmp = ''
         is_in_deleted = False
         is_in_inserted = False
-        is_in_math = False
+        is_in_math = False  # not in use now
         for p in phrases:
             # MATH MODE (MUST BE FIRST)
-            if (not is_in_math) and p == '\\[':
+            if p == '\\[' and not is_in_math:
                 tex = __extend_tex(tmp)
+                tex = __extend_tex(p)
                 tmp = ''
                 is_in_math = True
                 continue
-            if is_in_math and p == '\\]':
-                tex = __extend_tex('\\[' + tmp + '\\]')
+            if p == '\\]' and is_in_math:
+                tex = __extend_tex(tmp)
+                tex = __extend_tex(p)
                 tmp = ''
                 is_in_math = False
-                continue
-            if is_in_math:
-                tmp += p
                 continue
             # DELETED
             if (not is_in_deleted) and p == '->':

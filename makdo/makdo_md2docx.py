@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.08-16:38:19-JST>
+# Time-stamp:   <2024.07.11-06:10:40-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
