@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.09-13:01:39-JST>
+# Time-stamp:   <2024.07.10-14:34:50-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4111,16 +4111,142 @@ class LineTruncation:
 
     """A class to truncate lines"""
 
-    res_open = '[「『（\\(]'
-    res_clos = '[\\)）』」]'
-
     def __init__(self, md_text):
         self.old_text = md_text
-        phrases = self._split_into_phrases(md_text)
+        parens = self.Paren._get_parens(md_text)
+        phrases = self._split_into_phrases(md_text, parens)
         self.new_text = self._concatenate_phrases(phrases)
 
     def get_truncated_md_text(self):
         return self.new_text
+
+    class Paren:
+
+        @staticmethod
+        def is_paren(char):
+            if len(char) == 1:
+                if LineTruncation.Paren.are_parens(char):
+                    return True
+            return False
+
+        @staticmethod
+        def are_parens(chars):
+            if re.match('^[\\(（「『]+$', chars):
+                return True
+            if re.match('^[\\)）」』]+$', chars):
+                return True
+            return False
+
+        @staticmethod
+        def separate_parens(text):
+            res = '^((?:.|\n)*?)([\\(（「『]+)$'
+            if re.match(res, text):
+                t1 = re.sub(res, '\\1', text)
+                t2 = re.sub(res, '\\2', text)
+                return t1, t2
+            res = '^((?:.|\n)*?)([\\)）」』]+)$'
+            if re.match(res, text):
+                t1 = re.sub(res, '\\1', text)
+                t2 = re.sub(res, '\\2', text)
+                return t1, t2
+            return text, ''
+
+        depth_list = [0, 0, 0]  # = ["()" or "（）", "「」", "『』"]
+
+        def __init__(self, pos, cha, bef, aft):
+            # POSITION
+            self.position = pos
+            # PARTNER
+            self.partner = None
+            # PAREN CODE
+            self.paren_code = 0
+            if cha == ')' or cha == '）':
+                self.paren_code = -1
+            elif cha == '」':
+                self.paren_code = -2
+            elif cha == '』':
+                self.paren_code = -3
+            elif cha == '(' or cha == '（':
+                self.paren_code = +1
+            elif cha == '「':
+                self.paren_code = +2
+            elif cha == '『':
+                self.paren_code = +3
+            # DEPTH LIST
+            if self.paren_code < 0:
+                self.step_depth()
+            self.depth_list = [i for i in LineTruncation.Paren.depth_list]
+            if self.paren_code > 0:
+                self.step_depth()
+            # PARENTHESIS CHARACTER
+            self.char = cha
+            # ANOTHER POSSIBILITY
+            self.has_another_possibility = False
+            if cha == ')' or cha == '）':
+                if re.match('^[0-9０-９a-zａ-ｚA-ZＡ-Ｚ]$', bef):
+                    self.has_another_possibility = True
+
+        def step_depth(self):
+            pos = abs(self.paren_code) - 1
+            if self.paren_code > 0:
+                LineTruncation.Paren.depth_list[pos] += 1
+            else:
+                LineTruncation.Paren.depth_list[pos] -= 1
+
+        def get_individual_depth(self):
+            pos = abs(self.paren_code) - 1
+            dep = self.depth_list[pos]
+            return dep
+
+        def is_inconsistent(self):
+            if self.paren_code == -1:  # ')'
+                if not self.has_another_possibility:  # not '1)', 'a)', 'A)'...
+                    if self.partner is None:
+                        return True
+            return False
+
+        def may_be_inconsistent(self):
+            if self.paren_code == -1:  # ')'
+                if self.has_another_possibility:  # '1)', 'a)', 'A)'...
+                    if self.partner is not None:
+                        return True
+            return False
+
+        @staticmethod
+        def _get_parens(md_text):
+            parens = []
+            m = len(md_text) - 1
+            for pos, cha in enumerate(md_text):
+                bef = md_text[pos - 1] if pos > 0 else ''
+                aft = md_text[pos + 1] if pos < m else ''
+                if LineTruncation.Paren.is_paren(cha):
+                    p = LineTruncation.Paren(pos, cha, bef, aft)
+                    p_cod = p.paren_code
+                    p_dep = p.get_individual_depth()
+                    if p_cod < 0:
+                        for q in parens[::-1]:
+                            q_cod = q.paren_code
+                            q_dep = q.get_individual_depth()
+                            if p_cod + q_cod == 0:
+                                if p_dep == q_dep:
+                                    p.partner = q.position
+                                    q.partner = p.position
+                                    break
+                    if p.is_inconsistent():
+                        if len(parens) > 0:
+                            for q in parens[::-1]:
+                                if q.paren_code != -1:
+                                    break
+                                if q.may_be_inconsistent():
+                                    for r in parens:
+                                        if r.partner == q.position:
+                                            r.partner = p.position
+                                            break
+                                    p.partner = q.partner
+                                    q.partner = None
+                                    break
+                    parens.append(p)
+            return parens
 
     @staticmethod
     def __save_one(phrases, res, tmp1):
@@ -4145,7 +4271,7 @@ class LineTruncation:
         return False
 
     @classmethod
-    def _split_into_phrases(cls, old_text):
+    def _split_into_phrases(cls, old_text, parens):
         phrases = []
         fds = ''
         tmp1 = ''
@@ -4306,59 +4432,50 @@ class LineTruncation:
                 continue
             if cls.__must_continue('<', '[\\-\\+]', tmp1, tmp2):
                 continue
-            # PARENTHESES (OPEN)
-            if re.match(cls.res_open, c1):
-                res = '^((?:.|\n)*?)(' + cls.res_open + '+)$'
-                t1, t2 = re.sub(res, '\\1', tmp1), re.sub(res, '\\2', tmp1)
-                t, d = t2, len(t2)
-                is_too_long = False
-                # FIND CLOSING POINT
-                for k in range(j, m + 1):
-                    c = old_text[k]
-                    t = t + c
-                    d += 1 if re.match(cls.res_open, c) else 0
-                    d -= 1 if re.match(cls.res_clos, c) else 0
-                    if get_ideal_width(t) <= int(MD_TEXT_WIDTH / 2):
-                        if d == 0:
-                            if closing_point < k:
-                                closing_point = k
-                            break
-                    else:
-                        is_too_long = True
+            # PARENTHESES
+            if cls.Paren.is_paren(c1):
+                par = None
+                for p in parens:
+                    if p.position == i:
+                        par = p
                         break
-                # ADD
-                if is_too_long:
-                    phrases.append(t1)
-                    k = len(phrases) - 1
-                    while k >= 0:
-                        if phrases[k] != '':
-                            break
-                        k -= 1
-                    res = '^' + cls.res_open + '+$'
-                    if k >= 0 and re.match(res, phrases[k]):
-                        phrases[k] += t2    # not new
+                if (par is not None) and (par.partner is not None):
+                    t_not, t_par = cls.Paren.separate_parens(tmp1)
+                    if par.paren_code > 0:
+                        # OPEN PARENTHESES "(（「『"
+                        b = par.position
+                        e = par.partner
+                        s = old_text[b:e + 1]
+                        w = get_ideal_width(s)
+                        if closing_point < 0:
+                            if w <= int(MD_TEXT_WIDTH / 2):
+                                phrases.append(t_not)
+                                tmp1 = t_par
+                                closing_point = e
+                            else:
+                                phrases.append(t_not)
+                                k = len(phrases) - 1
+                                while k >= 0:
+                                    if phrases[k] != '':
+                                        break
+                                    k -= 1
+                                if k >= 0 and cls.Paren.are_parens(phrases[k]):
+                                    phrases[k] += t_par
+                                else:
+                                    phrases.append(t_par)
+                                tmp1 = ''
+                                closing_point = -1
                     else:
-                        phrases.append(t2)  # new
-                    closing_point = -1
-                    tmp1 = ''
-                elif not re.match('^' + cls.res_open, tmp1):
-                    phrases.append(t1)
-                    tmp1 = t2
-                continue
-            # PARENTHESES (CLOSE)
-            if re.match(cls.res_clos, c1):
-                if i < closing_point:
-                    continue
-                if i == closing_point:
-                    phrases.append(tmp1)
-                    tmp1 = ''
-                    closing_point = -1
-                res = '^(.|\n)*[0-9０-９a-zｑａ-ｚA-ZＡ-Ｚ]+[\\)）]$'
-                if re.match(res, tmp1):
-                    continue  # 1), １）, a), ａ）, A), Ａ）...
-                if not re.match(cls.res_clos, c2):
-                    res = '^((?:.|\n)*?)(' + cls.res_clos + '+)$'
-                    phrases, tmp1 = cls.__save_two(phrases, res, tmp1)
+                        # CLOSE PARENTHESES "』」）)"
+                        if closing_point == i:
+                            phrases.append(tmp1)
+                            tmp1 = ''
+                            closing_point = -1
+                        elif closing_point < 0 and not cls.Paren.is_paren(c2):
+                            phrases.append(t_not)
+                            phrases.append(t_par)
+                            tmp1 = ''
+                            closing_point = -1
                 continue
             # PUNCTUATION
             res_pun = '[,\\.，、．。]'
@@ -4450,8 +4567,7 @@ class LineTruncation:
                 tmp = ''
                 continue
             # PARENTHESES
-            if re.match('^' + cls.res_open + '+$', p) or \
-               re.match('^' + cls.res_clos + '+$', p):
+            if cls.Paren.are_parens(p):
                 tex = __extend_tex(tmp)
                 tex = __extend_tex(p)
                 tmp = ''
