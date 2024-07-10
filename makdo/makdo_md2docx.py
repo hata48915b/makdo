@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.11-06:10:40-JST>
+# Time-stamp:   <2024.07.11-07:41:42-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -265,6 +265,7 @@ HELP_EPILOG = '''Markdownの記法:
     [**]で挟まれた文字列は太字になります
     [***]で挟まれた文字列は斜体かつ太字になります
     [~~]で挟まれた文字列は打消線が引かれます
+    [||]で囲まれた文字列は文字が枠で囲まれます（独自）
     [`]で挟まれた文字列はゴシック体になります
     [//]で挟まれた文字列は斜体になります（独自）
     [__]で挟まれた文字列は下線が引かれます（独自）
@@ -399,6 +400,7 @@ FONT_DECORATORS_VISIBLE = [
     '<<<',                      # xwide or reset
     '<<',                       # wide or reset
     '~~',                       # strikethrough
+    '\\|\\|'                    # frame
     '_[\\$=\\.#\\-~\\+]{,4}_',  # underline
     '_[0-9A-Za-z]{1,11}_',      # higilight color
     '`',                        # preformatted
@@ -1921,6 +1923,7 @@ class CharsState:
         self.is_italic = False
         self.is_bold = False
         self.has_strike = False
+        self.has_frame = False
         self.is_preformatted = False
         self.underline = None
         self.font_color = None
@@ -1947,6 +1950,8 @@ class CharsState:
                 self.apply_is_bold_font_decorator(fd)
             elif fd == '~~':
                 self.apply_has_strike_font_decorator(fd)
+            elif fd == '||':
+                self.apply_has_frame_font_decorator(fd)
             elif fd == '`':
                 self.apply_is_preformatted_font_decorator(fd)
             elif fd == '---' or fd == '--' or fd == '++' or fd == '+++':
@@ -1976,6 +1981,9 @@ class CharsState:
 
     def apply_has_strike_font_decorator(self, font_decorator='~~'):
         self.has_strike = not self.has_strike
+
+    def apply_has_frame_font_decorator(self, font_decorator='||'):
+        self.has_frame = not self.has_frame
 
     def apply_is_preformatted_font_decorator(self, font_decorator='`'):
         self.is_preformatted = not self.is_preformatted
@@ -2225,9 +2233,13 @@ class XML:
         # BOLD
         if chars_state.is_bold:
             oe2 = XML.add_tag(oe1, 'w:b', {})
-        # STRIKE
+        # STRIKETHROUGH
         if chars_state.has_strike:
             oe2 = XML.add_tag(oe1, 'w:strike', {})
+        # FRAME
+        if chars_state.has_frame:
+            # 'w:val': 'single', 'w:sz': '4', 'w:space': '0', 'w:color': 'auto'
+            oe2 = XML.add_tag(oe1, 'w:bdr', {'w:val': 'single'})
         # UNDERLINE
         if chars_state.underline is not None:
             oe2 = XML.add_tag(oe1, 'w:u', {'w:val': chars_state.underline})
@@ -2470,8 +2482,10 @@ class Math:
                          ((nubs[-2] == '_') or (nubs[-2] == '^')):
                         nubs[-3], nubs[-1] \
                             = cls._close_func(nubs[-3], nubs[-1])
-                # LINEBREAK, MATHRM, MATHBF, STRIKE, UNDERLINE, EXP, VEC
-                res = '^{\\\\(?:\\\\|mathrm|mathbf|sout|underline|exp|vec)}$'
+                # LINEBREAK, MATHRM, MATHBF, STRIKE, FRAME, UNDERLINE, EXP, VEC
+                res = '^{\\\\(?:' \
+                    + '\\\\|mathrm|mathbf|sout|boxed|underline|exp|vec' \
+                    + ')}$'
                 if (len(nubs) >= 2) and re.match(res, nubs[-2]):
                     nubs[-2], nubs[-1] = cls._close_func(nubs[-2], nubs[-1])
                 # TEXTCOLOR, COLORBOX, FRACTION, BINOMIAL
@@ -2876,11 +2890,16 @@ class Math:
             chars_state.is_bold = True
             cls._write_math_exp(oe0, chars_state, nubs[1])
             chars_state.is_bold = False
-        # STRIKE
+        # STRIKETHROUGH
         elif len(nubs) == 2 and nubs[0] == '{\\sout}':
             chars_state.has_strike = True
             cls._write_math_exp(oe0, chars_state, nubs[1])
             chars_state.has_strike = False
+        # FRAME
+        elif len(nubs) == 2 and nubs[0] == '{\\boxed}':
+            chars_state.has_frame = True
+            cls._write_math_exp(oe0, chars_state, nubs[1])
+            chars_state.has_frame = False
         # UNDERLINE
         elif len(nubs) == 2 and nubs[0] == '{\\underline}':
             chars_state.underline = 'single'
@@ -2957,9 +2976,13 @@ class Math:
         c_size = round(chars_state.font_size * chars_state.font_scale, 1)
         oe1 = XML.add_tag(oe0, 'w:rPr', {})
         # (FONT, ITALIC, BOLD)
-        # STRIKE
+        # STRIKETHROUGH (NOT SUPPORTOD BY LIBREOFFICE)
         if chars_state.has_strike:
             oe2 = XML.add_tag(oe1, 'w:strike', {})
+        # FRAME (NOT SUPPORTOD BY LIBREOFFICE)
+        if chars_state.has_frame:
+            # 'w:val': 'single', 'w:sz': '4', 'w:space': '0', 'w:color': 'auto'
+            oe2 = XML.add_tag(oe1, 'w:bdr', {'w:val': 'single'})
         # UNDERLINE
         if chars_state.underline is not None:
             oe2 = XML.add_tag(oe1, 'w:u', {'w:val': chars_state.underline})
@@ -4546,6 +4569,11 @@ class Paragraph:
             chars = re.sub('~~$', '', chars)
             chars = XML.write_chars(ms_par._p, chars_state, chars)
             chars_state.apply_has_strike_font_decorator('~~')
+        elif re.match(NOT_ESCAPED + '\\|\\|$', chars):
+            # "||" (FRAME)
+            chars = re.sub('\\|\\|$', '', chars)
+            chars = XML.write_chars(ms_par._p, chars_state, chars)
+            chars_state.apply_has_frame_font_decorator('||')
         elif re.match(NOT_ESCAPED + '`$', chars):
             # "`" (PREFORMATTED)
             chars = re.sub('`$', '', chars)
@@ -5600,15 +5628,11 @@ class ParagraphMath(Paragraph):
             elif fr == '+++':
                 chars_state.font_scale = 1.4
             elif fr == '**':
-                if chars_state.is_bold:
-                    chars_state.is_bold = False
-                else:
-                    chars_state.is_bold = True
+                chars_state.is_bold = not chars_state.is_bold
             elif fr == '~~':
-                if chars_state.has_strike:
-                    chars_state.has_strike = False
-                else:
-                    chars_state.has_strike = True
+                chars_state.has_strike = not chars_state.has_strike
+            elif fr == '||':
+                chars_state.has_frame = not chars_state.has_frame
             elif re.match('^_([\\$=\\.#\\-~\\+]{,4})_$', fr):
                 sty = re.sub('^_([\\$=\\.#\\-~\\+]{,4})_$', '\\1', fr)
                 if sty in UNDERLINE:

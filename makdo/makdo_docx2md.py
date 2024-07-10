@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.11-06:07:32-JST>
+# Time-stamp:   <2024.07.11-07:39:23-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -341,6 +341,7 @@ FONT_DECORATORS_VISIBLE = [
     '<<<',                      # xwide or reset
     '<<',                       # wide or reset
     '~~',                       # strikethrough
+    '\\|\\|',                   # frame
     '_[\\$=\\.#\\-~\\+]{,4}_',  # underline
     '_[0-9A-Za-z]{1,11}_',      # higilight color
     '`',                        # preformatted
@@ -1751,6 +1752,7 @@ class Form:
             f_it = False
             f_bd = False
             f_sk = False
+            f_fr = False
             f_ul = ''
             f_cl = ''
             f_hc = ''
@@ -1767,6 +1769,7 @@ class Form:
                 f_it = XML.is_this_tag('w:i', f_it, xl)
                 f_bd = XML.is_this_tag('w:b', f_bd, xl)
                 f_sk = XML.is_this_tag('w:strike', f_sk, xl)
+                f_fr = XML.is_this_tag('w:bdr', f_sk, xl)
                 f_ul = XML.get_value('w:u', 'w:val', f_ul, xl)
                 f_cl = XML.get_value('w:color', 'w:val', f_cl, xl)
                 f_hc = XML.get_value('w:highlight', 'w:val', f_hc, xl)
@@ -2828,7 +2831,8 @@ class FontDecorator:
         self.font_width = ''        # FONT WIDTH (>>> / >> / << / <<<)
         self.italic = ''            # ITALIC (*)
         self.bold = ''              # BOLD (**)
-        self.strike = ''            # STRIKE (~~)
+        self.strike = ''            # STRIKETHROUGH (~~)
+        self.frame = ''             # FRAME (||)
         self.underline = ''         # UNDERLINE (_.+_)
         self.font_color = ''        # FONT COLOR (^.*^)
         self.highlight_color = ''   # HIGHLIGHT COLOR (_.+_)
@@ -2859,7 +2863,9 @@ class FontDecorator:
             self.italic = '*'              # ITALIC (*)
             self.bold = '**'               # BOLD (**)
         elif fd_str == '~~':
-            self.strike = fd_str           # STRIKE (~~)
+            self.strike = fd_str           # STRIKETHROUGH (~~)
+        elif fd_str == '||':
+            self.frame = fd_str            # FRAME (||)
         elif re.match('_[\\$=\\.#\\-~\\+]{,4}_', fd_str):
             self.underline = fd_str        # UNDERLINE (_.+_)
         elif re.match('\\^[0-9A-Za-z]{0,11}\\^', fd_str):
@@ -2892,6 +2898,7 @@ class FontDecorator:
                 self.italic,
                 self.bold,
                 self.strike,
+                self.frame,
                 self.underline,
                 self.font_color,
                 self.highlight_color,
@@ -2918,6 +2925,8 @@ class FontDecorator:
         if fr.bold != bk.bold:
             return False
         if fr.strike != bk.strike:
+            return False
+        if fr.frame != bk.frame:
             return False
         if fr.underline != bk.underline:
             return False
@@ -2952,6 +2961,8 @@ class FontDecorator:
             fr.bold, bk.bold = '', ''
         if fr.strike == bk.strike:
             fr.strike, bk.strike = '', ''
+        if fr.frame == bk.frame:
+            fr.frame, bk.frame = '', ''
         if fr.underline == bk.underline:
             fr.underline, bk.underline = '', ''
         if fr.font_color == bk.font_color:
@@ -2979,6 +2990,7 @@ class MathDatum:
         # ROMAN (r)
         # BOLD (b)
         # STRIKETHROUGH (s)
+        # FRAME (f)
         # UNDERLINE (u)
         # FONT COLOR (c=...)
         # HIGILIGHT COLOR (h=...)
@@ -3077,6 +3089,8 @@ class MathDatum:
                 fr_chars += '{\\mathbf{'
             elif fd == 's':
                 fr_chars += '{\\sout{'
+            elif fd == 'f':
+                fr_chars += '{\\boxed{'
             elif fd == 'u':
                 fr_chars += '{\\underline{'
             elif re.match('^c=.*$', fd):
@@ -3107,7 +3121,9 @@ class MathDatum:
             elif fd == 'b':
                 bk_chars += '}}'  # bold
             elif fd == 's':
-                bk_chars += '}}'  # strike through
+                bk_chars += '}}'  # strikethrough
+            elif fd == 'f':
+                bk_chars += '}}'  # frame
             elif fd == 'u':
                 bk_chars += '}}'  # underline
             elif re.match('^c=.*$', fd):
@@ -3229,6 +3245,10 @@ class MathDatum:
         # STRIKETHROUGH
         if re.match('^<w:strike/?>$', xl):
             md_cur.append_fr_and_bk_fds('s', 's')
+            return math_data, None
+        # FRAME
+        if re.match('^<w:bdr( .*)?/?>$', xl):
+            md_cur.append_fr_and_bk_fds('f', 'f')
             return math_data, None
         # UNDERLINE
         v = XML.get_value('w:u', 'w:val', '', xl)
@@ -3961,8 +3981,11 @@ class MathDatum:
             elif fd == 's':
                 xx_fd_cls.strike = '~~'
                 xx_fd_lst.remove(fd)
+            elif fd == 'f':
+                xx_fd_cls.frame = '||'
+                xx_fd_lst.remove(fd)
             elif fd == 'u':
-                xx_fd_cls.strike = '__'
+                xx_fd_cls.underline = '__'
                 xx_fd_lst.remove(fd)
             elif re.match('^c=', fd):
                 c = re.sub('^c=', '', fd)
@@ -4666,6 +4689,9 @@ class LineTruncation:
                             continue
                         # '~' + '~' (STRIKETHROUGH)
                         if re.match('^.*~$', s1) and re.match('^~.*$', s2):
+                            continue
+                        # '|' + '|' (FRAME)
+                        if re.match('^.*\\|$', s1) and re.match('^\\|.*$', s2):
                             continue
                         # '`' + '`' (PREFORMATTED)
                         if re.match('^.*`$', s1) and re.match('^`.*$', s2):
@@ -5384,12 +5410,13 @@ class Style:
         self.name = None
         self.font = None
         self.font_size = None
-        self.font_italic = False
-        self.font_bold = False
-        self.font_strike = False
-        self.font_underline = None
+        self.is_italic = False
+        self.is_bold = False
+        self.has_strike = False
+        self.has_frame = False
+        self.underline = None
         self.font_color = None
-        self.font_highlight_color = None
+        self.highlight_color = None
         self.alignment = None
         self.raw_length \
             = {'space before': None, 'space after': None, 'line spacing': None,
@@ -5405,6 +5432,7 @@ class Style:
         f_it = False
         f_bd = False
         f_sk = False
+        f_fr = False
         f_ul = None
         f_cl = None
         f_hc = None
@@ -5423,6 +5451,7 @@ class Style:
             f_it = XML.is_this_tag('w:i', f_it, xl)
             f_bd = XML.is_this_tag('w:b', f_bd, xl)
             f_sk = XML.is_this_tag('w:strike', f_sk, xl)
+            f_fr = XML.is_this_tag('w:bdr', f_fr, xl)
             f_ul = XML.get_value('w:u', 'w:val', f_ul, xl)
             f_cl = XML.get_value('w:color', 'w:val', f_cl, xl)
             f_hc = XML.get_value('w:highlight', 'w:val', f_hc, xl)
@@ -5444,6 +5473,7 @@ class Style:
         self.is_italic = f_it
         self.is_bold = f_bd
         self.has_strike = f_sk
+        self.has_frame = f_fr
         self.underline = f_ul
         self.font_color = f_cl
         self.highlight_color = f_hc
@@ -5781,6 +5811,11 @@ class RawParagraph:
             if re.match('^<w:strike/?>$', xl):
                 cd.fr_fd_cls.strike = '~~'
                 cd.bk_fd_cls.strike = '~~'
+                continue
+            # STRIKETHROUGH
+            if re.match('^<w:bdr( .*)?/?>$', xl):
+                cd.fr_fd_cls.strike = '||'
+                cd.bk_fd_cls.strike = '||'
                 continue
             # UNDERLINE
             if re.match('^<w:u( .*)?>$', xl):
