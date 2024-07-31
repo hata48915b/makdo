@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.31-08:58:39-JST>
+# Time-stamp:   <2024.07.31-09:44:45-JST>
 
 # makdo_gui.py
 # Copyright (C) 2024-2024  Seiichiro HATA
@@ -689,7 +689,7 @@ class LineDatum:
                 beg = end                                               # 6.beg
                 continue
             # SEARCH WORD
-            wrd = MakdoEditor.search_word
+            wrd = Makdo.search_word
             if wrd != '' and re.match('^.*' + wrd + '$', tmp):
                 key = chars_state.get_key('')                           # 1.key
                 end = str(i + 1) + '.' + str(j - len(wrd) + 1)          # 2.end
@@ -741,7 +741,7 @@ class LineDatum:
         return
 
 
-class MakdoEditor:
+class Makdo:
 
     search_word = ''
 
@@ -1507,8 +1507,8 @@ class MakdoEditor:
     def search_or_replace_backward(self):
         word1 = self.stb_sor1.get()
         word2 = self.stb_sor2.get()
-        if MakdoEditor.search_word != word1:
-            MakdoEditor.search_word = word1
+        if Makdo.search_word != word1:
+            Makdo.search_word = word1
             self._highlight_search_word()
         pos = self.txt.index('insert')
         tex = self.txt.get('1.0', pos)
@@ -1529,8 +1529,8 @@ class MakdoEditor:
     def search_or_replace_forward(self):
         word1 = self.stb_sor1.get()
         word2 = self.stb_sor2.get()
-        if MakdoEditor.search_word != word1:
-            MakdoEditor.search_word = word1
+        if Makdo.search_word != word1:
+            Makdo.search_word = word1
             self._highlight_search_word()
         pos = self.txt.index('insert')
         tex = self.txt.get(pos, 'end-1c')
@@ -1549,7 +1549,7 @@ class MakdoEditor:
         self.txt.focus_set()
 
     def _highlight_search_word(self):
-        word = MakdoEditor.search_word
+        word = Makdo.search_word
         tex = self.txt.get('1.0', 'end-1c')
         beg = 0
         res = '^((?:.|\n)*?)' + word + '((?:.|\n)*)$'
@@ -1567,7 +1567,7 @@ class MakdoEditor:
         self.stb_sor1.delete('0', 'end')
         self.stb_sor2.delete('0', 'end')
         self.txt.tag_remove('search_tag', '1.0', 'end')
-        MakdoEditor.search_word = ''
+        Makdo.search_word = ''
 
     def set_current_position(self):
         pos = self.txt.index('insert')
@@ -1816,4 +1816,4 @@ if __name__ == '__main__':
         help='Markdownファイル or MS Wordファイル')
     args = parser.parse_args()
 
-    MakdoEditor(args)
+    Makdo(args)
