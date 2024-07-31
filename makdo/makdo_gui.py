@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.31-14:04:08-JST>
+# Time-stamp:   <2024.07.31-17:02:46-JST>
 
 # makdo_gui.py
 # Copyright (C) 2024-2024  Seiichiro HATA
@@ -192,6 +192,7 @@ class CharsState:
         self.is_in_comment = False
         self.parentheses = []
         self.has_underline = False
+        self.has_specific_font = False
         self.is_length_reviser = False
         self.chapter_depth = 0
         self.section_depth = 0
@@ -209,6 +210,7 @@ class CharsState:
         for p in self.parentheses:
             copy.parentheses.append(p)
         copy.has_underline = self.has_underline
+        copy.has_specific_font = self.has_specific_font
         copy.is_length_reviser = self.is_length_reviser
         copy.chapter_depth = self.chapter_depth
         copy.section_depth = self.section_depth
@@ -238,6 +240,9 @@ class CharsState:
 
     def toggle_has_underline(self):
         self.has_underline = not self.has_underline
+
+    def toggle_has_specific_font(self):
+        self.has_specific_font = not self.has_specific_font
 
     def apply_parenthesis(self, parenthesis):
         ps = self.parentheses
@@ -322,10 +327,14 @@ class CharsState:
         else:
             key += '-g'  # gothic
         # UNDERLINE
-        if not self.is_in_comment and \
+        if chars == 'font decorator':
+            key += '-x'  # no underline
+        elif not self.is_in_comment and \
            (chars == ' ' or chars == '\t' or chars == '\u3000'):
             key += '-u'  # underline
         elif not self.is_in_comment and self.has_underline:
+            key += '-u'  # underline
+        elif not self.is_in_comment and self.has_specific_font:
             key += '-u'  # underline
         else:
             key += '-x'  # no underline
@@ -575,18 +584,24 @@ class LineDatum:
             res = NOT_ESCAPED + '(@[^@]{1,66}@|\\^.*\\^|_.*_)$'
             if re.match(res, tmp) and not chars_state.is_in_comment:
                 mdt = re.sub(res, '\\2', tmp)
+                hul = chars_state.has_underline
+                hsf = chars_state.has_specific_font
                 key = chars_state.get_key('')                           # 1.key
                 end = str(i + 1) + '.' + str(j - len(mdt) + 1)          # 2.end
                 txt.tag_add(key, beg, end)                              # 3.tag
-                if chars_state.has_underline:
+                if re.match('_.*_', mdt) and hul:
                     chars_state.toggle_has_underline()                  # 4.set
+                elif re.match('@.*@', mdt) and hsf:
+                    chars_state.toggle_has_specific_font()              # 4.set
                 tmp = mdt                                               # 5.tmp
                 beg = end                                               # 6.beg
                 key = chars_state.get_key('font decorator')             # 1.key
                 end = str(i + 1) + '.' + str(j + 1)                     # 2.end
                 txt.tag_add(key, beg, end)                              # 3.tag
-                if not chars_state.has_underline:
+                if re.match('_.*_', mdt) and not hul:
                     chars_state.toggle_has_underline()                  # 4.set
+                elif re.match('@.*@', mdt) and not hsf:
+                    chars_state.toggle_has_specific_font()              # 4.set
                 tmp = ''                                                # 5.tmp
                 beg = end                                               # 6.beg
                 continue
