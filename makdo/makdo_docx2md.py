@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.11-07:39:23-JST>
+# Time-stamp:   <2024.07.31-09:36:53-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1365,8 +1365,9 @@ class DocxFile:
             msg = '※ エラー: ' \
                 + '入力ファイル「' + docx_file + '」を展開できません'
             # msg = 'error: ' \
-            #     + 'can\'t unpack a input file "' + docx_file + '"'
+            #     + 'failde to unpack a input file "' + docx_file + '"'
             sys.stderr.write(msg + '\n\n')
+            raise BaseException('failed to unpack docx file')
             if __name__ == '__main__':
                 sys.exit(104)
             return False
@@ -1377,6 +1378,7 @@ class DocxFile:
             # msg = 'error: ' \
             #     + 'not a ms word file "' + docx_file + '"'
             sys.stderr.write(msg + '\n\n')
+            raise BaseException('is not a MS Word file')
             if __name__ == '__main__':
                 sys.exit(105)
             return False
@@ -1392,8 +1394,9 @@ class DocxFile:
             msg = '※ エラー: ' \
                 + 'XMLファイル「' + xml_file + '」を読み込めません'
             # msg = 'error: ' \
-            #     + 'can\'t read "' + xml_file + '"'
+            #     + 'failed to read "' + xml_file + '"'
             sys.stderr.write(msg + '\n\n')
+            raise BaseException('failed to read xml file')
             if __name__ == '__main__':
                 sys.exit(106)
             return []
@@ -1441,8 +1444,9 @@ class MdFile:
                 msg = '※ エラー: ' \
                     + '出力ファイル「' + md_file + '」の書き込みに失敗しました'
                 # msg = 'error: ' \
-                #     + 'can\'t write "' + md_file + '"'
+                #     + 'failed to write "' + md_file + '"'
                 sys.stderr.write(msg + '\n\n')
+                raise BaseException('failed to write output file')
                 if __name__ == '__main__':
                     sys.exit(204)
                 return False
@@ -1467,7 +1471,8 @@ class MdFile:
                 msg = '※ エラー: ' \
                     + '古いファイル「' + backup_file + '」を削除できません'
                 # msg = 'error: ' \
-                #     + 'can\'t remove "' + backup_file + '"'
+                #     + 'failed to remove "' + backup_file + '"'
+                raise BaseException('failed to remove backup file')
                 sys.stderr.write(msg + '\n\n')
                 if __name__ == '__main__':
                     sys.exit(205)
@@ -1477,7 +1482,8 @@ class MdFile:
             msg = '※ エラー: ' \
                 + '古いファイル「' + output_file + '」を改名できません'
             # msg = 'error: ' \
-            #     + 'can\'t rename "' + output_file + '"'
+            #     + 'failed to rename "' + output_file + '"'
+            raise BaseException('failed to rename old file')
             sys.stderr.write(msg + '\n\n')
             if __name__ == '__main__':
                 sys.exit(206)

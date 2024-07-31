@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.11-07:41:42-JST>
+# Time-stamp:   <2024.07.31-09:35:23-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1295,6 +1295,7 @@ class MdFile:
             # msg = 'error: ' \
             #     + 'failed to read input file "' + md_file + '"'
             sys.stderr.write(msg + '\n\n')
+            raise BaseException('failed to read input file')
             if __name__ == '__main__':
                 sys.exit(104)
             return ''
@@ -1336,6 +1337,7 @@ class MdFile:
             # msg = 'error: ' \
             #     + 'can\'t read data (maybe not Markdown?)'
             sys.stderr.write(msg + '\n\n')
+            raise BaseException('failed to read data')
             if __name__ == '__main__':
                 sys.exit(105)
             return ''
@@ -1394,6 +1396,7 @@ class DocxFile:
                 # msg = 'error: ' \
                 #     + 'can\'t remove "' + backup_file + '"'
                 sys.stderr.write(msg + '\n\n')
+                raise BaseException('failed to remove backup file')
                 if __name__ == '__main__':
                     sys.exit(204)
                 return False
@@ -1404,6 +1407,7 @@ class DocxFile:
             # msg = 'error: ' \
             #     + 'can\'t rename "' + output_file + '"'
             sys.stderr.write(msg + '\n\n')
+            raise BaseException('failed to rename old file')
             if __name__ == '__main__':
                 sys.exit(205)
             return False
@@ -1425,6 +1429,7 @@ class DocxFile:
             # msg = 'error: ' \
             #     + 'failed to write output file "' + docx_file + '"'
             sys.stderr.write(msg + '\n\n')
+            raise BaseException('failed to write output file')
             if __name__ == '__main__':
                 sys.exit(206)
             return False
