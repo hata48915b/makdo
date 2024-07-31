@@ -1,10 +1,10 @@
 #!/usr/bin/python3
-# Name:         makdo-gui.py
+# Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.04.04-08:49:47-JST>
+# Time-stamp:   <2024.07.31-08:58:39-JST>
 
-# makdo-gui.py
-# Copyright (C) 2022-2024  Seiichiro HATA
+# makdo_gui.py
+# Copyright (C) 2024-2024  Seiichiro HATA
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -34,12 +34,15 @@
 # Makdo()
 
 
-import tkinter as tk
-from tkinter import ttk
-from tkinterdnd2 import TkinterDnD, DND_FILES
-import sys
 import os
+import sys
+import argparse
 import re
+import tkinter
+import tkinter.filedialog
+import tkinter.messagebox
+from tkinterdnd2 import TkinterDnD, DND_FILES
+import zipfile
 import tempfile
 import importlib
 import makdo.makdo_md2docx
@@ -48,71 +51,1769 @@ import makdo.makdo_docx2md
 
 __version__ = 'v07 Furuichibashi'
 
-VERSION = 'v07.04'
+WINDOW_SIZE = '900x900'
+GOTHIC_FONT = 'ＭＳ ゴシック'
+MINCHO_FONT = 'ＭＳ 明朝'
+NOT_ESCAPED = '^((?:(?:.|\n)*?[^\\\\])??(?:\\\\\\\\)*?)??'
 
-WINDOW_SIZE = "601x276"
+WHITE_SPACE = ('#C0C000', '#FFFFFF', '#F7F700')
+
+# Y=            0.5        0.7        0.9
+COLOR_SPACE = (('#FF5D5D', '#FF9E9E', '#FFDFDF'),  # 000 * comment
+               ('#FF5F4E', '#FF9F95', '#FFDFDC'),  # 005
+               ('#FF603C', '#FFA08A', '#FFDFD8'),  # 010
+               ('#FF6229', '#FFA17F', '#FFE0D4'),  # 015
+               ('#FF6512', '#FFA271', '#FFE0D0'),  # 020 * del
+               ('#F76900', '#FFA461', '#FFE1CA'),  # 025
+               ('#E07000', '#FFA64D', '#FFE1C4'),  # 030 * sect1
+               ('#CC7600', '#FFA933', '#FFE2BB'),  # 035
+               ('#BC7A00', '#FFAC10', '#FFE3AF'),  # 040 * sect2 第１
+               ('#AD7F00', '#F2B200', '#FFE59E'),  # 045
+               ('#A08300', '#E0B700', '#FFE882'),  # 050 * sect3 １
+               ('#948600', '#D0BC00', '#FFEE4A'),  # 055
+               ('#898900', '#C0C000', '#F7F700'),  # 060 * sect4 (1), 判断者
+               ('#7F8D00', '#B2C500', '#E5FD00'),  # 065
+               ('#758F00', '#A4C900', '#D5FF1A'),  # 070 * sect5 ア
+               ('#6B9200', '#96CD00', '#CAFF3A'),  # 075
+               ('#619500', '#88D100', '#C2FF50'),  # 080 * sect6 (ｱ), paren1
+               ('#589800', '#7BD500', '#BCFF62'),  # 085
+               ('#4E9B00', '#6DD900', '#B8FF70'),  # 090 * sect7 ａ,  paren2
+               ('#439E00', '#5EDE00', '#B4FF7C'),  # 095
+               ('#38A200', '#4FE200', '#B0FF86'),  # 100 * sect8 (a), paren3
+               ('#2CA500', '#3EE700', '#ADFF8F'),  # 105
+               ('#1FA900', '#2CED00', '#AAFF97'),  # 110
+               ('#11AD00', '#17F300', '#A8FF9F'),  # 115
+               ('#00B200', '#00FA00', '#A5FFA5'),  # 120 * br, pgbr, fd
+               ('#00B111', '#00F718', '#A3FFAC'),  # 125
+               ('#00AF20', '#00F52D', '#A1FFB2'),  # 130
+               ('#00AE2F', '#00F341', '#9FFFB9'),  # 135
+               ('#00AC3C', '#00F154', '#9DFFBF'),  # 140
+               ('#00AB49', '#00EF66', '#9BFFC5'),  # 145
+               ('#00AA55', '#00EE77', '#98FFCC'),  # 150 * length reviser
+               ('#00A861', '#00EC88', '#96FFD3'),  # 155
+               ('#00A76D', '#00EA99', '#94FFDA'),  # 160
+               ('#00A67A', '#00E8AA', '#91FFE2'),  # 165
+               ('#00A586', '#00E7BC', '#8EFFEA'),  # 170
+               ('#00A394', '#00E5CF', '#8BFFF4'),  # 175
+               ('#00A2A2', '#00E3E3', '#87FFFF'),  # 180 *  algin, 申立人
+               ('#00A0B1', '#00E1F8', '#A4F6FF'),  # 185
+               ('#009FC3', '#21D6FF', '#B5F1FF'),  # 190
+               ('#009DD6', '#42CCFF', '#C0EEFF'),  # 195
+               ('#009AED', '#59C5FF', '#C8ECFF'),  # 200 * hsp, ins
+               ('#0896FF', '#6BC0FF', '#CEEAFF'),  # 205
+               ('#1F8FFF', '#79BCFF', '#D2E9FF'),  # 210 * chap1 第１編, hnumb
+               ('#3389FF', '#84B8FF', '#D6E7FF'),  # 215
+               ('#4385FF', '#8EB6FF', '#D9E7FF'),  # 220 * chap2 第１章, tab
+               ('#5280FF', '#97B3FF', '#DCE6FF'),  # 225
+               ('#5F7CFF', '#9FB1FF', '#DFE5FF'),  # 230 * chap3 第１節
+               ('#6B79FF', '#A6AFFF', '#E1E4FF'),  # 235
+               ('#7676FF', '#ADADFF', '#E4E4FF'),  # 240 * chap4 第１款, fsp
+               ('#8072FF', '#B3ABFF', '#E6E3FF'),  # 245
+               ('#8A70FF', '#B9A9FF', '#E8E2FF'),  # 250 * chap5 第１目
+               ('#946DFF', '#BFA7FF', '#EAE2FF'),  # 255
+               ('#9E6AFF', '#C5A5FF', '#ECE1FF'),  # 260 *
+               ('#A767FF', '#CAA4FF', '#EDE1FF'),  # 265
+               ('#B164FF', '#D0A2FF', '#EFE0FF'),  # 270 *
+               ('#BC61FF', '#D7A0FF', '#F2DFFF'),  # 275
+               ('#C75DFF', '#DD9EFF', '#F4DFFF'),  # 280 *
+               ('#D35AFF', '#E49CFF', '#F6DEFF'),  # 285
+               ('#E056FF', '#EC9AFF', '#F9DDFF'),  # 290
+               ('#EE52FF', '#F597FF', '#FCDCFF'),  # 295
+               ('#FF4DFF', '#FF94FF', '#FFDBFF'),  # 300 * 相手方
+               ('#FF4EEE', '#FF95F5', '#FFDCFC'),  # 305
+               ('#FF50DF', '#FF96EC', '#FFDCF9'),  # 310
+               ('#FF51D0', '#FF97E3', '#FFDCF6'),  # 315
+               ('#FF53C3', '#FF98DB', '#FFDDF3'),  # 320
+               ('#FF54B6', '#FF98D3', '#FFDDF0'),  # 325
+               ('#FF55AA', '#FF99CC', '#FFDDEE'),  # 330 * list, fnumb
+               ('#FF579E', '#FF9AC5', '#FFDDEC'),  # 335
+               ('#FF5892', '#FF9BBE', '#FFDEE9'),  # 340
+               ('#FF5985', '#FF9BB6', '#FFDEE7'),  # 345
+               ('#FF5A79', '#FF9CAE', '#FFDEE4'),  # 350
+               ('#FF5C6B', '#FF9DA6', '#FFDEE1'))  # 355
+
+KEYWORDS = [
+    ['(加害者' +
+     '|被告|本訴被告|反訴原告|被控訴人|被上告人' +
+     '|相手方' +
+     '|被疑者|被告人|弁護人|対象弁護士)',
+     'c-300-50-g-x'],
+    ['(被害者' +
+     '|原告|本訴原告|反訴被告|控訴人|上告人' +
+     '|申立人' +
+     '|検察官|検察事務官|懲戒請求者)',
+     'c-180-50-g-x'],
+    ['(裁判官|審判官|調停官|調停委員|司法委員|専門委員|書記官|事務官|訴外)',
+     'c-60-50-g-x']]
+
+PARAGRAPH_SAMPLE = ['\t',
+                    '<!--コメント-->',
+                    '# <!--タイトル-->', '## <!--第１-->', '### <!--１-->',
+                    '#### <!--(1)-->', '##### <!--ア-->', '###### <!--(ｱ)-->',
+                    '####### <!--ａ-->', '######## <!--(a)-->',
+                    ': <!--左寄せ-->', ': <!--中寄せ--> :', '<!--右寄せ--> :',
+                    '|<!--表のセル-->|<!--表のセル-->|',
+                    '![<!--画像の名前-->](<!--画像のファイル名-->)',
+                    '$ <!--第１編-->', '$$ <!--第１章-->', '$$$ <!--第１節-->',
+                    '$$$$ <!--第１款-->', '$$$$$ <!--第１目-->',
+                    '\\[<!--数式-->\\]', '<pgbr><!--改ページ-->',
+                    '\t']
+
+FONT_DECORATOR_SAMPLE = ['\t',
+                         '*<!--斜体-->*',
+                         '*<!--太字-->*',
+                         '__<!--下線-->__',
+                         '---<!--微-->---',
+                         '--<!--小-->--',
+                         '++<!--大-->++',
+                         '+++<!--巨-->+++',
+                         '^R^<!--字赤-->^R^',
+                         '^Y^<!--字黄-->^Y^',
+                         '^G^<!--字緑-->^G^',
+                         '^C^<!--字シ-->^C^',
+                         '^B^<!--字青-->^B^',
+                         '^M^<!--字マ-->^M^',
+                         '_R_<!--地赤-->_R_',
+                         '_Y_<!--地黄-->_Y_',
+                         '_G_<!--地緑-->_G_',
+                         '_C_<!--地シ-->_C_',
+                         '_B_<!--地青-->_B_',
+                         '_M_<!--地マ-->_M_',
+                         '@游明朝@<!--游明朝-->@游明朝@',
+                         '\t']
 
 
-class Makdo:
-
-    receipt_number = 0
+class CharsState:
 
     def __init__(self):
+        self.del_or_ins = ''
+        self.is_in_comment = False
+        self.parentheses = []
+        self.has_underline = False
+        self.is_length_reviser = False
+        self.chapter_depth = 0
+        self.section_depth = 0
 
-        def drop(event):
-            textarea.delete('1.0', 'end')
-            Makdo.receipt_number += 1
-            textarea.insert('end', '受付番号：' + str(Makdo.receipt_number) + '\n')
-            filename = event.data
-            filename = re.sub('^{(.*)}$', '\\1', filename)
-            basename = os.path.basename(filename)
-            textarea.insert('end', '"' + basename + '"を受け取りました\n')
+    def __eq__(self, other):
+        if self.del_or_ins == other.del_or_ins:
+            if self.is_in_comment == other.is_in_comment:
+                return True
+        return False
+
+    def copy(self):
+        copy = CharsState()
+        copy.del_or_ins = self.del_or_ins
+        copy.is_in_comment = self.is_in_comment
+        for p in self.parentheses:
+            copy.parentheses.append(p)
+        copy.has_underline = self.has_underline
+        copy.is_length_reviser = self.is_length_reviser
+        copy.chapter_depth = self.chapter_depth
+        copy.section_depth = self.section_depth
+        # for v in vars(copy):
+        #     vars(copy)[v] = vars(self)[v]
+        return copy
+
+    def reset_partially(self):
+        self.is_length_reviser = False
+        self.chapter_depth = 0
+        self.section_depth = 0
+
+    def set_is_in_comment(self):
+        self.is_in_comment = not self.is_in_comment
+
+    def set_del_or_ins(self, del_or_ins):
+        if del_or_ins == 'del':
+            if self.del_or_ins == 'del':
+                self.del_or_ins = ''
+            else:
+                self.del_or_ins = 'del'
+        if del_or_ins == 'ins':
+            if self.del_or_ins == 'ins':
+                self.del_or_ins = ''
+            else:
+                self.del_or_ins = 'ins'
+
+    def toggle_has_underline(self):
+        self.has_underline = not self.has_underline
+
+    def apply_parenthesis(self, parenthesis):
+        ps = self.parentheses
+        p = parenthesis
+        if p == '「' or p == '『' or p == '（' or p == '(':
+            ps.append(p)
+        if p == ')' or p == '）' or p == '』' or p == '」':
+            if len(ps) > 0:
+                if ps[-1] == '(' and p == ')' or \
+                   ps[-1] == '（' and p == '）' or \
+                   ps[-1] == '『' and p == '』' or \
+                   ps[-1] == '「' and p == '」':
+                    ps.pop(-1)
+
+    def set_chapter_depth(self, depth):
+        self.chapter_depth = depth
+
+    def set_section_depth(self, depth):
+        self.section_depth = depth
+
+    def get_key(self, chars):
+        key = 'c'
+        # ANGLE
+        if False:
+            pass
+        elif self.is_in_comment:
+            key += '-0'
+        elif chars == ' ':
+            key += '-200'
+        elif chars == '\t':
+            return 'tab_tag'
+        elif chars == '\u3000':
+            key += '-240'
+        elif chars == 'font decorator':
+            key += '-120'
+        elif chars == 'half number':
+            key += '-210'
+        elif chars == 'full number':
+            key += '-330'
+        elif chars == 'list':
+            key += '-330'
+        elif chars == 'alignment':
+            key += '-180'
+        elif len(self.parentheses) == 1:
+            key += '-80'
+        elif len(self.parentheses) == 2:
+            key += '-120'
+        elif len(self.parentheses) >= 3:
+            key += '-160'
+        elif chars == '<br>' or chars == '<pgbr>':
+            key += '-120'
+        elif chars == 'R' or chars == 'red':
+            key += '-0'
+        elif chars == 'Y' or chars == 'yellow':
+            key += '-60'
+        elif chars == 'G' or chars == 'green':
+            key += '-120'
+        elif chars == 'C' or chars == 'cyan':
+            key += '-180'
+        elif chars == 'B' or chars == 'blue':
+            key += '-240'
+        elif chars == 'M' or chars == 'magenta':
+            key += '-300'
+        elif self.is_length_reviser:
+            key += '-150'
+        elif self.chapter_depth > 0:
+            key += '-' + str(210 + ((self.chapter_depth - 1) * 10))
+        elif self.section_depth > 0:
+            key += '-' + str(30 + ((self.section_depth - 1) * 10))
+        else:
+            key += '-XXX'
+        # LIGHTNESS
+        if self.del_or_ins == 'del':
+            key += '-30'
+        elif self.del_or_ins == 'ins':
+            key += '-70'
+        else:
+            key += '-50'
+        # FONT
+        if chars == 'ー':
+            key += '-m'  # mincho
+        else:
+            key += '-g'  # gothic
+        # UNDERLINE
+        if not self.is_in_comment and \
+           (chars == ' ' or chars == '\t' or chars == '\u3000'):
+            key += '-u'  # underline
+        elif not self.is_in_comment and self.has_underline:
+            key += '-u'  # underline
+        else:
+            key += '-x'  # no underline
+        # RETURN
+        return key
+
+
+class LineDatum:
+
+    def __init__(self):
+        self.line_number = 0
+        self.line_text = ''
+        self.beg_chars_state = CharsState()
+        self.end_chars_state = CharsState()
+        self.should_paint_keywords = False
+
+    def paint_line(self, txt, should_paint_keywords=False):
+        # PREPARE
+        i = self.line_number
+        line_text = self.line_text
+        chars_state = self.beg_chars_state.copy()
+        self.should_paint_keywords = should_paint_keywords
+        # RESET TAG
+        for tag in txt.tag_names():
+            if tag != 'search_tag':
+                txt.tag_remove(tag, str(i + 1) + '.0', str(i + 1) + '.end')
+        if line_text == '':
+            self.end_chars_state = chars_state.copy()
+            return
+        if not chars_state.is_in_comment:
+            # PAGE BREAK
+            if line_text == '<pgbr>\n':
+                beg, end = str(i + 1) + '.0', str(i + 1) + '.end'
+                key = chars_state.get_key('<pgbr>')                     # 1.key
+                #                                                       # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                #                                                       # 5.tmp
+                #                                                       # 6.beg
+                self.end_chars_state = chars_state.copy()
+                return
+            # LENGTH REVISERS
+            res = '^((<<|<|>|v|V|X)=(\\+|\\-)?[\\.0-9]+\\s+)+$'
+            if re.match(res, line_text):
+                chars_state.is_length_reviser = True
+            # CHAPTER
+            if line_text[0] == '$':
+                res = '^(\\${,5})(?:-\\$+)*(=[\\.0-9]+)?(?:\\s.*)?\n?$'
+                if re.match(res, line_text):
+                    dep = len(re.sub(res, '\\1', line_text))
+                    chars_state.set_chapter_depth(dep)
+            # SECTION
+            if line_text[0] == '#':
+                res = '^(#{,8})(?:-#+)*(=[\\.0-9]+)?(?:\\s.*)?\n?$'
+                if re.match(res, line_text):
+                    dep = len(re.sub(res, '\\1', line_text))
+                    chars_state.set_section_depth(dep)
+        # LOOP
+        beg, tmp = str(i + 1) + '.0', ''
+        for j, c in enumerate(line_text):
+            tmp += c
+            s1 = line_text[j - 0:j + 1] if True else ''
+            s2 = line_text[j - 1:j + 1] if j > 0 else ''
+            s3 = line_text[j - 2:j + 1] if j > 1 else ''
+            s4 = line_text[j - 3:j + 1] if j > 2 else ''
+            c0 = line_text[j + 1] if j < len(line_text) - 1 else ''
+            c1 = c
+            c2 = line_text[j - 1] if j > 0 else ''
+            c3 = line_text[j - 2] if j > 1 else ''
+            c4 = line_text[j - 3] if j > 2 else ''
+            c5 = line_text[j - 4] if j > 3 else ''
+            # BEGINNING OF COMMENT "<!--"
+            if (not chars_state.is_in_comment and s4 == '<!--') and \
+               (c5 != '\\' or re.match(NOT_ESCAPED + '<!--$', tmp)):
+                key = chars_state.get_key('')                           # 1.key
+                end = str(i + 1) + '.' + str(j - 3)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                chars_state.set_is_in_comment()                         # 4.set
+                tmp = '<!--'                                            # 5.tmp
+                beg = end                                               # 6.beg
+                continue
+            # END OF COMMENT "-->"
+            if (chars_state.is_in_comment and s3 == '-->') and \
+               (c4 != '\\' or re.match(NOT_ESCAPED + '-->$', tmp)):
+                key = chars_state.get_key('')                           # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                chars_state.set_is_in_comment()                         # 4.set
+                tmp = ''                                                # 5.tmp
+                beg = end                                               # 6.beg
+                continue
+            # LIST
+            if not chars_state.is_in_comment and j == 0 and \
+               c == '-' and re.match('\\s', c0):
+                key = chars_state.get_key('list')                       # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                tmp = ''                                                # 5.tmp
+                beg = end                                               # 6.beg
+                continue
+            if not chars_state.is_in_comment and j == 1 and \
+               re.match('^[0-9]$', c2) and c == '.' and re.match('\\s', c0):
+                key = chars_state.get_key('half number')
+                txt.tag_remove(key, str(i + 1) + '.0', str(i + 1) + '.1')
+                beg, end = str(i + 1) + '.0', str(i + 1) + '.' + str(j + 1)
+                key = chars_state.get_key('list')                       # 1.key
+                #                                                       # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                tmp = ''                                                # 5.tmp
+                beg = end                                               # 6.beg
+                continue
+            # ALIGNMENT
+            if not chars_state.is_in_comment and j == 0 and \
+               c == ':' and re.match('\\s', c0):
+                key = chars_state.get_key('alignment')                  # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                tmp = ''                                                # 5.tmp
+                beg = end                                               # 6.beg
+                continue
+            if not chars_state.is_in_comment and j >= 2 and \
+               re.match('\\s', c3) and c2 == ':' and c == '\n':
+                key = chars_state.get_key('')                           # 1.key
+                end = str(i + 1) + '.' + str(j - 2)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                # tmp = ' :\n'                                          # 5.tmp
+                beg = end                                               # 6.beg
+                key = chars_state.get_key('alignment')                  # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                tmp = ''                                                # 5.tmp
+                beg = end                                               # 6.beg
+                continue
+            # DEL ("->", "<-")
+            if ((chars_state.del_or_ins == '' and s2 == '->' and
+                 (c3 != '\\' or re.match(NOT_ESCAPED + '\\->$', tmp))) or
+                (chars_state.del_or_ins == 'del' and s2 == '<-' and
+                 (c3 != '\\' or re.match(NOT_ESCAPED + '<\\-$', tmp)))):
+                key = chars_state.get_key('')                           # 1.key
+                end = str(i + 1) + '.' + str(j - 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                chars_state.set_del_or_ins('del')                       # 4.set
+                # tmp = '->' or '<-'                                    # 5.tmp
+                beg = end                                               # 6.beg
+                key = 'c-20-50-g-x'                                     # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                tmp = ''                                                # 5.tmp
+                beg = end                                               # 6.beg
+                continue
+            # INS ("+>", "<+")
+            if ((chars_state.del_or_ins == '' and s2 == '+>' and
+                 (c3 != '\\' or re.match(NOT_ESCAPED + '\\+>$', tmp))) or
+                (chars_state.del_or_ins == 'ins' and s2 == '<+' and
+                 (c3 != '\\' or re.match(NOT_ESCAPED + '<\\+$', tmp)))):
+                key = chars_state.get_key('')                           # 1.key
+                end = str(i + 1) + '.' + str(j - 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                chars_state.set_del_or_ins('ins')                       # 4.set
+                # tmp = '+>' or '<+'                                    # 5.tmp
+                beg = end                                               # 6.beg
+                key = 'c-200-50-g-x'                                    # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                tmp = ''                                                # 5.tmp
+                beg = end                                               # 6.beg
+                continue
+            # LINE BREAK
+            if (not chars_state.is_in_comment) and re.match('^.*<br>$', tmp):
+                key = chars_state.get_key('')                           # 1.key
+                end = str(i + 1) + '.' + str(j - 3)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                # tmp = <br>                                            # 5.tmp
+                beg = end                                               # 6.beg
+                key = chars_state.get_key('<br>')                       # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                tmp = ''                                                # 5.tmp
+                beg = end                                               # 6.beg
+                continue
+            # COLOR
+            res_color = '(R|red|Y|yellow|G|green|C|cyan|B|blue|M|magenta)'
+            if ((not chars_state.is_in_comment) and
+                (re.match('^.*_' + res_color + '_$', tmp) or
+                 re.match('^.*\\^' + res_color + '\\^$', tmp))):
+                res = '^(.*)[_\\^]' + res_color + '[_\\^]$'
+                mdt = re.sub(res, '\\1', tmp)
+                col = re.sub(res, '\\2', tmp)
+                key = chars_state.get_key('')                           # 1.key
+                end = str(i + 1) + '.' + str(j - len(col) - 1)          # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                # tmp = '_.+_' or '^.+^'                                # 5.tmp
+                beg = end                                               # 6.beg
+                key = chars_state.get_key(col)                          # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                tmp = ''                                                # 5.tmp
+                beg = end                                               # 6.beg
+                continue
+            # FONT DECORATOR ("---", "+++", ">>>", "<<<")
+            if (not chars_state.is_in_comment) and \
+               (s3 == '---' or s3 == '+++' or s3 == '>>>' or s3 == '<<<') and \
+               (c4 != '\\' or re.match(NOT_ESCAPED + '...$', tmp)):
+                key = chars_state.get_key('')                           # 1.key
+                end = str(i + 1) + '.' + str(j - 2)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                # tmp = '---' or '+++' or '>>>' or '<<<'                # 5.tmp
+                beg = end                                               # 6.beg
+                key = chars_state.get_key('font decorator')             # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                tmp = ''                                                # 5.tmp
+                beg = end                                               # 6.beg
+                continue
+            # FONT DECORATOR ("--", "++", ">>", "<<")
+            if (not chars_state.is_in_comment) and \
+               (s2 == '--' or s2 == '++' or s2 == '>>' or s2 == '<<') and \
+               (c0 != c1) and \
+               (c3 != '\\' or re.match(NOT_ESCAPED + '..$', tmp)):
+                key = chars_state.get_key('')                           # 1.key
+                end = str(i + 1) + '.' + str(j - 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                # tmp = '--' or '++' or '>>' or '<<'                    # 5.tmp
+                beg = end                                               # 6.beg
+                key = chars_state.get_key('font decorator')             # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                tmp = ''                                                # 5.tmp
+                beg = end                                               # 6.beg
+                continue
+            # FONT DECORATOR ("@.+@", "^.*^", "_.*_")
+            res = NOT_ESCAPED + '(@[^@]{1,66}@|\\^.*\\^|_.*_)$'
+            if re.match(res, tmp) and not chars_state.is_in_comment:
+                mdt = re.sub(res, '\\2', tmp)
+                key = chars_state.get_key('')                           # 1.key
+                end = str(i + 1) + '.' + str(j - len(mdt) + 1)          # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                if chars_state.has_underline:
+                    chars_state.toggle_has_underline()                  # 4.set
+                tmp = mdt                                               # 5.tmp
+                beg = end                                               # 6.beg
+                key = chars_state.get_key('font decorator')             # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                if not chars_state.has_underline:
+                    chars_state.toggle_has_underline()                  # 4.set
+                tmp = ''                                                # 5.tmp
+                beg = end                                               # 6.beg
+                continue
+            # PARENTHESES
+            if c == '「' or c == '『' or c == '（' or c == '(':
+                key = chars_state.get_key('')                           # 1.key
+                end = str(i + 1) + '.' + str(j)                         # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                chars_state.apply_parenthesis(c)                        # 4.set
+                tmp = c                                                 # 5.tmp
+                beg = end                                               # 6.beg
+                continue
+            if c == ')' or c == '）' or c == '』' or c == '」':
+                key = chars_state.get_key('')                           # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                chars_state.apply_parenthesis(c)                        # 4.set
+                # tmp = ''                                              # 5.tmp
+                beg = end                                               # 6.beg
+                continue
+            # NUMBER
+            if re.match('[0-9]', c):
+                key = chars_state.get_key('')                           # 1.key
+                end = str(i + 1) + '.' + str(j)                         # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                # tmp = '[0-9]'                                         # 5.tmp
+                beg = end                                               # 6.beg
+                key = chars_state.get_key('half number')                # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                tmp = ''                                                # 5.tmp
+                beg = end                                               # 6.beg
+                continue
+            if re.match('[０-９]', c):
+                key = chars_state.get_key('')                           # 1.key
+                end = str(i + 1) + '.' + str(j)                         # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                # tmp = '[０-９]'                                       # 5.tmp
+                beg = end                                               # 6.beg
+                key = chars_state.get_key('full number')                # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                tmp = ''                                                # 5.tmp
+                beg = end                                               # 6.beg
+                continue
+            # if c == '十' or c == '百' or c == '千' or \
+            #    c == '万' or c == '億' or c == '兆' or c == '京':
+            #     if re.match('^[0-9０-９]$', c2) and tmp == c:
+            #         key = chars_state.get_key('number')               # 1.key
+            #         end = str(i + 1) + '.' + str(j + 1)               # 2.end
+            #         txt.tag_add(key, beg, end)                        # 3.tag
+            #         #                                                 # 4.set
+            #         tmp = ''                                          # 5.tmp
+            #         beg = end                                         # 6.beg
+            # ERROR ("★")
+            if c == '★':
+                key = chars_state.get_key('')                           # 1.key
+                end = str(i + 1) + '.' + str(j)                         # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                # tmp = '★'                                            # 5.tmp
+                beg = end                                               # 6.beg
+                key = 'error_tag'                                       # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                tmp = ''                                                # 5.tmp
+                beg = end                                               # 6.beg
+                continue
+            # MINCHO ("ー")
+            if c == '\u30FC':
+                key = chars_state.get_key('')                           # 1.key
+                end = str(i + 1) + '.' + str(j)                         # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                # tmp = '\u30FC'                                        # 5.tmp
+                beg = end                                               # 6.beg
+                key = chars_state.get_key('\u30FC')                     # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                tmp = ''                                                # 5.tmp
+                beg = end                                               # 6.beg
+                continue
+            # SPACE (" ", "\t", "\u3000")
+            if c == ' ' or c == '\t' or c == '\u3000':
+                key = chars_state.get_key('')                           # 1.key
+                end = str(i + 1) + '.' + str(j)                         # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                # tmp = ' ' or '\t' or '\u3000'                         # 5.tmp
+                beg = end                                               # 6.beg
+                key = chars_state.get_key(c)                            # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                tmp = ''                                                # 5.tmp
+                beg = end                                               # 6.beg
+                continue
+            # SEARCH WORD
+            wrd = MakdoEditor.search_word
+            if wrd != '' and re.match('^.*' + wrd + '$', tmp):
+                key = chars_state.get_key('')                           # 1.key
+                end = str(i + 1) + '.' + str(j - len(wrd) + 1)          # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                # tmp = wrd                                             # 5.tmp
+                beg = end                                               # 6.beg
+                key = 'rev-gx'                                          # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                tmp = ''                                                # 5.tmp
+                beg = end                                               # 6.beg
+                continue
+            # KEYWORD
+            if self.should_paint_keywords:
+                for kw in KEYWORDS:
+                    if re.match('^(.*?)' + kw[0] + '$', tmp):
+                        t1 = re.sub('^(.*?)' + kw[0] + '$', '\\1', tmp)
+                        t2 = re.sub('^(.*?)' + kw[0] + '$', '\\2', tmp)
+                        if t2 == '原告' or t2 == '被告':
+                            if re.match('^(?:.|\n)*(本|反)訴$', t1):
+                                continue
+                        if t2 == '被告' and c0 == '人':
+                            continue
+                        key = chars_state.get_key('')                   # 1.key
+                        end = str(i + 1) + '.' + str(j - len(t2) + 1)   # 2.end
+                        txt.tag_add(key, beg, end)                      # 3.tag
+                        #                                               # 4.set
+                        # tmp = t2                                      # 5.tmp
+                        beg = end                                       # 6.beg
+                        key = kw[1]                                     # 1.key
+                        end = str(i + 1) + '.' + str(j + 1)             # 2.end
+                        txt.tag_add(key, beg, end)                      # 3.tag
+                        #                                               # 4.set
+                        tmp = ''                                        # 5.tmp
+                        beg = end                                       # 6.beg
+                    continue
+            # END OF THE LINE "\n"
+            if c1 == '\n':
+                key = chars_state.get_key('')                           # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                #                                                       # 5.tmp
+                #                                                       # 6.beg
+                break
+        self.end_chars_state = chars_state.copy()
+        return
+
+
+class MakdoEditor:
+
+    search_word = ''
+
+    def __init__(self, args):
+        self.tmep_dir = ''
+        self.file_path = args.input_file
+        self.init_text = ''
+        self.file_lines = []
+        self.must_make_backup_file = args.input_file
+        self.font_size = None
+        self.number_of_period = 0
+        self.line_data = []
+        self.cursor_line = 0
+        self.global_line_to_paint = 0
+        self.local_line_to_paint = 0
+        self.akauni_history = ['', '', '', '', '']
+        # WINDOW
+        self.win = TkinterDnD.Tk()  # drag and drop
+        # self.win = tkinter.Tk()
+        self.win.title('MAKDO')
+        self.win.geometry(WINDOW_SIZE)
+        self.win.protocol("WM_DELETE_WINDOW", self.quit_makdo)
+        # FRAME
+        self.frm = tkinter.Frame()
+        self.frm.pack(expand=True, fill=tkinter.BOTH)
+        self.txt = tkinter.Text(self.frm, width=80, height=30, undo=True)
+        self.txt.drop_target_register(DND_FILES)  # drag and drop
+        self.txt.dnd_bind('<<Drop>>', self.drop)  # drag and drop
+        # MENU BAR
+        self.mnb = tkinter.Menu()
+        #
+        self.mc1 = tkinter.Menu(self.mnb, tearoff=False)
+        self.mc1.add_command(label='ファイルを開く',
+                             command=self.open_file)
+        self.mc1.add_command(label='ファイルを閉じる',
+                             command=self.close_file)
+        self.mc1.add_separator()
+        self.mc1.add_command(label='ファイルを保存する',
+                             command=self.save_file,
+                             accelerator='Ctrl+S')
+        self.mc1.add_command(label='名前を付けて保存する',
+                             command=self.name_and_save)
+        self.mc1.add_separator()
+        self.mc1.add_command(label='終了',
+                             command=self.quit_makdo,
+                             accelerator='Ctrl+Q')
+        self.mnb.add_cascade(label='ファイル', menu=self.mc1)
+        #
+        self.mc2 = tkinter.Menu(self.mnb, tearoff=False)
+        self.mc2.add_command(label='元に戻す',
+                             command=self.txt.edit_undo,
+                             accelerator='Ctrl+Z')
+        self.mc2.add_command(label='やり直す',
+                             command=self.txt.edit_redo,
+                             accelerator='Ctrl+Y')
+        self.mc2.add_separator()
+        self.mc2.add_command(label='切り取り',
+                             command=self.cut,
+                             accelerator='Ctrl+X')
+        self.mc2.add_command(label='コピー',
+                             command=self.copy,
+                             accelerator='Ctrl+C')
+        self.mc2.add_command(label='貼り付け',
+                             command=self.paste,
+                             accelerator='CTrl+V')
+        self.mc2.add_separator()
+        self.mc2.add_command(label='計算',
+                             command=self.calculate)
+        self.mnb.add_cascade(label='編集', menu=self.mc2)
+        #
+        self.mc3 = tkinter.Menu(self.mnb, tearoff=False)
+        self.mc3.add_command(label='微サイズ',
+                             command=self.set_size_ss)
+        self.mc3.add_command(label='小サイズ',
+                             command=self.set_size_s)
+        self.mc3.add_command(label='中サイズ',
+                             command=self.set_size_m)
+        self.mc3.add_command(label='大サイズ',
+                             command=self.set_size_l)
+        self.mc3.add_command(label='巨サイズ',
+                             command=self.set_size_ll)
+        self.mnb.add_cascade(label='文字サイズ', menu=self.mc3)
+        #
+        self.mc4 = tkinter.Menu(self.mnb, tearoff=False)
+        self.should_paint_keywords = tkinter.BooleanVar()
+        if args.paint_keywords:
+            self.should_paint_keywords.set(True)
+        else:
+            self.should_paint_keywords.set(False)
+        self.mc4.add_checkbutton(label='キーワードに色付け',
+                                 variable=self.should_paint_keywords)
+        self.mc4.add_separator()
+        self.is_read_only = tkinter.BooleanVar()
+        if args.read_only:
+            self.is_read_only.set(True)
+        else:
+            self.is_read_only.set(False)
+        self.mc4.add_checkbutton(label='読み取り専用',
+                                 variable=self.is_read_only)
+        self.mc4.add_separator()
+        self.sb1 = tkinter.Menu(self.mnb, tearoff=False)
+        self.digit_separator = tkinter.StringVar(value='4')
+        self.sb1.add_radiobutton(label='桁区切りなし（12345678）',
+                                 value='0', variable=self.digit_separator)
+        self.sb1.add_radiobutton(label='3桁区切り（12,345,678）',
+                                 value='3', variable=self.digit_separator)
+        self.sb1.add_radiobutton(label='4桁区切り（1234万5678）',
+                                 value='4', variable=self.digit_separator)
+        self.mc4.add_cascade(label='数式計算結果', menu=self.sb1)
+        self.mnb.add_cascade(label='設定', menu=self.mc4)
+        #
+        self.mc5 = tkinter.Menu(self.mnb, tearoff=False)
+        self.mc5.add_command(label='基本',
+                             command=self.insert_basis)
+        self.mc5.add_command(label='民法',
+                             command=self.insert_law)
+        self.mc5.add_command(label='訴状',
+                             command=self.insert_petition)
+        self.mc5.add_command(label='証拠説明書',
+                             command=self.insert_evidence)
+        self.mc5.add_command(label='和解契約書',
+                             command=self.insert_settlement)
+        self.mnb.add_cascade(label='サンプル', menu=self.mc5)
+        self.win['menu'] = self.mnb
+        # TEXT
+        self.txt.pack(expand=True, fill=tkinter.BOTH)
+        self.txt.bind('<KeyPress>', self.process_key_press)
+        self.txt.bind('<Key-Tab>', self.process_key_tab)
+        self.txt.bind('<KeyRelease>', self.process_key_release)
+        self.txt.bind('<ButtonRelease-1>', self.process_button1_release)
+        self.txt.config(bg='black', fg='white')
+        self.txt.config(insertbackground='#FF7777', blockcursor=True)  # CURSOR
+        # SCROLL BAR
+        scb = tkinter.Scrollbar(self.txt, orient=tkinter.VERTICAL,
+                                command=self.txt.yview)
+        scb.pack(side=tkinter.RIGHT, fill=tkinter.Y)
+        self.txt['yscrollcommand'] = scb.set
+        # STATUS BAR
+        self.stb = tkinter.Frame(self.frm)
+        self.stb.pack(anchor=tkinter.W)
+        self.stb_pos1 = tkinter.Label(self.stb, text='1x0')
+        self.stb_pos1.pack(side=tkinter.LEFT)
+        self.stb_spc1 = tkinter.Label(self.stb, text='\u3000')
+        self.stb_spc1.pack(side=tkinter.LEFT)
+        self.stb_sor1 = tkinter.Entry(self.stb, width=20)
+        self.stb_sor1.pack(side=tkinter.LEFT)
+        self.stb_sor1.insert(0, '（検索語）')
+        self.stb_sor2 = tkinter.Entry(self.stb, width=20)
+        self.stb_sor2.pack(side=tkinter.LEFT)
+        self.stb_sor2.insert(0, '（置換語）')
+        self.stb_sor3 = tkinter.Button(self.stb, text='前',
+                                       command=self.search_or_replace_backward)
+        self.stb_sor3.pack(side=tkinter.LEFT)
+        self.stb_sor4 = tkinter.Button(self.stb, text='次',
+                                       command=self.search_or_replace_forward)
+        self.stb_sor4.pack(side=tkinter.LEFT)
+        self.stb_sor5 = tkinter.Button(self.stb, text='消',
+                                       command=self.clear_search_word)
+        self.stb_sor5.pack(side=tkinter.LEFT)
+        self.stb_spc2 = tkinter.Label(self.stb, text='\u3000')
+        self.stb_spc2.pack(side=tkinter.LEFT)
+        self.stb_fnm1 = tkinter.Label(self.stb, text='')
+        self.stb_fnm1.pack(side=tkinter.LEFT)
+        self.stb_spc3 = tkinter.Label(self.stb, text='\u3000')
+        self.stb_spc3.pack(side=tkinter.LEFT)
+        self.stb_msg1 = tkinter.Label(self.stb, text='')
+        self.stb_msg1.pack(side=tkinter.LEFT)
+        # FONT SIZE
+        self.set_size_m()
+        # OPEN FILE
+        if args.input_file is not None:
+            self.just_open_file(args.input_file)
+        # MAKE TAG
+        self.txt.tag_config('error_tag', foreground='#FF0000')
+        self.txt.tag_config('search_tag', background='#777777')
+        self.txt.tag_config('akauni_tag', background='#777777')
+        self.txt.tag_config('tab_tag', background='#5280FF')  # (0.5, 225, max)
+        # LOOP
+        self.txt.focus_set()
+        self.run_periodically()
+        self.win.mainloop()
+
+    # AUTO SAVE
+
+    def get_auto_path(self, file_path):
+        if file_path is None or file_path == '':
+            return None
+        if '/' in file_path or '\\' in file_path:
+            d = re.sub('^((?:.|\n)*[/\\\\])(.*)$', '\\1', file_path)
+            f = re.sub('^((?:.|\n)*[/\\\\])(.*)$', '\\2', file_path)
+        else:
+            d = ''
+            f = file_path
+        if '.' in f:
+            n = re.sub('^((?:.|\n)*)(\\..*)$', '\\1', f)
+            e = re.sub('^((?:.|\n)*)(\\..*)$', '\\2', f)
+        else:
+            n = f
+            e = ''
+        n = re.sub('^((?:.|\n){,240})(.*)$', '\\1', n)
+        return d + '~$' + n + e + '.zip'
+
+    def exists_auto_file(self, file_path):
+        auto_path = self.get_auto_path(file_path)
+        if os.path.exists(auto_path):
+            # auto_file = re.sub('^(.|\n)*[/\\\\]', '', auto_path)
+            n = 'エラー'
+            m = '自動保存ファイルが存在します．\n' + \
+                '"' + auto_path + '"\n\n' + \
+                '①現在、ファイルを編集中\n' + \
+                '②過去の編集中のファイルが残存\n' + \
+                'の2つの可能性が考えられます．\n\n' + \
+                '①現在、ファイルを編集中\n' + \
+                'の場合は、「No」を選択してください．\n\n' + \
+                '②過去の編集中のファイルが残存\n' + \
+                'の場合、異常終了したものと思われます．\n' + \
+                '「No」を選択して、' + \
+                '自動保存ファイルの中身を確認してから、' + \
+                '削除することをおすすめします．\n\n' + \
+                '自動保存ファイルを削除しますか？'
+            ans = tkinter.messagebox.askyesno(n, m, default='no')
+            if ans:
+                try:
+                    self.remove_auto_file(file_path)
+                except BaseException:
+                    n, m = 'エラー', '自動保存ファイルの削除に失敗しました'
+                    tkinter.messagebox.showerror(n, m)
+        if os.path.exists(auto_path):
+            return True
+        else:
+            return False
+
+    def save_auto_file(self, file_path):
+        if file_path is not None and file_path != '':
+            new_text = self.txt.get('1.0', 'end-1c')
+            auto_path = self.get_auto_path(file_path)
+            if os.path.exists(auto_path):
+                with zipfile.ZipFile(auto_path, 'r') as old_zip:
+                    with old_zip.open('doc.md', 'r') as f:
+                        old_text = f.read()
+                        if new_text == old_text.decode():
+                            return
+            with zipfile.ZipFile(auto_path, 'w',
+                                 compression=zipfile.ZIP_DEFLATED,
+                                 compresslevel=9) as new_zip:
+                new_zip.writestr('doc.md', new_text)
+
+    def remove_auto_file(self, file_path):
+        if file_path is not None and file_path != '':
+            auto_path = self.get_auto_path(file_path)
+            if re.match('(^|(.|\n)*[/\\\\])~\\$(.|\n)+\\.zip$', auto_path):
+                if os.path.exists(auto_path):
+                    os.remove(auto_path)
+
+    # INPUT AND OUTPUT
+
+    def drop(self, event):                                # drag and drop
+        ans = self.close_file()                           # drag and drop
+        if ans is None:                                   # drag and drop
+            return None                                   # drag and drop
+        file_path = event.data                            # drag and drop
+        file_path = re.sub('^{(.*)}$', '\\1', file_path)  # drag and drop
+        self.just_open_file(file_path)                    # drag and drop
+
+    def open_file(self):
+        ans = self.close_file()
+        if ans is None:
+            return None
+        typ = [('可能な形式', '.md .docx'),
+               ('Markdown', '.md'), ('MS Word', '.docx')]
+        file_path = tkinter.filedialog.askopenfilename(filetypes=typ)
+        if file_path == ():
+            return None
+        self.just_open_file(file_path)
+
+    def just_open_file(self, file_path):
+        if self.exists_auto_file(file_path):
+            self.file_path = ''
+            self.init_text = ''
+            self.file_lines = []
+            return
+        # DOCX OR MD
+        if re.match('^(?:.|\n)+.docx$', file_path):
+            self.temp_dir = tempfile.TemporaryDirectory()
+            md_path = self.temp_dir.name + '/doc.md'
+        else:
+            md_path = file_path
+        # OPEN DOCX FILE
+        if re.match('^(?:.|\n)+.docx$', file_path):
             stderr = sys.stderr
             sys.stderr = tempfile.TemporaryFile(mode='w+')
-            if re.match('^.*\\.(m|M)(d|D)$', filename):
-                textarea.insert('end', 'docxファイルを作成します\n')
-                try:
-                    importlib.reload(makdo.makdo_md2docx)
-                    m2d = makdo.makdo_md2docx.Md2Docx(filename)
-                    m2d.save('')
-                    textarea.insert('end', 'docxファイルを作成しました\n')
-                except BaseException:
-                    sys.stderr.seek(0)
-                    textarea.insert('end', sys.stderr.read())
-                    textarea.insert('end', 'docxファイルを作成できませんでした\n')
-            elif re.match('^.*\\.(d|D)(o|O)(c|C)(x|X)$', filename):
-                textarea.insert('end', 'mdファイルを作成します\n')
-                try:
-                    importlib.reload(makdo.makdo_docx2md)
-                    d2m = makdo.makdo_docx2md.Docx2Md(filename)
-                    d2m.save('')
-                    textarea.insert('end', 'mdファイルを作成しました\n')
-                except BaseException:
-                    sys.stderr.seek(0)
-                    textarea.insert('end', sys.stderr.read())
-                    textarea.insert('end', 'mdファイルを作成できませんでした\n')
-            else:
-                textarea.insert('end', '不適切なファイルです\n')
+            importlib.reload(makdo.makdo_docx2md)
+            try:
+                d2m = makdo.makdo_docx2md.Docx2Md(file_path)
+                d2m.save(md_path)
+            except BaseException:
+                pass
+            sys.stderr.seek(0)
+            msg = sys.stderr.read()
             sys.stderr = stderr
-            textarea.insert('end', '\nここにmdファイル又はdocxファイルをドロップしてください\n')
+            if msg != '':
+                n = 'エラー'
+                tkinter.messagebox.showerror(n, msg)
+                return
+        # OPEN MD FILE
+        try:
+            with open(md_path, 'r', encoding='utf-8') as f:
+                init_text = f.read()
+        except BaseException:
+            return
+        self.file_path = file_path
+        self.init_text = init_text
+        self.file_lines = init_text.split('\n')
+        self.txt.delete('1.0', 'end')
+        self.txt.insert('1.0', init_text)
+        self.txt.focus_set()
+        file_name = re.sub('^.*[/\\\\]', '', file_path)
+        self.win.title(file_name + ' - MAKDO')
+        self.save_auto_file(self.file_path)
+        self.stb_fnm1['text'] = file_name
+        self.txt.mark_set('insert', '1.0')
+        self.line_data = [LineDatum() for line in init_text.split('\n')]
+        for i, line in enumerate(self.file_lines):
+            self.line_data[i].line_number = i
+            self.line_data[i].line_text = line + '\n'
+            if i > 0:
+                self.line_data[i].beg_chars_state \
+                    = self.line_data[i - 1].end_chars_state.copy()
+                self.line_data[i].beg_chars_state.reset_partially()
+            self.line_data[i].paint_line(self.txt)
+        self.txt.edit_reset()
 
-        win = TkinterDnD.Tk()
-        win.geometry(WINDOW_SIZE)
-        win.title("MAKDO " + VERSION
-                  + " （mdファイルをdocxファイルに、docxファイルをmdファイルに変換します）")
+    def close_file(self):
+        # SAVE FILE
+        if self.has_edited():
+            ans = self._ask_to_save('保存しますか？')
+            if ans is None:
+                return None
+            elif ans is True:
+                if not self.save_file():
+                    return None
+        if self.has_edited():
+            ans = self._ask_to_save('データが消えますが、保存しますか？')
+            if ans is None:
+                return None
+            elif ans is True:
+                if not self.save_file():
+                    return None
+        # REMOVE AUTO SAVE FILE
+        self.remove_auto_file(self.file_path)
+        self.file_path = None
+        self.init_text = ''
+        self.txt.delete('1.0', 'end')
+        self.stb_fnm1['text'] = ''
+        return True
 
-        frame = ttk.Frame(win)
-        textarea = tk.Text(frame, width=120, height=30)
-        # textarea = tk.Text(frame, width=80, height=20)
-        textarea.drop_target_register(DND_FILES)
-        textarea.insert('end', 'ここにmdファイル又はdocxファイルをドロップしてください\n')
-        textarea.dnd_bind('<<Drop>>', drop)
+    def has_edited(self):
+        file_text = self.txt.get('1.0', 'end-1c')
+        if file_text != '':
+            if self.init_text != file_text:
+                return True
+        return False
 
-        frame.pack(expand=True, fill=tk.X, padx=16, pady=8)
-        textarea.pack(side=tk.LEFT)
+    def _ask_to_save(self, message):
+        tkinter.Tk().withdraw()
+        n, m, d = '確認', message, 'yes'
+        return tkinter.messagebox.askyesnocancel(n, m, default=d)
 
-        win.mainloop()
+    def save_file(self):
+        if self.has_edited():
+            file_text = self.txt.get('1.0', 'end-1c')
+            if file_text == '' or file_text[-1] != '\n':
+                self.txt.insert('end', '\n')
+                file_text = self.txt.get('1.0', 'end-1c')
+            if (self.file_path is None) or (self.file_path == ''):
+                typ = [('Markdown', '*.md')]
+                file_path = tkinter.filedialog.asksaveasfilename(filetypes=typ)
+                if file_path == ():
+                    return False
+                self.file_path = file_path
+            if self.must_make_backup_file:
+                if os.path.exists(self.file_path) and \
+                   not os.path.islink(self.file_path):
+                    try:
+                        os.rename(self.file_path, self.file_path + '~')
+                        self.must_make_backup_file = False
+                    except BaseException:
+                        n, m = 'エラー', 'バックアップに失敗しました'
+                        tkinter.messagebox.showerror(n, m)
+                        return False
+            # DOCX OR MD
+            if re.match('^(?:.|\n)+.docx$', self.file_path):
+                md_path = self.temp_dir.name + '/doc.md'
+            else:
+                md_path = self.file_path
+            # SAVE MD FILE
+            try:
+                with open(md_path, 'w') as f:
+                    f.write(file_text)
+            except BaseException:
+                n, m = 'エラー', 'ファイルの保存に失敗しました'
+                tkinter.messagebox.showerror(n, m)
+                return False
+            # SAVE DOCX FILE
+            if re.match('^(?:.|\n)+.docx$', self.file_path):
+                stderr = sys.stderr
+                sys.stderr = tempfile.TemporaryFile(mode='w+')
+                importlib.reload(makdo.makdo_md2docx)
+                try:
+                    m2d = makdo.makdo_md2docx.Md2Docx(md_path)
+                    m2d.save(self.file_path)
+                except BaseException:
+                    pass
+                sys.stderr.seek(0)
+                msg = sys.stderr.read()
+                sys.stderr = stderr
+                if msg != '':
+                    n = 'エラー'
+                    tkinter.messagebox.showerror(n, msg)
+                    return
+            self.stb_msg1['text'] = '保存しました'
+            self.init_text = file_text
+            return True
+
+    def name_and_save(self):
+        typ = [('可能な形式', '.md .docx'),
+               ('Markdown', '.md'), ('MS Word', '.docx')]
+        file_path = tkinter.filedialog.asksaveasfilename(filetypes=typ)
+        self.file_path = file_path
+        self.save_file()
+
+    def quit_makdo(self):
+        ans = self.close_file()
+        if ans is None:
+            return None
+        self.win.quit()
+        self.win.destroy()
+        sys.exit(0)
+
+    # EDIT
+
+    def cut(self):
+        if self.txt.tag_ranges('sel'):
+            c = self.txt.get('sel.first', 'sel.last')
+            self.win.clipboard_clear()
+            self.win.clipboard_append(c)
+            self.txt.delete('sel.first', 'sel.last')  # delete
+        return
+
+    def copy(self):
+        if self.txt.tag_ranges('sel'):
+            c = self.txt.get('sel.first', 'sel.last')
+            self.win.clipboard_clear()
+            self.win.clipboard_append(c)
+        return
+
+    def paste(self):
+        try:
+            c = self.win.clipboard_get()
+            self.txt.insert('insert', c)
+            # self.txt.yview('insert -20 line')
+        except BaseException:
+            pass
+        return
+
+    def calculate(self):
+        inse = self.txt.index('insert')
+        numb = re.sub('\\..*$', '', inse)
+        line = self.txt.get(numb + '.0', numb + '.end')
+        line_head = ''
+        line_math = line
+        line_rslt = ''
+        line_tail = ''
+        res = '^(.*(?:<!--|@))(.*)$'
+        if re.match(res, line_math):
+            line_head = re.sub(res, '\\1', line_math)
+            line_math = re.sub(res, '\\2', line_math)
+        res = '^(.*)((?:-->|#).*)$'
+        if re.match(res, line_math):
+            line_tail = re.sub(res, '\\2', line_math)
+            line_math = re.sub(res, '\\1', line_math)
+        res = '^(.*)(=.*)$'
+        if re.match(res, line_math):
+            line_rslt = re.sub(res, '\\2', line_math)
+            line_math = re.sub(res, '\\1', line_math)
+        if line_math == '':
+            return
+        math = line_math
+        math = math.replace('\t', ' ').replace('\u3000', ' ')
+        math = math.replace('，', ',').replace('．', '.')
+        math = math.replace('０', '0').replace('１', '1').replace('２', '2')
+        math = math.replace('３', '3').replace('４', '4').replace('５', '5')
+        math = math.replace('６', '6').replace('７', '7').replace('８', '8')
+        math = math.replace('９', '9')
+        math = math.replace('〇', '0').replace('一', '1').replace('二', '2')
+        math = math.replace('三', '3').replace('四', '4').replace('五', '5')
+        math = math.replace('六', '6').replace('七', '7').replace('八', '8')
+        math = math.replace('九', '9')
+        math = math.replace('（', '(').replace('）', ')')
+        math = math.replace('｛', '{').replace('｝', '}')
+        math = math.replace('［', '[').replace('］', ']')
+        math = math.replace('｜', '|').replace('！', '!').replace('＾', '^')
+        math = math.replace('＊', '*').replace('／', '/').replace('％', '%')
+        math = math.replace('＋', '+').replace('−', '-')
+        math = math.replace('×', '*').replace('÷', '/').replace('ー', '-')
+        math = math.replace('△', '-').replace('▲', '-')
+        math = math.replace('パ-セント', '%')
+        # ' ', ','
+        math = math.replace(' ', '').replace(',', '')
+        # {, }, [, ]
+        math = math.replace('{', '(').replace('}', ')')
+        math = math.replace('[', '(').replace(']', ')')
+        # 千, 百, 十
+        temp = ''
+        unit = ['千', '百', '十']
+        for i in range(len(unit)):
+            res = '^([^' + unit[i] + ']*' + unit[i] + ')(.*)$'
+            while re.match(res, math):
+                t1 = re.sub(res, '\\1', math)  # [^千]*千
+                t2 = re.sub(res, '\\2', math)  # .*
+                if not re.match('^.*[0-9]' + unit[i] + '$', t1):
+                    t1 = re.sub(unit[i] + '$', '1' + unit[i], t1)  # 千 -> 1千
+                temp += t1
+                math = t2
+        math = temp + math
+        temp = ''
+        unit = ['千', '百', '十', '']
+        for i in range(len(unit) - 1):
+            res = '^([^' + unit[i] + ']*' + unit[i] + ')(.*)$'
+            while re.match(res, math):
+                t1 = re.sub(res, '\\1', math)  # [^千]*千
+                t2 = re.sub(res, '\\2', math)  # .*
+                temp += t1
+                if not re.match('^[0-9]' + unit[i + 1], t2):
+                    t2 = '0' + unit[i + 1] + t2
+                math = t2
+        math = temp + math
+        math = math.replace('千', '').replace('百', '').replace('十', '')
+        # 京, 兆, 億, 万
+        temp = ''
+        unit = ['京', '兆', '億', '万', '']
+        for i in range(len(unit) - 1):
+            res = '^([^' + unit[i] + ']*' + unit[i] + ')(.*)$'
+            while re.match(res, math):
+                t1 = re.sub(res, '\\1', math)  # [^京]*京
+                t2 = re.sub(res, '\\2', math)  # .*
+                temp += t1
+                if re.match('[0-9]{,4}' + unit[i + 1], t2):
+                    t2 = '0000' + t2
+                    math = re.sub('^[0-9]*([0-9]{4})', '\\1', t2)
+                else:
+                    math = '0000' + unit[i + 1] + t2  # 0000兆
+        math = temp + math
+        math = math.replace('京', '').replace('兆', '')
+        math = math.replace('億', '').replace('万', '')
+        # %, 割, 分, 厘
+        math = re.sub('([0-9\\.]+)%', '(\\1/100)', math)
+        math = re.sub('([0-9\\.]+)割', '(\\1/10)', math)
+        math = re.sub('([0-9\\.]+)分', '(\\1/100)', math)
+        math = re.sub('([0-9\\.]+)厘', '(\\1/1000)', math)
+        # FRACTION
+        res = '^(.*?)' \
+            + '([0-9]+|\\([^\\(\\)]+\\))分の([0-9]+|\\([^\\(\\)]+\\))' \
+            + '(.*?)$'
+        while re.match(res, math):
+            math = re.sub(res, '\\1(\\3/\\2)\\4', math)
+        # POWER
+        math = re.sub('\\^', '**', math)
+        # REMOVE
+        math = re.sub('pi', '3.141592653589793', math)
+        math = re.sub('e', '2.718281828459045', math)
+        math = re.sub('[^\\(\\)\\|\\*/%\\-\\+0-9\\.]', '', math)
+        # EVAL
+        r = str(eval(math))
+        if not re.match('^-?([0-9]+\\.)?[0-9]+', r):
+            return False
+        # REPLACE
+        digit_separator = self.digit_separator.get()
+        if '.' in r:
+            i = re.sub('^(.*)(\\..*)$', '\\1', r)
+            f = re.sub('^(.*)(\\..*)$', '\\2', r)
+        else:
+            i = r
+            f = ''
+        if digit_separator == '3':
+            if re.match('^.*[0-9]{19}$', i):
+                i = re.sub('([0-9]{18})$', ',\\1', i)
+            if re.match('^.*[0-9]{16}$', i):
+                i = re.sub('([0-9]{15})$', ',\\1', i)
+            if re.match('^.*[0-9]{13}$', i):
+                i = re.sub('([0-9]{12})$', ',\\1', i)
+            if re.match('^.*[0-9]{10}$', i):
+                i = re.sub('([0-9]{9})$', ',\\1', i)
+            if re.match('^.*[0-9]{7}$', i):
+                i = re.sub('([0-9]{6})$', ',\\1', i)
+            if re.match('^.*[0-9]{4}$', i):
+                i = re.sub('([0-9]{3})$', ',\\1', i)
+        elif digit_separator == '4':
+            if re.match('^.*[0-9]{17}$', i):
+                i = re.sub('([0-9]{16})$', '京\\1', i)
+            if re.match('^.*[0-9]{13}$', i):
+                i = re.sub('([0-9]{12})$', '兆\\1', i)
+            if re.match('^.*[0-9]{9}$', i):
+                i = re.sub('([0-9]{8})$', '億\\1', i)
+            if re.match('^.*[0-9]{5}$', i):
+                i = re.sub('([0-9]{4})$', '万\\1', i)
+        r = i + f
+        beg = numb + '.' + str(len(line_head + line_math))
+        end = numb + '.' + str(len(line_head + line_math + line_rslt))
+        self.txt.delete(beg, end)
+        self.txt.insert(beg, '=' + r)
+        self.win.clipboard_clear()
+        self.win.clipboard_append(r)
+
+    # FONT SIZE
+
+    def set_size_ss(self):
+        self.__set_font_size(8)
+
+    def set_size_s(self):
+        self.__set_font_size(12)
+
+    def set_size_m(self):
+        self.__set_font_size(18)
+
+    def set_size_l(self):
+        self.__set_font_size(26)
+
+    def set_size_ll(self):
+        self.__set_font_size(36)
+
+    def __set_font_size(self, size):
+        self.font_size = size
+        self.txt['font'] = (GOTHIC_FONT, size)
+        self.stb_sor1['font'] = (GOTHIC_FONT, size)
+        self.stb_sor2['font'] = (GOTHIC_FONT, size)
+        for u in ['-x', '-u']:
+            und = False if u == '-x' else True
+            for f in ['-g', '-m']:
+                fon = (GOTHIC_FONT, size) if f == '-g' else (MINCHO_FONT, size)
+                # WHITE
+                for i in range(3):
+                    a = '-XXX'
+                    y = '-' + str(30 + (i * 20))
+                    tag = 'c' + a + y + f + u
+                    col = WHITE_SPACE[i]
+                    self.txt.tag_config(tag, font=fon,
+                                        foreground=col, underline=und)
+                # COLOR
+                for i in range(3):  # lightness
+                    y = '-' + str(30 + (i * 20))
+                    for j, c in enumerate(COLOR_SPACE):  # angle
+                        a = '-' + str(j * 5)
+                        tag = 'c' + a + y + f + u  # example: c-125-50-g-x
+                        col = c[i]
+                        self.txt.tag_config(tag, font=fon,
+                                            foreground=col, underline=und)
+
+    # RECURSIVE CALL
+
+    def run_periodically(self):
+        interval = 10
+        # IF THE REGION IS SET
+        if self.txt.tag_ranges(tkinter.SEL):
+            self.win.after(interval, self.run_periodically)  # NEXT
+            return
+        # UPDATE TEXT
+        file_text = self.txt.get('1.0', 'end-1c')
+        self.file_lines = file_text.split('\n')
+        m = len(self.file_lines) - 1
+        while len(self.line_data) < m + 1:
+            self.line_data.append(LineDatum())
+            self.line_data[-1].line_number = len(self.line_data) - 1
+        while len(self.line_data) > m + 1:
+            self.line_data.pop(-1)
+        if m < 0:
+            self.win.after(interval, self.run_periodically)  # NEXT
+            return
+        # CHECK WHETHER TO PAINT KEYWORDS
+        should_paint_keywords = self.should_paint_keywords.get()
+        # GLOBAL
+        i = self.global_line_to_paint
+        if i < len(self.line_data):
+            self.line_data[i].line_number = i
+            lt = self.file_lines[i] + '\n'
+            if i == 0:
+                cs = CharsState()
+            else:
+                cs = self.line_data[i - 1].end_chars_state.copy()
+                cs.reset_partially()
+            spk = should_paint_keywords
+            if self.line_data[i].line_text != lt or \
+               self.line_data[i].should_paint_keywords != spk or \
+               self.line_data[i].beg_chars_state != cs:
+                self.line_data[i].line_text = lt
+                self.line_data[i].beg_chars_state = cs
+                self.line_data[i].end_chars_state = CharsState()
+                self.line_data[i].paint_line(self.txt, should_paint_keywords)
+        # LOCAL
+        i = self.cursor_line + self.local_line_to_paint - 10
+        if i >= 0 and i < len(self.line_data):
+            self.line_data[i].line_number = i
+            lt = self.file_lines[i] + '\n'
+            if i == 0:
+                cs = CharsState()
+            else:
+                cs = self.line_data[i - 1].end_chars_state.copy()
+                cs.reset_partially()
+            spk = should_paint_keywords
+            if self.line_data[i].line_text != lt or \
+               self.line_data[i].should_paint_keywords != spk or \
+               self.line_data[i].beg_chars_state != cs:
+                self.line_data[i].line_text = lt
+                self.line_data[i].beg_chars_state = cs
+                self.line_data[i].end_chars_state = CharsState()
+                self.line_data[i].paint_line(self.txt, should_paint_keywords)
+        # POINT
+        i = self.cursor_line
+        if i < len(self.line_data):
+            self.line_data[i].line_number = i
+            lt = self.file_lines[i] + '\n'
+            if i == 0:
+                cs = CharsState()
+            else:
+                cs = self.line_data[i - 1].end_chars_state.copy()
+                cs.reset_partially()
+            spk = should_paint_keywords
+            if self.line_data[i].line_text != lt or \
+               self.line_data[i].should_paint_keywords != spk or \
+               self.line_data[i].beg_chars_state != cs:
+                self.line_data[i].line_text = lt
+                self.line_data[i].beg_chars_state = cs
+                self.line_data[i].end_chars_state = CharsState()
+                self.line_data[i].paint_line(self.txt, should_paint_keywords)
+        # STEP (GLOBAL)
+        self.global_line_to_paint += 1
+        if self.global_line_to_paint >= m:
+            self.global_line_to_paint = 0
+        # STEP (LOCAL)
+        self.local_line_to_paint += 1
+        if self.local_line_to_paint >= 100:
+            i = self.txt.index('insert')
+            self.cursor_line = int(re.sub('\\..*$', '', i)) - 1
+            self.local_line_to_paint = 0
+        # READ ONLY
+        is_read_only = self.is_read_only.get()
+        if self.txt['state'] == 'normal' and is_read_only:
+            self.txt.configure(state='disabled')
+        if self.txt['state'] == 'disabled' and not is_read_only:
+            self.txt.configure(state='normal')
+        # AUTO SAVE
+        if (self.number_of_period % 6000) == 0:
+            self.save_auto_file(self.file_path)
+        # TO NEXT
+        self.number_of_period += 1
+        self.win.after(interval, self.run_periodically)  # NEXT
+        return
+
+    @staticmethod
+    def __get_end_position(i, j, k):
+        return s1, s2, ''
+
+    def search_or_replace_backward(self):
+        word1 = self.stb_sor1.get()
+        word2 = self.stb_sor2.get()
+        if MakdoEditor.search_word != word1:
+            MakdoEditor.search_word = word1
+            self._highlight_search_word()
+        pos = self.txt.index('insert')
+        tex = self.txt.get('1.0', pos)
+        res = '^((?:.|\n)*)(' + word1 + '(?:.|\n)*)$'
+        if re.match(res, tex):
+            t1 = re.sub(res, '\\1', tex)
+            t2 = re.sub(res, '\\2', tex)
+            # SEARCH
+            self.txt.mark_set('insert', pos + '-' + str(len(t2)) + 'c')
+            self.txt.yview(pos + '-' + str(len(t2)) + 'c')
+            if word2 != '' and word2 != '（置換語）':
+                # REPLACE
+                self.txt.delete('insert', 'insert+' + str(len(word1)) + 'c')
+                self.txt.insert('insert', word2)
+                # self.stb_msg1['text'] = '置換しました'
+        self.txt.focus_set()
+
+    def search_or_replace_forward(self):
+        word1 = self.stb_sor1.get()
+        word2 = self.stb_sor2.get()
+        if MakdoEditor.search_word != word1:
+            MakdoEditor.search_word = word1
+            self._highlight_search_word()
+        pos = self.txt.index('insert')
+        tex = self.txt.get(pos, 'end-1c')
+        res = '^((?:.|\n)*?' + word1 + ')((?:.|\n)*)$'
+        if re.match(res, tex):
+            t1 = re.sub(res, '\\1', tex)
+            t2 = re.sub(res, '\\2', tex)
+            # SEARCH
+            self.txt.mark_set('insert', pos + '+' + str(len(t1)) + 'c')
+            self.txt.yview(pos + '+' + str(len(t1)) + 'c')
+            if word2 != '' and word2 != '（置換語）':
+                # REPLACE
+                self.txt.delete('insert-' + str(len(word1)) + 'c', 'insert')
+                self.txt.insert('insert', word2)
+                # self.stb_msg1['text'] = '置換しました'
+        self.txt.focus_set()
+
+    def _highlight_search_word(self):
+        word = MakdoEditor.search_word
+        tex = self.txt.get('1.0', 'end-1c')
+        beg = 0
+        res = '^((?:.|\n)*?)' + word + '((?:.|\n)*)$'
+        while re.match(res, tex):
+            pre = re.sub(res, '\\1', tex)
+            tex = re.sub(res, '\\2', tex)
+            beg += len(pre)
+            end = beg + len(word)
+            self.txt.tag_add('search_tag',
+                             '1.0+' + str(beg) + 'c',
+                             '1.0+' + str(end) + 'c',)
+            beg = end
+
+    def clear_search_word(self):
+        self.stb_sor1.delete('0', 'end')
+        self.stb_sor2.delete('0', 'end')
+        self.txt.tag_remove('search_tag', '1.0', 'end')
+        MakdoEditor.search_word = ''
+
+    def set_current_position(self):
+        pos = self.txt.index('insert')
+        self.stb_pos1['text'] = str(pos).replace('.', 'x')
+
+    def insert_document(self, document_data):
+        chs = CharsState()
+        tmp = ''
+        for c in document_data + '\0':
+            tmp += c
+
+    def process_key_press(self, key):
+        # FOR AKAUNI
+        self.akauni_history.append(key.keysym)
+        self.akauni_history.pop(0)
+        if key.keysym == 'F19':              # x (ctrl)
+            return 'break'
+        elif key.keysym == 'Left':
+            if 'akauni' in self.txt.mark_names():
+                self.txt.tag_remove('akauni_tag', '1.0', 'end')
+                self.txt.tag_add('akauni_tag', 'akauni', 'insert-1c')
+                self.txt.tag_add('akauni_tag', 'insert-1c', 'akauni')
+        elif key.keysym == 'Right':
+            if 'akauni' in self.txt.mark_names():
+                self.txt.tag_remove('akauni_tag', '1.0', 'end')
+                self.txt.tag_add('akauni_tag', 'akauni', 'insert+1c')
+                self.txt.tag_add('akauni_tag', 'insert+1c', 'akauni')
+        elif key.keysym == 'Up':
+            if 'akauni' in self.txt.mark_names():
+                self.txt.tag_remove('akauni_tag', '1.0', 'end')
+                self.txt.tag_add('akauni_tag', 'akauni', 'insert-1l')
+                self.txt.tag_add('akauni_tag', 'insert-1l', 'akauni')
+        elif key.keysym == 'Down':
+            if 'akauni' in self.txt.mark_names():
+                self.txt.tag_remove('akauni_tag', '1.0', 'end')
+                self.txt.tag_add('akauni_tag', 'akauni', 'insert+1l')
+                self.txt.tag_add('akauni_tag', 'insert+1l', 'akauni')
+        elif key.keysym == 'F17':            # } (, calc)
+            if self.akauni_history[-2] == 'F13':
+                self.calculate()
+                return 'break'
+        elif key.keysym == 'F21':            # w (undo)
+            self.txt.edit_undo()
+            return 'break'
+        elif key.keysym == 'XF86AudioMute':  # W (redo)
+            self.txt.edit_redo()
+            return 'break'
+        elif key.keysym == 'F22':            # f (mark, save)
+            if self.akauni_history[-2] == 'F19':
+                self.save_file()
+                return 'break'
+            else:
+                if 'akauni' in self.txt.mark_names():
+                    self.txt.mark_unset('akauni')
+                self.txt.mark_set('akauni', 'insert')
+                return 'break'
+        elif key.keysym == 'Delete':         # d (delete, quit)
+            if self.akauni_history[-2] == 'F19':
+                self.quit_makdo()
+                return 'break'
+            else:
+                if 'akauni' in self.txt.mark_names():
+                    self.txt.tag_remove('akauni_tag', '1.0', 'end')
+                    c = ''
+                    c += self.txt.get('akauni', 'insert')
+                    c += self.txt.get('insert', 'akauni')
+                    self.win.clipboard_clear()
+                    self.win.clipboard_append(c)
+                    self.txt.delete('akauni', 'insert')
+                    self.txt.delete('insert', 'akauni')
+                    self.txt.mark_unset('akauni')
+                    return 'break'
+                elif self.txt.tag_ranges('sel'):
+                    c = self.txt.get('sel.first', 'sel.last')
+                    self.win.clipboard_clear()
+                    self.win.clipboard_append(c)
+                    self.txt.delete('sel.first', 'sel.last')
+                    return 'break'
+        elif key.keysym == 'F14':            # v (quit)
+            if 'akauni' in self.txt.mark_names():
+                self.txt.tag_remove('akauni_tag', '1.0', 'end')
+                self.txt.mark_unset('akauni')
+                return 'break'
+        elif key.keysym == 'F15':            # g (paste)
+            c = self.win.clipboard_get()
+            self.txt.insert('insert', c)
+            # self.txt.yview('insert -20 line')
+            return 'break'
+        elif key.keysym == 'F16':            # c (search forward)
+            self.search_or_replace_forward()
+            return 'break'
+        elif key.keysym == 'cent':           # cent (search backward)
+            self.search_or_replace_backward()
+            return 'break'
+        # ctrl+a '\x01' select all          # ctrl+n '\x0e' new document
+        # ctrl+b '\x02' bold                # ctrl+o '\x0f' open document
+        # ctrl+c '\x03' copy                # ctrl+p '\x10' print
+        # ctrl+d '\x04' font                # ctrl+q '\x11' quit
+        # ctrl+e '\x05' centered            # ctrl+r '\x12' right
+        # ctrl+f '\x06' search              # ctrl+s '\x13' save
+        # ctrl+g '\x07' move                # ctrl+t '\x14' hanging indent
+        # ctrl+h '\x08' replace             # ctrl+u '\x15' underline
+        # ctrl+i '\x09' italic              # ctrl+v '\x16' paste
+        # ctrl+j '\x0a' justified           # ctrl+w '\x17' close document
+        # ctrl+k '\x0b' hyper link          # ctrl+x '\x18' cut
+        # ctrl+l '\x0c' left                # ctrl+y '\x19' redo
+        # ctrl+m '\x0d' indent              # ctrl+z '\x1a' undo
+        if key.char == '\x11':    # ctrl-q
+            self.quit_makdo()
+        elif key.char == '\x13':  # ctrl-s
+            self.save_file()
+        self.set_current_position()
+
+    def process_key_release(self, key):
+        # FOR AKAUNI
+        if 'akauni' in self.txt.mark_names():
+            self.txt.tag_remove('akauni_tag', '1.0', 'end')
+            self.txt.tag_add('akauni_tag', 'akauni', 'insert')
+            self.txt.tag_add('akauni_tag', 'insert', 'akauni')
+        self.set_current_position()
+
+    def process_button1_release(self, click):
+        self.set_current_position()
+
+    def process_key_tab(self, key):
+        # CALCULATE
+        text_beg_to_cur = self.txt.get('1.0', 'insert')
+        text = text_beg_to_cur
+        res_open = '^((?:.|\n)*)(<!--(?:.|\n)*)'
+        res_close = '^((?:.|\n)*)(-->(?:.|\n)*)'
+        if re.match(res_open, text):
+            text = re.sub(res_open, '\\1', text)
+            if not re.match(res_close, text):
+                self.calculate()
+                return 'break'
+        # INSERT
+        point_cur = self.txt.index('insert')
+        point_beg = re.sub('\\..*$', '.0', point_cur)
+        point_end = re.sub('\\..*$', '.end', point_cur)
+        line_cur_to_end = self.txt.get(point_cur, point_end)
+        line_beg_to_end = self.txt.get(point_beg, point_end)
+        if re.match('^.*\\.0$', point_cur):
+            if line_beg_to_end == '':
+                self.txt.insert('insert', PARAGRAPH_SAMPLE[0])
+                self.txt.mark_set('insert', point_beg)
+                return 'break'
+            for i, sample in enumerate(PARAGRAPH_SAMPLE):
+                if line_beg_to_end == sample:
+                    self.txt.delete(point_beg, point_end)
+                    self.txt.insert('insert', PARAGRAPH_SAMPLE[i + 1])
+                    self.txt.mark_set('insert', point_beg)
+                    return 'break'
+        else:
+            for i, sample in enumerate(FONT_DECORATOR_SAMPLE):
+                sample_esc = sample
+                sample_esc = sample_esc.replace('*', '\\*')
+                sample_esc = sample_esc.replace('+', '\\+')
+                sample_esc = sample_esc.replace('^', '\\^')
+                if re.match('^' + sample_esc, line_cur_to_end):
+                    point_tmp = point_cur + '+' + str(len(sample)) + 'c'
+                    self.txt.delete(point_cur, point_tmp)
+                    self.txt.insert('insert', FONT_DECORATOR_SAMPLE[i + 1])
+                    self.txt.mark_set('insert', point_cur)
+                    return 'break'
+            else:
+                self.txt.insert('insert', FONT_DECORATOR_SAMPLE[0])
+                self.txt.mark_set('insert', point_cur)
+                return 'break'
+
+    # SAMPLE
+
+    def insert_basis(self):
+        document = \
+            '# 基本\n'
+        self.insert_sample(document)
+
+    def insert_law(self):
+        document = \
+            '# 民法\n'
+        self.insert_sample(document)
+
+    def insert_petition(self):
+        document = \
+            '' + \
+            '' + \
+            '# 訴状\n' + \
+            '' + \
+            '' + \
+            '' + \
+            '' + \
+            '' + \
+            '' + \
+            '' + \
+            '' + \
+            '' + \
+            ''
+        self.insert_sample(document)
+
+    def insert_evidence(self):
+        document = \
+            '# 証拠説明書\n'
+        self.insert_sample(document)
+
+    def insert_settlement(self):
+        document = \
+            '# 和解契約書\n'
+        self.insert_sample(document)
+
+    def insert_sample(self, sample_document):
+        current_document = self.txt.get('1.0', 'end-1c')
+        if current_document != '':
+            return
+        self.txt.insert('1.0', sample_document)
 
 
 if __name__ == '__main__':
-    Makdo()
+
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description='Markdownファイルを編集します',
+        add_help=False)
+    parser.add_argument(
+        '-h', '--help',
+        action='help',
+        help='ヘルプメッセージを表示します')
+    parser.add_argument(
+        '-v', '--version',
+        action='version',
+        version=('%(prog)s ' + __version__),
+        help='バージョン番号を表示します')
+    parser.add_argument(
+        '-c', '--paint-keywords',
+        action='store_true',
+        help='キーワードに色を付けます')
+    parser.add_argument(
+        '-r', '--read-only',
+        action='store_true',
+        help='読み取り専用で開きます')
+    parser.add_argument(
+        '-b', '--make-backup-file',
+        action='store_true',
+        help='バックアップファイルを残します')
+    parser.add_argument(
+        'input_file',
+        nargs='?',
+        help='Markdownファイル or MS Wordファイル')
+    args = parser.parse_args()
+
+    MakdoEditor(args)
