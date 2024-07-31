@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.31-09:44:45-JST>
+# Time-stamp:   <2024.07.31-14:04:08-JST>
 
 # makdo_gui.py
 # Copyright (C) 2024-2024  Seiichiro HATA
@@ -54,6 +54,8 @@ __version__ = 'v07 Furuichibashi'
 WINDOW_SIZE = '900x900'
 GOTHIC_FONT = 'ＭＳ ゴシック'
 MINCHO_FONT = 'ＭＳ 明朝'
+# GOTHIC_FONT = 'BIZ UDゴシック'
+# MINCHO_FONT = 'BIZ UD明朝 Medium'
 NOT_ESCAPED = '^((?:(?:.|\n)*?[^\\\\])??(?:\\\\\\\\)*?)??'
 
 WHITE_SPACE = ('#C0C000', '#FFFFFF', '#F7F700')
