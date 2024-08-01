@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.01-10:05:13-JST>
+# Time-stamp:   <2024.08.02-08:04:07-JST>
 
 # makdo_gui.py
 # Copyright (C) 2024-2024  Seiichiro HATA
@@ -816,13 +816,13 @@ class Makdo:
                              accelerator='Ctrl+Y')
         self.mc2.add_separator()
         self.mc2.add_command(label='切り取り',
-                             command=self.cut,
+                             command=self.cut_text,
                              accelerator='Ctrl+X')
         self.mc2.add_command(label='コピー',
-                             command=self.copy,
+                             command=self.copy_text,
                              accelerator='Ctrl+C')
         self.mc2.add_command(label='貼り付け',
-                             command=self.paste,
+                             command=self.paste_text,
                              accelerator='CTrl+V')
         self.mc2.add_separator()
         self.mc2.add_command(label='計算',
@@ -885,10 +885,13 @@ class Makdo:
         self.win['menu'] = self.mnb
         # TEXT
         self.txt.pack(expand=True, fill=tkinter.BOTH)
-        self.txt.bind('<KeyPress>', self.process_key_press)
+        self.txt.bind('<Key>', self.process_key_press)
         self.txt.bind('<Key-Tab>', self.process_key_tab)
         self.txt.bind('<KeyRelease>', self.process_key_release)
         self.txt.bind('<ButtonRelease-1>', self.process_button1_release)
+        self.txt.bind('<ButtonRelease-2>', self.process_button2_release)
+        self.txt.bind('<Button-3>', self.process_button3)
+        self.bt3_make_menu()
         self.txt.config(bg='black', fg='white')
         self.txt.config(insertbackground='#FF7777', blockcursor=True)  # CURSOR
         # SCROLL BAR
@@ -1200,7 +1203,7 @@ class Makdo:
 
     # EDIT
 
-    def cut(self):
+    def cut_text(self):
         if self.txt.tag_ranges('sel'):
             c = self.txt.get('sel.first', 'sel.last')
             self.win.clipboard_clear()
@@ -1208,14 +1211,14 @@ class Makdo:
             self.txt.delete('sel.first', 'sel.last')  # delete
         return
 
-    def copy(self):
+    def copy_text(self):
         if self.txt.tag_ranges('sel'):
             c = self.txt.get('sel.first', 'sel.last')
             self.win.clipboard_clear()
             self.win.clipboard_append(c)
         return
 
-    def paste(self):
+    def paste_text(self):
         try:
             c = self.win.clipboard_get()
             self.txt.insert('insert', c)
@@ -1700,7 +1703,7 @@ class Makdo:
             self.save_file()
         elif key.keysym == 'Delete':
             if self.txt.tag_ranges('sel'):
-                self.cut()
+                self.cut_text()
             else:
                 pos = self.txt.index('insert')
                 end = re.sub('\\..*$', '.end', pos)
@@ -1721,9 +1724,6 @@ class Makdo:
             self.txt.tag_remove('akauni_tag', '1.0', 'end')
             self.txt.tag_add('akauni_tag', 'akauni', 'insert')
             self.txt.tag_add('akauni_tag', 'insert', 'akauni')
-        self.set_current_position()
-
-    def process_button1_release(self, click):
         self.set_current_position()
 
     def process_key_tab(self, key):
@@ -1770,6 +1770,23 @@ class Makdo:
                 self.txt.insert('insert', FONT_DECORATOR_SAMPLE[0])
                 self.txt.mark_set('insert', point_cur)
                 return 'break'
+
+    def process_button1_release(self, click):
+        self.bt3.destroy()
+        self.set_current_position()
+
+    def process_button2_release(self, click):
+        self.paste_text()
+
+    def process_button3(self, click):
+        self.bt3_make_menu()
+        self.bt3.post(click.x_root, click.y_root)
+
+    def bt3_make_menu(self):
+        self.bt3 = tkinter.Menu(self.win, tearoff=False)
+        self.bt3.add_command(label='切り取り', command=self.cut_text)
+        self.bt3.add_command(label='コピー', command=self.copy_text)
+        self.bt3.add_command(label='貼り付け', command=self.paste_text)
 
     # SAMPLE
 
