@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.31-17:02:46-JST>
+# Time-stamp:   <2024.08.01-10:05:13-JST>
 
 # makdo_gui.py
 # Copyright (C) 2024-2024  Seiichiro HATA
@@ -1645,9 +1645,17 @@ class Makdo:
             if self.akauni_history[-2] == 'F19':
                 self.quit_makdo()
                 return 'break'
-            else:
-                if 'akauni' in self.txt.mark_names():
-                    self.txt.tag_remove('akauni_tag', '1.0', 'end')
+            elif 'akauni' in self.txt.mark_names():
+                self.txt.tag_remove('akauni_tag', '1.0', 'end')
+                akn = self.txt.index('akauni')
+                pos = self.txt.index('insert')
+                beg = re.sub('\\..*$', '.0', akn)
+                if akn == pos and akn != beg:
+                    c = self.txt.get(beg, akn)
+                    self.win.clipboard_clear()
+                    self.win.clipboard_append(c)
+                    self.txt.delete(beg, akn)
+                else:
                     c = ''
                     c += self.txt.get('akauni', 'insert')
                     c += self.txt.get('insert', 'akauni')
@@ -1655,14 +1663,8 @@ class Makdo:
                     self.win.clipboard_append(c)
                     self.txt.delete('akauni', 'insert')
                     self.txt.delete('insert', 'akauni')
-                    self.txt.mark_unset('akauni')
-                    return 'break'
-                elif self.txt.tag_ranges('sel'):
-                    c = self.txt.get('sel.first', 'sel.last')
-                    self.win.clipboard_clear()
-                    self.win.clipboard_append(c)
-                    self.txt.delete('sel.first', 'sel.last')
-                    return 'break'
+                self.txt.mark_unset('akauni')
+                return 'break'
         elif key.keysym == 'F14':            # v (quit)
             if 'akauni' in self.txt.mark_names():
                 self.txt.tag_remove('akauni_tag', '1.0', 'end')
@@ -1696,6 +1698,21 @@ class Makdo:
             self.quit_makdo()
         elif key.char == '\x13':  # ctrl-s
             self.save_file()
+        elif key.keysym == 'Delete':
+            if self.txt.tag_ranges('sel'):
+                self.cut()
+            else:
+                pos = self.txt.index('insert')
+                end = re.sub('\\..*$', '.end', pos)
+                c = self.txt.get(pos, end)
+                if self.akauni_history[-2] != 'Delete':
+                    self.win.clipboard_clear()
+                if c == '':
+                    self.win.clipboard_append('\n')
+                    self.txt.delete(pos, end)
+                else:
+                    self.win.clipboard_append(c)
+                    self.txt.delete(pos, end + '-1c')
         self.set_current_position()
 
     def process_key_release(self, key):
