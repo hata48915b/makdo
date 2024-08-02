@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.02-08:04:07-JST>
+# Time-stamp:   <2024.08.03-08:32:25-JST>
 
 # makdo_gui.py
 # Copyright (C) 2024-2024  Seiichiro HATA
@@ -41,6 +41,7 @@ import re
 import tkinter
 import tkinter.filedialog
 import tkinter.messagebox
+# import tkinter.font
 from tkinterdnd2 import TkinterDnD, DND_FILES
 import zipfile
 import tempfile
@@ -54,8 +55,12 @@ __version__ = 'v07 Furuichibashi'
 WINDOW_SIZE = '900x900'
 GOTHIC_FONT = 'ＭＳ ゴシック'
 MINCHO_FONT = 'ＭＳ 明朝'
+# GOTHIC_FONT = 'IPAゴシック'
+# MINCHO_FONT = 'IPA明朝'
 # GOTHIC_FONT = 'BIZ UDゴシック'
 # MINCHO_FONT = 'BIZ UD明朝 Medium'
+# GOTHIC_FONT = 'Noto Sans Mono CJK JP'
+# MINCHO_FONT = 'Noto Serif CJK JP'
 NOT_ESCAPED = '^((?:(?:.|\n)*?[^\\\\])??(?:\\\\\\\\)*?)??'
 
 WHITE_SPACE = ('#C0C000', '#FFFFFF', '#F7F700')
@@ -329,8 +334,8 @@ class CharsState:
         # UNDERLINE
         if chars == 'font decorator':
             key += '-x'  # no underline
-        elif not self.is_in_comment and \
-           (chars == ' ' or chars == '\t' or chars == '\u3000'):
+        elif (not self.is_in_comment and
+              (chars == ' ' or chars == '\t' or chars == '\u3000')):
             key += '-u'  # underline
         elif not self.is_in_comment and self.has_underline:
             key += '-u'  # underline
@@ -637,7 +642,7 @@ class LineDatum:
                 tmp = ''                                                # 5.tmp
                 beg = end                                               # 6.beg
                 continue
-            if re.match('[０-９]', c):
+            if re.match('[０-９零一二三四五六七八九]', c):
                 key = chars_state.get_key('')                           # 1.key
                 end = str(i + 1) + '.' + str(j)                         # 2.end
                 txt.tag_add(key, beg, end)                              # 3.tag
@@ -651,15 +656,6 @@ class LineDatum:
                 tmp = ''                                                # 5.tmp
                 beg = end                                               # 6.beg
                 continue
-            # if c == '十' or c == '百' or c == '千' or \
-            #    c == '万' or c == '億' or c == '兆' or c == '京':
-            #     if re.match('^[0-9０-９]$', c2) and tmp == c:
-            #         key = chars_state.get_key('number')               # 1.key
-            #         end = str(i + 1) + '.' + str(j + 1)               # 2.end
-            #         txt.tag_add(key, beg, end)                        # 3.tag
-            #         #                                                 # 4.set
-            #         tmp = ''                                          # 5.tmp
-            #         beg = end                                         # 6.beg
             # ERROR ("★")
             if c == '★':
                 key = chars_state.get_key('')                           # 1.key
@@ -675,13 +671,21 @@ class LineDatum:
                 tmp = ''                                                # 5.tmp
                 beg = end                                               # 6.beg
                 continue
-            # MINCHO ("ー")
-            if c == '\u30FC':
+            # MINCHO
+            # 002D "-" HYPHEN-MINUS
+            # 2010 "‐" HYPHEN
+            # 2014 "—" EM DASH
+            # 2015 "―" HORIZONTAL BAR
+            # 2212 "−" MINUS SIGN
+            # 30FC "ー" KATAKANA-HIRAGANA PROLONGED SOUND MARK
+            # FF0D "－" FULLWIDTH HYPHEN-MINUS
+            if c == '\u2010' or c == '\u2014' or \
+               c == '\u2212' or c == '\u30FC':
                 key = chars_state.get_key('')                           # 1.key
                 end = str(i + 1) + '.' + str(j)                         # 2.end
                 txt.tag_add(key, beg, end)                              # 3.tag
                 #                                                       # 4.set
-                # tmp = '\u30FC'                                        # 5.tmp
+                # tmp = c                                               # 5.tmp
                 beg = end                                               # 6.beg
                 key = chars_state.get_key('\u30FC')                     # 1.key
                 end = str(i + 1) + '.' + str(j + 1)                     # 2.end
@@ -891,7 +895,6 @@ class Makdo:
         self.txt.bind('<ButtonRelease-1>', self.process_button1_release)
         self.txt.bind('<ButtonRelease-2>', self.process_button2_release)
         self.txt.bind('<Button-3>', self.process_button3)
-        self.bt3_make_menu()
         self.txt.config(bg='black', fg='white')
         self.txt.config(insertbackground='#FF7777', blockcursor=True)  # CURSOR
         # SCROLL BAR
@@ -929,16 +932,16 @@ class Makdo:
         self.stb_spc3.pack(side=tkinter.LEFT)
         self.stb_msg1 = tkinter.Label(self.stb, text='')
         self.stb_msg1.pack(side=tkinter.LEFT)
-        # FONT SIZE
+        # FONT
+        # tkinter.font.families()
         self.set_size_m()
-        # OPEN FILE
-        if args.input_file is not None:
-            self.just_open_file(args.input_file)
-        # MAKE TAG
         self.txt.tag_config('error_tag', foreground='#FF0000')
         self.txt.tag_config('search_tag', background='#777777')
         self.txt.tag_config('akauni_tag', background='#777777')
         self.txt.tag_config('tab_tag', background='#5280FF')  # (0.5, 225, max)
+        # OPEN FILE
+        if args.input_file is not None:
+            self.just_open_file(args.input_file)
         # LOOP
         self.txt.focus_set()
         self.run_periodically()
@@ -1182,7 +1185,7 @@ class Makdo:
                     n = 'エラー'
                     tkinter.messagebox.showerror(n, msg)
                     return
-            self.stb_msg1['text'] = '保存しました'
+            self.set_message('保存しました')
             self.init_text = file_text
             return True
 
@@ -1376,6 +1379,63 @@ class Makdo:
         self.win.clipboard_clear()
         self.win.clipboard_append(r)
 
+    # STATUS BAR
+
+    def search_or_replace_backward(self):
+        word1 = self.stb_sor1.get()
+        word2 = self.stb_sor2.get()
+        if Makdo.search_word != word1:
+            Makdo.search_word = word1
+            self._highlight_search_word()
+        pos = self.txt.index('insert')
+        tex = self.txt.get('1.0', pos)
+        res = '^((?:.|\n)*)(' + word1 + '(?:.|\n)*)$'
+        if re.match(res, tex):
+            t1 = re.sub(res, '\\1', tex)
+            t2 = re.sub(res, '\\2', tex)
+            # SEARCH
+            self.txt.mark_set('insert', pos + '-' + str(len(t2)) + 'c')
+            self.txt.yview(pos + '-' + str(len(t2)) + 'c')
+            if word2 != '' and word2 != '（置換語）':
+                # REPLACE
+                self.txt.delete('insert', 'insert+' + str(len(word1)) + 'c')
+                self.txt.insert('insert', word2)
+                # self.stb_msg1['text'] = '置換しました'
+        self.set_message('')
+        self.txt.focus_set()
+
+    def search_or_replace_forward(self):
+        word1 = self.stb_sor1.get()
+        word2 = self.stb_sor2.get()
+        if Makdo.search_word != word1:
+            Makdo.search_word = word1
+            self._highlight_search_word()
+        pos = self.txt.index('insert')
+        tex = self.txt.get(pos, 'end-1c')
+        res = '^((?:.|\n)*?' + word1 + ')((?:.|\n)*)$'
+        if re.match(res, tex):
+            t1 = re.sub(res, '\\1', tex)
+            t2 = re.sub(res, '\\2', tex)
+            # SEARCH
+            self.txt.mark_set('insert', pos + '+' + str(len(t1)) + 'c')
+            self.txt.yview(pos + '+' + str(len(t1)) + 'c')
+            if word2 != '' and word2 != '（置換語）':
+                # REPLACE
+                self.txt.delete('insert-' + str(len(word1)) + 'c', 'insert')
+                self.txt.insert('insert', word2)
+                # self.stb_msg1['text'] = '置換しました'
+        self.set_message('')
+        self.txt.focus_set()
+
+    def clear_search_word(self):
+        self.stb_sor1.delete('0', 'end')
+        self.stb_sor2.delete('0', 'end')
+        self.txt.tag_remove('search_tag', '1.0', 'end')
+        Makdo.search_word = ''
+
+    def set_message(self, msg):
+        self.stb_msg1['text'] = msg
+
     # FONT SIZE
 
     def set_size_ss(self):
@@ -1524,50 +1584,6 @@ class Makdo:
     def __get_end_position(i, j, k):
         return s1, s2, ''
 
-    def search_or_replace_backward(self):
-        word1 = self.stb_sor1.get()
-        word2 = self.stb_sor2.get()
-        if Makdo.search_word != word1:
-            Makdo.search_word = word1
-            self._highlight_search_word()
-        pos = self.txt.index('insert')
-        tex = self.txt.get('1.0', pos)
-        res = '^((?:.|\n)*)(' + word1 + '(?:.|\n)*)$'
-        if re.match(res, tex):
-            t1 = re.sub(res, '\\1', tex)
-            t2 = re.sub(res, '\\2', tex)
-            # SEARCH
-            self.txt.mark_set('insert', pos + '-' + str(len(t2)) + 'c')
-            self.txt.yview(pos + '-' + str(len(t2)) + 'c')
-            if word2 != '' and word2 != '（置換語）':
-                # REPLACE
-                self.txt.delete('insert', 'insert+' + str(len(word1)) + 'c')
-                self.txt.insert('insert', word2)
-                # self.stb_msg1['text'] = '置換しました'
-        self.txt.focus_set()
-
-    def search_or_replace_forward(self):
-        word1 = self.stb_sor1.get()
-        word2 = self.stb_sor2.get()
-        if Makdo.search_word != word1:
-            Makdo.search_word = word1
-            self._highlight_search_word()
-        pos = self.txt.index('insert')
-        tex = self.txt.get(pos, 'end-1c')
-        res = '^((?:.|\n)*?' + word1 + ')((?:.|\n)*)$'
-        if re.match(res, tex):
-            t1 = re.sub(res, '\\1', tex)
-            t2 = re.sub(res, '\\2', tex)
-            # SEARCH
-            self.txt.mark_set('insert', pos + '+' + str(len(t1)) + 'c')
-            self.txt.yview(pos + '+' + str(len(t1)) + 'c')
-            if word2 != '' and word2 != '（置換語）':
-                # REPLACE
-                self.txt.delete('insert-' + str(len(word1)) + 'c', 'insert')
-                self.txt.insert('insert', word2)
-                # self.stb_msg1['text'] = '置換しました'
-        self.txt.focus_set()
-
     def _highlight_search_word(self):
         word = Makdo.search_word
         tex = self.txt.get('1.0', 'end-1c')
@@ -1582,12 +1598,6 @@ class Makdo:
                              '1.0+' + str(beg) + 'c',
                              '1.0+' + str(end) + 'c',)
             beg = end
-
-    def clear_search_word(self):
-        self.stb_sor1.delete('0', 'end')
-        self.stb_sor2.delete('0', 'end')
-        self.txt.tag_remove('search_tag', '1.0', 'end')
-        Makdo.search_word = ''
 
     def set_current_position(self):
         pos = self.txt.index('insert')
@@ -1772,21 +1782,29 @@ class Makdo:
                 return 'break'
 
     def process_button1_release(self, click):
-        self.bt3.destroy()
+        try:
+            self.bt3.destroy()
+        except BaseException:
+            pass
         self.set_current_position()
 
     def process_button2_release(self, click):
+        try:
+            self.bt3.destroy()
+        except BaseException:
+            pass
         self.paste_text()
 
     def process_button3(self, click):
-        self.bt3_make_menu()
-        self.bt3.post(click.x_root, click.y_root)
-
-    def bt3_make_menu(self):
+        try:
+            self.bt3.destroy()
+        except BaseException:
+            pass
         self.bt3 = tkinter.Menu(self.win, tearoff=False)
         self.bt3.add_command(label='切り取り', command=self.cut_text)
         self.bt3.add_command(label='コピー', command=self.copy_text)
         self.bt3.add_command(label='貼り付け', command=self.paste_text)
+        self.bt3.post(click.x_root, click.y_root)
 
     # SAMPLE
 
