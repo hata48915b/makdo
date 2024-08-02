@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.03-08:32:25-JST>
+# Time-stamp:   <2024.08.03-08:48:32-JST>
 
 # makdo_gui.py
 # Copyright (C) 2024-2024  Seiichiro HATA
@@ -327,7 +327,7 @@ class CharsState:
         else:
             key += '-50'
         # FONT
-        if chars == 'ー':
+        if chars == 'mincho':
             key += '-m'  # mincho
         else:
             key += '-g'  # gothic
@@ -642,7 +642,7 @@ class LineDatum:
                 tmp = ''                                                # 5.tmp
                 beg = end                                               # 6.beg
                 continue
-            if re.match('[０-９零一二三四五六七八九]', c):
+            if re.match('[０-９零一二三四五六七八九十]', c):
                 key = chars_state.get_key('')                           # 1.key
                 end = str(i + 1) + '.' + str(j)                         # 2.end
                 txt.tag_add(key, beg, end)                              # 3.tag
@@ -687,7 +687,7 @@ class LineDatum:
                 #                                                       # 4.set
                 # tmp = c                                               # 5.tmp
                 beg = end                                               # 6.beg
-                key = chars_state.get_key('\u30FC')                     # 1.key
+                key = chars_state.get_key('mincho')                     # 1.key
                 end = str(i + 1) + '.' + str(j + 1)                     # 2.end
                 txt.tag_add(key, beg, end)                              # 3.tag
                 #                                                       # 4.set
