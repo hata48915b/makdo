@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.04-06:29:23-JST>
+# Time-stamp:   <2024.08.04-08:39:51-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -3619,28 +3619,14 @@ class Document:
     @staticmethod
     def __get_datetime(datetime_str):
         # TIMEZONE IS NOT SUPPORTED (UTC ONLY)
-        # X jst = datetime.timezone(datetime.timedelta(hours=+9))
         # X datetime_cls = datetime.datetime.now(jst)
-        y, m, d, h, n, s, t = -1, -1, -1, -1, -1, -1, '+00:00'
         utc = datetime.timezone.utc
-        dlt = datetime.timedelta(hours=0, minutes=0)
-        res = '^([0-9]+)-([0-9]+)-([0-9]+)T([0-9]+):([0-9]+):([0-9]+)(.*)$'
-        if re.match(res, datetime_str):
-            y = int(re.sub(res, '\\1', datetime_str))
-            m = int(re.sub(res, '\\2', datetime_str))
-            d = int(re.sub(res, '\\3', datetime_str))
-            h = int(re.sub(res, '\\4', datetime_str))
-            n = int(re.sub(res, '\\5', datetime_str))
-            s = int(re.sub(res, '\\6', datetime_str))
-            t = re.sub(res, '\\7', datetime_str)
-        res = '^([\\-\\+][0-9]+):([0-9]+)$'
-        if re.match(res, t):
-            th = int(re.sub(res, '\\1', t))
-            tm = int(re.sub(res, '\\2', t))
-            dlt = datetime.timedelta(hours=th, minutes=tm)
+        jst = datetime.timezone(datetime.timedelta(hours=+9))
         try:
-            datetime_cls = datetime.datetime(y, m, d, h, n, s, tzinfo=utc)
-            datetime_cls -= dlt
+            datetime_cls = datetime.datetime.fromisoformat(datetime_str)
+            if datetime_cls.tzinfo is None:
+                datetime_cls = datetime_cls.replace(tzinfo=jst)
+            datetime_cls = datetime_cls.astimezone(utc)
         except:
             datetime_cls = datetime.datetime.utcnow()
             datetime_cls = datetime_cls.replace(tzinfo=utc)

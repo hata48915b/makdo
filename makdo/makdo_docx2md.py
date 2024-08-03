@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.04-06:49:10-JST>
+# Time-stamp:   <2024.08.04-08:46:06-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1517,7 +1517,7 @@ class Form:
     content_status = DEFAULT_CONTENT_STATUS
     has_completed = DEFAULT_HAS_COMPLETED
     created_time = ''
-    time_stamp = ''
+    modified_time = ''
 
     styles = None
     rels = None
@@ -1716,23 +1716,19 @@ class Form:
             rese = '^</dcterms:created>$'
             if i > 0 and re.match(resb, xml_lines[i - 1], re.I):
                 if not re.match(rese, xl, re.I):
+                    jst = datetime.timezone(datetime.timedelta(hours=+9))
                     dt = datetime.datetime.strptime(xl, '%Y-%m-%dT%H:%M:%S%z')
-                    if dt.tzname() == 'UTC':
-                        dt += datetime.timedelta(hours=9)
-                        jst = datetime.timezone(datetime.timedelta(hours=9))
-                        dt = dt.replace(tzinfo=jst)
-                    Form.created_time = dt.strftime('%Y-%m-%dT%H:%M:%S+09:00')
+                    dt = dt.astimezone(jst)
+                    Form.created_time = dt.isoformat()
             # MODIFIED TIME
             resb = '^<dcterms:modified( .*)?>$'
             rese = '^</dcterms:modified>$'
             if i > 0 and re.match(resb, xml_lines[i - 1], re.I):
                 if not re.match(rese, xl, re.I):
+                    jst = datetime.timezone(datetime.timedelta(hours=+9))
                     dt = datetime.datetime.strptime(xl, '%Y-%m-%dT%H:%M:%S%z')
-                    if dt.tzname() == 'UTC':
-                        dt += datetime.timedelta(hours=9)
-                        jst = datetime.timezone(datetime.timedelta(hours=9))
-                        dt = dt.replace(tzinfo=jst)
-                    Form.modified_time = dt.strftime('%Y-%m-%dT%H:%M:%S+09:00')
+                    dt = dt.astimezone(jst)
+                    Form.modified_time = dt.isoformat()
 
     def _configure_by_styles_xml(self, xml_lines):
         # DEFAULT
