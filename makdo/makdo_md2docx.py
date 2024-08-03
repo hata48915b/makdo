@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.31-09:35:23-JST>
+# Time-stamp:   <2024.08.04-06:29:23-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1461,7 +1461,8 @@ class Form:
     version_number = DEFAULT_VERSION_NUMBER
     content_status = DEFAULT_CONTENT_STATUS
     has_completed = DEFAULT_HAS_COMPLETED
-    original_file = ''
+    created_time = ''
+    modified_time = ''
 
     def __init__(self):
         # DECLARE
@@ -1569,8 +1570,10 @@ class Form:
                 Form.set_content_status(val, nam)
             elif nam == 'has_completed' or nam == '完成稿':
                 Form.set_has_completed(val, nam)
-            elif nam == 'original_file' or nam == '元原稿':
-                Form.set_original_file(val, nam)
+            elif nam == 'created_time' or nam == '作成時':
+                Form.set_created_time(val, nam)
+            elif nam == 'modified_time' or nam == '更新時':
+                Form.set_modified_time(val, nam)
             else:
                 msg = '※ 警告: ' \
                     + '「' + nam + '」という設定項目は存在しません'
@@ -1904,10 +1907,17 @@ class Form:
         sys.stderr.write(msg + '\n\n')
 
     @staticmethod
-    def set_original_file(value, item='original_file'):
+    def set_created_time(value, item='created_time'):
         if value is None:
             return False
-        Form.original_file = value
+        Form.created_time = value
+        return True
+
+    @staticmethod
+    def set_modified_time(value, item='modified_time'):
+        if value is None:
+            return False
+        Form.modified_time = value
         return True
 
 
@@ -3564,20 +3574,15 @@ class Document:
         elif Form.document_style == 'j':
             ct = '（条文）'
         at = hu + '@' + hh + ' (makdo ' + __version__ + ')'
-        dt = datetime.datetime.utcnow()
-        # utc = datetime.timezone.utc
-        # pt = datetime.datetime(1970, 1, 1, 0, 0, 0, tzinfo=utc)
-        # TIMEZONE IS NOT SUPPORTED
-        # jst = datetime.timezone(datetime.timedelta(hours=9))
-        # dt = datetime.datetime.now(jst)
-        # pt = datetime.datetime(1970, 1, 1, 9, 0, 0, tzinfo=jst)
+        ct = self.__get_datetime(Form.created_time)
+        mt = self.__get_datetime(Form.modified_time)
         vn = Form.version_number
         cs = Form.content_status
         ms_cp = ms_doc.core_properties
         ms_cp.identifier \
             = 'makdo(' + __version__.split()[0] + ');' \
             + hu + '@' + hh + ';' \
-            + dt.strftime('%Y-%m-%dT%H:%M:%SZ')
+            + datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
         ms_cp.title = tt               # タイトル
         # ms_cp.subject = ''           # 件名
         # ms_cp.keywords = ''          # タグ
@@ -3587,8 +3592,8 @@ class Document:
         # ms_cp.last_modified_by = ''  # 前回保存者
         ms_cp.version = vn             # バージョン番号
         # ms_cp.revision = 1           # 改訂番号
-        ms_cp.created = dt             # コンテンツの作成日時
-        ms_cp.modified = dt            # 前回保存時
+        ms_cp.created = ct             # コンテンツの作成日時
+        ms_cp.modified = mt            # 前回保存時
         # ms_cp.last_printed = pt      # 前回印刷日
         ms_cp.content_status = cs      # 内容の状態
         # ms_cp.language = ''          # 言語
@@ -3610,6 +3615,36 @@ class Document:
             hs += chr(x % 26 + 97)
             x = int(x / 26)
         return hs
+
+    @staticmethod
+    def __get_datetime(datetime_str):
+        # TIMEZONE IS NOT SUPPORTED (UTC ONLY)
+        # X jst = datetime.timezone(datetime.timedelta(hours=+9))
+        # X datetime_cls = datetime.datetime.now(jst)
+        y, m, d, h, n, s, t = -1, -1, -1, -1, -1, -1, '+00:00'
+        utc = datetime.timezone.utc
+        dlt = datetime.timedelta(hours=0, minutes=0)
+        res = '^([0-9]+)-([0-9]+)-([0-9]+)T([0-9]+):([0-9]+):([0-9]+)(.*)$'
+        if re.match(res, datetime_str):
+            y = int(re.sub(res, '\\1', datetime_str))
+            m = int(re.sub(res, '\\2', datetime_str))
+            d = int(re.sub(res, '\\3', datetime_str))
+            h = int(re.sub(res, '\\4', datetime_str))
+            n = int(re.sub(res, '\\5', datetime_str))
+            s = int(re.sub(res, '\\6', datetime_str))
+            t = re.sub(res, '\\7', datetime_str)
+        res = '^([\\-\\+][0-9]+):([0-9]+)$'
+        if re.match(res, t):
+            th = int(re.sub(res, '\\1', t))
+            tm = int(re.sub(res, '\\2', t))
+            dlt = datetime.timedelta(hours=th, minutes=tm)
+        try:
+            datetime_cls = datetime.datetime(y, m, d, h, n, s, tzinfo=utc)
+            datetime_cls -= dlt
+        except:
+            datetime_cls = datetime.datetime.utcnow()
+            datetime_cls = datetime_cls.replace(tzinfo=utc)
+        return datetime_cls
 
     def write_document(self, ms_doc):
         for p in self.paragraphs:

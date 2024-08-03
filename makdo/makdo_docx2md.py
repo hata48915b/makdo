@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.07.31-09:36:53-JST>
+# Time-stamp:   <2024.08.04-06:49:10-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1516,7 +1516,8 @@ class Form:
     version_number = DEFAULT_VERSION_NUMBER
     content_status = DEFAULT_CONTENT_STATUS
     has_completed = DEFAULT_HAS_COMPLETED
-    original_file = ''
+    created_time = ''
+    time_stamp = ''
 
     styles = None
     rels = None
@@ -1541,7 +1542,7 @@ class Form:
         # PAPER SIZE, MARGIN, LINE NUMBER, DOCUMENT STYLE
         self._configure_by_document_xml(self.document_xml_lines)
         # DOCUMENT TITLE, DOCUMENT STYLE, VERSION NUMBER, CONTENT STATUS,
-        # ORIGINAL FILE
+        # CREATED TIME, MODIFIED TIME
         self._configure_by_core_xml(self.core_xml_lines)
         # FONT, LINE SPACING, AUTO SPACE, SAPCE BEFORE AND AFTER
         self._configure_by_styles_xml(self.styles_xml_lines)
@@ -1710,7 +1711,18 @@ class Form:
             if i > 0 and re.match(resb, xml_lines[i - 1], re.I):
                 if not re.match(rese, xl, re.I):
                     Form.content_status = xl
-            # ORIGINAL FILE
+            # CREATED TIME
+            resb = '^<dcterms:created( .*)?>$'
+            rese = '^</dcterms:created>$'
+            if i > 0 and re.match(resb, xml_lines[i - 1], re.I):
+                if not re.match(rese, xl, re.I):
+                    dt = datetime.datetime.strptime(xl, '%Y-%m-%dT%H:%M:%S%z')
+                    if dt.tzname() == 'UTC':
+                        dt += datetime.timedelta(hours=9)
+                        jst = datetime.timezone(datetime.timedelta(hours=9))
+                        dt = dt.replace(tzinfo=jst)
+                    Form.created_time = dt.strftime('%Y-%m-%dT%H:%M:%S+09:00')
+            # MODIFIED TIME
             resb = '^<dcterms:modified( .*)?>$'
             rese = '^</dcterms:modified>$'
             if i > 0 and re.match(resb, xml_lines[i - 1], re.I):
@@ -1720,8 +1732,7 @@ class Form:
                         dt += datetime.timedelta(hours=9)
                         jst = datetime.timezone(datetime.timedelta(hours=9))
                         dt = dt.replace(tzinfo=jst)
-                    Form.original_file \
-                        = dt.strftime('%Y-%m-%dT%H:%M:%S+09:00')
+                    Form.modified_time = dt.strftime('%Y-%m-%dT%H:%M:%S+09:00')
 
     def _configure_by_styles_xml(self, xml_lines):
         # DEFAULT
@@ -2240,7 +2251,8 @@ class Form:
         cfgs += 'version_number: ' + cls.version_number + '\n'
         cfgs += 'content_status: ' + cls.content_status + '\n'
         cfgs += 'has_completed:  ' + str(cls.has_completed) + '\n'
-        cfgs += 'original_file:  ' + cls.original_file + '\n'
+        cfgs += 'created_time:   ' + cls.created_time + '\n'
+        cfgs += 'modified_time:  ' + cls.modified_time + '\n'
         cfgs += \
             '---------------------------------------------------------------->'
         cfgs += '\n'
@@ -2389,9 +2401,10 @@ class Form:
         cfgs += '\n'
 
         cfgs += \
-            '# 変換元のWordファイルの最終更新日時が自動で指定されます。'
+            '# 原稿の作成日時と更新日時が自動で記録されます。'
         cfgs += '\n'
-        cfgs += '元原稿: ' + cls.original_file + '\n'
+        cfgs += '作成時: ' + cls.created_time + '\n'
+        cfgs += '更新時: ' + cls.modified_time + '\n'
         cfgs += '\n'
 
         cfgs += \
