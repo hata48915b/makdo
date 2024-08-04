@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.04-09:30:44-JST>
+# Time-stamp:   <2024.08.04-11:00:36-JST>
 
 # makdo_gui.py
 # Copyright (C) 2024-2024  Seiichiro HATA
@@ -1781,7 +1781,7 @@ class Makdo:
         res_open = '^((?:.|\n)*)(<!--(?:.|\n)*)'
         res_close = '^((?:.|\n)*)(-->(?:.|\n)*)'
         if re.match(res_open, text):
-            text = re.sub(res_open, '\\1', text)
+            text = re.sub(res_open, '\\2', text)
             if not re.match(res_close, text):
                 self.calculate()
                 return 'break'
