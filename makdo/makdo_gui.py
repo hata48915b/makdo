@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.04-07:50:06-JST>
+# Time-stamp:   <2024.08.04-09:30:44-JST>
 
 # makdo_gui.py
 # Copyright (C) 2024-2024  Seiichiro HATA
@@ -1139,10 +1139,10 @@ class Makdo:
     def save_file(self):
         if self.has_edited():
             file_text = self.txt.get('1.0', 'end-1c')
+            self._stamp_time(file_text)
             if file_text == '' or file_text[-1] != '\n':
                 self.txt.insert('end', '\n')
-                file_text = self.txt.get('1.0', 'end-1c')
-            self._stamp_time(file_text)
+            file_text = self.txt.get('1.0', 'end-1c')
             if (self.file_path is None) or (self.file_path == ''):
                 typ = [('Markdown', '*.md')]
                 file_path = tkinter.filedialog.asksaveasfilename(filetypes=typ)
@@ -1209,6 +1209,10 @@ class Makdo:
                 j = len(cfg)
                 beg = str(i + 1) + '.' + str(j)
                 end = str(i + 1) + '.end'
+                res_jst = '^' + '[0-9]{4}-[0-9]{2}-[0-9]{2}' + \
+                    'T[0-9]{2}:[0-9]{2}:[0-9]{2}\\+09:00' + '$'
+                if not re.match(res_jst, val):
+                    val = ''
                 try:
                     dt = datetime.datetime.fromisoformat(val)
                 except BaseException:
