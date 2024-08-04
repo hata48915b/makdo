@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.04-11:00:36-JST>
+# Time-stamp:   <2024.08.04-12:33:50-JST>
 
 # makdo_gui.py
 # Copyright (C) 2024-2024  Seiichiro HATA
@@ -832,8 +832,23 @@ class Makdo:
                              command=self.paste_text,
                              accelerator='CTrl+V')
         self.mc2.add_separator()
-        self.mc2.add_command(label='計算',
+        self.mc2.add_command(label='計算する',
                              command=self.calculate)
+        self.mc2.add_separator()
+        self.mc2sm1 = tkinter.Menu(self.mc2, tearoff=False)
+        self.mc2sm1.add_command(label='括弧数字（⑴⑵⑶⑷⑸…）',
+                                command=self.insert_parentheses_number)
+        self.mc2sm1.add_command(label='丸数字（①②③④⑤…）',
+                                command=self.insert_circle_number)
+        self.mc2sm1.add_command(label='上付数字（⁰¹²³⁴⁵⁶⁷⁸⁹）',
+                                command=self.insert_sup_number)
+        self.mc2sm1.add_command(label='下付数字（₀₁₂₃₄₅₆₇₈₉）',
+                                command=self.insert_sub_number)
+        self.mc2sm1.add_command(label='記号（㊞）',
+                                command=self.insert_symbol)
+        self.mc2sm1.add_command(label='横棒（-‐—―−－）',
+                                command=self.insert_horizontal_bar)
+        self.mc2.add_cascade(label='記号を挿入する', menu=self.mc2sm1)
         self.mnb.add_cascade(label='編集', menu=self.mc2)
         #
         self.mc3 = tkinter.Menu(self.mnb, tearoff=False)
@@ -892,12 +907,15 @@ class Makdo:
         self.win['menu'] = self.mnb
         # TEXT
         self.txt.pack(expand=True, fill=tkinter.BOTH)
-        self.txt.bind('<Key>', self.process_key_press)
-        self.txt.bind('<Key-Tab>', self.process_key_tab)
+        self.txt.bind('<Key>', self.process_key)
         self.txt.bind('<KeyRelease>', self.process_key_release)
+        self.txt.bind('<Key-Tab>', self.process_key_tab)
+        self.txt.bind('<Button-1>', self.process_button1)
+        self.txt.bind('<Button-2>', self.process_button2)
+        self.txt.bind('<Button-3>', self.process_button3)
         self.txt.bind('<ButtonRelease-1>', self.process_button1_release)
         self.txt.bind('<ButtonRelease-2>', self.process_button2_release)
-        self.txt.bind('<Button-3>', self.process_button3)
+        self.txt.bind('<ButtonRelease-3>', self.process_button3_release)
         self.txt.config(bg='black', fg='white')
         self.txt.config(insertbackground='#FF7777', blockcursor=True)  # CURSOR
         # SCROLL BAR
@@ -1417,6 +1435,33 @@ class Makdo:
         self.win.clipboard_clear()
         self.win.clipboard_append(r)
 
+    def insert_parentheses_number(self):
+        self.txt.insert('insert',
+                        '\n<!--⑴⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀⒁⒂⒃⒄⒅⒆⒇-->\n')
+
+    def insert_circle_number(self):
+        self.txt.insert('insert',
+                        '\n<!--⓪①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳-->\n')
+
+    def insert_sup_number(self):
+        self.txt.insert('insert', '\n<!--⁰¹²³⁴⁵⁶⁷⁸⁹-->\n')
+
+    def insert_sub_number(self):
+        self.txt.insert('insert', '\n<!--₀₁₂₃₄₅₆₇₈₉-->\n')
+
+    def insert_symbol(self):
+        self.txt.insert('insert', '\n<!--㊞-->\n')
+
+    def insert_horizontal_bar(self):
+        self.txt.insert('insert', '<!--\n' +
+                        '-（002D：半角ハイフンマイナス）\n' +
+                        '‐（2010：全角ハイフン）\n' +
+                        '—（2014：全角Ｍダッシュ）\n' +
+                        '―（2015：全角水平線）\n' +
+                        '―（2212：全角マイナスサイン）\n' +
+                        '―（FF0D：全角ハイフンマイナス）\n' +
+                        '-->\n')
+
     # STATUS BAR
 
     def search_or_replace_backward(self):
@@ -1646,203 +1691,6 @@ class Makdo:
         tmp = ''
         for c in document_data + '\0':
             tmp += c
-
-    def process_key_press(self, key):
-        # FOR AKAUNI
-        self.akauni_history.append(key.keysym)
-        self.akauni_history.pop(0)
-        if key.keysym == 'F19':              # x (ctrl)
-            return 'break'
-        elif key.keysym == 'Left':
-            if 'akauni' in self.txt.mark_names():
-                self.txt.tag_remove('akauni_tag', '1.0', 'end')
-                self.txt.tag_add('akauni_tag', 'akauni', 'insert-1c')
-                self.txt.tag_add('akauni_tag', 'insert-1c', 'akauni')
-        elif key.keysym == 'Right':
-            if 'akauni' in self.txt.mark_names():
-                self.txt.tag_remove('akauni_tag', '1.0', 'end')
-                self.txt.tag_add('akauni_tag', 'akauni', 'insert+1c')
-                self.txt.tag_add('akauni_tag', 'insert+1c', 'akauni')
-        elif key.keysym == 'Up':
-            if 'akauni' in self.txt.mark_names():
-                self.txt.tag_remove('akauni_tag', '1.0', 'end')
-                self.txt.tag_add('akauni_tag', 'akauni', 'insert-1l')
-                self.txt.tag_add('akauni_tag', 'insert-1l', 'akauni')
-        elif key.keysym == 'Down':
-            if 'akauni' in self.txt.mark_names():
-                self.txt.tag_remove('akauni_tag', '1.0', 'end')
-                self.txt.tag_add('akauni_tag', 'akauni', 'insert+1l')
-                self.txt.tag_add('akauni_tag', 'insert+1l', 'akauni')
-        elif key.keysym == 'F17':            # } (, calc)
-            if self.akauni_history[-2] == 'F13':
-                self.calculate()
-                return 'break'
-        elif key.keysym == 'F21':            # w (undo)
-            self.txt.edit_undo()
-            return 'break'
-        elif key.keysym == 'XF86AudioMute':  # W (redo)
-            self.txt.edit_redo()
-            return 'break'
-        elif key.keysym == 'F22':            # f (mark, save)
-            if self.akauni_history[-2] == 'F19':
-                self.save_file()
-                return 'break'
-            else:
-                if 'akauni' in self.txt.mark_names():
-                    self.txt.mark_unset('akauni')
-                self.txt.mark_set('akauni', 'insert')
-                return 'break'
-        elif key.keysym == 'Delete':         # d (delete, quit)
-            if self.akauni_history[-2] == 'F19':
-                self.quit_makdo()
-                return 'break'
-            elif 'akauni' in self.txt.mark_names():
-                self.txt.tag_remove('akauni_tag', '1.0', 'end')
-                akn = self.txt.index('akauni')
-                pos = self.txt.index('insert')
-                beg = re.sub('\\..*$', '.0', akn)
-                if akn == pos and akn != beg:
-                    c = self.txt.get(beg, akn)
-                    self.win.clipboard_clear()
-                    self.win.clipboard_append(c)
-                    self.txt.delete(beg, akn)
-                else:
-                    c = ''
-                    c += self.txt.get('akauni', 'insert')
-                    c += self.txt.get('insert', 'akauni')
-                    self.win.clipboard_clear()
-                    self.win.clipboard_append(c)
-                    self.txt.delete('akauni', 'insert')
-                    self.txt.delete('insert', 'akauni')
-                self.txt.mark_unset('akauni')
-                return 'break'
-        elif key.keysym == 'F14':            # v (quit)
-            if 'akauni' in self.txt.mark_names():
-                self.txt.tag_remove('akauni_tag', '1.0', 'end')
-                self.txt.mark_unset('akauni')
-                return 'break'
-        elif key.keysym == 'F15':            # g (paste)
-            c = self.win.clipboard_get()
-            self.txt.insert('insert', c)
-            # self.txt.yview('insert -20 line')
-            return 'break'
-        elif key.keysym == 'F16':            # c (search forward)
-            self.search_or_replace_forward()
-            return 'break'
-        elif key.keysym == 'cent':           # cent (search backward)
-            self.search_or_replace_backward()
-            return 'break'
-        # ctrl+a '\x01' select all          # ctrl+n '\x0e' new document
-        # ctrl+b '\x02' bold                # ctrl+o '\x0f' open document
-        # ctrl+c '\x03' copy                # ctrl+p '\x10' print
-        # ctrl+d '\x04' font                # ctrl+q '\x11' quit
-        # ctrl+e '\x05' centered            # ctrl+r '\x12' right
-        # ctrl+f '\x06' search              # ctrl+s '\x13' save
-        # ctrl+g '\x07' move                # ctrl+t '\x14' hanging indent
-        # ctrl+h '\x08' replace             # ctrl+u '\x15' underline
-        # ctrl+i '\x09' italic              # ctrl+v '\x16' paste
-        # ctrl+j '\x0a' justified           # ctrl+w '\x17' close document
-        # ctrl+k '\x0b' hyper link          # ctrl+x '\x18' cut
-        # ctrl+l '\x0c' left                # ctrl+y '\x19' redo
-        # ctrl+m '\x0d' indent              # ctrl+z '\x1a' undo
-        if key.char == '\x11':    # ctrl-q
-            self.quit_makdo()
-        elif key.char == '\x13':  # ctrl-s
-            self.save_file()
-        elif key.keysym == 'Delete':
-            if self.txt.tag_ranges('sel'):
-                self.cut_text()
-            else:
-                pos = self.txt.index('insert')
-                end = re.sub('\\..*$', '.end', pos)
-                c = self.txt.get(pos, end)
-                if self.akauni_history[-2] != 'Delete':
-                    self.win.clipboard_clear()
-                if c == '':
-                    self.win.clipboard_append('\n')
-                    self.txt.delete(pos, end)
-                else:
-                    self.win.clipboard_append(c)
-                    self.txt.delete(pos, end + '-1c')
-        self.set_current_position()
-
-    def process_key_release(self, key):
-        # FOR AKAUNI
-        if 'akauni' in self.txt.mark_names():
-            self.txt.tag_remove('akauni_tag', '1.0', 'end')
-            self.txt.tag_add('akauni_tag', 'akauni', 'insert')
-            self.txt.tag_add('akauni_tag', 'insert', 'akauni')
-        self.set_current_position()
-
-    def process_key_tab(self, key):
-        # CALCULATE
-        text_beg_to_cur = self.txt.get('1.0', 'insert')
-        text = text_beg_to_cur
-        res_open = '^((?:.|\n)*)(<!--(?:.|\n)*)'
-        res_close = '^((?:.|\n)*)(-->(?:.|\n)*)'
-        if re.match(res_open, text):
-            text = re.sub(res_open, '\\2', text)
-            if not re.match(res_close, text):
-                self.calculate()
-                return 'break'
-        # INSERT
-        point_cur = self.txt.index('insert')
-        point_beg = re.sub('\\..*$', '.0', point_cur)
-        point_end = re.sub('\\..*$', '.end', point_cur)
-        line_cur_to_end = self.txt.get(point_cur, point_end)
-        line_beg_to_end = self.txt.get(point_beg, point_end)
-        if re.match('^.*\\.0$', point_cur):
-            if line_beg_to_end == '':
-                self.txt.insert('insert', PARAGRAPH_SAMPLE[0])
-                self.txt.mark_set('insert', point_beg)
-                return 'break'
-            for i, sample in enumerate(PARAGRAPH_SAMPLE):
-                if line_beg_to_end == sample:
-                    self.txt.delete(point_beg, point_end)
-                    self.txt.insert('insert', PARAGRAPH_SAMPLE[i + 1])
-                    self.txt.mark_set('insert', point_beg)
-                    return 'break'
-        else:
-            for i, sample in enumerate(FONT_DECORATOR_SAMPLE):
-                sample_esc = sample
-                sample_esc = sample_esc.replace('*', '\\*')
-                sample_esc = sample_esc.replace('+', '\\+')
-                sample_esc = sample_esc.replace('^', '\\^')
-                if re.match('^' + sample_esc, line_cur_to_end):
-                    point_tmp = point_cur + '+' + str(len(sample)) + 'c'
-                    self.txt.delete(point_cur, point_tmp)
-                    self.txt.insert('insert', FONT_DECORATOR_SAMPLE[i + 1])
-                    self.txt.mark_set('insert', point_cur)
-                    return 'break'
-            else:
-                self.txt.insert('insert', FONT_DECORATOR_SAMPLE[0])
-                self.txt.mark_set('insert', point_cur)
-                return 'break'
-
-    def process_button1_release(self, click):
-        try:
-            self.bt3.destroy()
-        except BaseException:
-            pass
-        self.set_current_position()
-
-    def process_button2_release(self, click):
-        try:
-            self.bt3.destroy()
-        except BaseException:
-            pass
-        self.paste_text()
-
-    def process_button3(self, click):
-        try:
-            self.bt3.destroy()
-        except BaseException:
-            pass
-        self.bt3 = tkinter.Menu(self.win, tearoff=False)
-        self.bt3.add_command(label='切り取り', command=self.cut_text)
-        self.bt3.add_command(label='コピー', command=self.copy_text)
-        self.bt3.add_command(label='貼り付け', command=self.paste_text)
-        self.bt3.post(click.x_root, click.y_root)
 
     # SAMPLE
 
@@ -2328,6 +2176,214 @@ v=+0.5
         if current_document != '':
             return
         self.txt.insert('1.0', sample_document)
+
+    # KEY
+
+    def process_key(self, key):
+        # FOR AKAUNI
+        self.akauni_history.append(key.keysym)
+        self.akauni_history.pop(0)
+        if key.keysym == 'F19':              # x (ctrl)
+            return 'break'
+        elif key.keysym == 'Left':
+            if 'akauni' in self.txt.mark_names():
+                self.txt.tag_remove('akauni_tag', '1.0', 'end')
+                self.txt.tag_add('akauni_tag', 'akauni', 'insert-1c')
+                self.txt.tag_add('akauni_tag', 'insert-1c', 'akauni')
+        elif key.keysym == 'Right':
+            if 'akauni' in self.txt.mark_names():
+                self.txt.tag_remove('akauni_tag', '1.0', 'end')
+                self.txt.tag_add('akauni_tag', 'akauni', 'insert+1c')
+                self.txt.tag_add('akauni_tag', 'insert+1c', 'akauni')
+        elif key.keysym == 'Up':
+            if 'akauni' in self.txt.mark_names():
+                self.txt.tag_remove('akauni_tag', '1.0', 'end')
+                self.txt.tag_add('akauni_tag', 'akauni', 'insert-1l')
+                self.txt.tag_add('akauni_tag', 'insert-1l', 'akauni')
+        elif key.keysym == 'Down':
+            if 'akauni' in self.txt.mark_names():
+                self.txt.tag_remove('akauni_tag', '1.0', 'end')
+                self.txt.tag_add('akauni_tag', 'akauni', 'insert+1l')
+                self.txt.tag_add('akauni_tag', 'insert+1l', 'akauni')
+        elif key.keysym == 'F17':            # } (, calc)
+            if self.akauni_history[-2] == 'F13':
+                self.calculate()
+                return 'break'
+        elif key.keysym == 'F21':            # w (undo)
+            self.txt.edit_undo()
+            return 'break'
+        elif key.keysym == 'XF86AudioMute':  # W (redo)
+            self.txt.edit_redo()
+            return 'break'
+        elif key.keysym == 'F22':            # f (mark, save)
+            if self.akauni_history[-2] == 'F19':
+                self.save_file()
+                return 'break'
+            else:
+                if 'akauni' in self.txt.mark_names():
+                    self.txt.mark_unset('akauni')
+                self.txt.mark_set('akauni', 'insert')
+                return 'break'
+        elif key.keysym == 'Delete':         # d (delete, quit)
+            if self.akauni_history[-2] == 'F19':
+                self.quit_makdo()
+                return 'break'
+            elif 'akauni' in self.txt.mark_names():
+                self.txt.tag_remove('akauni_tag', '1.0', 'end')
+                akn = self.txt.index('akauni')
+                pos = self.txt.index('insert')
+                beg = re.sub('\\..*$', '.0', akn)
+                if akn == pos and akn != beg:
+                    c = self.txt.get(beg, akn)
+                    self.win.clipboard_clear()
+                    self.win.clipboard_append(c)
+                    self.txt.delete(beg, akn)
+                else:
+                    c = ''
+                    c += self.txt.get('akauni', 'insert')
+                    c += self.txt.get('insert', 'akauni')
+                    self.win.clipboard_clear()
+                    self.win.clipboard_append(c)
+                    self.txt.delete('akauni', 'insert')
+                    self.txt.delete('insert', 'akauni')
+                self.txt.mark_unset('akauni')
+                return 'break'
+        elif key.keysym == 'F14':            # v (quit)
+            if 'akauni' in self.txt.mark_names():
+                self.txt.tag_remove('akauni_tag', '1.0', 'end')
+                self.txt.mark_unset('akauni')
+                return 'break'
+        elif key.keysym == 'F15':            # g (paste)
+            c = self.win.clipboard_get()
+            self.txt.insert('insert', c)
+            # self.txt.yview('insert -20 line')
+            return 'break'
+        elif key.keysym == 'F16':            # c (search forward)
+            self.search_or_replace_forward()
+            return 'break'
+        elif key.keysym == 'cent':           # cent (search backward)
+            self.search_or_replace_backward()
+            return 'break'
+        # ctrl+a '\x01' select all          # ctrl+n '\x0e' new document
+        # ctrl+b '\x02' bold                # ctrl+o '\x0f' open document
+        # ctrl+c '\x03' copy                # ctrl+p '\x10' print
+        # ctrl+d '\x04' font                # ctrl+q '\x11' quit
+        # ctrl+e '\x05' centered            # ctrl+r '\x12' right
+        # ctrl+f '\x06' search              # ctrl+s '\x13' save
+        # ctrl+g '\x07' move                # ctrl+t '\x14' hanging indent
+        # ctrl+h '\x08' replace             # ctrl+u '\x15' underline
+        # ctrl+i '\x09' italic              # ctrl+v '\x16' paste
+        # ctrl+j '\x0a' justified           # ctrl+w '\x17' close document
+        # ctrl+k '\x0b' hyper link          # ctrl+x '\x18' cut
+        # ctrl+l '\x0c' left                # ctrl+y '\x19' redo
+        # ctrl+m '\x0d' indent              # ctrl+z '\x1a' undo
+        if key.char == '\x11':    # ctrl-q
+            self.quit_makdo()
+        elif key.char == '\x13':  # ctrl-s
+            self.save_file()
+        elif key.keysym == 'Delete':
+            if self.txt.tag_ranges('sel'):
+                self.cut_text()
+            else:
+                pos = self.txt.index('insert')
+                end = re.sub('\\..*$', '.end', pos)
+                c = self.txt.get(pos, end)
+                if self.akauni_history[-2] != 'Delete':
+                    self.win.clipboard_clear()
+                if c == '':
+                    self.win.clipboard_append('\n')
+                    self.txt.delete(pos, end)
+                else:
+                    self.win.clipboard_append(c)
+                    self.txt.delete(pos, end + '-1c')
+        self.set_current_position()
+
+    def process_key_release(self, key):
+        # FOR AKAUNI
+        if 'akauni' in self.txt.mark_names():
+            self.txt.tag_remove('akauni_tag', '1.0', 'end')
+            self.txt.tag_add('akauni_tag', 'akauni', 'insert')
+            self.txt.tag_add('akauni_tag', 'insert', 'akauni')
+        self.set_current_position()
+
+    def process_key_tab(self, key):
+        # CALCULATE
+        text_beg_to_cur = self.txt.get('1.0', 'insert')
+        text = text_beg_to_cur
+        res_open = '^((?:.|\n)*)(<!--(?:.|\n)*)'
+        res_close = '^((?:.|\n)*)(-->(?:.|\n)*)'
+        if re.match(res_open, text):
+            text = re.sub(res_open, '\\2', text)
+            if not re.match(res_close, text):
+                self.calculate()
+                return 'break'
+        # INSERT
+        point_cur = self.txt.index('insert')
+        point_beg = re.sub('\\..*$', '.0', point_cur)
+        point_end = re.sub('\\..*$', '.end', point_cur)
+        line_cur_to_end = self.txt.get(point_cur, point_end)
+        line_beg_to_end = self.txt.get(point_beg, point_end)
+        if re.match('^.*\\.0$', point_cur):
+            if line_beg_to_end == '':
+                self.txt.insert('insert', PARAGRAPH_SAMPLE[0])
+                self.txt.mark_set('insert', point_beg)
+                return 'break'
+            for i, sample in enumerate(PARAGRAPH_SAMPLE):
+                if line_beg_to_end == sample:
+                    self.txt.delete(point_beg, point_end)
+                    self.txt.insert('insert', PARAGRAPH_SAMPLE[i + 1])
+                    self.txt.mark_set('insert', point_beg)
+                    return 'break'
+        else:
+            for i, sample in enumerate(FONT_DECORATOR_SAMPLE):
+                sample_esc = sample
+                sample_esc = sample_esc.replace('*', '\\*')
+                sample_esc = sample_esc.replace('+', '\\+')
+                sample_esc = sample_esc.replace('^', '\\^')
+                if re.match('^' + sample_esc, line_cur_to_end):
+                    point_tmp = point_cur + '+' + str(len(sample)) + 'c'
+                    self.txt.delete(point_cur, point_tmp)
+                    self.txt.insert('insert', FONT_DECORATOR_SAMPLE[i + 1])
+                    self.txt.mark_set('insert', point_cur)
+                    return 'break'
+            else:
+                self.txt.insert('insert', FONT_DECORATOR_SAMPLE[0])
+                self.txt.mark_set('insert', point_cur)
+                return 'break'
+
+    def process_button1(self, click):
+        pass
+
+    def process_button2(self, click):
+        pass
+
+    def process_button3(self, click):
+        try:
+            self.bt3.destroy()
+        except BaseException:
+            pass
+        self.bt3 = tkinter.Menu(self.win, tearoff=False)
+        self.bt3.add_command(label='切り取り', command=self.cut_text)
+        self.bt3.add_command(label='コピー', command=self.copy_text)
+        self.bt3.add_command(label='貼り付け', command=self.paste_text)
+        self.bt3.post(click.x_root, click.y_root)
+
+    def process_button1_release(self, click):
+        try:
+            self.bt3.destroy()
+        except BaseException:
+            pass
+        self.set_current_position()
+
+    def process_button2_release(self, click):
+        try:
+            self.bt3.destroy()
+        except BaseException:
+            pass
+        self.paste_text()
+
+    def process_button3_release(self, click):
+        pass
 
 
 if __name__ == '__main__':
