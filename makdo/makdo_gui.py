@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.04-12:33:50-JST>
+# Time-stamp:   <2024.08.06-08:18:16-JST>
 
 # makdo_gui.py
 # Copyright (C) 2024-2024  Seiichiro HATA
@@ -165,8 +165,8 @@ PARAGRAPH_SAMPLE = ['\t',
                     '$ <!--第１編-->', '$$ <!--第１章-->', '$$$ <!--第１節-->',
                     '$$$$ <!--第１款-->', '$$$$$ <!--第１目-->',
                     '\\[<!--数式-->\\]', '<pgbr><!--改ページ-->',
-                    '<!--------------------------vv-------' +
-                    '---------------------vv------------->',
+                    '<!-------vv--------vv-------qvv------' +
+                    '--vv--------vv-------qvv--------vv-->'
                     '\t']
 
 FONT_DECORATOR_SAMPLE = ['\t',
@@ -1394,8 +1394,9 @@ class Makdo:
         math = re.sub('e', '2.718281828459045', math)
         math = re.sub('[^\\(\\)\\|\\*/%\\-\\+0-9\\.]', '', math)
         # EVAL
-        r = str(eval(math))
-        if not re.match('^-?([0-9]+\\.)?[0-9]+', r):
+        r = str(round(eval(math), 10))
+        r = re.sub('\\.0$', '', r)
+        if not re.match('^-?([0-9]*\\.)?[0-9]+', r):
             return False
         # REPLACE
         digit_separator = self.digit_separator.get()
@@ -1478,7 +1479,7 @@ class Makdo:
             t2 = re.sub(res, '\\2', tex)
             # SEARCH
             self.txt.mark_set('insert', pos + '-' + str(len(t2)) + 'c')
-            self.txt.yview(pos + '-' + str(len(t2)) + 'c')
+            self.txt.yview(pos + '-' + str(len(t2)) + 'c-10line')
             if word2 != '' and word2 != '（置換語）':
                 # REPLACE
                 self.txt.delete('insert', 'insert+' + str(len(word1)) + 'c')
@@ -1501,7 +1502,7 @@ class Makdo:
             t2 = re.sub(res, '\\2', tex)
             # SEARCH
             self.txt.mark_set('insert', pos + '+' + str(len(t1)) + 'c')
-            self.txt.yview(pos + '+' + str(len(t1)) + 'c')
+            self.txt.yview(pos + '+' + str(len(t1)) + 'c-10line')
             if word2 != '' and word2 != '（置換語）':
                 # REPLACE
                 self.txt.delete('insert-' + str(len(word1)) + 'c', 'insert')
@@ -2180,6 +2181,7 @@ v=+0.5
     # KEY
 
     def process_key(self, key):
+        self.set_message('')
         # FOR AKAUNI
         self.akauni_history.append(key.keysym)
         self.akauni_history.pop(0)
