@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.06-08:18:16-JST>
+# Time-stamp:   <2024.08.06-08:40:13-JST>
 
 # makdo_gui.py
 # Copyright (C) 2024-2024  Seiichiro HATA
@@ -1459,8 +1459,8 @@ class Makdo:
                         '‐（2010：全角ハイフン）\n' +
                         '—（2014：全角Ｍダッシュ）\n' +
                         '―（2015：全角水平線）\n' +
-                        '―（2212：全角マイナスサイン）\n' +
-                        '―（FF0D：全角ハイフンマイナス）\n' +
+                        '−（2212：全角マイナスサイン）\n' +
+                        '－（FF0D：全角ハイフンマイナス）\n' +
                         '-->\n')
 
     # STATUS BAR
