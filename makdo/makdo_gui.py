@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.07-13:34:55-JST>
+# Time-stamp:   <2024.08.07-13:47:40-JST>
 
 # makdo_gui.py
 # Copyright (C) 2024-2024  Seiichiro HATA
@@ -4640,6 +4640,7 @@ class TypefaceDialog(tkinter.simpledialog.Dialog):
         self.typeface = tkinter.StringVar()
         for cnd in self.candidates:
             rd = tkinter.Radiobutton(win, text=cnd, value=cnd,
+                                     font=(GOTHIC_FONT, 24),
                                      variable=self.typeface)
             rd.pack(side=tkinter.LEFT, padx=3, pady=3)
             if cnd == self.old_typeface:
