@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.07-13:47:40-JST>
+# Time-stamp:   <2024.08.13-12:46:51-JST>
 
 # makdo_gui.py
 # Copyright (C) 2024-2024  Seiichiro HATA
@@ -156,6 +156,8 @@ KEYWORDS = [
      'c-60-50-g-x']]
 
 PARAGRAPH_SAMPLE = ['\t',
+                    '<!-------q1--------q2--------q3------' +
+                    '--q4--------q5--------q6--------q7-->',
                     '<!--コメント-->',
                     '# <!--タイトル-->', '## <!--第１-->', '### <!--１-->',
                     '#### <!--(1)-->', '##### <!--ア-->', '###### <!--(ｱ)-->',
@@ -166,8 +168,6 @@ PARAGRAPH_SAMPLE = ['\t',
                     '$ <!--第１編-->', '$$ <!--第１章-->', '$$$ <!--第１節-->',
                     '$$$$ <!--第１款-->', '$$$$$ <!--第１目-->',
                     '\\[<!--数式-->\\]', '<pgbr><!--改ページ-->',
-                    '<!-------q1--------q2--------q3------'
-                    '--q4--------q5--------q6--------q7-->' +
                     '\t']
 
 FONT_DECORATOR_SAMPLE = ['\t',
@@ -3792,6 +3792,9 @@ class Makdo:
         if self.txt.tag_ranges(tkinter.SEL):
             self.win.after(interval, self.run_periodically)  # NEXT
             return
+        if 'akauni' in self.txt.mark_names():
+            self.win.after(interval, self.run_periodically)  # NEXT
+            return
         # UPDATE TEXT
         file_text = self.txt.get('1.0', 'end-1c')
         self.file_lines = file_text.split('\n')
@@ -3817,13 +3820,17 @@ class Makdo:
                 cs = self.line_data[i - 1].end_chars_state.copy()
                 cs.reset_partially()
             spk = should_paint_keywords
-            if self.line_data[i].line_text != lt or \
-               self.line_data[i].should_paint_keywords != spk or \
-               self.line_data[i].beg_chars_state != cs:
-                self.line_data[i].line_text = lt
-                self.line_data[i].beg_chars_state = cs
-                self.line_data[i].end_chars_state = CharsState()
-                self.line_data[i].paint_line(self.txt, should_paint_keywords)
+            self.line_data[i].line_text = lt
+            self.line_data[i].beg_chars_state = cs
+            self.line_data[i].end_chars_state = CharsState()
+            self.line_data[i].paint_line(self.txt, should_paint_keywords)
+            # if self.line_data[i].line_text != lt or \
+            #    self.line_data[i].should_paint_keywords != spk or \
+            #    self.line_data[i].beg_chars_state != cs:
+            #     self.line_data[i].line_text = lt
+            #     self.line_data[i].beg_chars_state = cs
+            #     self.line_data[i].end_chars_state = CharsState()
+            #     self.line_data[i].paint_line(self.txt, should_paint_keywords)
         # LOCAL
         i = self.cursor_line + self.local_line_to_paint - 10
         if i >= 0 and i < len(self.line_data):
@@ -3835,13 +3842,17 @@ class Makdo:
                 cs = self.line_data[i - 1].end_chars_state.copy()
                 cs.reset_partially()
             spk = should_paint_keywords
-            if self.line_data[i].line_text != lt or \
-               self.line_data[i].should_paint_keywords != spk or \
-               self.line_data[i].beg_chars_state != cs:
-                self.line_data[i].line_text = lt
-                self.line_data[i].beg_chars_state = cs
-                self.line_data[i].end_chars_state = CharsState()
-                self.line_data[i].paint_line(self.txt, should_paint_keywords)
+            self.line_data[i].line_text = lt
+            self.line_data[i].beg_chars_state = cs
+            self.line_data[i].end_chars_state = CharsState()
+            self.line_data[i].paint_line(self.txt, should_paint_keywords)
+            # if self.line_data[i].line_text != lt or \
+            #    self.line_data[i].should_paint_keywords != spk or \
+            #    self.line_data[i].beg_chars_state != cs:
+            #     self.line_data[i].line_text = lt
+            #     self.line_data[i].beg_chars_state = cs
+            #     self.line_data[i].end_chars_state = CharsState()
+            #     self.line_data[i].paint_line(self.txt, should_paint_keywords)
         # POINT
         i = self.cursor_line
         if i < len(self.line_data):
@@ -3853,13 +3864,17 @@ class Makdo:
                 cs = self.line_data[i - 1].end_chars_state.copy()
                 cs.reset_partially()
             spk = should_paint_keywords
-            if self.line_data[i].line_text != lt or \
-               self.line_data[i].should_paint_keywords != spk or \
-               self.line_data[i].beg_chars_state != cs:
-                self.line_data[i].line_text = lt
-                self.line_data[i].beg_chars_state = cs
-                self.line_data[i].end_chars_state = CharsState()
-                self.line_data[i].paint_line(self.txt, should_paint_keywords)
+            self.line_data[i].line_text = lt
+            self.line_data[i].beg_chars_state = cs
+            self.line_data[i].end_chars_state = CharsState()
+            self.line_data[i].paint_line(self.txt, should_paint_keywords)
+            # if self.line_data[i].line_text != lt or \
+            #    self.line_data[i].should_paint_keywords != spk or \
+            #    self.line_data[i].beg_chars_state != cs:
+            #     self.line_data[i].line_text = lt
+            #     self.line_data[i].beg_chars_state = cs
+            #     self.line_data[i].end_chars_state = CharsState()
+            #     self.line_data[i].paint_line(self.txt, should_paint_keywords)
         # STEP (GLOBAL)
         self.global_line_to_paint += 1
         if self.global_line_to_paint >= m:
@@ -3876,6 +3891,8 @@ class Makdo:
             self.txt.configure(state='disabled')
         if self.txt['state'] == 'disabled' and not is_read_only:
             self.txt.configure(state='normal')
+        # CURRENT POSITION
+        self.set_current_position()
         # AUTO SAVE
         if (self.number_of_period % 6000) == 0:
             self.save_auto_file(self.file_path)
@@ -3883,10 +3900,6 @@ class Makdo:
         self.number_of_period += 1
         self.win.after(interval, self.run_periodically)  # NEXT
         return
-
-    @staticmethod
-    def __get_end_position(i, j, k):
-        return s1, s2, ''
 
     def _highlight_search_word(self):
         word = Makdo.search_word
@@ -4593,12 +4606,30 @@ v=+0.5
                 self.txt.mark_set('insert', point_cur)
                 return 'break'
 
+    # LEFT
     def process_button1(self, click):
         pass
 
+    def process_button1_release(self, click):
+        try:
+            self.bt3.destroy()
+        except BaseException:
+            pass
+        self.set_current_position()
+
+    # CENTER
     def process_button2(self, click):
         pass
 
+    def process_button2_release(self, click):
+        try:
+            self.bt3.destroy()
+        except BaseException:
+            pass
+        self.paste_text()
+        return 'break'
+
+    # RIGHT
     def process_button3(self, click):
         try:
             self.bt3.destroy()
@@ -4609,20 +4640,6 @@ v=+0.5
         self.bt3.add_command(label='コピー', command=self.copy_text)
         self.bt3.add_command(label='貼り付け', command=self.paste_text)
         self.bt3.post(click.x_root, click.y_root)
-
-    def process_button1_release(self, click):
-        try:
-            self.bt3.destroy()
-        except BaseException:
-            pass
-        self.set_current_position()
-
-    def process_button2_release(self, click):
-        try:
-            self.bt3.destroy()
-        except BaseException:
-            pass
-        self.paste_text()
 
     def process_button3_release(self, click):
         pass
