@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.15-12:18:01-JST>
+# Time-stamp:   <2024.08.15-13:18:00-JST>
 
 # makdo_gui.py
 # Copyright (C) 2024-2024  Seiichiro HATA
@@ -3426,7 +3426,7 @@ class Makdo:
         self.file_lines = []
         self.must_make_backup_file = args.input_file
         self.font_size = None
-        self.number_of_period = 0
+        # self.number_of_period = 0
         self.line_data = []
         self.standard_line = 0
         self.global_line_to_paint = 0
@@ -3655,7 +3655,9 @@ class Makdo:
             self.just_open_file(args.input_file)
         # LOOP
         self.txt.focus_set()
-        self.run_periodically()
+        self.run_periodically_to_paint_line()
+        self.run_periodically_to_set_position_info()
+        self.run_periodically_to_save_auto_file()
         self.win.mainloop()
 
     ################################################################
@@ -3783,7 +3785,6 @@ class Makdo:
         self.txt.insert('1.0', init_text)
         self.txt.focus_set()
         self.txt.mark_set('insert', '1.0')
-        self.save_auto_file(self.file_path)
         file_name = re.sub('^.*[/\\\\]', '', file_path)
         self.win.title(file_name + ' - MAKDO')
         self.set_file_name_on_status_bar(file_name)
@@ -4822,8 +4823,7 @@ class Makdo:
     ################################################################
     # RECURSIVE CALL
 
-    def run_periodically(self):
-        interval = 10
+    def run_periodically_to_paint_line(self):
         # GLOBAL PAINTING
         self.paint_out_line(self.global_line_to_paint)
         self.global_line_to_paint += 1
@@ -4832,21 +4832,26 @@ class Makdo:
         # LOCAL PAINTING
         self.paint_out_line(self.standard_line + self.local_line_to_paint - 10)
         self.local_line_to_paint += 1
-        if self.local_line_to_paint >= 100:
+        if self.local_line_to_paint >= 150:
             i = self.txt.index('insert')
             self.standard_line = int(re.sub('\\..*$', '', i)) - 1
             self.local_line_to_paint = 0
         # POINT PAINTING
         # self.paint_out_line(self.get_insert_v_number() - 1)
-        # POSITION INFO
-        self.set_position_info_on_status_bar()
-        # AUTO SAVE
-        if ((self.number_of_period * interval) % 60_000) == 0:
-            self.save_auto_file(self.file_path)
         # TO NEXT
-        self.number_of_period += 1
-        self.win.after(interval, self.run_periodically)  # NEXT
-        return
+        # self.number_of_period += 1
+        interval = 10
+        self.win.after(interval, self.run_periodically_to_paint_line)  # NEXT
+
+    def run_periodically_to_set_position_info(self):
+        self.set_position_info_on_status_bar()
+        interval = 100
+        self.win.after(interval, self.run_periodically_to_set_position_info)
+
+    def run_periodically_to_save_auto_file(self):
+        self.save_auto_file(self.file_path)
+        interval = 60_000
+        self.win.after(interval, self.run_periodically_to_save_auto_file)
 
 
 if __name__ == '__main__':
