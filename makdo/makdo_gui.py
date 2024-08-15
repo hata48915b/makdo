@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.13-12:46:51-JST>
+# Time-stamp:   <2024.08.15-12:18:01-JST>
 
 # makdo_gui.py
 # Copyright (C) 2024-2024  Seiichiro HATA
@@ -2394,6 +2394,411 @@ TYPEFACES = (
     '湾灣',
 )
 
+SAMPLE_BASIS = '''
+# ★（タイトル）
+
+v=+1.0
+### ★（第1項）
+
+★
+
+### ★（第2項）
+
+★
+'''
+
+SAMPLE_LAW = '''
+v=+0.5 V=+0.5
+$ 総則
+
+v=+0.5 V=+0.5
+$$ 通則
+
+v=+0.5
+: （基本原則）
+
+##
+私権は、公共の福祉に適合しなければならない。
+
+###
+権利の行使及び義務の履行は、信義に従い誠実に行わなければならない。
+
+###
+権利の濫用は、これを許さない。
+
+v=+0.5
+: （解釈の基準）
+
+##
+この法律は、個人の尊厳と両性の本質的平等を旨として、解釈しなければならない。
+
+v=+0.5 V=+0.5
+$$ 人
+
+v=+0.5 V=+0.5
+$$$ 権利能力
+
+v=+0.5
+##
+私権の享有は、出生に始まる。
+
+###
+外国人は、法令又は条約の規定により禁止される場合を除き、私権を享有する。
+
+v=+0.5 V=+0.5
+$$$ 意思能力
+
+v=+0.5
+##-#
+法律行為の当事者が意思表示をした時に意思能力を有しなかったときは、
+その法律行為は、無効とする。
+
+v=+0.5 V=+0.5
+$$$ 行為能力
+
+v=+0.5
+: （成年）
+
+##
+年齢十八歳をもって、成年とする。
+
+v=+0.5
+: （未成年者の法律行為）
+
+##
+未成年者が法律行為をするには、その法定代理人の同意を得なければならない。
+ただし、単に権利を得、又は義務を免れる法律行為については、この限りでない。
+
+###
+前項の規定に反する法律行為は、取り消すことができる。
+
+###
+第一項の規定にかかわらず、法定代理人が目的を定めて処分を許した財産は、
+その目的の範囲内において、未成年者が自由に処分することができる。
+目的を定めないで処分を許した財産を処分するときも、同様とする。
+
+v=+0.5
+: （未成年者の営業の許可）
+
+##
+一種又は数種の営業を許された未成年者は、その営業に関しては、
+成年者と同一の行為能力を有する。
+
+###
+前項の場合において、未成年者がその営業に堪えることができない事由があるときは、
+その法定代理人は、第四編（親族）の規定に従い、その許可を取り消し、
+又はこれを制限することができる。
+
+v=+0.5
+: （後見開始の審判）
+
+##
+精神上の障害により事理を弁識する能力を欠く常況にある者については、
+家庭裁判所は、本人、配偶者、四親等内の親族、未成年後見人、未成年後見監督人、
+保佐人、保佐監督人、補助人、補助監督人又は検察官の請求により、
+後見開始の審判をすることができる。
+
+v=+0.5
+: （成年被後見人及び成年後見人）
+
+##
+後見開始の審判を受けた者は、成年被後見人とし、これに成年後見人を付する。
+
+v=+0.5
+: （成年被後見人の法律行為）
+
+##
+成年被後見人の法律行為は、取り消すことができる。
+ただし、日用品の購入その他日常生活に関する行為については、この限りでない。
+
+v=+0.5
+: （後見開始の審判の取消し）
+
+##
+第七条に規定する原因が消滅したときは、家庭裁判所は、本人、配偶者、
+四親等内の親族、後見人（未成年後見人及び成年後見人をいう。以下同じ。）、
+後見監督人（未成年後見監督人及び成年後見監督人をいう。以下同じ。）又は
+検察官の請求により、後見開始の審判を取り消さなければならない。
+
+v=+0.5
+: （保佐開始の審判）
+
+##
+精神上の障害により事理を弁識する能力が著しく不十分である者については、
+家庭裁判所は、本人、配偶者、四親等内の親族、後見人、後見監督人、補助人、
+補助監督人又は検察官の請求により、保佐開始の審判をすることができる。
+ただし、第七条に規定する原因がある者については、この限りでない。
+
+v=+0.5
+: （被保佐人及び保佐人）
+
+##
+保佐開始の審判を受けた者は、被保佐人とし、これに保佐人を付する。
+
+v=+0.5
+: （保佐人の同意を要する行為等）
+
+##
+被保佐人が次に掲げる行為をするには、その保佐人の同意を得なければならない。
+ただし、第九条ただし書に規定する行為については、この限りでない。
+
+####
+元本を領収し、又は利用すること。
+
+####
+借財又は保証をすること。
+
+####
+不動産その他重要な財産に関する権利の得喪を目的とする行為をすること。
+
+####
+訴訟行為をすること。
+
+####
+贈与、和解又は仲裁合意
+（仲裁法（平成十五年法律第百三十八号）第二条第一項に規定する仲裁合意をいう。）
+をすること。
+
+####
+相続の承認若しくは放棄又は遺産の分割をすること。
+
+####
+贈与の申込みを拒絶し、遺贈を放棄し、負担付贈与の申込みを承諾し、
+又は負担付遺贈を承認すること。
+
+####
+新築、改築、増築又は大修繕をすること。
+
+####
+第六百二条に定める期間を超える賃貸借をすること。
+
+####
+前各号に掲げる行為を制限行為能力者
+（未成年者、成年被後見人、被保佐人及び第十七条第一項の審判を受けた被補助人を
+いう。以下同じ。）の法定代理人としてすること。
+
+###
+家庭裁判所は、
+第十一条本文に規定する者又は保佐人若しくは保佐監督人の請求により、
+被保佐人が前項各号に掲げる行為以外の行為をする場合であっても
+その保佐人の同意を得なければならない旨の審判をすることができる。
+ただし、第九条ただし書に規定する行為については、この限りでない。
+
+###
+保佐人の同意を得なければならない行為について、
+保佐人が被保佐人の利益を害するおそれがないにもかかわらず同意をしないときは、
+家庭裁判所は、被保佐人の請求により、保佐人の同意に代わる許可を与えることができる。
+
+###
+保佐人の同意を得なければならない行為であって、
+その同意又はこれに代わる許可を得ないでしたものは、取り消すことができる。
+'''
+
+SAMPLE_LAW = '''
+# 訴状
+
+v=+0.5
+令和★年★月★日 :
+
+v=+0.5
+: ★裁判所　御中
+
+v=+0.5
+<!--------------------------vv----------------------------vv------------->
+: \\　　　　　　　　　　　　　原告★訴訟代理人弁護士　　　　★
+: \\　　　　　　　　　　　　　　　同　　　　　　　　　　　　★
+: \\　　　　　　　　　　　　　　　同（担当）　　　　　　　　★
+
+v=+0.5
+: 〒★－★　広島市★
+<!--------------------------vv----------------------------vv------------->
+: \\　　　　　　　　　　　　　原告　　　　　　　　　　　　　★
+: \\　　　　　　　　　　　　　上記代表者代表取締役　　　　　★
+
+: 〒★－★　広島市★
+<!--------------------------vv----------------------------vv------------->
+: \\　　　　　　　　　　　　　原告　　　　　　　　　　　　　★
+: \\　　　　　　　　　　　　　上記代表者代表取締役　　　　　★
+
+: 〒★－★　広島市★
+: \\　　　　　　　★法律事務所（送達場所）
+<!--------------------------vv----------------------------vv------------->
+: \\　　　　　　　　　　　　　原告★訴訟代理人弁護士　　　　★
+: \\　　　　　　　　　　　　　　　同　　　　　　　　　　　　★
+: \\　　　　　　　　　　　　　　　同（担当）　　　　　　　　★
+: \\　　　　　　　TEL ★－★－★　　FAX ★－★－★
+
+: 〒★－★　広島市★
+<!--------------------------vv----------------------------vv------------->
+: \\　　　　　　　　　　　　　被告　　　　　　　　　　　　　★
+: \\　　　　　　　　　　　　　上記代表者代表取締役　　　　　★
+
+: 〒★－★　広島市★
+<!--------------------------vv----------------------------vv------------->
+: \\　　　　　　　　　　　　　被告　　　　　　　　　　　　　★
+: \\　　　　　　　　　　　　　上記代表者代表取締役　　　　　★
+
+v=+1.0
+: ★請求事件
+: 訴訟物の価額　　★★★★万★★★★円
+: 貼用印紙額　　　　　　★万★★★★円
+
+## 請求の趣旨
+
+###
+被告★は、原告に対し、★連帯して、
+★円及びこれに対する令和★年★月★日から支払済みまで年３分
+の割合による金員を支払え。
+
+###
+訴訟費用は被告★の負担とする。
+
+<<=1 <=1
+との判決並びに仮執行の宣言を求める。
+
+# 請求の原因
+
+### ★について
+
+★
+
+### ★について
+
+★
+
+### まとめ
+
+よって、原告は、被告★に対し、不法行為に基づき、
+損害金★円及びこれに対する本件事故日である
+令和★年★月★日から支払済みまで民法所定年３分
+の割合による遅延損害金の支払を求める。
+
+v=+1.0
+# ##=1 ###=1
+
+: 証拠方法 :
+
+### 甲第１号証　　　　　★
+### 甲第２号証　　　　　★
+### 甲第３号証　　　　　★
+### 甲第４号証　　　　　★
+### 甲第５号証　　　　　★
+### 甲第６号証　　　　　★
+### 甲第７号証　　　　　★
+### 甲第８号証　　　　　★
+### 甲第９号証　　　　　★
+### 甲第１０号証　　　　★
+### 甲第１１号証　　　　★
+
+v=+1.0
+# ##=1 ###=1
+
+: 附属書類 :
+
+### 訴状副本　　　　　　　　　　　　　　★通<!--[被告の数]-->
+### 資格証明書　　　　　　　　　　　　　★通<!--[法人当事者の数]-->
+### 訴訟委任状　　　　　　　　　　　　　★通<!--[原告の数]-->
+### 甲号証の写し　　　　　　　　　　　各★通<!--[被告の数＋1]-->
+'''
+
+SAMPLE_EVIDENCE = '''
+: 令和★年（★）第★号　★請求事件
+: 原告　★
+: 被告　★
+
+v=+0.5
+# 証拠説明書
+
+v=+0.5
+令和★年★月★日 :
+
+v=+0.5
+: ★裁判所　御中
+
+v=+0.5
+<!--------------------------vv----------------------------vv------------->
+: \\　　　　　　　　　　　　　★★★訴訟代理人弁護士　　　　★
+: \\　　　　　　　　　　　　　　　同　　　　　　　　　　　　★
+: \\　　　　　　　　　　　　　　　同（担当）　　　　　　　　★
+
+v=+1.0
+--
+|号証 |標目|原写|作成日|作成者|立証趣旨|備考|
+=
+|:----|:---------|:--:|:-------|:-----------|:-----------------------|:---------|
+|★1|★書|原本|R★.★.★|★|①★であったこと<br>②★であったこと||
+|★2|★書|原本|R★.★.★|★|①★であったこと<br>②★であったこと||
+|★3|★書|原本|R★.★.★|★|①★であったこと<br>②★であったこと||
+--
+'''
+
+SAMPLE_SETTLEMENT = '''
+# 和解契約書
+
+v=+1.0
+★（以下「甲」という。）と
+★（以下「乙」という。）は、
+★に関し、次のとおり和解した。
+
+## （★）
+
+★
+
+###
+★
+
+###
+★
+
+## （債務）
+
+乙は、甲に対し、
+★万★円の債務を負っていることを認める。
+
+## （支払）
+
+乙は、甲に対し、
+令和★年★月★日限り、
+前条の★万★円を下記の口座に振り込んで支払う。
+ただし、振込手数料は乙の負担とする。
+
+<=-1.0 v=+0.5
+金融機関__　　　　　　　　　　　__　本支店名__　　　　　　　　　　　__
+
+<=-1.0 v=+0.5
+普通・当座等__　　　　　　　__　口座番号__　　　　　　　　　　　　　__
+
+<=-1.0 v=+0.5
+<名義/フリガナ>__　　　　　　　　　　　　　　　　　　　　　　　　　　　　　__
+
+## （清算条項）
+
+甲と乙は、甲と乙の間には、
+★本件に関し、
+上記各条項に定めるほか、何らの債権債務のないことを相互に確認する。
+
+v=+1.0
+本和解の成立を証するため、本書を★通作成し、各自1通を所持するものとする。
+
+# ##=1 ###=1
+
+v=+1.0
+: 令和★年★月★日
+
+v=+1.0
+: 甲　　　　★
+: \\　　　　　　　　　　　★　　　　　　　　　　　　　　　　　　　　㊞
+
+: ★代理人　★
+: \\　　　　　　　弁護士　★　　　　　　　　　　　　　　　　　　　　㊞
+
+v=+0.5
+: ★　住所　^DDD^__　　　　　　　　　　　　　　　　　　　　　　　　　　　　__^DDD^
+
+v=+0.5
+: \\　　氏名　__　　　　　　　　　　　　　　　　　　　　　　　　　　　㊞__
+'''
+
 
 class CharsState:
 
@@ -2408,10 +2813,17 @@ class CharsState:
         self.section_depth = 0
 
     def __eq__(self, other):
-        if self.del_or_ins == other.del_or_ins:
-            if self.is_in_comment == other.is_in_comment:
-                return True
-        return False
+        if self.del_or_ins != other.del_or_ins:
+            return False
+        if self.is_in_comment != other.is_in_comment:
+            return False
+        if self.parentheses != other.parentheses:
+            return False
+        if self.has_underline != other.has_underline:
+            return False
+        if self.has_specific_font != other.has_specific_font:
+            return False
+        return True
 
     def copy(self):
         copy = CharsState()
@@ -2559,14 +2971,14 @@ class LineDatum:
         self.line_text = ''
         self.beg_chars_state = CharsState()
         self.end_chars_state = CharsState()
-        self.should_paint_keywords = False
+        self.must_paint_keywords = False
 
-    def paint_line(self, txt, should_paint_keywords=False):
+    def paint_line(self, txt, must_paint_keywords=False):
         # PREPARE
         i = self.line_number
         line_text = self.line_text
         chars_state = self.beg_chars_state.copy()
-        self.should_paint_keywords = should_paint_keywords
+        self.must_paint_keywords = must_paint_keywords
         # RESET TAG
         for tag in txt.tag_names():
             if tag != 'search_tag':
@@ -2931,7 +3343,7 @@ class LineDatum:
                 beg = end                                               # 6.beg
                 continue
             # KEYWORD
-            if self.should_paint_keywords:
+            if self.must_paint_keywords:
                 for kw in KEYWORDS:
                     if re.match('^(.*?)' + kw[0] + '$', tmp):
                         t1 = re.sub('^(.*?)' + kw[0] + '$', '\\1', tmp)
@@ -2967,6 +3379,42 @@ class LineDatum:
         return
 
 
+class TypefaceDialog(tkinter.simpledialog.Dialog):
+
+    def __init__(self, win, old_typeface, candidates):
+        self.win = win
+        self.old_typeface = old_typeface
+        self.candidates = candidates
+        super().__init__(win)
+
+    def body(self, win):
+        self.typeface = tkinter.StringVar()
+        for cnd in self.candidates:
+            rd = tkinter.Radiobutton(win, text=cnd, value=cnd,
+                                     font=(GOTHIC_FONT, 24),
+                                     variable=self.typeface)
+            rd.pack(side=tkinter.LEFT, padx=3, pady=3)
+            if cnd == self.old_typeface:
+                rd.select()
+
+    def buttonbox(self):
+        btn = tkinter.Frame(self)
+        self.btn1 = tkinter.Button(btn, text='OK', width=6,
+                                   command=self.ok)
+        self.btn1.pack(side=tkinter.LEFT, padx=3, pady=3)
+        self.btn2 = tkinter.Button(btn, text='Cancel', width=6,
+                                   command=self.cancel)
+        self.btn2.pack(side=tkinter.LEFT, padx=3, pady=3)
+        btn.pack()
+
+    def apply(self):
+        new_typeface = self.typeface.get()
+        self.win.delete('insert', 'insert+1c')
+        self.win.insert('insert', new_typeface)
+        self.win.mark_set('insert', 'insert-1c')
+        self.win.focus_set()
+
+
 class Makdo:
 
     search_word = ''
@@ -2980,7 +3428,7 @@ class Makdo:
         self.font_size = None
         self.number_of_period = 0
         self.line_data = []
-        self.cursor_line = 0
+        self.standard_line = 0
         self.global_line_to_paint = 0
         self.local_line_to_paint = 0
         self.akauni_history = ['', '', '', '', '']
@@ -2994,69 +3442,70 @@ class Makdo:
         self.frm = tkinter.Frame()
         self.frm.pack(expand=True, fill=tkinter.BOTH)
         self.txt = tkinter.Text(self.frm, width=80, height=30, undo=True)
-        self.txt.drop_target_register(DND_FILES)  # drag and drop
-        self.txt.dnd_bind('<<Drop>>', self.drop)  # drag and drop
+        self.txt.drop_target_register(DND_FILES)               # drag and drop
+        self.txt.dnd_bind('<<Drop>>', self.open_dropped_file)  # drag and drop
         # MENU BAR
         self.mnb = tkinter.Menu()
-        #
+        # FILE
         self.mc1 = tkinter.Menu(self.mnb, tearoff=False)
-        self.mc1.add_command(label='ファイルを開く',
-                             command=self.open_file)
-        self.mc1.add_command(label='ファイルを閉じる',
-                             command=self.close_file)
+        self.mnb.add_cascade(label='ファイル(F)', menu=self.mc1, underline=5)
+        self.mc1.add_command(label='ファイルを開く(O)',
+                             command=self.open_file,
+                             underline=8)
+        self.mc1.add_command(label='ファイルを閉じる(C)',
+                             command=self.close_file,
+                             underline=9)
         self.mc1.add_separator()
-        self.mc1.add_command(label='ファイルを保存する',
+        self.mc1.add_command(label='ファイルを保存する(S)',
                              command=self.save_file,
+                             underline=10,
                              accelerator='Ctrl+S')
-        self.mc1.add_command(label='名前を付けて保存する',
-                             command=self.name_and_save)
+        self.mc1.add_command(label='名前を付けて保存する(A)',
+                             command=self.name_and_save,
+                             underline=11)
         self.mc1.add_separator()
-        self.mc1.add_command(label='終了',
+        self.mc1.add_command(label='終了(Q)',
                              command=self.quit_makdo,
+                             underline=3,
                              accelerator='Ctrl+Q')
-        self.mnb.add_cascade(label='ファイル', menu=self.mc1)
-        #
+        # EDIT
         self.mc2 = tkinter.Menu(self.mnb, tearoff=False)
-        self.mc2.add_command(label='元に戻す',
+        self.mnb.add_cascade(label='編集(E)', menu=self.mc2, underline=3)
+        self.mc2.add_command(label='元に戻す(U)',
                              command=self.txt.edit_undo,
+                             underline=5,
                              accelerator='Ctrl+Z')
-        self.mc2.add_command(label='やり直す',
+        self.mc2.add_command(label='やり直す(R)',
                              command=self.txt.edit_redo,
+                             underline=5,
                              accelerator='Ctrl+Y')
         self.mc2.add_separator()
-        self.mc2.add_command(label='切り取り',
+        self.mc2.add_command(label='切り取り(C)',
                              command=self.cut_text,
+                             underline=5,
                              accelerator='Ctrl+X')
-        self.mc2.add_command(label='コピー',
+        self.mc2.add_command(label='コピー(Y)',
                              command=self.copy_text,
+                             underline=4,
                              accelerator='Ctrl+C')
-        self.mc2.add_command(label='貼り付け',
+        self.mc2.add_command(label='貼り付け(P)',
                              command=self.paste_text,
-                             accelerator='CTrl+V')
+                             underline=5,
+                             accelerator='Ctrl+V')
+        self.mc2.add_separator()
+        self.mc2.add_command(label='すべて選択(A)',
+                             command=self.select_all,
+                             underline=6,
+                             accelerator='Ctrl+A')
         self.mc2.add_separator()
         self.mc2.add_command(label='計算する',
                              command=self.calculate)
         self.mc2.add_separator()
-        self.mc2sm1 = tkinter.Menu(self.mc2, tearoff=False)
-        self.mc2sm1.add_command(label='括弧数字（⑴⑵⑶⑷⑸…）',
-                                command=self.insert_parentheses_number)
-        self.mc2sm1.add_command(label='丸数字（①②③④⑤…）',
-                                command=self.insert_circle_number)
-        self.mc2sm1.add_command(label='上付数字（⁰¹²³⁴⁵⁶⁷⁸⁹）',
-                                command=self.insert_sup_number)
-        self.mc2sm1.add_command(label='下付数字（₀₁₂₃₄₅₆₇₈₉）',
-                                command=self.insert_sub_number)
-        self.mc2sm1.add_command(label='記号（㊞）',
-                                command=self.insert_symbol)
-        self.mc2sm1.add_command(label='横棒（-‐—―−－）',
-                                command=self.insert_horizontal_bar)
-        self.mc2.add_cascade(label='記号を挿入する', menu=self.mc2sm1)
-        self.mc2.add_separator()
-        self.mc2.add_command(label='異字体に変える',
+        self.mc2.add_command(label='別の字体に変える',
                              command=self.transform_to_another_typeface)
-        self.mnb.add_cascade(label='編集', menu=self.mc2)
-        #
+        # VISUAL
         self.mc3 = tkinter.Menu(self.mnb, tearoff=False)
+        self.mnb.add_cascade(label='表示(V)', menu=self.mc3, underline=3)
         self.mc3.add_command(label='微サイズ',
                              command=self.set_size_ss)
         self.mc3.add_command(label='小サイズ',
@@ -3067,62 +3516,86 @@ class Makdo:
                              command=self.set_size_l)
         self.mc3.add_command(label='巨サイズ',
                              command=self.set_size_ll)
-        self.mnb.add_cascade(label='文字サイズ', menu=self.mc3)
-        #
+        # INSERT
         self.mc4 = tkinter.Menu(self.mnb, tearoff=False)
-        self.should_paint_keywords = tkinter.BooleanVar()
-        if args.paint_keywords:
-            self.should_paint_keywords.set(True)
-        else:
-            self.should_paint_keywords.set(False)
-        self.mc4.add_checkbutton(label='キーワードに色付け',
-                                 variable=self.should_paint_keywords)
+        self.mnb.add_cascade(label='挿入(I)', menu=self.mc4, underline=3)
+        self.mc4.add_command(label='日付を挿入する',
+                             command=self.insert_datetime)
         self.mc4.add_separator()
+        self.mc4.add_command(label='ファイル名を挿入する',
+                             command=self.insert_file_path)
+        self.mc4.add_separator()
+        self.mc4sm1 = tkinter.Menu(self.mc4, tearoff=False)
+        self.mc4.add_cascade(label='記号を挿入する', menu=self.mc4sm1)
+        self.mc4sm1.add_command(label='括弧数字（⑴⑵⑶⑷⑸…）',
+                                command=self.insert_parentheses_number)
+        self.mc4sm1.add_command(label='丸数字（①②③④⑤…）',
+                                command=self.insert_circle_number)
+        self.mc4sm1.add_command(label='上付数字（⁰¹²³⁴⁵⁶⁷⁸⁹）',
+                                command=self.insert_sup_number)
+        self.mc4sm1.add_command(label='下付数字（₀₁₂₃₄₅₆₇₈₉）',
+                                command=self.insert_sub_number)
+        self.mc4sm1.add_command(label='記号（㊞）',
+                                command=self.insert_symbol)
+        self.mc4sm1.add_command(label='横棒（-‐—―−－）',
+                                command=self.insert_horizontal_bar)
+        self.mc4.add_separator()
+        self.mc4sm2 = tkinter.Menu(self.mc4, tearoff=False)
+        self.mc4.add_cascade(label='サンプルを挿入する', menu=self.mc4sm2)
+        self.mc4sm2.add_command(label='基本',
+                                command=self.insert_basis)
+        self.mc4sm2.add_command(label='民法',
+                                command=self.insert_law)
+        self.mc4sm2.add_command(label='訴状',
+                                command=self.insert_petition)
+        self.mc4sm2.add_command(label='証拠説明書',
+                                command=self.insert_evidence)
+        self.mc4sm2.add_command(label='和解契約書',
+                                command=self.insert_settlement)
+        # CONFIGURATION
+        self.mc5 = tkinter.Menu(self.mnb, tearoff=False)
+        self.mnb.add_cascade(label='設定(S)', menu=self.mc5, underline=3)
+        self.must_paint_keywords = tkinter.BooleanVar()
+        if args.paint_keywords:
+            self.must_paint_keywords.set(True)
+        else:
+            self.must_paint_keywords.set(False)
+        self.mc5.add_checkbutton(label='キーワードに色付け',
+                                 variable=self.must_paint_keywords)
+        self.mc5.add_separator()
         self.is_read_only = tkinter.BooleanVar()
         if args.read_only:
             self.is_read_only.set(True)
         else:
             self.is_read_only.set(False)
-        self.mc4.add_checkbutton(label='読み取り専用',
-                                 variable=self.is_read_only)
-        self.mc4.add_separator()
+        self.mc5.add_checkbutton(label='読み取り専用',
+                                 variable=self.is_read_only,
+                                 command=self.toggle_read_only)
+        self.mc5.add_separator()
         self.sb1 = tkinter.Menu(self.mnb, tearoff=False)
         self.digit_separator = tkinter.StringVar(value='4')
         self.sb1.add_radiobutton(label='桁区切りなし（12345678）',
                                  value='0', variable=self.digit_separator)
-        self.sb1.add_radiobutton(label='3桁区切り（12,345,678）',
-                                 value='3', variable=self.digit_separator)
+        self.sb1.add_radiobutton(
+            label='3桁区切り（12,345,678）',
+            value='3', variable=self.digit_separator)
         self.sb1.add_radiobutton(label='4桁区切り（1234万5678）',
                                  value='4', variable=self.digit_separator)
-        self.mc4.add_cascade(label='数式計算結果', menu=self.sb1)
-        self.mnb.add_cascade(label='設定', menu=self.mc4)
-        #
-        self.mc5 = tkinter.Menu(self.mnb, tearoff=False)
-        self.mc5.add_command(label='基本',
-                             command=self.insert_basis)
-        self.mc5.add_command(label='民法',
-                             command=self.insert_law)
-        self.mc5.add_command(label='訴状',
-                             command=self.insert_petition)
-        self.mc5.add_command(label='証拠説明書',
-                             command=self.insert_evidence)
-        self.mc5.add_command(label='和解契約書',
-                             command=self.insert_settlement)
-        self.mnb.add_cascade(label='サンプル', menu=self.mc5)
-        #
+        self.mc5.add_cascade(label='数式計算結果', menu=self.sb1)
+        # HELP
         self.mc6 = tkinter.Menu(self.mnb, tearoff=False)
+        self.mnb.add_cascade(label='ヘルプ(H)', menu=self.mc6, underline=4)
         self.mc6.add_command(label='文字情報',
                              command=self.show_char_info)
         self.mc6.add_separator()
-        self.mc6.add_command(label='Makdoについて',
-                             command=self.show_about_makdo)
-        self.mnb.add_cascade(label='ヘルプ', menu=self.mc6)
+        self.mc6.add_command(label='Makdoについて(A)',
+                             command=self.show_about_makdo,
+                             underline=10)
         self.win['menu'] = self.mnb
         # TEXT
         self.txt.pack(expand=True, fill=tkinter.BOTH)
         self.txt.bind('<Key>', self.process_key)
         self.txt.bind('<KeyRelease>', self.process_key_release)
-        self.txt.bind('<Key-Tab>', self.process_key_tab)
         self.txt.bind('<Button-1>', self.process_button1)
         self.txt.bind('<Button-2>', self.process_button2)
         self.txt.bind('<Button-3>', self.process_button3)
@@ -3139,30 +3612,34 @@ class Makdo:
         # STATUS BAR
         self.stb = tkinter.Frame(self.frm)
         self.stb.pack(anchor=tkinter.W)
-        self.stb_pos1 = tkinter.Label(self.stb, text='1x0')
-        self.stb_pos1.pack(side=tkinter.LEFT)
-        self.stb_spc1 = tkinter.Label(self.stb, text='\u3000')
-        self.stb_spc1.pack(side=tkinter.LEFT)
-        self.stb_sor1 = tkinter.Entry(self.stb, width=20)
-        self.stb_sor1.pack(side=tkinter.LEFT)
-        self.stb_sor1.insert(0, '（検索語）')
-        self.stb_sor2 = tkinter.Entry(self.stb, width=20)
-        self.stb_sor2.pack(side=tkinter.LEFT)
-        self.stb_sor2.insert(0, '（置換語）')
-        self.stb_sor3 = tkinter.Button(self.stb, text='前',
-                                       command=self.search_or_replace_backward)
-        self.stb_sor3.pack(side=tkinter.LEFT)
-        self.stb_sor4 = tkinter.Button(self.stb, text='次',
-                                       command=self.search_or_replace_forward)
-        self.stb_sor4.pack(side=tkinter.LEFT)
-        self.stb_sor5 = tkinter.Button(self.stb, text='消',
-                                       command=self.clear_search_word)
-        self.stb_sor5.pack(side=tkinter.LEFT)
-        self.stb_spc2 = tkinter.Label(self.stb, text='\u3000')
-        self.stb_spc2.pack(side=tkinter.LEFT)
         self.stb_fnm1 = tkinter.Label(self.stb, text='')
         self.stb_fnm1.pack(side=tkinter.LEFT)
-        self.stb_spc3 = tkinter.Label(self.stb, text='\u3000')
+        self.stb_spc1 = tkinter.Label(self.stb, text=' ')
+        self.stb_spc1.pack(side=tkinter.LEFT)
+        self.stb_pos1 = tkinter.Label(self.stb, text='1x0/1x0')
+        self.stb_pos1.pack(side=tkinter.LEFT)
+        self.stb_spc2 = tkinter.Label(self.stb, text=' ')
+        self.stb_spc2.pack(side=tkinter.LEFT)
+        self.stb_sor1 = tkinter.Label(self.stb, text='探')
+        self.stb_sor1.pack(side=tkinter.LEFT)
+        self.stb_sor2 = tkinter.Entry(self.stb, width=20)
+        self.stb_sor2.pack(side=tkinter.LEFT)
+        # self.stb_sor2.insert(0, '（検索語）')
+        self.stb_sor3 = tkinter.Label(self.stb, text='換')
+        self.stb_sor3.pack(side=tkinter.LEFT)
+        self.stb_sor4 = tkinter.Entry(self.stb, width=20)
+        self.stb_sor4.pack(side=tkinter.LEFT)
+        # self.stb_sor4.insert(0, '（置換語）')
+        self.stb_sor5 = tkinter.Button(self.stb, text='前',
+                                       command=self.search_or_replace_backward)
+        self.stb_sor5.pack(side=tkinter.LEFT)
+        self.stb_sor6 = tkinter.Button(self.stb, text='次',
+                                       command=self.search_or_replace_forward)
+        self.stb_sor6.pack(side=tkinter.LEFT)
+        self.stb_sor7 = tkinter.Button(self.stb, text='消',
+                                       command=self.clear_search_word)
+        self.stb_sor7.pack(side=tkinter.LEFT)
+        self.stb_spc3 = tkinter.Label(self.stb, text=' ')
         self.stb_spc3.pack(side=tkinter.LEFT)
         self.stb_msg1 = tkinter.Label(self.stb, text='')
         self.stb_msg1.pack(side=tkinter.LEFT)
@@ -3181,98 +3658,88 @@ class Makdo:
         self.run_periodically()
         self.win.mainloop()
 
-    # AUTO SAVE
+    ################################################################
+    # TOOL
 
-    def get_auto_path(self, file_path):
-        if file_path is None or file_path == '':
-            return None
-        if '/' in file_path or '\\' in file_path:
-            d = re.sub('^((?:.|\n)*[/\\\\])(.*)$', '\\1', file_path)
-            f = re.sub('^((?:.|\n)*[/\\\\])(.*)$', '\\2', file_path)
+    def get_insert_v_number(self):
+        insert_position = self.txt.index('insert')
+        insert_v_number = int(re.sub('\\.[0-9]+$', '', insert_position))
+        return insert_v_number
+
+    def get_insert_h_number(self):
+        insert_position = self.txt.index('insert')
+        insert_h_number = int(re.sub('^[0-9]+\\.', '', insert_position))
+        return insert_h_number
+
+    def get_max_v_number(self):
+        max_position = self.txt.index('end-1c')
+        max_v_number = int(re.sub('\\.[0-9]+$', '', max_position))
+        return max_v_number
+
+    def get_max_h_number(self):
+        line_end_position = self.txt.index('insert lineend')
+        max_h_number = int(re.sub('^[0-9]+\\.', '', line_end_position))
+        return max_h_number
+
+    def paint_out_line(self, line_number):
+        ln = line_number
+        # REGION IS SET
+        if self.txt.tag_ranges('sel'):
+            return
+        if 'akauni' in self.txt.mark_names():
+            return
+        # UPDATE TEXT
+        file_text = self.txt.get('1.0', 'end-1c')
+        self.file_lines = file_text.split('\n')
+        m = len(self.file_lines) - 1
+        while len(self.line_data) < m + 1:
+            self.line_data.append(LineDatum())
+            self.line_data[-1].line_number = len(self.line_data) - 1
+        while len(self.line_data) > m + 1:
+            self.line_data.pop(-1)
+        if m < 0:
+            return
+        # BAD LINE ID
+        if ln < 0 or ln >= len(self.line_data):
+            return
+        # PREPARE
+        line_text = self.file_lines[ln] + '\n'
+        if ln == 0:
+            chars_state = CharsState()
         else:
-            d = ''
-            f = file_path
-        if '.' in f:
-            n = re.sub('^((?:.|\n)*)(\\..*)$', '\\1', f)
-            e = re.sub('^((?:.|\n)*)(\\..*)$', '\\2', f)
-        else:
-            n = f
-            e = ''
-        n = re.sub('^((?:.|\n){,240})(.*)$', '\\1', n)
-        return d + '~$' + n + e + '.zip'
+            chars_state \
+                = self.line_data[ln - 1].end_chars_state.copy()
+            chars_state.reset_partially()
+        must_paint_keywords = self.must_paint_keywords.get()
+        # EXCLUSION
+        # if self.line_data[ln].line_text == line_text and \
+        #    self.line_data[ln].beg_chars_state == chars_state and \
+        #    self.line_data[ln].must_paint_keywords == must_paint_keywords:
+        #     return
+        # PAINT
+        # self.line_data[ln].line_number = ln
+        self.line_data[ln].line_text = line_text
+        self.line_data[ln].beg_chars_state = chars_state
+        self.line_data[ln].end_chars_state = CharsState()
+        self.line_data[ln].paint_line(self.txt, must_paint_keywords)
 
-    def exists_auto_file(self, file_path):
-        auto_path = self.get_auto_path(file_path)
-        if os.path.exists(auto_path):
-            # auto_file = re.sub('^(.|\n)*[/\\\\]', '', auto_path)
-            n = 'エラー'
-            m = '自動保存ファイルが存在します．\n' + \
-                '"' + auto_path + '"\n\n' + \
-                '①現在、ファイルを編集中\n' + \
-                '②過去の編集中のファイルが残存\n' + \
-                'の2つの可能性が考えられます．\n\n' + \
-                '①現在、ファイルを編集中\n' + \
-                'の場合は、「No」を選択してください．\n\n' + \
-                '②過去の編集中のファイルが残存\n' + \
-                'の場合、異常終了したものと思われます．\n' + \
-                '「No」を選択して、' + \
-                '自動保存ファイルの中身を確認してから、' + \
-                '削除することをおすすめします．\n\n' + \
-                '自動保存ファイルを削除しますか？'
-            ans = tkinter.messagebox.askyesno(n, m, default='no')
-            if ans:
-                try:
-                    self.remove_auto_file(file_path)
-                except BaseException:
-                    n, m = 'エラー', '自動保存ファイルの削除に失敗しました'
-                    tkinter.messagebox.showerror(n, m)
-        if os.path.exists(auto_path):
-            return True
-        else:
-            return False
+    ################################################################
+    # FILE
 
-    def save_auto_file(self, file_path):
-        if file_path is not None and file_path != '':
-            new_text = self.txt.get('1.0', 'end-1c')
-            auto_path = self.get_auto_path(file_path)
-            if os.path.exists(auto_path):
-                with zipfile.ZipFile(auto_path, 'r') as old_zip:
-                    with old_zip.open('doc.md', 'r') as f:
-                        old_text = f.read()
-                        if new_text == old_text.decode():
-                            return
-            with zipfile.ZipFile(auto_path, 'w',
-                                 compression=zipfile.ZIP_DEFLATED,
-                                 compresslevel=9) as new_zip:
-                new_zip.writestr('doc.md', new_text)
-
-    def remove_auto_file(self, file_path):
-        if file_path is not None and file_path != '':
-            auto_path = self.get_auto_path(file_path)
-            if re.match('(^|(.|\n)*[/\\\\])~\\$(.|\n)+\\.zip$', auto_path):
-                if os.path.exists(auto_path):
-                    os.remove(auto_path)
-
-    # INPUT AND OUTPUT
-
-    def drop(self, event):                                # drag and drop
-        ans = self.close_file()                           # drag and drop
-        if ans is None:                                   # drag and drop
-            return None                                   # drag and drop
-        file_path = event.data                            # drag and drop
-        file_path = re.sub('^{(.*)}$', '\\1', file_path)  # drag and drop
-        self.just_open_file(file_path)                    # drag and drop
+    ################################
+    # OPEN FILE
 
     def open_file(self):
         ans = self.close_file()
         if ans is None:
-            return None
+            return False
         typ = [('可能な形式', '.md .docx'),
                ('Markdown', '.md'), ('MS Word', '.docx')]
         file_path = tkinter.filedialog.askopenfilename(filetypes=typ)
-        if file_path == ():
-            return None
+        if file_path == () or file_path == '':
+            return False
         self.just_open_file(file_path)
+        return True
 
     def just_open_file(self, file_path):
         if self.exists_auto_file(file_path):
@@ -3312,15 +3779,16 @@ class Makdo:
         self.file_path = file_path
         self.init_text = init_text
         self.file_lines = init_text.split('\n')
-        self.txt.delete('1.0', 'end')
+        # self.txt.delete('1.0', 'end')
         self.txt.insert('1.0', init_text)
         self.txt.focus_set()
+        self.txt.mark_set('insert', '1.0')
+        self.save_auto_file(self.file_path)
         file_name = re.sub('^.*[/\\\\]', '', file_path)
         self.win.title(file_name + ' - MAKDO')
-        self.save_auto_file(self.file_path)
-        self.stb_fnm1['text'] = file_name
-        self.txt.mark_set('insert', '1.0')
-        self.line_data = [LineDatum() for line in init_text.split('\n')]
+        self.set_file_name_on_status_bar(file_name)
+        # PAINT
+        self.line_data = [LineDatum() for line in self.file_lines]
         for i, line in enumerate(self.file_lines):
             self.line_data[i].line_number = i
             self.line_data[i].line_text = line + '\n'
@@ -3329,18 +3797,30 @@ class Makdo:
                     = self.line_data[i - 1].end_chars_state.copy()
                 self.line_data[i].beg_chars_state.reset_partially()
             self.line_data[i].paint_line(self.txt)
+        # CLEAR THE UNDO STACK
         self.txt.edit_reset()
+
+    def open_dropped_file(self, event):                   # drag and drop
+        ans = self.close_file()                           # drag and drop
+        if ans is None:                                   # drag and drop
+            return None                                   # drag and drop
+        file_path = event.data                            # drag and drop
+        file_path = re.sub('^{(.*)}$', '\\1', file_path)  # drag and drop
+        self.just_open_file(file_path)                    # drag and drop
+
+    ################################
+    # CLOSE FILE
 
     def close_file(self):
         # SAVE FILE
-        if self.has_edited():
+        if self._has_edited():
             ans = self._ask_to_save('保存しますか？')
             if ans is None:
                 return None
             elif ans is True:
                 if not self.save_file():
                     return None
-        if self.has_edited():
+        if self._has_edited():
             ans = self._ask_to_save('データが消えますが、保存しますか？')
             if ans is None:
                 return None
@@ -3352,10 +3832,11 @@ class Makdo:
         self.file_path = None
         self.init_text = ''
         self.txt.delete('1.0', 'end')
-        self.stb_fnm1['text'] = ''
+        self.win.title('MAKDO')
+        self.set_file_name_on_status_bar('')
         return True
 
-    def has_edited(self):
+    def _has_edited(self):
         file_text = self.txt.get('1.0', 'end-1c')
         if file_text != '':
             if self.init_text != file_text:
@@ -3367,8 +3848,11 @@ class Makdo:
         n, m, d = '確認', message, 'yes'
         return tkinter.messagebox.askyesnocancel(n, m, default=d)
 
+    ################################
+    # SAVE
+
     def save_file(self):
-        if self.has_edited():
+        if self._has_edited():
             file_text = self.txt.get('1.0', 'end-1c')
             self._stamp_time(file_text)
             if file_text == '' or file_text[-1] != '\n':
@@ -3420,7 +3904,7 @@ class Makdo:
                     n = 'エラー'
                     tkinter.messagebox.showerror(n, msg)
                     return
-            self.set_message('保存しました')
+            self.set_message_on_status_bar('保存しました')
             self.init_text = file_text
             return True
 
@@ -3458,12 +3942,21 @@ class Makdo:
                 self.txt.delete(beg, end)
                 self.txt.insert(beg, now.isoformat(timespec='seconds'))
 
+    ################################
+    # NAME AND SAVE
+
     def name_and_save(self):
         typ = [('可能な形式', '.md .docx'),
                ('Markdown', '.md'), ('MS Word', '.docx')]
         file_path = tkinter.filedialog.asksaveasfilename(filetypes=typ)
+        if file_path == () or file_path == '':
+            return False
         self.file_path = file_path
         self.save_file()
+        return True
+
+    ################################
+    # QUIT
 
     def quit_makdo(self):
         ans = self.close_file()
@@ -3473,6 +3966,7 @@ class Makdo:
         self.win.destroy()
         sys.exit(0)
 
+    ################################################################
     # EDIT
 
     def cut_text(self):
@@ -3491,18 +3985,24 @@ class Makdo:
         return
 
     def paste_text(self):
+        beg = self.get_insert_v_number()
         try:
             c = self.win.clipboard_get()
             self.txt.insert('insert', c)
             # self.txt.yview('insert -20 line')
         except BaseException:
             pass
+        end = self.get_insert_v_number()
+        for i in range(beg - 1, end - 1):
+            self.paint_out_line(i)
+        return
+
+    def select_all(self):
+        self.txt.tag_add('sel', '1.0', 'end-1c')
         return
 
     def calculate(self):
-        inse = self.txt.index('insert')
-        numb = re.sub('\\..*$', '', inse)
-        line = self.txt.get(numb + '.0', numb + '.end')
+        line = self.txt.get('insert linestart', 'insert lineend')
         line_head = ''
         line_math = line
         line_rslt = ''
@@ -3642,12 +4142,86 @@ class Makdo:
             if re.match('^.*[0-9]{5}$', i):
                 i = re.sub('([0-9]{4})$', '万\\1', i)
         r = i + f
-        beg = numb + '.' + str(len(line_head + line_math))
-        end = numb + '.' + str(len(line_head + line_math + line_rslt))
+        v_number = self.get_insert_v_number()
+        beg = str(v_number) + '.' + str(len(line_head + line_math))
+        end = str(v_number) + '.' + str(len(line_head + line_math + line_rslt))
         self.txt.delete(beg, end)
         self.txt.insert(beg, '=' + r)
         self.win.clipboard_clear()
         self.win.clipboard_append(r)
+
+    def transform_to_another_typeface(self):
+        c = self.txt.get('insert', 'insert+1c')
+        for tf in TYPEFACES:
+            if c in tf:
+                TypefaceDialog(self.txt, c, list(tf))
+
+    ################################################################
+    # VISUAL
+
+    def set_size_ss(self):
+        self.__set_font_size(8)
+
+    def set_size_s(self):
+        self.__set_font_size(12)
+
+    def set_size_m(self):
+        self.__set_font_size(18)
+
+    def set_size_l(self):
+        self.__set_font_size(26)
+
+    def set_size_ll(self):
+        self.__set_font_size(36)
+
+    def __set_font_size(self, size):
+        self.font_size = size
+        self.txt['font'] = (GOTHIC_FONT, size)
+        self.stb_sor2['font'] = (GOTHIC_FONT, size)
+        self.stb_sor4['font'] = (GOTHIC_FONT, size)
+        for u in ['-x', '-u']:
+            und = False if u == '-x' else True
+            for f in ['-g', '-m']:
+                fon = (GOTHIC_FONT, size) if f == '-g' else (MINCHO_FONT, size)
+                # WHITE
+                for i in range(3):
+                    a = '-XXX'
+                    y = '-' + str(30 + (i * 20))
+                    tag = 'c' + a + y + f + u
+                    col = WHITE_SPACE[i]
+                    self.txt.tag_config(tag, font=fon,
+                                        foreground=col, underline=und)
+                # COLOR
+                for i in range(3):  # lightness
+                    y = '-' + str(30 + (i * 20))
+                    for j, c in enumerate(COLOR_SPACE):  # angle
+                        a = '-' + str(j * 5)
+                        tag = 'c' + a + y + f + u  # example: c-125-50-g-x
+                        col = c[i]
+                        self.txt.tag_config(tag, font=fon,
+                                            foreground=col, underline=und)
+
+    ################################################################
+    # INSERT
+
+    ################################
+    # DATETIME
+
+    def insert_datetime(self):
+        now = datetime.datetime.utcnow() + datetime.timedelta(hours=+9)
+        jst = datetime.timezone(datetime.timedelta(hours=+9))
+        now = now.replace(tzinfo=jst)
+        self.txt.insert('insert', now.isoformat(timespec='seconds'))
+
+    ################################
+    # FILE NAME
+
+    def insert_file_path(self):
+        file_path = tkinter.filedialog.askopenfilename()
+        self.txt.insert('insert', file_path)
+
+    ################################
+    # SYMBOL
 
     def insert_parentheses_number(self):
         self.txt.insert('insert',
@@ -3676,257 +4250,33 @@ class Makdo:
                         '－（FF0D：全角ハイフンマイナス）\n' +
                         '-->\n')
 
-    def transform_to_another_typeface(self):
-        c = self.txt.get('insert', 'insert+1c')
-        for tf in TYPEFACES:
-            if c in tf:
-                TypefaceDialog(self.txt, c, list(tf))
-
-
-    # STATUS BAR
-
-    def search_or_replace_backward(self):
-        word1 = self.stb_sor1.get()
-        word2 = self.stb_sor2.get()
-        if Makdo.search_word != word1:
-            Makdo.search_word = word1
-            self._highlight_search_word()
-        pos = self.txt.index('insert')
-        tex = self.txt.get('1.0', pos)
-        res = '^((?:.|\n)*)(' + word1 + '(?:.|\n)*)$'
-        if re.match(res, tex):
-            t1 = re.sub(res, '\\1', tex)
-            t2 = re.sub(res, '\\2', tex)
-            # SEARCH
-            self.txt.mark_set('insert', pos + '-' + str(len(t2)) + 'c')
-            self.txt.yview(pos + '-' + str(len(t2)) + 'c-10line')
-            if word2 != '' and word2 != '（置換語）':
-                # REPLACE
-                self.txt.delete('insert', 'insert+' + str(len(word1)) + 'c')
-                self.txt.insert('insert', word2)
-                # self.stb_msg1['text'] = '置換しました'
-        self.set_message('')
-        self.txt.focus_set()
-
-    def search_or_replace_forward(self):
-        word1 = self.stb_sor1.get()
-        word2 = self.stb_sor2.get()
-        if Makdo.search_word != word1:
-            Makdo.search_word = word1
-            self._highlight_search_word()
-        pos = self.txt.index('insert')
-        tex = self.txt.get(pos, 'end-1c')
-        res = '^((?:.|\n)*?' + word1 + ')((?:.|\n)*)$'
-        if re.match(res, tex):
-            t1 = re.sub(res, '\\1', tex)
-            t2 = re.sub(res, '\\2', tex)
-            # SEARCH
-            self.txt.mark_set('insert', pos + '+' + str(len(t1)) + 'c')
-            self.txt.yview(pos + '+' + str(len(t1)) + 'c-10line')
-            if word2 != '' and word2 != '（置換語）':
-                # REPLACE
-                self.txt.delete('insert-' + str(len(word1)) + 'c', 'insert')
-                self.txt.insert('insert', word2)
-                # self.stb_msg1['text'] = '置換しました'
-        self.set_message('')
-        self.txt.focus_set()
-
-    def clear_search_word(self):
-        self.stb_sor1.delete('0', 'end')
-        self.stb_sor2.delete('0', 'end')
-        self.txt.tag_remove('search_tag', '1.0', 'end')
-        Makdo.search_word = ''
-
-    def set_message(self, msg):
-        self.stb_msg1['text'] = msg
-
-    # FONT SIZE
-
-    def set_size_ss(self):
-        self.__set_font_size(8)
-
-    def set_size_s(self):
-        self.__set_font_size(12)
-
-    def set_size_m(self):
-        self.__set_font_size(18)
-
-    def set_size_l(self):
-        self.__set_font_size(26)
-
-    def set_size_ll(self):
-        self.__set_font_size(36)
-
-    def __set_font_size(self, size):
-        self.font_size = size
-        self.txt['font'] = (GOTHIC_FONT, size)
-        self.stb_sor1['font'] = (GOTHIC_FONT, size)
-        self.stb_sor2['font'] = (GOTHIC_FONT, size)
-        for u in ['-x', '-u']:
-            und = False if u == '-x' else True
-            for f in ['-g', '-m']:
-                fon = (GOTHIC_FONT, size) if f == '-g' else (MINCHO_FONT, size)
-                # WHITE
-                for i in range(3):
-                    a = '-XXX'
-                    y = '-' + str(30 + (i * 20))
-                    tag = 'c' + a + y + f + u
-                    col = WHITE_SPACE[i]
-                    self.txt.tag_config(tag, font=fon,
-                                        foreground=col, underline=und)
-                # COLOR
-                for i in range(3):  # lightness
-                    y = '-' + str(30 + (i * 20))
-                    for j, c in enumerate(COLOR_SPACE):  # angle
-                        a = '-' + str(j * 5)
-                        tag = 'c' + a + y + f + u  # example: c-125-50-g-x
-                        col = c[i]
-                        self.txt.tag_config(tag, font=fon,
-                                            foreground=col, underline=und)
-
-    # RECURSIVE CALL
-
-    def run_periodically(self):
-        interval = 10
-        # IF THE REGION IS SET
-        if self.txt.tag_ranges(tkinter.SEL):
-            self.win.after(interval, self.run_periodically)  # NEXT
-            return
-        if 'akauni' in self.txt.mark_names():
-            self.win.after(interval, self.run_periodically)  # NEXT
-            return
-        # UPDATE TEXT
-        file_text = self.txt.get('1.0', 'end-1c')
-        self.file_lines = file_text.split('\n')
-        m = len(self.file_lines) - 1
-        while len(self.line_data) < m + 1:
-            self.line_data.append(LineDatum())
-            self.line_data[-1].line_number = len(self.line_data) - 1
-        while len(self.line_data) > m + 1:
-            self.line_data.pop(-1)
-        if m < 0:
-            self.win.after(interval, self.run_periodically)  # NEXT
-            return
-        # CHECK WHETHER TO PAINT KEYWORDS
-        should_paint_keywords = self.should_paint_keywords.get()
-        # GLOBAL
-        i = self.global_line_to_paint
-        if i < len(self.line_data):
-            self.line_data[i].line_number = i
-            lt = self.file_lines[i] + '\n'
-            if i == 0:
-                cs = CharsState()
-            else:
-                cs = self.line_data[i - 1].end_chars_state.copy()
-                cs.reset_partially()
-            spk = should_paint_keywords
-            self.line_data[i].line_text = lt
-            self.line_data[i].beg_chars_state = cs
-            self.line_data[i].end_chars_state = CharsState()
-            self.line_data[i].paint_line(self.txt, should_paint_keywords)
-            # if self.line_data[i].line_text != lt or \
-            #    self.line_data[i].should_paint_keywords != spk or \
-            #    self.line_data[i].beg_chars_state != cs:
-            #     self.line_data[i].line_text = lt
-            #     self.line_data[i].beg_chars_state = cs
-            #     self.line_data[i].end_chars_state = CharsState()
-            #     self.line_data[i].paint_line(self.txt, should_paint_keywords)
-        # LOCAL
-        i = self.cursor_line + self.local_line_to_paint - 10
-        if i >= 0 and i < len(self.line_data):
-            self.line_data[i].line_number = i
-            lt = self.file_lines[i] + '\n'
-            if i == 0:
-                cs = CharsState()
-            else:
-                cs = self.line_data[i - 1].end_chars_state.copy()
-                cs.reset_partially()
-            spk = should_paint_keywords
-            self.line_data[i].line_text = lt
-            self.line_data[i].beg_chars_state = cs
-            self.line_data[i].end_chars_state = CharsState()
-            self.line_data[i].paint_line(self.txt, should_paint_keywords)
-            # if self.line_data[i].line_text != lt or \
-            #    self.line_data[i].should_paint_keywords != spk or \
-            #    self.line_data[i].beg_chars_state != cs:
-            #     self.line_data[i].line_text = lt
-            #     self.line_data[i].beg_chars_state = cs
-            #     self.line_data[i].end_chars_state = CharsState()
-            #     self.line_data[i].paint_line(self.txt, should_paint_keywords)
-        # POINT
-        i = self.cursor_line
-        if i < len(self.line_data):
-            self.line_data[i].line_number = i
-            lt = self.file_lines[i] + '\n'
-            if i == 0:
-                cs = CharsState()
-            else:
-                cs = self.line_data[i - 1].end_chars_state.copy()
-                cs.reset_partially()
-            spk = should_paint_keywords
-            self.line_data[i].line_text = lt
-            self.line_data[i].beg_chars_state = cs
-            self.line_data[i].end_chars_state = CharsState()
-            self.line_data[i].paint_line(self.txt, should_paint_keywords)
-            # if self.line_data[i].line_text != lt or \
-            #    self.line_data[i].should_paint_keywords != spk or \
-            #    self.line_data[i].beg_chars_state != cs:
-            #     self.line_data[i].line_text = lt
-            #     self.line_data[i].beg_chars_state = cs
-            #     self.line_data[i].end_chars_state = CharsState()
-            #     self.line_data[i].paint_line(self.txt, should_paint_keywords)
-        # STEP (GLOBAL)
-        self.global_line_to_paint += 1
-        if self.global_line_to_paint >= m:
-            self.global_line_to_paint = 0
-        # STEP (LOCAL)
-        self.local_line_to_paint += 1
-        if self.local_line_to_paint >= 100:
-            i = self.txt.index('insert')
-            self.cursor_line = int(re.sub('\\..*$', '', i)) - 1
-            self.local_line_to_paint = 0
-        # READ ONLY
-        is_read_only = self.is_read_only.get()
-        if self.txt['state'] == 'normal' and is_read_only:
-            self.txt.configure(state='disabled')
-        if self.txt['state'] == 'disabled' and not is_read_only:
-            self.txt.configure(state='normal')
-        # CURRENT POSITION
-        self.set_current_position()
-        # AUTO SAVE
-        if (self.number_of_period % 6000) == 0:
-            self.save_auto_file(self.file_path)
-        # TO NEXT
-        self.number_of_period += 1
-        self.win.after(interval, self.run_periodically)  # NEXT
-        return
-
-    def _highlight_search_word(self):
-        word = Makdo.search_word
-        tex = self.txt.get('1.0', 'end-1c')
-        beg = 0
-        res = '^((?:.|\n)*?)' + word + '((?:.|\n)*)$'
-        while re.match(res, tex):
-            pre = re.sub(res, '\\1', tex)
-            tex = re.sub(res, '\\2', tex)
-            beg += len(pre)
-            end = beg + len(word)
-            self.txt.tag_add('search_tag',
-                             '1.0+' + str(beg) + 'c',
-                             '1.0+' + str(end) + 'c',)
-            beg = end
-
-    def set_current_position(self):
-        pos = self.txt.index('insert')
-        self.stb_pos1['text'] = str(pos).replace('.', 'x')
-
-    def insert_document(self, document_data):
-        chs = CharsState()
-        tmp = ''
-        for c in document_data + '\0':
-            tmp += c
-
+    ################################
     # SAMPLE
+
+    def insert_basis(self):
+        document = self.insert_configuration('普通', '0.0') + \
+            SAMPLE_BASIS
+        self.insert_sample(document)
+
+    def insert_law(self):
+        document = self.insert_configuration('条文', '0.0') + \
+            SAMPLE_LAW
+        self.insert_sample(document)
+
+    def insert_petition(self):
+        document = self.insert_configuration('普通', '1.0') + \
+            SAMPLE_LAW
+        self.insert_sample(document)
+
+    def insert_evidence(self):
+        document = self.insert_configuration('普通', '0.0') + \
+            SAMPLE_EVIDENCE
+        self.insert_sample(document)
+
+    def insert_settlement(self):
+        document = self.insert_configuration('契約', '1.0') + \
+            SAMPLE_SETTLEMENT
+        self.insert_sample(document)
 
     def insert_configuration(self, document_style, space_before):
         document = '''\
@@ -3985,456 +4335,92 @@ class Makdo:
 '''
         return document
 
-    def insert_basis(self):
-        document = self.insert_configuration('普通', '0.0') + \
-            '''
-# ★（タイトル）
-
-v=+1.0
-### ★（第1項）
-
-★
-
-### ★（第2項）
-
-★
-'''
-        self.insert_sample(document)
-
-    def insert_law(self):
-        document = self.insert_configuration('条文', '0.0') + \
-            '''
-v=+0.5 V=+0.5
-$ 総則
-
-v=+0.5 V=+0.5
-$$ 通則
-
-v=+0.5
-: （基本原則）
-
-##
-私権は、公共の福祉に適合しなければならない。
-
-###
-権利の行使及び義務の履行は、信義に従い誠実に行わなければならない。
-
-###
-権利の濫用は、これを許さない。
-
-v=+0.5
-: （解釈の基準）
-
-##
-この法律は、個人の尊厳と両性の本質的平等を旨として、解釈しなければならない。
-
-v=+0.5 V=+0.5
-$$ 人
-
-v=+0.5 V=+0.5
-$$$ 権利能力
-
-v=+0.5
-##
-私権の享有は、出生に始まる。
-
-###
-外国人は、法令又は条約の規定により禁止される場合を除き、私権を享有する。
-
-v=+0.5 V=+0.5
-$$$ 意思能力
-
-v=+0.5
-##-#
-法律行為の当事者が意思表示をした時に意思能力を有しなかったときは、
-その法律行為は、無効とする。
-
-v=+0.5 V=+0.5
-$$$ 行為能力
-
-v=+0.5
-: （成年）
-
-##
-年齢十八歳をもって、成年とする。
-
-v=+0.5
-: （未成年者の法律行為）
-
-##
-未成年者が法律行為をするには、その法定代理人の同意を得なければならない。
-ただし、単に権利を得、又は義務を免れる法律行為については、この限りでない。
-
-###
-前項の規定に反する法律行為は、取り消すことができる。
-
-###
-第一項の規定にかかわらず、法定代理人が目的を定めて処分を許した財産は、
-その目的の範囲内において、未成年者が自由に処分することができる。
-目的を定めないで処分を許した財産を処分するときも、同様とする。
-
-v=+0.5
-: （未成年者の営業の許可）
-
-##
-一種又は数種の営業を許された未成年者は、その営業に関しては、
-成年者と同一の行為能力を有する。
-
-###
-前項の場合において、未成年者がその営業に堪えることができない事由があるときは、
-その法定代理人は、第四編（親族）の規定に従い、その許可を取り消し、
-又はこれを制限することができる。
-
-v=+0.5
-: （後見開始の審判）
-
-##
-精神上の障害により事理を弁識する能力を欠く常況にある者については、
-家庭裁判所は、本人、配偶者、四親等内の親族、未成年後見人、未成年後見監督人、
-保佐人、保佐監督人、補助人、補助監督人又は検察官の請求により、
-後見開始の審判をすることができる。
-
-v=+0.5
-: （成年被後見人及び成年後見人）
-
-##
-後見開始の審判を受けた者は、成年被後見人とし、これに成年後見人を付する。
-
-v=+0.5
-: （成年被後見人の法律行為）
-
-##
-成年被後見人の法律行為は、取り消すことができる。
-ただし、日用品の購入その他日常生活に関する行為については、この限りでない。
-
-v=+0.5
-: （後見開始の審判の取消し）
-
-##
-第七条に規定する原因が消滅したときは、家庭裁判所は、本人、配偶者、
-四親等内の親族、後見人（未成年後見人及び成年後見人をいう。以下同じ。）、
-後見監督人（未成年後見監督人及び成年後見監督人をいう。以下同じ。）又は
-検察官の請求により、後見開始の審判を取り消さなければならない。
-
-v=+0.5
-: （保佐開始の審判）
-
-##
-精神上の障害により事理を弁識する能力が著しく不十分である者については、
-家庭裁判所は、本人、配偶者、四親等内の親族、後見人、後見監督人、補助人、
-補助監督人又は検察官の請求により、保佐開始の審判をすることができる。
-ただし、第七条に規定する原因がある者については、この限りでない。
-
-v=+0.5
-: （被保佐人及び保佐人）
-
-##
-保佐開始の審判を受けた者は、被保佐人とし、これに保佐人を付する。
-
-v=+0.5
-: （保佐人の同意を要する行為等）
-
-##
-被保佐人が次に掲げる行為をするには、その保佐人の同意を得なければならない。
-ただし、第九条ただし書に規定する行為については、この限りでない。
-
-####
-元本を領収し、又は利用すること。
-
-####
-借財又は保証をすること。
-
-####
-不動産その他重要な財産に関する権利の得喪を目的とする行為をすること。
-
-####
-訴訟行為をすること。
-
-####
-贈与、和解又は仲裁合意
-（仲裁法（平成十五年法律第百三十八号）第二条第一項に規定する仲裁合意をいう。）
-をすること。
-
-####
-相続の承認若しくは放棄又は遺産の分割をすること。
-
-####
-贈与の申込みを拒絶し、遺贈を放棄し、負担付贈与の申込みを承諾し、
-又は負担付遺贈を承認すること。
-
-####
-新築、改築、増築又は大修繕をすること。
-
-####
-第六百二条に定める期間を超える賃貸借をすること。
-
-####
-前各号に掲げる行為を制限行為能力者
-（未成年者、成年被後見人、被保佐人及び第十七条第一項の審判を受けた被補助人を
-いう。以下同じ。）の法定代理人としてすること。
-
-###
-家庭裁判所は、
-第十一条本文に規定する者又は保佐人若しくは保佐監督人の請求により、
-被保佐人が前項各号に掲げる行為以外の行為をする場合であっても
-その保佐人の同意を得なければならない旨の審判をすることができる。
-ただし、第九条ただし書に規定する行為については、この限りでない。
-
-###
-保佐人の同意を得なければならない行為について、
-保佐人が被保佐人の利益を害するおそれがないにもかかわらず同意をしないときは、
-家庭裁判所は、被保佐人の請求により、保佐人の同意に代わる許可を与えることができる。
-
-###
-保佐人の同意を得なければならない行為であって、
-その同意又はこれに代わる許可を得ないでしたものは、取り消すことができる。
-'''
-        self.insert_sample(document)
-
-    def insert_petition(self):
-        document = self.insert_configuration('普通', '1.0') + \
-            '''
-# 訴状
-
-v=+0.5
-令和★年★月★日 :
-
-v=+0.5
-: ★裁判所　御中
-
-v=+0.5
-<!--------------------------vv----------------------------vv------------->
-: \\　　　　　　　　　　　　　原告★訴訟代理人弁護士　　　　★
-: \\　　　　　　　　　　　　　　　同　　　　　　　　　　　　★
-: \\　　　　　　　　　　　　　　　同（担当）　　　　　　　　★
-
-v=+0.5
-: 〒★－★　広島市★
-<!--------------------------vv----------------------------vv------------->
-: \\　　　　　　　　　　　　　原告　　　　　　　　　　　　　★
-: \\　　　　　　　　　　　　　上記代表者代表取締役　　　　　★
-
-: 〒★－★　広島市★
-<!--------------------------vv----------------------------vv------------->
-: \\　　　　　　　　　　　　　原告　　　　　　　　　　　　　★
-: \\　　　　　　　　　　　　　上記代表者代表取締役　　　　　★
-
-: 〒★－★　広島市★
-: \\　　　　　　　★法律事務所（送達場所）
-<!--------------------------vv----------------------------vv------------->
-: \\　　　　　　　　　　　　　原告★訴訟代理人弁護士　　　　★
-: \\　　　　　　　　　　　　　　　同　　　　　　　　　　　　★
-: \\　　　　　　　　　　　　　　　同（担当）　　　　　　　　★
-: \\　　　　　　　TEL ★－★－★　　FAX ★－★－★
-
-: 〒★－★　広島市★
-<!--------------------------vv----------------------------vv------------->
-: \\　　　　　　　　　　　　　被告　　　　　　　　　　　　　★
-: \\　　　　　　　　　　　　　上記代表者代表取締役　　　　　★
-
-: 〒★－★　広島市★
-<!--------------------------vv----------------------------vv------------->
-: \\　　　　　　　　　　　　　被告　　　　　　　　　　　　　★
-: \\　　　　　　　　　　　　　上記代表者代表取締役　　　　　★
-
-v=+1.0
-: ★請求事件
-: 訴訟物の価額　　★★★★万★★★★円
-: 貼用印紙額　　　　　　★万★★★★円
-
-## 請求の趣旨
-
-###
-被告★は、原告に対し、★連帯して、
-★円及びこれに対する令和★年★月★日から支払済みまで年３分
-の割合による金員を支払え。
-
-###
-訴訟費用は被告★の負担とする。
-
-<<=1 <=1
-との判決並びに仮執行の宣言を求める。
-
-# 請求の原因
-
-### ★について
-
-★
-
-### ★について
-
-★
-
-### まとめ
-
-よって、原告は、被告★に対し、不法行為に基づき、
-損害金★円及びこれに対する本件事故日である
-令和★年★月★日から支払済みまで民法所定年３分
-の割合による遅延損害金の支払を求める。
-
-v=+1.0
-# ##=1 ###=1
-
-: 証拠方法 :
-
-### 甲第１号証　　　　　★
-### 甲第２号証　　　　　★
-### 甲第３号証　　　　　★
-### 甲第４号証　　　　　★
-### 甲第５号証　　　　　★
-### 甲第６号証　　　　　★
-### 甲第７号証　　　　　★
-### 甲第８号証　　　　　★
-### 甲第９号証　　　　　★
-### 甲第１０号証　　　　★
-### 甲第１１号証　　　　★
-
-v=+1.0
-# ##=1 ###=1
-
-: 附属書類 :
-
-### 訴状副本　　　　　　　　　　　　　　★通<!--[被告の数]-->
-### 資格証明書　　　　　　　　　　　　　★通<!--[法人当事者の数]-->
-### 訴訟委任状　　　　　　　　　　　　　★通<!--[原告の数]-->
-### 甲号証の写し　　　　　　　　　　　各★通<!--[被告の数＋1]-->
-'''
-        self.insert_sample(document)
-
-    def insert_evidence(self):
-        document = self.insert_configuration('普通', '0.0') + \
-            '''
-: 令和★年（★）第★号　★請求事件
-: 原告　★
-: 被告　★
-
-v=+0.5
-# 証拠説明書
-
-v=+0.5
-令和★年★月★日 :
-
-v=+0.5
-: ★裁判所　御中
-
-v=+0.5
-<!--------------------------vv----------------------------vv------------->
-: \\　　　　　　　　　　　　　★★★訴訟代理人弁護士　　　　★
-: \\　　　　　　　　　　　　　　　同　　　　　　　　　　　　★
-: \\　　　　　　　　　　　　　　　同（担当）　　　　　　　　★
-
-v=+1.0
---
-|号証 |標目|原写|作成日|作成者|立証趣旨|備考|
-=
-|:----|:---------|:--:|:-------|:-----------|:-----------------------|:---------|
-|★1|★書|原本|R★.★.★|★|①★であったこと<br>②★であったこと||
-|★2|★書|原本|R★.★.★|★|①★であったこと<br>②★であったこと||
-|★3|★書|原本|R★.★.★|★|①★であったこと<br>②★であったこと||
---
-'''
-        self.insert_sample(document)
-
-    def insert_settlement(self):
-        document = self.insert_configuration('契約', '1.0') + \
-            '''
-# 和解契約書
-
-v=+1.0
-★（以下「甲」という。）と
-★（以下「乙」という。）は、
-★に関し、次のとおり和解した。
-
-## （★）
-
-★
-
-###
-★
-
-###
-★
-
-## （債務）
-
-乙は、甲に対し、
-★万★円の債務を負っていることを認める。
-
-## （支払）
-
-乙は、甲に対し、
-令和★年★月★日限り、
-前条の★万★円を下記の口座に振り込んで支払う。
-ただし、振込手数料は乙の負担とする。
-
-<=-1.0 v=+0.5
-金融機関__　　　　　　　　　　　__　本支店名__　　　　　　　　　　　__
-
-<=-1.0 v=+0.5
-普通・当座等__　　　　　　　__　口座番号__　　　　　　　　　　　　　__
-
-<=-1.0 v=+0.5
-<名義/フリガナ>__　　　　　　　　　　　　　　　　　　　　　　　　　　　　　__
-
-## （清算条項）
-
-甲と乙は、甲と乙の間には、
-★本件に関し、
-上記各条項に定めるほか、何らの債権債務のないことを相互に確認する。
-
-v=+1.0
-本和解の成立を証するため、本書を★通作成し、各自1通を所持するものとする。
-
-# ##=1 ###=1
-
-v=+1.0
-: 令和★年★月★日
-
-v=+1.0
-: 甲　　　　★
-: \\　　　　　　　　　　　★　　　　　　　　　　　　　　　　　　　　㊞
-
-: ★代理人　★
-: \\　　　　　　　弁護士　★　　　　　　　　　　　　　　　　　　　　㊞
-
-v=+0.5
-: ★　住所　^DDD^__　　　　　　　　　　　　　　　　　　　　　　　　　　　　__^DDD^
-
-v=+0.5
-: \\　　氏名　__　　　　　　　　　　　　　　　　　　　　　　　　　　　㊞__
-'''
-        self.insert_sample(document)
-
     def insert_sample(self, sample_document):
-        current_document = self.txt.get('1.0', 'end-1c')
-        if current_document != '':
+        txt_text = self.txt.get('1.0', 'end-1c')
+        if txt_text != '':
+            n, m = 'エラー', 'テキストが空ではありません'
+            tkinter.messagebox.showerror(n, m)
             return
+        self.file_lines = sample_document.split('\n')
         self.txt.insert('1.0', sample_document)
+        self.txt.focus_set()
+        self.txt.mark_set('insert', '1.0')
+        # PAINT
+        self.line_data = [LineDatum() for line in self.file_lines]
+        for i, line in enumerate(self.file_lines):
+            self.line_data[i].line_number = i
+            self.line_data[i].line_text = line + '\n'
+            if i > 0:
+                self.line_data[i].beg_chars_state \
+                    = self.line_data[i - 1].end_chars_state.copy()
+                self.line_data[i].beg_chars_state.reset_partially()
+            self.line_data[i].paint_line(self.txt)
+        # CLEAR THE UNDO STACK
+        self.txt.edit_reset()
 
+    ################################################################
+    # CONFIGURATION
+
+    def toggle_read_only(self):
+        is_read_only = self.is_read_only.get()
+        if self.txt['state'] == 'normal' and is_read_only:
+            self.txt.configure(state='disabled')
+        if self.txt['state'] == 'disabled' and not is_read_only:
+            self.txt.configure(state='normal')
+
+    ################################################################
     # HELP
+
+    ################################
+    # CHARACTER INFORMATION
 
     def show_char_info(self):
         n = '文字情報'
         c = self.txt.get('insert', 'insert+1c')
-        for jk in JOYOKANJI:
-            if c in jk[1]:
-                m = '常用漢字です\n\n字：' + jk[1] + '\n\n読：' + jk[2]
-                if jk[3] != '':
-                    m += '\n\n例：' + jk[3]
-                break
-        else:
-            m = '常用漢字ではありません\n\n字：' + c
-        tkinter.messagebox.showinfo(n, m)
+        if c != '':
+            m = ''
+            m += '文字：\t' + c + '\n'
+            m += 'UTF-8：\t' + re.sub('^0x', '', hex(ord(c))).upper() + '\n\n'
+            for jk in JOYOKANJI:
+                if c in jk[1]:
+                    m += '常用漢字です\n'
+                    m += '字体：' + jk[1] + '\n'
+                    m += '読み：' + jk[2] + '\n'
+                    if jk[3] != '':
+                        m += '用例：' + jk[3] + '\n'
+                    break
+            else:
+                m += '常用漢字ではありません\n'
+                if re.match('^[ -~]$', c):
+                    m += '半角英数記号\n'
+                if re.match('^[ｦ-ﾟ]$', c):
+                    m += '半角カタカナ\n'
+                if re.match('^[ぁ-ゖ]$', c):
+                    m += 'ひらがな\n'
+                if re.match('^[ァ-ヺ]$', c) or re.match('^[ㇰ-ㇿ]$', c):
+                    m += 'カタカナ\n'
+                if re.match('^[０-９]$', c):
+                    m += '数字\n'
+            m = re.sub('\n+$', '', m)
+            tkinter.messagebox.showinfo(n, m)
+
+    ################################
+    # ABOUT MAKDO
 
     def show_about_makdo(self):
         n = 'バージョン情報'
         m = 'makdo ' + __version__
         tkinter.messagebox.showinfo(n, m)
 
+    ################################################################
+    # TEXT
+
+    ################################
     # KEY
 
     def process_key(self, key):
-        self.set_message('')
+        self.set_message_on_status_bar('')
+        self.set_position_info_on_status_bar()
         # FOR AKAUNI
         self.akauni_history.append(key.keysym)
         self.akauni_history.pop(0)
@@ -4551,62 +4537,64 @@ v=+0.5
                 else:
                     self.win.clipboard_append(c)
                     self.txt.delete(pos, end + '-1c')
-        self.set_current_position()
+        elif key.keysym == 'Tab':
+            # CALCULATE
+            text_beg_to_cur = self.txt.get('1.0', 'insert')
+            text = text_beg_to_cur
+            res_open = '^((?:.|\n)*)(<!--(?:.|\n)*)'
+            res_close = '^((?:.|\n)*)(-->(?:.|\n)*)'
+            if re.match(res_open, text):
+                text = re.sub(res_open, '\\2', text)
+                if not re.match(res_close, text):
+                    self.calculate()
+                    return 'break'
+            # INSERT
+            position_cur = self.txt.index('insert')
+            position_beg = re.sub('\\..*$', '.0', position_cur)
+            position_end = re.sub('\\..*$', '.end', position_cur)
+            line_cur_to_end = self.txt.get(position_cur, position_end)
+            line_beg_to_end = self.txt.get(position_beg, position_end)
+            if re.match('^.*\\.0$', position_cur):
+                if line_beg_to_end == '':
+                    self.txt.insert('insert', PARAGRAPH_SAMPLE[0])
+                    self.txt.mark_set('insert', position_beg)
+                    return 'break'
+                for i, sample in enumerate(PARAGRAPH_SAMPLE):
+                    if line_beg_to_end == sample:
+                        self.txt.delete(position_beg, position_end)
+                        self.txt.insert('insert', PARAGRAPH_SAMPLE[i + 1])
+                        self.txt.mark_set('insert', position_beg)
+                        return 'break'
+            else:
+                for i, sample in enumerate(FONT_DECORATOR_SAMPLE):
+                    sample_esc = sample
+                    sample_esc = sample_esc.replace('*', '\\*')
+                    sample_esc = sample_esc.replace('+', '\\+')
+                    sample_esc = sample_esc.replace('^', '\\^')
+                    if re.match('^' + sample_esc, line_cur_to_end):
+                        position_tmp \
+                            = position_cur + '+' + str(len(sample)) + 'c'
+                        self.txt.delete(position_cur, position_tmp)
+                        self.txt.insert('insert', FONT_DECORATOR_SAMPLE[i + 1])
+                        self.txt.mark_set('insert', position_cur)
+                        return 'break'
+                else:
+                    self.txt.insert('insert', FONT_DECORATOR_SAMPLE[0])
+                    self.txt.mark_set('insert', position_cur)
+                    return 'break'
 
     def process_key_release(self, key):
+        self.set_position_info_on_status_bar()
+        self.paint_out_line(self.get_insert_v_number() - 1)
         # FOR AKAUNI
         if 'akauni' in self.txt.mark_names():
             self.txt.tag_remove('akauni_tag', '1.0', 'end')
             self.txt.tag_add('akauni_tag', 'akauni', 'insert')
             self.txt.tag_add('akauni_tag', 'insert', 'akauni')
-        self.set_current_position()
 
-    def process_key_tab(self, key):
-        # CALCULATE
-        text_beg_to_cur = self.txt.get('1.0', 'insert')
-        text = text_beg_to_cur
-        res_open = '^((?:.|\n)*)(<!--(?:.|\n)*)'
-        res_close = '^((?:.|\n)*)(-->(?:.|\n)*)'
-        if re.match(res_open, text):
-            text = re.sub(res_open, '\\2', text)
-            if not re.match(res_close, text):
-                self.calculate()
-                return 'break'
-        # INSERT
-        point_cur = self.txt.index('insert')
-        point_beg = re.sub('\\..*$', '.0', point_cur)
-        point_end = re.sub('\\..*$', '.end', point_cur)
-        line_cur_to_end = self.txt.get(point_cur, point_end)
-        line_beg_to_end = self.txt.get(point_beg, point_end)
-        if re.match('^.*\\.0$', point_cur):
-            if line_beg_to_end == '':
-                self.txt.insert('insert', PARAGRAPH_SAMPLE[0])
-                self.txt.mark_set('insert', point_beg)
-                return 'break'
-            for i, sample in enumerate(PARAGRAPH_SAMPLE):
-                if line_beg_to_end == sample:
-                    self.txt.delete(point_beg, point_end)
-                    self.txt.insert('insert', PARAGRAPH_SAMPLE[i + 1])
-                    self.txt.mark_set('insert', point_beg)
-                    return 'break'
-        else:
-            for i, sample in enumerate(FONT_DECORATOR_SAMPLE):
-                sample_esc = sample
-                sample_esc = sample_esc.replace('*', '\\*')
-                sample_esc = sample_esc.replace('+', '\\+')
-                sample_esc = sample_esc.replace('^', '\\^')
-                if re.match('^' + sample_esc, line_cur_to_end):
-                    point_tmp = point_cur + '+' + str(len(sample)) + 'c'
-                    self.txt.delete(point_cur, point_tmp)
-                    self.txt.insert('insert', FONT_DECORATOR_SAMPLE[i + 1])
-                    self.txt.mark_set('insert', point_cur)
-                    return 'break'
-            else:
-                self.txt.insert('insert', FONT_DECORATOR_SAMPLE[0])
-                self.txt.mark_set('insert', point_cur)
-                return 'break'
+    ################################
+    # MOUSE LEFT
 
-    # LEFT
     def process_button1(self, click):
         pass
 
@@ -4615,9 +4603,11 @@ v=+0.5
             self.bt3.destroy()
         except BaseException:
             pass
-        self.set_current_position()
+        self.set_position_info_on_status_bar()
 
-    # CENTER
+    ################################
+    # MOUSE CENTER
+
     def process_button2(self, click):
         pass
 
@@ -4629,56 +4619,234 @@ v=+0.5
         self.paste_text()
         return 'break'
 
-    # RIGHT
+    ################################
+    # MOUSE RIGHT
+
     def process_button3(self, click):
         try:
             self.bt3.destroy()
         except BaseException:
             pass
         self.bt3 = tkinter.Menu(self.win, tearoff=False)
-        self.bt3.add_command(label='切り取り', command=self.cut_text)
-        self.bt3.add_command(label='コピー', command=self.copy_text)
-        self.bt3.add_command(label='貼り付け', command=self.paste_text)
+        self.bt3.add_command(label='切り取り',
+                             command=self.cut_text)
+        self.bt3.add_command(label='コピー',
+                             command=self.copy_text)
+        self.bt3.add_command(label='貼り付け',
+                             command=self.paste_text)
         self.bt3.post(click.x_root, click.y_root)
 
     def process_button3_release(self, click):
         pass
 
+    ################################################################
+    # STATUS BAR
 
-class TypefaceDialog(tkinter.simpledialog.Dialog):
+    ################################
+    # FILE NAME
 
-    def __init__(self, win, old_typeface, candidates):
-        self.win = win
-        self.old_typeface = old_typeface
-        self.candidates = candidates
-        super().__init__(win)
+    def set_file_name_on_status_bar(self, file_name):
+        fn = file_name
+        fn = re.sub('\n', '/', fn)
+        res = '^(.*)(\\..{1,4})$'
+        if re.match(res, fn):
+            nam = re.sub(res, '\\1', fn)
+            ext = re.sub(res, '\\2', fn)
+        else:
+            nam = fn
+            ext = ''
+        if len(fn) > 15:
+            nam = re.sub('^(.{' + str(14 - len(ext)) + '})(.*)', '\\1…', nam)
+        self.stb_fnm1['text'] = nam + ext
 
-    def body(self, win):
-        self.typeface = tkinter.StringVar()
-        for cnd in self.candidates:
-            rd = tkinter.Radiobutton(win, text=cnd, value=cnd,
-                                     font=(GOTHIC_FONT, 24),
-                                     variable=self.typeface)
-            rd.pack(side=tkinter.LEFT, padx=3, pady=3)
-            if cnd == self.old_typeface:
-                rd.select()
+    ################################
+    # POSITON INFORMATION
 
-    def buttonbox(self):
-        btn = tkinter.Frame(self)
-        self.btn1 = tkinter.Button(btn, text='OK', width=6,
-                                   command=self.ok)
-        self.btn1.pack(side=tkinter.LEFT, padx=3, pady=3)
-        self.btn2 = tkinter.Button(btn, text='Cancel', width=6,
-                                   command=self.cancel)
-        self.btn2.pack(side=tkinter.LEFT, padx=3, pady=3)
-        btn.pack()
+    def set_position_info_on_status_bar(self):
+        pos = self.txt.index('insert')
+        cur_p = str(pos).replace('.', 'x')
+        max_v = self.get_max_v_number()
+        max_h = self.get_max_h_number()
+        max_p = str(max_v) + 'x' + str(max_h)
+        self.stb_pos1['text'] = cur_p + '/' + max_p
 
-    def apply(self):
-        new_typeface = self.typeface.get()
-        self.win.delete('insert', 'insert+1c')
-        self.win.insert('insert', new_typeface)
-        self.win.mark_set('insert', 'insert-1c')
-        self.win.focus_set()
+    ################################
+    # SEARCH OR REPLACE
+
+    def search_or_replace_backward(self):
+        word1 = self.stb_sor2.get()
+        word2 = self.stb_sor4.get()
+        if Makdo.search_word != word1:
+            Makdo.search_word = word1
+            self._highlight_search_word()
+        pos = self.txt.index('insert')
+        tex = self.txt.get('1.0', pos)
+        res = '^((?:.|\n)*)(' + word1 + '(?:.|\n)*)$'
+        if re.match(res, tex):
+            t1 = re.sub(res, '\\1', tex)
+            t2 = re.sub(res, '\\2', tex)
+            # SEARCH
+            self.txt.mark_set('insert', pos + '-' + str(len(t2)) + 'c')
+            self.txt.yview(pos + '-' + str(len(t2)) + 'c-10line')
+            if word2 != '':  # and word2 != '（置換語）'
+                # REPLACE
+                self.txt.delete('insert', 'insert+' + str(len(word1)) + 'c')
+                self.txt.insert('insert', word2)
+                # self.set_message_on_status_bar('置換しました')
+        self.set_message_on_status_bar('')
+        self.txt.focus_set()
+
+    def search_or_replace_forward(self):
+        word1 = self.stb_sor2.get()
+        word2 = self.stb_sor4.get()
+        if Makdo.search_word != word1:
+            Makdo.search_word = word1
+            self._highlight_search_word()
+        pos = self.txt.index('insert')
+        tex = self.txt.get(pos, 'end-1c')
+        res = '^((?:.|\n)*?' + word1 + ')((?:.|\n)*)$'
+        if re.match(res, tex):
+            t1 = re.sub(res, '\\1', tex)
+            t2 = re.sub(res, '\\2', tex)
+            # SEARCH
+            self.txt.mark_set('insert', pos + '+' + str(len(t1)) + 'c')
+            self.txt.yview(pos + '+' + str(len(t1)) + 'c-10line')
+            if word2 != '':  # and word2 != '（置換語）'
+                # REPLACE
+                self.txt.delete('insert-' + str(len(word1)) + 'c', 'insert')
+                self.txt.insert('insert', word2)
+                # self.set_message_on_status_bar('置換しました')
+        self.set_message_on_status_bar('')
+        self.txt.focus_set()
+
+    def clear_search_word(self):
+        self.stb_sor2.delete('0', 'end')
+        self.stb_sor4.delete('0', 'end')
+        self.txt.tag_remove('search_tag', '1.0', 'end')
+        Makdo.search_word = ''
+
+    def _highlight_search_word(self):
+        word = Makdo.search_word
+        tex = self.txt.get('1.0', 'end-1c')
+        beg = 0
+        res = '^((?:.|\n)*?)' + word + '((?:.|\n)*)$'
+        while re.match(res, tex):
+            pre = re.sub(res, '\\1', tex)
+            tex = re.sub(res, '\\2', tex)
+            beg += len(pre)
+            end = beg + len(word)
+            self.txt.tag_add('search_tag',
+                             '1.0+' + str(beg) + 'c',
+                             '1.0+' + str(end) + 'c',)
+            beg = end
+
+    ################################
+    # MESSAGE
+
+    def set_message_on_status_bar(self, msg):
+        self.stb_msg1['text'] = msg
+
+    ################################################################
+    # AUTO SAVE
+
+    def get_auto_path(self, file_path):
+        if file_path is None or file_path == '':
+            return None
+        if '/' in file_path or '\\' in file_path:
+            d = re.sub('^((?:.|\n)*[/\\\\])(.*)$', '\\1', file_path)
+            f = re.sub('^((?:.|\n)*[/\\\\])(.*)$', '\\2', file_path)
+        else:
+            d = ''
+            f = file_path
+        if '.' in f:
+            n = re.sub('^((?:.|\n)*)(\\..*)$', '\\1', f)
+            e = re.sub('^((?:.|\n)*)(\\..*)$', '\\2', f)
+        else:
+            n = f
+            e = ''
+        n = re.sub('^((?:.|\n){,240})(.*)$', '\\1', n)
+        return d + '~$' + n + e + '.zip'
+
+    def exists_auto_file(self, file_path):
+        auto_path = self.get_auto_path(file_path)
+        if os.path.exists(auto_path):
+            # auto_file = re.sub('^(.|\n)*[/\\\\]', '', auto_path)
+            n = 'エラー'
+            m = '自動保存ファイルが存在します．\n' + \
+                '"' + auto_path + '"\n\n' + \
+                '①現在、ファイルを編集中\n' + \
+                '②過去の編集中のファイルが残存\n' + \
+                'の2つの可能性が考えられます．\n\n' + \
+                '①現在、ファイルを編集中\n' + \
+                'の場合は、「No」を選択してください．\n\n' + \
+                '②過去の編集中のファイルが残存\n' + \
+                'の場合、異常終了したものと思われます．\n' + \
+                '「No」を選択して、' + \
+                '自動保存ファイルの中身を確認してから、' + \
+                '削除することをおすすめします．\n\n' + \
+                '自動保存ファイルを削除しますか？'
+            ans = tkinter.messagebox.askyesno(n, m, default='no')
+            if ans:
+                try:
+                    self.remove_auto_file(file_path)
+                except BaseException:
+                    n, m = 'エラー', '自動保存ファイルの削除に失敗しました'
+                    tkinter.messagebox.showerror(n, m)
+        if os.path.exists(auto_path):
+            return True
+        else:
+            return False
+
+    def save_auto_file(self, file_path):
+        if file_path is not None and file_path != '':
+            new_text = self.txt.get('1.0', 'end-1c')
+            auto_path = self.get_auto_path(file_path)
+            if os.path.exists(auto_path):
+                with zipfile.ZipFile(auto_path, 'r') as old_zip:
+                    with old_zip.open('doc.md', 'r') as f:
+                        old_text = f.read()
+                        if new_text == old_text.decode():
+                            return
+            with zipfile.ZipFile(auto_path, 'w',
+                                 compression=zipfile.ZIP_DEFLATED,
+                                 compresslevel=9) as new_zip:
+                new_zip.writestr('doc.md', new_text)
+
+    def remove_auto_file(self, file_path):
+        if file_path is not None and file_path != '':
+            auto_path = self.get_auto_path(file_path)
+            if re.match('(^|(.|\n)*[/\\\\])~\\$(.|\n)+\\.zip$', auto_path):
+                if os.path.exists(auto_path):
+                    os.remove(auto_path)
+
+    ################################################################
+    # RECURSIVE CALL
+
+    def run_periodically(self):
+        interval = 10
+        # GLOBAL PAINTING
+        self.paint_out_line(self.global_line_to_paint)
+        self.global_line_to_paint += 1
+        if self.global_line_to_paint >= len(self.file_lines) - 1:
+            self.global_line_to_paint = 0
+        # LOCAL PAINTING
+        self.paint_out_line(self.standard_line + self.local_line_to_paint - 10)
+        self.local_line_to_paint += 1
+        if self.local_line_to_paint >= 100:
+            i = self.txt.index('insert')
+            self.standard_line = int(re.sub('\\..*$', '', i)) - 1
+            self.local_line_to_paint = 0
+        # POINT PAINTING
+        # self.paint_out_line(self.get_insert_v_number() - 1)
+        # POSITION INFO
+        self.set_position_info_on_status_bar()
+        # AUTO SAVE
+        if ((self.number_of_period * interval) % 60_000) == 0:
+            self.save_auto_file(self.file_path)
+        # TO NEXT
+        self.number_of_period += 1
+        self.win.after(interval, self.run_periodically)  # NEXT
+        return
 
 
 if __name__ == '__main__':
