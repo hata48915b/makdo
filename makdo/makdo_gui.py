@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.16-13:07:29-JST>
+# Time-stamp:   <2024.08.16-14:29:24-JST>
 
 # makdo_gui.py
 # Copyright (C) 2024-2024  Seiichiro HATA
@@ -3368,7 +3368,7 @@ class LineDatum:
         return
 
 
-class TypefaceDialog(tkinter.simpledialog.Dialog):
+class ConvertTypefaceDialog(tkinter.simpledialog.Dialog):
 
     def __init__(self, win, old_typeface, candidates):
         self.win = win
@@ -3401,6 +3401,39 @@ class TypefaceDialog(tkinter.simpledialog.Dialog):
         self.win.delete('insert', 'insert+1c')
         self.win.insert('insert', new_typeface)
         self.win.mark_set('insert', 'insert-1c')
+        self.win.focus_set()
+
+
+class InsertSymbolDialog(tkinter.simpledialog.Dialog):
+
+    def __init__(self, win, candidates):
+        self.win = win
+        self.candidates = candidates
+        super().__init__(win)
+
+    def body(self, win):
+        self.symbol = tkinter.StringVar()
+        for i, cnd in enumerate(self.candidates):
+            rd = tkinter.Radiobutton(win, text=cnd, value=cnd,
+                                     font=(GOTHIC_FONT, 24),
+                                     variable=self.symbol)
+            y, x = int(i / 10), (i % 10)
+            rd.grid(row=y, column=x, columnspan=1, padx=3, pady=3)
+
+    def buttonbox(self):
+        btn = tkinter.Frame(self)
+        self.btn1 = tkinter.Button(btn, text='OK', width=6,
+                                   command=self.ok)
+        self.btn1.pack(side=tkinter.LEFT, padx=3, pady=3)
+        self.btn2 = tkinter.Button(btn, text='Cancel', width=6,
+                                   command=self.cancel)
+        self.btn2.pack(side=tkinter.LEFT, padx=3, pady=3)
+        btn.pack()
+
+    def apply(self):
+        symbol = self.symbol.get()
+        self.win.insert('insert', symbol)
+        # self.win.mark_set('insert', 'insert-1c')
         self.win.focus_set()
 
 
@@ -3609,6 +3642,8 @@ class Makdo:
         self.mc4dat.add_separator()
         self.mc4dat.add_command(label='yy-m-dTh:m:s+09:00',
                                 command=self.insert_datetime)
+        self.mc4dat.add_command(label='y-m-d h:m:s',
+                                command=self.insert_datetime_symple)
         self.mc4fil = tkinter.Menu(self.mc4, tearoff=False)
         self.mc4.add_cascade(label='ファイル名を挿入する', menu=self.mc4fil)
         self.mc4fil.add_command(label='フルパスで挿入する',
@@ -3616,20 +3651,23 @@ class Makdo:
         self.mc4fil.add_command(label='ファイル名のみを挿入する',
                                 command=self.insert_file_names)
         self.mc4.add_separator()
+        self.mc4.add_command(label='記号',
+                             command=self.insert_symbol)
         self.mc4sym = tkinter.Menu(self.mc4, tearoff=False)
-        self.mc4.add_cascade(label='記号を挿入する', menu=self.mc4sym)
-        self.mc4sym.add_command(label='括弧数字（⑴⑵⑶⑷⑸…）',
-                                command=self.insert_parentheses_number)
-        self.mc4sym.add_command(label='丸数字（①②③④⑤…）',
-                                command=self.insert_circle_number)
-        self.mc4sym.add_command(label='上付数字（⁰¹²³⁴⁵⁶⁷⁸⁹）',
-                                command=self.insert_sup_number)
-        self.mc4sym.add_command(label='下付数字（₀₁₂₃₄₅₆₇₈₉）',
-                                command=self.insert_sub_number)
-        self.mc4sym.add_command(label='記号（㊞）',
-                                command=self.insert_symbol)
-        self.mc4sym.add_command(label='横棒（-‐—―−－）',
-                                command=self.insert_horizontal_bar)
+        self.mc4.add_cascade(label='横棒を挿入する', menu=self.mc4sym)
+        self.mc4sym.add_command(label='"-"（002D）半角ハイフンマイナス',
+                                command=self.insert_hline_002D)
+        self.mc4sym.add_command(label='"‐"（2010）全角ハイフン',
+                                command=self.insert_hline_2010)
+        self.mc4sym.add_command(label='"—"（2014）全角Ｍダッシュ',
+                                command=self.insert_hline_2014)
+        self.mc4sym.add_command(label='"―"（2015）全角水平線',
+                                command=self.insert_hline_2015)
+        self.mc4sym.add_command(label='"−"（2212）全角マイナスサイン',
+                                command=self.insert_hline_2212)
+        self.mc4sym.add_command(label='"－"（FF0D）全角ハイフンマイナス',
+                                command=self.insert_hline_FF0D)
+        self.mc4.add_separator()
         self.mc4smp = tkinter.Menu(self.mc4, tearoff=False)
         self.mc4.add_cascade(label='サンプルを挿入する', menu=self.mc4smp)
         self.mc4smp.add_command(label='基本',
@@ -4252,7 +4290,7 @@ class Makdo:
         c = self.txt.get('insert', 'insert+1c')
         for tf in TYPEFACES:
             if c in tf:
-                TypefaceDialog(self.txt, c, list(tf))
+                ConvertTypefaceDialog(self.txt, c, list(tf))
 
     ################################################################
     # VISUAL
@@ -4507,6 +4545,10 @@ class Makdo:
         now = self._get_now()
         self.txt.insert('insert', now.isoformat(timespec='seconds'))
 
+    def insert_datetime_symple(self):
+        now = self._get_now()
+        self.txt.insert('insert', now.strftime('%y-%m-%d %H:%M:%S'))
+
     @staticmethod
     def _remove_zero(text):
         text = re.sub('^0', '', text)
@@ -4533,32 +4575,41 @@ class Makdo:
     ################################
     # SYMBOL
 
-    def insert_parentheses_number(self):
-        self.txt.insert('insert',
-                        '\n<!--⑴⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀⒁⒂⒃⒄⒅⒆⒇-->\n')
-
-    def insert_circle_number(self):
-        self.txt.insert('insert',
-                        '\n<!--⓪①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳-->\n')
-
-    def insert_sup_number(self):
-        self.txt.insert('insert', '\n<!--⁰¹²³⁴⁵⁶⁷⁸⁹-->\n')
-
-    def insert_sub_number(self):
-        self.txt.insert('insert', '\n<!--₀₁₂₃₄₅₆₇₈₉-->\n')
-
     def insert_symbol(self):
-        self.txt.insert('insert', '\n<!--㊞-->\n')
+        symbols = ['⑴', '⑵', '⑶', '⑷', '⑸', '⑹', '⑺', '⑻', '⑼', '⑽',
+                   '⑾', '⑿', '⒀', '⒁', '⒂', '⒃', '⒄', '⒅', '⒆', '⒇',
+                   '⓪',
+                   '①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩',
+                   '⑪', '⑫', '⑬', '⑭', '⑮', '⑯', '⑰', '⑱', '⑲', '⑳',
+                   '²', '³',
+                   '㊞',
+                   ]
+        InsertSymbolDialog(self.txt, symbols)
 
-    def insert_horizontal_bar(self):
-        self.txt.insert('insert', '<!--\n' +
-                        '-（002D：半角ハイフンマイナス）\n' +
-                        '‐（2010：全角ハイフン）\n' +
-                        '—（2014：全角Ｍダッシュ）\n' +
-                        '―（2015：全角水平線）\n' +
-                        '−（2212：全角マイナスサイン）\n' +
-                        '－（FF0D：全角ハイフンマイナス）\n' +
-                        '-->\n')
+    # "-"（002D）半角ハイフンマイナス
+    # "‐"（2010）全角ハイフン
+    # "—"（2014）全角Ｍダッシュ
+    # "―"（2015）全角水平線
+    # "−"（2212）全角マイナスサイン
+    # "－"（FF0D）ハイフンマイナス
+
+    def insert_hline_002D(self):
+        self.txt.insert('insert', '\u002D')  # 半角ハイフンマイナス
+
+    def insert_hline_2010(self):
+        self.txt.insert('insert', '\u2010')  # 全角ハイフン
+
+    def insert_hline_2014(self):
+        self.txt.insert('insert', '\u2014')  # 全角Ｍダッシュ
+
+    def insert_hline_2015(self):
+        self.txt.insert('insert', '\u2015')  # 全角水平線
+
+    def insert_hline_2212(self):
+        self.txt.insert('insert', '\u2212')  # 全角マイナスサイン
+
+    def insert_hline_FF0D(self):
+        self.txt.insert('insert', '\uFF0D')  # 全角ハイフンマイナス
 
     ################################
     # SAMPLE
