@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.15-13:18:00-JST>
+# Time-stamp:   <2024.08.16-13:07:29-JST>
 
 # makdo_gui.py
 # Copyright (C) 2024-2024  Seiichiro HATA
@@ -65,95 +65,62 @@ MINCHO_FONT = 'ＭＳ 明朝'
 # MINCHO_FONT = 'Noto Serif CJK JP'
 NOT_ESCAPED = '^((?:(?:.|\n)*?[^\\\\])??(?:\\\\\\\\)*?)??'
 
-WHITE_SPACE = ('#C0C000', '#FFFFFF', '#F7F700')
+BLACK_SPACE = ('#9191FF', '#000000', '#2323FF')  # (0.6, 240), BK, (0.2, 240)
+WHITE_SPACE = ('#C0C000', '#FFFFFF', '#F7F700')  # (0.7,  60), WH, (0.9,  60)
 
-# Y=            0.5        0.7        0.9
-COLOR_SPACE = (('#FF5D5D', '#FF9E9E', '#FFDFDF'),  # 000 * comment
-               ('#FF5F4E', '#FF9F95', '#FFDFDC'),  # 005
-               ('#FF603C', '#FFA08A', '#FFDFD8'),  # 010
-               ('#FF6229', '#FFA17F', '#FFE0D4'),  # 015
-               ('#FF6512', '#FFA271', '#FFE0D0'),  # 020 * del
-               ('#F76900', '#FFA461', '#FFE1CA'),  # 025
-               ('#E07000', '#FFA64D', '#FFE1C4'),  # 030 * sect1
-               ('#CC7600', '#FFA933', '#FFE2BB'),  # 035
-               ('#BC7A00', '#FFAC10', '#FFE3AF'),  # 040 * sect2 第１
-               ('#AD7F00', '#F2B200', '#FFE59E'),  # 045
-               ('#A08300', '#E0B700', '#FFE882'),  # 050 * sect3 １
-               ('#948600', '#D0BC00', '#FFEE4A'),  # 055
-               ('#898900', '#C0C000', '#F7F700'),  # 060 * sect4 (1), 判断者
-               ('#7F8D00', '#B2C500', '#E5FD00'),  # 065
-               ('#758F00', '#A4C900', '#D5FF1A'),  # 070 * sect5 ア
-               ('#6B9200', '#96CD00', '#CAFF3A'),  # 075
-               ('#619500', '#88D100', '#C2FF50'),  # 080 * sect6 (ｱ), paren1
-               ('#589800', '#7BD500', '#BCFF62'),  # 085
-               ('#4E9B00', '#6DD900', '#B8FF70'),  # 090 * sect7 ａ,  paren2
-               ('#439E00', '#5EDE00', '#B4FF7C'),  # 095
-               ('#38A200', '#4FE200', '#B0FF86'),  # 100 * sect8 (a), paren3
-               ('#2CA500', '#3EE700', '#ADFF8F'),  # 105
-               ('#1FA900', '#2CED00', '#AAFF97'),  # 110
-               ('#11AD00', '#17F300', '#A8FF9F'),  # 115
-               ('#00B200', '#00FA00', '#A5FFA5'),  # 120 * br, pgbr, fd
-               ('#00B111', '#00F718', '#A3FFAC'),  # 125
-               ('#00AF20', '#00F52D', '#A1FFB2'),  # 130
-               ('#00AE2F', '#00F341', '#9FFFB9'),  # 135
-               ('#00AC3C', '#00F154', '#9DFFBF'),  # 140
-               ('#00AB49', '#00EF66', '#9BFFC5'),  # 145
-               ('#00AA55', '#00EE77', '#98FFCC'),  # 150 * length reviser
-               ('#00A861', '#00EC88', '#96FFD3'),  # 155
-               ('#00A76D', '#00EA99', '#94FFDA'),  # 160
-               ('#00A67A', '#00E8AA', '#91FFE2'),  # 165
-               ('#00A586', '#00E7BC', '#8EFFEA'),  # 170
-               ('#00A394', '#00E5CF', '#8BFFF4'),  # 175
-               ('#00A2A2', '#00E3E3', '#87FFFF'),  # 180 *  algin, 申立人
-               ('#00A0B1', '#00E1F8', '#A4F6FF'),  # 185
-               ('#009FC3', '#21D6FF', '#B5F1FF'),  # 190
-               ('#009DD6', '#42CCFF', '#C0EEFF'),  # 195
-               ('#009AED', '#59C5FF', '#C8ECFF'),  # 200 * hsp, ins
-               ('#0896FF', '#6BC0FF', '#CEEAFF'),  # 205
-               ('#1F8FFF', '#79BCFF', '#D2E9FF'),  # 210 * chap1 第１編, hnumb
-               ('#3389FF', '#84B8FF', '#D6E7FF'),  # 215
-               ('#4385FF', '#8EB6FF', '#D9E7FF'),  # 220 * chap2 第１章, tab
-               ('#5280FF', '#97B3FF', '#DCE6FF'),  # 225
-               ('#5F7CFF', '#9FB1FF', '#DFE5FF'),  # 230 * chap3 第１節
-               ('#6B79FF', '#A6AFFF', '#E1E4FF'),  # 235
-               ('#7676FF', '#ADADFF', '#E4E4FF'),  # 240 * chap4 第１款, fsp
-               ('#8072FF', '#B3ABFF', '#E6E3FF'),  # 245
-               ('#8A70FF', '#B9A9FF', '#E8E2FF'),  # 250 * chap5 第１目
-               ('#946DFF', '#BFA7FF', '#EAE2FF'),  # 255
-               ('#9E6AFF', '#C5A5FF', '#ECE1FF'),  # 260 *
-               ('#A767FF', '#CAA4FF', '#EDE1FF'),  # 265
-               ('#B164FF', '#D0A2FF', '#EFE0FF'),  # 270 *
-               ('#BC61FF', '#D7A0FF', '#F2DFFF'),  # 275
-               ('#C75DFF', '#DD9EFF', '#F4DFFF'),  # 280 *
-               ('#D35AFF', '#E49CFF', '#F6DEFF'),  # 285
-               ('#E056FF', '#EC9AFF', '#F9DDFF'),  # 290
-               ('#EE52FF', '#F597FF', '#FCDCFF'),  # 295
-               ('#FF4DFF', '#FF94FF', '#FFDBFF'),  # 300 * 相手方
-               ('#FF4EEE', '#FF95F5', '#FFDCFC'),  # 305
-               ('#FF50DF', '#FF96EC', '#FFDCF9'),  # 310
-               ('#FF51D0', '#FF97E3', '#FFDCF6'),  # 315
-               ('#FF53C3', '#FF98DB', '#FFDDF3'),  # 320
-               ('#FF54B6', '#FF98D3', '#FFDDF0'),  # 325
-               ('#FF55AA', '#FF99CC', '#FFDDEE'),  # 330 * list, fnumb
-               ('#FF579E', '#FF9AC5', '#FFDDEC'),  # 335
-               ('#FF5892', '#FF9BBE', '#FFDEE9'),  # 340
-               ('#FF5985', '#FF9BB6', '#FFDEE7'),  # 345
-               ('#FF5A79', '#FF9CAE', '#FFDEE4'),  # 350
-               ('#FF5C6B', '#FF9DA6', '#FFDEE1'))  # 355
+COLOR_SPACE = (
+    # Y=   0.3        0.5        0.7        0.9
+    ('#FF1C1C', '#FF5D5D', '#FF9E9E', '#FFDFDF'),  # 000 : comment
+    ('#DE2900', '#FF603C', '#FFA08A', '#FFDFD8'),  # 010 :
+    ('#A63A00', '#FF6512', '#FFA271', '#FFE0D0'),  # 020 : del
+    ('#864300', '#E07000', '#FFA64D', '#FFE1C4'),  # 030 : sect1
+    ('#714900', '#BC7A00', '#FFAC10', '#FFE3AF'),  # 040 : sect2 第１
+    ('#604E00', '#A08300', '#E0B700', '#FFE882'),  # 050 : sect3 １
+    ('#525200', '#898900', '#C0C000', '#F7F700'),  # 060 : sect4 (1), 判断者
+    ('#465600', '#758F00', '#A4C900', '#D5FF1A'),  # 070 : sect5 ア
+    ('#3A5A00', '#619500', '#88D100', '#C2FF50'),  # 080 : sect6 (ｱ), paren1
+    ('#2F5D00', '#4E9B00', '#6DD900', '#B8FF70'),  # 090 : sect7 ａ,  paren2
+    ('#226100', '#38A200', '#4FE200', '#B0FF86'),  # 100 : sect8 (a), paren3
+    ('#136500', '#1FA900', '#2CED00', '#AAFF97'),  # 110 :
+    ('#006B00', '#00B200', '#00FA00', '#A5FFA5'),  # 120 : br, pgbr, fd
+    ('#006913', '#00AF20', '#00F52D', '#A1FFB2'),  # 130 :
+    ('#006724', '#00AC3C', '#00F154', '#9DFFBF'),  # 140 :
+    ('#006633', '#00AA55', '#00EE77', '#98FFCC'),  # 150 : length reviser
+    ('#006441', '#00A76D', '#00EA99', '#94FFDA'),  # 160 :
+    ('#006351', '#00A586', '#00E7BC', '#8EFFEA'),  # 170 :
+    ('#006161', '#00A2A2', '#00E3E3', '#87FFFF'),  # 180 : algin, 申立人
+    ('#005F75', '#009FC3', '#21D6FF', '#B5F1FF'),  # 190 :
+    ('#005D8E', '#009AED', '#59C5FF', '#C8ECFF'),  # 200 : hsp, ins
+    ('#0059B2', '#1F8FFF', '#79BCFF', '#D2E9FF'),  # 210 : chap1 第１編, hnumb
+    ('#0053EF', '#4385FF', '#8EB6FF', '#D9E7FF'),  # 220 : chap2 第１章, tab
+    ('#1F48FF', '#5F7CFF', '#9FB1FF', '#DFE5FF'),  # 230 : chap3 第１節
+    ('#3F3FFF', '#7676FF', '#ADADFF', '#E4E4FF'),  # 240 : chap4 第１款, fsp
+    ('#5B36FF', '#8A70FF', '#B9A9FF', '#E8E2FF'),  # 250 : chap5 第１目
+    ('#772EFF', '#9E6AFF', '#C5A5FF', '#ECE1FF'),  # 260 :
+    ('#9226FF', '#B164FF', '#D0A2FF', '#EFE0FF'),  # 270 :
+    ('#B01DFF', '#C75DFF', '#DD9EFF', '#F4DFFF'),  # 280 :
+    ('#D312FF', '#E056FF', '#EC9AFF', '#F9DDFF'),  # 290 :
+    ('#FF05FF', '#FF4DFF', '#FF94FF', '#FFDBFF'),  # 300 : 相手方
+    ('#FF0AD2', '#FF50DF', '#FF96EC', '#FFDCF9'),  # 310 :
+    ('#FF0EAB', '#FF53C3', '#FF98DB', '#FFDDF3'),  # 320 :
+    ('#FF1188', '#FF55AA', '#FF99CC', '#FFDDEE'),  # 330 : list, fnumb
+    ('#FF1566', '#FF5892', '#FF9BBE', '#FFDEE9'),  # 340 :
+    ('#FF1843', '#FF5A79', '#FF9CAE', '#FFDEE4'),  # 350 :
+)
 
 KEYWORDS = [
     ['(加害者' +
      '|被告|本訴被告|反訴原告|被控訴人|被上告人' +
      '|相手方' +
      '|被疑者|被告人|弁護人|対象弁護士)',
-     'c-300-50-g-x'],
+     'magenta'],
     ['(被害者' +
      '|原告|本訴原告|反訴被告|控訴人|上告人' +
      '|申立人' +
      '|検察官|検察事務官|懲戒請求者)',
-     'c-180-50-g-x'],
+     'cyan'],
     ['(裁判官|審判官|調停官|調停委員|司法委員|専門委員|書記官|事務官|訴外)',
-     'c-60-50-g-x']]
+     'yellow']]
 
 PARAGRAPH_SAMPLE = ['\t',
                     '<!-------q1--------q2--------q3------' +
@@ -2869,12 +2836,13 @@ class CharsState:
     def apply_parenthesis(self, parenthesis):
         ps = self.parentheses
         p = parenthesis
-        if p == '「' or p == '『' or p == '（' or p == '(':
+        if p == '「' or p == '『' or p == '[' or p == '（' or p == '(':
             ps.append(p)
-        if p == ')' or p == '）' or p == '』' or p == '」':
+        if p == ')' or p == '）' or p == ']' or p == '』' or p == '」':
             if len(ps) > 0:
                 if ps[-1] == '(' and p == ')' or \
                    ps[-1] == '（' and p == '）' or \
+                   ps[-1] == '[' and p == ']' or \
                    ps[-1] == '『' and p == '』' or \
                    ps[-1] == '「' and p == '」':
                     ps.pop(-1)
@@ -2908,6 +2876,13 @@ class CharsState:
             key += '-330'
         elif chars == 'alignment':
             key += '-180'
+        elif chars == 'image':
+            if len(self.parentheses) == 0:
+                key += '-80'
+            elif len(self.parentheses) == 1:
+                key += '-120'
+            elif len(self.parentheses) >= 2:
+                key += '-160'
         elif len(self.parentheses) == 1:
             key += '-80'
         elif len(self.parentheses) == 2:
@@ -2938,11 +2913,11 @@ class CharsState:
             key += '-XXX'
         # LIGHTNESS
         if self.del_or_ins == 'del':
-            key += '-30'
+            key += '-0'
         elif self.del_or_ins == 'ins':
-            key += '-70'
+            key += '-2'
         else:
-            key += '-50'
+            key += '-1'
         # FONT
         if chars == 'mincho':
             key += '-m'  # mincho
@@ -3106,7 +3081,7 @@ class LineDatum:
                 chars_state.set_del_or_ins('del')                       # 4.set
                 # tmp = '->' or '<-'                                    # 5.tmp
                 beg = end                                               # 6.beg
-                key = 'c-20-50-g-x'                                     # 1.key
+                key = 'c-20-1-g-x'                                      # 1.key
                 end = str(i + 1) + '.' + str(j + 1)                     # 2.end
                 txt.tag_add(key, beg, end)                              # 3.tag
                 #                                                       # 4.set
@@ -3124,7 +3099,7 @@ class LineDatum:
                 chars_state.set_del_or_ins('ins')                       # 4.set
                 # tmp = '+>' or '<+'                                    # 5.tmp
                 beg = end                                               # 6.beg
-                key = 'c-200-50-g-x'                                    # 1.key
+                key = 'c-200-1-g-x'                                     # 1.key
                 end = str(i + 1) + '.' + str(j + 1)                     # 2.end
                 txt.tag_add(key, beg, end)                              # 3.tag
                 #                                                       # 4.set
@@ -3227,8 +3202,22 @@ class LineDatum:
                 tmp = ''                                                # 5.tmp
                 beg = end                                               # 6.beg
                 continue
+            # IMAGE
+            if c == '!' and re.match('^\\[.*\\]\\(.*\\)', line_text[j+1:]):
+                key = chars_state.get_key('')                           # 1.key
+                end = str(i + 1) + '.' + str(j)                         # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                # tmp = '!'                                             # 5.tmp
+                beg = end                                               # 6.beg
+                key = chars_state.get_key('image')                      # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                tmp = ''                                                # 5.tmp
+                beg = end                                               # 6.beg
             # PARENTHESES
-            if c == '「' or c == '『' or c == '（' or c == '(':
+            if c == '「' or c == '『' or c == '[' or c == '（' or c == '(':
                 key = chars_state.get_key('')                           # 1.key
                 end = str(i + 1) + '.' + str(j)                         # 2.end
                 txt.tag_add(key, beg, end)                              # 3.tag
@@ -3236,7 +3225,7 @@ class LineDatum:
                 tmp = c                                                 # 5.tmp
                 beg = end                                               # 6.beg
                 continue
-            if c == ')' or c == '）' or c == '』' or c == '」':
+            if c == ')' or c == '）' or c == ']' or c == '』' or c == '」':
                 key = chars_state.get_key('')                           # 1.key
                 end = str(i + 1) + '.' + str(j + 1)                     # 2.end
                 txt.tag_add(key, beg, end)                              # 3.tag
@@ -3359,7 +3348,7 @@ class LineDatum:
                         #                                               # 4.set
                         # tmp = t2                                      # 5.tmp
                         beg = end                                       # 6.beg
-                        key = kw[1]                                     # 1.key
+                        key = chars_state.get_key(kw[1])                # 1.key
                         end = str(i + 1) + '.' + str(j + 1)             # 2.end
                         txt.tag_add(key, beg, end)                      # 3.tag
                         #                                               # 4.set
@@ -3425,8 +3414,6 @@ class Makdo:
         self.init_text = ''
         self.file_lines = []
         self.must_make_backup_file = args.input_file
-        self.font_size = None
-        # self.number_of_period = 0
         self.line_data = []
         self.standard_line = 0
         self.global_line_to_paint = 0
@@ -3501,87 +3488,179 @@ class Makdo:
         self.mc2.add_command(label='計算する',
                              command=self.calculate)
         self.mc2.add_separator()
-        self.mc2.add_command(label='別の字体に変える',
+        self.mc2.add_command(label='字体を変える',
                              command=self.transform_to_another_typeface)
         # VISUAL
         self.mc3 = tkinter.Menu(self.mnb, tearoff=False)
         self.mnb.add_cascade(label='表示(V)', menu=self.mc3, underline=3)
-        self.mc3.add_command(label='微サイズ',
-                             command=self.set_size_ss)
-        self.mc3.add_command(label='小サイズ',
-                             command=self.set_size_s)
-        self.mc3.add_command(label='中サイズ',
-                             command=self.set_size_m)
-        self.mc3.add_command(label='大サイズ',
-                             command=self.set_size_l)
-        self.mc3.add_command(label='巨サイズ',
-                             command=self.set_size_ll)
+        self.mc3sb1 = tkinter.Menu(self.mnb, tearoff=False)
+        self.mc3.add_cascade(label='背景色', menu=self.mc3sb1)
+        self.is_dark_theme = tkinter.BooleanVar(value=False)
+        if args.dark_theme:
+            self.is_dark_theme.set(True)
+        self.mc3sb1.add_radiobutton(label='白色',
+                                    variable=self.is_dark_theme, value=False,
+                                    command=self.set_font)
+        self.mc3sb1.add_radiobutton(label='黒色',
+                                    variable=self.is_dark_theme, value=True,
+                                    command=self.set_font)
+        self.mc3.add_separator()
+        self.mc3sb2 = tkinter.Menu(self.mnb, tearoff=False)
+        self.mc3.add_cascade(label='文字サイズ', menu=self.mc3sb2)
+        self.font_size = tkinter.IntVar(value=18)
+        self.mc3sb2.add_radiobutton(label='サイズ1',
+                                    variable=self.font_size, value=6,
+                                    command=self.set_font)
+        self.mc3sb2.add_radiobutton(label='サイズ2',
+                                    variable=self.font_size, value=12,
+                                    command=self.set_font)
+        self.mc3sb2.add_radiobutton(label='サイズ3',
+                                    variable=self.font_size, value=18,
+                                    command=self.set_font)
+        self.mc3sb2.add_radiobutton(label='サイズ4',
+                                    variable=self.font_size, value=27,
+                                    command=self.set_font)
+        self.mc3sb2.add_radiobutton(label='サイズ5',
+                                    variable=self.font_size, value=36,
+                                    command=self.set_font)
+        self.mc3sb2.add_radiobutton(label='サイズ6',
+                                    variable=self.font_size, value=48,
+                                    command=self.set_font)
+        self.mc3sb2.add_radiobutton(label='サイズ7',
+                                    variable=self.font_size, value=60,
+                                    command=self.set_font)
+        self.mc3sb2.add_radiobutton(label='サイズ8',
+                                    variable=self.font_size, value=75,
+                                    command=self.set_font)
+        self.mc3sb2.add_radiobutton(label='サイズ9',
+                                    variable=self.font_size, value=90,
+                                    command=self.set_font)
+        self.mc3.add_separator()
+        self.must_paint_keywords = tkinter.BooleanVar(value=False)
+        if args.paint_keywords:
+            self.must_paint_keywords.set(True)
+        self.mc3.add_checkbutton(label='キーワードに色付け',
+                                 variable=self.must_paint_keywords)
         # INSERT
         self.mc4 = tkinter.Menu(self.mnb, tearoff=False)
         self.mnb.add_cascade(label='挿入(I)', menu=self.mc4, underline=3)
-        self.mc4.add_command(label='日付を挿入する',
-                             command=self.insert_datetime)
+        self.mc4sec = tkinter.Menu(self.mc4, tearoff=False)
+        self.mc4.add_cascade(label='節を挿入する', menu=self.mc4sec)
+        self.mc4sec.add_command(label='（文章のタイトル）',
+                                command=self.insert_sect_1)
+        self.mc4sec.add_command(label='第１　…',
+                                command=self.insert_sect_2)
+        self.mc4sec.add_command(label='　１　…',
+                                command=self.insert_sect_3)
+        self.mc4sec.add_command(label='　　(1) …',
+                                command=self.insert_sect_4)
+        self.mc4sec.add_command(label='　　　ア　…',
+                                command=self.insert_sect_5)
+        self.mc4sec.add_command(label='　　　　(ｱ) …',
+                                command=self.insert_sect_6)
+        self.mc4sec.add_command(label='　　　　　ａ　…',
+                                command=self.insert_sect_7)
+        self.mc4sec.add_command(label='　　　　　　(a) …',
+                                command=self.insert_sect_8)
+        self.mc4chp = tkinter.Menu(self.mc4, tearoff=False)
+        self.mc4.add_cascade(label='編を挿入する', menu=self.mc4chp)
+        self.mc4chp.add_command(label='第１編　…',
+                                command=self.insert_chap_1)
+        self.mc4chp.add_command(label='　第１章　…',
+                                command=self.insert_chap_2)
+        self.mc4chp.add_command(label='　　第１節　…',
+                                command=self.insert_chap_3)
+        self.mc4chp.add_command(label='　　　第１款　…',
+                                command=self.insert_chap_4)
+        self.mc4chp.add_command(label='　　　　第１目　…',
+                                command=self.insert_chap_5)
+        self.mc4.add_command(label='画像を挿入する',
+                             command=self.insert_images)
+        self.mc4.add_command(label='表を挿入する',
+                             command=self.insert_table)
         self.mc4.add_separator()
-        self.mc4.add_command(label='ファイル名を挿入する',
-                             command=self.insert_file_path)
+        self.mc4dat = tkinter.Menu(self.mc4, tearoff=False)
+        self.mc4.add_cascade(label='日時を挿入する', menu=self.mc4dat)
+        self.mc4dat.add_command(label='YY年M月D日',
+                                command=self.insert_date_YYMD)
+        self.mc4dat.add_command(label='令和Y年M月D日',
+                                command=self.insert_date_GYMD)
+        self.mc4dat.add_command(label='yy年m月d日',
+                                command=self.insert_date_yymd)
+        self.mc4dat.add_command(label='令和y年m月d日',
+                                command=self.insert_date_Gymd)
+        self.mc4dat.add_command(label='yy-m-d',
+                                command=self.insert_date_iso)
+        self.mc4dat.add_command(label='gy-m-d',
+                                command=self.insert_date_giso)
+        self.mc4dat.add_separator()
+        self.mc4dat.add_command(label='H時M分S秒',
+                                command=self.insert_time_HHMS)
+        self.mc4dat.add_command(label='午前H時M分S秒',
+                                command=self.insert_time_GHMS)
+        self.mc4dat.add_command(label='h時m分s秒',
+                                command=self.insert_time_hhms)
+        self.mc4dat.add_command(label='午前h時m分s秒',
+                                command=self.insert_time_Ghms)
+        self.mc4dat.add_command(label='h:m:s',
+                                command=self.insert_time_iso)
+        self.mc4dat.add_command(label='AMh:m:s',
+                                command=self.insert_time_giso)
+        self.mc4dat.add_separator()
+        self.mc4dat.add_command(label='yy-m-dTh:m:s+09:00',
+                                command=self.insert_datetime)
+        self.mc4fil = tkinter.Menu(self.mc4, tearoff=False)
+        self.mc4.add_cascade(label='ファイル名を挿入する', menu=self.mc4fil)
+        self.mc4fil.add_command(label='フルパスで挿入する',
+                                command=self.insert_file_paths)
+        self.mc4fil.add_command(label='ファイル名のみを挿入する',
+                                command=self.insert_file_names)
         self.mc4.add_separator()
-        self.mc4sm1 = tkinter.Menu(self.mc4, tearoff=False)
-        self.mc4.add_cascade(label='記号を挿入する', menu=self.mc4sm1)
-        self.mc4sm1.add_command(label='括弧数字（⑴⑵⑶⑷⑸…）',
+        self.mc4sym = tkinter.Menu(self.mc4, tearoff=False)
+        self.mc4.add_cascade(label='記号を挿入する', menu=self.mc4sym)
+        self.mc4sym.add_command(label='括弧数字（⑴⑵⑶⑷⑸…）',
                                 command=self.insert_parentheses_number)
-        self.mc4sm1.add_command(label='丸数字（①②③④⑤…）',
+        self.mc4sym.add_command(label='丸数字（①②③④⑤…）',
                                 command=self.insert_circle_number)
-        self.mc4sm1.add_command(label='上付数字（⁰¹²³⁴⁵⁶⁷⁸⁹）',
+        self.mc4sym.add_command(label='上付数字（⁰¹²³⁴⁵⁶⁷⁸⁹）',
                                 command=self.insert_sup_number)
-        self.mc4sm1.add_command(label='下付数字（₀₁₂₃₄₅₆₇₈₉）',
+        self.mc4sym.add_command(label='下付数字（₀₁₂₃₄₅₆₇₈₉）',
                                 command=self.insert_sub_number)
-        self.mc4sm1.add_command(label='記号（㊞）',
+        self.mc4sym.add_command(label='記号（㊞）',
                                 command=self.insert_symbol)
-        self.mc4sm1.add_command(label='横棒（-‐—―−－）',
+        self.mc4sym.add_command(label='横棒（-‐—―−－）',
                                 command=self.insert_horizontal_bar)
-        self.mc4.add_separator()
-        self.mc4sm2 = tkinter.Menu(self.mc4, tearoff=False)
-        self.mc4.add_cascade(label='サンプルを挿入する', menu=self.mc4sm2)
-        self.mc4sm2.add_command(label='基本',
+        self.mc4smp = tkinter.Menu(self.mc4, tearoff=False)
+        self.mc4.add_cascade(label='サンプルを挿入する', menu=self.mc4smp)
+        self.mc4smp.add_command(label='基本',
                                 command=self.insert_basis)
-        self.mc4sm2.add_command(label='民法',
+        self.mc4smp.add_command(label='民法',
                                 command=self.insert_law)
-        self.mc4sm2.add_command(label='訴状',
+        self.mc4smp.add_command(label='訴状',
                                 command=self.insert_petition)
-        self.mc4sm2.add_command(label='証拠説明書',
+        self.mc4smp.add_command(label='証拠説明書',
                                 command=self.insert_evidence)
-        self.mc4sm2.add_command(label='和解契約書',
+        self.mc4smp.add_command(label='和解契約書',
                                 command=self.insert_settlement)
         # CONFIGURATION
         self.mc5 = tkinter.Menu(self.mnb, tearoff=False)
         self.mnb.add_cascade(label='設定(S)', menu=self.mc5, underline=3)
-        self.must_paint_keywords = tkinter.BooleanVar()
-        if args.paint_keywords:
-            self.must_paint_keywords.set(True)
-        else:
-            self.must_paint_keywords.set(False)
-        self.mc5.add_checkbutton(label='キーワードに色付け',
-                                 variable=self.must_paint_keywords)
-        self.mc5.add_separator()
-        self.is_read_only = tkinter.BooleanVar()
+        self.is_read_only = tkinter.BooleanVar(value=False)
         if args.read_only:
             self.is_read_only.set(True)
-        else:
-            self.is_read_only.set(False)
-        self.mc5.add_checkbutton(label='読み取り専用',
+        self.mc5.add_checkbutton(label='読取専用',
                                  variable=self.is_read_only,
                                  command=self.toggle_read_only)
         self.mc5.add_separator()
-        self.sb1 = tkinter.Menu(self.mnb, tearoff=False)
+        self.mc5sb1 = tkinter.Menu(self.mnb, tearoff=False)
+        self.mc5.add_cascade(label='計算結果', menu=self.mc5sb1)
         self.digit_separator = tkinter.StringVar(value='4')
-        self.sb1.add_radiobutton(label='桁区切りなし（12345678）',
-                                 value='0', variable=self.digit_separator)
-        self.sb1.add_radiobutton(
-            label='3桁区切り（12,345,678）',
-            value='3', variable=self.digit_separator)
-        self.sb1.add_radiobutton(label='4桁区切り（1234万5678）',
-                                 value='4', variable=self.digit_separator)
-        self.mc5.add_cascade(label='数式計算結果', menu=self.sb1)
+        self.mc5sb1.add_radiobutton(label='桁区切りなし（12345678）',
+                                    value='0', variable=self.digit_separator)
+        self.mc5sb1.add_radiobutton(label='3桁区切り（12,345,678）',
+                                    value='3', variable=self.digit_separator)
+        self.mc5sb1.add_radiobutton(label='4桁区切り（1234万5678）',
+                                    value='4', variable=self.digit_separator)
         # HELP
         self.mc6 = tkinter.Menu(self.mnb, tearoff=False)
         self.mnb.add_cascade(label='ヘルプ(H)', menu=self.mc6, underline=4)
@@ -3602,7 +3681,6 @@ class Makdo:
         self.txt.bind('<ButtonRelease-1>', self.process_button1_release)
         self.txt.bind('<ButtonRelease-2>', self.process_button2_release)
         self.txt.bind('<ButtonRelease-3>', self.process_button3_release)
-        self.txt.config(bg='black', fg='white')
         self.txt.config(insertbackground='#FF7777', blockcursor=True)  # CURSOR
         # SCROLL BAR
         scb = tkinter.Scrollbar(self.txt, orient=tkinter.VERTICAL,
@@ -3620,13 +3698,13 @@ class Makdo:
         self.stb_pos1.pack(side=tkinter.LEFT)
         self.stb_spc2 = tkinter.Label(self.stb, text=' ')
         self.stb_spc2.pack(side=tkinter.LEFT)
-        self.stb_sor1 = tkinter.Label(self.stb, text='探')
-        self.stb_sor1.pack(side=tkinter.LEFT)
+        # self.stb_sor1 = tkinter.Label(self.stb, text='探')
+        # self.stb_sor1.pack(side=tkinter.LEFT)
         self.stb_sor2 = tkinter.Entry(self.stb, width=20)
         self.stb_sor2.pack(side=tkinter.LEFT)
         # self.stb_sor2.insert(0, '（検索語）')
-        self.stb_sor3 = tkinter.Label(self.stb, text='換')
-        self.stb_sor3.pack(side=tkinter.LEFT)
+        # self.stb_sor3 = tkinter.Label(self.stb, text='換')
+        # self.stb_sor3.pack(side=tkinter.LEFT)
         self.stb_sor4 = tkinter.Entry(self.stb, width=20)
         self.stb_sor4.pack(side=tkinter.LEFT)
         # self.stb_sor4.insert(0, '（置換語）')
@@ -3645,11 +3723,7 @@ class Makdo:
         self.stb_msg1.pack(side=tkinter.LEFT)
         # FONT
         # tkinter.font.families()
-        self.set_size_m()
-        self.txt.tag_config('error_tag', foreground='#FF0000')
-        self.txt.tag_config('search_tag', background='#777777')
-        self.txt.tag_config('akauni_tag', background='#777777')
-        self.txt.tag_config('tab_tag', background='#5280FF')  # (0.5, 225, max)
+        self.set_font()
         # OPEN FILE
         if args.input_file is not None:
             self.just_open_file(args.input_file)
@@ -3725,6 +3799,28 @@ class Makdo:
         self.line_data[ln].end_chars_state = CharsState()
         self.line_data[ln].paint_line(self.txt, must_paint_keywords)
 
+    @staticmethod
+    def _get_now():
+        now = datetime.datetime.utcnow() + datetime.timedelta(hours=+9)
+        jst = datetime.timezone(datetime.timedelta(hours=+9))
+        now = now.replace(tzinfo=jst)
+        return now
+
+    @staticmethod
+    def _convert_half_to_full(half):
+        full = half
+        full = re.sub('0', '０', full)
+        full = re.sub('1', '１', full)
+        full = re.sub('2', '２', full)
+        full = re.sub('3', '３', full)
+        full = re.sub('4', '４', full)
+        full = re.sub('5', '５', full)
+        full = re.sub('6', '６', full)
+        full = re.sub('7', '７', full)
+        full = re.sub('8', '８', full)
+        full = re.sub('9', '９', full)
+        return full
+
     ################################################################
     # FILE
 
@@ -3736,7 +3832,8 @@ class Makdo:
         if ans is None:
             return False
         typ = [('可能な形式', '.md .docx'),
-               ('Markdown', '.md'), ('MS Word', '.docx')]
+               ('Markdown', '.md'), ('MS Word', '.docx'),
+               ('すべてのファイル', '*')]
         file_path = tkinter.filedialog.askopenfilename(filetypes=typ)
         if file_path == () or file_path == '':
             return False
@@ -4160,26 +4257,22 @@ class Makdo:
     ################################################################
     # VISUAL
 
-    def set_size_ss(self):
-        self.__set_font_size(8)
-
-    def set_size_s(self):
-        self.__set_font_size(12)
-
-    def set_size_m(self):
-        self.__set_font_size(18)
-
-    def set_size_l(self):
-        self.__set_font_size(26)
-
-    def set_size_ll(self):
-        self.__set_font_size(36)
-
-    def __set_font_size(self, size):
-        self.font_size = size
+    def set_font(self):
+        is_dark_theme = self.is_dark_theme.get()
+        size = self.font_size.get()
+        # BASIC FONT
         self.txt['font'] = (GOTHIC_FONT, size)
         self.stb_sor2['font'] = (GOTHIC_FONT, size)
         self.stb_sor4['font'] = (GOTHIC_FONT, size)
+        self.txt.tag_config('error_tag', foreground='#FF0000')
+        self.txt.tag_config('search_tag', background='#777777')
+        self.txt.tag_config('akauni_tag', background='#777777')
+        self.txt.tag_config('tab_tag', background='#5280FF')  # (0.5, 225, max)
+        # COLOR FONT
+        if not is_dark_theme:
+            self.txt.config(bg='white', fg='black')
+        else:
+            self.txt.config(bg='black', fg='white')
         for u in ['-x', '-u']:
             und = False if u == '-x' else True
             for f in ['-g', '-m']:
@@ -4187,18 +4280,24 @@ class Makdo:
                 # WHITE
                 for i in range(3):
                     a = '-XXX'
-                    y = '-' + str(30 + (i * 20))
+                    y = '-' + str(i)
                     tag = 'c' + a + y + f + u
-                    col = WHITE_SPACE[i]
+                    if not is_dark_theme:
+                        col = BLACK_SPACE[i]
+                    else:
+                        col = WHITE_SPACE[i]
                     self.txt.tag_config(tag, font=fon,
                                         foreground=col, underline=und)
                 # COLOR
                 for i in range(3):  # lightness
-                    y = '-' + str(30 + (i * 20))
+                    y = '-' + str(i)
                     for j, c in enumerate(COLOR_SPACE):  # angle
-                        a = '-' + str(j * 5)
-                        tag = 'c' + a + y + f + u  # example: c-125-50-g-x
-                        col = c[i]
+                        a = '-' + str(j * 10)
+                        tag = 'c' + a + y + f + u  # example: c-120-1-g-x
+                        if not is_dark_theme:
+                            col = c[i]
+                        else:
+                            col = c[i + 1]
                         self.txt.tag_config(tag, font=fon,
                                             foreground=col, underline=und)
 
@@ -4206,20 +4305,230 @@ class Makdo:
     # INSERT
 
     ################################
-    # DATETIME
+    # MARKDOWN
+
+    def insert_sect_1(self):
+        self._insert_line_break()
+        self.txt.insert('insert', '# ')  # タイトル
+
+    def insert_sect_2(self):
+        self._insert_line_break()
+        self.txt.insert('insert', '## ')  # 第1
+
+    def insert_sect_3(self):
+        self._insert_line_break()
+        self.txt.insert('insert', '### ')  # 1
+
+    def insert_sect_4(self):
+        self._insert_line_break()
+        self.txt.insert('insert', '#### ')  # (1)
+
+    def insert_sect_5(self):
+        self._insert_line_break()
+        self.txt.insert('insert', '##### ')  # ア
+
+    def insert_sect_6(self):
+        self._insert_line_break()
+        self.txt.insert('insert', '###### ')  # (ｱ)
+
+    def insert_sect_7(self):
+        self._insert_line_break()
+        self.txt.insert('insert', '####### ')  # ａ
+
+    def insert_sect_8(self):
+        self._insert_line_break()
+        self.txt.insert('insert', '######## ')  # (a)
+
+    def insert_chap_1(self):
+        self._insert_line_break()
+        self.txt.insert('insert', '$ ')  # 第1編
+
+    def insert_chap_2(self):
+        self._insert_line_break()
+        self.txt.insert('insert', '$$ ')  # 第1章
+
+    def insert_chap_3(self):
+        self._insert_line_break()
+        self.txt.insert('insert', '$$$ ')  # 第1節
+
+    def insert_chap_4(self):
+        self._insert_line_break()
+        self.txt.insert('insert', '$$$$ ')  # 第1款
+
+    def insert_chap_5(self):
+        self._insert_line_break()
+        self.txt.insert('insert', '$$$$$ ')  # 第1目
+
+    def insert_images(self):
+        typ = [('画像', '.jpg .jpeg .png .gif .tif .tiff .bmp'),
+               ('すべてのファイル', '*')]
+        image_paths = tkinter.filedialog.askopenfilenames(filetypes=typ)
+        for i in image_paths:
+            image_md_text = '![代替テキスト:縦x横](' + i + ' "説明")'
+            self.txt.insert('insert', image_md_text)
+
+    def insert_table(self):
+        self._insert_line_break()
+        table_md_text = ''
+        table_md_text += '|タイトル  |タイトル  |タイトル  |=\n'
+        table_md_text += '|:---------|:--------:|---------:|\n'
+        table_md_text += '|左寄せセル|中寄せセル|右寄せセル|\n'
+        table_md_text += '|左寄せセル|中寄せセル|右寄せセル|'
+        self.txt.insert('insert', table_md_text)
+
+    def _insert_line_break(self):
+        t = self.txt.get('1.0', 'insert')
+        if len(t) == 0:
+            pass
+        elif len(t) == 1:
+            if t[-1] == '\n':
+                pass
+            else:
+                self.txt.insert('insert', '\n\n')
+        elif len(t) >= 2:
+            if t[-2] == '\n' and t[-1] == '\n':
+                pass
+            elif t[-1] == '\n':
+                self.txt.insert('insert', '\n')
+            else:
+                self.txt.insert('insert', '\n\n')
+        p = self.txt.index('insert')
+        t = self.txt.get('insert', 'end-1c')
+        if len(t) == 0:
+            self.txt.insert('insert', '\n')
+        elif len(t) == 1:
+            if t[0] == '\n':
+                pass
+            else:
+                self.txt.insert('insert', '\n\n')
+        elif len(t) >= 2:
+            if t[0] == '\n' and t[1] == '\n':
+                pass
+            elif t[0] == '\n':
+                self.txt.insert('insert', '\n')
+            else:
+                self.txt.insert('insert', '\n\n')
+        self.txt.mark_set('insert', p)
+
+    ################################
+    # DATE AND TIME
+
+    def insert_date_YYMD(self):
+        now = self._get_now()
+        date = now.strftime('%Y年%m月%d日')
+        date = self._remove_zero(date)
+        date = self._convert_half_to_full(date)
+        self.txt.insert('insert', date)
+
+    def insert_date_GYMD(self):
+        now = self._get_now()
+        year = int(now.strftime('%Y')) - 2018
+        date = '令和' + str(year) + '年' + now.strftime('%m月%d日')
+        date = self._remove_zero(date)
+        date = self._convert_half_to_full(date)
+        self.txt.insert('insert', date)
+
+    def insert_date_yymd(self):
+        now = self._get_now()
+        date = now.strftime('%Y年%m月%d日')
+        date = self._remove_zero(date)
+        self.txt.insert('insert', date)
+
+    def insert_date_Gymd(self):
+        now = self._get_now()
+        year = int(now.strftime('%Y')) - 2018
+        date = '令和' + str(year) + '年' + now.strftime('%m月%d日')
+        date = self._remove_zero(date)
+        self.txt.insert('insert', date)
+
+    def insert_date_iso(self):
+        now = self._get_now()
+        date = now.strftime('%Y-%m-%d')
+        self.txt.insert('insert', date)
+
+    def insert_date_giso(self):
+        now = self._get_now()
+        year = int(now.strftime('%Y')) - 2018
+        if year < 10:
+            date = 'R0' + str(year) + '-' + now.strftime('%m-%d')
+        else:
+            date = 'R' + str(year) + '-' + now.strftime('%m-%d')
+        self.txt.insert('insert', date)
+
+    def insert_time_HHMS(self):
+        now = self._get_now()
+        time = now.strftime('%H時%M分%S秒')
+        time = self._remove_zero(time)
+        time = self._convert_half_to_full(time)
+        self.txt.insert('insert', time)
+
+    def insert_time_GHMS(self):
+        now = self._get_now()
+        hour = int(now.strftime('%H'))
+        if hour < 12:
+            time = '午前' + str(hour) + '時' + now.strftime('%M分%S秒')
+        else:
+            time = '午後' + str(hour - 12) + '時' + now.strftime('%M分%S秒')
+        time = self._remove_zero(time)
+        time = self._convert_half_to_full(time)
+        self.txt.insert('insert', time)
+
+    def insert_time_hhms(self):
+        now = self._get_now()
+        time = now.strftime('%H時%M分%S秒')
+        time = self._remove_zero(time)
+        self.txt.insert('insert', time)
+
+    def insert_time_Ghms(self):
+        now = self._get_now()
+        hour = int(now.strftime('%H'))
+        if hour < 12:
+            time = '午前' + str(hour) + '時' + now.strftime('%M分%S秒')
+        else:
+            time = '午後' + str(hour - 12) + '時' + now.strftime('%M分%S秒')
+        time = self._remove_zero(time)
+        self.txt.insert('insert', time)
+
+    def insert_time_iso(self):
+        now = self._get_now()
+        time = now.strftime('%H:%M:%S')
+        self.txt.insert('insert', time)
+
+    def insert_time_giso(self):
+        now = self._get_now()
+        hour = int(now.strftime('%H'))
+        if hour < 12:
+            time = 'AM' + str(hour) + ':' + now.strftime('%M:%S')
+        else:
+            time = 'PM' + str(hour - 12) + ':' + now.strftime('%M:%S')
+        self.txt.insert('insert', time)
 
     def insert_datetime(self):
-        now = datetime.datetime.utcnow() + datetime.timedelta(hours=+9)
-        jst = datetime.timezone(datetime.timedelta(hours=+9))
-        now = now.replace(tzinfo=jst)
+        now = self._get_now()
         self.txt.insert('insert', now.isoformat(timespec='seconds'))
+
+    @staticmethod
+    def _remove_zero(text):
+        text = re.sub('^0', '', text)
+        text = re.sub('年0', '年', text)
+        text = re.sub('月0', '月', text)
+        text = re.sub('時0', '時', text)
+        text = re.sub('分0', '分', text)
+        return text
 
     ################################
     # FILE NAME
 
-    def insert_file_path(self):
-        file_path = tkinter.filedialog.askopenfilename()
-        self.txt.insert('insert', file_path)
+    def insert_file_paths(self):
+        file_paths = tkinter.filedialog.askopenfilenames()
+        for f in file_paths:
+            self.txt.insert('insert', f + '\n')
+
+    def insert_file_names(self):
+        file_paths = tkinter.filedialog.askopenfilenames()
+        for f in file_paths:
+            f = re.sub('^(.|\n)*/', '', f)
+            self.txt.insert('insert', f + '\n')
 
     ################################
     # SYMBOL
@@ -4410,7 +4719,8 @@ class Makdo:
 
     def show_about_makdo(self):
         n = 'バージョン情報'
-        m = 'makdo ' + __version__
+        m = 'makdo ' + __version__ + '\n\n' \
+            + '秦誠一郎により開発されています'
         tkinter.messagebox.showinfo(n, m)
 
     ################################################################
@@ -4839,7 +5149,6 @@ class Makdo:
         # POINT PAINTING
         # self.paint_out_line(self.get_insert_v_number() - 1)
         # TO NEXT
-        # self.number_of_period += 1
         interval = 10
         self.win.after(interval, self.run_periodically_to_paint_line)  # NEXT
 
@@ -4870,7 +5179,11 @@ if __name__ == '__main__':
         version=('%(prog)s ' + __version__),
         help='バージョン番号を表示します')
     parser.add_argument(
-        '-c', '--paint-keywords',
+        '-d', '--dark-theme',
+        action='store_true',
+        help='背景を暗くします')
+    parser.add_argument(
+        '-p', '--paint-keywords',
         action='store_true',
         help='キーワードに色を付けます')
     parser.add_argument(
