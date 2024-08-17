@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.04-08:39:51-JST>
+# Time-stamp:   <2024.08.17-09:03:50-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -3508,7 +3508,7 @@ class Document:
             if p.paragraph_class == 'table' or p.paragraph_class == 'image':
                 if i > 0:
                     if p.length_docx['space before'] < 0:
-                        msg = '警告: ' \
+                        msg = '※ 警告: ' \
                             + '段落前の余白「v」の値が小さ過ぎます'
                         # msg = 'warning: ' \
                         #     + '"space before" is too small'
@@ -3528,7 +3528,7 @@ class Document:
                     p.length_docx['space before'] = 0.0
                 if i < m:
                     if p.length_docx['space after'] < 0:
-                        msg = '警告: ' \
+                        msg = '※ 警告: ' \
                             + '段落前の余白「V」の値が小さ過ぎます'
                         # msg = 'warning: ' \
                         #     + '"space after" is too small'
@@ -3639,6 +3639,68 @@ class Document:
     def print_warning_messages(self):
         for p in self.paragraphs:
             p.print_warning_messages()
+
+    # UNFOLD
+    @staticmethod
+    def unfold(old_md_lines):
+        new_md_lines = []
+        remain_md_lines = [True for i in old_md_lines]
+        m = len(old_md_lines) - 1
+        line_numbers = [0]
+        res_from = '^(#+(?:-#+)*(?:\\s.*)?)\\.\\.\\.\\[([0-9])+\\]$'
+        res_to = '^\\.\\.\\.\\[[0-9]+\\]#+(-#+)*(\\s|$)'
+        while line_numbers != []:
+            i = line_numbers[-1]
+            if i > m:
+                line_numbers.pop(-1)
+                continue
+            if not remain_md_lines[i]:
+                line_numbers.pop(-1)
+                continue
+            if re.match(res_to, old_md_lines[i].text):
+                line_numbers.pop(-1)
+                continue
+            if re.match(res_from, old_md_lines[i].text):
+                folding_number \
+                    = re.sub(res_from, '\\2', old_md_lines[i].text)
+                old_md_lines[i].text \
+                    = re.sub(res_from, '\\1', old_md_lines[i].text)
+                #
+                new_md_lines.append(old_md_lines[i])
+                remain_md_lines[i] = False
+                line_numbers[-1] += 1
+                if i < m and old_md_lines[i + 1].raw_text == '':
+                    #
+                    # new_md_lines.append(old_md_lines[i])
+                    remain_md_lines[i + 1] = False
+                    line_numbers[-1] += 1
+                for j, ml in enumerate(old_md_lines):
+                    if not remain_md_lines[j]:
+                        continue
+                    res = '^\\.\\.\\.\\[' + folding_number + '\\]'
+                    if re.match(res, ml.text):
+                        line_numbers.append(j)
+                        #
+                        # new_md_lines.append(old_md_lines[j])
+                        remain_md_lines[j] = False
+                        line_numbers[-1] += 1
+            else:
+                #
+                new_md_lines.append(old_md_lines[i])
+                remain_md_lines[i] = False
+                line_numbers[-1] += 1
+        must_warn = True
+        for i, ml in enumerate(old_md_lines):
+            if remain_md_lines[i]:
+                if must_warn:
+                    msg = '※ 警告: ' \
+                        + '折り畳まれたセクションが残っています'
+                    # msg = 'warning: ' \
+                        #     + 'folded sections remain'
+                    old_md_lines[i].append_warning_message(msg)
+                    must_warn = False
+                new_md_lines.append(old_md_lines[i])
+        return new_md_lines
 
 
 class RawParagraph:
@@ -4428,7 +4490,7 @@ class Paragraph:
             ms_fmt.space_before = Pt(pt)
         else:
             ms_fmt.space_before = Pt(0)
-            msg = '警告: ' \
+            msg = '※ 警告: ' \
                 + '段落前の余白「v」の値が小さ過ぎます'
             # msg = 'warning: ' \
             #     + '"space before" is too small'
@@ -4438,7 +4500,7 @@ class Paragraph:
             ms_fmt.space_after = Pt(pt)
         else:
             ms_fmt.space_after = Pt(0)
-            msg = '警告: ' \
+            msg = '※ 警告: ' \
                 + '段落後の余白「V」の値が小さ過ぎます'
             # msg = 'warning: ' \
             #     + '"space after" is too small'
@@ -4452,7 +4514,7 @@ class Paragraph:
             ms_fmt.line_spacing = Pt(ls * f_size)
         else:
             ms_fmt.line_spacing = Pt(1.0 * f_size)
-            msg = '警告: ' \
+            msg = '※ 警告: ' \
                 + '行間隔「X」の値が少な過ぎます'
             # msg = 'warning: ' \
             #     + 'too small line spacing'
@@ -4843,7 +4905,7 @@ class Paragraph:
                 ms_run.add_picture(path, height=Pt(c_size))
         except BaseException:
             ms_run.text = '![' + alte + '](' + path + ')'
-            msg = '警告: ' \
+            msg = '※ 警告: ' \
                 + 'インライン画像「' + path + '」が読み込めません'
             # msg = 'warning: can\'t open "' + path + '"'
             r = '^.*! *\\[.*\\] *\\(' + path + '\\).*$'
@@ -5214,7 +5276,7 @@ class ParagraphTable(Paragraph):
                     ms_fmt.line_spacing = Pt(ls * c_size)
                 else:
                     ms_fmt.line_spacing = Pt(1.0 * c_size)
-                    msg = '警告: ' \
+                    msg = '※ 警告: ' \
                         + '行間隔「X」の値が少な過ぎます'
                     # msg = 'warning: ' \
                     #     + 'too small line spacing'
@@ -5489,7 +5551,7 @@ class ParagraphImage(Paragraph):
                 ms_par = self.__get_ms_par(ms_doc)
                 ms_par.add_run(text)
                 ms_par.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                msg = '警告: ' \
+                msg = '※ 警告: ' \
                     + '画像「' + path + '」が読み込めません'
                 # msg = 'warning: can\'t open "' + path + '"'
                 r = '^.*! *\\[.*\\] *\\(' + path + '\\).*$'
@@ -5605,7 +5667,7 @@ class ParagraphMath(Paragraph):
             ms_fmt.space_before = Pt(pt)
         else:
             ms_fmt.space_before = Pt(0)
-            msg = '警告: ' \
+            msg = '※ 警告: ' \
                 + '段落前の余白「v」の値が小さ過ぎます'
             # msg = 'warning: ' \
             #     + '"space before" is too small'
@@ -5615,7 +5677,7 @@ class ParagraphMath(Paragraph):
             ms_fmt.space_after = Pt(pt)
         else:
             ms_fmt.space_after = Pt(0)
-            msg = '警告: ' \
+            msg = '※ 警告: ' \
                 + '段落後の余白「V」の値が小さ過ぎます'
             # msg = 'warning: ' \
             #     + '"space after" is too small'
@@ -5629,7 +5691,7 @@ class ParagraphMath(Paragraph):
             ms_fmt.line_spacing = Pt(ls * f_size)
         else:
             ms_fmt.line_spacing = Pt(1.0 * f_size)
-            msg = '警告: ' \
+            msg = '※ 警告: ' \
                 + '行間隔「X」の値が少な過ぎます'
             # msg = 'warning: ' \
             #     + 'too small line spacing'
@@ -6329,6 +6391,8 @@ class Md2Docx:
         frm.md_lines = doc.md_lines
         frm.args = args
         frm.configure()
+        # UNFOLD
+        doc.md_lines = Document().unfold(doc.md_lines)
         # EXECUTE SCRIPT
         doc.md_lines = Script(doc.md_lines).execute()
         # GET RAW PARAGRAPHS
