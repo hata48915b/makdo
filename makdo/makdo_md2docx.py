@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.17-09:03:50-JST>
+# Time-stamp:   <2024.08.18-10:13:39-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -3627,7 +3627,7 @@ class Document:
             if datetime_cls.tzinfo is None:
                 datetime_cls = datetime_cls.replace(tzinfo=jst)
             datetime_cls = datetime_cls.astimezone(utc)
-        except:
+        except BaseException:
             datetime_cls = datetime.datetime.utcnow()
             datetime_cls = datetime_cls.replace(tzinfo=utc)
         return datetime_cls
@@ -3643,12 +3643,28 @@ class Document:
     # UNFOLD
     @staticmethod
     def unfold(old_md_lines):
+        # |                ->  |
+        # |## www...[3]    ->  |## www
+        # |                ->  |
+        # |...[1]#### yyy  ->  |### xxx
+        # |                ->  |
+        # |zzz             ->  |#### yyy
+        # |                ->  |
+        # |...[2]### xxx   ->  |zzz
+        # |                ->  |
+        # |#### yyy...[1]  ->  |
+        # |                ->  |
+        # |...[3]## www    ->  |
+        # |                ->  |
+        # |### xxx...[2]   ->  |
+        # |                ->  |
         new_md_lines = []
         remain_md_lines = [True for i in old_md_lines]
         m = len(old_md_lines) - 1
         line_numbers = [0]
-        res_from = '^(#+(?:-#+)*(?:\\s.*)?)\\.\\.\\.\\[([0-9])+\\]$'
-        res_to = '^\\.\\.\\.\\[[0-9]+\\]#+(-#+)*(\\s|$)'
+        res_mark = '\\.\\.\\.\\[([0-9])+\\]'
+        res_from = '^(#+(?:-#+)*(?:\\s.*)?)' + res_mark + '$'
+        res_to = '^' + res_mark + '#+(-#+)*(\\s|$)'
         while line_numbers != []:
             i = line_numbers[-1]
             if i > m:
@@ -3660,17 +3676,18 @@ class Document:
             if re.match(res_to, old_md_lines[i].text):
                 line_numbers.pop(-1)
                 continue
-            if re.match(res_from, old_md_lines[i].text):
+            if re.match(res_from, old_md_lines[i].text) and \
+               re.match(NOT_ESCAPED + res_mark + '$', old_md_lines[i].text):
                 folding_number \
                     = re.sub(res_from, '\\2', old_md_lines[i].text)
                 old_md_lines[i].text \
                     = re.sub(res_from, '\\1', old_md_lines[i].text)
-                #
+                # APPEND "FROM LINE"
                 new_md_lines.append(old_md_lines[i])
                 remain_md_lines[i] = False
                 line_numbers[-1] += 1
                 if i < m and old_md_lines[i + 1].raw_text == '':
-                    #
+                    # SKIP NEXT EMPTY LINE
                     # new_md_lines.append(old_md_lines[i])
                     remain_md_lines[i + 1] = False
                     line_numbers[-1] += 1
@@ -3680,12 +3697,12 @@ class Document:
                     res = '^\\.\\.\\.\\[' + folding_number + '\\]'
                     if re.match(res, ml.text):
                         line_numbers.append(j)
-                        #
+                        # JUMP TO "TO LINE"
                         # new_md_lines.append(old_md_lines[j])
                         remain_md_lines[j] = False
                         line_numbers[-1] += 1
             else:
-                #
+                # APPEND "USUAL LINE"
                 new_md_lines.append(old_md_lines[i])
                 remain_md_lines[i] = False
                 line_numbers[-1] += 1
@@ -3696,7 +3713,7 @@ class Document:
                     msg = '※ 警告: ' \
                         + '折り畳まれたセクションが残っています'
                     # msg = 'warning: ' \
-                        #     + 'folded sections remain'
+                    #     + 'folded sections remain'
                     old_md_lines[i].append_warning_message(msg)
                     must_warn = False
                 new_md_lines.append(old_md_lines[i])

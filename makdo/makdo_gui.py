@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.16-14:29:24-JST>
+# Time-stamp:   <2024.08.18-12:21:40-JST>
 
 # makdo_gui.py
 # Copyright (C) 2024-2024  Seiichiro HATA
@@ -71,7 +71,7 @@ WHITE_SPACE = ('#C0C000', '#FFFFFF', '#F7F700')  # (0.7,  60), WH, (0.9,  60)
 COLOR_SPACE = (
     # Y=   0.3        0.5        0.7        0.9
     ('#FF1C1C', '#FF5D5D', '#FF9E9E', '#FFDFDF'),  # 000 : comment
-    ('#DE2900', '#FF603C', '#FFA08A', '#FFDFD8'),  # 010 :
+    ('#DE2900', '#FF603C', '#FFA08A', '#FFDFD8'),  # 010 : fold
     ('#A63A00', '#FF6512', '#FFA271', '#FFE0D0'),  # 020 : del
     ('#864300', '#E07000', '#FFA64D', '#FFE1C4'),  # 030 : sect1
     ('#714900', '#BC7A00', '#FFAC10', '#FFE3AF'),  # 040 : sect2 第１
@@ -160,6 +160,7 @@ FONT_DECORATOR_SAMPLE = ['\t',
                          '@游明朝@<!--游明朝-->@游明朝@',
                          '\t']
 
+# 平成22年内閣告示第2号
 JOYOKANJI = (
     ('0001', '亜亞', 'ア', ''),
     ('0002', '哀', 'アイ、あわ-れ、あわ-れむ', ''),
@@ -2766,6 +2767,8 @@ v=+0.5
 : \\　　氏名　__　　　　　　　　　　　　　　　　　　　　　　　　　　　㊞__
 '''
 
+DONT_EDIT_MESSAGE = '<!--【以下は必要なデータですので編集しないでください】-->'
+
 
 class CharsState:
 
@@ -2903,6 +2906,8 @@ class CharsState:
             key += '-240'
         elif chars == 'M' or chars == 'magenta':
             key += '-300'
+        elif chars == 'fold':
+            key += '-10'
         elif self.is_length_reviser:
             key += '-150'
         elif self.chapter_depth > 0:
@@ -3003,6 +3008,8 @@ class LineDatum:
             c3 = line_text[j - 2] if j > 1 else ''
             c4 = line_text[j - 3] if j > 2 else ''
             c5 = line_text[j - 4] if j > 3 else ''
+            s_lft = line_text[:j + 1]
+            s_rgt = line_text[j + 1:]
             # BEGINNING OF COMMENT "<!--"
             if (not chars_state.is_in_comment and s4 == '<!--') and \
                (c5 != '\\' or re.match(NOT_ESCAPED + '<!--$', tmp)):
@@ -3178,6 +3185,9 @@ class LineDatum:
                 beg = end                                               # 6.beg
                 continue
             # FONT DECORATOR ("@.+@", "^.*^", "_.*_")
+            if re.match('^.*@[0-9]+$', s_lft) and \
+               re.match('^[0-9]*@.*$', s_rgt):
+                continue  # @n@
             res = NOT_ESCAPED + '(@[^@]{1,66}@|\\^.*\\^|_.*_)$'
             if re.match(res, tmp) and not chars_state.is_in_comment:
                 mdt = re.sub(res, '\\2', tmp)
@@ -3216,6 +3226,48 @@ class LineDatum:
                 #                                                       # 4.set
                 tmp = ''                                                # 5.tmp
                 beg = end                                               # 6.beg
+            # FOLDING
+            if re.match('^#+(-#+)*(\\s.*)?\\.\\.\\.\\[$', s_lft) and \
+               re.match(NOT_ESCAPED + '\\.\\.\\.\\[$', s_lft) and \
+               re.match('^[0-9]+\\]$', s_rgt):
+                continue  # # xxx...[ / n]
+            if re.match('^\\.\\.\\.\\[$', s_lft) and \
+               re.match('^[0-9]+\\]#+(-#+)*(\\s.*)?$', s_rgt):
+                continue  # ...[ / n]# xxx
+            if re.match('^#+(-#+)*(\\s.*)?\\.\\.\\.\\[[0-9]+$', s_lft) and \
+               re.match(NOT_ESCAPED + '\\.\\.\\.\\[[0-9]+$', s_lft) and \
+               re.match('^[0-9]*\\]$', s_rgt):
+                continue  # # xxx...[n / ]
+            if re.match('^\\.\\.\\.\\[[0-9]+$', s_lft) and \
+               re.match('^[0-9]*\\]#+(-#+)*(\\s.*)?$', s_rgt):
+                continue  # ...[n / ]xxx
+            res = '^(#+(?:-#+)*(?:\\s.*)?)(\\.\\.\\.\\[[0-9]+\\])$'
+            if re.match(res, s_lft) and \
+               re.match(NOT_ESCAPED + '\\.\\.\\.\\[[0-9]+\\]$', s_lft) and \
+               re.match('^\n$', s_rgt):
+                fld = re.sub(res, '\\2', s_lft)
+                key = chars_state.get_key('')                           # 1.key
+                end = str(i + 1) + '.' + str(j + 1 - len(fld))          # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                # tmp = '...[n]'                                        # 5.tmp
+                beg = end                                               # 6.beg
+                key = chars_state.get_key('fold')                       # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                tmp = ''                                                # 5.tmp
+                beg = end                                               # 6.beg
+                continue  # xxx...[n] /
+            if re.match('^\\.\\.\\.\\[[0-9]+\\]$', s_lft) and \
+               re.match('^#+(-#+)*(\\s.*)?\n$', s_rgt):
+                key = chars_state.get_key('fold')                       # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                tmp = ''                                                # 5.tmp
+                beg = end                                               # 6.beg
+                continue  # ...[n]# xxx /
             # PARENTHESES
             if c == '「' or c == '『' or c == '[' or c == '（' or c == '(':
                 key = chars_state.get_key('')                           # 1.key
@@ -3385,6 +3437,9 @@ class ConvertTypefaceDialog(tkinter.simpledialog.Dialog):
             rd.pack(side=tkinter.LEFT, padx=3, pady=3)
             if cnd == self.old_typeface:
                 rd.select()
+        self.bind('<Key-Return>', self.ok)
+        self.bind('<Key-Escape>', self.cancel)
+        super().body(win)
 
     def buttonbox(self):
         btn = tkinter.Frame(self)
@@ -3419,6 +3474,9 @@ class InsertSymbolDialog(tkinter.simpledialog.Dialog):
                                      variable=self.symbol)
             y, x = int(i / 10), (i % 10)
             rd.grid(row=y, column=x, columnspan=1, padx=3, pady=3)
+        self.bind('<Key-Return>', self.ok)
+        self.bind('<Key-Escape>', self.cancel)
+        super().body(win)
 
     def buttonbox(self):
         btn = tkinter.Frame(self)
@@ -3452,6 +3510,7 @@ class Makdo:
         self.global_line_to_paint = 0
         self.local_line_to_paint = 0
         self.akauni_history = ['', '', '', '', '']
+        self.must_display_folding_message = True
         # WINDOW
         self.win = TkinterDnD.Tk()  # drag and drop
         # self.win = tkinter.Tk()
@@ -3492,11 +3551,11 @@ class Makdo:
         self.mc2 = tkinter.Menu(self.mnb, tearoff=False)
         self.mnb.add_cascade(label='編集(E)', menu=self.mc2, underline=3)
         self.mc2.add_command(label='元に戻す(U)',
-                             command=self.txt.edit_undo,
+                             command=self.edit_modified_undo,
                              underline=5,
                              accelerator='Ctrl+Z')
         self.mc2.add_command(label='やり直す(R)',
-                             command=self.txt.edit_redo,
+                             command=self.edit_modified_redo,
                              underline=5,
                              accelerator='Ctrl+Y')
         self.mc2.add_separator()
@@ -3513,7 +3572,7 @@ class Makdo:
                              underline=5,
                              accelerator='Ctrl+V')
         self.mc2.add_separator()
-        self.mc2.add_command(label='すべて選択(A)',
+        self.mc2.add_command(label='全て選択(A)',
                              command=self.select_all,
                              underline=6,
                              accelerator='Ctrl+A')
@@ -3574,12 +3633,19 @@ class Makdo:
             self.must_paint_keywords.set(True)
         self.mc3.add_checkbutton(label='キーワードに色付け',
                                  variable=self.must_paint_keywords)
+        self.mc3.add_separator()
+        self.mc3.add_command(label='セクションを折り畳む（テスト段階）',#
+                             command=self.fold_section)
+        self.mc3.add_command(label='セクションを展開する（テスト段階）',#
+                             command=self.unfold_section)
+        self.mc3.add_command(label='セクションを全て展開する（テスト段階）',#
+                             command=self.unfold_section_fully)
         # INSERT
         self.mc4 = tkinter.Menu(self.mnb, tearoff=False)
         self.mnb.add_cascade(label='挿入(I)', menu=self.mc4, underline=3)
         self.mc4sec = tkinter.Menu(self.mc4, tearoff=False)
-        self.mc4.add_cascade(label='節を挿入する', menu=self.mc4sec)
-        self.mc4sec.add_command(label='（文章のタイトル）',
+        self.mc4.add_cascade(label='セクションを挿入する', menu=self.mc4sec)
+        self.mc4sec.add_command(label='（書面のタイトル）',
                                 command=self.insert_sect_1)
         self.mc4sec.add_command(label='第１　…',
                                 command=self.insert_sect_2)
@@ -3596,7 +3662,7 @@ class Makdo:
         self.mc4sec.add_command(label='　　　　　　(a) …',
                                 command=self.insert_sect_8)
         self.mc4chp = tkinter.Menu(self.mc4, tearoff=False)
-        self.mc4.add_cascade(label='編を挿入する', menu=self.mc4chp)
+        self.mc4.add_cascade(label='チャプターを挿入する', menu=self.mc4chp)
         self.mc4chp.add_command(label='第１編　…',
                                 command=self.insert_chap_1)
         self.mc4chp.add_command(label='　第１章　…',
@@ -3611,6 +3677,10 @@ class Makdo:
                              command=self.insert_images)
         self.mc4.add_command(label='表を挿入する',
                              command=self.insert_table)
+        self.mc4.add_command(label='改ページを挿入する',
+                             command=self.insert_page_break)
+        self.mc4.add_command(label='改行を挿入する',
+                             command=self.insert_line_break)
         self.mc4.add_separator()
         self.mc4dat = tkinter.Menu(self.mc4, tearoff=False)
         self.mc4.add_cascade(label='日時を挿入する', menu=self.mc4dat)
@@ -3871,7 +3941,7 @@ class Makdo:
             return False
         typ = [('可能な形式', '.md .docx'),
                ('Markdown', '.md'), ('MS Word', '.docx'),
-               ('すべてのファイル', '*')]
+               ('全てのファイル', '*')]
         file_path = tkinter.filedialog.askopenfilename(filetypes=typ)
         if file_path == () or file_path == '':
             return False
@@ -3974,6 +4044,7 @@ class Makdo:
 
     def _has_edited(self):
         file_text = self.txt.get('1.0', 'end-1c')
+        file_text = self.get_fully_unfolded_document(file_text)
         if file_text != '':
             if self.init_text != file_text:
                 return True
@@ -3994,6 +4065,7 @@ class Makdo:
             if file_text == '' or file_text[-1] != '\n':
                 self.txt.insert('end', '\n')
             file_text = self.txt.get('1.0', 'end-1c')
+            file_text = self.get_fully_unfolded_document(file_text)
             if (self.file_path is None) or (self.file_path == ''):
                 typ = [('Markdown', '*.md')]
                 file_path = tkinter.filedialog.asksaveasfilename(filetypes=typ)
@@ -4007,7 +4079,7 @@ class Makdo:
                         os.rename(self.file_path, self.file_path + '~')
                         self.must_make_backup_file = False
                     except BaseException:
-                        n, m = 'エラー', 'バックアップに失敗しました'
+                        n, m = 'エラー', 'バックアップに失敗しました．'
                         tkinter.messagebox.showerror(n, m)
                         return False
             # DOCX OR MD
@@ -4020,7 +4092,7 @@ class Makdo:
                 with open(md_path, 'w') as f:
                     f.write(file_text)
             except BaseException:
-                n, m = 'エラー', 'ファイルの保存に失敗しました'
+                n, m = 'エラー', 'ファイルの保存に失敗しました．'
                 tkinter.messagebox.showerror(n, m)
                 return False
             # SAVE DOCX FILE
@@ -4105,6 +4177,24 @@ class Makdo:
     ################################################################
     # EDIT
 
+    ################################
+    # UNDE AND REDO
+
+    def edit_modified_undo(self):
+        try:
+            self.txt.edit_undo()
+        except BaseException:
+            pass
+
+    def edit_modified_redo(self):
+        try:
+            self.txt.edit_redo()
+        except BaseException:
+            pass
+
+    ################################
+    # CUT, COPY and PASTE
+
     def cut_text(self):
         if self.txt.tag_ranges('sel'):
             c = self.txt.get('sel.first', 'sel.last')
@@ -4133,9 +4223,318 @@ class Makdo:
             self.paint_out_line(i)
         return
 
+    ################################
+    # SELECT ALL
+
     def select_all(self):
         self.txt.tag_add('sel', '1.0', 'end-1c')
         return
+
+    ################################
+    # FOLD
+
+    def fold_section(self):
+        sub_document = self.txt.get('insert linestart', 'end-1c')
+        # CHECK THAT THE LINE IS SECITION
+        res = '^#+(?:-#+)*(?:\\s.*)?\n'
+        if not re.match(res, sub_document):
+            n = 'エラー'
+            m = '行がセクションの見出し（"#"から始まる行）ではありません．'
+            tkinter.messagebox.showerror(n, m)
+            return
+        # CHECK THAT HEADING IS NOT EMPTY
+        res = '^#+(?:-#+)*\\s*\n\n'
+        if re.match(res, sub_document):
+            n = 'エラー'
+            m = 'セクションの見出しがありません（字下げの調整です）．'
+            tkinter.messagebox.showerror(n, m)
+            return
+        # CHECK THAT THE END OF LINE IS NOT ESCAPED
+        fln = sub_document.split('\n')[0]
+        if not re.match(NOT_ESCAPED + 'X$', fln + 'X'):
+            n = 'エラー'
+            m = 'セクションの見出しがエスケープされています' + \
+                '（バックスラッシュで終わっています）．'
+            tkinter.messagebox.showerror(n, m)
+            return
+        # CHECK THAT SECITION IS NOT FOLDED
+        res = '^#+(?:-#+)*(?:\\s.*)?\\.\\.\\.\\[([0-9]+)\\]\n(?:.|\n)*$'
+        if re.match(res, sub_document):
+            n, m = 'エラー', 'セクションは折り畳まれています．'
+            tkinter.messagebox.showerror(n, m)
+            return
+        # DISPLAY MESSAGE
+        if self.must_display_folding_message:
+            self.display_folding_message()
+            self.must_display_folding_message = False
+        # GET FOLDING NUMBER
+        folding_number = 1
+        all_document = self.txt.get('1.0', 'end-1c')
+        res = '^\\.\\.\\.\\[([0-9]+)\\].*$'
+        for line in all_document.split('\n'):
+            if re.match(res, line):
+                n = int(re.sub(res, '\\1', line))
+                if folding_number <= n:
+                    folding_number = n + 1
+        # GET SECTION LINE
+        sub_lines = sub_document.split('\n')
+        section_line = sub_lines[0]
+        # GET SECTION LEVEL
+        res = '^(#+).*$'
+        section_level = len(re.sub(res, '\\1', section_line))
+        # GET TEXT TO FOLD
+        text_to_fold = ''
+        is_end_of_document = False
+        m = len(sub_lines) - 1
+        for i in range(1, m + 1):
+            line = sub_lines[i]
+            if re.match('^(#+)(?:-#+)*(?:\\s.*)?$', line):
+                # SECTION
+                level = len(re.sub(res, '\\1', line))
+                if level <= section_level:
+                    if not re.match('^#+(?:-#+)*\\s*$', line) or \
+                       not (i < m and sub_lines[i + 1] == ''):
+                        tmp = re.sub('<!--(.|\n)*?-->', '', text_to_fold)
+                        if re.match('^(.|\n)*\n<!--(.|\n)*$', tmp):
+                            # "\n<!--\n## xxx"
+                            text_to_fold \
+                                = re.sub('<!--(.|\n)*$', '', text_to_fold)
+                            break
+                        if not re.match('^(.|\n)*<!--(.|\n)*$', tmp):
+                            # not "yyy<!--\n## xxx"
+                            break
+            if re.match('^\\.\\.\\.\\[[0-9]+\\]#+(?:-#+)*(?:\\s.*)?$', line):
+                # FOLDED SECTION
+                text_to_fold \
+                    = re.sub(DONT_EDIT_MESSAGE + '\n\n$', '', text_to_fold)
+                break
+            text_to_fold += line + '\n'
+        else:
+            is_end_of_document = True
+        # INSERT FOLDING MARK
+        self.txt.insert('insert lineend', '...[' + str(folding_number) + ']')
+        # INSERT TEXT TO FOLD
+        if is_end_of_document:
+            self.txt.insert('end', '\n')
+        else:
+            if not re.match('^(.|\n)*\n$', sub_document):
+                self.txt.insert('end', '\n\n')
+            elif not re.match('^(.|\n)*\n\n$', sub_document):
+                self.txt.insert('end', '\n')
+        self.txt.insert('end', DONT_EDIT_MESSAGE + '\n\n')
+        self.txt.insert('end', '...[' + str(folding_number) + ']')
+        self.txt.insert('end', section_line + '\n')
+        self.txt.insert('end', text_to_fold)
+        if re.match('^(.|\n)*\n\n\n', text_to_fold):
+            self.txt.delete('end-1c', 'end')
+        # DELETE FOLDING TEXT
+        beg = 'insert lineend + 1c'
+        end = 'insert lineend +' + str(len(text_to_fold)) + 'c'
+        self.txt.delete(beg, end)
+        # MOVE
+        # self.txt.mark_set('insert', 'insert linestart')
+
+    def unfold_section(self):
+        sub_document = self.txt.get('insert linestart', 'end-1c')
+        # CHECK THAT THE LINE IS SECITION
+        res = '^#+(?:-#+)*(?:\\s.*)?\n'
+        if not re.match(res, sub_document):
+            n = 'エラー'
+            m = '行がセクションの見出し（"#"から始まる行）ではありません．'
+            tkinter.messagebox.showerror(n, m)
+            return
+        # CHECK THAT SECITION IS FOLDED
+        res = '^#+(?:-#+)*(?:\\s.*)?\\.\\.\\.\\[([0-9]+)\\]\n(?:.|\n)*$'
+        if not re.match(res, sub_document):
+            n, m = 'エラー', 'セクションが折り畳まれていません．'
+            tkinter.messagebox.showerror(n, m)
+            return
+        # CHECK THAT TEXT TO UNFOLD EXISTS
+        folding_number = re.sub(res, '\\1', sub_document)
+        res_mark = '\\.\\.\\.\\[' + folding_number + '\\]'
+        res = '^' + '((?:.|\n)*?\n)' \
+            + '((?:' + DONT_EDIT_MESSAGE + '\n+)?)' \
+            + '(' + res_mark + '#+(?:-#+)*(?:\\s.*)?\n)' \
+            + '((?:.|\n)*)$'
+        if not re.match(res, sub_document):
+            n, m = 'エラー', '折り畳み先が見付かりません．'
+            tkinter.messagebox.showerror(n, m)
+            return
+        # DISPLAY MESSAGE
+        if self.must_display_folding_message:
+            self.display_folding_message()
+            self.must_display_folding_message = False
+        # GET TEXT
+        text_a = re.sub(res, '\\1', sub_document)  # unconcerned
+        text_b = re.sub(res, '\\2', sub_document)  # dont edit message
+        text_c = re.sub(res, '\\3', sub_document)  # folding mark line
+        text_d = re.sub(res, '\\4', sub_document)  # text to unfold
+        res = '^' + '((?:.|\n)*?\n)' \
+            + '((?:' + DONT_EDIT_MESSAGE + '\n+)?)' \
+            + '(\\.\\.\\.\\[[0-9]+\\]#+(?:-#+)*(?:\\s.*)?\n)' \
+            + '((?:.|\n)*)$'
+        if re.match(res, text_d):
+            text_d = re.sub(res, '\\1', text_d)
+        # ADJUST LINE BREAK
+        number_of_line_break_to_insert = 0
+        if self.txt.get('insert lineend +1c', 'insert lineend +2c') == '\n':
+            number_of_line_break_to_insert -= 1
+        if not re.match('^(.|\n)*\n$', text_d):
+            number_of_line_break_to_insert += 2
+        elif not re.match('^(.|\n)*\n\n$', text_d):
+            number_of_line_break_to_insert += 1
+        # INSERT TEXT TO UNFOLD
+        self.txt.insert('insert lineend +1c', text_d)
+        # PAINT
+        beg = self.get_insert_v_number()
+        end = beg + text_d.count('\n')
+        # REMOVE TEXT TO UNFOLD
+        text_e = text_a + text_b + text_c + text_d
+        beg = 'insert linestart +' + str(len(text_d + text_a)) + 'c'
+        end = 'insert linestart +' + str(len(text_d + text_e)) + 'c'
+        self.txt.delete(beg, end)
+        # ADJUST LINE BREAK
+        if number_of_line_break_to_insert == -1:
+            beg = 'insert lineend +' + str(len(text_d)) + 'c'
+            end = 'insert lineend +' + str(len(text_d) + 1) + 'c'
+            self.txt.delete(beg, end)
+        elif number_of_line_break_to_insert > 0:
+            ins = 'insert lineend +' + str(len(text_d) + 1) + 'c'
+            self.txt.insert(ins, '\n' * number_of_line_break_to_insert)
+        # REMOVE FOLDING MARK
+        text_f = '...[' + folding_number + ']'
+        beg = 'insert lineend -' + str(len(text_f)) + 'c'
+        end = 'insert lineend'
+        self.txt.delete(beg, end)
+        # MOVE
+        # self.txt.mark_set('insert', 'insert linestart')
+
+    def display_folding_message(self):
+        n = 'ご説明'
+        m = 'セクションを折り畳みます' + \
+            '（セクションの中身を一時的に文面の最後に移動させます）．\n\n' + \
+            'そうすることで、' + \
+            '文面の構造を視覚的に把握しやすくできます．\n\n' + \
+            '他方で、' + \
+            '一時的に文の順序が入れ替わってしまいますので、' + \
+            'コメントや下線などの範囲を正しく把握できず、' + \
+            '画面上の見た目が崩れる可能性があります．\n\n' + \
+            'ファイルを保存する際には、' + \
+            '全て展開した状態で保存されます．\n\n' + \
+            '注）"...[n]"という記号は、' + \
+            '折り畳んだことを記録したもので展開する際に必要ですので、' + \
+            '絶対に書き替えたり消したりしないでください．'
+        tkinter.messagebox.showinfo(n, m)
+
+    def unfold_section_fully(self):
+        old_document = self.txt.get('1.0', 'end-1c')
+        if old_document == '':
+            return
+        new_document = self.get_fully_unfolded_document(old_document)
+        self.file_lines = new_document.split('\n')
+        self.txt.insert('1.0', new_document)
+        self.txt.delete('1.0+' + str(len(new_document)) + 'c', 'end')
+        self.txt.focus_set()
+        self.txt.mark_set('insert', '1.0')
+        # PAINT
+        self.line_data = [LineDatum() for line in self.file_lines]
+        for i, line in enumerate(self.file_lines):
+            self.line_data[i].line_number = i
+            self.line_data[i].line_text = line + '\n'
+            if i > 0:
+                self.line_data[i].beg_chars_state \
+                    = self.line_data[i - 1].end_chars_state.copy()
+                self.line_data[i].beg_chars_state.reset_partially()
+            self.line_data[i].paint_line(self.txt)
+
+    def get_fully_unfolded_document(self, old_document):
+        # |                ->  |
+        # |## www...[3]    ->  |## www
+        # |                ->  |
+        # |...[1]#### yyy  ->  |### xxx
+        # |                ->  |
+        # |zzz             ->  |#### yyy
+        # |                ->  |
+        # |...[2]### xxx   ->  |zzz
+        # |                ->  |
+        # |#### yyy...[1]  ->  |
+        # |                ->  |
+        # |...[3]## www    ->  |
+        # |                ->  |
+        # |### xxx...[2]   ->  |
+        # |                ->  |
+        old_lines = old_document.split('\n')
+        new_lines = []
+        remain_lines = [True for i in old_lines]
+        m = len(old_lines) - 1
+        line_numbers = [0]
+        res_mark = '\\.\\.\\.\\[([0-9])+\\]'
+        res_from = '^(#+(?:-#+)*(?:\\s.*)?)' + res_mark + '$'
+        res_to = '^' + res_mark + '#+(-#+)*(\\s|$)'
+        while line_numbers != []:
+            i = line_numbers[-1]
+            if i > m:
+                line_numbers.pop(-1)
+                continue
+            if not remain_lines[i]:
+                line_numbers.pop(-1)
+                continue
+            if re.match(res_to, old_lines[i]):
+                line_numbers.pop(-1)
+                continue
+            if re.match(res_from, old_lines[i]) and \
+               re.match(NOT_ESCAPED + res_mark + '$', old_lines[i]):
+                folding_number \
+                    = re.sub(res_from, '\\2', old_lines[i])
+                old_lines[i] \
+                    = re.sub(res_from, '\\1', old_lines[i])
+                # APPEND "FROM LINE"
+                new_lines.append(old_lines[i])
+                remain_lines[i] = False
+                line_numbers[-1] += 1
+                if i < m and old_lines[i + 1] == '':
+                    # SKIP "NEXT EMPTY LINE"
+                    # new_lines.append(old_lines[i])
+                    remain_lines[i + 1] = False
+                    line_numbers[-1] += 1
+                for j, line in enumerate(old_lines):
+                    if not remain_lines[j]:
+                        continue
+                    res = '^\\.\\.\\.\\[' + folding_number + '\\]'
+                    if re.match(res, line):
+                        if j >= 2:
+                            if old_lines[j - 2] == DONT_EDIT_MESSAGE and \
+                               old_lines[j - 1] == '':
+                                # SKIP "DONT EDIT MESSAGE"
+                                remain_lines[j - 2] = False
+                                remain_lines[j - 1] = False
+                        line_numbers.append(j)
+                        # JUMP TO "TO LINE"
+                        # new_lines.append(old_lines[j])
+                        remain_lines[j] = False
+                        line_numbers[-1] += 1
+            else:
+                # APPEND "USUAL LINE"
+                new_lines.append(old_lines[i])
+                remain_lines[i] = False
+                line_numbers[-1] += 1
+        must_warn = True
+        for i, ml in enumerate(old_lines):
+            if remain_lines[i]:
+                if must_warn:
+                    n, m = 'エラー', '折り畳まれたセクションが残っています．'
+                    tkinter.messagebox.showerror(n, m)
+                new_lines.append(old_lines[i])
+        new_document = '\n'.join(new_lines) + '\n\n'
+        new_document = re.sub('\n\n+', '\n\n', new_document)
+        # new_document = re.sub('\n+$', '\n', new_document)
+        return new_document
+
+    def fold_or_unfold_section(self):
+        pass
+
+    ################################
+    # CALCULATE
 
     def calculate(self):
         line = self.txt.get('insert linestart', 'insert lineend')
@@ -4304,13 +4703,15 @@ class Makdo:
         self.stb_sor4['font'] = (GOTHIC_FONT, size)
         self.txt.tag_config('error_tag', foreground='#FF0000')
         self.txt.tag_config('search_tag', background='#777777')
-        self.txt.tag_config('akauni_tag', background='#777777')
+
         self.txt.tag_config('tab_tag', background='#5280FF')  # (0.5, 225, max)
         # COLOR FONT
         if not is_dark_theme:
             self.txt.config(bg='white', fg='black')
+            self.txt.tag_config('akauni_tag', background='#CCCCCC')
         else:
             self.txt.config(bg='black', fg='white')
+            self.txt.tag_config('akauni_tag', background='#666666')
         for u in ['-x', '-u']:
             und = False if u == '-x' else True
             for f in ['-g', '-m']:
@@ -4346,67 +4747,67 @@ class Makdo:
     # MARKDOWN
 
     def insert_sect_1(self):
-        self._insert_line_break()
+        self._insert_line_break_as_necessary()
         self.txt.insert('insert', '# ')  # タイトル
 
     def insert_sect_2(self):
-        self._insert_line_break()
+        self._insert_line_break_as_necessary()
         self.txt.insert('insert', '## ')  # 第1
 
     def insert_sect_3(self):
-        self._insert_line_break()
+        self._insert_line_break_as_necessary()
         self.txt.insert('insert', '### ')  # 1
 
     def insert_sect_4(self):
-        self._insert_line_break()
+        self._insert_line_break_as_necessary()
         self.txt.insert('insert', '#### ')  # (1)
 
     def insert_sect_5(self):
-        self._insert_line_break()
+        self._insert_line_break_as_necessary()
         self.txt.insert('insert', '##### ')  # ア
 
     def insert_sect_6(self):
-        self._insert_line_break()
+        self._insert_line_break_as_necessary()
         self.txt.insert('insert', '###### ')  # (ｱ)
 
     def insert_sect_7(self):
-        self._insert_line_break()
+        self._insert_line_break_as_necessary()
         self.txt.insert('insert', '####### ')  # ａ
 
     def insert_sect_8(self):
-        self._insert_line_break()
+        self._insert_line_break_as_necessary()
         self.txt.insert('insert', '######## ')  # (a)
 
     def insert_chap_1(self):
-        self._insert_line_break()
+        self._insert_line_break_as_necessary()
         self.txt.insert('insert', '$ ')  # 第1編
 
     def insert_chap_2(self):
-        self._insert_line_break()
+        self._insert_line_break_as_necessary()
         self.txt.insert('insert', '$$ ')  # 第1章
 
     def insert_chap_3(self):
-        self._insert_line_break()
+        self._insert_line_break_as_necessary()
         self.txt.insert('insert', '$$$ ')  # 第1節
 
     def insert_chap_4(self):
-        self._insert_line_break()
+        self._insert_line_break_as_necessary()
         self.txt.insert('insert', '$$$$ ')  # 第1款
 
     def insert_chap_5(self):
-        self._insert_line_break()
+        self._insert_line_break_as_necessary()
         self.txt.insert('insert', '$$$$$ ')  # 第1目
 
     def insert_images(self):
         typ = [('画像', '.jpg .jpeg .png .gif .tif .tiff .bmp'),
-               ('すべてのファイル', '*')]
+               ('全てのファイル', '*')]
         image_paths = tkinter.filedialog.askopenfilenames(filetypes=typ)
         for i in image_paths:
             image_md_text = '![代替テキスト:縦x横](' + i + ' "説明")'
             self.txt.insert('insert', image_md_text)
 
     def insert_table(self):
-        self._insert_line_break()
+        self._insert_line_break_as_necessary()
         table_md_text = ''
         table_md_text += '|タイトル  |タイトル  |タイトル  |=\n'
         table_md_text += '|:---------|:--------:|---------:|\n'
@@ -4414,7 +4815,14 @@ class Makdo:
         table_md_text += '|左寄せセル|中寄せセル|右寄せセル|'
         self.txt.insert('insert', table_md_text)
 
-    def _insert_line_break(self):
+    def insert_page_break(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '<pgbr>')
+
+    def insert_line_break(self):
+        self.txt.insert('insert', '<br>')
+
+    def _insert_line_break_as_necessary(self):
         t = self.txt.get('1.0', 'insert')
         if len(t) == 0:
             pass
@@ -4699,7 +5107,7 @@ class Makdo:
     def insert_sample(self, sample_document):
         txt_text = self.txt.get('1.0', 'end-1c')
         if txt_text != '':
-            n, m = 'エラー', 'テキストが空ではありません'
+            n, m = 'エラー', 'テキストが空ではありません．'
             tkinter.messagebox.showerror(n, m)
             return
         self.file_lines = sample_document.split('\n')
@@ -4813,10 +5221,10 @@ class Makdo:
                 self.calculate()
                 return 'break'
         elif key.keysym == 'F21':            # w (undo)
-            self.txt.edit_undo()
+            self.edit_modified_undo()
             return 'break'
         elif key.keysym == 'XF86AudioMute':  # W (redo)
-            self.txt.edit_redo()
+            self.edit_modified_redo()
             return 'break'
         elif key.keysym == 'F22':            # f (mark, save)
             if self.akauni_history[-2] == 'F19':
@@ -5152,7 +5560,7 @@ class Makdo:
                 try:
                     self.remove_auto_file(file_path)
                 except BaseException:
-                    n, m = 'エラー', '自動保存ファイルの削除に失敗しました'
+                    n, m = 'エラー', '自動保存ファイルの削除に失敗しました．'
                     tkinter.messagebox.showerror(n, m)
         if os.path.exists(auto_path):
             return True
