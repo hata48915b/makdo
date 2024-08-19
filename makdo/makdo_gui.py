@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.18-12:21:40-JST>
+# Time-stamp:   <2024.08.19-09:05:15-JST>
 
 # makdo_gui.py
-# Copyright (C) 2024-2024  Seiichiro HATA
+# Copyright (C) 2022-2024  Seiichiro HATA
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -50,6 +50,14 @@ import tempfile
 import importlib
 import makdo.makdo_md2docx
 import makdo.makdo_docx2md
+import pandas
+
+if sys.platform == 'win32':
+    import win32com.client  # pip install pywin32
+elif sys.platform == 'darwin':
+    pass
+elif sys.platform == 'linux':
+    import subprocess
 
 
 __version__ = 'v07 Furuichibashi'
@@ -3543,6 +3551,11 @@ class Makdo:
                              command=self.name_and_save,
                              underline=11)
         self.mc1.add_separator()
+        self.mc1.add_command(label='見た目を確認して印刷(P)',
+                             command=self.start_writer,
+                             underline=11,
+                             accelerator='Ctrl+P')
+        self.mc1.add_separator()
         self.mc1.add_command(label='終了(Q)',
                              command=self.quit_makdo,
                              underline=3,
@@ -3634,11 +3647,11 @@ class Makdo:
         self.mc3.add_checkbutton(label='キーワードに色付け',
                                  variable=self.must_paint_keywords)
         self.mc3.add_separator()
-        self.mc3.add_command(label='セクションを折り畳む（テスト段階）',#
+        self.mc3.add_command(label='セクションを折り畳む（テスト段階）',
                              command=self.fold_section)
-        self.mc3.add_command(label='セクションを展開する（テスト段階）',#
+        self.mc3.add_command(label='セクションを展開する（テスト段階）',
                              command=self.unfold_section)
-        self.mc3.add_command(label='セクションを全て展開する（テスト段階）',#
+        self.mc3.add_command(label='セクションを全て展開する（テスト段階）',
                              command=self.unfold_section_fully)
         # INSERT
         self.mc4 = tkinter.Menu(self.mnb, tearoff=False)
@@ -3675,12 +3688,91 @@ class Makdo:
                                 command=self.insert_chap_5)
         self.mc4.add_command(label='画像を挿入する',
                              command=self.insert_images)
-        self.mc4.add_command(label='表を挿入する',
-                             command=self.insert_table)
+        self.mc4tab = tkinter.Menu(self.mc4, tearoff=False)
+        self.mc4.add_cascade(label='表を挿入する', menu=self.mc4tab)
+        self.mc4tab.add_command(label='エクセルから挿入する（未実装）',
+                                command=self.insert_table_from_excel)
+        self.mc4tab.add_command(label='書式を挿入する',
+                                command=self.insert_table_format)
         self.mc4.add_command(label='改ページを挿入する',
                              command=self.insert_page_break)
         self.mc4.add_command(label='改行を挿入する',
                              command=self.insert_line_break)
+        self.mc4fnt = tkinter.Menu(self.mc4, tearoff=False)
+        self.mc4.add_cascade(label='文字のフォントを変える', menu=self.mc4fnt)
+        self.mc4fnt.add_command(label='ゴシック体',
+                                command=self.insert_gothic_font)
+        self.mc4fnt.add_command(label='手動入力（未実装）',
+                                command=self.insert_font_manually)
+        self.mc4fsz = tkinter.Menu(self.mc4, tearoff=False)
+        self.mc4.add_cascade(label='文字の大きさを変える', menu=self.mc4fsz)
+        self.mc4fsz.add_command(label='特小サイズ',
+                                command=self.insert_ss_font_size)
+        self.mc4fsz.add_command(label='小サイズ',
+                                command=self.insert_s_font_size)
+        self.mc4fsz.add_command(label='大サイズ',
+                                command=self.insert_l_font_size)
+        self.mc4fsz.add_command(label='特大サイズ',
+                                command=self.insert_ll_font_size)
+        self.mc4fsz.add_command(label='手動入力（未実装）',
+                                command=self.insert_font_size_manually)
+        self.mc4fwd = tkinter.Menu(self.mc4, tearoff=False)
+        self.mc4.add_cascade(label='文字の幅を変える', menu=self.mc4fwd)
+        self.mc4fwd.add_command(label='特細サイズ',
+                                command=self.insert_ss_font_width)
+        self.mc4fwd.add_command(label='細サイズ',
+                                command=self.insert_s_font_width)
+        self.mc4fwd.add_command(label='太サイズ',
+                                command=self.insert_l_font_width)
+        self.mc4fwd.add_command(label='特太サイズ',
+                                command=self.insert_ll_font_width)
+        self.mc4uln = tkinter.Menu(self.mc4, tearoff=False)
+        self.mc4.add_cascade(label='文字に下線をを引く', menu=self.mc4uln)
+        self.mc4uln.add_command(label='単線',
+                                command=self.insert_single_underline)
+        self.mc4uln.add_command(label='二重線',
+                                command=self.insert_double_underline)
+        self.mc4uln.add_command(label='波線',
+                                command=self.insert_wave_underline)
+        self.mc4uln.add_command(label='破線',
+                                command=self.insert_dash_underline)
+        self.mc4uln.add_command(label='点線',
+                                command=self.insert_dot_underline)
+        self.mc4fcl = tkinter.Menu(self.mc4, tearoff=False)
+        self.mc4.add_cascade(label='文字色を変える', menu=self.mc4fcl)
+        self.mc4fcl.add_command(label='赤色',
+                                command=self.insert_r_font_color)
+        self.mc4fcl.add_command(label='黄色',
+                                command=self.insert_y_font_color)
+        self.mc4fcl.add_command(label='緑色',
+                                command=self.insert_g_font_color)
+        self.mc4fcl.add_command(label='シアン',
+                                command=self.insert_c_font_color)
+        self.mc4fcl.add_command(label='青色',
+                                command=self.insert_b_font_color)
+        self.mc4fcl.add_command(label='マゼンタ',
+                                command=self.insert_m_font_color)
+        self.mc4fcl.add_command(label='白色',
+                                command=self.insert_w_font_color)
+        self.mc4hcl = tkinter.Menu(self.mc4, tearoff=False)
+        self.mc4.add_cascade(label='下地色を変える', menu=self.mc4hcl)
+        self.mc4hcl.add_command(label='赤色',
+                                command=self.insert_r_highlight_color)
+        self.mc4hcl.add_command(label='黄色',
+                                command=self.insert_y_highlight_color)
+        self.mc4hcl.add_command(label='緑色',
+                                command=self.insert_g_highlight_color)
+        self.mc4hcl.add_command(label='シアン',
+                                command=self.insert_c_highlight_color)
+        self.mc4hcl.add_command(label='青色',
+                                command=self.insert_b_highlight_color)
+        self.mc4hcl.add_command(label='マゼンタ',
+                                command=self.insert_m_highlight_color)
+        self.mc4typ = tkinter.Menu(self.mc4, tearoff=False)
+        self.mc4.add_cascade(label='人名漢字を挿入する（未完成）',
+                             menu=self.mc4typ)
+        self.mc4typ.add_command(label='"花"の人名漢字',
+                                command=self.insert_name_char_of_hana)
         self.mc4.add_separator()
         self.mc4dat = tkinter.Menu(self.mc4, tearoff=False)
         self.mc4.add_cascade(label='日時を挿入する', menu=self.mc4dat)
@@ -3775,6 +3867,14 @@ class Makdo:
         self.mc6.add_command(label='文字情報',
                              command=self.show_char_info)
         self.mc6.add_separator()
+        self.mc6.add_command(label='ヘルプ(H)',
+                             command=self.show_help,
+                             underline=4)
+        self.mc6.add_separator()
+        self.mc6.add_command(label='ライセンス情報(F)',
+                             command=self.show_license_info,
+                             underline=8)
+        self.mc6.add_separator()
         self.mc6.add_command(label='Makdoについて(A)',
                              command=self.show_about_makdo,
                              underline=10)
@@ -3789,7 +3889,7 @@ class Makdo:
         self.txt.bind('<ButtonRelease-1>', self.process_button1_release)
         self.txt.bind('<ButtonRelease-2>', self.process_button2_release)
         self.txt.bind('<ButtonRelease-3>', self.process_button3_release)
-        self.txt.config(insertbackground='#FF7777', blockcursor=True)  # CURSOR
+        self.txt.config(insertbackground='#FF7777', blockcursor=True)  # cursor
         # SCROLL BAR
         scb = tkinter.Scrollbar(self.txt, orient=tkinter.VERTICAL,
                                 command=self.txt.yview)
@@ -4006,13 +4106,22 @@ class Makdo:
         # CLEAR THE UNDO STACK
         self.txt.edit_reset()
 
-    def open_dropped_file(self, event):                   # drag and drop
-        ans = self.close_file()                           # drag and drop
-        if ans is None:                                   # drag and drop
-            return None                                   # drag and drop
-        file_path = event.data                            # drag and drop
-        file_path = re.sub('^{(.*)}$', '\\1', file_path)  # drag and drop
-        self.just_open_file(file_path)                    # drag and drop
+    def open_dropped_file(self, event):                         # drag and drop
+        res_doc = '^(.|\n)+\\.(md|docx)$'                       # drag and drop
+        res_xls = '^(.|\n)+\\.(xlsx)$'                          # drag and drop
+        res_img = '^(.|\n)+\\.(jpg|jpeg|png|gif|tif|tiff|bmp)$'
+        file_path = event.data                                  # drag and drop
+        file_path = re.sub('^{(.*)}$', '\\1', file_path)        # drag and drop
+        if re.match(res_doc, file_path, re.I):                  # drag and drop
+            ans = self.close_file()                             # drag and drop
+            if ans is None:                                     # drag and drop
+                return None                                     # drag and drop
+            self.just_open_file(file_path)                      # drag and drop
+        elif re.match(res_xls, file_path, re.I):                # drag and drop
+            pass  # 未実装
+        elif re.match(res_img, file_path, re.I):                # drag and drop
+            image_md_text = '![代替テキスト:縦x横](' + file_path + ' "説明")'
+            self.txt.insert('insert', image_md_text)            # drag and drop
 
     ################################
     # CLOSE FILE
@@ -4096,7 +4205,7 @@ class Makdo:
                 tkinter.messagebox.showerror(n, m)
                 return False
             # SAVE DOCX FILE
-            if re.match('^(?:.|\n)+.docx$', self.file_path):
+            if re.match('^(?:.|\n)+\\.docx$', self.file_path):
                 stderr = sys.stderr
                 sys.stderr = tempfile.TemporaryFile(mode='w+')
                 importlib.reload(makdo.makdo_md2docx)
@@ -4162,6 +4271,51 @@ class Makdo:
         self.file_path = file_path
         self.save_file()
         return True
+
+    ################################
+    # START WRITER
+
+    def start_writer(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        md_path = self.temp_dir.name + '/doc.md'
+        docx_path = self.temp_dir.name + '/doc.docx'
+        # SAVE MD
+        file_text = self.txt.get('1.0', 'end-1c')
+        file_text = self.get_fully_unfolded_document(file_text)
+        with open(md_path, 'w') as f:
+            f.write(file_text)
+        # CONVERT TO DOCX
+        stderr = sys.stderr
+        sys.stderr = tempfile.TemporaryFile(mode='w+')
+        importlib.reload(makdo.makdo_md2docx)
+        try:
+            m2d = makdo.makdo_md2docx.Md2Docx(md_path)
+            m2d.save(docx_path)
+        except BaseException:
+            pass
+        sys.stderr.seek(0)
+        msg = sys.stderr.read()
+        sys.stderr = stderr
+        if msg != '':
+            n = 'エラー'
+            tkinter.messagebox.showerror(n, msg)
+            return
+        if sys.platform == 'win32':
+            Application = win32com.client.Dispatch("Word.Application")
+            Application.Visible = True
+            doc = Application.Documents.Open(FileName=docx_path,
+                                             ConfirmConversions=False)
+            # doc = Application.Documents.Open(FileName=docx_path,
+            #                                  ConfirmConversions=False,
+            #                                  ReadOnly=True)
+        elif sys.platform == 'darwin':
+            pass  # 未実装
+        elif sys.platform == 'linux':
+            doc = subprocess.run('/usr/bin/libreoffice ' + docx_path,
+                                 check=True,
+                                 shell=True,
+                                 stdout=subprocess.PIPE,
+                                 encoding="utf-8")
 
     ################################
     # QUIT
@@ -4463,6 +4617,8 @@ class Makdo:
         # |                ->  |
         # |### xxx...[2]   ->  |
         # |                ->  |
+        if old_document == '':
+            return ''
         old_lines = old_document.split('\n')
         new_lines = []
         remain_lines = [True for i in old_lines]
@@ -4806,7 +4962,10 @@ class Makdo:
             image_md_text = '![代替テキスト:縦x横](' + i + ' "説明")'
             self.txt.insert('insert', image_md_text)
 
-    def insert_table(self):
+    def insert_table_from_excel(self):
+        pass  # 未実装
+
+    def insert_table_format(self):
         self._insert_line_break_as_necessary()
         table_md_text = ''
         table_md_text += '|タイトル  |タイトル  |タイトル  |=\n'
@@ -4821,6 +4980,123 @@ class Makdo:
 
     def insert_line_break(self):
         self.txt.insert('insert', '<br>')
+
+    def insert_gothic_font(self):
+        self.txt.insert('insert', '`（ここはゴシック体）`')
+        self.txt.mark_set('insert', 'insert-1c')
+
+    def insert_font_manually(self):
+        pass  # 未実装
+
+    def insert_ss_font_size(self):
+        self.txt.insert('insert', '---（ここは文字が特に小さい）---')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_s_font_size(self):
+        self.txt.insert('insert', '--（ここは文字が小さい）--')
+        self.txt.mark_set('insert', 'insert-2c')
+
+    def insert_l_font_size(self):
+        self.txt.insert('insert', '++（ここは文字が大きい）++')
+        self.txt.mark_set('insert', 'insert-2c')
+
+    def insert_ll_font_size(self):
+        self.txt.insert('insert', '+++（ここは文字が特に大きい）+++')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_font_size_manually(self):
+        pass  # 未実装
+
+    def insert_ss_font_width(self):
+        self.txt.insert('insert', '>>>（ここは文字が特に細い）<<<')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_s_font_width(self):
+        self.txt.insert('insert', '>>（ここは文字が細い）<<')
+        self.txt.mark_set('insert', 'insert-2c')
+
+    def insert_l_font_width(self):
+        self.txt.insert('insert', '<<（ここは文字が太い）>>')
+        self.txt.mark_set('insert', 'insert-2c')
+
+    def insert_ll_font_width(self):
+        self.txt.insert('insert', '<<<（ここは文字が特に太い）>>>')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_single_underline(self):
+        self.txt.insert('insert', '__（ここは下線が引かれる）__')
+        self.txt.mark_set('insert', 'insert-2c')
+
+    def insert_double_underline(self):
+        self.txt.insert('insert', '_=_（ここは下線が引かれる）_=_')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_wave_underline(self):
+        self.txt.insert('insert', '_~_（ここは下線が引かれる）_~_')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_dash_underline(self):
+        self.txt.insert('insert', '_-_（ここは下線が引かれる）_-_')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_dot_underline(self):
+        self.txt.insert('insert', '_._（ここは下線が引かれる）_._')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_r_font_color(self):
+        self.txt.insert('insert', '^R^（ここは文字が赤色）^R^')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_y_font_color(self):
+        self.txt.insert('insert', '^Y^（ここは文字が黄色）^Y^')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_g_font_color(self):
+        self.txt.insert('insert', '^G^（ここは文字が緑色）^G^')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_c_font_color(self):
+        self.txt.insert('insert', '^C^（ここは文字がシアン）^C^')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_b_font_color(self):
+        self.txt.insert('insert', '^B^（ここは文字が青色）^B^')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_m_font_color(self):
+        self.txt.insert('insert', '^M^（ここは文字がマゼンタ）^M^')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_w_font_color(self):
+        self.txt.insert('insert', '^^（ここは文字が白色）^^')
+        self.txt.mark_set('insert', 'insert-2c')
+
+    def insert_r_highlight_color(self):
+        self.txt.insert('insert', '_R_（ここは下地が赤色）_R_')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_y_highlight_color(self):
+        self.txt.insert('insert', '_Y_（ここは下地が黄色）_Y_')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_g_highlight_color(self):
+        self.txt.insert('insert', '_G_（ここは下地が緑色）_G_')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_c_highlight_color(self):
+        self.txt.insert('insert', '_C_（ここは下地がシアン）_C_')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_b_highlight_color(self):
+        self.txt.insert('insert', '_B_（ここは下地が青色）_B_')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_m_highlight_color(self):
+        self.txt.insert('insert', '_M_（ここは下地がマゼンタ）_M_')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_name_char_of_hana(self):
+        self.txt.insert('insert', '花3;花4;花6;')
 
     def _insert_line_break_as_necessary(self):
         t = self.txt.get('1.0', 'insert')
@@ -5174,12 +5450,70 @@ class Makdo:
             tkinter.messagebox.showinfo(n, m)
 
     ################################
+    # HELP
+
+    def show_help(self):
+        n = 'ヘルプ'
+        m = 'このダイアログを閉じた後、' + \
+            'ウィンドウにMS_Wordのファイル（拡張子docx）を' + \
+            'ドラッグアンドドロップしてみてください．'
+        tkinter.messagebox.showinfo(n, m)
+
+    ################################
+    # LICENSE INFO
+
+    def show_license_info(self):
+        n = 'ライセンス情報'
+        m = 'Copyright (C) 2022-2024  Seiichiro HATA\n\n' + \
+            'このソフトウェアは、' + \
+            '"GPLv3"というライセンスで開発されています．\n\n' + \
+            'This program is free software: you can redistribute it ' + \
+            'and/or modify it under the terms of the GNU General Public ' + \
+            'License as published by the Free Software Foundation, either ' + \
+            'version 3 of the License, or (at your option) any later ' + \
+            'version.\n\n' + \
+            'This program is distributed in the hope that it will be ' + \
+            'useful, but WITHOUT ANY WARRANTY; without even the implied ' + \
+            'warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR ' + \
+            'PURPOSE.  ' + \
+            'See the GNU General Public License for more details.\n\n' + \
+            'You should have received a copy of the GNU General Public ' + \
+            'License along with this program.  ' + \
+            'If not, see <http://www.gnu.org/licenses/>.\n\n\n' + \
+            'このソフトウェアは、' + \
+            '"python-docx"というライブラリを利用しています．\n' + \
+            '"python-docx"は、' + \
+            '"MIT_License"というライセンスで開発されています．\n\n' + \
+            'The MIT License (MIT)\n\n' + \
+            'Copyright (c) 2013 Steve Canny, https://github.com/scanny\n\n' + \
+            'Permission is hereby granted, free of charge, to any person ' + \
+            'obtaining a copy of this software and associated ' + \
+            'documentation files (the "Software"), to deal in the ' + \
+            'Software without restriction, including without limitation ' + \
+            'the rights to use, copy, modify, merge, publish, distribute, ' + \
+            'sublicense, and/or sell copies of the Software, and to ' + \
+            'permit persons to whom the Software is furnished to do so, ' + \
+            'subject to the following conditions:\n\n' + \
+            'The above copyright notice and this permission notice shall ' + \
+            'be included in all copies or substantial portions of the ' + \
+            'Software.\n\n' + \
+            'THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY ' + \
+            'KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE ' + \
+            'WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR ' + \
+            'PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS ' + \
+            'OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR ' + \
+            'OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR ' + \
+            'OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE ' + \
+            'SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.'
+        tkinter.messagebox.showinfo(n, m)
+
+    ################################
     # ABOUT MAKDO
 
     def show_about_makdo(self):
         n = 'バージョン情報'
-        m = 'makdo ' + __version__ + '\n\n' \
-            + '秦誠一郎により開発されています'
+        m = 'makdo ' + __version__ + '\n\n' + \
+            '秦誠一郎により開発されています．'
         tkinter.messagebox.showinfo(n, m)
 
     ################################################################
