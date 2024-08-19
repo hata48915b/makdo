@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.19-09:05:15-JST>
+# Time-stamp:   <2024.08.19-09:18:48-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -3590,6 +3590,9 @@ class Makdo:
                              underline=6,
                              accelerator='Ctrl+A')
         self.mc2.add_separator()
+        self.mc2.add_command(label='全て置換（準備中）',
+                             command=self.replace_all)
+        self.mc2.add_separator()
         self.mc2.add_command(label='計算する',
                              command=self.calculate)
         self.mc2.add_separator()
@@ -3647,11 +3650,11 @@ class Makdo:
         self.mc3.add_checkbutton(label='キーワードに色付け',
                                  variable=self.must_paint_keywords)
         self.mc3.add_separator()
-        self.mc3.add_command(label='セクションを折り畳む（テスト段階）',
+        self.mc3.add_command(label='セクションを折り畳む（テスト）',
                              command=self.fold_section)
-        self.mc3.add_command(label='セクションを展開する（テスト段階）',
+        self.mc3.add_command(label='セクションを展開する（テスト）',
                              command=self.unfold_section)
-        self.mc3.add_command(label='セクションを全て展開する（テスト段階）',
+        self.mc3.add_command(label='セクションを全て展開する（テスト）',
                              command=self.unfold_section_fully)
         # INSERT
         self.mc4 = tkinter.Menu(self.mnb, tearoff=False)
@@ -3690,7 +3693,7 @@ class Makdo:
                              command=self.insert_images)
         self.mc4tab = tkinter.Menu(self.mc4, tearoff=False)
         self.mc4.add_cascade(label='表を挿入する', menu=self.mc4tab)
-        self.mc4tab.add_command(label='エクセルから挿入する（未実装）',
+        self.mc4tab.add_command(label='エクセルから挿入する（準備中）',
                                 command=self.insert_table_from_excel)
         self.mc4tab.add_command(label='書式を挿入する',
                                 command=self.insert_table_format)
@@ -3702,7 +3705,7 @@ class Makdo:
         self.mc4.add_cascade(label='文字のフォントを変える', menu=self.mc4fnt)
         self.mc4fnt.add_command(label='ゴシック体',
                                 command=self.insert_gothic_font)
-        self.mc4fnt.add_command(label='手動入力（未実装）',
+        self.mc4fnt.add_command(label='手動入力（準備中）',
                                 command=self.insert_font_manually)
         self.mc4fsz = tkinter.Menu(self.mc4, tearoff=False)
         self.mc4.add_cascade(label='文字の大きさを変える', menu=self.mc4fsz)
@@ -3714,7 +3717,7 @@ class Makdo:
                                 command=self.insert_l_font_size)
         self.mc4fsz.add_command(label='特大サイズ',
                                 command=self.insert_ll_font_size)
-        self.mc4fsz.add_command(label='手動入力（未実装）',
+        self.mc4fsz.add_command(label='手動入力（準備中）',
                                 command=self.insert_font_size_manually)
         self.mc4fwd = tkinter.Menu(self.mc4, tearoff=False)
         self.mc4.add_cascade(label='文字の幅を変える', menu=self.mc4fwd)
@@ -4118,7 +4121,7 @@ class Makdo:
                 return None                                     # drag and drop
             self.just_open_file(file_path)                      # drag and drop
         elif re.match(res_xls, file_path, re.I):                # drag and drop
-            pass  # 未実装
+            pass  # 準備中
         elif re.match(res_img, file_path, re.I):                # drag and drop
             image_md_text = '![代替テキスト:縦x横](' + file_path + ' "説明")'
             self.txt.insert('insert', image_md_text)            # drag and drop
@@ -4309,7 +4312,8 @@ class Makdo:
             #                                  ConfirmConversions=False,
             #                                  ReadOnly=True)
         elif sys.platform == 'darwin':
-            pass  # 未実装
+            n, m = 'お詫び', '現在、作成の準備中です．'
+            tkinter.messagebox.showinfo(n, m)
         elif sys.platform == 'linux':
             doc = subprocess.run('/usr/bin/libreoffice ' + docx_path,
                                  check=True,
@@ -4383,6 +4387,12 @@ class Makdo:
     def select_all(self):
         self.txt.tag_add('sel', '1.0', 'end-1c')
         return
+
+    ################################
+    # REPLACE ALL
+
+    def replace_all(self):
+        pass  # 準備中
 
     ################################
     # FOLD
@@ -4963,7 +4973,7 @@ class Makdo:
             self.txt.insert('insert', image_md_text)
 
     def insert_table_from_excel(self):
-        pass  # 未実装
+        pass  # 準備中
 
     def insert_table_format(self):
         self._insert_line_break_as_necessary()
@@ -4986,7 +4996,7 @@ class Makdo:
         self.txt.mark_set('insert', 'insert-1c')
 
     def insert_font_manually(self):
-        pass  # 未実装
+        pass  # 準備中
 
     def insert_ss_font_size(self):
         self.txt.insert('insert', '---（ここは文字が特に小さい）---')
@@ -5005,7 +5015,7 @@ class Makdo:
         self.txt.mark_set('insert', 'insert-3c')
 
     def insert_font_size_manually(self):
-        pass  # 未実装
+        pass  # 準備中
 
     def insert_ss_font_width(self):
         self.txt.insert('insert', '>>>（ここは文字が特に細い）<<<')
