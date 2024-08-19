@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.19-09:18:48-JST>
+# Time-stamp:   <2024.08.19-12:02:24-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -2869,14 +2869,14 @@ class CharsState:
         # ANGLE
         if False:
             pass
-        elif self.is_in_comment:
-            key += '-0'
         elif chars == ' ':
             key += '-200'
         elif chars == '\t':
             return 'tab_tag'
         elif chars == '\u3000':
             key += '-240'
+        elif self.is_in_comment:
+            key += '-0'
         elif chars == 'font decorator':
             key += '-120'
         elif chars == 'half number':
@@ -2939,8 +2939,8 @@ class CharsState:
         # UNDERLINE
         if chars == 'font decorator':
             key += '-x'  # no underline
-        elif (not self.is_in_comment and
-              (chars == ' ' or chars == '\t' or chars == '\u3000')):
+        elif chars == ' ' or chars == '\t' or chars == '\u3000':
+            # if not self.is_in_comment:
             key += '-u'  # underline
         elif not self.is_in_comment and self.has_underline:
             key += '-u'  # underline
