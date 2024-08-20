@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.20-10:04:46-JST>
+# Time-stamp:   <2024.08.20-11:13:09-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -101,11 +101,11 @@ COLOR_SPACE = (
     ('#006351', '#00A586', '#00E7BC', '#8EFFEA'),  # 170 :
     ('#006161', '#00A2A2', '#00E3E3', '#87FFFF'),  # 180 : algin, 申立人
     ('#005F75', '#009FC3', '#21D6FF', '#B5F1FF'),  # 190 :
-    ('#005D8E', '#009AED', '#59C5FF', '#C8ECFF'),  # 200 : (hsp), ins
+    ('#005D8E', '#009AED', '#59C5FF', '#C8ECFF'),  # 200 : (fsp), ins
     ('#0059B2', '#1F8FFF', '#79BCFF', '#D2E9FF'),  # 210 : chap1 第１編, hnumb
     ('#0053EF', '#4385FF', '#8EB6FF', '#D9E7FF'),  # 220 : chap2 第１章, (tab)
     ('#1F48FF', '#5F7CFF', '#9FB1FF', '#DFE5FF'),  # 230 : chap3 第１節
-    ('#3F3FFF', '#7676FF', '#ADADFF', '#E4E4FF'),  # 240 : chap4 第１款, (fsp)
+    ('#3F3FFF', '#7676FF', '#ADADFF', '#E4E4FF'),  # 240 : chap4 第１款, (hsp)
     ('#5B36FF', '#8A70FF', '#B9A9FF', '#E8E2FF'),  # 250 : chap5 第１目
     ('#772EFF', '#9E6AFF', '#C5A5FF', '#ECE1FF'),  # 260 :
     ('#9226FF', '#B164FF', '#D0A2FF', '#EFE0FF'),  # 270 :
@@ -3801,9 +3801,9 @@ class Makdo:
                                 command=self.insert_date_yymd)
         self.mc4dat.add_command(label='令和y年m月d日',
                                 command=self.insert_date_Gymd)
-        self.mc4dat.add_command(label='yy-m-d',
+        self.mc4dat.add_command(label='yyyy-mm-dd',
                                 command=self.insert_date_iso)
-        self.mc4dat.add_command(label='gy-m-d',
+        self.mc4dat.add_command(label='gyy-mm-dd',
                                 command=self.insert_date_giso)
         self.mc4dat.add_separator()
         self.mc4dat.add_command(label='H時M分S秒',
@@ -3814,14 +3814,14 @@ class Makdo:
                                 command=self.insert_time_hhms)
         self.mc4dat.add_command(label='午前h時m分s秒',
                                 command=self.insert_time_Ghms)
-        self.mc4dat.add_command(label='h:m:s',
+        self.mc4dat.add_command(label='hh:mm:ss',
                                 command=self.insert_time_iso)
-        self.mc4dat.add_command(label='AMh:m:s',
+        self.mc4dat.add_command(label='AMhh:mm:ss',
                                 command=self.insert_time_giso)
         self.mc4dat.add_separator()
-        self.mc4dat.add_command(label='yy-m-dTh:m:s+09:00',
+        self.mc4dat.add_command(label='yyyy-mm-ddThh:mm:ss+09:00',
                                 command=self.insert_datetime)
-        self.mc4dat.add_command(label='y-m-d h:m:s',
+        self.mc4dat.add_command(label='yy-mm-dd hh:mm:ss',
                                 command=self.insert_datetime_symple)
         self.mc4fil = tkinter.Menu(self.mc4, tearoff=False)
         self.mc4.add_cascade(label='ファイル名を挿入', menu=self.mc4fil)
@@ -4691,19 +4691,19 @@ class Makdo:
         if not is_dark_theme:
             self.txt.config(bg='white', fg='black')
             self.txt.tag_config('akauni_tag', background='#CCCCCC')
-            self.txt.tag_config('hsp_tag', foreground='#90D9FF',
-                                underline=True)                   # (0.8, 200)
-            self.txt.tag_config('tab_tag', background='#D9E7FF')  # (0.9, 220)
-            self.txt.tag_config('fsp_tag', foreground='#C8C8FF',
+            self.txt.tag_config('hsp_tag', foreground='#C8C8FF',
                                 underline=True)                   # (0.8, 240)
+            self.txt.tag_config('tab_tag', background='#D9E7FF')  # (0.9, 220)
+            self.txt.tag_config('fsp_tag', foreground='#90D9FF',
+                                underline=True)                   # (0.8, 200)
         else:
             self.txt.config(bg='black', fg='white')
             self.txt.tag_config('akauni_tag', background='#666666')
-            self.txt.tag_config('hsp_tag', foreground='#009AED',
-                                underline=True)                   # (0.5, 200)
-            self.txt.tag_config('tab_tag', background='#0053EF')  # (0.3, 220)
-            self.txt.tag_config('fsp_tag', foreground='#7676FF',
+            self.txt.tag_config('hsp_tag', foreground='#7676FF',
                                 underline=True)                   # (0.5, 240)
+            self.txt.tag_config('tab_tag', background='#0053EF')  # (0.3, 220)
+            self.txt.tag_config('fsp_tag', foreground='#009AED',
+                                underline=True)                   # (0.5, 200)
         for u in ['-x', '-u']:
             und = False if u == '-x' else True
             for f in ['-g', '-m']:
