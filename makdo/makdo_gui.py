@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.21-07:02:32-JST>
+# Time-stamp:   <2024.08.21-08:30:53-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -52,7 +52,7 @@ from tkinterdnd2 import TkinterDnD, DND_FILES
 import importlib
 import makdo.makdo_md2docx
 import makdo.makdo_docx2md
-import pandas
+import openpyxl
 import webbrowser
 
 if sys.platform == 'win32':
@@ -3771,7 +3771,7 @@ class Makdo:
                              command=self.insert_images)
         self.mc4tab = tkinter.Menu(self.mc4, tearoff=False)
         self.mc4.add_cascade(label='表を挿入', menu=self.mc4tab)
-        self.mc4tab.add_command(label='エクセルから挿入（準備中）',
+        self.mc4tab.add_command(label='エクセルから挿入',
                                 command=self.insert_table_from_excel)
         self.mc4tab.add_command(label='書式を挿入',
                                 command=self.insert_table_format)
@@ -4305,8 +4305,7 @@ class Makdo:
                 return None                                     # drag and drop
             self.just_open_file(file_path)                      # drag and drop
         elif re.match(res_xls, file_path, re.I):                # drag and drop
-            n, m = 'お詫び', '準備中です．'
-            tkinter.messagebox.showinfo(n, m)
+            self.insert_table_from_excel(file_path)             # drag and drop
         elif re.match(res_img, file_path, re.I):                # drag and drop
             image_md_text = '![代替テキスト:縦x横](' + file_path + ' "説明")'
             self.txt.insert('insert', image_md_text)            # drag and drop
@@ -5194,9 +5193,21 @@ class Makdo:
             image_md_text = '![代替テキスト:縦x横](' + i + ' "説明")'
             self.txt.insert('insert', image_md_text)
 
-    def insert_table_from_excel(self):
-        n, m = 'お詫び', '準備中です．'
-        tkinter.messagebox.showinfo(n, m)
+    def insert_table_from_excel(self, file_path=None):
+        if file_path is None:
+            typ = [('エクセル', '.xlsx')]
+            file_path = tkinter.filedialog.askopenfilename(filetypes=typ)
+        wb = openpyxl.load_workbook(file_path)
+        for sheet_name in wb.sheetnames:
+            self.txt.insert('insert', '<!-- ' + sheet_name + ' -->\n')
+            ws = wb[sheet_name]
+            table = ''
+            for row in ws.iter_rows(min_row=1, max_row=ws.max_row,
+                                    min_col=1, max_col=ws.max_column):
+                for cell in row:
+                    table += '|' + str(cell.value)
+                table += '|\n'
+            self.txt.insert('insert', table + '\n')
 
     def insert_table_format(self):
         self._insert_line_break_as_necessary()
@@ -5253,7 +5264,7 @@ class Makdo:
         t = '文字の大きさ'
         p = '文字の大きさを1から100までの数字を入力してください．'
         f = tkinter.simpledialog.askfloat(title=t, prompt=p,
-                                            minvalue=1, maxvalue=100)
+                                          minvalue=1, maxvalue=100)
         if f is None:
             return
         s = str(f)
@@ -5513,11 +5524,12 @@ class Makdo:
 
     def insert_file(self):
         file_path = tkinter.filedialog.askopenfilename()
-        with open(file_path, 'rb') as f:
-            raw_data = f.read()
-        encoding = self._get_encoding(raw_data)
-        decoded_data = self._decode_data(encoding, raw_data)
-        self.txt.insert('insert', decoded_data)
+        if file_path != () and file_path != '':
+            with open(file_path, 'rb') as f:
+                raw_data = f.read()
+            encoding = self._get_encoding(raw_data)
+            decoded_data = self._decode_data(encoding, raw_data)
+            self.txt.insert('insert', decoded_data)
 
     ################################
     # SYMBOL
