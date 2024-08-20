@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.20-14:25:04-JST>
+# Time-stamp:   <2024.08.21-06:12:36-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -123,17 +123,45 @@ KEYWORDS = [
     ['(加害者' +
      '|被告|本訴被告|反訴原告|被控訴人|被上告人' +
      '|相手方' +
-     '|被疑者|被告人|弁護人|対象弁護士)',
+     '|被疑者|被告人|弁護人|対象弁護士' +
+     '|乙|戊|辛)',
      'magenta'],
     ['(被害者' +
      '|原告|本訴原告|反訴被告|控訴人|上告人' +
      '|申立人' +
-     '|検察官|検察事務官|懲戒請求者)',
+     '|検察官|検察事務官|懲戒請求者' +
+     '|甲|丁|庚|癸)',
      'cyan'],
-    ['(裁判官|審判官|調停官|調停委員|司法委員|専門委員|書記官|事務官|訴外)',
+    ['(裁判官|審判官|調停官|調停委員|司法委員|専門委員|書記官|事務官|訴外|' +
+     '|丙|己|壬)',
      'yellow']]
 
-PARAGRAPH_SAMPLE = ['\t',
+CONFIGURATION_SAMPLE = [
+    '',
+    '書題名: -',
+    '文書式: 普通', '文書式: 契約', '文書式: 条文',
+    '用紙サ: A3横', '用紙サ: A3縦', '用紙サ: A4横', '用紙サ: A4縦',
+    '上余白: 3.5 cm',
+    '下余白: 2.2 cm',
+    '左余白: 3.0 cm',
+    '右余白: 2.0 cm',
+    '頭書き: ',
+    '頁番号: 無', '頁番号: 有',
+    '行番号: 無', '行番号: 有',
+    '明朝体: Times New Roman / ＭＳ 明朝',
+    'ゴシ体: = / ＭＳ ゴシック',
+    '異字体: IPAmj明朝',
+    '文字サ: 12 pt',
+    '行間隔: 2.14 倍',
+    '前余白: 0.0 倍, 0.0 倍, 0.0 倍, 0.0 倍, 0.0 倍, 0.0 倍',
+    '後余白: 0.0 倍, 0.0 倍, 0.0 倍, 0.0 倍, 0.0 倍, 0.0 倍',
+    '字間整: 無',
+    '完成稿: 偽',
+    '作成時: - USER',
+    '更新時: - USER',
+    '']
+
+PARAGRAPH_SAMPLE = ['', '\t',
                     '<!-------q1--------q2--------q3------' +
                     '--q4--------q5--------q6--------q7-->',
                     '<!--コメント-->',
@@ -146,7 +174,7 @@ PARAGRAPH_SAMPLE = ['\t',
                     '$ <!--第１編-->', '$$ <!--第１章-->', '$$$ <!--第１節-->',
                     '$$$$ <!--第１款-->', '$$$$$ <!--第１目-->',
                     '\\[<!--数式-->\\]', '<pgbr><!--改ページ-->',
-                    '\t']
+                    '']
 
 FONT_DECORATOR_SAMPLE = ['\t',
                          '*<!--斜体-->*',
@@ -169,7 +197,7 @@ FONT_DECORATOR_SAMPLE = ['\t',
                          '_B_<!--地青-->_B_',
                          '_M_<!--地マ-->_M_',
                          '@游明朝@<!--游明朝-->@游明朝@',
-                         '\t']
+                         '', '\t']
 
 # 平成22年内閣告示第2号
 JOYOKANJI = (
@@ -2573,7 +2601,7 @@ v=+0.5
 その同意又はこれに代わる許可を得ないでしたものは、取り消すことができる。
 '''
 
-SAMPLE_LAW = '''
+SAMPLE_PETITION = '''
 # 訴状
 
 v=+0.5
@@ -4989,6 +5017,10 @@ class Makdo:
                 continue
             if re.match(res_to, old_lines[i]):
                 line_numbers.pop(-1)
+                if new_lines[-2] == DONT_EDIT_MESSAGE and \
+                   new_lines[-1] == '':
+                    new_lines.pop(-1)
+                    new_lines.pop(-1)
                 continue
             if re.match(res_from, old_lines[i]) and \
                re.match(NOT_ESCAPED + res_mark + '$', old_lines[i]):
@@ -5486,7 +5518,7 @@ class Makdo:
 
     def insert_petition(self):
         document = self.insert_configuration('普通', '1.0') + \
-            SAMPLE_LAW
+            SAMPLE_PETITION
         self.insert_sample(document)
 
     def insert_evidence(self):
@@ -5549,8 +5581,8 @@ class Makdo:
 完成稿: 偽
 
 # 原稿の作成日時と更新日時が自動で記録されます。
-作成時: -
-更新時: -
+作成時: - USER
+更新時: - USER
 
 ---------------------------------------------------------------->
 '''
@@ -5754,6 +5786,7 @@ class Makdo:
     def process_key(self, key):
         self.set_message_on_status_bar('')
         self.set_position_info_on_status_bar()
+        self.paint_out_line(self.get_insert_v_number() - 1)
         # FOR AKAUNI
         self.akauni_history.append(key.keysym)
         self.akauni_history.pop(0)
@@ -5871,9 +5904,20 @@ class Makdo:
                     self.win.clipboard_append(c)
                     self.txt.delete(pos, end + '-1c')
         elif key.keysym == 'Tab':
+            text = self.txt.get('1.0', 'insert')
+            line = self.txt.get('insert linestart', 'insert lineend')
+            posi = self.txt.index('insert')
+            # CONFIGURATION
+            res_open = '^<!--(?:.|\n)*'
+            res_close = '^(?:.|\n)*-->(?:.|\n)*'
+            if re.match(res_open, text) and not re.match(res_close, text):
+                for i, sample in enumerate(CONFIGURATION_SAMPLE):
+                    if line == sample:
+                        self.txt.delete('insert linestart', 'insert lineend')
+                        self.txt.insert('insert', CONFIGURATION_SAMPLE[i + 1])
+                        self.txt.mark_set('insert', 'insert linestart')
+                        return 'break'
             # CALCULATE
-            text_beg_to_cur = self.txt.get('1.0', 'insert')
-            text = text_beg_to_cur
             res_open = '^((?:.|\n)*)(<!--(?:.|\n)*)'
             res_close = '^((?:.|\n)*)(-->(?:.|\n)*)'
             if re.match(res_open, text):
@@ -5882,21 +5926,12 @@ class Makdo:
                     self.calculate()
                     return 'break'
             # INSERT
-            position_cur = self.txt.index('insert')
-            position_beg = re.sub('\\..*$', '.0', position_cur)
-            position_end = re.sub('\\..*$', '.end', position_cur)
-            line_cur_to_end = self.txt.get(position_cur, position_end)
-            line_beg_to_end = self.txt.get(position_beg, position_end)
-            if re.match('^.*\\.0$', position_cur):
-                if line_beg_to_end == '':
-                    self.txt.insert('insert', PARAGRAPH_SAMPLE[0])
-                    self.txt.mark_set('insert', position_beg)
-                    return 'break'
+            if re.match('^.*\\.0$', posi):
                 for i, sample in enumerate(PARAGRAPH_SAMPLE):
-                    if line_beg_to_end == sample:
-                        self.txt.delete(position_beg, position_end)
+                    if line == sample:
+                        self.txt.delete('insert linestart', 'insert lineend')
                         self.txt.insert('insert', PARAGRAPH_SAMPLE[i + 1])
-                        self.txt.mark_set('insert', position_beg)
+                        self.txt.mark_set('insert', 'insert linestart')
                         return 'break'
             else:
                 for i, sample in enumerate(FONT_DECORATOR_SAMPLE):
@@ -5904,21 +5939,17 @@ class Makdo:
                     sample_esc = sample_esc.replace('*', '\\*')
                     sample_esc = sample_esc.replace('+', '\\+')
                     sample_esc = sample_esc.replace('^', '\\^')
-                    if re.match('^' + sample_esc, line_cur_to_end):
-                        position_tmp \
-                            = position_cur + '+' + str(len(sample)) + 'c'
-                        self.txt.delete(position_cur, position_tmp)
+                    cur_to_end = self.txt.get('insert', 'insert lineend')
+                    if re.match('^' + sample_esc, cur_to_end):
+                        self.txt.delete(posi,
+                                        posi + '+' + str(len(sample)) + 'c')
                         self.txt.insert('insert', FONT_DECORATOR_SAMPLE[i + 1])
-                        self.txt.mark_set('insert', position_cur)
+                        self.txt.mark_set('insert', posi)
                         return 'break'
-                else:
-                    self.txt.insert('insert', FONT_DECORATOR_SAMPLE[0])
-                    self.txt.mark_set('insert', position_cur)
-                    return 'break'
 
     def process_key_release(self, key):
         self.set_position_info_on_status_bar()
-        self.paint_out_line(self.get_insert_v_number() - 1)
+        # self.paint_out_line(self.get_insert_v_number() - 1)
         # FOR AKAUNI
         if 'akauni' in self.txt.mark_names():
             self.txt.tag_remove('akauni_tag', '1.0', 'end')
