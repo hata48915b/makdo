@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.19-12:02:24-JST>
+# Time-stamp:   <2024.08.20-10:04:46-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -36,21 +36,24 @@
 
 import os
 import sys
+import shutil
 import argparse
 import re
 import datetime
+import chardet
+import zipfile
+import tempfile
 import tkinter
 import tkinter.filedialog
 import tkinter.simpledialog
 import tkinter.messagebox
 # import tkinter.font
 from tkinterdnd2 import TkinterDnD, DND_FILES
-import zipfile
-import tempfile
 import importlib
 import makdo.makdo_md2docx
 import makdo.makdo_docx2md
 import pandas
+import webbrowser
 
 if sys.platform == 'win32':
     import win32com.client  # pip install pywin32
@@ -98,11 +101,11 @@ COLOR_SPACE = (
     ('#006351', '#00A586', '#00E7BC', '#8EFFEA'),  # 170 :
     ('#006161', '#00A2A2', '#00E3E3', '#87FFFF'),  # 180 : algin, 申立人
     ('#005F75', '#009FC3', '#21D6FF', '#B5F1FF'),  # 190 :
-    ('#005D8E', '#009AED', '#59C5FF', '#C8ECFF'),  # 200 : hsp, ins
+    ('#005D8E', '#009AED', '#59C5FF', '#C8ECFF'),  # 200 : (hsp), ins
     ('#0059B2', '#1F8FFF', '#79BCFF', '#D2E9FF'),  # 210 : chap1 第１編, hnumb
-    ('#0053EF', '#4385FF', '#8EB6FF', '#D9E7FF'),  # 220 : chap2 第１章, tab
+    ('#0053EF', '#4385FF', '#8EB6FF', '#D9E7FF'),  # 220 : chap2 第１章, (tab)
     ('#1F48FF', '#5F7CFF', '#9FB1FF', '#DFE5FF'),  # 230 : chap3 第１節
-    ('#3F3FFF', '#7676FF', '#ADADFF', '#E4E4FF'),  # 240 : chap4 第１款, fsp
+    ('#3F3FFF', '#7676FF', '#ADADFF', '#E4E4FF'),  # 240 : chap4 第１款, (fsp)
     ('#5B36FF', '#8A70FF', '#B9A9FF', '#E8E2FF'),  # 250 : chap5 第１目
     ('#772EFF', '#9E6AFF', '#C5A5FF', '#ECE1FF'),  # 260 :
     ('#9226FF', '#B164FF', '#D0A2FF', '#EFE0FF'),  # 270 :
@@ -2870,11 +2873,11 @@ class CharsState:
         if False:
             pass
         elif chars == ' ':
-            key += '-200'
+            return 'hsp_tag'
+        elif chars == '\u3000':
+            return 'fsp_tag'
         elif chars == '\t':
             return 'tab_tag'
-        elif chars == '\u3000':
-            key += '-240'
         elif self.is_in_comment:
             key += '-0'
         elif chars == 'font decorator':
@@ -3543,17 +3546,19 @@ class Makdo:
                              command=self.close_file,
                              underline=9)
         self.mc1.add_separator()
-        self.mc1.add_command(label='ファイルを保存する(S)',
+        self.mc1.add_command(label='ファイルを保存(S)',
                              command=self.save_file,
                              underline=10,
                              accelerator='Ctrl+S')
-        self.mc1.add_command(label='名前を付けて保存する(A)',
+        self.mc1.add_command(label='名前を付けて保存(A)',
                              command=self.name_and_save,
-                             underline=11)
+                             underline=9)
         self.mc1.add_separator()
-        self.mc1.add_command(label='見た目を確認して印刷(P)',
+        self.mc1.add_command(label='PDFに変換',
+                             command=self.convert_to_pdf)
+        self.mc1.add_command(label='見た目の確認・印刷(P)',
                              command=self.start_writer,
-                             underline=11,
+                             underline=10,
                              accelerator='Ctrl+P')
         self.mc1.add_separator()
         self.mc1.add_command(label='終了(Q)',
@@ -3593,7 +3598,7 @@ class Makdo:
         self.mc2.add_command(label='全て置換（準備中）',
                              command=self.replace_all)
         self.mc2.add_separator()
-        self.mc2.add_command(label='計算する',
+        self.mc2.add_command(label='数式を計算',
                              command=self.calculate)
         self.mc2.add_separator()
         self.mc2.add_command(label='字体を変える',
@@ -3652,15 +3657,24 @@ class Makdo:
         self.mc3.add_separator()
         self.mc3.add_command(label='セクションを折り畳む（テスト）',
                              command=self.fold_section)
-        self.mc3.add_command(label='セクションを展開する（テスト）',
+        self.mc3.add_command(label='セクションを展開（テスト）',
                              command=self.unfold_section)
-        self.mc3.add_command(label='セクションを全て展開する（テスト）',
+        self.mc3.add_command(label='セクションを全て展開（テスト）',
                              command=self.unfold_section_fully)
+        self.mc3.add_separator()
+        self.mc3.add_command(label='文頭に移動',
+                             command=self.move_to_beg_of_doc)
+        self.mc3.add_command(label='文末に移動',
+                             command=self.move_to_end_of_doc)
+        self.mc3.add_command(label='行頭に移動',
+                             command=self.move_to_beg_of_line)
+        self.mc3.add_command(label='行末に移動',
+                             command=self.move_to_end_of_line)
         # INSERT
         self.mc4 = tkinter.Menu(self.mnb, tearoff=False)
         self.mnb.add_cascade(label='挿入(I)', menu=self.mc4, underline=3)
         self.mc4sec = tkinter.Menu(self.mc4, tearoff=False)
-        self.mc4.add_cascade(label='セクションを挿入する', menu=self.mc4sec)
+        self.mc4.add_cascade(label='セクションを挿入', menu=self.mc4sec)
         self.mc4sec.add_command(label='（書面のタイトル）',
                                 command=self.insert_sect_1)
         self.mc4sec.add_command(label='第１　…',
@@ -3678,7 +3692,7 @@ class Makdo:
         self.mc4sec.add_command(label='　　　　　　(a) …',
                                 command=self.insert_sect_8)
         self.mc4chp = tkinter.Menu(self.mc4, tearoff=False)
-        self.mc4.add_cascade(label='チャプターを挿入する', menu=self.mc4chp)
+        self.mc4.add_cascade(label='チャプターを挿入', menu=self.mc4chp)
         self.mc4chp.add_command(label='第１編　…',
                                 command=self.insert_chap_1)
         self.mc4chp.add_command(label='　第１章　…',
@@ -3689,17 +3703,17 @@ class Makdo:
                                 command=self.insert_chap_4)
         self.mc4chp.add_command(label='　　　　第１目　…',
                                 command=self.insert_chap_5)
-        self.mc4.add_command(label='画像を挿入する',
+        self.mc4.add_command(label='画像を挿入',
                              command=self.insert_images)
         self.mc4tab = tkinter.Menu(self.mc4, tearoff=False)
-        self.mc4.add_cascade(label='表を挿入する', menu=self.mc4tab)
-        self.mc4tab.add_command(label='エクセルから挿入する（準備中）',
+        self.mc4.add_cascade(label='表を挿入', menu=self.mc4tab)
+        self.mc4tab.add_command(label='エクセルから挿入（準備中）',
                                 command=self.insert_table_from_excel)
-        self.mc4tab.add_command(label='書式を挿入する',
+        self.mc4tab.add_command(label='書式を挿入',
                                 command=self.insert_table_format)
-        self.mc4.add_command(label='改ページを挿入する',
+        self.mc4.add_command(label='改ページを挿入',
                              command=self.insert_page_break)
-        self.mc4.add_command(label='改行を挿入する',
+        self.mc4.add_command(label='改行を挿入',
                              command=self.insert_line_break)
         self.mc4fnt = tkinter.Menu(self.mc4, tearoff=False)
         self.mc4.add_cascade(label='文字のフォントを変える', menu=self.mc4fnt)
@@ -3772,13 +3786,13 @@ class Makdo:
         self.mc4hcl.add_command(label='マゼンタ',
                                 command=self.insert_m_highlight_color)
         self.mc4typ = tkinter.Menu(self.mc4, tearoff=False)
-        self.mc4.add_cascade(label='人名漢字を挿入する（未完成）',
+        self.mc4.add_cascade(label='人名漢字を挿入（未完成）',
                              menu=self.mc4typ)
         self.mc4typ.add_command(label='"花"の人名漢字',
                                 command=self.insert_name_char_of_hana)
         self.mc4.add_separator()
         self.mc4dat = tkinter.Menu(self.mc4, tearoff=False)
-        self.mc4.add_cascade(label='日時を挿入する', menu=self.mc4dat)
+        self.mc4.add_cascade(label='日時を挿入', menu=self.mc4dat)
         self.mc4dat.add_command(label='YY年M月D日',
                                 command=self.insert_date_YYMD)
         self.mc4dat.add_command(label='令和Y年M月D日',
@@ -3810,18 +3824,20 @@ class Makdo:
         self.mc4dat.add_command(label='y-m-d h:m:s',
                                 command=self.insert_datetime_symple)
         self.mc4fil = tkinter.Menu(self.mc4, tearoff=False)
-        self.mc4.add_cascade(label='ファイル名を挿入する', menu=self.mc4fil)
-        self.mc4fil.add_command(label='フルパスで挿入する',
+        self.mc4.add_cascade(label='ファイル名を挿入', menu=self.mc4fil)
+        self.mc4fil.add_command(label='フルパスで挿入',
                                 command=self.insert_file_paths)
-        self.mc4fil.add_command(label='ファイル名のみを挿入する',
+        self.mc4fil.add_command(label='ファイル名のみを挿入',
                                 command=self.insert_file_names)
+        self.mc4.add_command(label='ファイルの内容を挿入',
+                             command=self.insert_file)
         self.mc4.add_separator()
         self.mc4.add_command(label='記号',
                              command=self.insert_symbol)
         self.mc4sym = tkinter.Menu(self.mc4, tearoff=False)
-        self.mc4.add_cascade(label='横棒を挿入する', menu=self.mc4sym)
+        self.mc4.add_cascade(label='横棒を挿入', menu=self.mc4sym)
         self.mc4sym.add_command(label='"-"（002D）半角ハイフンマイナス',
-                                command=self.insert_hline_002D)
+                                command=self.insert_hline_002d)
         self.mc4sym.add_command(label='"‐"（2010）全角ハイフン',
                                 command=self.insert_hline_2010)
         self.mc4sym.add_command(label='"—"（2014）全角Ｍダッシュ',
@@ -3831,10 +3847,10 @@ class Makdo:
         self.mc4sym.add_command(label='"−"（2212）全角マイナスサイン',
                                 command=self.insert_hline_2212)
         self.mc4sym.add_command(label='"－"（FF0D）全角ハイフンマイナス',
-                                command=self.insert_hline_FF0D)
+                                command=self.insert_hline_ff0d)
         self.mc4.add_separator()
         self.mc4smp = tkinter.Menu(self.mc4, tearoff=False)
-        self.mc4.add_cascade(label='サンプルを挿入する', menu=self.mc4smp)
+        self.mc4.add_cascade(label='サンプルを挿入', menu=self.mc4smp)
         self.mc4smp.add_command(label='基本',
                                 command=self.insert_basis)
         self.mc4smp.add_command(label='民法',
@@ -3864,21 +3880,47 @@ class Makdo:
                                     value='3', variable=self.digit_separator)
         self.mc5sb1.add_radiobutton(label='4桁区切り（1234万5678）',
                                     value='4', variable=self.digit_separator)
-        # HELP
+        # NET
         self.mc6 = tkinter.Menu(self.mnb, tearoff=False)
-        self.mnb.add_cascade(label='ヘルプ(H)', menu=self.mc6, underline=4)
-        self.mc6.add_command(label='文字情報',
-                             command=self.show_char_info)
+        self.mnb.add_cascade(label='ネット(H)', menu=self.mc6, underline=4)
+        self.mc6.add_command(label='辞書で調べる',
+                             command=self.browse_dictionary)
+        self.mc6.add_command(label='Wikipediaで調べる',
+                             command=self.browse_wikipedia)
         self.mc6.add_separator()
-        self.mc6.add_command(label='ヘルプ(H)',
+        self.mc6.add_command(label='法律を調べる',
+                             command=self.browse_law)
+        self.mc6.add_command(label='・日本国憲法',
+                             command=self.browse_law_constitution_law)
+        self.mc6.add_command(label='・民法',
+                             command=self.browse_law_civil_law)
+        self.mc6.add_command(label='・商法',
+                             command=self.browse_law_commercial_law)
+        self.mc6.add_command(label='・会社法',
+                             command=self.browse_law_corporation_law)
+        self.mc6.add_command(label='・民事訴訟法',
+                             command=self.browse_law_civil_procedure)
+        self.mc6.add_command(label='・刑法',
+                             command=self.browse_law_crime_law)
+        self.mc6.add_command(label='・刑事訴訟法',
+                             command=self.browse_law_crime_procedure)
+        self.mc6.add_command(label='裁判所規則を調べる',
+                             command=self.browse_rule_of_court)
+        # HELP
+        self.mc7 = tkinter.Menu(self.mnb, tearoff=False)
+        self.mnb.add_cascade(label='ヘルプ(H)', menu=self.mc7, underline=4)
+        self.mc7.add_command(label='文字情報',
+                             command=self.show_char_info)
+        self.mc7.add_separator()
+        self.mc7.add_command(label='ヘルプ(H)',
                              command=self.show_help,
                              underline=4)
-        self.mc6.add_separator()
-        self.mc6.add_command(label='ライセンス情報(F)',
+        self.mc7.add_separator()
+        self.mc7.add_command(label='ライセンス情報(F)',
                              command=self.show_license_info,
                              underline=8)
-        self.mc6.add_separator()
-        self.mc6.add_command(label='Makdoについて(A)',
+        self.mc7.add_separator()
+        self.mc7.add_command(label='Makdoについて(A)',
                              command=self.show_about_makdo,
                              underline=10)
         self.win['menu'] = self.mnb
@@ -4032,6 +4074,77 @@ class Makdo:
         full = re.sub('9', '９', full)
         return full
 
+    @staticmethod
+    def _get_encoding(raw_data):
+        encoding = 'SHIFT_JIS'
+        if raw_data != '':
+            encoding = chardet.detect(raw_data)['encoding']
+        if encoding is None:
+            encoding = 'SHIFT_JIS'
+        elif (re.match('^utf[-_]?.*$', encoding, re.I)) or \
+             (re.match('^shift[-_]?jis.*$', encoding, re.I)) or \
+             (re.match('^cp932.*$', encoding, re.I)) or \
+             (re.match('^euc[-_]?(jp|jis).*$', encoding, re.I)) or \
+             (re.match('^iso[-_]?2022[-_]?jp.*$', encoding, re.I)) or \
+             (re.match('^ascii.*$', encoding, re.I)):
+            pass
+        else:
+            # Windows-1252 (Western Europe)
+            # MacCyrillic (Macintosh Cyrillic)
+            # ...
+            encoding = 'SHIFT_JIS'
+            msg = '※ 警告: ' \
+                + '文字コードを「SHIFT_JIS」に修正しました'
+            # msg = 'warning: ' \
+            #     + 'changed encoding to "SHIFT_JIS"'
+            sys.stderr.write(msg + '\n\n')
+        return encoding
+
+    @staticmethod
+    def _decode_data(encoding, raw_data):
+        try:
+            decoded_data = raw_data.decode(encoding)
+        except BaseException:
+            msg = '※ エラー: ' \
+                + 'データを読みません（テキストでないかも？）'
+            # msg = 'error: ' \
+            #     + 'can\'t read data (maybe not text?)'
+            sys.stderr.write(msg + '\n\n')
+            raise BaseException('failed to read data')
+            if __name__ == '__main__':
+                sys.exit(105)
+            return ''
+        return decoded_data
+
+    def _get_tmp_md(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        md_path = self.temp_dir.name + '/doc.md'
+        file_text = self.txt.get('1.0', 'end-1c')
+        file_text = self.get_fully_unfolded_document(file_text)
+        with open(md_path, 'w') as f:
+            f.write(file_text)
+        return md_path
+
+    def _get_tmp_docx(self):
+        md_path = self._get_tmp_md()
+        docx_path = re.sub('md$', 'docx', md_path)
+        stderr = sys.stderr
+        sys.stderr = tempfile.TemporaryFile(mode='w+')
+        importlib.reload(makdo.makdo_md2docx)
+        try:
+            m2d = makdo.makdo_md2docx.Md2Docx(md_path)
+            m2d.save(docx_path)
+        except BaseException:
+            pass
+        sys.stderr.seek(0)
+        msg = sys.stderr.read()
+        sys.stderr = stderr
+        if msg != '':
+            n = 'エラー'
+            tkinter.messagebox.showerror(n, msg)
+            return
+        return docx_path
+
     ################################################################
     # FILE
 
@@ -4082,10 +4195,13 @@ class Makdo:
                 return
         # OPEN MD FILE
         try:
-            with open(md_path, 'r', encoding='utf-8') as f:
-                init_text = f.read()
+            with open(md_path, 'rb') as f:
+                raw_data = f.read()
         except BaseException:
             return
+        encoding = self._get_encoding(raw_data)
+        decoded_data = self._decode_data(encoding, raw_data)
+        init_text = self.get_fully_unfolded_document(decoded_data)
         self.file_path = file_path
         self.init_text = init_text
         self.file_lines = init_text.split('\n')
@@ -4225,7 +4341,7 @@ class Makdo:
                     tkinter.messagebox.showerror(n, msg)
                     return
             self.set_message_on_status_bar('保存しました')
-            self.init_text = file_text
+            self.init_text = self.get_fully_unfolded_document(file_text)
             return True
 
     def _stamp_time(self, file_text):
@@ -4276,34 +4392,41 @@ class Makdo:
         return True
 
     ################################
+    # CONVERT TO PDF
+
+    def convert_to_pdf(self):
+        typ = [('PDF', '.pdf')]
+        pdf_path = tkinter.filedialog.asksaveasfilename(filetypes=typ)
+        tmp_docx = self._get_tmp_docx()
+        if sys.platform == 'win32':
+            Application = win32com.client.Dispatch("Word.Application")
+            Application.Visible = False
+            doc = Application.Documents.Open(FileName=tmp_docx,
+                                             ConfirmConversions=False,
+                                             ReadOnly=True)
+            doc.SaveAs(pdf_path, FileFormat=17)  # 17=PDF
+        elif sys.platform == 'darwin':
+            n, m = 'お詫び', '現在、作成の準備中です．'
+            tkinter.messagebox.showinfo(n, m)
+        elif sys.platform == 'linux':
+            dir_path = re.sub('((?:.|\n)*)/(?:.|\n)+$', '\\1', tmp_docx)
+            com = '/usr/bin/libreoffice --headless --convert-to pdf --outdir '
+            doc = subprocess.run(com + dir_path + ' ' + tmp_docx,
+                                 check=True,
+                                 shell=True,
+                                 stdout=subprocess.PIPE,
+                                 encoding="utf-8")
+            tmp_pdf = re.sub('docx$', 'pdf', tmp_docx)
+            shutil.move(tmp_pdf, pdf_path)
+
+    ################################
     # START WRITER
 
     def start_writer(self):
-        self.temp_dir = tempfile.TemporaryDirectory()
-        md_path = self.temp_dir.name + '/doc.md'
-        docx_path = self.temp_dir.name + '/doc.docx'
-        # SAVE MD
-        file_text = self.txt.get('1.0', 'end-1c')
-        file_text = self.get_fully_unfolded_document(file_text)
-        with open(md_path, 'w') as f:
-            f.write(file_text)
-        # CONVERT TO DOCX
-        stderr = sys.stderr
-        sys.stderr = tempfile.TemporaryFile(mode='w+')
-        importlib.reload(makdo.makdo_md2docx)
-        try:
-            m2d = makdo.makdo_md2docx.Md2Docx(md_path)
-            m2d.save(docx_path)
-        except BaseException:
-            pass
-        sys.stderr.seek(0)
-        msg = sys.stderr.read()
-        sys.stderr = stderr
-        if msg != '':
-            n = 'エラー'
-            tkinter.messagebox.showerror(n, msg)
-            return
+        docx_path = self._get_tmp_docx()
         if sys.platform == 'win32':
+            return
+
             Application = win32com.client.Dispatch("Word.Application")
             Application.Visible = True
             doc = Application.Documents.Open(FileName=docx_path,
@@ -4393,6 +4516,221 @@ class Makdo:
 
     def replace_all(self):
         pass  # 準備中
+
+    ################################
+    # CALCULATE
+
+    def calculate(self):
+        line = self.txt.get('insert linestart', 'insert lineend')
+        line_head = ''
+        line_math = line
+        line_rslt = ''
+        line_tail = ''
+        res = '^(.*(?:<!--|@))(.*)$'
+        if re.match(res, line_math):
+            line_head = re.sub(res, '\\1', line_math)
+            line_math = re.sub(res, '\\2', line_math)
+        res = '^(.*)((?:-->|#).*)$'
+        if re.match(res, line_math):
+            line_tail = re.sub(res, '\\2', line_math)
+            line_math = re.sub(res, '\\1', line_math)
+        res = '^(.*)(=.*)$'
+        if re.match(res, line_math):
+            line_rslt = re.sub(res, '\\2', line_math)
+            line_math = re.sub(res, '\\1', line_math)
+        if line_math == '':
+            return
+        math = line_math
+        math = math.replace('\t', ' ').replace('\u3000', ' ')
+        math = math.replace('，', ',').replace('．', '.')
+        math = math.replace('０', '0').replace('１', '1').replace('２', '2')
+        math = math.replace('３', '3').replace('４', '4').replace('５', '5')
+        math = math.replace('６', '6').replace('７', '7').replace('８', '8')
+        math = math.replace('９', '9')
+        math = math.replace('〇', '0').replace('一', '1').replace('二', '2')
+        math = math.replace('三', '3').replace('四', '4').replace('五', '5')
+        math = math.replace('六', '6').replace('七', '7').replace('八', '8')
+        math = math.replace('九', '9')
+        math = math.replace('（', '(').replace('）', ')')
+        math = math.replace('｛', '{').replace('｝', '}')
+        math = math.replace('［', '[').replace('］', ']')
+        math = math.replace('｜', '|').replace('！', '!').replace('＾', '^')
+        math = math.replace('＊', '*').replace('／', '/').replace('％', '%')
+        math = math.replace('＋', '+').replace('−', '-')
+        math = math.replace('×', '*').replace('÷', '/').replace('ー', '-')
+        math = math.replace('△', '-').replace('▲', '-')
+        math = math.replace('パ-セント', '%')
+        # ' ', ','
+        math = math.replace(' ', '').replace(',', '')
+        # {, }, [, ]
+        math = math.replace('{', '(').replace('}', ')')
+        math = math.replace('[', '(').replace(']', ')')
+        # 千, 百, 十
+        temp = ''
+        unit = ['千', '百', '十']
+        for i in range(len(unit)):
+            res = '^([^' + unit[i] + ']*' + unit[i] + ')(.*)$'
+            while re.match(res, math):
+                t1 = re.sub(res, '\\1', math)  # [^千]*千
+                t2 = re.sub(res, '\\2', math)  # .*
+                if not re.match('^.*[0-9]' + unit[i] + '$', t1):
+                    t1 = re.sub(unit[i] + '$', '1' + unit[i], t1)  # 千 -> 1千
+                temp += t1
+                math = t2
+        math = temp + math
+        temp = ''
+        unit = ['千', '百', '十', '']
+        for i in range(len(unit) - 1):
+            res = '^([^' + unit[i] + ']*' + unit[i] + ')(.*)$'
+            while re.match(res, math):
+                t1 = re.sub(res, '\\1', math)  # [^千]*千
+                t2 = re.sub(res, '\\2', math)  # .*
+                temp += t1
+                if not re.match('^[0-9]' + unit[i + 1], t2):
+                    t2 = '0' + unit[i + 1] + t2
+                math = t2
+        math = temp + math
+        math = math.replace('千', '').replace('百', '').replace('十', '')
+        # 京, 兆, 億, 万
+        temp = ''
+        unit = ['京', '兆', '億', '万', '']
+        for i in range(len(unit) - 1):
+            res = '^([^' + unit[i] + ']*' + unit[i] + ')(.*)$'
+            while re.match(res, math):
+                t1 = re.sub(res, '\\1', math)  # [^京]*京
+                t2 = re.sub(res, '\\2', math)  # .*
+                temp += t1
+                if re.match('[0-9]{,4}' + unit[i + 1], t2):
+                    t2 = '0000' + t2
+                    math = re.sub('^[0-9]*([0-9]{4})', '\\1', t2)
+                else:
+                    math = '0000' + unit[i + 1] + t2  # 0000兆
+        math = temp + math
+        math = math.replace('京', '').replace('兆', '')
+        math = math.replace('億', '').replace('万', '')
+        # %, 割, 分, 厘
+        math = re.sub('([0-9\\.]+)%', '(\\1/100)', math)
+        math = re.sub('([0-9\\.]+)割', '(\\1/10)', math)
+        math = re.sub('([0-9\\.]+)分', '(\\1/100)', math)
+        math = re.sub('([0-9\\.]+)厘', '(\\1/1000)', math)
+        # FRACTION
+        res = '^(.*?)' \
+            + '([0-9]+|\\([^\\(\\)]+\\))分の([0-9]+|\\([^\\(\\)]+\\))' \
+            + '(.*?)$'
+        while re.match(res, math):
+            math = re.sub(res, '\\1(\\3/\\2)\\4', math)
+        # POWER
+        math = re.sub('\\^', '**', math)
+        # REMOVE
+        math = re.sub('pi', '3.141592653589793', math)
+        math = re.sub('e', '2.718281828459045', math)
+        math = re.sub('[^\\(\\)\\|\\*/%\\-\\+0-9\\.]', '', math)
+        # EVAL
+        r = str(round(eval(math), 10))
+        r = re.sub('\\.0$', '', r)
+        if not re.match('^-?([0-9]*\\.)?[0-9]+', r):
+            return False
+        # REPLACE
+        digit_separator = self.digit_separator.get()
+        if '.' in r:
+            i = re.sub('^(.*)(\\..*)$', '\\1', r)
+            f = re.sub('^(.*)(\\..*)$', '\\2', r)
+        else:
+            i = r
+            f = ''
+        if digit_separator == '3':
+            if re.match('^.*[0-9]{19}$', i):
+                i = re.sub('([0-9]{18})$', ',\\1', i)
+            if re.match('^.*[0-9]{16}$', i):
+                i = re.sub('([0-9]{15})$', ',\\1', i)
+            if re.match('^.*[0-9]{13}$', i):
+                i = re.sub('([0-9]{12})$', ',\\1', i)
+            if re.match('^.*[0-9]{10}$', i):
+                i = re.sub('([0-9]{9})$', ',\\1', i)
+            if re.match('^.*[0-9]{7}$', i):
+                i = re.sub('([0-9]{6})$', ',\\1', i)
+            if re.match('^.*[0-9]{4}$', i):
+                i = re.sub('([0-9]{3})$', ',\\1', i)
+        elif digit_separator == '4':
+            if re.match('^.*[0-9]{17}$', i):
+                i = re.sub('([0-9]{16})$', '京\\1', i)
+            if re.match('^.*[0-9]{13}$', i):
+                i = re.sub('([0-9]{12})$', '兆\\1', i)
+            if re.match('^.*[0-9]{9}$', i):
+                i = re.sub('([0-9]{8})$', '億\\1', i)
+            if re.match('^.*[0-9]{5}$', i):
+                i = re.sub('([0-9]{4})$', '万\\1', i)
+        r = i + f
+        v_number = self.get_insert_v_number()
+        beg = str(v_number) + '.' + str(len(line_head + line_math))
+        end = str(v_number) + '.' + str(len(line_head + line_math + line_rslt))
+        self.txt.delete(beg, end)
+        self.txt.insert(beg, '=' + r)
+        self.win.clipboard_clear()
+        self.win.clipboard_append(r)
+
+    def transform_to_another_typeface(self):
+        c = self.txt.get('insert', 'insert+1c')
+        for tf in TYPEFACES:
+            if c in tf:
+                ConvertTypefaceDialog(self.txt, c, list(tf))
+
+    ################################################################
+    # VISUAL
+
+    def set_font(self):
+        is_dark_theme = self.is_dark_theme.get()
+        size = self.font_size.get()
+        # BASIC FONT
+        self.txt['font'] = (GOTHIC_FONT, size)
+        self.stb_sor2['font'] = (GOTHIC_FONT, size)
+        self.stb_sor4['font'] = (GOTHIC_FONT, size)
+        self.txt.tag_config('error_tag', foreground='#FF0000')
+        self.txt.tag_config('search_tag', background='#777777')
+        # COLOR FONT
+        if not is_dark_theme:
+            self.txt.config(bg='white', fg='black')
+            self.txt.tag_config('akauni_tag', background='#CCCCCC')
+            self.txt.tag_config('hsp_tag', foreground='#90D9FF',
+                                underline=True)                   # (0.8, 200)
+            self.txt.tag_config('tab_tag', background='#D9E7FF')  # (0.9, 220)
+            self.txt.tag_config('fsp_tag', foreground='#C8C8FF',
+                                underline=True)                   # (0.8, 240)
+        else:
+            self.txt.config(bg='black', fg='white')
+            self.txt.tag_config('akauni_tag', background='#666666')
+            self.txt.tag_config('hsp_tag', foreground='#009AED',
+                                underline=True)                   # (0.5, 200)
+            self.txt.tag_config('tab_tag', background='#0053EF')  # (0.3, 220)
+            self.txt.tag_config('fsp_tag', foreground='#7676FF',
+                                underline=True)                   # (0.5, 240)
+        for u in ['-x', '-u']:
+            und = False if u == '-x' else True
+            for f in ['-g', '-m']:
+                fon = (GOTHIC_FONT, size) if f == '-g' else (MINCHO_FONT, size)
+                # WHITE
+                for i in range(3):
+                    a = '-XXX'
+                    y = '-' + str(i)
+                    tag = 'c' + a + y + f + u
+                    if not is_dark_theme:
+                        col = BLACK_SPACE[i]
+                    else:
+                        col = WHITE_SPACE[i]
+                    self.txt.tag_config(tag, font=fon,
+                                        foreground=col, underline=und)
+                # COLOR
+                for i in range(3):  # lightness
+                    y = '-' + str(i)
+                    for j, c in enumerate(COLOR_SPACE):  # angle
+                        a = '-' + str(j * 10)
+                        tag = 'c' + a + y + f + u  # example: c-120-1-g-x
+                        if not is_dark_theme:
+                            col = c[i]
+                        else:
+                            col = c[i + 1]
+                        self.txt.tag_config(tag, font=fon,
+                                            foreground=col, underline=und)
 
     ################################
     # FOLD
@@ -4693,218 +5031,26 @@ class Makdo:
                 new_lines.append(old_lines[i])
         new_document = '\n'.join(new_lines) + '\n\n'
         new_document = re.sub('\n\n+', '\n\n', new_document)
-        # new_document = re.sub('\n+$', '\n', new_document)
+        new_document = re.sub('\n+$', '\n', new_document)
         return new_document
 
     def fold_or_unfold_section(self):
         pass
 
     ################################
-    # CALCULATE
+    # MOVE
 
-    def calculate(self):
-        line = self.txt.get('insert linestart', 'insert lineend')
-        line_head = ''
-        line_math = line
-        line_rslt = ''
-        line_tail = ''
-        res = '^(.*(?:<!--|@))(.*)$'
-        if re.match(res, line_math):
-            line_head = re.sub(res, '\\1', line_math)
-            line_math = re.sub(res, '\\2', line_math)
-        res = '^(.*)((?:-->|#).*)$'
-        if re.match(res, line_math):
-            line_tail = re.sub(res, '\\2', line_math)
-            line_math = re.sub(res, '\\1', line_math)
-        res = '^(.*)(=.*)$'
-        if re.match(res, line_math):
-            line_rslt = re.sub(res, '\\2', line_math)
-            line_math = re.sub(res, '\\1', line_math)
-        if line_math == '':
-            return
-        math = line_math
-        math = math.replace('\t', ' ').replace('\u3000', ' ')
-        math = math.replace('，', ',').replace('．', '.')
-        math = math.replace('０', '0').replace('１', '1').replace('２', '2')
-        math = math.replace('３', '3').replace('４', '4').replace('５', '5')
-        math = math.replace('６', '6').replace('７', '7').replace('８', '8')
-        math = math.replace('９', '9')
-        math = math.replace('〇', '0').replace('一', '1').replace('二', '2')
-        math = math.replace('三', '3').replace('四', '4').replace('五', '5')
-        math = math.replace('六', '6').replace('七', '7').replace('八', '8')
-        math = math.replace('九', '9')
-        math = math.replace('（', '(').replace('）', ')')
-        math = math.replace('｛', '{').replace('｝', '}')
-        math = math.replace('［', '[').replace('］', ']')
-        math = math.replace('｜', '|').replace('！', '!').replace('＾', '^')
-        math = math.replace('＊', '*').replace('／', '/').replace('％', '%')
-        math = math.replace('＋', '+').replace('−', '-')
-        math = math.replace('×', '*').replace('÷', '/').replace('ー', '-')
-        math = math.replace('△', '-').replace('▲', '-')
-        math = math.replace('パ-セント', '%')
-        # ' ', ','
-        math = math.replace(' ', '').replace(',', '')
-        # {, }, [, ]
-        math = math.replace('{', '(').replace('}', ')')
-        math = math.replace('[', '(').replace(']', ')')
-        # 千, 百, 十
-        temp = ''
-        unit = ['千', '百', '十']
-        for i in range(len(unit)):
-            res = '^([^' + unit[i] + ']*' + unit[i] + ')(.*)$'
-            while re.match(res, math):
-                t1 = re.sub(res, '\\1', math)  # [^千]*千
-                t2 = re.sub(res, '\\2', math)  # .*
-                if not re.match('^.*[0-9]' + unit[i] + '$', t1):
-                    t1 = re.sub(unit[i] + '$', '1' + unit[i], t1)  # 千 -> 1千
-                temp += t1
-                math = t2
-        math = temp + math
-        temp = ''
-        unit = ['千', '百', '十', '']
-        for i in range(len(unit) - 1):
-            res = '^([^' + unit[i] + ']*' + unit[i] + ')(.*)$'
-            while re.match(res, math):
-                t1 = re.sub(res, '\\1', math)  # [^千]*千
-                t2 = re.sub(res, '\\2', math)  # .*
-                temp += t1
-                if not re.match('^[0-9]' + unit[i + 1], t2):
-                    t2 = '0' + unit[i + 1] + t2
-                math = t2
-        math = temp + math
-        math = math.replace('千', '').replace('百', '').replace('十', '')
-        # 京, 兆, 億, 万
-        temp = ''
-        unit = ['京', '兆', '億', '万', '']
-        for i in range(len(unit) - 1):
-            res = '^([^' + unit[i] + ']*' + unit[i] + ')(.*)$'
-            while re.match(res, math):
-                t1 = re.sub(res, '\\1', math)  # [^京]*京
-                t2 = re.sub(res, '\\2', math)  # .*
-                temp += t1
-                if re.match('[0-9]{,4}' + unit[i + 1], t2):
-                    t2 = '0000' + t2
-                    math = re.sub('^[0-9]*([0-9]{4})', '\\1', t2)
-                else:
-                    math = '0000' + unit[i + 1] + t2  # 0000兆
-        math = temp + math
-        math = math.replace('京', '').replace('兆', '')
-        math = math.replace('億', '').replace('万', '')
-        # %, 割, 分, 厘
-        math = re.sub('([0-9\\.]+)%', '(\\1/100)', math)
-        math = re.sub('([0-9\\.]+)割', '(\\1/10)', math)
-        math = re.sub('([0-9\\.]+)分', '(\\1/100)', math)
-        math = re.sub('([0-9\\.]+)厘', '(\\1/1000)', math)
-        # FRACTION
-        res = '^(.*?)' \
-            + '([0-9]+|\\([^\\(\\)]+\\))分の([0-9]+|\\([^\\(\\)]+\\))' \
-            + '(.*?)$'
-        while re.match(res, math):
-            math = re.sub(res, '\\1(\\3/\\2)\\4', math)
-        # POWER
-        math = re.sub('\\^', '**', math)
-        # REMOVE
-        math = re.sub('pi', '3.141592653589793', math)
-        math = re.sub('e', '2.718281828459045', math)
-        math = re.sub('[^\\(\\)\\|\\*/%\\-\\+0-9\\.]', '', math)
-        # EVAL
-        r = str(round(eval(math), 10))
-        r = re.sub('\\.0$', '', r)
-        if not re.match('^-?([0-9]*\\.)?[0-9]+', r):
-            return False
-        # REPLACE
-        digit_separator = self.digit_separator.get()
-        if '.' in r:
-            i = re.sub('^(.*)(\\..*)$', '\\1', r)
-            f = re.sub('^(.*)(\\..*)$', '\\2', r)
-        else:
-            i = r
-            f = ''
-        if digit_separator == '3':
-            if re.match('^.*[0-9]{19}$', i):
-                i = re.sub('([0-9]{18})$', ',\\1', i)
-            if re.match('^.*[0-9]{16}$', i):
-                i = re.sub('([0-9]{15})$', ',\\1', i)
-            if re.match('^.*[0-9]{13}$', i):
-                i = re.sub('([0-9]{12})$', ',\\1', i)
-            if re.match('^.*[0-9]{10}$', i):
-                i = re.sub('([0-9]{9})$', ',\\1', i)
-            if re.match('^.*[0-9]{7}$', i):
-                i = re.sub('([0-9]{6})$', ',\\1', i)
-            if re.match('^.*[0-9]{4}$', i):
-                i = re.sub('([0-9]{3})$', ',\\1', i)
-        elif digit_separator == '4':
-            if re.match('^.*[0-9]{17}$', i):
-                i = re.sub('([0-9]{16})$', '京\\1', i)
-            if re.match('^.*[0-9]{13}$', i):
-                i = re.sub('([0-9]{12})$', '兆\\1', i)
-            if re.match('^.*[0-9]{9}$', i):
-                i = re.sub('([0-9]{8})$', '億\\1', i)
-            if re.match('^.*[0-9]{5}$', i):
-                i = re.sub('([0-9]{4})$', '万\\1', i)
-        r = i + f
-        v_number = self.get_insert_v_number()
-        beg = str(v_number) + '.' + str(len(line_head + line_math))
-        end = str(v_number) + '.' + str(len(line_head + line_math + line_rslt))
-        self.txt.delete(beg, end)
-        self.txt.insert(beg, '=' + r)
-        self.win.clipboard_clear()
-        self.win.clipboard_append(r)
+    def move_to_beg_of_doc(self):
+        self.txt.mark_set('insert', '1.0')
 
-    def transform_to_another_typeface(self):
-        c = self.txt.get('insert', 'insert+1c')
-        for tf in TYPEFACES:
-            if c in tf:
-                ConvertTypefaceDialog(self.txt, c, list(tf))
+    def move_to_end_of_doc(self):
+        self.txt.mark_set('insert', 'end-1c')
 
-    ################################################################
-    # VISUAL
+    def move_to_beg_of_line(self):
+        self.txt.mark_set('insert', 'insert linestart')
 
-    def set_font(self):
-        is_dark_theme = self.is_dark_theme.get()
-        size = self.font_size.get()
-        # BASIC FONT
-        self.txt['font'] = (GOTHIC_FONT, size)
-        self.stb_sor2['font'] = (GOTHIC_FONT, size)
-        self.stb_sor4['font'] = (GOTHIC_FONT, size)
-        self.txt.tag_config('error_tag', foreground='#FF0000')
-        self.txt.tag_config('search_tag', background='#777777')
-
-        self.txt.tag_config('tab_tag', background='#5280FF')  # (0.5, 225, max)
-        # COLOR FONT
-        if not is_dark_theme:
-            self.txt.config(bg='white', fg='black')
-            self.txt.tag_config('akauni_tag', background='#CCCCCC')
-        else:
-            self.txt.config(bg='black', fg='white')
-            self.txt.tag_config('akauni_tag', background='#666666')
-        for u in ['-x', '-u']:
-            und = False if u == '-x' else True
-            for f in ['-g', '-m']:
-                fon = (GOTHIC_FONT, size) if f == '-g' else (MINCHO_FONT, size)
-                # WHITE
-                for i in range(3):
-                    a = '-XXX'
-                    y = '-' + str(i)
-                    tag = 'c' + a + y + f + u
-                    if not is_dark_theme:
-                        col = BLACK_SPACE[i]
-                    else:
-                        col = WHITE_SPACE[i]
-                    self.txt.tag_config(tag, font=fon,
-                                        foreground=col, underline=und)
-                # COLOR
-                for i in range(3):  # lightness
-                    y = '-' + str(i)
-                    for j, c in enumerate(COLOR_SPACE):  # angle
-                        a = '-' + str(j * 10)
-                        tag = 'c' + a + y + f + u  # example: c-120-1-g-x
-                        if not is_dark_theme:
-                            col = c[i]
-                        else:
-                            col = c[i + 1]
-                        self.txt.tag_config(tag, font=fon,
-                                            foreground=col, underline=und)
+    def move_to_end_of_line(self):
+        self.txt.mark_set('insert', 'insert lineend')
 
     ################################################################
     # INSERT
@@ -5253,7 +5399,7 @@ class Makdo:
         return text
 
     ################################
-    # FILE NAME
+    # FILE
 
     def insert_file_paths(self):
         file_paths = tkinter.filedialog.askopenfilenames()
@@ -5265,6 +5411,14 @@ class Makdo:
         for f in file_paths:
             f = re.sub('^(.|\n)*/', '', f)
             self.txt.insert('insert', f + '\n')
+
+    def insert_file(self):
+        file_path = tkinter.filedialog.askopenfilename()
+        with open(file_path, 'rb') as f:
+            raw_data = f.read()
+        encoding = self._get_encoding(raw_data)
+        decoded_data = self._decode_data(encoding, raw_data)
+        self.txt.insert('insert', decoded_data)
 
     ################################
     # SYMBOL
@@ -5287,7 +5441,7 @@ class Makdo:
     # "−"（2212）全角マイナスサイン
     # "－"（FF0D）ハイフンマイナス
 
-    def insert_hline_002D(self):
+    def insert_hline_002d(self):
         self.txt.insert('insert', '\u002D')  # 半角ハイフンマイナス
 
     def insert_hline_2010(self):
@@ -5302,7 +5456,7 @@ class Makdo:
     def insert_hline_2212(self):
         self.txt.insert('insert', '\u2212')  # 全角マイナスサイン
 
-    def insert_hline_FF0D(self):
+    def insert_hline_ff0d(self):
         self.txt.insert('insert', '\uFF0D')  # 全角ハイフンマイナス
 
     ################################
@@ -5422,6 +5576,59 @@ class Makdo:
             self.txt.configure(state='disabled')
         if self.txt['state'] == 'disabled' and not is_read_only:
             self.txt.configure(state='normal')
+
+    ################################################################
+    # NET
+
+    def browse_dictionary(self):
+        if self.txt.tag_ranges('sel'):
+            w = self.txt.get('sel.first', 'sel.last')
+            u = 'https://dictionary.goo.ne.jp/srch/all/' + w + '/m6u/'
+            webbrowser.open(u)
+        if 'akauni' in self.txt.mark_names():
+            w = ''
+            w += self.txt.get('akauni', 'insert')
+            w += self.txt.get('insert', 'akauni')
+            u = 'https://dictionary.goo.ne.jp/srch/all/' + w + '/m6u/'
+            webbrowser.open(u)
+
+    def browse_wikipedia(self):
+        if self.txt.tag_ranges('sel'):
+            w = self.txt.get('sel.first', 'sel.last')
+            webbrowser.open('https://ja.wikipedia.org/wiki/' + w)
+        if 'akauni' in self.txt.mark_names():
+            w = ''
+            w += self.txt.get('akauni', 'insert')
+            w += self.txt.get('insert', 'akauni')
+            webbrowser.open('https://ja.wikipedia.org/wiki/' + w)
+
+    def browse_law(self):
+        webbrowser.open('https://laws.e-gov.go.jp/')
+
+    def browse_law_constitution_law(self):
+        webbrowser.open('https://laws.e-gov.go.jp/law/321CONSTITUTION')
+
+    def browse_law_civil_law(self):
+        webbrowser.open('https://laws.e-gov.go.jp/law/129AC0000000089')
+
+    def browse_law_commercial_law(self):
+        webbrowser.open('https://laws.e-gov.go.jp/law/132AC0000000048')
+
+    def browse_law_corporation_law(self):
+        webbrowser.open('https://laws.e-gov.go.jp/law/417AC0000000086')
+
+    def browse_law_civil_procedure(self):
+        webbrowser.open('https://laws.e-gov.go.jp/law/408AC0000000109')
+
+    def browse_law_crime_law(self):
+        webbrowser.open('https://laws.e-gov.go.jp/law/140AC0000000045')
+
+    def browse_law_crime_procedure(self):
+        webbrowser.open('https://laws.e-gov.go.jp/law/323AC0000000131')
+
+    def browse_rule_of_court(self):
+        u = 'https://www.courts.go.jp/toukei_siryou/kisokusyu/index.html'
+        webbrowser.open(u)
 
     ################################################################
     # HELP
