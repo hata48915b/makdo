@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.20-11:54:35-JST>
+# Time-stamp:   <2024.08.20-14:16:08-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -3731,7 +3731,7 @@ class Makdo:
                                 command=self.insert_l_font_size)
         self.mc4fsz.add_command(label='特大サイズ',
                                 command=self.insert_ll_font_size)
-        self.mc4fsz.add_command(label='手動入力（準備中）',
+        self.mc4fsz.add_command(label='手動入力',
                                 command=self.insert_font_size_manually)
         self.mc4fwd = tkinter.Menu(self.mc4, tearoff=False)
         self.mc4.add_cascade(label='文字の幅を変える', menu=self.mc4fwd)
@@ -5163,7 +5163,13 @@ class Makdo:
         self.txt.mark_set('insert', 'insert-3c')
 
     def insert_font_size_manually(self):
-        pass  # 準備中
+        t = '文字の大きさ'
+        p = '文字の大きさを1から100までの数字を入力してください．'
+        n = tkinter.simpledialog.askinteger(title=t, prompt=p,
+                                            minvalue=1, maxvalue=100)
+        d = '@' + str(n) + '@（ここは文字の大きさが変わる）@' + str(n) + '@'
+        self.txt.insert('insert', d)
+        self.txt.mark_set('insert', 'insert-' + str(len(str(n)) + 2) + 'c')
 
     def insert_ss_font_width(self):
         self.txt.insert('insert', '>>>（ここは文字が特に細い）<<<')
