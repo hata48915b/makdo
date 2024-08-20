@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.21-06:12:36-JST>
+# Time-stamp:   <2024.08.21-07:02:32-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -47,7 +47,7 @@ import tkinter
 import tkinter.filedialog
 import tkinter.simpledialog
 import tkinter.messagebox
-# import tkinter.font
+import tkinter.font
 from tkinterdnd2 import TkinterDnD, DND_FILES
 import importlib
 import makdo.makdo_md2docx
@@ -65,7 +65,7 @@ elif sys.platform == 'linux':
 
 __version__ = 'v07 Furuichibashi'
 
-WINDOW_SIZE = '900x900'
+WINDOW_SIZE = '900x600'
 GOTHIC_FONT = 'ＭＳ ゴシック'
 MINCHO_FONT = 'ＭＳ 明朝'
 # GOTHIC_FONT = 'IPAゴシック'
@@ -3534,6 +3534,42 @@ class InsertSymbolDialog(tkinter.simpledialog.Dialog):
         self.win.focus_set()
 
 
+class SelectMinchoDialog(tkinter.simpledialog.Dialog):
+
+    def __init__(self, win, candidates):
+        self.win = win
+        self.candidates = candidates
+        super().__init__(win)
+
+    def body(self, win):
+        self.mincho = tkinter.StringVar()
+        for cnd in self.candidates:
+            rd = tkinter.Radiobutton(win, text=cnd, value=cnd,
+                                     font=(GOTHIC_FONT, 24),
+                                     variable=self.mincho)
+            rd.pack(side=tkinter.TOP, padx=3, pady=3)
+        self.bind('<Key-Return>', self.ok)
+        self.bind('<Key-Escape>', self.cancel)
+        super().body(win)
+
+    def buttonbox(self):
+        btn = tkinter.Frame(self)
+        self.btn1 = tkinter.Button(btn, text='OK', width=6,
+                                   command=self.ok)
+        self.btn1.pack(side=tkinter.LEFT, padx=3, pady=3)
+        self.btn2 = tkinter.Button(btn, text='Cancel', width=6,
+                                   command=self.cancel)
+        self.btn2.pack(side=tkinter.LEFT, padx=3, pady=3)
+        btn.pack()
+
+    def apply(self):
+        m = self.mincho.get()
+        d = '@' + m + '@（ここはフォントが変わる）@' + m + '@'
+        self.win.insert('insert', d)
+        self.win.mark_set('insert', 'insert-' + str(len(m) + 2) + 'c')
+        self.win.focus_set()
+
+
 class Makdo:
 
     search_word = ''
@@ -3745,10 +3781,13 @@ class Makdo:
                              command=self.insert_line_break)
         self.mc4fnt = tkinter.Menu(self.mc4, tearoff=False)
         self.mc4.add_cascade(label='文字のフォントを変える', menu=self.mc4fnt)
-        self.mc4fnt.add_command(label='ゴシック体',
+        self.mc4fnt.add_command(label='明朝体を変える',
+                                command=self.insert_font_select)
+        self.mc4fnt.add_separator()
+        self.mc4fnt.add_command(label='ゴシック体に変える',
                                 command=self.insert_gothic_font)
         self.mc4fnt.add_separator()
-        self.mc4fnt.add_command(label='手動入力（準備中）',
+        self.mc4fnt.add_command(label='手動入力',
                                 command=self.insert_font_manually)
         self.mc4fsz = tkinter.Menu(self.mc4, tearoff=False)
         self.mc4.add_cascade(label='文字の大きさを変える', menu=self.mc4fsz)
@@ -4005,7 +4044,6 @@ class Makdo:
         self.stb_msg1 = tkinter.Label(self.stb, text='')
         self.stb_msg1.pack(side=tkinter.LEFT)
         # FONT
-        # tkinter.font.families()
         self.set_font()
         # OPEN FILE
         if args.input_file is not None:
@@ -4267,7 +4305,8 @@ class Makdo:
                 return None                                     # drag and drop
             self.just_open_file(file_path)                      # drag and drop
         elif re.match(res_xls, file_path, re.I):                # drag and drop
-            pass  # 準備中
+            n, m = 'お詫び', '準備中です．'
+            tkinter.messagebox.showinfo(n, m)
         elif re.match(res_img, file_path, re.I):                # drag and drop
             image_md_text = '![代替テキスト:縦x横](' + file_path + ' "説明")'
             self.txt.insert('insert', image_md_text)            # drag and drop
@@ -4438,7 +4477,7 @@ class Makdo:
                                              ReadOnly=True)
             doc.SaveAs(pdf_path, FileFormat=17)  # 17=PDF
         elif sys.platform == 'darwin':
-            n, m = 'お詫び', '現在、作成の準備中です．'
+            n, m = 'お詫び', '準備中です．'
             tkinter.messagebox.showinfo(n, m)
         elif sys.platform == 'linux':
             dir_path = re.sub('((?:.|\n)*)/(?:.|\n)+$', '\\1', tmp_docx)
@@ -4467,7 +4506,7 @@ class Makdo:
             #                                  ConfirmConversions=False,
             #                                  ReadOnly=True)
         elif sys.platform == 'darwin':
-            n, m = 'お詫び', '現在、作成の準備中です．'
+            n, m = 'お詫び', '準備中です．'
             tkinter.messagebox.showinfo(n, m)
         elif sys.platform == 'linux':
             doc = subprocess.run('/usr/bin/libreoffice ' + docx_path,
@@ -4547,7 +4586,8 @@ class Makdo:
     # REPLACE ALL
 
     def replace_all(self):
-        pass  # 準備中
+        n, m = 'お詫び', '準備中です．'
+        tkinter.messagebox.showinfo(n, m)
 
     ################################
     # CALCULATE
@@ -5155,7 +5195,8 @@ class Makdo:
             self.txt.insert('insert', image_md_text)
 
     def insert_table_from_excel(self):
-        pass  # 準備中
+        n, m = 'お詫び', '準備中です．'
+        tkinter.messagebox.showinfo(n, m)
 
     def insert_table_format(self):
         self._insert_line_break_as_necessary()
@@ -5173,12 +5214,24 @@ class Makdo:
     def insert_line_break(self):
         self.txt.insert('insert', '<br>')
 
+    def insert_font_select(self):
+        mincho_list = []
+        for f in tkinter.font.families():
+            if '明朝' in f:
+                mincho_list.append(f)
+        SelectMinchoDialog(self.txt, mincho_list)
+
     def insert_gothic_font(self):
         self.txt.insert('insert', '`（ここはゴシック体）`')
         self.txt.mark_set('insert', 'insert-1c')
 
     def insert_font_manually(self):
-        pass  # 準備中
+        t = 'フォント'
+        p = 'フォント名を入力してください．'
+        s = tkinter.simpledialog.askstring(title=t, prompt=p)
+        d = '@' + s + '@（ここはフォントが変わる）@' + s + '@'
+        self.txt.insert('insert', d)
+        self.txt.mark_set('insert', 'insert-' + str(len(s) + 2) + 'c')
 
     def insert_ss_font_size(self):
         self.txt.insert('insert', '---（ここは文字が特に小さい）---')
@@ -5199,13 +5252,15 @@ class Makdo:
     def insert_font_size_manually(self):
         t = '文字の大きさ'
         p = '文字の大きさを1から100までの数字を入力してください．'
-        n = tkinter.simpledialog.askinteger(title=t, prompt=p,
+        f = tkinter.simpledialog.askfloat(title=t, prompt=p,
                                             minvalue=1, maxvalue=100)
-        if n is None:
+        if f is None:
             return
-        d = '@' + str(n) + '@（ここは文字の大きさが変わる）@' + str(n) + '@'
+        s = str(f)
+        s = re.sub('\\.0+$', '', s)
+        d = '@' + s + '@（ここは文字の大きさが変わる）@' + s + '@'
         self.txt.insert('insert', d)
-        self.txt.mark_set('insert', 'insert-' + str(len(str(n)) + 2) + 'c')
+        self.txt.mark_set('insert', 'insert-' + str(len(s) + 2) + 'c')
 
     def insert_ss_font_width(self):
         self.txt.insert('insert', '>>>（ここは文字が特に細い）<<<')
