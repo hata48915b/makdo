@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.20-11:13:09-JST>
+# Time-stamp:   <2024.08.20-11:54:35-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4351,30 +4351,32 @@ class Makdo:
         now = datetime.datetime.utcnow() + datetime.timedelta(hours=+9)
         jst = datetime.timezone(datetime.timedelta(hours=+9))
         now = now.replace(tzinfo=jst)
-        res = '^(\\S+:\\s*)(.*)$'
+        res = '^(\\S+:\\s*)(\\S+)(\\s.*)?$'
         for i, line in enumerate(file_text.split('\n')):
             # CREATED TIME
             if re.match('^作成時:', line) or re.match('^created_time:', line):
                 cfg = re.sub(res, '\\1', line)
-                val = re.sub(res, '\\2', line)
-                j = len(cfg)
+                tim = re.sub(res, '\\2', line)
+                usr = re.sub(res, '\\3', line)
+                j, k = len(cfg),  len(tim)
                 beg = str(i + 1) + '.' + str(j)
-                end = str(i + 1) + '.end'
+                end = str(i + 1) + '.' + str(j + k)
                 res_jst = '^' + '[0-9]{4}-[0-9]{2}-[0-9]{2}' + \
-                    'T[0-9]{2}:[0-9]{2}:[0-9]{2}\\+09:00' + '$'
-                if not re.match(res_jst, val):
-                    val = ''
+                    'T[0-9]{2}:[0-9]{2}:[0-9]{2}\\+09:00' + '(\\s.*)?$'
+                if not re.match(res_jst, tim):
+                    tim = ''
                 try:
-                    dt = datetime.datetime.fromisoformat(val)
+                    dt = datetime.datetime.fromisoformat(tim)
                 except BaseException:
                     self.txt.delete(beg, end)
                     self.txt.insert(beg, now.isoformat(timespec='seconds'))
             if re.match('^更新時:', line) or re.match('^modified_time:', line):
                 cfg = re.sub(res, '\\1', line)
-                val = re.sub(res, '\\2', line)
-                j = len(cfg)
+                tim = re.sub(res, '\\2', line)
+                usr = re.sub(res, '\\3', line)
+                j, k = len(cfg),  len(tim)
                 beg = str(i + 1) + '.' + str(j)
-                end = str(i + 1) + '.end'
+                end = str(i + 1) + '.' + str(j + k)
                 self.txt.delete(beg, end)
                 self.txt.insert(beg, now.isoformat(timespec='seconds'))
 
