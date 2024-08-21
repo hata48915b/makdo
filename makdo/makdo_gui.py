@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.21-08:30:53-JST>
+# Time-stamp:   <2024.08.21-10:43:59-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -3572,14 +3572,20 @@ class SelectMinchoDialog(tkinter.simpledialog.Dialog):
 
 class Makdo:
 
+    args_dark_theme = False
+    args_paint_keywords = False
+    args_read_only = False
+    args_make_backup_file = False
+    args_input_file = None
+
     search_word = ''
 
-    def __init__(self, args):
+    def __init__(self):
         self.tmep_dir = ''
-        self.file_path = args.input_file
+        self.file_path = self.args_input_file
         self.init_text = ''
         self.file_lines = []
-        self.must_make_backup_file = args.input_file
+        self.must_make_backup_file = self.args_make_backup_file
         self.line_data = []
         self.standard_line = 0
         self.global_line_to_paint = 0
@@ -3673,7 +3679,7 @@ class Makdo:
         self.mc3sb1 = tkinter.Menu(self.mnb, tearoff=False)
         self.mc3.add_cascade(label='背景色', menu=self.mc3sb1)
         self.is_dark_theme = tkinter.BooleanVar(value=False)
-        if args.dark_theme:
+        if self.args_dark_theme:
             self.is_dark_theme.set(True)
         self.mc3sb1.add_radiobutton(label='白色',
                                     variable=self.is_dark_theme, value=False,
@@ -3714,7 +3720,7 @@ class Makdo:
                                     command=self.set_font)
         self.mc3.add_separator()
         self.must_paint_keywords = tkinter.BooleanVar(value=False)
-        if args.paint_keywords:
+        if self.args_paint_keywords:
             self.must_paint_keywords.set(True)
         self.mc3.add_checkbutton(label='キーワードに色付け',
                                  variable=self.must_paint_keywords)
@@ -3934,7 +3940,7 @@ class Makdo:
         self.mc5 = tkinter.Menu(self.mnb, tearoff=False)
         self.mnb.add_cascade(label='設定(S)', menu=self.mc5, underline=3)
         self.is_read_only = tkinter.BooleanVar(value=False)
-        if args.read_only:
+        if self.args_read_only:
             self.is_read_only.set(True)
         self.mc5.add_checkbutton(label='読取専用',
                                  variable=self.is_read_only,
@@ -4046,8 +4052,8 @@ class Makdo:
         # FONT
         self.set_font()
         # OPEN FILE
-        if args.input_file is not None:
-            self.just_open_file(args.input_file)
+        if self.args_input_file is not None:
+            self.just_open_file(self.args_input_file)
         # LOOP
         self.txt.focus_set()
         self.run_periodically_to_paint_line()
@@ -6320,4 +6326,9 @@ if __name__ == '__main__':
         help='Markdownファイル or MS Wordファイル')
     args = parser.parse_args()
 
-    Makdo(args)
+    Makdo.args_dark_theme = args.dark_theme
+    Makdo.args_paint_keywords = args.paint_keywords
+    Makdo.args_read_only = args.read_only
+    Makdo.args_make_backup_file = args.make_backup_file
+    Makdo.args_input_file = args.input_file
+    Makdo()
