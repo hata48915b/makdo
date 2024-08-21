@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.21-10:43:59-JST>
+# Time-stamp:   <2024.08.21-13:06:39-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -3572,7 +3572,7 @@ class SelectMinchoDialog(tkinter.simpledialog.Dialog):
 
 class Makdo:
 
-    args_dark_theme = False
+    args_background_color = 'W'
     args_paint_keywords = False
     args_read_only = False
     args_make_backup_file = False
@@ -3678,14 +3678,16 @@ class Makdo:
         self.mnb.add_cascade(label='表示(V)', menu=self.mc3, underline=3)
         self.mc3sb1 = tkinter.Menu(self.mnb, tearoff=False)
         self.mc3.add_cascade(label='背景色', menu=self.mc3sb1)
-        self.is_dark_theme = tkinter.BooleanVar(value=False)
-        if self.args_dark_theme:
-            self.is_dark_theme.set(True)
+        self.background_color \
+            = tkinter.StringVar(value=self.args_background_color)
         self.mc3sb1.add_radiobutton(label='白色',
-                                    variable=self.is_dark_theme, value=False,
+                                    variable=self.background_color, value='W',
+                                    command=self.set_font)
+        self.mc3sb1.add_radiobutton(label='緑色',
+                                    variable=self.background_color, value='G',
                                     command=self.set_font)
         self.mc3sb1.add_radiobutton(label='黒色',
-                                    variable=self.is_dark_theme, value=True,
+                                    variable=self.background_color, value='B',
                                     command=self.set_font)
         self.mc3.add_separator()
         self.mc3sb2 = tkinter.Menu(self.mnb, tearoff=False)
@@ -4756,7 +4758,7 @@ class Makdo:
     # VISUAL
 
     def set_font(self):
-        is_dark_theme = self.is_dark_theme.get()
+        background_color = self.background_color.get()
         size = self.font_size.get()
         # BASIC FONT
         self.txt['font'] = (GOTHIC_FONT, size)
@@ -4765,7 +4767,7 @@ class Makdo:
         self.txt.tag_config('error_tag', foreground='#FF0000')
         self.txt.tag_config('search_tag', background='#777777')
         # COLOR FONT
-        if not is_dark_theme:
+        if background_color == 'W':
             self.txt.config(bg='white', fg='black')
             self.txt.tag_config('akauni_tag', background='#CCCCCC')
             self.txt.tag_config('hsp_tag', foreground='#C8C8FF',
@@ -4775,6 +4777,8 @@ class Makdo:
                                 underline=True)                   # (0.8, 200)
         else:
             self.txt.config(bg='black', fg='white')
+            if background_color == 'G':
+                self.txt.config(bg='darkgreen', fg='lightyellow')
             self.txt.tag_config('akauni_tag', background='#666666')
             self.txt.tag_config('hsp_tag', foreground='#7676FF',
                                 underline=True)                   # (0.5, 240)
@@ -4790,7 +4794,7 @@ class Makdo:
                     a = '-XXX'
                     y = '-' + str(i)
                     tag = 'c' + a + y + f + u
-                    if not is_dark_theme:
+                    if background_color == 'W':
                         col = BLACK_SPACE[i]
                     else:
                         col = WHITE_SPACE[i]
@@ -4802,7 +4806,7 @@ class Makdo:
                     for j, c in enumerate(COLOR_SPACE):  # angle
                         a = '-' + str(j * 10)
                         tag = 'c' + a + y + f + u  # example: c-120-1-g-x
-                        if not is_dark_theme:
+                        if background_color == 'W':
                             col = c[i]
                         else:
                             col = c[i + 1]
@@ -6305,9 +6309,10 @@ if __name__ == '__main__':
         version=('%(prog)s ' + __version__),
         help='バージョン番号を表示します')
     parser.add_argument(
-        '-d', '--dark-theme',
-        action='store_true',
-        help='背景を暗くします')
+        '-c', '--background-color',
+        type=str,
+        choices=['W', 'B', 'G'],
+        help='背景の色（白、黒、緑）を指定します')
     parser.add_argument(
         '-p', '--paint-keywords',
         action='store_true',
@@ -6326,7 +6331,7 @@ if __name__ == '__main__':
         help='Markdownファイル or MS Wordファイル')
     args = parser.parse_args()
 
-    Makdo.args_dark_theme = args.dark_theme
+    Makdo.args_background_color = args.background_color
     Makdo.args_paint_keywords = args.paint_keywords
     Makdo.args_read_only = args.read_only
     Makdo.args_make_backup_file = args.make_backup_file
