@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.22-09:23:43-JST>
+# Time-stamp:   <2024.08.22-09:37:06-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -132,7 +132,7 @@ KEYWORDS = [
      '|検察官|検察事務官|懲戒請求者' +
      '|甲|丁|庚|癸)',
      'cyan'],
-    ['(裁判官|審判官|調停官|調停委員|司法委員|専門委員|書記官|事務官|訴外|' +
+    ['(裁判官|審判官|調停官|調停委員|司法委員|専門委員|書記官|事務官|訴外' +
      '|丙|己|壬)',
      'yellow']]
 
