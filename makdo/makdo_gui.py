@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.22-09:37:06-JST>
+# Time-stamp:   <2024.08.23-08:51:06-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -3590,7 +3590,8 @@ class Makdo:
         self.standard_line = 0
         self.global_line_to_paint = 0
         self.local_line_to_paint = 0
-        self.akauni_history = ['', '', '', '', '']
+        self.key_history = ['', '', '', '', '']
+        self.last_point = ''
         self.must_display_folding_message = True
         # WINDOW
         self.win = TkinterDnD.Tk()  # drag and drop
@@ -3674,7 +3675,7 @@ class Makdo:
         self.mc2.add_command(label='字体を変える',
                              command=self.transform_to_another_typeface)
         self.mc2.add_separator()
-        self.mc2.add_command(label='領域をコメントアウト',
+        self.mc2.add_command(label='コメントアウト',
                              command=self.comment_out)
         self.mc2.add_command(label='コメントアウトを取り消す',
                              command=self.uncomment)
@@ -4801,7 +4802,7 @@ class Makdo:
         else:
             n = 'エラー'
             m = 'コメントアウトする領域が指定されていません．'
-            tkinter.messagebox.showerror(n, msg)
+            tkinter.messagebox.showerror(n, m)
             return
         tex = self.txt.get(beg, end)
         for i in ['8', '7', '6', '5', '4', '3', '2', '1', '-']:
@@ -4833,18 +4834,18 @@ class Makdo:
         else:
             n  = 'エラー'
             m = 'コメントアウトを解除する領域が指定されていません．'
-            tkinter.messagebox.showerror(n, msg)
+            tkinter.messagebox.showerror(n, m)
             return
         tex = self.txt.get(beg, end)
         if not re.match('^<!--(.|\n)*$', tex):
             n  = 'エラー'
             m = '指定されている領域が、"<!--"で始まっていません．'
-            tkinter.messagebox.showerror(n, msg)
+            tkinter.messagebox.showerror(n, m)
             return
         if not re.match('^(.|\n)*-->$', tex):
             n  = 'エラー'
             m = '指定されている領域が、"-->"で終わっていません．'
-            tkinter.messagebox.showerror(n, msg)
+            tkinter.messagebox.showerror(n, m)
             return
         for i in ['-', '1', '2', '3', '4', '5', '6', '7', '8']:
             if i == '-':
@@ -5986,8 +5987,8 @@ class Makdo:
         self.set_position_info_on_status_bar()
         self.paint_out_line(self.get_insert_v_number() - 1)
         # FOR AKAUNI
-        self.akauni_history.append(key.keysym)
-        self.akauni_history.pop(0)
+        self.key_history.append(key.keysym)
+        self.key_history.pop(0)
         if key.keysym == 'F19':              # x (ctrl)
             return 'break'
         elif key.keysym == 'Left':
@@ -6011,7 +6012,7 @@ class Makdo:
                 self.txt.tag_add('akauni_tag', 'akauni', 'insert+1l')
                 self.txt.tag_add('akauni_tag', 'insert+1l', 'akauni')
         elif key.keysym == 'F17':            # } (, calc)
-            if self.akauni_history[-2] == 'F13':
+            if self.key_history[-2] == 'F13':
                 self.calculate()
                 return 'break'
         elif key.keysym == 'F21':            # w (undo)
@@ -6021,7 +6022,7 @@ class Makdo:
             self.edit_modified_redo()
             return 'break'
         elif key.keysym == 'F22':            # f (mark, save)
-            if self.akauni_history[-2] == 'F19':
+            if self.key_history[-2] == 'F19':
                 self.save_file()
                 return 'break'
             else:
@@ -6030,7 +6031,7 @@ class Makdo:
                 self.txt.mark_set('akauni', 'insert')
                 return 'break'
         elif key.keysym == 'Delete':         # d (delete, quit)
-            if self.akauni_history[-2] == 'F19':
+            if self.key_history[-2] == 'F19':
                 self.quit_makdo()
                 return 'break'
             elif 'akauni' in self.txt.mark_names():
@@ -6093,7 +6094,7 @@ class Makdo:
                 pos = self.txt.index('insert')
                 end = re.sub('\\..*$', '.end', pos)
                 c = self.txt.get(pos, end)
-                if self.akauni_history[-2] != 'Delete':
+                if self.key_history[-2] != 'Delete':
                     self.win.clipboard_clear()
                 if c == '':
                     self.win.clipboard_append('\n')
@@ -6144,6 +6145,14 @@ class Makdo:
                         self.txt.insert('insert', FONT_DECORATOR_SAMPLE[i + 1])
                         self.txt.mark_set('insert', posi)
                         return 'break'
+        elif key.keysym == 'Prior':
+            if self.key_history[-2] == 'Prior':
+                if self.last_point == self.txt.get('insert'):
+                    self.txt.mark_set('insert', '1.0')
+        elif key.keysym == 'Next':
+            if self.key_history[-2] == 'Next':
+                if self.last_point == self.txt.get('insert'):
+                    self.txt.mark_set('insert', 'end-1c')
 
     def process_key_release(self, key):
         self.set_position_info_on_status_bar()
@@ -6153,6 +6162,7 @@ class Makdo:
             self.txt.tag_remove('akauni_tag', '1.0', 'end')
             self.txt.tag_add('akauni_tag', 'akauni', 'insert')
             self.txt.tag_add('akauni_tag', 'insert', 'akauni')
+        self.last_point = self.txt.get('insert')
 
     ################################
     # MOUSE LEFT
@@ -6287,7 +6297,6 @@ class Makdo:
         m = self.txt.get('1.0', 'end-1c').count(word1)
         self.set_message_on_status_bar(str(m) + '個が見付かりました' +
                                        '（' + str(n) + '/' + str(m) + '）')
-
 
     def clear_search_word(self):
         self.stb_sor2.delete('0', 'end')
