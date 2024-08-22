@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.21-13:06:39-JST>
+# Time-stamp:   <2024.08.22-09:23:43-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -3665,7 +3665,7 @@ class Makdo:
                              underline=6,
                              accelerator='Ctrl+A')
         self.mc2.add_separator()
-        self.mc2.add_command(label='全て置換（準備中）',
+        self.mc2.add_command(label='全て置換',
                              command=self.replace_all)
         self.mc2.add_separator()
         self.mc2.add_command(label='数式を計算',
@@ -3673,6 +3673,11 @@ class Makdo:
         self.mc2.add_separator()
         self.mc2.add_command(label='字体を変える',
                              command=self.transform_to_another_typeface)
+        self.mc2.add_separator()
+        self.mc2.add_command(label='領域をコメントアウト',
+                             command=self.comment_out)
+        self.mc2.add_command(label='コメントアウトを取り消す',
+                             command=self.uncomment)
         # VISUAL
         self.mc3 = tkinter.Menu(self.mnb, tearoff=False)
         self.mnb.add_cascade(label='表示(V)', menu=self.mc3, underline=3)
@@ -3683,11 +3688,11 @@ class Makdo:
         self.mc3sb1.add_radiobutton(label='白色',
                                     variable=self.background_color, value='W',
                                     command=self.set_font)
-        self.mc3sb1.add_radiobutton(label='緑色',
-                                    variable=self.background_color, value='G',
-                                    command=self.set_font)
         self.mc3sb1.add_radiobutton(label='黒色',
                                     variable=self.background_color, value='B',
+                                    command=self.set_font)
+        self.mc3sb1.add_radiobutton(label='緑色',
+                                    variable=self.background_color, value='G',
                                     command=self.set_font)
         self.mc3.add_separator()
         self.mc3sb2 = tkinter.Menu(self.mnb, tearoff=False)
@@ -4484,7 +4489,7 @@ class Makdo:
                                              ReadOnly=True)
             doc.SaveAs(pdf_path, FileFormat=17)  # 17=PDF
         elif sys.platform == 'darwin':
-            n, m = 'お詫び', '準備中です．'
+            n, m = 'お詫び', '準備中です．\n（macの開発環境が手元にない…）'
             tkinter.messagebox.showinfo(n, m)
         elif sys.platform == 'linux':
             dir_path = re.sub('((?:.|\n)*)/(?:.|\n)+$', '\\1', tmp_docx)
@@ -4513,7 +4518,7 @@ class Makdo:
             #                                  ConfirmConversions=False,
             #                                  ReadOnly=True)
         elif sys.platform == 'darwin':
-            n, m = 'お詫び', '準備中です．'
+            n, m = 'お詫び', '準備中です．\n（macの開発環境が手元にない…）'
             tkinter.messagebox.showinfo(n, m)
         elif sys.platform == 'linux':
             doc = subprocess.run('/usr/bin/libreoffice ' + docx_path,
@@ -4593,8 +4598,29 @@ class Makdo:
     # REPLACE ALL
 
     def replace_all(self):
-        n, m = 'お詫び', '準備中です．'
-        tkinter.messagebox.showinfo(n, m)
+        word1 = self.stb_sor2.get()
+        word2 = self.stb_sor4.get()
+        if word1 == '':
+            return
+        if Makdo.search_word != word1:
+            Makdo.search_word = word1
+            self._highlight_search_word()
+        self.txt.mark_set('insert', '1.0')
+        m = self.txt.get('1.0', 'end-1c').count(word1)
+        while True:
+            tex = self.txt.get('insert', 'end-1c')
+            if word1 not in tex:
+                break
+            res = '^((?:.|\n)*?)' + word1 + '(?:.|\n)*$'
+            sub = re.sub(res, '\\1', tex)
+            self.txt.delete('insert+' + str(len(sub)) + 'c',
+                            'insert+' + str(len(sub  + word1)) + 'c')
+            self.txt.insert('insert+' + str(len(sub)) + 'c', word2)
+            self.txt.mark_set('insert',
+                              'insert +' + str(len(sub + word2)) + 'c')
+        self.txt.focus_set()
+        # MESSAGE
+        self.set_message_on_status_bar(str(m) + '個を置換しました')
 
     ################################
     # CALCULATE
@@ -4754,6 +4780,93 @@ class Makdo:
             if c in tf:
                 ConvertTypefaceDialog(self.txt, c, list(tf))
 
+    def _get_indices_in_order(self, index1, index2):
+        point1 = self.txt.index(index1)
+        point2 = self.txt.index(index2)
+        p1_v = int(re.sub('\\..+$', '', point1))
+        p1_h = int(re.sub('^.+\\.', '', point1))
+        p2_v = int(re.sub('\\..+$', '', point2))
+        p2_h = int(re.sub('^.+\\.', '', point2))
+        if (p1_v < p2_v) or (p1_v == p2_v and p1_h < p2_h):
+            return point1, point2
+        if (p2_v < p1_v) or (p2_v == p1_v and p2_h < p1_h):
+            return point2, point1
+        return point1, point2
+
+    def comment_out(self):
+        if self.txt.tag_ranges('sel'):
+            beg, end = self.txt.index('sel.first') ,self.txt.index('sel.last')
+        elif 'akauni' in self.txt.mark_names():
+            beg, end = self._get_indices_in_order('insert', 'akauni')
+        else:
+            n = 'エラー'
+            m = 'コメントアウトする領域が指定されていません．'
+            tkinter.messagebox.showerror(n, msg)
+            return
+        tex = self.txt.get(beg, end)
+        for i in ['8', '7', '6', '5', '4', '3', '2', '1', '-']:
+            if i == '-':
+                j = '1'
+            else:
+                j = str(int(i) + 1)
+            t_i, t_j = '-' + i + '>', '-' + j + '>'
+            res = '^((?:.|\n)*?)' + t_i + '((?:.|\n)*)$'
+            while re.match(res, tex):
+                sub = re.sub(res, '\\1', tex)
+                tex = re.sub(res, '\\1' + t_j + '\\2', tex)
+                self.txt.delete(beg + '+' + str(len(sub)) + 'c',
+                                beg + '+' + str(len(sub) + 3) + 'c')
+                self.txt.insert(beg + '+' + str(len(sub)) + 'c', t_j)
+        self.txt.insert(end, '-->')
+        self.txt.insert(beg, '<!--')
+        if self.txt.tag_ranges('sel'):
+            self.txt.tag_remove('sel', "1.0", "end")
+        elif 'akauni' in self.txt.mark_names():
+            self.txt.tag_remove('akauni_tag', '1.0', 'end')
+            self.txt.mark_unset('akauni')
+
+    def uncomment(self):
+        if self.txt.tag_ranges('sel'):
+            beg, end = self.txt.index('sel.first') ,self.txt.index('sel.last')
+        elif 'akauni' in self.txt.mark_names():
+            beg, end = self._get_indices_in_order('insert', 'akauni')
+        else:
+            n  = 'エラー'
+            m = 'コメントアウトを解除する領域が指定されていません．'
+            tkinter.messagebox.showerror(n, msg)
+            return
+        tex = self.txt.get(beg, end)
+        if not re.match('^<!--(.|\n)*$', tex):
+            n  = 'エラー'
+            m = '指定されている領域が、"<!--"で始まっていません．'
+            tkinter.messagebox.showerror(n, msg)
+            return
+        if not re.match('^(.|\n)*-->$', tex):
+            n  = 'エラー'
+            m = '指定されている領域が、"-->"で終わっていません．'
+            tkinter.messagebox.showerror(n, msg)
+            return
+        for i in ['-', '1', '2', '3', '4', '5', '6', '7', '8']:
+            if i == '-':
+                j = '1'
+            else:
+                j = str(int(i) + 1)
+            t_i, t_j = '-' + i + '>', '-' + j + '>'
+            res = '^((?:.|\n)*?)' + t_j + '((?:.|\n)*)$'
+            while re.match(res, tex):
+                sub = re.sub(res, '\\1', tex)
+                tex = re.sub(res, '\\1' + t_i + '\\2', tex)
+                self.txt.delete(beg + '+' + str(len(sub)) + 'c',
+                                beg + '+' + str(len(sub) + 3) + 'c')
+                self.txt.insert(beg + '+' + str(len(sub)) + 'c', t_i)
+        self.txt.delete(end + '-3c', end)
+        self.txt.delete(beg, beg + '+4c')
+        if self.txt.tag_ranges('sel'):
+            self.txt.tag_remove('sel', "1.0", "end")
+        elif 'akauni' in self.txt.mark_names():
+            self.txt.tag_remove('akauni_tag', '1.0', 'end')
+            self.txt.mark_unset('akauni')
+
     ################################################################
     # VISUAL
 
@@ -4775,11 +4888,17 @@ class Makdo:
             self.txt.tag_config('tab_tag', background='#D9E7FF')  # (0.9, 220)
             self.txt.tag_config('fsp_tag', foreground='#90D9FF',
                                 underline=True)                   # (0.8, 200)
-        else:
+        elif background_color == 'B':
             self.txt.config(bg='black', fg='white')
-            if background_color == 'G':
-                self.txt.config(bg='darkgreen', fg='lightyellow')
             self.txt.tag_config('akauni_tag', background='#666666')
+            self.txt.tag_config('hsp_tag', foreground='#7676FF',
+                                underline=True)                   # (0.5, 240)
+            self.txt.tag_config('tab_tag', background='#0053EF')  # (0.3, 220)
+            self.txt.tag_config('fsp_tag', foreground='#009AED',
+                                underline=True)                   # (0.5, 200)
+        elif background_color == 'G':
+            self.txt.config(bg='darkgreen', fg='lightyellow')
+            self.txt.tag_config('akauni_tag', background='#888888')
             self.txt.tag_config('hsp_tag', foreground='#7676FF',
                                 underline=True)                   # (0.5, 240)
             self.txt.tag_config('tab_tag', background='#0053EF')  # (0.3, 220)
@@ -4808,7 +4927,9 @@ class Makdo:
                         tag = 'c' + a + y + f + u  # example: c-120-1-g-x
                         if background_color == 'W':
                             col = c[i]
-                        else:
+                        elif background_color == 'B':
+                            col = c[i + 1]
+                        elif background_color == 'G':
                             col = c[i + 1]
                         self.txt.tag_config(tag, font=fon,
                                             foreground=col, underline=und)
@@ -6117,48 +6238,56 @@ class Makdo:
     def search_or_replace_backward(self):
         word1 = self.stb_sor2.get()
         word2 = self.stb_sor4.get()
+        if word1 == '':
+            return
         if Makdo.search_word != word1:
             Makdo.search_word = word1
             self._highlight_search_word()
-        pos = self.txt.index('insert')
-        tex = self.txt.get('1.0', pos)
-        res = '^((?:.|\n)*)(' + word1 + '(?:.|\n)*)$'
+        tex = self.txt.get('1.0', 'insert')
+        tex = re.sub(word1 + '$', '', tex)
+        res = '^((?:.|\n)*' + word1 + ')((?:.|\n)*)$'
         if re.match(res, tex):
-            t1 = re.sub(res, '\\1', tex)
-            t2 = re.sub(res, '\\2', tex)
+            sub = re.sub(res, '\\1', tex)
             # SEARCH
-            self.txt.mark_set('insert', pos + '-' + str(len(t2)) + 'c')
-            self.txt.yview(pos + '-' + str(len(t2)) + 'c-10line')
-            if word2 != '':  # and word2 != '（置換語）'
-                # REPLACE
-                self.txt.delete('insert', 'insert+' + str(len(word1)) + 'c')
-                self.txt.insert('insert', word2)
-                # self.set_message_on_status_bar('置換しました')
-        self.set_message_on_status_bar('')
-        self.txt.focus_set()
-
-    def search_or_replace_forward(self):
-        word1 = self.stb_sor2.get()
-        word2 = self.stb_sor4.get()
-        if Makdo.search_word != word1:
-            Makdo.search_word = word1
-            self._highlight_search_word()
-        pos = self.txt.index('insert')
-        tex = self.txt.get(pos, 'end-1c')
-        res = '^((?:.|\n)*?' + word1 + ')((?:.|\n)*)$'
-        if re.match(res, tex):
-            t1 = re.sub(res, '\\1', tex)
-            t2 = re.sub(res, '\\2', tex)
-            # SEARCH
-            self.txt.mark_set('insert', pos + '+' + str(len(t1)) + 'c')
-            self.txt.yview(pos + '+' + str(len(t1)) + 'c-10line')
+            self.txt.mark_set('insert', '1.0 +' + str(len(sub)) + 'c')
+            self.txt.yview('insert -10line')
             if word2 != '':  # and word2 != '（置換語）'
                 # REPLACE
                 self.txt.delete('insert-' + str(len(word1)) + 'c', 'insert')
                 self.txt.insert('insert', word2)
-                # self.set_message_on_status_bar('置換しました')
-        self.set_message_on_status_bar('')
         self.txt.focus_set()
+        # MESSAGE
+        n = self.txt.get('1.0', 'insert').count(word1)
+        m = self.txt.get('1.0', 'end-1c').count(word1)
+        self.set_message_on_status_bar(str(m) + '個が見付かりました' +
+                                       '（' + str(n) + '/' + str(m) + '）')
+
+    def search_or_replace_forward(self):
+        word1 = self.stb_sor2.get()
+        word2 = self.stb_sor4.get()
+        if word1 == '':
+            return
+        if Makdo.search_word != word1:
+            Makdo.search_word = word1
+            self._highlight_search_word()
+        tex = self.txt.get('insert', 'end-1c')
+        res = '^((?:.|\n)*?' + word1 + ')((?:.|\n)*)$'
+        if re.match(res, tex):
+            sub = re.sub(res, '\\1', tex)
+            # SEARCH
+            self.txt.mark_set('insert', 'insert +' + str(len(sub)) + 'c')
+            self.txt.yview('insert -10line')
+            if word2 != '':  # and word2 != '（置換語）'
+                # REPLACE
+                self.txt.delete('insert-' + str(len(word1)) + 'c', 'insert')
+                self.txt.insert('insert', word2)
+        self.txt.focus_set()
+        # MESSAGE
+        n = self.txt.get('1.0', 'insert').count(word1)
+        m = self.txt.get('1.0', 'end-1c').count(word1)
+        self.set_message_on_status_bar(str(m) + '個が見付かりました' +
+                                       '（' + str(n) + '/' + str(m) + '）')
+
 
     def clear_search_word(self):
         self.stb_sor2.delete('0', 'end')
