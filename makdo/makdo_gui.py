@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.23-08:51:06-JST>
+# Time-stamp:   <2024.08.23-17:03:56-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4606,19 +4606,27 @@ class Makdo:
         if Makdo.search_word != word1:
             Makdo.search_word = word1
             self._highlight_search_word()
-        self.txt.mark_set('insert', '1.0')
-        m = self.txt.get('1.0', 'end-1c').count(word1)
+        if self.txt.tag_ranges('sel'):
+            beg, end = self.txt.index('sel.first') ,self.txt.index('sel.last')
+        elif 'akauni' in self.txt.mark_names():
+            beg, end = self._get_indices_in_order('insert', 'akauni')
+        else:
+            beg, end = '1.0', 'end-1c'
+        m = self.txt.get(beg, end).count(word1)
         while True:
-            tex = self.txt.get('insert', 'end-1c')
+            tex = self.txt.get(beg, end)
             if word1 not in tex:
                 break
             res = '^((?:.|\n)*?)' + word1 + '(?:.|\n)*$'
             sub = re.sub(res, '\\1', tex)
-            self.txt.delete('insert+' + str(len(sub)) + 'c',
-                            'insert+' + str(len(sub  + word1)) + 'c')
-            self.txt.insert('insert+' + str(len(sub)) + 'c', word2)
-            self.txt.mark_set('insert',
-                              'insert +' + str(len(sub + word2)) + 'c')
+            self.txt.delete(beg + '+' + str(len(sub)) + 'c',
+                            beg + '+' + str(len(sub  + word1)) + 'c')
+            self.txt.insert(beg + '+' + str(len(sub)) + 'c', word2)
+        if self.txt.tag_ranges('sel'):
+            self.txt.tag_remove('sel', "1.0", "end")
+        elif 'akauni' in self.txt.mark_names():
+            self.txt.tag_remove('akauni_tag', '1.0', 'end')
+            self.txt.mark_unset('akauni')
         self.txt.focus_set()
         # MESSAGE
         self.set_message_on_status_bar(str(m) + '個を置換しました')
