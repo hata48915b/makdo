@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.23-17:03:56-JST>
+# Time-stamp:   <2024.08.23-17:08:51-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -3679,271 +3679,271 @@ class Makdo:
                              command=self.comment_out)
         self.mc2.add_command(label='コメントアウトを取り消す',
                              command=self.uncomment)
-        # VISUAL
+        # INSERT
         self.mc3 = tkinter.Menu(self.mnb, tearoff=False)
-        self.mnb.add_cascade(label='表示(V)', menu=self.mc3, underline=3)
-        self.mc3sb1 = tkinter.Menu(self.mnb, tearoff=False)
-        self.mc3.add_cascade(label='背景色', menu=self.mc3sb1)
+        self.mnb.add_cascade(label='挿入(I)', menu=self.mc3, underline=3)
+        self.mc3sec = tkinter.Menu(self.mc3, tearoff=False)
+        self.mc3.add_cascade(label='セクションを挿入', menu=self.mc3sec)
+        self.mc3sec.add_command(label='（書面のタイトル）',
+                                command=self.insert_sect_1)
+        self.mc3sec.add_command(label='第１　…',
+                                command=self.insert_sect_2)
+        self.mc3sec.add_command(label='　１　…',
+                                command=self.insert_sect_3)
+        self.mc3sec.add_command(label='　　(1) …',
+                                command=self.insert_sect_4)
+        self.mc3sec.add_command(label='　　　ア　…',
+                                command=self.insert_sect_5)
+        self.mc3sec.add_command(label='　　　　(ｱ) …',
+                                command=self.insert_sect_6)
+        self.mc3sec.add_command(label='　　　　　ａ　…',
+                                command=self.insert_sect_7)
+        self.mc3sec.add_command(label='　　　　　　(a) …',
+                                command=self.insert_sect_8)
+        self.mc3chp = tkinter.Menu(self.mc3, tearoff=False)
+        self.mc3.add_cascade(label='チャプターを挿入', menu=self.mc3chp)
+        self.mc3chp.add_command(label='第１編　…',
+                                command=self.insert_chap_1)
+        self.mc3chp.add_command(label='　第１章　…',
+                                command=self.insert_chap_2)
+        self.mc3chp.add_command(label='　　第１節　…',
+                                command=self.insert_chap_3)
+        self.mc3chp.add_command(label='　　　第１款　…',
+                                command=self.insert_chap_4)
+        self.mc3chp.add_command(label='　　　　第１目　…',
+                                command=self.insert_chap_5)
+        self.mc3.add_command(label='画像を挿入',
+                             command=self.insert_images)
+        self.mc3tab = tkinter.Menu(self.mc3, tearoff=False)
+        self.mc3.add_cascade(label='表を挿入', menu=self.mc3tab)
+        self.mc3tab.add_command(label='エクセルから挿入',
+                                command=self.insert_table_from_excel)
+        self.mc3tab.add_command(label='書式を挿入',
+                                command=self.insert_table_format)
+        self.mc3.add_command(label='改ページを挿入',
+                             command=self.insert_page_break)
+        self.mc3.add_command(label='改行を挿入',
+                             command=self.insert_line_break)
+        self.mc3fnt = tkinter.Menu(self.mc3, tearoff=False)
+        self.mc3.add_cascade(label='文字のフォントを変える', menu=self.mc3fnt)
+        self.mc3fnt.add_command(label='明朝体を変える',
+                                command=self.insert_font_select)
+        self.mc3fnt.add_separator()
+        self.mc3fnt.add_command(label='ゴシック体に変える',
+                                command=self.insert_gothic_font)
+        self.mc3fnt.add_separator()
+        self.mc3fnt.add_command(label='手動入力',
+                                command=self.insert_font_manually)
+        self.mc3fsz = tkinter.Menu(self.mc3, tearoff=False)
+        self.mc3.add_cascade(label='文字の大きさを変える', menu=self.mc3fsz)
+        self.mc3fsz.add_command(label='特小サイズ',
+                                command=self.insert_ss_font_size)
+        self.mc3fsz.add_command(label='小サイズ',
+                                command=self.insert_s_font_size)
+        self.mc3fsz.add_command(label='大サイズ',
+                                command=self.insert_l_font_size)
+        self.mc3fsz.add_command(label='特大サイズ',
+                                command=self.insert_ll_font_size)
+        self.mc3fsz.add_separator()
+        self.mc3fsz.add_command(label='手動入力',
+                                command=self.insert_font_size_manually)
+        self.mc3fwd = tkinter.Menu(self.mc3, tearoff=False)
+        self.mc3.add_cascade(label='文字の幅を変える', menu=self.mc3fwd)
+        self.mc3fwd.add_command(label='特細サイズ',
+                                command=self.insert_ss_font_width)
+        self.mc3fwd.add_command(label='細サイズ',
+                                command=self.insert_s_font_width)
+        self.mc3fwd.add_command(label='太サイズ',
+                                command=self.insert_l_font_width)
+        self.mc3fwd.add_command(label='特太サイズ',
+                                command=self.insert_ll_font_width)
+        self.mc3uln = tkinter.Menu(self.mc3, tearoff=False)
+        self.mc3.add_cascade(label='文字に下線をを引く', menu=self.mc3uln)
+        self.mc3uln.add_command(label='単線',
+                                command=self.insert_single_underline)
+        self.mc3uln.add_command(label='二重線',
+                                command=self.insert_double_underline)
+        self.mc3uln.add_command(label='波線',
+                                command=self.insert_wave_underline)
+        self.mc3uln.add_command(label='破線',
+                                command=self.insert_dash_underline)
+        self.mc3uln.add_command(label='点線',
+                                command=self.insert_dot_underline)
+        self.mc3fcl = tkinter.Menu(self.mc3, tearoff=False)
+        self.mc3.add_cascade(label='文字色を変える', menu=self.mc3fcl)
+        self.mc3fcl.add_command(label='赤色',
+                                command=self.insert_r_font_color)
+        self.mc3fcl.add_command(label='黄色',
+                                command=self.insert_y_font_color)
+        self.mc3fcl.add_command(label='緑色',
+                                command=self.insert_g_font_color)
+        self.mc3fcl.add_command(label='シアン',
+                                command=self.insert_c_font_color)
+        self.mc3fcl.add_command(label='青色',
+                                command=self.insert_b_font_color)
+        self.mc3fcl.add_command(label='マゼンタ',
+                                command=self.insert_m_font_color)
+        self.mc3fcl.add_command(label='白色',
+                                command=self.insert_w_font_color)
+        self.mc3hcl = tkinter.Menu(self.mc3, tearoff=False)
+        self.mc3.add_cascade(label='下地色を変える', menu=self.mc3hcl)
+        self.mc3hcl.add_command(label='赤色',
+                                command=self.insert_r_highlight_color)
+        self.mc3hcl.add_command(label='黄色',
+                                command=self.insert_y_highlight_color)
+        self.mc3hcl.add_command(label='緑色',
+                                command=self.insert_g_highlight_color)
+        self.mc3hcl.add_command(label='シアン',
+                                command=self.insert_c_highlight_color)
+        self.mc3hcl.add_command(label='青色',
+                                command=self.insert_b_highlight_color)
+        self.mc3hcl.add_command(label='マゼンタ',
+                                command=self.insert_m_highlight_color)
+        self.mc3typ = tkinter.Menu(self.mc3, tearoff=False)
+        self.mc3.add_cascade(label='人名漢字を挿入（未完成）',
+                             menu=self.mc3typ)
+        self.mc3typ.add_command(label='"花"の人名漢字',
+                                command=self.insert_name_char_of_hana)
+        self.mc3.add_separator()
+        self.mc3dat = tkinter.Menu(self.mc3, tearoff=False)
+        self.mc3.add_cascade(label='日時を挿入', menu=self.mc3dat)
+        self.mc3dat.add_command(label='YY年M月D日',
+                                command=self.insert_date_YYMD)
+        self.mc3dat.add_command(label='令和Y年M月D日',
+                                command=self.insert_date_GYMD)
+        self.mc3dat.add_command(label='yy年m月d日',
+                                command=self.insert_date_yymd)
+        self.mc3dat.add_command(label='令和y年m月d日',
+                                command=self.insert_date_Gymd)
+        self.mc3dat.add_command(label='yyyy-mm-dd',
+                                command=self.insert_date_iso)
+        self.mc3dat.add_command(label='gyy-mm-dd',
+                                command=self.insert_date_giso)
+        self.mc3dat.add_separator()
+        self.mc3dat.add_command(label='H時M分S秒',
+                                command=self.insert_time_HHMS)
+        self.mc3dat.add_command(label='午前H時M分S秒',
+                                command=self.insert_time_GHMS)
+        self.mc3dat.add_command(label='h時m分s秒',
+                                command=self.insert_time_hhms)
+        self.mc3dat.add_command(label='午前h時m分s秒',
+                                command=self.insert_time_Ghms)
+        self.mc3dat.add_command(label='hh:mm:ss',
+                                command=self.insert_time_iso)
+        self.mc3dat.add_command(label='AMhh:mm:ss',
+                                command=self.insert_time_giso)
+        self.mc3dat.add_separator()
+        self.mc3dat.add_command(label='yyyy-mm-ddThh:mm:ss+09:00',
+                                command=self.insert_datetime)
+        self.mc3dat.add_command(label='yy-mm-dd hh:mm:ss',
+                                command=self.insert_datetime_symple)
+        self.mc3fil = tkinter.Menu(self.mc3, tearoff=False)
+        self.mc3.add_cascade(label='ファイル名を挿入', menu=self.mc3fil)
+        self.mc3fil.add_command(label='フルパスで挿入',
+                                command=self.insert_file_paths)
+        self.mc3fil.add_command(label='ファイル名のみを挿入',
+                                command=self.insert_file_names)
+        self.mc3.add_command(label='ファイルの内容を挿入',
+                             command=self.insert_file)
+        self.mc3.add_separator()
+        self.mc3.add_command(label='記号',
+                             command=self.insert_symbol)
+        self.mc3sym = tkinter.Menu(self.mc3, tearoff=False)
+        self.mc3.add_cascade(label='横棒を挿入', menu=self.mc3sym)
+        self.mc3sym.add_command(label='"-"（002D）半角ハイフンマイナス',
+                                command=self.insert_hline_002d)
+        self.mc3sym.add_command(label='"‐"（2010）全角ハイフン',
+                                command=self.insert_hline_2010)
+        self.mc3sym.add_command(label='"—"（2014）全角Ｍダッシュ',
+                                command=self.insert_hline_2014)
+        self.mc3sym.add_command(label='"―"（2015）全角水平線',
+                                command=self.insert_hline_2015)
+        self.mc3sym.add_command(label='"−"（2212）全角マイナスサイン',
+                                command=self.insert_hline_2212)
+        self.mc3sym.add_command(label='"－"（FF0D）全角ハイフンマイナス',
+                                command=self.insert_hline_ff0d)
+        self.mc3.add_separator()
+        self.mc3smp = tkinter.Menu(self.mc3, tearoff=False)
+        self.mc3.add_cascade(label='サンプルを挿入', menu=self.mc3smp)
+        self.mc3smp.add_command(label='基本',
+                                command=self.insert_basis)
+        self.mc3smp.add_command(label='民法',
+                                command=self.insert_law)
+        self.mc3smp.add_command(label='訴状',
+                                command=self.insert_petition)
+        self.mc3smp.add_command(label='証拠説明書',
+                                command=self.insert_evidence)
+        self.mc3smp.add_command(label='和解契約書',
+                                command=self.insert_settlement)
+        # VISUAL
+        self.mc4 = tkinter.Menu(self.mnb, tearoff=False)
+        self.mnb.add_cascade(label='表示(V)', menu=self.mc4, underline=3)
+        self.mc4sb1 = tkinter.Menu(self.mnb, tearoff=False)
+        self.mc4.add_cascade(label='背景色', menu=self.mc4sb1)
         self.background_color \
             = tkinter.StringVar(value=self.args_background_color)
-        self.mc3sb1.add_radiobutton(label='白色',
+        self.mc4sb1.add_radiobutton(label='白色',
                                     variable=self.background_color, value='W',
                                     command=self.set_font)
-        self.mc3sb1.add_radiobutton(label='黒色',
+        self.mc4sb1.add_radiobutton(label='黒色',
                                     variable=self.background_color, value='B',
                                     command=self.set_font)
-        self.mc3sb1.add_radiobutton(label='緑色',
+        self.mc4sb1.add_radiobutton(label='緑色',
                                     variable=self.background_color, value='G',
                                     command=self.set_font)
-        self.mc3.add_separator()
-        self.mc3sb2 = tkinter.Menu(self.mnb, tearoff=False)
-        self.mc3.add_cascade(label='文字サイズ', menu=self.mc3sb2)
+        self.mc4.add_separator()
+        self.mc4sb2 = tkinter.Menu(self.mnb, tearoff=False)
+        self.mc4.add_cascade(label='文字サイズ', menu=self.mc4sb2)
         self.font_size = tkinter.IntVar(value=18)
-        self.mc3sb2.add_radiobutton(label='サイズ1',
+        self.mc4sb2.add_radiobutton(label='サイズ1',
                                     variable=self.font_size, value=6,
                                     command=self.set_font)
-        self.mc3sb2.add_radiobutton(label='サイズ2',
+        self.mc4sb2.add_radiobutton(label='サイズ2',
                                     variable=self.font_size, value=12,
                                     command=self.set_font)
-        self.mc3sb2.add_radiobutton(label='サイズ3',
+        self.mc4sb2.add_radiobutton(label='サイズ3',
                                     variable=self.font_size, value=18,
                                     command=self.set_font)
-        self.mc3sb2.add_radiobutton(label='サイズ4',
+        self.mc4sb2.add_radiobutton(label='サイズ4',
                                     variable=self.font_size, value=27,
                                     command=self.set_font)
-        self.mc3sb2.add_radiobutton(label='サイズ5',
+        self.mc4sb2.add_radiobutton(label='サイズ5',
                                     variable=self.font_size, value=36,
                                     command=self.set_font)
-        self.mc3sb2.add_radiobutton(label='サイズ6',
+        self.mc4sb2.add_radiobutton(label='サイズ6',
                                     variable=self.font_size, value=48,
                                     command=self.set_font)
-        self.mc3sb2.add_radiobutton(label='サイズ7',
+        self.mc4sb2.add_radiobutton(label='サイズ7',
                                     variable=self.font_size, value=60,
                                     command=self.set_font)
-        self.mc3sb2.add_radiobutton(label='サイズ8',
+        self.mc4sb2.add_radiobutton(label='サイズ8',
                                     variable=self.font_size, value=75,
                                     command=self.set_font)
-        self.mc3sb2.add_radiobutton(label='サイズ9',
+        self.mc4sb2.add_radiobutton(label='サイズ9',
                                     variable=self.font_size, value=90,
                                     command=self.set_font)
-        self.mc3.add_separator()
+        self.mc4.add_separator()
         self.must_paint_keywords = tkinter.BooleanVar(value=False)
         if self.args_paint_keywords:
             self.must_paint_keywords.set(True)
-        self.mc3.add_checkbutton(label='キーワードに色付け',
+        self.mc4.add_checkbutton(label='キーワードに色付け',
                                  variable=self.must_paint_keywords)
-        self.mc3.add_separator()
-        self.mc3.add_command(label='セクションを折り畳む（テスト）',
+        self.mc4.add_separator()
+        self.mc4.add_command(label='セクションを折り畳む（テスト）',
                              command=self.fold_section)
-        self.mc3.add_command(label='セクションを展開（テスト）',
+        self.mc4.add_command(label='セクションを展開（テスト）',
                              command=self.unfold_section)
-        self.mc3.add_command(label='セクションを全て展開（テスト）',
+        self.mc4.add_command(label='セクションを全て展開（テスト）',
                              command=self.unfold_section_fully)
-        self.mc3.add_separator()
-        self.mc3.add_command(label='文頭に移動',
+        self.mc4.add_separator()
+        self.mc4.add_command(label='文頭に移動',
                              command=self.move_to_beg_of_doc)
-        self.mc3.add_command(label='文末に移動',
+        self.mc4.add_command(label='文末に移動',
                              command=self.move_to_end_of_doc)
-        self.mc3.add_command(label='行頭に移動',
+        self.mc4.add_command(label='行頭に移動',
                              command=self.move_to_beg_of_line)
-        self.mc3.add_command(label='行末に移動',
+        self.mc4.add_command(label='行末に移動',
                              command=self.move_to_end_of_line)
-        # INSERT
-        self.mc4 = tkinter.Menu(self.mnb, tearoff=False)
-        self.mnb.add_cascade(label='挿入(I)', menu=self.mc4, underline=3)
-        self.mc4sec = tkinter.Menu(self.mc4, tearoff=False)
-        self.mc4.add_cascade(label='セクションを挿入', menu=self.mc4sec)
-        self.mc4sec.add_command(label='（書面のタイトル）',
-                                command=self.insert_sect_1)
-        self.mc4sec.add_command(label='第１　…',
-                                command=self.insert_sect_2)
-        self.mc4sec.add_command(label='　１　…',
-                                command=self.insert_sect_3)
-        self.mc4sec.add_command(label='　　(1) …',
-                                command=self.insert_sect_4)
-        self.mc4sec.add_command(label='　　　ア　…',
-                                command=self.insert_sect_5)
-        self.mc4sec.add_command(label='　　　　(ｱ) …',
-                                command=self.insert_sect_6)
-        self.mc4sec.add_command(label='　　　　　ａ　…',
-                                command=self.insert_sect_7)
-        self.mc4sec.add_command(label='　　　　　　(a) …',
-                                command=self.insert_sect_8)
-        self.mc4chp = tkinter.Menu(self.mc4, tearoff=False)
-        self.mc4.add_cascade(label='チャプターを挿入', menu=self.mc4chp)
-        self.mc4chp.add_command(label='第１編　…',
-                                command=self.insert_chap_1)
-        self.mc4chp.add_command(label='　第１章　…',
-                                command=self.insert_chap_2)
-        self.mc4chp.add_command(label='　　第１節　…',
-                                command=self.insert_chap_3)
-        self.mc4chp.add_command(label='　　　第１款　…',
-                                command=self.insert_chap_4)
-        self.mc4chp.add_command(label='　　　　第１目　…',
-                                command=self.insert_chap_5)
-        self.mc4.add_command(label='画像を挿入',
-                             command=self.insert_images)
-        self.mc4tab = tkinter.Menu(self.mc4, tearoff=False)
-        self.mc4.add_cascade(label='表を挿入', menu=self.mc4tab)
-        self.mc4tab.add_command(label='エクセルから挿入',
-                                command=self.insert_table_from_excel)
-        self.mc4tab.add_command(label='書式を挿入',
-                                command=self.insert_table_format)
-        self.mc4.add_command(label='改ページを挿入',
-                             command=self.insert_page_break)
-        self.mc4.add_command(label='改行を挿入',
-                             command=self.insert_line_break)
-        self.mc4fnt = tkinter.Menu(self.mc4, tearoff=False)
-        self.mc4.add_cascade(label='文字のフォントを変える', menu=self.mc4fnt)
-        self.mc4fnt.add_command(label='明朝体を変える',
-                                command=self.insert_font_select)
-        self.mc4fnt.add_separator()
-        self.mc4fnt.add_command(label='ゴシック体に変える',
-                                command=self.insert_gothic_font)
-        self.mc4fnt.add_separator()
-        self.mc4fnt.add_command(label='手動入力',
-                                command=self.insert_font_manually)
-        self.mc4fsz = tkinter.Menu(self.mc4, tearoff=False)
-        self.mc4.add_cascade(label='文字の大きさを変える', menu=self.mc4fsz)
-        self.mc4fsz.add_command(label='特小サイズ',
-                                command=self.insert_ss_font_size)
-        self.mc4fsz.add_command(label='小サイズ',
-                                command=self.insert_s_font_size)
-        self.mc4fsz.add_command(label='大サイズ',
-                                command=self.insert_l_font_size)
-        self.mc4fsz.add_command(label='特大サイズ',
-                                command=self.insert_ll_font_size)
-        self.mc4fsz.add_separator()
-        self.mc4fsz.add_command(label='手動入力',
-                                command=self.insert_font_size_manually)
-        self.mc4fwd = tkinter.Menu(self.mc4, tearoff=False)
-        self.mc4.add_cascade(label='文字の幅を変える', menu=self.mc4fwd)
-        self.mc4fwd.add_command(label='特細サイズ',
-                                command=self.insert_ss_font_width)
-        self.mc4fwd.add_command(label='細サイズ',
-                                command=self.insert_s_font_width)
-        self.mc4fwd.add_command(label='太サイズ',
-                                command=self.insert_l_font_width)
-        self.mc4fwd.add_command(label='特太サイズ',
-                                command=self.insert_ll_font_width)
-        self.mc4uln = tkinter.Menu(self.mc4, tearoff=False)
-        self.mc4.add_cascade(label='文字に下線をを引く', menu=self.mc4uln)
-        self.mc4uln.add_command(label='単線',
-                                command=self.insert_single_underline)
-        self.mc4uln.add_command(label='二重線',
-                                command=self.insert_double_underline)
-        self.mc4uln.add_command(label='波線',
-                                command=self.insert_wave_underline)
-        self.mc4uln.add_command(label='破線',
-                                command=self.insert_dash_underline)
-        self.mc4uln.add_command(label='点線',
-                                command=self.insert_dot_underline)
-        self.mc4fcl = tkinter.Menu(self.mc4, tearoff=False)
-        self.mc4.add_cascade(label='文字色を変える', menu=self.mc4fcl)
-        self.mc4fcl.add_command(label='赤色',
-                                command=self.insert_r_font_color)
-        self.mc4fcl.add_command(label='黄色',
-                                command=self.insert_y_font_color)
-        self.mc4fcl.add_command(label='緑色',
-                                command=self.insert_g_font_color)
-        self.mc4fcl.add_command(label='シアン',
-                                command=self.insert_c_font_color)
-        self.mc4fcl.add_command(label='青色',
-                                command=self.insert_b_font_color)
-        self.mc4fcl.add_command(label='マゼンタ',
-                                command=self.insert_m_font_color)
-        self.mc4fcl.add_command(label='白色',
-                                command=self.insert_w_font_color)
-        self.mc4hcl = tkinter.Menu(self.mc4, tearoff=False)
-        self.mc4.add_cascade(label='下地色を変える', menu=self.mc4hcl)
-        self.mc4hcl.add_command(label='赤色',
-                                command=self.insert_r_highlight_color)
-        self.mc4hcl.add_command(label='黄色',
-                                command=self.insert_y_highlight_color)
-        self.mc4hcl.add_command(label='緑色',
-                                command=self.insert_g_highlight_color)
-        self.mc4hcl.add_command(label='シアン',
-                                command=self.insert_c_highlight_color)
-        self.mc4hcl.add_command(label='青色',
-                                command=self.insert_b_highlight_color)
-        self.mc4hcl.add_command(label='マゼンタ',
-                                command=self.insert_m_highlight_color)
-        self.mc4typ = tkinter.Menu(self.mc4, tearoff=False)
-        self.mc4.add_cascade(label='人名漢字を挿入（未完成）',
-                             menu=self.mc4typ)
-        self.mc4typ.add_command(label='"花"の人名漢字',
-                                command=self.insert_name_char_of_hana)
-        self.mc4.add_separator()
-        self.mc4dat = tkinter.Menu(self.mc4, tearoff=False)
-        self.mc4.add_cascade(label='日時を挿入', menu=self.mc4dat)
-        self.mc4dat.add_command(label='YY年M月D日',
-                                command=self.insert_date_YYMD)
-        self.mc4dat.add_command(label='令和Y年M月D日',
-                                command=self.insert_date_GYMD)
-        self.mc4dat.add_command(label='yy年m月d日',
-                                command=self.insert_date_yymd)
-        self.mc4dat.add_command(label='令和y年m月d日',
-                                command=self.insert_date_Gymd)
-        self.mc4dat.add_command(label='yyyy-mm-dd',
-                                command=self.insert_date_iso)
-        self.mc4dat.add_command(label='gyy-mm-dd',
-                                command=self.insert_date_giso)
-        self.mc4dat.add_separator()
-        self.mc4dat.add_command(label='H時M分S秒',
-                                command=self.insert_time_HHMS)
-        self.mc4dat.add_command(label='午前H時M分S秒',
-                                command=self.insert_time_GHMS)
-        self.mc4dat.add_command(label='h時m分s秒',
-                                command=self.insert_time_hhms)
-        self.mc4dat.add_command(label='午前h時m分s秒',
-                                command=self.insert_time_Ghms)
-        self.mc4dat.add_command(label='hh:mm:ss',
-                                command=self.insert_time_iso)
-        self.mc4dat.add_command(label='AMhh:mm:ss',
-                                command=self.insert_time_giso)
-        self.mc4dat.add_separator()
-        self.mc4dat.add_command(label='yyyy-mm-ddThh:mm:ss+09:00',
-                                command=self.insert_datetime)
-        self.mc4dat.add_command(label='yy-mm-dd hh:mm:ss',
-                                command=self.insert_datetime_symple)
-        self.mc4fil = tkinter.Menu(self.mc4, tearoff=False)
-        self.mc4.add_cascade(label='ファイル名を挿入', menu=self.mc4fil)
-        self.mc4fil.add_command(label='フルパスで挿入',
-                                command=self.insert_file_paths)
-        self.mc4fil.add_command(label='ファイル名のみを挿入',
-                                command=self.insert_file_names)
-        self.mc4.add_command(label='ファイルの内容を挿入',
-                             command=self.insert_file)
-        self.mc4.add_separator()
-        self.mc4.add_command(label='記号',
-                             command=self.insert_symbol)
-        self.mc4sym = tkinter.Menu(self.mc4, tearoff=False)
-        self.mc4.add_cascade(label='横棒を挿入', menu=self.mc4sym)
-        self.mc4sym.add_command(label='"-"（002D）半角ハイフンマイナス',
-                                command=self.insert_hline_002d)
-        self.mc4sym.add_command(label='"‐"（2010）全角ハイフン',
-                                command=self.insert_hline_2010)
-        self.mc4sym.add_command(label='"—"（2014）全角Ｍダッシュ',
-                                command=self.insert_hline_2014)
-        self.mc4sym.add_command(label='"―"（2015）全角水平線',
-                                command=self.insert_hline_2015)
-        self.mc4sym.add_command(label='"−"（2212）全角マイナスサイン',
-                                command=self.insert_hline_2212)
-        self.mc4sym.add_command(label='"－"（FF0D）全角ハイフンマイナス',
-                                command=self.insert_hline_ff0d)
-        self.mc4.add_separator()
-        self.mc4smp = tkinter.Menu(self.mc4, tearoff=False)
-        self.mc4.add_cascade(label='サンプルを挿入', menu=self.mc4smp)
-        self.mc4smp.add_command(label='基本',
-                                command=self.insert_basis)
-        self.mc4smp.add_command(label='民法',
-                                command=self.insert_law)
-        self.mc4smp.add_command(label='訴状',
-                                command=self.insert_petition)
-        self.mc4smp.add_command(label='証拠説明書',
-                                command=self.insert_evidence)
-        self.mc4smp.add_command(label='和解契約書',
-                                command=self.insert_settlement)
         # CONFIGURATION
         self.mc5 = tkinter.Menu(self.mnb, tearoff=False)
         self.mnb.add_cascade(label='設定(S)', menu=self.mc5, underline=3)
