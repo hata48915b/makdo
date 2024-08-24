@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.23-17:08:51-JST>
+# Time-stamp:   <2024.08.24-13:14:39-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -3570,6 +3570,179 @@ class SelectMinchoDialog(tkinter.simpledialog.Dialog):
         self.win.focus_set()
 
 
+class LengthRevisersDialog(tkinter.simpledialog.Dialog):
+
+    def __init__(self, win, title, length=None):
+        self.win = win
+        # self.title = title
+        bef_text = self.win.get('1.0', 'insert')
+        aft_text = self.win.get('insert', 'end-1c')
+        self.head_text \
+            = re.sub('^((?:.|\n)*\n\n)((?:.|\n)*)?', '\\1', bef_text)
+        bef_para = re.sub('^(.|\n)*\n\n', '', bef_text)
+        aft_para = re.sub('\n\n(.|\n)*$', '', aft_text)
+        paragraph = bef_para + aft_para
+        res_length_reviser = '(?:v|V|X|<<|<|>)=[-\\+]?(?:[0-9]*\\.)?[0-9]+'
+        res = '^((?:' + res_length_reviser + '(?:\\s|\n)*)*)((?:.|\n)*)$'
+        self.length_revisers = re.sub(res, '\\1', paragraph)
+        if length is not None:
+            self.length = length
+        else:
+            self.length = {'space before': '0.0', 'space after': '0.0',
+                           'line spacing': '0.0', 'first indent': '0.0',
+                           'left indent': '0.0', 'right indent': '0.0'}
+            res_bef = '(?:.|\n)*'
+            res_aft = '=([-\\+]?(?:[0-9]*\\.)?[0-9]+)' + '(?:.|\n)*'
+            res = res_bef + 'v' + res_aft
+            if re.match(res, self.length_revisers):
+                self.length['space before'] \
+                    = str(float(re.sub(res, '\\1', self.length_revisers)))
+            res = res_bef + 'V' + res_aft
+            if re.match(res, self.length_revisers):
+                self.length['space after'] \
+                    = str(float(re.sub(res, '\\1', self.length_revisers)))
+            res = res_bef + 'X' + res_aft
+            if re.match(res, self.length_revisers):
+                self.length['line spacing'] \
+                    = str(float(re.sub(res, '\\1', self.length_revisers)))
+            res = res_bef + '<<' + res_aft
+            if re.match(res, self.length_revisers):
+                self.length['first indent'] \
+                    = str(float(re.sub(res, '\\1', self.length_revisers)) * -1)
+            res = res_bef + '<' + res_aft
+            if re.match(res, self.length_revisers):
+                self.length['left indent'] \
+                    = str(float(re.sub(res, '\\1', self.length_revisers)) * -1)
+            res = res_bef + '>' + res_aft
+            if re.match(res, self.length_revisers):
+                self.length['right indent'] \
+                    = str(float(re.sub(res, '\\1', self.length_revisers)) * -1)
+        super().__init__(win)
+        # super().__init__(win, title=title)
+
+    def body(self, win):
+        self.title1 = tkinter.Label(win, text='前の段落との間の幅')
+        self.title1.grid(row=0, column=0)
+        self.entry1 = tkinter.Entry(win, width=7, justify='right')
+        self.entry1.insert(0, self.length['space before'])
+        self.entry1.grid(row=0, column=1)
+        self.unit1 = tkinter.Label(win, text='行間')
+        self.unit1.grid(row=0, column=2)
+        self.title2 = tkinter.Label(win, text='次の段落との間の幅')
+        self.title2.grid(row=1, column=0)
+        self.entry2 = tkinter.Entry(win, width=7, justify='right')
+        self.entry2.insert(0, self.length['space after'])
+        self.entry2.grid(row=1, column=1)
+        self.unit2 = tkinter.Label(win, text='行間')
+        self.unit2.grid(row=1, column=2)
+        self.title3 = tkinter.Label(win, text='段落内の改行の幅　')
+        self.title3.grid(row=2, column=0)
+        self.entry3 = tkinter.Entry(win, width=7, justify='right')
+        self.entry3.insert(0, self.length['line spacing'])
+        self.entry3.grid(row=2, column=1)
+        self.unit3 = tkinter.Label(win, text='行間')
+        self.unit3.grid(row=2, column=2)
+        self.title4 = tkinter.Label(win, text='一行目の字下げの幅')
+        self.title4.grid(row=3, column=0)
+        self.entry4 = tkinter.Entry(win, width=7, justify='right')
+        self.entry4.insert(0, self.length['first indent'])
+        self.entry4.grid(row=3, column=1)
+        self.unit4 = tkinter.Label(win, text='文字')
+        self.unit4.grid(row=3, column=2)
+        self.title5 = tkinter.Label(win, text='左の字下げの幅　　')
+        self.title5.grid(row=4, column=0)
+        self.entry5 = tkinter.Entry(win, width=7, justify='right')
+        self.entry5.insert(0, self.length['left indent'])
+        self.entry5.grid(row=4, column=1)
+        self.unit5 = tkinter.Label(win, text='文字')
+        self.unit5.grid(row=4, column=2)
+        self.title6 = tkinter.Label(win, text='右の字下げの幅　　')
+        self.title6.grid(row=5, column=0)
+        self.entry6 = tkinter.Entry(win, width=7, justify='right')
+        self.entry6.insert(0, self.length['right indent'])
+        self.entry6.grid(row=5, column=1)
+        self.unit6 = tkinter.Label(win, text='文字')
+        self.unit6.grid(row=5, column=2)
+
+    def apply(self):
+        has_error = False
+        res = '^[-\\+]?(?:[0-9]*\\.)?[0-9]+$'
+        space_before = re.sub('\\s', '', self.entry1.get())
+        if re.match(res, space_before):
+            self.length['space before'] = space_before
+        else:
+            has_error = True
+        space_after = re.sub('\\s', '', self.entry2.get())
+        if re.match(res, space_after):
+            self.length['space after'] = space_after
+        else:
+            has_error = True
+        line_spacing = re.sub('\\s', '', self.entry3.get())
+        if re.match(res, line_spacing):
+            self.length['line spacing'] = line_spacing
+        else:
+            has_error = True
+        first_indent = re.sub('\\s', '', self.entry4.get())
+        if re.match(res, first_indent):
+            self.length['first indent'] = first_indent
+        else:
+            has_error = True
+        left_indent = re.sub('\\s', '', self.entry5.get())
+        if re.match(res, left_indent):
+            self.length['left indent'] = left_indent
+        else:
+            has_error = True
+        right_indent = re.sub('\\s', '', self.entry6.get())
+        if re.match(res, right_indent):
+            self.length['right indent'] = right_indent
+        else:
+            has_error = True
+        if has_error:
+            n = 'エラー'
+            m = '値に正負の小数以外が含まれています．'
+            tkinter.messagebox.showerror(n, m)
+            LengthRevisersDialog(self.win, self.title, self.length)
+        else:
+            len_beg = len(self.head_text)
+            len_end = len(self.head_text + self.length_revisers)
+            beg = '1.0+' + str(len_beg) + 'c'
+            end = '1.0+' + str(len_end) + 'c'
+            self.win.delete(beg, end)
+            leng_revs = ''
+            leng = float(self.length['space before'])
+            if leng > 0:
+                leng_revs += 'v=+' + re.sub('\\.0+$', '', str(leng)) + ' '
+            else:
+                leng_revs += 'v=' + re.sub('\\.0+$', '', str(leng)) + ' '
+            leng = float(self.length['space after'])
+            if leng > 0:
+                leng_revs += 'V=+' + re.sub('\\.0+$', '', str(leng)) + ' '
+            else:
+                leng_revs += 'V=' + re.sub('\\.0+$', '', str(leng)) + ' '
+            leng = float(self.length['line spacing'])
+            if leng > 0:
+                leng_revs += 'X=+' + re.sub('\\.0+$', '', str(leng)) + ' '
+            elif leng < 0:
+                leng_revs += 'X=' + re.sub('\\.0+$', '', str(leng)) + ' '
+            leng = float(self.length['first indent']) * -1
+            if leng > 0:
+                leng_revs += '<<=+' + re.sub('\\.0+$', '', str(leng)) + ' '
+            elif leng < 0:
+                leng_revs += '<<=' + re.sub('\\.0+$', '', str(leng)) + ' '
+            leng = float(self.length['left indent']) * -1
+            if leng > 0:
+                leng_revs += '<=+' + re.sub('\\.0+$', '', str(leng)) + ' '
+            elif leng < 0:
+                leng_revs += '<=' + re.sub('\\.0+$', '', str(leng)) + ' '
+            leng = float(self.length['right indent']) * -1
+            if leng > 0:
+                leng_revs += '>=+' + re.sub('\\.0+$', '', str(leng)) + ' '
+            elif leng < 0:
+                leng_revs += '>=' + re.sub('\\.0+$', '', str(leng)) + ' '
+            leng_revs = re.sub(' $', '', leng_revs)
+            self.win.insert(beg, leng_revs + '\n')
+
+
 class Makdo:
 
     args_background_color = 'W'
@@ -3682,36 +3855,6 @@ class Makdo:
         # INSERT
         self.mc3 = tkinter.Menu(self.mnb, tearoff=False)
         self.mnb.add_cascade(label='挿入(I)', menu=self.mc3, underline=3)
-        self.mc3sec = tkinter.Menu(self.mc3, tearoff=False)
-        self.mc3.add_cascade(label='セクションを挿入', menu=self.mc3sec)
-        self.mc3sec.add_command(label='（書面のタイトル）',
-                                command=self.insert_sect_1)
-        self.mc3sec.add_command(label='第１　…',
-                                command=self.insert_sect_2)
-        self.mc3sec.add_command(label='　１　…',
-                                command=self.insert_sect_3)
-        self.mc3sec.add_command(label='　　(1) …',
-                                command=self.insert_sect_4)
-        self.mc3sec.add_command(label='　　　ア　…',
-                                command=self.insert_sect_5)
-        self.mc3sec.add_command(label='　　　　(ｱ) …',
-                                command=self.insert_sect_6)
-        self.mc3sec.add_command(label='　　　　　ａ　…',
-                                command=self.insert_sect_7)
-        self.mc3sec.add_command(label='　　　　　　(a) …',
-                                command=self.insert_sect_8)
-        self.mc3chp = tkinter.Menu(self.mc3, tearoff=False)
-        self.mc3.add_cascade(label='チャプターを挿入', menu=self.mc3chp)
-        self.mc3chp.add_command(label='第１編　…',
-                                command=self.insert_chap_1)
-        self.mc3chp.add_command(label='　第１章　…',
-                                command=self.insert_chap_2)
-        self.mc3chp.add_command(label='　　第１節　…',
-                                command=self.insert_chap_3)
-        self.mc3chp.add_command(label='　　　第１款　…',
-                                command=self.insert_chap_4)
-        self.mc3chp.add_command(label='　　　　第１目　…',
-                                command=self.insert_chap_5)
         self.mc3.add_command(label='画像を挿入',
                              command=self.insert_images)
         self.mc3tab = tkinter.Menu(self.mc3, tearoff=False)
@@ -3875,135 +4018,178 @@ class Makdo:
                                 command=self.insert_evidence)
         self.mc3smp.add_command(label='和解契約書',
                                 command=self.insert_settlement)
-        # VISUAL
+        # PARAGRAPH
         self.mc4 = tkinter.Menu(self.mnb, tearoff=False)
-        self.mnb.add_cascade(label='表示(V)', menu=self.mc4, underline=3)
-        self.mc4sb1 = tkinter.Menu(self.mnb, tearoff=False)
-        self.mc4.add_cascade(label='背景色', menu=self.mc4sb1)
+        self.mnb.add_cascade(label='段落(P)', menu=self.mc4, underline=3)
+        self.mc4.add_command(label='長さを設定',
+                             command=self.set_paragraph_length)
+        self.mc4.add_separator()
+        self.mc4.add_command(label='チャプターの番号を変更',
+                             command=self.set_chapter_number)
+        self.mc4.add_command(label='セクションの番号を変更',
+                             command=self.set_section_number)
+        self.mc4.add_command(label='リストの番号を変更',
+                             command=self.set_section_number)
+        self.mc4.add_separator()
+        self.mc4sec = tkinter.Menu(self.mc4, tearoff=False)
+        self.mc4.add_cascade(label='セクションを挿入', menu=self.mc4sec)
+        self.mc4sec.add_command(label='（書面のタイトル）',
+                                command=self.insert_sect_1)
+        self.mc4sec.add_command(label='第１　…',
+                                command=self.insert_sect_2)
+        self.mc4sec.add_command(label='　１　…',
+                                command=self.insert_sect_3)
+        self.mc4sec.add_command(label='　　(1) …',
+                                command=self.insert_sect_4)
+        self.mc4sec.add_command(label='　　　ア　…',
+                                command=self.insert_sect_5)
+        self.mc4sec.add_command(label='　　　　(ｱ) …',
+                                command=self.insert_sect_6)
+        self.mc4sec.add_command(label='　　　　　ａ　…',
+                                command=self.insert_sect_7)
+        self.mc4sec.add_command(label='　　　　　　(a) …',
+                                command=self.insert_sect_8)
+        self.mc4chp = tkinter.Menu(self.mc4, tearoff=False)
+        self.mc4.add_cascade(label='チャプターを挿入', menu=self.mc4chp)
+        self.mc4chp.add_command(label='第１編　…',
+                                command=self.insert_chap_1)
+        self.mc4chp.add_command(label='　第１章　…',
+                                command=self.insert_chap_2)
+        self.mc4chp.add_command(label='　　第１節　…',
+                                command=self.insert_chap_3)
+        self.mc4chp.add_command(label='　　　第１款　…',
+                                command=self.insert_chap_4)
+        self.mc4chp.add_command(label='　　　　第１目　…',
+                                command=self.insert_chap_5)
+        # VISUAL
+        self.mc5 = tkinter.Menu(self.mnb, tearoff=False)
+        self.mnb.add_cascade(label='表示(V)', menu=self.mc5, underline=3)
+        self.mc5sb1 = tkinter.Menu(self.mnb, tearoff=False)
+        self.mc5.add_cascade(label='背景色', menu=self.mc5sb1)
         self.background_color \
             = tkinter.StringVar(value=self.args_background_color)
-        self.mc4sb1.add_radiobutton(label='白色',
+        self.mc5sb1.add_radiobutton(label='白色',
                                     variable=self.background_color, value='W',
                                     command=self.set_font)
-        self.mc4sb1.add_radiobutton(label='黒色',
+        self.mc5sb1.add_radiobutton(label='黒色',
                                     variable=self.background_color, value='B',
                                     command=self.set_font)
-        self.mc4sb1.add_radiobutton(label='緑色',
+        self.mc5sb1.add_radiobutton(label='緑色',
                                     variable=self.background_color, value='G',
                                     command=self.set_font)
-        self.mc4.add_separator()
-        self.mc4sb2 = tkinter.Menu(self.mnb, tearoff=False)
-        self.mc4.add_cascade(label='文字サイズ', menu=self.mc4sb2)
+        self.mc5.add_separator()
+        self.mc5sb2 = tkinter.Menu(self.mnb, tearoff=False)
+        self.mc5.add_cascade(label='文字サイズ', menu=self.mc5sb2)
         self.font_size = tkinter.IntVar(value=18)
-        self.mc4sb2.add_radiobutton(label='サイズ1',
+        self.mc5sb2.add_radiobutton(label='サイズ1',
                                     variable=self.font_size, value=6,
                                     command=self.set_font)
-        self.mc4sb2.add_radiobutton(label='サイズ2',
+        self.mc5sb2.add_radiobutton(label='サイズ2',
                                     variable=self.font_size, value=12,
                                     command=self.set_font)
-        self.mc4sb2.add_radiobutton(label='サイズ3',
+        self.mc5sb2.add_radiobutton(label='サイズ3',
                                     variable=self.font_size, value=18,
                                     command=self.set_font)
-        self.mc4sb2.add_radiobutton(label='サイズ4',
+        self.mc5sb2.add_radiobutton(label='サイズ4',
                                     variable=self.font_size, value=27,
                                     command=self.set_font)
-        self.mc4sb2.add_radiobutton(label='サイズ5',
+        self.mc5sb2.add_radiobutton(label='サイズ5',
                                     variable=self.font_size, value=36,
                                     command=self.set_font)
-        self.mc4sb2.add_radiobutton(label='サイズ6',
+        self.mc5sb2.add_radiobutton(label='サイズ6',
                                     variable=self.font_size, value=48,
                                     command=self.set_font)
-        self.mc4sb2.add_radiobutton(label='サイズ7',
+        self.mc5sb2.add_radiobutton(label='サイズ7',
                                     variable=self.font_size, value=60,
                                     command=self.set_font)
-        self.mc4sb2.add_radiobutton(label='サイズ8',
+        self.mc5sb2.add_radiobutton(label='サイズ8',
                                     variable=self.font_size, value=75,
                                     command=self.set_font)
-        self.mc4sb2.add_radiobutton(label='サイズ9',
+        self.mc5sb2.add_radiobutton(label='サイズ9',
                                     variable=self.font_size, value=90,
                                     command=self.set_font)
-        self.mc4.add_separator()
+        self.mc5.add_separator()
         self.must_paint_keywords = tkinter.BooleanVar(value=False)
         if self.args_paint_keywords:
             self.must_paint_keywords.set(True)
-        self.mc4.add_checkbutton(label='キーワードに色付け',
+        self.mc5.add_checkbutton(label='キーワードに色付け',
                                  variable=self.must_paint_keywords)
-        self.mc4.add_separator()
-        self.mc4.add_command(label='セクションを折り畳む（テスト）',
+        self.mc5.add_separator()
+        self.mc5.add_command(label='セクションを折り畳む（テスト）',
                              command=self.fold_section)
-        self.mc4.add_command(label='セクションを展開（テスト）',
+        self.mc5.add_command(label='セクションを展開（テスト）',
                              command=self.unfold_section)
-        self.mc4.add_command(label='セクションを全て展開（テスト）',
+        self.mc5.add_command(label='セクションを全て展開（テスト）',
                              command=self.unfold_section_fully)
-        self.mc4.add_separator()
-        self.mc4.add_command(label='文頭に移動',
+        self.mc5.add_separator()
+        self.mc5.add_command(label='文頭に移動',
                              command=self.move_to_beg_of_doc)
-        self.mc4.add_command(label='文末に移動',
+        self.mc5.add_command(label='文末に移動',
                              command=self.move_to_end_of_doc)
-        self.mc4.add_command(label='行頭に移動',
+        self.mc5.add_command(label='行頭に移動',
                              command=self.move_to_beg_of_line)
-        self.mc4.add_command(label='行末に移動',
+        self.mc5.add_command(label='行末に移動',
                              command=self.move_to_end_of_line)
         # CONFIGURATION
-        self.mc5 = tkinter.Menu(self.mnb, tearoff=False)
-        self.mnb.add_cascade(label='設定(S)', menu=self.mc5, underline=3)
+        self.mc6 = tkinter.Menu(self.mnb, tearoff=False)
+        self.mnb.add_cascade(label='設定(S)', menu=self.mc6, underline=3)
         self.is_read_only = tkinter.BooleanVar(value=False)
         if self.args_read_only:
             self.is_read_only.set(True)
-        self.mc5.add_checkbutton(label='読取専用',
+        self.mc6.add_checkbutton(label='読取専用',
                                  variable=self.is_read_only,
                                  command=self.toggle_read_only)
-        self.mc5.add_separator()
-        self.mc5sb1 = tkinter.Menu(self.mnb, tearoff=False)
-        self.mc5.add_cascade(label='計算結果', menu=self.mc5sb1)
+        self.mc6.add_separator()
+        self.mc6sb1 = tkinter.Menu(self.mnb, tearoff=False)
+        self.mc6.add_cascade(label='計算結果', menu=self.mc6sb1)
         self.digit_separator = tkinter.StringVar(value='4')
-        self.mc5sb1.add_radiobutton(label='桁区切りなし（12345678）',
+        self.mc6sb1.add_radiobutton(label='桁区切りなし（12345678）',
                                     value='0', variable=self.digit_separator)
-        self.mc5sb1.add_radiobutton(label='3桁区切り（12,345,678）',
+        self.mc6sb1.add_radiobutton(label='3桁区切り（12,345,678）',
                                     value='3', variable=self.digit_separator)
-        self.mc5sb1.add_radiobutton(label='4桁区切り（1234万5678）',
+        self.mc6sb1.add_radiobutton(label='4桁区切り（1234万5678）',
                                     value='4', variable=self.digit_separator)
         # NET
-        self.mc6 = tkinter.Menu(self.mnb, tearoff=False)
-        self.mnb.add_cascade(label='ネット(H)', menu=self.mc6, underline=4)
-        self.mc6.add_command(label='辞書で調べる',
+        self.mc7 = tkinter.Menu(self.mnb, tearoff=False)
+        self.mnb.add_cascade(label='ネット(H)', menu=self.mc7, underline=4)
+        self.mc7.add_command(label='辞書で調べる',
                              command=self.browse_dictionary)
-        self.mc6.add_command(label='Wikipediaで調べる',
+        self.mc7.add_command(label='Wikipediaで調べる',
                              command=self.browse_wikipedia)
-        self.mc6.add_separator()
-        self.mc6.add_command(label='法律を調べる',
+        self.mc7.add_separator()
+        self.mc7.add_command(label='法律を調べる',
                              command=self.browse_law)
-        self.mc6.add_command(label='・日本国憲法',
+        self.mc7.add_command(label='・日本国憲法',
                              command=self.browse_law_constitution_law)
-        self.mc6.add_command(label='・民法',
+        self.mc7.add_command(label='・民法',
                              command=self.browse_law_civil_law)
-        self.mc6.add_command(label='・商法',
+        self.mc7.add_command(label='・商法',
                              command=self.browse_law_commercial_law)
-        self.mc6.add_command(label='・会社法',
+        self.mc7.add_command(label='・会社法',
                              command=self.browse_law_corporation_law)
-        self.mc6.add_command(label='・民事訴訟法',
+        self.mc7.add_command(label='・民事訴訟法',
                              command=self.browse_law_civil_procedure)
-        self.mc6.add_command(label='・刑法',
+        self.mc7.add_command(label='・刑法',
                              command=self.browse_law_crime_law)
-        self.mc6.add_command(label='・刑事訴訟法',
+        self.mc7.add_command(label='・刑事訴訟法',
                              command=self.browse_law_crime_procedure)
-        self.mc6.add_command(label='裁判所規則を調べる',
+        self.mc7.add_command(label='裁判所規則を調べる',
                              command=self.browse_rule_of_court)
         # HELP
-        self.mc7 = tkinter.Menu(self.mnb, tearoff=False)
-        self.mnb.add_cascade(label='ヘルプ(H)', menu=self.mc7, underline=4)
-        self.mc7.add_command(label='文字情報',
+        self.mc8 = tkinter.Menu(self.mnb, tearoff=False)
+        self.mnb.add_cascade(label='ヘルプ(H)', menu=self.mc8, underline=4)
+        self.mc8.add_command(label='文字情報',
                              command=self.show_char_info)
-        self.mc7.add_separator()
-        self.mc7.add_command(label='ヘルプ(H)',
+        self.mc8.add_separator()
+        self.mc8.add_command(label='ヘルプ(H)',
                              command=self.show_help,
                              underline=4)
-        self.mc7.add_separator()
-        self.mc7.add_command(label='ライセンス情報(F)',
+        self.mc8.add_separator()
+        self.mc8.add_command(label='ライセンス情報(F)',
                              command=self.show_license_info,
                              underline=8)
-        self.mc7.add_separator()
-        self.mc7.add_command(label='Makdoについて(A)',
+        self.mc8.add_separator()
+        self.mc8.add_command(label='Makdoについて(A)',
                              command=self.show_about_makdo,
                              underline=10)
         self.win['menu'] = self.mnb
@@ -4226,6 +4412,40 @@ class Makdo:
             tkinter.messagebox.showerror(n, msg)
             return
         return docx_path
+
+    def _insert_line_break_as_necessary(self):
+        t = self.txt.get('1.0', 'insert')
+        if len(t) == 0:
+            pass
+        elif len(t) == 1:
+            if t[-1] == '\n':
+                pass
+            else:
+                self.txt.insert('insert', '\n\n')
+        elif len(t) >= 2:
+            if t[-2] == '\n' and t[-1] == '\n':
+                pass
+            elif t[-1] == '\n':
+                self.txt.insert('insert', '\n')
+            else:
+                self.txt.insert('insert', '\n\n')
+        p = self.txt.index('insert')
+        t = self.txt.get('insert', 'end-1c')
+        if len(t) == 0:
+            self.txt.insert('insert', '\n')
+        elif len(t) == 1:
+            if t[0] == '\n':
+                pass
+            else:
+                self.txt.insert('insert', '\n\n')
+        elif len(t) >= 2:
+            if t[0] == '\n' and t[1] == '\n':
+                pass
+            elif t[0] == '\n':
+                self.txt.insert('insert', '\n')
+            else:
+                self.txt.insert('insert', '\n\n')
+        self.txt.mark_set('insert', p)
 
     ################################################################
     # FILE
@@ -4877,6 +5097,74 @@ class Makdo:
             self.txt.mark_unset('akauni')
 
     ################################################################
+    # PARAGRAPH
+
+    def set_paragraph_length(self):
+        LengthRevisersDialog(self.txt, '段落の長さを設定')
+
+    def set_chapter_number(self):
+        pass
+
+    def set_section_number(self):
+        pass
+
+
+    ################################
+    # INSERT
+
+    def insert_chap_1(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '$ ')  # 第1編
+
+    def insert_chap_2(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '$$ ')  # 第1章
+
+    def insert_chap_3(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '$$$ ')  # 第1節
+
+    def insert_chap_4(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '$$$$ ')  # 第1款
+
+    def insert_chap_5(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '$$$$$ ')  # 第1目
+
+    def insert_sect_1(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '# ')  # タイトル
+
+    def insert_sect_2(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '## ')  # 第1
+
+    def insert_sect_3(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '### ')  # 1
+
+    def insert_sect_4(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '#### ')  # (1)
+
+    def insert_sect_5(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '##### ')  # ア
+
+    def insert_sect_6(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '###### ')  # (ｱ)
+
+    def insert_sect_7(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '####### ')  # ａ
+
+    def insert_sect_8(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '######## ')  # (a)
+
+    ################################################################
     # VISUAL
 
     def set_font(self):
@@ -5273,58 +5561,6 @@ class Makdo:
     ################################
     # MARKDOWN
 
-    def insert_sect_1(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '# ')  # タイトル
-
-    def insert_sect_2(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '## ')  # 第1
-
-    def insert_sect_3(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '### ')  # 1
-
-    def insert_sect_4(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '#### ')  # (1)
-
-    def insert_sect_5(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '##### ')  # ア
-
-    def insert_sect_6(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '###### ')  # (ｱ)
-
-    def insert_sect_7(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '####### ')  # ａ
-
-    def insert_sect_8(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '######## ')  # (a)
-
-    def insert_chap_1(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '$ ')  # 第1編
-
-    def insert_chap_2(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '$$ ')  # 第1章
-
-    def insert_chap_3(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '$$$ ')  # 第1節
-
-    def insert_chap_4(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '$$$$ ')  # 第1款
-
-    def insert_chap_5(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '$$$$$ ')  # 第1目
-
     def insert_images(self):
         typ = [('画像', '.jpg .jpeg .png .gif .tif .tiff .bmp'),
                ('全てのファイル', '*')]
@@ -5503,40 +5739,6 @@ class Makdo:
 
     def insert_name_char_of_hana(self):
         self.txt.insert('insert', '花3;花4;花6;')
-
-    def _insert_line_break_as_necessary(self):
-        t = self.txt.get('1.0', 'insert')
-        if len(t) == 0:
-            pass
-        elif len(t) == 1:
-            if t[-1] == '\n':
-                pass
-            else:
-                self.txt.insert('insert', '\n\n')
-        elif len(t) >= 2:
-            if t[-2] == '\n' and t[-1] == '\n':
-                pass
-            elif t[-1] == '\n':
-                self.txt.insert('insert', '\n')
-            else:
-                self.txt.insert('insert', '\n\n')
-        p = self.txt.index('insert')
-        t = self.txt.get('insert', 'end-1c')
-        if len(t) == 0:
-            self.txt.insert('insert', '\n')
-        elif len(t) == 1:
-            if t[0] == '\n':
-                pass
-            else:
-                self.txt.insert('insert', '\n\n')
-        elif len(t) >= 2:
-            if t[0] == '\n' and t[1] == '\n':
-                pass
-            elif t[0] == '\n':
-                self.txt.insert('insert', '\n')
-            else:
-                self.txt.insert('insert', '\n\n')
-        self.txt.mark_set('insert', p)
 
     ################################
     # DATE AND TIME
