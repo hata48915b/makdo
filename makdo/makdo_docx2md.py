@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.04-08:46:06-JST>
+# Time-stamp:   <2024.08.27-06:47:19-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -341,7 +341,7 @@ FONT_DECORATORS_VISIBLE = [
     '<<<',                      # xwide or reset
     '<<',                       # wide or reset
     '~~',                       # strikethrough
-    '\\|\\|',                   # frame
+    '\\[\\|', '\\|\\]',         # frame
     '_[\\$=\\.#\\-~\\+]{,4}_',  # underline
     '_[0-9A-Za-z]{1,11}_',      # higilight color
     '`',                        # preformatted
@@ -2847,7 +2847,7 @@ class FontDecorator:
         self.italic = ''            # ITALIC (*)
         self.bold = ''              # BOLD (**)
         self.strike = ''            # STRIKETHROUGH (~~)
-        self.frame = ''             # FRAME (||)
+        self.frame = ''             # FRAME ([| / |])
         self.underline = ''         # UNDERLINE (_.+_)
         self.font_color = ''        # FONT COLOR (^.*^)
         self.highlight_color = ''   # HIGHLIGHT COLOR (_.+_)
@@ -2879,8 +2879,8 @@ class FontDecorator:
             self.bold = '**'               # BOLD (**)
         elif fd_str == '~~':
             self.strike = fd_str           # STRIKETHROUGH (~~)
-        elif fd_str == '||':
-            self.frame = fd_str            # FRAME (||)
+        elif fd_str == '[|' or fd_str == '|]':
+            self.frame = fd_str            # FRAME ([| / |])
         elif re.match('_[\\$=\\.#\\-~\\+]{,4}_', fd_str):
             self.underline = fd_str        # UNDERLINE (_.+_)
         elif re.match('\\^[0-9A-Za-z]{0,11}\\^', fd_str):
@@ -3944,6 +3944,9 @@ class MathDatum:
             elif fd == 'i':
                 fr_fd_cls.font_width = '+>'
                 fr_fd_lst.remove(fd)
+            elif fd == 'f':
+                fr_fd_cls.frame = '[|'
+                fr_fd_lst.remove(fd)
         return fr_fd_cls, fr_fd_lst
 
     @staticmethod
@@ -3970,6 +3973,9 @@ class MathDatum:
             elif fd == 'i':
                 bk_fd_cls.font_width = '<+'
                 bk_fd_lst.remove(fd)
+            elif fd == 'f':
+                bk_fd_cls.frame = '|]'
+                bk_fd_lst.remove(fd)
         return bk_fd_cls, bk_fd_lst
 
     @staticmethod
@@ -3995,9 +4001,6 @@ class MathDatum:
                 xx_fd_lst.remove(fd)
             elif fd == 's':
                 xx_fd_cls.strike = '~~'
-                xx_fd_lst.remove(fd)
-            elif fd == 'f':
-                xx_fd_cls.frame = '||'
                 xx_fd_lst.remove(fd)
             elif fd == 'u':
                 xx_fd_cls.underline = '__'
@@ -5829,8 +5832,8 @@ class RawParagraph:
                 continue
             # STRIKETHROUGH
             if re.match('^<w:bdr( .*)?/?>$', xl):
-                cd.fr_fd_cls.strike = '||'
-                cd.bk_fd_cls.strike = '||'
+                cd.fr_fd_cls.strike = '[|'
+                cd.bk_fd_cls.strike = '|]'
                 continue
             # UNDERLINE
             if re.match('^<w:u( .*)?>$', xl):

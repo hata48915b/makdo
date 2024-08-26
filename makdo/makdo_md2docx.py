@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.18-10:13:39-JST>
+# Time-stamp:   <2024.08.27-06:42:40-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -265,7 +265,7 @@ HELP_EPILOG = '''Markdownの記法:
     [**]で挟まれた文字列は太字になります
     [***]で挟まれた文字列は斜体かつ太字になります
     [~~]で挟まれた文字列は打消線が引かれます
-    [||]で囲まれた文字列は文字が枠で囲まれます（独自）
+    [[|]と[|]]で囲まれた文字列は文字が枠で囲まれます（独自）
     [`]で挟まれた文字列はゴシック体になります
     [//]で挟まれた文字列は斜体になります（独自）
     [__]で挟まれた文字列は下線が引かれます（独自）
@@ -400,7 +400,7 @@ FONT_DECORATORS_VISIBLE = [
     '<<<',                      # xwide or reset
     '<<',                       # wide or reset
     '~~',                       # strikethrough
-    '\\|\\|'                    # frame
+    '\\[\\|', '\\|\\]',         # frame
     '_[\\$=\\.#\\-~\\+]{,4}_',  # underline
     '_[0-9A-Za-z]{1,11}_',      # higilight color
     '`',                        # preformatted
@@ -1965,7 +1965,7 @@ class CharsState:
                 self.apply_is_bold_font_decorator(fd)
             elif fd == '~~':
                 self.apply_has_strike_font_decorator(fd)
-            elif fd == '||':
+            elif fd == '[|' or fd == '|]':
                 self.apply_has_frame_font_decorator(fd)
             elif fd == '`':
                 self.apply_is_preformatted_font_decorator(fd)
@@ -1997,8 +1997,11 @@ class CharsState:
     def apply_has_strike_font_decorator(self, font_decorator='~~'):
         self.has_strike = not self.has_strike
 
-    def apply_has_frame_font_decorator(self, font_decorator='||'):
-        self.has_frame = not self.has_frame
+    def apply_has_frame_font_decorator(self, font_decorator):
+        if font_decorator == '[|':
+            self.has_frame = True
+        elif font_decorator == '|]':
+            self.has_frame = False
 
     def apply_is_preformatted_font_decorator(self, font_decorator='`'):
         self.is_preformatted = not self.is_preformatted
@@ -4674,11 +4677,15 @@ class Paragraph:
             chars = re.sub('~~$', '', chars)
             chars = XML.write_chars(ms_par._p, chars_state, chars)
             chars_state.apply_has_strike_font_decorator('~~')
-        elif re.match(NOT_ESCAPED + '\\|\\|$', chars):
-            # "||" (FRAME)
-            chars = re.sub('\\|\\|$', '', chars)
+        elif re.match(NOT_ESCAPED + '(?:\\[\\||\\|\\])$', chars):
+            # "[|" or "|]" (FRAME)
+            if re.match(NOT_ESCAPED + '\\[\\|$', chars):
+                fd = '[|'
+            elif re.match(NOT_ESCAPED + '\\|\\]$', chars):
+                fd = '|]'
+            chars = re.sub('(?:\\[\\||\\|\\])$', '', chars)
             chars = XML.write_chars(ms_par._p, chars_state, chars)
-            chars_state.apply_has_frame_font_decorator('||')
+            chars_state.apply_has_frame_font_decorator(fd)
         elif re.match(NOT_ESCAPED + '`$', chars):
             # "`" (PREFORMATTED)
             chars = re.sub('`$', '', chars)
@@ -5736,8 +5743,11 @@ class ParagraphMath(Paragraph):
                 chars_state.is_bold = not chars_state.is_bold
             elif fr == '~~':
                 chars_state.has_strike = not chars_state.has_strike
-            elif fr == '||':
-                chars_state.has_frame = not chars_state.has_frame
+            elif fr == '[|' or fr == '|]':
+                if fr == '[|':
+                    chars_state.has_frame = True
+                elif fr == '|]':
+                    chars_state.has_frame = False
             elif re.match('^_([\\$=\\.#\\-~\\+]{,4})_$', fr):
                 sty = re.sub('^_([\\$=\\.#\\-~\\+]{,4})_$', '\\1', fr)
                 if sty in UNDERLINE:
