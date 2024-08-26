@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.24-13:14:39-JST>
+# Time-stamp:   <2024.08.26-08:49:53-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -3857,14 +3857,6 @@ class Makdo:
         self.mnb.add_cascade(label='挿入(I)', menu=self.mc3, underline=3)
         self.mc3.add_command(label='画像を挿入',
                              command=self.insert_images)
-        self.mc3tab = tkinter.Menu(self.mc3, tearoff=False)
-        self.mc3.add_cascade(label='表を挿入', menu=self.mc3tab)
-        self.mc3tab.add_command(label='エクセルから挿入',
-                                command=self.insert_table_from_excel)
-        self.mc3tab.add_command(label='書式を挿入',
-                                command=self.insert_table_format)
-        self.mc3.add_command(label='改ページを挿入',
-                             command=self.insert_page_break)
         self.mc3.add_command(label='改行を挿入',
                              command=self.insert_line_break)
         self.mc3fnt = tkinter.Menu(self.mc3, tearoff=False)
@@ -4061,6 +4053,16 @@ class Makdo:
                                 command=self.insert_chap_4)
         self.mc4chp.add_command(label='　　　　第１目　…',
                                 command=self.insert_chap_5)
+        self.mc4.add_command(label='画像を挿入',
+                             command=self.insert_image_paragraph)
+        self.mc4tab = tkinter.Menu(self.mc4, tearoff=False)
+        self.mc4.add_cascade(label='表を挿入', menu=self.mc4tab)
+        self.mc4tab.add_command(label='エクセルから挿入',
+                                command=self.insert_table_from_excel)
+        self.mc4tab.add_command(label='書式を挿入',
+                                command=self.insert_table_format)
+        self.mc4.add_command(label='改ページを挿入',
+                             command=self.insert_page_break)
         # VISUAL
         self.mc5 = tkinter.Menu(self.mnb, tearoff=False)
         self.mnb.add_cascade(label='表示(V)', menu=self.mc5, underline=3)
@@ -5110,7 +5112,7 @@ class Makdo:
 
 
     ################################
-    # INSERT
+    # CHAPER
 
     def insert_chap_1(self):
         self._insert_line_break_as_necessary()
@@ -5131,6 +5133,9 @@ class Makdo:
     def insert_chap_5(self):
         self._insert_line_break_as_necessary()
         self.txt.insert('insert', '$$$$$ ')  # 第1目
+
+    ################################
+    # SECTION
 
     def insert_sect_1(self):
         self._insert_line_break_as_necessary()
@@ -5163,6 +5168,46 @@ class Makdo:
     def insert_sect_8(self):
         self._insert_line_break_as_necessary()
         self.txt.insert('insert', '######## ')  # (a)
+
+    ################################
+    # IMAGES
+
+    def insert_image_paragraph(self):
+        typ = [('画像', '.jpg .jpeg .png .gif .tif .tiff .bmp'),
+               ('全てのファイル', '*')]
+        image_path = tkinter.filedialog.askopenfilename(filetypes=typ)
+        if image_path != () and image_path != '':
+            self._insert_line_break_as_necessary()
+            image_md_text = '![代替テキスト:縦x横](' + image_path + ' "説明")'
+            self.txt.insert('insert', image_md_text)
+
+    ################################
+    # TABLE
+
+    def insert_table_from_excel(self, file_path=None):
+        if file_path is None:
+            typ = [('エクセル', '.xlsx')]
+            file_path = tkinter.filedialog.askopenfilename(filetypes=typ)
+        wb = openpyxl.load_workbook(file_path)
+        for sheet_name in wb.sheetnames:
+            self.txt.insert('insert', '<!-- ' + sheet_name + ' -->\n')
+            ws = wb[sheet_name]
+            table = ''
+            for row in ws.iter_rows(min_row=1, max_row=ws.max_row,
+                                    min_col=1, max_col=ws.max_column):
+                for cell in row:
+                    table += '|' + str(cell.value)
+                table += '|\n'
+            self.txt.insert('insert', table + '\n')
+
+    def insert_table_format(self):
+        self._insert_line_break_as_necessary()
+        table_md_text = ''
+        table_md_text += '|タイトル  |タイトル  |タイトル  |=\n'
+        table_md_text += '|:---------|:--------:|---------:|\n'
+        table_md_text += '|左寄せセル|中寄せセル|右寄せセル|\n'
+        table_md_text += '|左寄せセル|中寄せセル|右寄せセル|'
+        self.txt.insert('insert', table_md_text)
 
     ################################################################
     # VISUAL
@@ -5568,31 +5613,6 @@ class Makdo:
         for i in image_paths:
             image_md_text = '![代替テキスト:縦x横](' + i + ' "説明")'
             self.txt.insert('insert', image_md_text)
-
-    def insert_table_from_excel(self, file_path=None):
-        if file_path is None:
-            typ = [('エクセル', '.xlsx')]
-            file_path = tkinter.filedialog.askopenfilename(filetypes=typ)
-        wb = openpyxl.load_workbook(file_path)
-        for sheet_name in wb.sheetnames:
-            self.txt.insert('insert', '<!-- ' + sheet_name + ' -->\n')
-            ws = wb[sheet_name]
-            table = ''
-            for row in ws.iter_rows(min_row=1, max_row=ws.max_row,
-                                    min_col=1, max_col=ws.max_column):
-                for cell in row:
-                    table += '|' + str(cell.value)
-                table += '|\n'
-            self.txt.insert('insert', table + '\n')
-
-    def insert_table_format(self):
-        self._insert_line_break_as_necessary()
-        table_md_text = ''
-        table_md_text += '|タイトル  |タイトル  |タイトル  |=\n'
-        table_md_text += '|:---------|:--------:|---------:|\n'
-        table_md_text += '|左寄せセル|中寄せセル|右寄せセル|\n'
-        table_md_text += '|左寄せセル|中寄せセル|右寄せセル|'
-        self.txt.insert('insert', table_md_text)
 
     def insert_page_break(self):
         self._insert_line_break_as_necessary()
