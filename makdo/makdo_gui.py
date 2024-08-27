@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.26-08:49:53-JST>
+# Time-stamp:   <2024.08.27-09:24:11-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -2347,8 +2347,8 @@ TYPEFACES = (
     '1⑴①', '2⑵②', '3⑶③', '4⑷④', '5⑸⑤', '6⑹⑥', '7⑺⑦', '8⑻⑧', '9⑼⑨',
     '印㊞', '有㈲', '株㈱', '社㈳', '財㈶', '学㈻',
     '吉𠮷', '崎﨑嵜', '高髙',
-    '侠俠', '巌巖', '桑桒', '桧檜', '槙槇', '祐祐', '祷禱', '禄祿', '秦䅈',
-    '穣穰', '第㐧', '蝉蟬',  '鴎鷗', '鴬鶯',
+    '頬頰', '侠俠', '巌巖', '桑桒', '桧檜', '槙槇', '祐祐', '祷禱', '禄祿',
+    '秦䅈', '穣穰', '第㐧', '蝉蟬', '鴎鷗', '鴬鶯', '脇𦚰',
     # 常用漢字
     '亜亞', '悪惡', '圧壓', '囲圍', '医醫', '為爲', '壱壹', '逸逸', '飲飮',
     '隠隱', '羽羽', '栄榮', '営營', '鋭銳', '衛衞', '益益', '駅驛', '悦悅',
@@ -2390,15 +2390,14 @@ TYPEFACES = (
     '飯飯', '繁繁', '晩晚', '蛮蠻', '卑卑', '秘祕', '碑碑', '姫姬',
     '浜濱濵',  # "濵"を追加
     '賓賓', '頻頻', '敏敏', '瓶甁', '侮侮', '福福', '払拂', '仏佛', '併倂',
-    '並竝', '塀塀', '餅餠', '辺邊', '変變', '弁辨瓣辯', '勉勉', '歩步', '舗舖',
-    '宝寶', '豊豐', '褒襃', '頰頬', '墨墨', '没沒', '翻飜', '毎每', '万萬',
-    '満滿', '免免', '麺麵', '黙默', '弥彌', '訳譯', '薬藥', '与與', '予豫',
-    '余餘', '誉譽', '揺搖', '様樣', '謡謠', '来來', '頼賴', '乱亂', '覧覽',
-    '欄欄', '竜龍', '隆隆', '虜虜', '両兩', '猟獵', '緑綠', '涙淚', '塁壘',
-    '類類', '礼禮礼',  # "礼"を追加
-    '励勵', '戻戾', '霊靈', '齢齡', '暦曆', '歴歷', '恋戀',
-    '練練', '錬鍊', '炉爐', '労勞', '郎郞', '朗朗', '廊廊', '楼樓', '録錄',
-    '湾灣',
+    '並竝', '塀塀', '餅餠', '辺邊邉',  # "邉"を追加
+    '変變', '弁辨瓣辯', '勉勉', '歩步', '舗舖', '宝寶', '豊豐', '褒襃', '頰頬',
+    '墨墨', '没沒', '翻飜', '毎每', '万萬', '満滿', '免免', '麺麵', '黙默',
+    '弥彌', '訳譯', '薬藥', '与與', '予豫', '余餘', '誉譽', '揺搖', '様樣',
+    '謡謠', '来來', '頼賴', '乱亂', '覧覽', '欄欄', '竜龍', '隆隆', '虜虜',
+    '両兩', '猟獵', '緑綠', '涙淚', '塁壘', '類類', '礼禮礼',  # "礼"を追加
+    '励勵', '戻戾', '霊靈', '齢齡', '暦曆', '歴歷', '恋戀', '練練', '錬鍊',
+    '炉爐', '労勞', '郎郞', '朗朗', '廊廊', '楼樓', '録錄', '湾灣',
 )
 
 SAMPLE_BASIS = '''
@@ -2817,6 +2816,7 @@ class CharsState:
         self.parentheses = []
         self.has_underline = False
         self.has_specific_font = False
+        self.has_frame = False
         self.is_length_reviser = False
         self.chapter_depth = 0
         self.section_depth = 0
@@ -2832,6 +2832,8 @@ class CharsState:
             return False
         if self.has_specific_font != other.has_specific_font:
             return False
+        if self.has_frame != other.has_frame:
+            return False
         return True
 
     def copy(self):
@@ -2842,6 +2844,7 @@ class CharsState:
             copy.parentheses.append(p)
         copy.has_underline = self.has_underline
         copy.has_specific_font = self.has_specific_font
+        copy.has_frame = self.has_frame
         copy.is_length_reviser = self.is_length_reviser
         copy.chapter_depth = self.chapter_depth
         copy.section_depth = self.section_depth
@@ -2874,6 +2877,12 @@ class CharsState:
 
     def toggle_has_specific_font(self):
         self.has_specific_font = not self.has_specific_font
+
+    def attach_or_remove_frame(self, fd):
+        if fd == '[|':
+            self.has_frame = True
+        elif fd == '|]':
+            self.has_frame = False
 
     def apply_parenthesis(self, parenthesis):
         ps = self.parentheses
@@ -2976,7 +2985,9 @@ class CharsState:
         elif not self.is_in_comment and self.has_underline:
             key += '-u'  # underline
         elif not self.is_in_comment and self.has_specific_font:
-            key += '-u'  # underline
+            key += '-u'  # specific font
+        elif not self.is_in_comment and self.has_frame:
+            key += '-u'  # frame
         else:
             key += '-x'  # no underline
         # RETURN
@@ -3167,6 +3178,67 @@ class LineDatum:
                 tmp = ''                                                # 5.tmp
                 beg = end                                               # 6.beg
                 continue
+            # RELAX
+            if (not chars_state.is_in_comment) and \
+               re.match('^.*<>$', tmp):
+                key = chars_state.get_key('')                           # 1.key
+                end = str(i + 1) + '.' + str(j - 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                # tmp = '<>'                                            # 5.tmp
+                beg = end                                               # 6.beg
+                key = chars_state.get_key('font decorator')             # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                tmp = ''                                                # 5.tmp
+                beg = end                                               # 6.beg
+                continue
+            # SPACE
+            if ((re.match('^.*<\\s*[0-9]+$', s_lft) and
+                 re.match('^[0-9]*\\s*>.*$', s_rgt)) or
+                (re.match('^.*<\\s*[0-9]+$', s_lft) and
+                 re.match('^[0-9]*\\.[0-9]+\\s*>.*$', s_rgt)) or
+                (re.match('^.*<\\s*[0-9]*\\.$', s_lft) and
+                 re.match('^[0-9]+\\s*>.*$', s_rgt)) or
+                (re.match('^.*<\\s*[0-9]*\\.[0-9]+$', s_lft) and
+                 re.match('^[0-9]*\\s*>.*$', s_rgt))):
+                key = chars_state.get_key('')                           # 1.key
+                end = str(i + 1) + '.' + str(j)                         # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                # tmp = '[0-9]'                                         # 5.tmp
+                beg = end                                               # 6.beg
+                key = chars_state.get_key('font decorator')             # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                tmp = ''                                                # 5.tmp
+                beg = end                                               # 6.beg
+                continue
+            if re.match('^.*<$', s_lft) and \
+               re.match('^\\s*[\\.0-9]+\\s*>.*$', s_rgt):
+                key = chars_state.get_key('')                           # 1.key
+                end = str(i + 1) + '.' + str(j)                         # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                # tmp = '<'                                             # 5.tmp
+                beg = end                                               # 6.beg
+                key = chars_state.get_key('font decorator')             # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                tmp = ''                                                # 5.tmp
+                beg = end                                               # 6.beg
+                continue
+            if re.match('^.*<\\s*[\\.0-9]+\\s*>$', s_lft):
+                key = chars_state.get_key('font decorator')             # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                tmp = ''                                                # 5.tmp
+                beg = end                                               # 6.beg
+                continue
             # COLOR
             res_color = '(R|red|Y|yellow|G|green|C|cyan|B|blue|M|magenta)'
             if ((not chars_state.is_in_comment) and
@@ -3224,8 +3296,14 @@ class LineDatum:
                 beg = end                                               # 6.beg
                 continue
             # FONT DECORATOR ("@.+@", "^.*^", "_.*_")
-            if re.match('^.*@[0-9]+$', s_lft) and \
-               re.match('^[0-9]*@.*$', s_rgt):
+            if ((re.match('^.*@[0-9]+$', s_lft) and
+                 re.match('^[0-9]*@.*$', s_rgt)) or
+                (re.match('^.*@[0-9]+$', s_lft) and
+                 re.match('^[0-9]*\\.[0-9]+@.*$', s_rgt)) or
+                (re.match('^.*@[0-9]*\\.$', s_lft) and
+                 re.match('^[0-9]+@.*$', s_rgt)) or
+                (re.match('^.*@[0-9]*\\.[0-9]+$', s_lft) and
+                 re.match('^[0-9]*@.*$', s_rgt))):
                 continue  # @n@
             res = NOT_ESCAPED + '(@[^@]{1,66}@|\\^.*\\^|_.*_)$'
             if re.match(res, tmp) and not chars_state.is_in_comment:
@@ -3248,6 +3326,23 @@ class LineDatum:
                     chars_state.toggle_has_underline()                  # 4.set
                 elif re.match('@.*@', mdt) and not hsf:
                     chars_state.toggle_has_specific_font()              # 4.set
+                tmp = ''                                                # 5.tmp
+                beg = end                                               # 6.beg
+                continue
+            # FRAME
+            if (c == '[' and c0 == '|') or (c == '|' and c0 == ']'):
+                continue
+            if (c2 == '[' and c == '|') or (c2 == '|' and c == ']'):
+                key = chars_state.get_key('')                           # 1.key
+                end = str(i + 1) + '.' + str(j - 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                # tmp = '[|' or '|]'                                    # 5.tmp
+                beg = end                                               # 6.beg
+                key = chars_state.get_key('font decorator')             # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                chars_state.attach_or_remove_frame(c2 + c)              # 4.set
                 tmp = ''                                                # 5.tmp
                 beg = end                                               # 6.beg
                 continue
@@ -3855,10 +3950,12 @@ class Makdo:
         # INSERT
         self.mc3 = tkinter.Menu(self.mnb, tearoff=False)
         self.mnb.add_cascade(label='挿入(I)', menu=self.mc3, underline=3)
-        self.mc3.add_command(label='画像を挿入',
-                             command=self.insert_images)
+        self.mc3.add_command(label='空白を挿入',
+                             command=self.insert_space)
         self.mc3.add_command(label='改行を挿入',
                              command=self.insert_line_break)
+        self.mc3.add_command(label='画像を挿入',
+                             command=self.insert_images)
         self.mc3fnt = tkinter.Menu(self.mc3, tearoff=False)
         self.mc3.add_cascade(label='文字のフォントを変える', menu=self.mc3fnt)
         self.mc3fnt.add_command(label='明朝体を変える',
@@ -4829,7 +4926,7 @@ class Makdo:
             Makdo.search_word = word1
             self._highlight_search_word()
         if self.txt.tag_ranges('sel'):
-            beg, end = self.txt.index('sel.first') ,self.txt.index('sel.last')
+            beg, end = self.txt.index('sel.first'), self.txt.index('sel.last')
         elif 'akauni' in self.txt.mark_names():
             beg, end = self._get_indices_in_order('insert', 'akauni')
         else:
@@ -4842,7 +4939,7 @@ class Makdo:
             res = '^((?:.|\n)*?)' + word1 + '(?:.|\n)*$'
             sub = re.sub(res, '\\1', tex)
             self.txt.delete(beg + '+' + str(len(sub)) + 'c',
-                            beg + '+' + str(len(sub  + word1)) + 'c')
+                            beg + '+' + str(len(sub + word1)) + 'c')
             self.txt.insert(beg + '+' + str(len(sub)) + 'c', word2)
         if self.txt.tag_ranges('sel'):
             self.txt.tag_remove('sel', "1.0", "end")
@@ -5026,7 +5123,7 @@ class Makdo:
 
     def comment_out(self):
         if self.txt.tag_ranges('sel'):
-            beg, end = self.txt.index('sel.first') ,self.txt.index('sel.last')
+            beg, end = self.txt.index('sel.first'), self.txt.index('sel.last')
         elif 'akauni' in self.txt.mark_names():
             beg, end = self._get_indices_in_order('insert', 'akauni')
         else:
@@ -5058,22 +5155,22 @@ class Makdo:
 
     def uncomment(self):
         if self.txt.tag_ranges('sel'):
-            beg, end = self.txt.index('sel.first') ,self.txt.index('sel.last')
+            beg, end = self.txt.index('sel.first'), self.txt.index('sel.last')
         elif 'akauni' in self.txt.mark_names():
             beg, end = self._get_indices_in_order('insert', 'akauni')
         else:
-            n  = 'エラー'
+            n = 'エラー'
             m = 'コメントアウトを解除する領域が指定されていません．'
             tkinter.messagebox.showerror(n, m)
             return
         tex = self.txt.get(beg, end)
         if not re.match('^<!--(.|\n)*$', tex):
-            n  = 'エラー'
+            n = 'エラー'
             m = '指定されている領域が、"<!--"で始まっていません．'
             tkinter.messagebox.showerror(n, m)
             return
         if not re.match('^(.|\n)*-->$', tex):
-            n  = 'エラー'
+            n = 'エラー'
             m = '指定されている領域が、"-->"で終わっていません．'
             tkinter.messagebox.showerror(n, m)
             return
@@ -5109,7 +5206,6 @@ class Makdo:
 
     def set_section_number(self):
         pass
-
 
     ################################
     # CHAPER
@@ -5208,6 +5304,13 @@ class Makdo:
         table_md_text += '|左寄せセル|中寄せセル|右寄せセル|\n'
         table_md_text += '|左寄せセル|中寄せセル|右寄せセル|'
         self.txt.insert('insert', table_md_text)
+
+    ################################
+    # PAGE BREAK
+
+    def insert_page_break(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '<pgbr>')
 
     ################################################################
     # VISUAL
@@ -5606,6 +5709,15 @@ class Makdo:
     ################################
     # MARKDOWN
 
+    def insert_space(self):
+        t = '空白の幅'
+        p = '空白の幅を数字を入力してください．'
+        f = tkinter.simpledialog.askfloat(title=t, prompt=p)
+        self.txt.insert('insert', '< ' + str(f) + ' >')
+
+    def insert_line_break(self):
+        self.txt.insert('insert', '<br>')
+
     def insert_images(self):
         typ = [('画像', '.jpg .jpeg .png .gif .tif .tiff .bmp'),
                ('全てのファイル', '*')]
@@ -5613,13 +5725,6 @@ class Makdo:
         for i in image_paths:
             image_md_text = '![代替テキスト:縦x横](' + i + ' "説明")'
             self.txt.insert('insert', image_md_text)
-
-    def insert_page_break(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '<pgbr>')
-
-    def insert_line_break(self):
-        self.txt.insert('insert', '<br>')
 
     def insert_font_select(self):
         mincho_list = []
