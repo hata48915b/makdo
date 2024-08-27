@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.27-09:24:11-JST>
+# Time-stamp:   <2024.08.27-18:42:23-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4032,10 +4032,21 @@ class Makdo:
         self.mc3hcl.add_command(label='マゼンタ',
                                 command=self.insert_m_highlight_color)
         self.mc3typ = tkinter.Menu(self.mc3, tearoff=False)
-        self.mc3.add_cascade(label='人名漢字を挿入（未完成）',
+        self.mc3.add_cascade(label='人名・地名漢字の候補を挿入（未完成）',
                              menu=self.mc3typ)
-        self.mc3typ.add_command(label='"花"の人名漢字',
-                                command=self.insert_name_char_of_hana)
+        self.mc3typ.add_command(label='文字コードから人名・地名漢字を挿入',
+                                command=self.insert_ivs)
+        self.mc3typ.add_separator()
+        self.mc3typ.add_command(label='"祇"の人名・地名漢字の候補を挿入',
+                                command=self.insert_ivs_of_7947)
+        self.mc3typ.add_command(label='"花"の人名・地名漢字の候補を挿入',
+                                command=self.insert_ivs_of_82b1)
+        self.mc3typ.add_command(label='"葛"の人名・地名漢字の候補を挿入',
+                                command=self.insert_ivs_of_845b)
+        self.mc3typ.add_command(label='"邉"の人名・地名漢字の候補を挿入',
+                                command=self.insert_ivs_of_9089)
+        self.mc3typ.add_command(label='"邊"の人名・地名漢字の候補を挿入',
+                                command=self.insert_ivs_of_908a)
         self.mc3.add_separator()
         self.mc3dat = tkinter.Menu(self.mc3, tearoff=False)
         self.mc3.add_cascade(label='日時を挿入', menu=self.mc3dat)
@@ -4274,6 +4285,9 @@ class Makdo:
                              command=self.browse_law_crime_procedure)
         self.mc7.add_command(label='裁判所規則を調べる',
                              command=self.browse_rule_of_court)
+        self.mc7.add_separator()
+        self.mc7.add_command(label='人名・地名漢字を探す',
+                             command=self.browse_ivs)
         # HELP
         self.mc8 = tkinter.Menu(self.mnb, tearoff=False)
         self.mnb.add_cascade(label='ヘルプ(H)', menu=self.mc8, underline=4)
@@ -5862,8 +5876,95 @@ class Makdo:
         self.txt.insert('insert', '_M_（ここは下地がマゼンタ）_M_')
         self.txt.mark_set('insert', 'insert-3c')
 
-    def insert_name_char_of_hana(self):
-        self.txt.insert('insert', '花3;花4;花6;')
+    def insert_ivs(self):
+        self.IvsDialog(self.txt, '文字コードから人名・地名漢字を挿入')
+
+    class IvsDialog(tkinter.simpledialog.Dialog):
+
+        def __init__(self, win, title):
+            self.win = win
+            # self.title = title
+            super().__init__(win)
+            # super().__init__(win, title=title)
+
+        def body(self, win):
+            t = '下記のURLで漢字を検索してください．\n' + \
+                'https://moji.or.jp/mojikibansearch/basic\n\n' + \
+                '「対応するUCS」の下の段を下に入力してください．\n' + \
+                '例：花の場合→<82B1,E0102>\n\n'
+            self.text1 = tkinter.Label(win, text=t)
+            self.text1.pack(side=tkinter.TOP)
+            self.entry1 = tkinter.Label(win, text='　　　<')
+            self.entry1.pack(side=tkinter.LEFT)
+            self.entry2 = tkinter.Entry(win, width=7)
+            self.entry2.pack(side=tkinter.LEFT)
+            self.entry3 = tkinter.Label(win, text=',')
+            self.entry3.pack(side=tkinter.LEFT)
+            self.entry4 = tkinter.Entry(win, width=7)
+            self.entry4.pack(side=tkinter.LEFT)
+            self.entry5 = tkinter.Label(win, text='>')
+            self.entry5.pack(side=tkinter.LEFT)
+
+        def apply(self):
+            ucs = self.entry2.get()
+            ivs = self.entry4.get()
+            md = chr(int(ucs, 16)) + str(int(ivs, 16) - 917760) + ';'
+            self.win.insert('insert', md)
+
+    def insert_ivs_of_7947(self):
+        self.txt.insert('insert',
+                        '祇2;' +  # E0102
+                        '祇3;')   # E0103
+
+    def insert_ivs_of_82b1(self):
+        self.txt.insert('insert',
+                        '花2;' +  # E0102
+                        '花3;' +  # E0103
+                        '花4;' +  # E0104
+                        '花6;')   # E0106
+
+    def insert_ivs_of_845b(self):
+        self.txt.insert('insert',
+                        '葛2;' +  # E0102
+                        '葛3;' +  # E0103
+                        '葛4;' +  # E0104
+                        '葛5;' +  # E0105
+                        '葛6;' +  # E0106
+                        '葛7;' +  # E0107
+                        '葛8;')   # E0108
+
+    def insert_ivs_of_9089(self):
+        self.txt.insert('insert',
+                        '邉15;' +  # E010F
+                        '邉16;' +  # E0110
+                        '邉17;' +  # E0111
+                        '邉18;' +  # E0112
+                        '邉19;' +  # E0113
+                        '邉20;' +  # E0114
+                        '邉21;' +  # E0115
+                        '邉22;' +  # E0116
+                        '邉23;' +  # E0117
+                        '邉24;' +  # E0118
+                        '邉25;' +  # E0119
+                        '邉26;' +  # E011A
+                        '邉27;' +  # E011B
+                        '邉28;' +  # E011C
+                        '邉29;' +  # E011D
+                        '邉31;')   # E011F
+
+    def insert_ivs_of_908a(self):
+        self.txt.insert('insert',
+                        '邊8;' +   # E0108
+                        '邊9;' +   # E0109
+                        '邊10;' +  # E010A
+                        '邊11;' +  # E010B
+                        '邊12;' +  # E010C
+                        '邊13;' +  # E010D
+                        '邊14;' +  # E010E
+                        '邊15;' +  # E010F
+                        '邊16;' +  # E0110
+                        '邊17;' +  # E0111
+                        '邊18;')   # E0112
 
     ################################
     # DATE AND TIME
@@ -6207,6 +6308,9 @@ class Makdo:
     def browse_rule_of_court(self):
         u = 'https://www.courts.go.jp/toukei_siryou/kisokusyu/index.html'
         webbrowser.open(u)
+
+    def browse_ivs(self):
+        webbrowser.open('https://moji.or.jp/mojikibansearch/basic')
 
     ################################################################
     # HELP
