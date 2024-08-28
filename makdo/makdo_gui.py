@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.27-18:42:23-JST>
+# Time-stamp:   <2024.08.28-09:08:40-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -3554,290 +3554,6 @@ class LineDatum:
         return
 
 
-class ConvertTypefaceDialog(tkinter.simpledialog.Dialog):
-
-    def __init__(self, win, old_typeface, candidates):
-        self.win = win
-        self.old_typeface = old_typeface
-        self.candidates = candidates
-        super().__init__(win)
-
-    def body(self, win):
-        self.typeface = tkinter.StringVar()
-        for cnd in self.candidates:
-            rd = tkinter.Radiobutton(win, text=cnd, value=cnd,
-                                     font=(GOTHIC_FONT, 24),
-                                     variable=self.typeface)
-            rd.pack(side=tkinter.LEFT, padx=3, pady=3)
-            if cnd == self.old_typeface:
-                rd.select()
-        self.bind('<Key-Return>', self.ok)
-        self.bind('<Key-Escape>', self.cancel)
-        super().body(win)
-
-    def buttonbox(self):
-        btn = tkinter.Frame(self)
-        self.btn1 = tkinter.Button(btn, text='OK', width=6,
-                                   command=self.ok)
-        self.btn1.pack(side=tkinter.LEFT, padx=3, pady=3)
-        self.btn2 = tkinter.Button(btn, text='Cancel', width=6,
-                                   command=self.cancel)
-        self.btn2.pack(side=tkinter.LEFT, padx=3, pady=3)
-        btn.pack()
-
-    def apply(self):
-        new_typeface = self.typeface.get()
-        self.win.delete('insert', 'insert+1c')
-        self.win.insert('insert', new_typeface)
-        self.win.mark_set('insert', 'insert-1c')
-        self.win.focus_set()
-
-
-class InsertSymbolDialog(tkinter.simpledialog.Dialog):
-
-    def __init__(self, win, candidates):
-        self.win = win
-        self.candidates = candidates
-        super().__init__(win)
-
-    def body(self, win):
-        self.symbol = tkinter.StringVar()
-        for i, cnd in enumerate(self.candidates):
-            rd = tkinter.Radiobutton(win, text=cnd, value=cnd,
-                                     font=(GOTHIC_FONT, 24),
-                                     variable=self.symbol)
-            y, x = int(i / 10), (i % 10)
-            rd.grid(row=y, column=x, columnspan=1, padx=3, pady=3)
-        self.bind('<Key-Return>', self.ok)
-        self.bind('<Key-Escape>', self.cancel)
-        super().body(win)
-
-    def buttonbox(self):
-        btn = tkinter.Frame(self)
-        self.btn1 = tkinter.Button(btn, text='OK', width=6,
-                                   command=self.ok)
-        self.btn1.pack(side=tkinter.LEFT, padx=3, pady=3)
-        self.btn2 = tkinter.Button(btn, text='Cancel', width=6,
-                                   command=self.cancel)
-        self.btn2.pack(side=tkinter.LEFT, padx=3, pady=3)
-        btn.pack()
-
-    def apply(self):
-        symbol = self.symbol.get()
-        self.win.insert('insert', symbol)
-        # self.win.mark_set('insert', 'insert-1c')
-        self.win.focus_set()
-
-
-class SelectMinchoDialog(tkinter.simpledialog.Dialog):
-
-    def __init__(self, win, candidates):
-        self.win = win
-        self.candidates = candidates
-        super().__init__(win)
-
-    def body(self, win):
-        self.mincho = tkinter.StringVar()
-        for cnd in self.candidates:
-            rd = tkinter.Radiobutton(win, text=cnd, value=cnd,
-                                     font=(GOTHIC_FONT, 24),
-                                     variable=self.mincho)
-            rd.pack(side=tkinter.TOP, padx=3, pady=3)
-        self.bind('<Key-Return>', self.ok)
-        self.bind('<Key-Escape>', self.cancel)
-        super().body(win)
-
-    def buttonbox(self):
-        btn = tkinter.Frame(self)
-        self.btn1 = tkinter.Button(btn, text='OK', width=6,
-                                   command=self.ok)
-        self.btn1.pack(side=tkinter.LEFT, padx=3, pady=3)
-        self.btn2 = tkinter.Button(btn, text='Cancel', width=6,
-                                   command=self.cancel)
-        self.btn2.pack(side=tkinter.LEFT, padx=3, pady=3)
-        btn.pack()
-
-    def apply(self):
-        m = self.mincho.get()
-        d = '@' + m + '@（ここはフォントが変わる）@' + m + '@'
-        self.win.insert('insert', d)
-        self.win.mark_set('insert', 'insert-' + str(len(m) + 2) + 'c')
-        self.win.focus_set()
-
-
-class LengthRevisersDialog(tkinter.simpledialog.Dialog):
-
-    def __init__(self, win, title, length=None):
-        self.win = win
-        # self.title = title
-        bef_text = self.win.get('1.0', 'insert')
-        aft_text = self.win.get('insert', 'end-1c')
-        self.head_text \
-            = re.sub('^((?:.|\n)*\n\n)((?:.|\n)*)?', '\\1', bef_text)
-        bef_para = re.sub('^(.|\n)*\n\n', '', bef_text)
-        aft_para = re.sub('\n\n(.|\n)*$', '', aft_text)
-        paragraph = bef_para + aft_para
-        res_length_reviser = '(?:v|V|X|<<|<|>)=[-\\+]?(?:[0-9]*\\.)?[0-9]+'
-        res = '^((?:' + res_length_reviser + '(?:\\s|\n)*)*)((?:.|\n)*)$'
-        self.length_revisers = re.sub(res, '\\1', paragraph)
-        if length is not None:
-            self.length = length
-        else:
-            self.length = {'space before': '0.0', 'space after': '0.0',
-                           'line spacing': '0.0', 'first indent': '0.0',
-                           'left indent': '0.0', 'right indent': '0.0'}
-            res_bef = '(?:.|\n)*'
-            res_aft = '=([-\\+]?(?:[0-9]*\\.)?[0-9]+)' + '(?:.|\n)*'
-            res = res_bef + 'v' + res_aft
-            if re.match(res, self.length_revisers):
-                self.length['space before'] \
-                    = str(float(re.sub(res, '\\1', self.length_revisers)))
-            res = res_bef + 'V' + res_aft
-            if re.match(res, self.length_revisers):
-                self.length['space after'] \
-                    = str(float(re.sub(res, '\\1', self.length_revisers)))
-            res = res_bef + 'X' + res_aft
-            if re.match(res, self.length_revisers):
-                self.length['line spacing'] \
-                    = str(float(re.sub(res, '\\1', self.length_revisers)))
-            res = res_bef + '<<' + res_aft
-            if re.match(res, self.length_revisers):
-                self.length['first indent'] \
-                    = str(float(re.sub(res, '\\1', self.length_revisers)) * -1)
-            res = res_bef + '<' + res_aft
-            if re.match(res, self.length_revisers):
-                self.length['left indent'] \
-                    = str(float(re.sub(res, '\\1', self.length_revisers)) * -1)
-            res = res_bef + '>' + res_aft
-            if re.match(res, self.length_revisers):
-                self.length['right indent'] \
-                    = str(float(re.sub(res, '\\1', self.length_revisers)) * -1)
-        super().__init__(win)
-        # super().__init__(win, title=title)
-
-    def body(self, win):
-        self.title1 = tkinter.Label(win, text='前の段落との間の幅')
-        self.title1.grid(row=0, column=0)
-        self.entry1 = tkinter.Entry(win, width=7, justify='right')
-        self.entry1.insert(0, self.length['space before'])
-        self.entry1.grid(row=0, column=1)
-        self.unit1 = tkinter.Label(win, text='行間')
-        self.unit1.grid(row=0, column=2)
-        self.title2 = tkinter.Label(win, text='次の段落との間の幅')
-        self.title2.grid(row=1, column=0)
-        self.entry2 = tkinter.Entry(win, width=7, justify='right')
-        self.entry2.insert(0, self.length['space after'])
-        self.entry2.grid(row=1, column=1)
-        self.unit2 = tkinter.Label(win, text='行間')
-        self.unit2.grid(row=1, column=2)
-        self.title3 = tkinter.Label(win, text='段落内の改行の幅　')
-        self.title3.grid(row=2, column=0)
-        self.entry3 = tkinter.Entry(win, width=7, justify='right')
-        self.entry3.insert(0, self.length['line spacing'])
-        self.entry3.grid(row=2, column=1)
-        self.unit3 = tkinter.Label(win, text='行間')
-        self.unit3.grid(row=2, column=2)
-        self.title4 = tkinter.Label(win, text='一行目の字下げの幅')
-        self.title4.grid(row=3, column=0)
-        self.entry4 = tkinter.Entry(win, width=7, justify='right')
-        self.entry4.insert(0, self.length['first indent'])
-        self.entry4.grid(row=3, column=1)
-        self.unit4 = tkinter.Label(win, text='文字')
-        self.unit4.grid(row=3, column=2)
-        self.title5 = tkinter.Label(win, text='左の字下げの幅　　')
-        self.title5.grid(row=4, column=0)
-        self.entry5 = tkinter.Entry(win, width=7, justify='right')
-        self.entry5.insert(0, self.length['left indent'])
-        self.entry5.grid(row=4, column=1)
-        self.unit5 = tkinter.Label(win, text='文字')
-        self.unit5.grid(row=4, column=2)
-        self.title6 = tkinter.Label(win, text='右の字下げの幅　　')
-        self.title6.grid(row=5, column=0)
-        self.entry6 = tkinter.Entry(win, width=7, justify='right')
-        self.entry6.insert(0, self.length['right indent'])
-        self.entry6.grid(row=5, column=1)
-        self.unit6 = tkinter.Label(win, text='文字')
-        self.unit6.grid(row=5, column=2)
-
-    def apply(self):
-        has_error = False
-        res = '^[-\\+]?(?:[0-9]*\\.)?[0-9]+$'
-        space_before = re.sub('\\s', '', self.entry1.get())
-        if re.match(res, space_before):
-            self.length['space before'] = space_before
-        else:
-            has_error = True
-        space_after = re.sub('\\s', '', self.entry2.get())
-        if re.match(res, space_after):
-            self.length['space after'] = space_after
-        else:
-            has_error = True
-        line_spacing = re.sub('\\s', '', self.entry3.get())
-        if re.match(res, line_spacing):
-            self.length['line spacing'] = line_spacing
-        else:
-            has_error = True
-        first_indent = re.sub('\\s', '', self.entry4.get())
-        if re.match(res, first_indent):
-            self.length['first indent'] = first_indent
-        else:
-            has_error = True
-        left_indent = re.sub('\\s', '', self.entry5.get())
-        if re.match(res, left_indent):
-            self.length['left indent'] = left_indent
-        else:
-            has_error = True
-        right_indent = re.sub('\\s', '', self.entry6.get())
-        if re.match(res, right_indent):
-            self.length['right indent'] = right_indent
-        else:
-            has_error = True
-        if has_error:
-            n = 'エラー'
-            m = '値に正負の小数以外が含まれています．'
-            tkinter.messagebox.showerror(n, m)
-            LengthRevisersDialog(self.win, self.title, self.length)
-        else:
-            len_beg = len(self.head_text)
-            len_end = len(self.head_text + self.length_revisers)
-            beg = '1.0+' + str(len_beg) + 'c'
-            end = '1.0+' + str(len_end) + 'c'
-            self.win.delete(beg, end)
-            leng_revs = ''
-            leng = float(self.length['space before'])
-            if leng > 0:
-                leng_revs += 'v=+' + re.sub('\\.0+$', '', str(leng)) + ' '
-            else:
-                leng_revs += 'v=' + re.sub('\\.0+$', '', str(leng)) + ' '
-            leng = float(self.length['space after'])
-            if leng > 0:
-                leng_revs += 'V=+' + re.sub('\\.0+$', '', str(leng)) + ' '
-            else:
-                leng_revs += 'V=' + re.sub('\\.0+$', '', str(leng)) + ' '
-            leng = float(self.length['line spacing'])
-            if leng > 0:
-                leng_revs += 'X=+' + re.sub('\\.0+$', '', str(leng)) + ' '
-            elif leng < 0:
-                leng_revs += 'X=' + re.sub('\\.0+$', '', str(leng)) + ' '
-            leng = float(self.length['first indent']) * -1
-            if leng > 0:
-                leng_revs += '<<=+' + re.sub('\\.0+$', '', str(leng)) + ' '
-            elif leng < 0:
-                leng_revs += '<<=' + re.sub('\\.0+$', '', str(leng)) + ' '
-            leng = float(self.length['left indent']) * -1
-            if leng > 0:
-                leng_revs += '<=+' + re.sub('\\.0+$', '', str(leng)) + ' '
-            elif leng < 0:
-                leng_revs += '<=' + re.sub('\\.0+$', '', str(leng)) + ' '
-            leng = float(self.length['right indent']) * -1
-            if leng > 0:
-                leng_revs += '>=+' + re.sub('\\.0+$', '', str(leng)) + ' '
-            elif leng < 0:
-                leng_revs += '>=' + re.sub('\\.0+$', '', str(leng)) + ' '
-            leng_revs = re.sub(' $', '', leng_revs)
-            self.win.insert(beg, leng_revs + '\n')
-
-
 class Makdo:
 
     args_background_color = 'W'
@@ -4032,20 +3748,20 @@ class Makdo:
         self.mc3hcl.add_command(label='マゼンタ',
                                 command=self.insert_m_highlight_color)
         self.mc3typ = tkinter.Menu(self.mc3, tearoff=False)
-        self.mc3.add_cascade(label='人名・地名漢字の候補を挿入（未完成）',
+        self.mc3.add_cascade(label='人名・地名の字体を挿入',
                              menu=self.mc3typ)
-        self.mc3typ.add_command(label='文字コードから人名・地名漢字を挿入',
+        self.mc3typ.add_command(label='文字コードから人名・地名の字体を挿入',
                                 command=self.insert_ivs)
         self.mc3typ.add_separator()
-        self.mc3typ.add_command(label='"祇"の人名・地名漢字の候補を挿入',
+        self.mc3typ.add_command(label='"祇"の人名・地名の字体の候補を全て挿入',
                                 command=self.insert_ivs_of_7947)
-        self.mc3typ.add_command(label='"花"の人名・地名漢字の候補を挿入',
+        self.mc3typ.add_command(label='"花"の人名・地名の字体の候補を全て挿入',
                                 command=self.insert_ivs_of_82b1)
-        self.mc3typ.add_command(label='"葛"の人名・地名漢字の候補を挿入',
+        self.mc3typ.add_command(label='"葛"の人名・地名の字体の候補を全て挿入',
                                 command=self.insert_ivs_of_845b)
-        self.mc3typ.add_command(label='"邉"の人名・地名漢字の候補を挿入',
+        self.mc3typ.add_command(label='"邉"の人名・地名の字体の候補を全て挿入',
                                 command=self.insert_ivs_of_9089)
-        self.mc3typ.add_command(label='"邊"の人名・地名漢字の候補を挿入',
+        self.mc3typ.add_command(label='"邊"の人名・地名の字体の候補を全て挿入',
                                 command=self.insert_ivs_of_908a)
         self.mc3.add_separator()
         self.mc3dat = tkinter.Menu(self.mc3, tearoff=False)
@@ -4089,7 +3805,7 @@ class Makdo:
         self.mc3.add_command(label='ファイルの内容を挿入',
                              command=self.insert_file)
         self.mc3.add_separator()
-        self.mc3.add_command(label='記号',
+        self.mc3.add_command(label='記号を挿入',
                              command=self.insert_symbol)
         self.mc3sym = tkinter.Menu(self.mc3, tearoff=False)
         self.mc3.add_cascade(label='横棒を挿入', menu=self.mc3sym)
@@ -5120,7 +4836,50 @@ class Makdo:
         c = self.txt.get('insert', 'insert+1c')
         for tf in TYPEFACES:
             if c in tf:
-                ConvertTypefaceDialog(self.txt, c, list(tf))
+                self.TypefaceDialog(self.txt, c, list(tf))
+                break
+        else:
+            n = '警告'
+            m = '"' + c + '"に異字体は登録されていません．'
+            tkinter.messagebox.showwarning(n, m)
+
+    class TypefaceDialog(tkinter.simpledialog.Dialog):
+
+        def __init__(self, win, old_typeface, candidates):
+            self.win = win
+            self.old_typeface = old_typeface
+            self.candidates = candidates
+            super().__init__(win, title='字体を変える')
+
+        def body(self, win):
+            self.typeface = tkinter.StringVar()
+            for cnd in self.candidates:
+                rd = tkinter.Radiobutton(win, text=cnd, value=cnd,
+                                         font=(GOTHIC_FONT, 24),
+                                         variable=self.typeface)
+                rd.pack(side=tkinter.LEFT, padx=3, pady=3)
+                if cnd == self.old_typeface:
+                    rd.select()
+            # self.bind('<Key-Return>', self.ok)
+            # self.bind('<Key-Escape>', self.cancel)
+            super().body(win)
+
+        # def buttonbox(self):
+        #     btn = tkinter.Frame(self)
+        #     self.btn1 = tkinter.Button(btn, text='OK', width=6,
+        #                                command=self.ok)
+        #     self.btn1.pack(side=tkinter.LEFT, padx=3, pady=3)
+        #     self.btn2 = tkinter.Button(btn, text='Cancel', width=6,
+        #                                command=self.cancel)
+        #     self.btn2.pack(side=tkinter.LEFT, padx=3, pady=3)
+        #     btn.pack()
+
+        def apply(self):
+            new_typeface = self.typeface.get()
+            self.win.delete('insert', 'insert+1c')
+            self.win.insert('insert', new_typeface)
+            self.win.mark_set('insert', 'insert-1c')
+            self.win.focus_set()
 
     def _get_indices_in_order(self, index1, index2):
         point1 = self.txt.index(index1)
@@ -5213,7 +4972,181 @@ class Makdo:
     # PARAGRAPH
 
     def set_paragraph_length(self):
-        LengthRevisersDialog(self.txt, '段落の長さを設定')
+        self.LengthRevisersDialog(self.txt)
+
+    class LengthRevisersDialog(tkinter.simpledialog.Dialog):
+
+        def __init__(self, win, length=None):
+            self.win = win
+            # self.title = title
+            bef_text = self.win.get('1.0', 'insert')
+            aft_text = self.win.get('insert', 'end-1c')
+            self.head_text \
+                = re.sub('^((?:.|\n)*\n\n)((?:.|\n)*)?', '\\1', bef_text)
+            bef_para = re.sub('^(.|\n)*\n\n', '', bef_text)
+            aft_para = re.sub('\n\n(.|\n)*$', '', aft_text)
+            paragraph = bef_para + aft_para
+            res_length_reviser = '(?:v|V|X|<<|<|>)=[-\\+]?(?:[0-9]*\\.)?[0-9]+'
+            res = '^((?:' + res_length_reviser + '(?:\\s|\n)*)*)((?:.|\n)*)$'
+            self.length_revisers = re.sub(res, '\\1', paragraph)
+            if length is not None:
+                self.length = length
+            else:
+                self.length = {'space before': '0.0', 'space after': '0.0',
+                               'line spacing': '0.0', 'first indent': '0.0',
+                               'left indent': '0.0', 'right indent': '0.0'}
+                res_bef = '(?:.|\n)*'
+                res_aft = '=([-\\+]?(?:[0-9]*\\.)?[0-9]+)' + '(?:.|\n)*'
+                res = res_bef + 'v' + res_aft
+                if re.match(res, self.length_revisers):
+                    self.length['space before'] \
+                        = str(float(re.sub(res, '\\1', self.length_revisers)))
+                res = res_bef + 'V' + res_aft
+                if re.match(res, self.length_revisers):
+                    self.length['space after'] \
+                        = str(float(re.sub(res, '\\1', self.length_revisers)))
+                res = res_bef + 'X' + res_aft
+                if re.match(res, self.length_revisers):
+                    self.length['line spacing'] \
+                        = str(float(re.sub(res, '\\1', self.length_revisers)))
+                res = res_bef + '<<' + res_aft
+                if re.match(res, self.length_revisers):
+                    self.length['first indent'] \
+                        = str(float(re.sub(res, '\\1', self.length_revisers))
+                              * -1)
+                res = res_bef + '<' + res_aft
+                if re.match(res, self.length_revisers):
+                    self.length['left indent'] \
+                        = str(float(re.sub(res, '\\1', self.length_revisers))
+                              * -1)
+                res = res_bef + '>' + res_aft
+                if re.match(res, self.length_revisers):
+                    self.length['right indent'] \
+                        = str(float(re.sub(res, '\\1', self.length_revisers))
+                              * -1)
+            super().__init__(win, title='段落の長さを設定')
+
+        def body(self, win):
+            self.title1 = tkinter.Label(win, text='前の段落との間の幅')
+            self.title1.grid(row=0, column=0)
+            self.entry1 = tkinter.Entry(win, width=7, justify='right')
+            self.entry1.insert(0, self.length['space before'])
+            self.entry1.grid(row=0, column=1)
+            self.unit1 = tkinter.Label(win, text='行間')
+            self.unit1.grid(row=0, column=2)
+            self.title2 = tkinter.Label(win, text='次の段落との間の幅')
+            self.title2.grid(row=1, column=0)
+            self.entry2 = tkinter.Entry(win, width=7, justify='right')
+            self.entry2.insert(0, self.length['space after'])
+            self.entry2.grid(row=1, column=1)
+            self.unit2 = tkinter.Label(win, text='行間')
+            self.unit2.grid(row=1, column=2)
+            self.title3 = tkinter.Label(win, text='段落内の改行の幅　')
+            self.title3.grid(row=2, column=0)
+            self.entry3 = tkinter.Entry(win, width=7, justify='right')
+            self.entry3.insert(0, self.length['line spacing'])
+            self.entry3.grid(row=2, column=1)
+            self.unit3 = tkinter.Label(win, text='行間')
+            self.unit3.grid(row=2, column=2)
+            self.title4 = tkinter.Label(win, text='一行目の字下げの幅')
+            self.title4.grid(row=3, column=0)
+            self.entry4 = tkinter.Entry(win, width=7, justify='right')
+            self.entry4.insert(0, self.length['first indent'])
+            self.entry4.grid(row=3, column=1)
+            self.unit4 = tkinter.Label(win, text='文字')
+            self.unit4.grid(row=3, column=2)
+            self.title5 = tkinter.Label(win, text='左の字下げの幅　　')
+            self.title5.grid(row=4, column=0)
+            self.entry5 = tkinter.Entry(win, width=7, justify='right')
+            self.entry5.insert(0, self.length['left indent'])
+            self.entry5.grid(row=4, column=1)
+            self.unit5 = tkinter.Label(win, text='文字')
+            self.unit5.grid(row=4, column=2)
+            self.title6 = tkinter.Label(win, text='右の字下げの幅　　')
+            self.title6.grid(row=5, column=0)
+            self.entry6 = tkinter.Entry(win, width=7, justify='right')
+            self.entry6.insert(0, self.length['right indent'])
+            self.entry6.grid(row=5, column=1)
+            self.unit6 = tkinter.Label(win, text='文字')
+            self.unit6.grid(row=5, column=2)
+
+        def apply(self):
+            has_error = False
+            res = '^[-\\+]?(?:[0-9]*\\.)?[0-9]+$'
+            space_before = re.sub('\\s', '', self.entry1.get())
+            if re.match(res, space_before):
+                self.length['space before'] = space_before
+            else:
+                has_error = True
+            space_after = re.sub('\\s', '', self.entry2.get())
+            if re.match(res, space_after):
+                self.length['space after'] = space_after
+            else:
+                has_error = True
+            line_spacing = re.sub('\\s', '', self.entry3.get())
+            if re.match(res, line_spacing):
+                self.length['line spacing'] = line_spacing
+            else:
+                has_error = True
+            first_indent = re.sub('\\s', '', self.entry4.get())
+            if re.match(res, first_indent):
+                self.length['first indent'] = first_indent
+            else:
+                has_error = True
+            left_indent = re.sub('\\s', '', self.entry5.get())
+            if re.match(res, left_indent):
+                self.length['left indent'] = left_indent
+            else:
+                has_error = True
+            right_indent = re.sub('\\s', '', self.entry6.get())
+            if re.match(res, right_indent):
+                self.length['right indent'] = right_indent
+            else:
+                has_error = True
+            if has_error:
+                n = 'エラー'
+                m = '値に正負の小数以外が含まれています．'
+                tkinter.messagebox.showerror(n, m)
+                Makdo.LengthRevisersDialog(self.win, self.length)
+            else:
+                len_beg = len(self.head_text)
+                len_end = len(self.head_text + self.length_revisers)
+                beg = '1.0+' + str(len_beg) + 'c'
+                end = '1.0+' + str(len_end) + 'c'
+                self.win.delete(beg, end)
+                leng_revs = ''
+                leng = float(self.length['space before'])
+                if leng > 0:
+                    leng_revs += 'v=+' + re.sub('\\.0+$', '', str(leng)) + ' '
+                else:
+                    leng_revs += 'v=' + re.sub('\\.0+$', '', str(leng)) + ' '
+                leng = float(self.length['space after'])
+                if leng > 0:
+                    leng_revs += 'V=+' + re.sub('\\.0+$', '', str(leng)) + ' '
+                else:
+                    leng_revs += 'V=' + re.sub('\\.0+$', '', str(leng)) + ' '
+                leng = float(self.length['line spacing'])
+                if leng > 0:
+                    leng_revs += 'X=+' + re.sub('\\.0+$', '', str(leng)) + ' '
+                elif leng < 0:
+                    leng_revs += 'X=' + re.sub('\\.0+$', '', str(leng)) + ' '
+                leng = float(self.length['first indent']) * -1
+                if leng > 0:
+                    leng_revs += '<<=+' + re.sub('\\.0+$', '', str(leng)) + ' '
+                elif leng < 0:
+                    leng_revs += '<<=' + re.sub('\\.0+$', '', str(leng)) + ' '
+                leng = float(self.length['left indent']) * -1
+                if leng > 0:
+                    leng_revs += '<=+' + re.sub('\\.0+$', '', str(leng)) + ' '
+                elif leng < 0:
+                    leng_revs += '<=' + re.sub('\\.0+$', '', str(leng)) + ' '
+                leng = float(self.length['right indent']) * -1
+                if leng > 0:
+                    leng_revs += '>=+' + re.sub('\\.0+$', '', str(leng)) + ' '
+                elif leng < 0:
+                    leng_revs += '>=' + re.sub('\\.0+$', '', str(leng)) + ' '
+                leng_revs = re.sub(' $', '', leng_revs)
+                self.win.insert(beg, leng_revs + '\n')
 
     def set_chapter_number(self):
         pass
@@ -5745,7 +5678,42 @@ class Makdo:
         for f in tkinter.font.families():
             if '明朝' in f:
                 mincho_list.append(f)
-        SelectMinchoDialog(self.txt, mincho_list)
+        self.MinchoDialog(self.txt, mincho_list)
+
+    class MinchoDialog(tkinter.simpledialog.Dialog):
+
+        def __init__(self, win, candidates):
+            self.win = win
+            self.candidates = candidates
+            super().__init__(win, title='明朝体を変える')
+
+        def body(self, win):
+            self.mincho = tkinter.StringVar()
+            for cnd in self.candidates:
+                rd = tkinter.Radiobutton(win, text=cnd, value=cnd,
+                                         font=(GOTHIC_FONT, 24),
+                                         variable=self.mincho)
+                rd.pack(side=tkinter.TOP, padx=3, pady=3)
+            # self.bind('<Key-Return>', self.ok)
+            # self.bind('<Key-Escape>', self.cancel)
+            # super().body(win)
+
+        # def buttonbox(self):
+        #     btn = tkinter.Frame(self)
+        #     self.btn1 = tkinter.Button(btn, text='OK', width=6,
+        #                                command=self.ok)
+        #     self.btn1.pack(side=tkinter.LEFT, padx=3, pady=3)
+        #     self.btn2 = tkinter.Button(btn, text='Cancel', width=6,
+        #                                command=self.cancel)
+        #     self.btn2.pack(side=tkinter.LEFT, padx=3, pady=3)
+        #     btn.pack()
+
+        def apply(self):
+            m = self.mincho.get()
+            d = '@' + m + '@（ここはフォントが変わる）@' + m + '@'
+            self.win.insert('insert', d)
+            self.win.mark_set('insert', 'insert-' + str(len(m) + 2) + 'c')
+            self.win.focus_set()
 
     def insert_gothic_font(self):
         self.txt.insert('insert', '`（ここはゴシック体）`')
@@ -5876,25 +5844,26 @@ class Makdo:
         self.txt.insert('insert', '_M_（ここは下地がマゼンタ）_M_')
         self.txt.mark_set('insert', 'insert-3c')
 
+    ################################
+    # IVS
+
     def insert_ivs(self):
-        self.IvsDialog(self.txt, '文字コードから人名・地名漢字を挿入')
+        self.IvsDialog(self.txt)
 
     class IvsDialog(tkinter.simpledialog.Dialog):
 
-        def __init__(self, win, title):
+        def __init__(self, win):
             self.win = win
-            # self.title = title
-            super().__init__(win)
-            # super().__init__(win, title=title)
+            super().__init__(win, title='文字コードから人名・地名漢字を挿入')
 
         def body(self, win):
             t = '下記のURLで漢字を検索してください．\n' + \
                 'https://moji.or.jp/mojikibansearch/basic\n\n' + \
                 '「対応するUCS」の下の段を下に入力してください．\n' + \
-                '例：花の場合→<82B1,E0102>\n\n'
+                '例：花の場合→<82B1,E0102>\n'
             self.text1 = tkinter.Label(win, text=t)
-            self.text1.pack(side=tkinter.TOP)
-            self.entry1 = tkinter.Label(win, text='　　　<')
+            self.text1.pack(side=tkinter.TOP, anchor=tkinter.W)
+            self.entry1 = tkinter.Label(win, text='　　　　　<')
             self.entry1.pack(side=tkinter.LEFT)
             self.entry2 = tkinter.Entry(win, width=7)
             self.entry2.pack(side=tkinter.LEFT)
@@ -5904,67 +5873,82 @@ class Makdo:
             self.entry4.pack(side=tkinter.LEFT)
             self.entry5 = tkinter.Label(win, text='>')
             self.entry5.pack(side=tkinter.LEFT)
+            # self.bind('<Key-Return>', self.ok)
+            # self.bind('<Key-Escape>', self.cancel)
+            # super().body(win)
+
+        # def buttonbox(self):
+        #     btn = tkinter.Frame(self)
+        #     self.btn1 = tkinter.Button(btn, text='OK', width=6,
+        #                                command=self.ok)
+        #     self.btn1.pack(side=tkinter.LEFT, padx=3, pady=3)
+        #     self.btn2 = tkinter.Button(btn, text='Cancel', width=6,
+        #                                command=self.cancel)
+        #     self.btn2.pack(side=tkinter.LEFT, padx=3, pady=3)
+        #     btn.pack()
 
         def apply(self):
             ucs = self.entry2.get()
             ivs = self.entry4.get()
-            md = chr(int(ucs, 16)) + str(int(ivs, 16) - 917760) + ';'
-            self.win.insert('insert', md)
+            if re.match('^[0-9a-fA-F]{4}$', ucs):
+                self.win.insert('insert', chr(int(ucs, 16)))
+                if re.match('^E01[0-9a-eA-E][0-9a-fA-F]$', ivs):
+                    self.win.insert('insert', str(int(ivs, 16) - 917760) + ';')
 
     def insert_ivs_of_7947(self):
         self.txt.insert('insert',
-                        '祇2;' +  # E0102
-                        '祇3;')   # E0103
+                        'A祇2;' +  # E0102
+                        'B祇3;')   # E0103
 
     def insert_ivs_of_82b1(self):
         self.txt.insert('insert',
-                        '花2;' +  # E0102
-                        '花3;' +  # E0103
-                        '花4;' +  # E0104
-                        '花6;')   # E0106
+                        'A花2;' +  # E0102
+                        'B花3;' +  # E0103
+                        'C花4;' +  # E0104
+                        'D花6;')   # E0106
 
     def insert_ivs_of_845b(self):
         self.txt.insert('insert',
-                        '葛2;' +  # E0102
-                        '葛3;' +  # E0103
-                        '葛4;' +  # E0104
-                        '葛5;' +  # E0105
-                        '葛6;' +  # E0106
-                        '葛7;' +  # E0107
-                        '葛8;')   # E0108
+                        'A葛2;' +  # E0102
+                        'B葛3;' +  # E0103
+                        'C葛4;' +  # E0104
+                        'D葛5;' +  # E0105
+                        'E葛6;' +  # E0106
+                        'F葛7;' +  # E0107
+                        'G葛8;')   # E0108
 
     def insert_ivs_of_9089(self):
         self.txt.insert('insert',
-                        '邉15;' +  # E010F
-                        '邉16;' +  # E0110
-                        '邉17;' +  # E0111
-                        '邉18;' +  # E0112
-                        '邉19;' +  # E0113
-                        '邉20;' +  # E0114
-                        '邉21;' +  # E0115
-                        '邉22;' +  # E0116
-                        '邉23;' +  # E0117
-                        '邉24;' +  # E0118
-                        '邉25;' +  # E0119
-                        '邉26;' +  # E011A
-                        '邉27;' +  # E011B
-                        '邉28;' +  # E011C
-                        '邉29;' +  # E011D
-                        '邉31;')   # E011F
+                        'A邉15;' +  # E010F
+                        'B邉16;' +  # E0110
+                        'C邉17;' +  # E0111
+                        'D邉18;' +  # E0112
+                        'E邉19;' +  # E0113
+                        'F邉20;' +  # E0114
+                        'G邉21;' +  # E0115
+                        'H邉22;' +  # E0116
+                        'I邉23;' +  # E0117
+                        'J邉24;' +  # E0118
+                        'K邉25;' +  # E0119
+                        'L邉26;' +  # E011A
+                        'M邉27;' +  # E011B
+                        'N邉28;' +  # E011C
+                        'O邉29;' +  # E011D
+                        'P邉31;')   # E011F
 
     def insert_ivs_of_908a(self):
         self.txt.insert('insert',
-                        '邊8;' +   # E0108
-                        '邊9;' +   # E0109
-                        '邊10;' +  # E010A
-                        '邊11;' +  # E010B
-                        '邊12;' +  # E010C
-                        '邊13;' +  # E010D
-                        '邊14;' +  # E010E
-                        '邊15;' +  # E010F
-                        '邊16;' +  # E0110
-                        '邊17;' +  # E0111
-                        '邊18;')   # E0112
+                        'A邊8;' +   # E0108
+                        'B邊9;' +   # E0109
+                        'C邊10;' +  # E010A
+                        'D邊11;' +  # E010B
+                        'E邊12;' +  # E010C
+                        'F邊13;' +  # E010D
+                        'G邊14;' +  # E010E
+                        'H邊15;' +  # E010F
+                        'I邊16;' +  # E0110
+                        'J邊17;' +  # E0111
+                        'K邊18;')   # E0112
 
     ################################
     # DATE AND TIME
@@ -6103,15 +6087,50 @@ class Makdo:
     # SYMBOL
 
     def insert_symbol(self):
-        symbols = ['⑴', '⑵', '⑶', '⑷', '⑸', '⑹', '⑺', '⑻', '⑼', '⑽',
-                   '⑾', '⑿', '⒀', '⒁', '⒂', '⒃', '⒄', '⒅', '⒆', '⒇',
-                   '⓪',
-                   '①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩',
-                   '⑪', '⑫', '⑬', '⑭', '⑮', '⑯', '⑰', '⑱', '⑲', '⑳',
-                   '²', '³',
-                   '㊞',
-                   ]
-        InsertSymbolDialog(self.txt, symbols)
+        candidates = ['⑴', '⑵', '⑶', '⑷', '⑸', '⑹', '⑺', '⑻', '⑼', '⑽',
+                      '⑾', '⑿', '⒀', '⒁', '⒂', '⒃', '⒄', '⒅', '⒆', '⒇',
+                      '⓪',
+                      '①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩',
+                      '⑪', '⑫', '⑬', '⑭', '⑮', '⑯', '⑰', '⑱', '⑲', '⑳',
+                      '²', '³',
+                      '㊞',
+                      ]
+        self.SymbolDialog(self.txt, candidates)
+
+    class SymbolDialog(tkinter.simpledialog.Dialog):
+
+        def __init__(self, win, candidates):
+            self.win = win
+            self.candidates = candidates
+            super().__init__(win, title='記号を挿入')
+
+        def body(self, win):
+            self.symbol = tkinter.StringVar()
+            for i, cnd in enumerate(self.candidates):
+                rd = tkinter.Radiobutton(win, text=cnd, value=cnd,
+                                         font=(GOTHIC_FONT, 24),
+                                         variable=self.symbol)
+                y, x = int(i / 10), (i % 10)
+                rd.grid(row=y, column=x, columnspan=1, padx=3, pady=3)
+            # self.bind('<Key-Return>', self.ok)
+            # self.bind('<Key-Escape>', self.cancel)
+            # super().body(win)
+
+        # def buttonbox(self):
+        #     btn = tkinter.Frame(self)
+        #     self.btn1 = tkinter.Button(btn, text='OK', width=6,
+        #                                command=self.ok)
+        #     self.btn1.pack(side=tkinter.LEFT, padx=3, pady=3)
+        #     self.btn2 = tkinter.Button(btn, text='Cancel', width=6,
+        #                                command=self.cancel)
+        #     self.btn2.pack(side=tkinter.LEFT, padx=3, pady=3)
+        #     btn.pack()
+
+        def apply(self):
+            symbol = self.symbol.get()
+            self.win.insert('insert', symbol)
+            # self.win.mark_set('insert', 'insert-1c')
+            self.win.focus_set()
 
     # "-"（002D）半角ハイフンマイナス
     # "‐"（2010）全角ハイフン
@@ -6889,6 +6908,7 @@ if __name__ == '__main__':
         '-c', '--background-color',
         type=str,
         choices=['W', 'B', 'G'],
+        default='W',
         help='背景の色（白、黒、緑）を指定します')
     parser.add_argument(
         '-p', '--paint-keywords',
