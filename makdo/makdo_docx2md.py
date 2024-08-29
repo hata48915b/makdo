@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.27-06:47:19-JST>
+# Time-stamp:   <2024.08.29-15:35:27-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1023,7 +1023,7 @@ def c2n_n_kanj(s):
     i = re.sub('[万千百十 ]', '', i)
     #
     if re.match('^[0-9]+$', i):
-        return i
+        return int(i)
     return -1
 
 

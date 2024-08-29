@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.28-09:08:40-JST>
+# Time-stamp:   <2024.08.29-16:55:42-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -32,6 +32,10 @@
 # USAGE
 # from makdo.makdo_gui import Makdo
 # Makdo()
+
+
+############################################################
+# SETTING
 
 
 import os
@@ -65,6 +69,7 @@ elif sys.platform == 'linux':
 
 __version__ = 'v07 Furuichibashi'
 
+
 WINDOW_SIZE = '900x600'
 GOTHIC_FONT = 'ＭＳ ゴシック'
 MINCHO_FONT = 'ＭＳ 明朝'
@@ -84,16 +89,16 @@ COLOR_SPACE = (
     ('#FF1C1C', '#FF5D5D', '#FF9E9E', '#FFDFDF'),  # 000 : comment
     ('#DE2900', '#FF603C', '#FFA08A', '#FFDFD8'),  # 010 : fold
     ('#A63A00', '#FF6512', '#FFA271', '#FFE0D0'),  # 020 : del
-    ('#864300', '#E07000', '#FFA64D', '#FFE1C4'),  # 030 : sect1
-    ('#714900', '#BC7A00', '#FFAC10', '#FFE3AF'),  # 040 : sect2 第１
-    ('#604E00', '#A08300', '#E0B700', '#FFE882'),  # 050 : sect3 １
-    ('#525200', '#898900', '#C0C000', '#F7F700'),  # 060 : sect4 (1), 判断者
-    ('#465600', '#758F00', '#A4C900', '#D5FF1A'),  # 070 : sect5 ア
-    ('#3A5A00', '#619500', '#88D100', '#C2FF50'),  # 080 : sect6 (ｱ), paren1
-    ('#2F5D00', '#4E9B00', '#6DD900', '#B8FF70'),  # 090 : sect7 ａ,  paren2
-    ('#226100', '#38A200', '#4FE200', '#B0FF86'),  # 100 : sect8 (a), paren3
-    ('#136500', '#1FA900', '#2CED00', '#AAFF97'),  # 110 :
-    ('#006B00', '#00B200', '#00FA00', '#A5FFA5'),  # 120 : br, pgbr, fd
+    ('#864300', '#E07000', '#FFA64D', '#FFE1C4'),  # 030 : sect1, hnumb
+    ('#714900', '#BC7A00', '#FFAC10', '#FFE3AF'),  # 040 : sect2
+    ('#604E00', '#A08300', '#E0B700', '#FFE882'),  # 050 : sect3
+    ('#525200', '#898900', '#C0C000', '#F7F700'),  # 060 : sect4, 判断者
+    ('#465600', '#758F00', '#A4C900', '#D5FF1A'),  # 070 : sect5
+    ('#3A5A00', '#619500', '#88D100', '#C2FF50'),  # 080 : sect6, paren1
+    ('#2F5D00', '#4E9B00', '#6DD900', '#B8FF70'),  # 090 : sect7, paren2
+    ('#226100', '#38A200', '#4FE200', '#B0FF86'),  # 100 : sect8, paren3
+    ('#136500', '#1FA900', '#2CED00', '#AAFF97'),  # 110 : 
+    ('#006B00', '#00B200', '#00FA00', '#A5FFA5'),  # 120 : br, pgbr, font decorate
     ('#006913', '#00AF20', '#00F52D', '#A1FFB2'),  # 130 :
     ('#006724', '#00AC3C', '#00F154', '#9DFFBF'),  # 140 :
     ('#006633', '#00AA55', '#00EE77', '#98FFCC'),  # 150 : length reviser
@@ -102,11 +107,11 @@ COLOR_SPACE = (
     ('#006161', '#00A2A2', '#00E3E3', '#87FFFF'),  # 180 : algin, 申立人
     ('#005F75', '#009FC3', '#21D6FF', '#B5F1FF'),  # 190 :
     ('#005D8E', '#009AED', '#59C5FF', '#C8ECFF'),  # 200 : (fsp), ins
-    ('#0059B2', '#1F8FFF', '#79BCFF', '#D2E9FF'),  # 210 : chap1 第１編, hnumb
-    ('#0053EF', '#4385FF', '#8EB6FF', '#D9E7FF'),  # 220 : chap2 第１章, (tab)
-    ('#1F48FF', '#5F7CFF', '#9FB1FF', '#DFE5FF'),  # 230 : chap3 第１節
-    ('#3F3FFF', '#7676FF', '#ADADFF', '#E4E4FF'),  # 240 : chap4 第１款, (hsp)
-    ('#5B36FF', '#8A70FF', '#B9A9FF', '#E8E2FF'),  # 250 : chap5 第１目
+    ('#0059B2', '#1F8FFF', '#79BCFF', '#D2E9FF'),  # 210 : chap1
+    ('#0053EF', '#4385FF', '#8EB6FF', '#D9E7FF'),  # 220 : chap2, (tab)
+    ('#1F48FF', '#5F7CFF', '#9FB1FF', '#DFE5FF'),  # 230 : chap3
+    ('#3F3FFF', '#7676FF', '#ADADFF', '#E4E4FF'),  # 240 : chap4, (hsp)
+    ('#5B36FF', '#8A70FF', '#B9A9FF', '#E8E2FF'),  # 250 : chap5
     ('#772EFF', '#9E6AFF', '#C5A5FF', '#ECE1FF'),  # 260 :
     ('#9226FF', '#B164FF', '#D0A2FF', '#EFE0FF'),  # 270 :
     ('#B01DFF', '#C75DFF', '#DD9EFF', '#F4DFFF'),  # 280 :
@@ -168,6 +173,15 @@ PARAGRAPH_SAMPLE = ['', '\t',
                     '# <!--タイトル-->', '## <!--第１-->', '### <!--１-->',
                     '#### <!--(1)-->', '##### <!--ア-->', '###### <!--(ｱ)-->',
                     '####### <!--ａ-->', '######## <!--(a)-->',
+                    '1. <!--番号付き箇条書-->',
+                    '  1. <!--番号付き箇条書-->',
+                    '    1. <!--番号付き箇条書-->',
+                    '      1. <!--番号付き箇条書-->',
+                    '- <!--番号なし箇条書-->',
+                    '  - <!--番号なし箇条書-->',
+                    '    - <!--番号なし箇条書-->',
+                    '      - <!--番号なし箇条書-->',
+                    '        - <!--番号なし箇条書-->',
                     ': <!--左寄せ-->', ': <!--中寄せ--> :', '<!--右寄せ--> :',
                     '|<!--表のセル-->|<!--表のセル-->|',
                     '![<!--画像の名前-->](<!--画像のファイル名-->)',
@@ -2808,6 +2822,130 @@ v=+0.5
 DONT_EDIT_MESSAGE = '<!--【以下は必要なデータですので編集しないでください】-->'
 
 
+############################################################
+# FUNCTION
+
+
+def c2n_n_arab(s):
+    n = 0
+    for c in s:
+        n *= 10
+        if re.match('^[0-9]$', c):
+            n += int(c)
+        elif re.match('^[０-９]$', c):
+            n += ord(c) - 65296
+        else:
+            return -1
+    return n
+
+
+def c2n_n_kata(s):
+    i = -1
+    if len(s) == 1:
+        i = ord(s)
+    n = 65392
+    if i >= n + 1 and i <= n + 44:
+        # ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜ
+        return i - n
+    n = 65337
+    if i == n + 45:
+        # ｦ
+        return i - n
+    n = 65391
+    if i == n + 46:
+        # ﾝ
+        return i - n
+    n = 12448
+    if i >= n + 2 * 1 and i <= n + 2 * 5:
+        # アイウエオ
+        return int((i - n) / 2)
+    n = 12447
+    if i >= n + 2 * 6 and i <= n + 2 * 17:
+        # カキクケコサシスセソタチ
+        return int((i - n) / 2)
+    n = 12448
+    if i >= n + 2 * 18 and i <= n + 2 * 20:
+        # ツテト
+        return int((i - n) / 2)
+    n = 12469
+    if i >= n + 1 * 21 and i <= n + 1 * 25:
+        # ナニヌネノ
+        return int((i - n) / 1)
+    n = 12417
+    if i >= n + 3 * 26 and i <= n + 3 * 30:
+        # ハヒフヘホ
+        return int((i - n) / 3)
+    n = 12479
+    if i >= n + 1 * 31 and i <= n + 1 * 35:
+        # マミムメモ
+        return int((i - n) / 1)
+    n = 12444
+    if i >= n + 2 * 36 and i <= n + 2 * 38:
+        # ヤユヨ
+        return int((i - n) / 2)
+    n = 12482
+    if i >= n + 1 * 39 and i <= n + 1 * 43:
+        # ラリルレロ
+        return int((i - n) / 1)
+    n = 12483
+    if i >= n + 1 * 44 and i <= n + 1 * 49:
+        # ワヰヱヲン
+        return int((i - n) / 1)
+    return -1
+
+
+def c2n_n_alph(s):
+    i = -1
+    if len(s) == 1:
+        i = ord(s)
+    n = 96
+    if i >= n + 1 and i <= n + 26:
+        # a...z
+        return i - n
+    n = 65344
+    if i >= n + 1 and i <= n + 26:
+        # ａ...ｚ
+        return i - n
+    return -1
+
+
+def c2n_n_kanj(s):
+    i = s
+    i = re.sub('[０〇零]', '0', i)
+    i = re.sub('[１一壱]', '1', i)
+    i = re.sub('[２二弐]', '2', i)
+    i = re.sub('[３三参]', '3', i)
+    i = re.sub('[４四]', '4', i)
+    i = re.sub('[５五伍]', '5', i)
+    i = re.sub('[６六]', '6', i)
+    i = re.sub('[７七]', '7', i)
+    i = re.sub('[８八]', '8', i)
+    i = re.sub('[９九]', '9', i)
+    #
+    i = re.sub('[拾]', '十', i)
+    i = re.sub('[佰陌]', '百', i)
+    i = re.sub('[仟阡]', '千', i)
+    i = re.sub('[萬]', '万', i)
+    #
+    i = re.sub('^([千百十])', '1\\1', i)
+    i = re.sub('([^0-9])([千百十])', '\\1 1\\2', i)
+    #
+    i = re.sub('(万)([^千]*)$', '\\1 0千\\2', i)
+    i = re.sub('(千)([^百]*)$', '\\1 0百\\2', i)
+    i = re.sub('(百)([^十]*)$', '\\1 0十\\2', i)
+    i = re.sub('(十)$', '\\1 0', i)
+    #
+    i = re.sub('[万千百十 ]', '', i)
+    #
+    if re.match('^[0-9]+$', i):
+        return int(i)
+    return -1
+
+
+############################################################
+# CLASS
+
+
 class CharsState:
 
     def __init__(self):
@@ -2920,7 +3058,7 @@ class CharsState:
         elif chars == 'font decorator':
             key += '-120'
         elif chars == 'half number':
-            key += '-210'
+            key += '-30'
         elif chars == 'full number':
             key += '-330'
         elif chars == 'list':
@@ -3845,8 +3983,20 @@ class Makdo:
         self.mc4.add_command(label='セクションの番号を変更',
                              command=self.set_section_number)
         self.mc4.add_command(label='リストの番号を変更',
-                             command=self.set_section_number)
+                             command=self.set_list_number)
         self.mc4.add_separator()
+        self.mc4chp = tkinter.Menu(self.mc4, tearoff=False)
+        self.mc4.add_cascade(label='チャプターを挿入', menu=self.mc4chp)
+        self.mc4chp.add_command(label='第１編　…',
+                                command=self.insert_chap_1)
+        self.mc4chp.add_command(label='　第１章　…',
+                                command=self.insert_chap_2)
+        self.mc4chp.add_command(label='　　第１節　…',
+                                command=self.insert_chap_3)
+        self.mc4chp.add_command(label='　　　第１款　…',
+                                command=self.insert_chap_4)
+        self.mc4chp.add_command(label='　　　　第１目　…',
+                                command=self.insert_chap_5)
         self.mc4sec = tkinter.Menu(self.mc4, tearoff=False)
         self.mc4.add_cascade(label='セクションを挿入', menu=self.mc4sec)
         self.mc4sec.add_command(label='（書面のタイトル）',
@@ -3865,18 +4015,6 @@ class Makdo:
                                 command=self.insert_sect_7)
         self.mc4sec.add_command(label='　　　　　　(a) …',
                                 command=self.insert_sect_8)
-        self.mc4chp = tkinter.Menu(self.mc4, tearoff=False)
-        self.mc4.add_cascade(label='チャプターを挿入', menu=self.mc4chp)
-        self.mc4chp.add_command(label='第１編　…',
-                                command=self.insert_chap_1)
-        self.mc4chp.add_command(label='　第１章　…',
-                                command=self.insert_chap_2)
-        self.mc4chp.add_command(label='　　第１節　…',
-                                command=self.insert_chap_3)
-        self.mc4chp.add_command(label='　　　第１款　…',
-                                command=self.insert_chap_4)
-        self.mc4chp.add_command(label='　　　　第１目　…',
-                                command=self.insert_chap_5)
         self.mc4.add_command(label='画像を挿入',
                              command=self.insert_image_paragraph)
         self.mc4tab = tkinter.Menu(self.mc4, tearoff=False)
@@ -5149,10 +5287,247 @@ class Makdo:
                 self.win.insert(beg, leng_revs + '\n')
 
     def set_chapter_number(self):
-        pass
+        self.ChapterNumberDialog(self.txt)
+
+    class ChapterNumberDialog(tkinter.simpledialog.Dialog):
+
+        def __init__(self, win, cnd=[-1, -1, -1, -1, -1]):
+            self.win = win
+            self.cnd = cnd
+            super().__init__(win, title='チャプターの番号を変更')
+
+        def body(self, win):
+            self.entry1 = self._body(win, 0, '編', self.cnd[0])
+            self.entry2 = self._body(win, 1, '章', self.cnd[1])
+            self.entry3 = self._body(win, 2, '節', self.cnd[2])
+            self.entry4 = self._body(win, 3, '款', self.cnd[3])
+            self.entry5 = self._body(win, 4, '目', self.cnd[4])
+
+        def _body(self, win, row, unit, cnd):
+            head = tkinter.Label(win, text='第１' + unit + '　→　第')
+            head.grid(row=row, column=0)
+            entry = tkinter.Entry(win, width=4, justify='center')
+            entry.grid(row=row, column=1)
+            if cnd >= 0:
+                entry.insert(0, str(cnd))
+            tail = tkinter.Label(win, text=unit)
+            tail.grid(row=row, column=2)
+            return entry
+
+        def apply(self):
+            str1 = self.entry1.get()
+            int1, err1 = self._apply(str1)
+            str2 = self.entry2.get()
+            int2, err2 = self._apply(str2)
+            str3 = self.entry3.get()
+            int3, err3 = self._apply(str3)
+            str4 = self.entry4.get()
+            int4, err4 = self._apply(str4)
+            str5 = self.entry5.get()
+            int5, err5 = self._apply(str5)
+            if err1 == True or err2 == True or err3 == True or \
+               err4 == True or err5 == True:
+                Makdo.ChapterNumberDialog(self.win,
+                                          [int1, int2, int3, int4, int5])
+            else:
+                doc = self.win.get('1.0', 'insert')
+                res = '^(' \
+                    + '((.|\n)*\n\n)?' \
+                    + '(((v|V|X|<<|<|>)=[-\\+]?[0-9]+\\s*)*\n)?' \
+                    + ')(.|\n)*$'
+                doc = re.sub(res, '\\1', doc)
+                ins = ''
+                if int1 >= 0:
+                    ins += '$=' + str(int1) + ' '
+                if int2 >= 0:
+                    ins += '$$=' + str(int2) + ' '
+                if int3 >= 0:
+                    ins += '$$$=' + str(int3) + ' '
+                if int4 >= 0:
+                    ins += '$$$$=' + str(int4) + ' '
+                if int5 >= 0:
+                    ins += '$$$$$=' + str(int5) + ' '
+                if ins != '':
+                    ins = re.sub('\\s+$', '\n', ins)
+                    self.win.insert('1.0+' + str(len(doc)) + 'c', ins)
+
+        def _apply(self, strn):
+            if strn == '':
+                return -1, False
+            intn = c2n_n_arab(strn)
+            if intn == -1:
+                return -1, True
+            return intn, False
 
     def set_section_number(self):
-        pass
+        self.SectionNumberDialog(self.txt)
+
+    class SectionNumberDialog(tkinter.simpledialog.Dialog):
+
+        def __init__(self, win, cnd=['', '', '', '', '', '', '']):
+            self.win = win
+            self.cnd = cnd
+            super().__init__(win, title='セクションの番号を変更')
+
+        def body(self, win):
+            self.entry1 = self._body(win, 0, '第', '１', '', self.cnd[0])
+            self.entry2 = self._body(win, 1, '', '１', '', self.cnd[1])
+            self.entry3 = self._body(win, 2, '（', '1', '）', self.cnd[2])
+            self.entry4 = self._body(win, 3, '', 'ア', '', self.cnd[3])
+            self.entry5 = self._body(win, 4, '（', 'ｱ', '）', self.cnd[4])
+            self.entry6 = self._body(win, 5, '', 'ａ', '', self.cnd[5])
+            self.entry7 = self._body(win, 6, '（', 'a', '）', self.cnd[6])
+
+        def _body(self, win, row, pre, num, pos, cnd):
+            txt = tkinter.Label(win, text=pre + num + pos)
+            txt.grid(row=row, column=0)
+            txt = tkinter.Label(win, text='　→　')
+            txt.grid(row=row, column=1)
+            txt = tkinter.Label(win, text=pre)
+            txt.grid(row=row, column=2)
+            entry = tkinter.Entry(win, width=4, justify='center')
+            entry.grid(row=row, column=3)
+            if cnd is not None:
+                entry.insert(0, str(cnd))
+            txt = tkinter.Label(win, text=pos)
+            txt.grid(row=row, column=4)
+            return entry
+
+        def apply(self):
+            str1 = self.entry1.get()
+            str1, int1, err1 = self._apply(str1, 'arab')
+            str2 = self.entry2.get()
+            str2, int2, err2 = self._apply(str2, 'arab')
+            str3 = self.entry3.get()
+            str3, int3, err3 = self._apply(str3, 'arab')
+            str4 = self.entry4.get()
+            str4, int4, err4 = self._apply(str4, 'kata')
+            str5 = self.entry5.get()
+            str5, int5, err5 = self._apply(str5, 'kata')
+            str6 = self.entry6.get()
+            str6, int6, err6 = self._apply(str6, 'alph')
+            str7 = self.entry7.get()
+            str7, int7, err7 = self._apply(str7, 'alph')
+            if err1 == True or err2 == True or err3 == True or \
+               err4 == True or err5 == True or err6 == True or \
+               err7 == True:
+                lst = [str1, str2, str3, str4, str5, str6, str7]
+                Makdo.SectionNumberDialog(self.win, lst)
+            else:
+                doc = self.win.get('1.0', 'insert')
+                res = '^(' \
+                    + '((.|\n)*\n\n)?' \
+                    + '(((v|V|X|<<|<|>)=[-\\+]?[0-9]+\\s*)*\n)?' \
+                    + ')(.|\n)*$'
+                doc = re.sub(res, '\\1', doc)
+                ins = ''
+                if int1 >= 0:
+                    ins += '#=' + str(int1) + ' '
+                if int2 >= 0:
+                    ins += '##=' + str(int2) + ' '
+                if int3 >= 0:
+                    ins += '###=' + str(int3) + ' '
+                if int4 >= 0:
+                    ins += '####=' + str(int4) + ' '
+                if int5 >= 0:
+                    ins += '#####=' + str(int5) + ' '
+                if int6 >= 0:
+                    ins += '######=' + str(int6) + ' '
+                if int7 >= 0:
+                    ins += '#######=' + str(int7) + ' '
+                if ins != '':
+                    ins = re.sub('\\s+$', '\n', ins)
+                    self.win.insert('1.0+' + str(len(doc)) + 'c', ins)
+
+        def _apply(self, strn, kind):
+            if strn == '':
+                return '', -1, False
+            if kind == 'arab':
+                intn = c2n_n_arab(strn)
+            elif kind == 'kata':
+                intn = c2n_n_kata(strn)
+            elif kind == 'alph':
+                intn = c2n_n_alph(strn)
+            if intn == -1:
+                return '', -1, True
+            return strn, intn, False
+
+
+    def set_list_number(self):
+        self.ListNumberDialog(self.txt)
+
+    class ListNumberDialog(tkinter.simpledialog.Dialog):
+
+        def __init__(self, win, cnd=['', '', '', '']):
+            self.win = win
+            self.cnd = cnd
+            super().__init__(win, title='リストの番号を変更')
+
+        def body(self, win):
+            self.entry1 = self._body(win, 0, '①', self.cnd[0])
+            self.entry2 = self._body(win, 1, '㋐', self.cnd[1])
+            self.entry3 = self._body(win, 2, 'ⓐ', self.cnd[2])
+            self.entry4 = self._body(win, 3, '㊀', self.cnd[3])
+
+        def _body(self, win, row, num, cnd):
+            txt = tkinter.Label(win, text=num)
+            txt.grid(row=row, column=0)
+            txt = tkinter.Label(win, text='　→　')
+            txt.grid(row=row, column=1)
+            txt = tkinter.Label(win, text='（')
+            txt.grid(row=row, column=2)
+            entry = tkinter.Entry(win, width=4, justify='center')
+            entry.grid(row=row, column=3)
+            if cnd is not None:
+                entry.insert(0, str(cnd))
+            txt = tkinter.Label(win, text='）')
+            txt.grid(row=row, column=4)
+            return entry
+
+        def apply(self):
+            str1 = self.entry1.get()
+            str1, int1, err1 = self._apply(str1, 'arab')
+            str2 = self.entry2.get()
+            str2, int2, err2 = self._apply(str2, 'kata')
+            str3 = self.entry3.get()
+            str3, int3, err3 = self._apply(str3, 'alph')
+            str4 = self.entry4.get()
+            str4, int4, err4 = self._apply(str4, 'kanj')
+            if err1 == True or err2 == True or err3 == True or err4 == True:
+                Makdo.ListNumberDialog(self.win, [str1, str2, str3, str4])
+            else:
+                doc = self.win.get('1.0', 'insert')
+                res = '^(' \
+                    + '((.|\n)*\n\n)?' \
+                    + '(((v|V|X|<<|<|>)=[-\\+]?[0-9]+\\s*)*\n)?' \
+                    + ')(.|\n)*$'
+                doc = re.sub(res, '\\1', doc)
+                ins = ''
+                if int1 >= 0:
+                    ins += '1.=' + str(int1) + '\n'
+                if int2 >= 0:
+                    ins += '  1.=' + str(int2) + '\n'
+                if int3 >= 0:
+                    ins += '    1.=' + str(int3) + '\n'
+                if int4 >= 0:
+                    ins += '      1.=' + str(int4) + '\n'
+                if ins != '':
+                    self.win.insert('1.0+' + str(len(doc)) + 'c', ins)
+
+        def _apply(self, strn, kind):
+            if strn == '':
+                return '', -1, False
+            if kind == 'arab':
+                intn = c2n_n_arab(strn)
+            elif kind == 'kata':
+                intn = c2n_n_kata(strn)
+            elif kind == 'alph':
+                intn = c2n_n_alph(strn)
+            elif kind == 'kanj':
+                intn = c2n_n_kanj(strn)
+            if intn == -1:
+                return '', -1, True
+            return strn, intn, False
 
     ################################
     # CHAPER
