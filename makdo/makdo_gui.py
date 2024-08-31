@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.29-16:55:42-JST>
+# Time-stamp:   <2024.08.31-11:44:09-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -34,7 +34,7 @@
 # Makdo()
 
 
-############################################################
+######################################################################
 # SETTING
 
 
@@ -97,8 +97,8 @@ COLOR_SPACE = (
     ('#3A5A00', '#619500', '#88D100', '#C2FF50'),  # 080 : sect6, paren1
     ('#2F5D00', '#4E9B00', '#6DD900', '#B8FF70'),  # 090 : sect7, paren2
     ('#226100', '#38A200', '#4FE200', '#B0FF86'),  # 100 : sect8, paren3
-    ('#136500', '#1FA900', '#2CED00', '#AAFF97'),  # 110 : 
-    ('#006B00', '#00B200', '#00FA00', '#A5FFA5'),  # 120 : br, pgbr, font decorate
+    ('#136500', '#1FA900', '#2CED00', '#AAFF97'),  # 110 :
+    ('#006B00', '#00B200', '#00FA00', '#A5FFA5'),  # 120 : br, pgbr, fontdeco
     ('#006913', '#00AF20', '#00F52D', '#A1FFB2'),  # 130 :
     ('#006724', '#00AC3C', '#00F154', '#9DFFBF'),  # 140 :
     ('#006633', '#00AA55', '#00EE77', '#98FFCC'),  # 150 : length reviser
@@ -2822,7 +2822,7 @@ v=+0.5
 DONT_EDIT_MESSAGE = '<!--【以下は必要なデータですので編集しないでください】-->'
 
 
-############################################################
+######################################################################
 # FUNCTION
 
 
@@ -2942,9 +2942,12 @@ def c2n_n_kanj(s):
     return -1
 
 
-############################################################
+######################################################################
 # CLASS
 
+
+############################################################
+# CHARS STATE
 
 class CharsState:
 
@@ -3131,6 +3134,8 @@ class CharsState:
         # RETURN
         return key
 
+############################################################
+# LINE DATUM
 
 class LineDatum:
 
@@ -3692,6 +3697,9 @@ class LineDatum:
         return
 
 
+############################################################
+# MAKDO
+
 class Makdo:
 
     args_background_color = 'W'
@@ -3701,6 +3709,9 @@ class Makdo:
     args_input_file = None
 
     search_word = ''
+
+    ##############################################
+    # INIT
 
     def __init__(self):
         self.tmep_dir = ''
@@ -3724,452 +3735,15 @@ class Makdo:
         # FRAME
         self.frm = tkinter.Frame()
         self.frm.pack(expand=True, fill=tkinter.BOTH)
-        self.txt = tkinter.Text(self.frm, width=80, height=30, undo=True)
-        self.txt.drop_target_register(DND_FILES)               # drag and drop
-        self.txt.dnd_bind('<<Drop>>', self.open_dropped_file)  # drag and drop
         # MENU BAR
         self.mnb = tkinter.Menu()
-        # FILE
-        self.mc1 = tkinter.Menu(self.mnb, tearoff=False)
-        self.mnb.add_cascade(label='ファイル(F)', menu=self.mc1, underline=5)
-        self.mc1.add_command(label='ファイルを開く(O)',
-                             command=self.open_file,
-                             underline=8)
-        self.mc1.add_command(label='ファイルを閉じる(C)',
-                             command=self.close_file,
-                             underline=9)
-        self.mc1.add_separator()
-        self.mc1.add_command(label='ファイルを保存(S)',
-                             command=self.save_file,
-                             underline=10,
-                             accelerator='Ctrl+S')
-        self.mc1.add_command(label='名前を付けて保存(A)',
-                             command=self.name_and_save,
-                             underline=9)
-        self.mc1.add_separator()
-        self.mc1.add_command(label='PDFに変換',
-                             command=self.convert_to_pdf)
-        self.mc1.add_command(label='見た目の確認・印刷(P)',
-                             command=self.start_writer,
-                             underline=10,
-                             accelerator='Ctrl+P')
-        self.mc1.add_separator()
-        self.mc1.add_command(label='終了(Q)',
-                             command=self.quit_makdo,
-                             underline=3,
-                             accelerator='Ctrl+Q')
-        # EDIT
-        self.mc2 = tkinter.Menu(self.mnb, tearoff=False)
-        self.mnb.add_cascade(label='編集(E)', menu=self.mc2, underline=3)
-        self.mc2.add_command(label='元に戻す(U)',
-                             command=self.edit_modified_undo,
-                             underline=5,
-                             accelerator='Ctrl+Z')
-        self.mc2.add_command(label='やり直す(R)',
-                             command=self.edit_modified_redo,
-                             underline=5,
-                             accelerator='Ctrl+Y')
-        self.mc2.add_separator()
-        self.mc2.add_command(label='切り取り(C)',
-                             command=self.cut_text,
-                             underline=5,
-                             accelerator='Ctrl+X')
-        self.mc2.add_command(label='コピー(Y)',
-                             command=self.copy_text,
-                             underline=4,
-                             accelerator='Ctrl+C')
-        self.mc2.add_command(label='貼り付け(P)',
-                             command=self.paste_text,
-                             underline=5,
-                             accelerator='Ctrl+V')
-        self.mc2.add_separator()
-        self.mc2.add_command(label='全て選択(A)',
-                             command=self.select_all,
-                             underline=6,
-                             accelerator='Ctrl+A')
-        self.mc2.add_separator()
-        self.mc2.add_command(label='全て置換',
-                             command=self.replace_all)
-        self.mc2.add_separator()
-        self.mc2.add_command(label='数式を計算',
-                             command=self.calculate)
-        self.mc2.add_separator()
-        self.mc2.add_command(label='字体を変える',
-                             command=self.transform_to_another_typeface)
-        self.mc2.add_separator()
-        self.mc2.add_command(label='コメントアウト',
-                             command=self.comment_out)
-        self.mc2.add_command(label='コメントアウトを取り消す',
-                             command=self.uncomment)
-        # INSERT
-        self.mc3 = tkinter.Menu(self.mnb, tearoff=False)
-        self.mnb.add_cascade(label='挿入(I)', menu=self.mc3, underline=3)
-        self.mc3.add_command(label='空白を挿入',
-                             command=self.insert_space)
-        self.mc3.add_command(label='改行を挿入',
-                             command=self.insert_line_break)
-        self.mc3.add_command(label='画像を挿入',
-                             command=self.insert_images)
-        self.mc3fnt = tkinter.Menu(self.mc3, tearoff=False)
-        self.mc3.add_cascade(label='文字のフォントを変える', menu=self.mc3fnt)
-        self.mc3fnt.add_command(label='明朝体を変える',
-                                command=self.insert_font_select)
-        self.mc3fnt.add_separator()
-        self.mc3fnt.add_command(label='ゴシック体に変える',
-                                command=self.insert_gothic_font)
-        self.mc3fnt.add_separator()
-        self.mc3fnt.add_command(label='手動入力',
-                                command=self.insert_font_manually)
-        self.mc3fsz = tkinter.Menu(self.mc3, tearoff=False)
-        self.mc3.add_cascade(label='文字の大きさを変える', menu=self.mc3fsz)
-        self.mc3fsz.add_command(label='特小サイズ',
-                                command=self.insert_ss_font_size)
-        self.mc3fsz.add_command(label='小サイズ',
-                                command=self.insert_s_font_size)
-        self.mc3fsz.add_command(label='大サイズ',
-                                command=self.insert_l_font_size)
-        self.mc3fsz.add_command(label='特大サイズ',
-                                command=self.insert_ll_font_size)
-        self.mc3fsz.add_separator()
-        self.mc3fsz.add_command(label='手動入力',
-                                command=self.insert_font_size_manually)
-        self.mc3fwd = tkinter.Menu(self.mc3, tearoff=False)
-        self.mc3.add_cascade(label='文字の幅を変える', menu=self.mc3fwd)
-        self.mc3fwd.add_command(label='特細サイズ',
-                                command=self.insert_ss_font_width)
-        self.mc3fwd.add_command(label='細サイズ',
-                                command=self.insert_s_font_width)
-        self.mc3fwd.add_command(label='太サイズ',
-                                command=self.insert_l_font_width)
-        self.mc3fwd.add_command(label='特太サイズ',
-                                command=self.insert_ll_font_width)
-        self.mc3uln = tkinter.Menu(self.mc3, tearoff=False)
-        self.mc3.add_cascade(label='文字に下線をを引く', menu=self.mc3uln)
-        self.mc3uln.add_command(label='単線',
-                                command=self.insert_single_underline)
-        self.mc3uln.add_command(label='二重線',
-                                command=self.insert_double_underline)
-        self.mc3uln.add_command(label='波線',
-                                command=self.insert_wave_underline)
-        self.mc3uln.add_command(label='破線',
-                                command=self.insert_dash_underline)
-        self.mc3uln.add_command(label='点線',
-                                command=self.insert_dot_underline)
-        self.mc3fcl = tkinter.Menu(self.mc3, tearoff=False)
-        self.mc3.add_cascade(label='文字色を変える', menu=self.mc3fcl)
-        self.mc3fcl.add_command(label='赤色',
-                                command=self.insert_r_font_color)
-        self.mc3fcl.add_command(label='黄色',
-                                command=self.insert_y_font_color)
-        self.mc3fcl.add_command(label='緑色',
-                                command=self.insert_g_font_color)
-        self.mc3fcl.add_command(label='シアン',
-                                command=self.insert_c_font_color)
-        self.mc3fcl.add_command(label='青色',
-                                command=self.insert_b_font_color)
-        self.mc3fcl.add_command(label='マゼンタ',
-                                command=self.insert_m_font_color)
-        self.mc3fcl.add_command(label='白色',
-                                command=self.insert_w_font_color)
-        self.mc3hcl = tkinter.Menu(self.mc3, tearoff=False)
-        self.mc3.add_cascade(label='下地色を変える', menu=self.mc3hcl)
-        self.mc3hcl.add_command(label='赤色',
-                                command=self.insert_r_highlight_color)
-        self.mc3hcl.add_command(label='黄色',
-                                command=self.insert_y_highlight_color)
-        self.mc3hcl.add_command(label='緑色',
-                                command=self.insert_g_highlight_color)
-        self.mc3hcl.add_command(label='シアン',
-                                command=self.insert_c_highlight_color)
-        self.mc3hcl.add_command(label='青色',
-                                command=self.insert_b_highlight_color)
-        self.mc3hcl.add_command(label='マゼンタ',
-                                command=self.insert_m_highlight_color)
-        self.mc3typ = tkinter.Menu(self.mc3, tearoff=False)
-        self.mc3.add_cascade(label='人名・地名の字体を挿入',
-                             menu=self.mc3typ)
-        self.mc3typ.add_command(label='文字コードから人名・地名の字体を挿入',
-                                command=self.insert_ivs)
-        self.mc3typ.add_separator()
-        self.mc3typ.add_command(label='"祇"の人名・地名の字体の候補を全て挿入',
-                                command=self.insert_ivs_of_7947)
-        self.mc3typ.add_command(label='"花"の人名・地名の字体の候補を全て挿入',
-                                command=self.insert_ivs_of_82b1)
-        self.mc3typ.add_command(label='"葛"の人名・地名の字体の候補を全て挿入',
-                                command=self.insert_ivs_of_845b)
-        self.mc3typ.add_command(label='"邉"の人名・地名の字体の候補を全て挿入',
-                                command=self.insert_ivs_of_9089)
-        self.mc3typ.add_command(label='"邊"の人名・地名の字体の候補を全て挿入',
-                                command=self.insert_ivs_of_908a)
-        self.mc3.add_separator()
-        self.mc3dat = tkinter.Menu(self.mc3, tearoff=False)
-        self.mc3.add_cascade(label='日時を挿入', menu=self.mc3dat)
-        self.mc3dat.add_command(label='YY年M月D日',
-                                command=self.insert_date_YYMD)
-        self.mc3dat.add_command(label='令和Y年M月D日',
-                                command=self.insert_date_GYMD)
-        self.mc3dat.add_command(label='yy年m月d日',
-                                command=self.insert_date_yymd)
-        self.mc3dat.add_command(label='令和y年m月d日',
-                                command=self.insert_date_Gymd)
-        self.mc3dat.add_command(label='yyyy-mm-dd',
-                                command=self.insert_date_iso)
-        self.mc3dat.add_command(label='gyy-mm-dd',
-                                command=self.insert_date_giso)
-        self.mc3dat.add_separator()
-        self.mc3dat.add_command(label='H時M分S秒',
-                                command=self.insert_time_HHMS)
-        self.mc3dat.add_command(label='午前H時M分S秒',
-                                command=self.insert_time_GHMS)
-        self.mc3dat.add_command(label='h時m分s秒',
-                                command=self.insert_time_hhms)
-        self.mc3dat.add_command(label='午前h時m分s秒',
-                                command=self.insert_time_Ghms)
-        self.mc3dat.add_command(label='hh:mm:ss',
-                                command=self.insert_time_iso)
-        self.mc3dat.add_command(label='AMhh:mm:ss',
-                                command=self.insert_time_giso)
-        self.mc3dat.add_separator()
-        self.mc3dat.add_command(label='yyyy-mm-ddThh:mm:ss+09:00',
-                                command=self.insert_datetime)
-        self.mc3dat.add_command(label='yy-mm-dd hh:mm:ss',
-                                command=self.insert_datetime_symple)
-        self.mc3fil = tkinter.Menu(self.mc3, tearoff=False)
-        self.mc3.add_cascade(label='ファイル名を挿入', menu=self.mc3fil)
-        self.mc3fil.add_command(label='フルパスで挿入',
-                                command=self.insert_file_paths)
-        self.mc3fil.add_command(label='ファイル名のみを挿入',
-                                command=self.insert_file_names)
-        self.mc3.add_command(label='ファイルの内容を挿入',
-                             command=self.insert_file)
-        self.mc3.add_separator()
-        self.mc3.add_command(label='記号を挿入',
-                             command=self.insert_symbol)
-        self.mc3sym = tkinter.Menu(self.mc3, tearoff=False)
-        self.mc3.add_cascade(label='横棒を挿入', menu=self.mc3sym)
-        self.mc3sym.add_command(label='"-"（002D）半角ハイフンマイナス',
-                                command=self.insert_hline_002d)
-        self.mc3sym.add_command(label='"‐"（2010）全角ハイフン',
-                                command=self.insert_hline_2010)
-        self.mc3sym.add_command(label='"—"（2014）全角Ｍダッシュ',
-                                command=self.insert_hline_2014)
-        self.mc3sym.add_command(label='"―"（2015）全角水平線',
-                                command=self.insert_hline_2015)
-        self.mc3sym.add_command(label='"−"（2212）全角マイナスサイン',
-                                command=self.insert_hline_2212)
-        self.mc3sym.add_command(label='"－"（FF0D）全角ハイフンマイナス',
-                                command=self.insert_hline_ff0d)
-        self.mc3.add_separator()
-        self.mc3smp = tkinter.Menu(self.mc3, tearoff=False)
-        self.mc3.add_cascade(label='サンプルを挿入', menu=self.mc3smp)
-        self.mc3smp.add_command(label='基本',
-                                command=self.insert_basis)
-        self.mc3smp.add_command(label='民法',
-                                command=self.insert_law)
-        self.mc3smp.add_command(label='訴状',
-                                command=self.insert_petition)
-        self.mc3smp.add_command(label='証拠説明書',
-                                command=self.insert_evidence)
-        self.mc3smp.add_command(label='和解契約書',
-                                command=self.insert_settlement)
-        # PARAGRAPH
-        self.mc4 = tkinter.Menu(self.mnb, tearoff=False)
-        self.mnb.add_cascade(label='段落(P)', menu=self.mc4, underline=3)
-        self.mc4.add_command(label='長さを設定',
-                             command=self.set_paragraph_length)
-        self.mc4.add_separator()
-        self.mc4.add_command(label='チャプターの番号を変更',
-                             command=self.set_chapter_number)
-        self.mc4.add_command(label='セクションの番号を変更',
-                             command=self.set_section_number)
-        self.mc4.add_command(label='リストの番号を変更',
-                             command=self.set_list_number)
-        self.mc4.add_separator()
-        self.mc4chp = tkinter.Menu(self.mc4, tearoff=False)
-        self.mc4.add_cascade(label='チャプターを挿入', menu=self.mc4chp)
-        self.mc4chp.add_command(label='第１編　…',
-                                command=self.insert_chap_1)
-        self.mc4chp.add_command(label='　第１章　…',
-                                command=self.insert_chap_2)
-        self.mc4chp.add_command(label='　　第１節　…',
-                                command=self.insert_chap_3)
-        self.mc4chp.add_command(label='　　　第１款　…',
-                                command=self.insert_chap_4)
-        self.mc4chp.add_command(label='　　　　第１目　…',
-                                command=self.insert_chap_5)
-        self.mc4sec = tkinter.Menu(self.mc4, tearoff=False)
-        self.mc4.add_cascade(label='セクションを挿入', menu=self.mc4sec)
-        self.mc4sec.add_command(label='（書面のタイトル）',
-                                command=self.insert_sect_1)
-        self.mc4sec.add_command(label='第１　…',
-                                command=self.insert_sect_2)
-        self.mc4sec.add_command(label='　１　…',
-                                command=self.insert_sect_3)
-        self.mc4sec.add_command(label='　　(1) …',
-                                command=self.insert_sect_4)
-        self.mc4sec.add_command(label='　　　ア　…',
-                                command=self.insert_sect_5)
-        self.mc4sec.add_command(label='　　　　(ｱ) …',
-                                command=self.insert_sect_6)
-        self.mc4sec.add_command(label='　　　　　ａ　…',
-                                command=self.insert_sect_7)
-        self.mc4sec.add_command(label='　　　　　　(a) …',
-                                command=self.insert_sect_8)
-        self.mc4.add_command(label='画像を挿入',
-                             command=self.insert_image_paragraph)
-        self.mc4tab = tkinter.Menu(self.mc4, tearoff=False)
-        self.mc4.add_cascade(label='表を挿入', menu=self.mc4tab)
-        self.mc4tab.add_command(label='エクセルから挿入',
-                                command=self.insert_table_from_excel)
-        self.mc4tab.add_command(label='書式を挿入',
-                                command=self.insert_table_format)
-        self.mc4.add_command(label='改ページを挿入',
-                             command=self.insert_page_break)
-        # VISUAL
-        self.mc5 = tkinter.Menu(self.mnb, tearoff=False)
-        self.mnb.add_cascade(label='表示(V)', menu=self.mc5, underline=3)
-        self.mc5sb1 = tkinter.Menu(self.mnb, tearoff=False)
-        self.mc5.add_cascade(label='背景色', menu=self.mc5sb1)
-        self.background_color \
-            = tkinter.StringVar(value=self.args_background_color)
-        self.mc5sb1.add_radiobutton(label='白色',
-                                    variable=self.background_color, value='W',
-                                    command=self.set_font)
-        self.mc5sb1.add_radiobutton(label='黒色',
-                                    variable=self.background_color, value='B',
-                                    command=self.set_font)
-        self.mc5sb1.add_radiobutton(label='緑色',
-                                    variable=self.background_color, value='G',
-                                    command=self.set_font)
-        self.mc5.add_separator()
-        self.mc5sb2 = tkinter.Menu(self.mnb, tearoff=False)
-        self.mc5.add_cascade(label='文字サイズ', menu=self.mc5sb2)
-        self.font_size = tkinter.IntVar(value=18)
-        self.mc5sb2.add_radiobutton(label='サイズ1',
-                                    variable=self.font_size, value=6,
-                                    command=self.set_font)
-        self.mc5sb2.add_radiobutton(label='サイズ2',
-                                    variable=self.font_size, value=12,
-                                    command=self.set_font)
-        self.mc5sb2.add_radiobutton(label='サイズ3',
-                                    variable=self.font_size, value=18,
-                                    command=self.set_font)
-        self.mc5sb2.add_radiobutton(label='サイズ4',
-                                    variable=self.font_size, value=27,
-                                    command=self.set_font)
-        self.mc5sb2.add_radiobutton(label='サイズ5',
-                                    variable=self.font_size, value=36,
-                                    command=self.set_font)
-        self.mc5sb2.add_radiobutton(label='サイズ6',
-                                    variable=self.font_size, value=48,
-                                    command=self.set_font)
-        self.mc5sb2.add_radiobutton(label='サイズ7',
-                                    variable=self.font_size, value=60,
-                                    command=self.set_font)
-        self.mc5sb2.add_radiobutton(label='サイズ8',
-                                    variable=self.font_size, value=75,
-                                    command=self.set_font)
-        self.mc5sb2.add_radiobutton(label='サイズ9',
-                                    variable=self.font_size, value=90,
-                                    command=self.set_font)
-        self.mc5.add_separator()
-        self.must_paint_keywords = tkinter.BooleanVar(value=False)
-        if self.args_paint_keywords:
-            self.must_paint_keywords.set(True)
-        self.mc5.add_checkbutton(label='キーワードに色付け',
-                                 variable=self.must_paint_keywords)
-        self.mc5.add_separator()
-        self.mc5.add_command(label='セクションを折り畳む（テスト）',
-                             command=self.fold_section)
-        self.mc5.add_command(label='セクションを展開（テスト）',
-                             command=self.unfold_section)
-        self.mc5.add_command(label='セクションを全て展開（テスト）',
-                             command=self.unfold_section_fully)
-        self.mc5.add_separator()
-        self.mc5.add_command(label='文頭に移動',
-                             command=self.move_to_beg_of_doc)
-        self.mc5.add_command(label='文末に移動',
-                             command=self.move_to_end_of_doc)
-        self.mc5.add_command(label='行頭に移動',
-                             command=self.move_to_beg_of_line)
-        self.mc5.add_command(label='行末に移動',
-                             command=self.move_to_end_of_line)
-        # CONFIGURATION
-        self.mc6 = tkinter.Menu(self.mnb, tearoff=False)
-        self.mnb.add_cascade(label='設定(S)', menu=self.mc6, underline=3)
-        self.is_read_only = tkinter.BooleanVar(value=False)
-        if self.args_read_only:
-            self.is_read_only.set(True)
-        self.mc6.add_checkbutton(label='読取専用',
-                                 variable=self.is_read_only,
-                                 command=self.toggle_read_only)
-        self.mc6.add_separator()
-        self.mc6sb1 = tkinter.Menu(self.mnb, tearoff=False)
-        self.mc6.add_cascade(label='計算結果', menu=self.mc6sb1)
-        self.digit_separator = tkinter.StringVar(value='4')
-        self.mc6sb1.add_radiobutton(label='桁区切りなし（12345678）',
-                                    value='0', variable=self.digit_separator)
-        self.mc6sb1.add_radiobutton(label='3桁区切り（12,345,678）',
-                                    value='3', variable=self.digit_separator)
-        self.mc6sb1.add_radiobutton(label='4桁区切り（1234万5678）',
-                                    value='4', variable=self.digit_separator)
-        # NET
-        self.mc7 = tkinter.Menu(self.mnb, tearoff=False)
-        self.mnb.add_cascade(label='ネット(H)', menu=self.mc7, underline=4)
-        self.mc7.add_command(label='辞書で調べる',
-                             command=self.browse_dictionary)
-        self.mc7.add_command(label='Wikipediaで調べる',
-                             command=self.browse_wikipedia)
-        self.mc7.add_separator()
-        self.mc7.add_command(label='法律を調べる',
-                             command=self.browse_law)
-        self.mc7.add_command(label='・日本国憲法',
-                             command=self.browse_law_constitution_law)
-        self.mc7.add_command(label='・民法',
-                             command=self.browse_law_civil_law)
-        self.mc7.add_command(label='・商法',
-                             command=self.browse_law_commercial_law)
-        self.mc7.add_command(label='・会社法',
-                             command=self.browse_law_corporation_law)
-        self.mc7.add_command(label='・民事訴訟法',
-                             command=self.browse_law_civil_procedure)
-        self.mc7.add_command(label='・刑法',
-                             command=self.browse_law_crime_law)
-        self.mc7.add_command(label='・刑事訴訟法',
-                             command=self.browse_law_crime_procedure)
-        self.mc7.add_command(label='裁判所規則を調べる',
-                             command=self.browse_rule_of_court)
-        self.mc7.add_separator()
-        self.mc7.add_command(label='人名・地名漢字を探す',
-                             command=self.browse_ivs)
-        # HELP
-        self.mc8 = tkinter.Menu(self.mnb, tearoff=False)
-        self.mnb.add_cascade(label='ヘルプ(H)', menu=self.mc8, underline=4)
-        self.mc8.add_command(label='文字情報',
-                             command=self.show_char_info)
-        self.mc8.add_separator()
-        self.mc8.add_command(label='ヘルプ(H)',
-                             command=self.show_help,
-                             underline=4)
-        self.mc8.add_separator()
-        self.mc8.add_command(label='ライセンス情報(F)',
-                             command=self.show_license_info,
-                             underline=8)
-        self.mc8.add_separator()
-        self.mc8.add_command(label='Makdoについて(A)',
-                             command=self.show_about_makdo,
-                             underline=10)
-        self.win['menu'] = self.mnb
+        self._make_menu()
         # TEXT
+        self.txt = tkinter.Text(self.frm, width=80, height=30, undo=True)
         self.txt.pack(expand=True, fill=tkinter.BOTH)
-        self.txt.bind('<Key>', self.process_key)
-        self.txt.bind('<KeyRelease>', self.process_key_release)
-        self.txt.bind('<Button-1>', self.process_button1)
-        self.txt.bind('<Button-2>', self.process_button2)
-        self.txt.bind('<Button-3>', self.process_button3)
-        self.txt.bind('<ButtonRelease-1>', self.process_button1_release)
-        self.txt.bind('<ButtonRelease-2>', self.process_button2_release)
-        self.txt.bind('<ButtonRelease-3>', self.process_button3_release)
+        self.txt.drop_target_register(DND_FILES)               # drag and drop
+        self.txt.dnd_bind('<<Drop>>', self.open_dropped_file)  # drag and drop
+        self._make_key_configuration()
         self.txt.config(insertbackground='#FF7777', blockcursor=True)  # cursor
         # SCROLL BAR
         scb = tkinter.Scrollbar(self.txt, orient=tkinter.VERTICAL,
@@ -4179,51 +3753,20 @@ class Makdo:
         # STATUS BAR
         self.stb = tkinter.Frame(self.frm)
         self.stb.pack(anchor=tkinter.W)
-        self.stb_fnm1 = tkinter.Label(self.stb, text='')
-        self.stb_fnm1.pack(side=tkinter.LEFT)
-        self.stb_spc1 = tkinter.Label(self.stb, text=' ')
-        self.stb_spc1.pack(side=tkinter.LEFT)
-        self.stb_pos1 = tkinter.Label(self.stb, text='1x0/1x0')
-        self.stb_pos1.pack(side=tkinter.LEFT)
-        self.stb_spc2 = tkinter.Label(self.stb, text=' ')
-        self.stb_spc2.pack(side=tkinter.LEFT)
-        # self.stb_sor1 = tkinter.Label(self.stb, text='探')
-        # self.stb_sor1.pack(side=tkinter.LEFT)
-        self.stb_sor2 = tkinter.Entry(self.stb, width=20)
-        self.stb_sor2.pack(side=tkinter.LEFT)
-        # self.stb_sor2.insert(0, '（検索語）')
-        # self.stb_sor3 = tkinter.Label(self.stb, text='換')
-        # self.stb_sor3.pack(side=tkinter.LEFT)
-        self.stb_sor4 = tkinter.Entry(self.stb, width=20)
-        self.stb_sor4.pack(side=tkinter.LEFT)
-        # self.stb_sor4.insert(0, '（置換語）')
-        self.stb_sor5 = tkinter.Button(self.stb, text='前',
-                                       command=self.search_or_replace_backward)
-        self.stb_sor5.pack(side=tkinter.LEFT)
-        self.stb_sor6 = tkinter.Button(self.stb, text='次',
-                                       command=self.search_or_replace_forward)
-        self.stb_sor6.pack(side=tkinter.LEFT)
-        self.stb_sor7 = tkinter.Button(self.stb, text='消',
-                                       command=self.clear_search_word)
-        self.stb_sor7.pack(side=tkinter.LEFT)
-        self.stb_spc3 = tkinter.Label(self.stb, text=' ')
-        self.stb_spc3.pack(side=tkinter.LEFT)
-        self.stb_msg1 = tkinter.Label(self.stb, text='')
-        self.stb_msg1.pack(side=tkinter.LEFT)
+        self._make_status_bar()
         # FONT
         self.set_font()
         # OPEN FILE
         if self.args_input_file is not None:
             self.just_open_file(self.args_input_file)
-        # LOOP
         self.txt.focus_set()
-        self.run_periodically_to_paint_line()
-        self.run_periodically_to_set_position_info()
-        self.run_periodically_to_save_auto_file()
+        # RUN PERIODICALLY
+        self.run_periodically()
+        # LOOP
         self.win.mainloop()
 
-    ################################################################
-    # TOOL
+    ####################################
+    # TOOLS
 
     def get_insert_v_number(self):
         insert_position = self.txt.index('insert')
@@ -4414,10 +3957,51 @@ class Makdo:
                 self.txt.insert('insert', '\n\n')
         self.txt.mark_set('insert', p)
 
-    ################################################################
-    # FILE
+    ####################################
+    # MENU
 
-    ################################
+    def _make_menu(self):
+        self._make_menu_file()
+        self._make_menu_edit()
+        self._make_menu_insert()
+        self._make_menu_paragraph()
+        self._make_menu_visual()
+        self._make_menu_configuration()
+        self._make_menu_internet()
+        self._make_menu_help()
+        self.win['menu'] = self.mnb
+
+    ##########################
+    # MENU FILE
+
+    def _make_menu_file(self):
+        menu = tkinter.Menu(self.mnb, tearoff=False)
+        self.mnb.add_cascade(label='ファイル(F)', menu=menu, underline=5)
+        #
+        menu.add_command(label='ファイルを開く(O)', underline=8,
+                         command=self.open_file)
+        menu.add_command(label='ファイルを閉じる(C)', underline=9,
+                         command=self.close_file)
+        menu.add_separator()
+        #
+        menu.add_command(label='ファイルを保存(S)', underline=8,
+                         command=self.save_file, accelerator='Ctrl+S')
+        menu.add_command(label='名前を付けて保存(A)', underline=9,
+                         command=self.name_and_save)
+        menu.add_separator()
+        #
+        menu.add_command(label='PDFに変換',
+                         command=self.convert_to_pdf)
+        menu.add_command(label='見た目の確認・印刷(P)', underline=10,
+                         command=self.start_writer, accelerator='Ctrl+P')
+        menu.add_separator()
+        #
+        menu.add_command(label='終了(Q)', underline=3,
+                         command=self.quit_makdo, accelerator='Ctrl+Q')
+
+    ################
+    # COMMAND
+
     # OPEN FILE
 
     def open_file(self):
@@ -4511,7 +4095,6 @@ class Makdo:
             image_md_text = '![代替テキスト:縦x横](' + file_path + ' "説明")'
             self.txt.insert('insert', image_md_text)            # drag and drop
 
-    ################################
     # CLOSE FILE
 
     def close_file(self):
@@ -4539,6 +4122,8 @@ class Makdo:
         self.set_file_name_on_status_bar('')
         return True
 
+    # SAVE FILE
+
     def _has_edited(self):
         file_text = self.txt.get('1.0', 'end-1c')
         file_text = self.get_fully_unfolded_document(file_text)
@@ -4551,9 +4136,6 @@ class Makdo:
         tkinter.Tk().withdraw()
         n, m, d = '確認', message, 'yes'
         return tkinter.messagebox.askyesnocancel(n, m, default=d)
-
-    ################################
-    # SAVE
 
     def save_file(self):
         if self._has_edited():
@@ -4649,7 +4231,6 @@ class Makdo:
                 self.txt.delete(beg, end)
                 self.txt.insert(beg, now.isoformat(timespec='seconds'))
 
-    ################################
     # NAME AND SAVE
 
     def name_and_save(self):
@@ -4662,7 +4243,78 @@ class Makdo:
         self.save_file()
         return True
 
-    ################################
+    # AUTO SAVE
+
+    def get_auto_path(self, file_path):
+        if file_path is None or file_path == '':
+            return None
+        if '/' in file_path or '\\' in file_path:
+            d = re.sub('^((?:.|\n)*[/\\\\])(.*)$', '\\1', file_path)
+            f = re.sub('^((?:.|\n)*[/\\\\])(.*)$', '\\2', file_path)
+        else:
+            d = ''
+            f = file_path
+        if '.' in f:
+            n = re.sub('^((?:.|\n)*)(\\..*)$', '\\1', f)
+            e = re.sub('^((?:.|\n)*)(\\..*)$', '\\2', f)
+        else:
+            n = f
+            e = ''
+        n = re.sub('^((?:.|\n){,240})(.*)$', '\\1', n)
+        return d + '~$' + n + e + '.zip'
+
+    def exists_auto_file(self, file_path):
+        auto_path = self.get_auto_path(file_path)
+        if os.path.exists(auto_path):
+            # auto_file = re.sub('^(.|\n)*[/\\\\]', '', auto_path)
+            n = 'エラー'
+            m = '自動保存ファイルが存在します．\n' + \
+                '"' + auto_path + '"\n\n' + \
+                '①現在、ファイルを編集中\n' + \
+                '②過去の編集中のファイルが残存\n' + \
+                'の2つの可能性が考えられます．\n\n' + \
+                '①現在、ファイルを編集中\n' + \
+                'の場合は、「No」を選択してください．\n\n' + \
+                '②過去の編集中のファイルが残存\n' + \
+                'の場合、異常終了したものと思われます．\n' + \
+                '「No」を選択して、' + \
+                '自動保存ファイルの中身を確認してから、' + \
+                '削除することをおすすめします．\n\n' + \
+                '自動保存ファイルを削除しますか？'
+            ans = tkinter.messagebox.askyesno(n, m, default='no')
+            if ans:
+                try:
+                    self.remove_auto_file(file_path)
+                except BaseException:
+                    n, m = 'エラー', '自動保存ファイルの削除に失敗しました．'
+                    tkinter.messagebox.showerror(n, m)
+        if os.path.exists(auto_path):
+            return True
+        else:
+            return False
+
+    def save_auto_file(self, file_path):
+        if file_path is not None and file_path != '':
+            new_text = self.txt.get('1.0', 'end-1c')
+            auto_path = self.get_auto_path(file_path)
+            if os.path.exists(auto_path):
+                with zipfile.ZipFile(auto_path, 'r') as old_zip:
+                    with old_zip.open('doc.md', 'r') as f:
+                        old_text = f.read()
+                        if new_text == old_text.decode():
+                            return
+            with zipfile.ZipFile(auto_path, 'w',
+                                 compression=zipfile.ZIP_DEFLATED,
+                                 compresslevel=9) as new_zip:
+                new_zip.writestr('doc.md', new_text)
+
+    def remove_auto_file(self, file_path):
+        if file_path is not None and file_path != '':
+            auto_path = self.get_auto_path(file_path)
+            if re.match('(^|(.|\n)*[/\\\\])~\\$(.|\n)+\\.zip$', auto_path):
+                if os.path.exists(auto_path):
+                    os.remove(auto_path)
+
     # CONVERT TO PDF
 
     def convert_to_pdf(self):
@@ -4690,7 +4342,6 @@ class Makdo:
             tmp_pdf = re.sub('docx$', 'pdf', tmp_docx)
             shutil.move(tmp_pdf, pdf_path)
 
-    ################################
     # START WRITER
 
     def start_writer(self):
@@ -4715,7 +4366,6 @@ class Makdo:
                                  stdout=subprocess.PIPE,
                                  encoding="utf-8")
 
-    ################################
     # QUIT
 
     def quit_makdo(self):
@@ -4726,11 +4376,44 @@ class Makdo:
         self.win.destroy()
         sys.exit(0)
 
-    ################################################################
-    # EDIT
+    ##########################
+    # MENU EDIT
 
-    ################################
-    # UNDE AND REDO
+    def _make_menu_edit(self):
+        menu = tkinter.Menu(self.mnb, tearoff=False)
+        self.mnb.add_cascade(label='編集(E)', menu=menu, underline=3)
+        #
+        menu.add_command(label='元に戻す(U)', underline=5,
+                         command=self.edit_modified_undo, accelerator='Ctrl+Z')
+        menu.add_command(label='やり直す(R)', underline=5,
+                         command=self.edit_modified_redo, accelerator='Ctrl+Y')
+        menu.add_separator()
+        menu.add_command(label='切り取り(C)', underline=5,
+                         command=self.cut_text, accelerator='Ctrl+X')
+        menu.add_command(label='コピー(Y)', underline=4,
+                         command=self.copy_text, accelerator='Ctrl+C')
+        menu.add_command(label='貼り付け(P)', underline=5,
+                         command=self.paste_text, accelerator='Ctrl+V')
+        menu.add_separator()
+        menu.add_command(label='全て選択(A)', underline=6,
+                         command=self.select_all, accelerator='Ctrl+A')
+        menu.add_separator()
+        menu.add_command(label='全て置換',
+                         command=self.replace_all)
+        menu.add_separator()
+        menu.add_command(label='数式を計算',
+                         command=self.calculate)
+        menu.add_separator()
+        menu.add_command(label='字体を変える',
+                         command=self.transform_to_another_typeface)
+        menu.add_separator()
+        menu.add_command(label='コメントアウトにする',
+                         command=self.comment_out)
+        menu.add_command(label='コメントアウトを取り消す',
+                         command=self.uncomment)
+
+    ######
+    # COMMAND
 
     def edit_modified_undo(self):
         try:
@@ -4743,9 +4426,6 @@ class Makdo:
             self.txt.edit_redo()
         except BaseException:
             pass
-
-    ################################
-    # CUT, COPY and PASTE
 
     def cut_text(self):
         if self.txt.tag_ranges('sel'):
@@ -4775,19 +4455,13 @@ class Makdo:
             self.paint_out_line(i)
         return
 
-    ################################
-    # SELECT ALL
-
     def select_all(self):
         self.txt.tag_add('sel', '1.0', 'end-1c')
         return
 
-    ################################
-    # REPLACE ALL
-
     def replace_all(self):
-        word1 = self.stb_sor2.get()
-        word2 = self.stb_sor4.get()
+        word1 = self.stb_sor1.get()
+        word2 = self.stb_sor2.get()
         if word1 == '':
             return
         if Makdo.search_word != word1:
@@ -4817,9 +4491,6 @@ class Makdo:
         self.txt.focus_set()
         # MESSAGE
         self.set_message_on_status_bar(str(m) + '個を置換しました')
-
-    ################################
-    # CALCULATE
 
     def calculate(self):
         line = self.txt.get('insert linestart', 'insert lineend')
@@ -4992,9 +4663,9 @@ class Makdo:
         def body(self, win):
             self.typeface = tkinter.StringVar()
             for cnd in self.candidates:
-                rd = tkinter.Radiobutton(win, text=cnd, value=cnd,
+                rd = tkinter.Radiobutton(win, text=cnd,
                                          font=(GOTHIC_FONT, 24),
-                                         variable=self.typeface)
+                                         variable=self.typeface, value=cnd)
                 rd.pack(side=tkinter.LEFT, padx=3, pady=3)
                 if cnd == self.old_typeface:
                     rd.select()
@@ -5106,8 +4777,926 @@ class Makdo:
             self.txt.tag_remove('akauni_tag', '1.0', 'end')
             self.txt.mark_unset('akauni')
 
-    ################################################################
-    # PARAGRAPH
+    ##########################
+    # MENU INSERT
+
+    def _make_menu_insert(self):
+        menu = tkinter.Menu(self.mnb, tearoff=False)
+        self.mnb.add_cascade(label='挿入(I)', menu=menu, underline=3)
+        #
+        menu.add_command(label='空白を挿入',
+                         command=self.insert_space)
+        menu.add_command(label='改行を挿入',
+                         command=self.insert_line_break)
+        menu.add_command(label='画像を挿入',
+                         command=self.insert_images)
+        self._make_submenu_insert_font_change(menu)
+        self._make_submenu_insert_font_size_change(menu)
+        self._make_submenu_insert_font_width_change(menu)
+        self._make_submenu_insert_underline(menu)
+        self._make_submenu_insert_font_color_change(menu)
+        self._make_submenu_insert_highlight_color_change(menu)
+        self._make_submenu_insert_ivs_character(menu)
+        menu.add_separator()
+        #
+        self._make_submenu_insert_time(menu)
+        self._make_submenu_insert_file_name(menu)
+        menu.add_command(label='ファイルの内容を挿入',
+                         command=self.insert_file)
+        menu.add_separator()
+        #
+        menu.add_command(label='記号を挿入',
+                         command=self.insert_symbol)
+        self._make_submenu_insert_horizontal_line(menu)
+        menu.add_separator()
+        #
+        self._make_submenu_insert_sample(menu)
+
+    ################
+    # COMMAND
+
+    def insert_space(self):
+        t = '空白の幅'
+        p = '空白の幅を数字を入力してください．'
+        f = tkinter.simpledialog.askfloat(title=t, prompt=p)
+        self.txt.insert('insert', '< ' + str(f) + ' >')
+
+    def insert_line_break(self):
+        self.txt.insert('insert', '<br>')
+
+    def insert_images(self):
+        typ = [('画像', '.jpg .jpeg .png .gif .tif .tiff .bmp'),
+               ('全てのファイル', '*')]
+        image_paths = tkinter.filedialog.askopenfilenames(filetypes=typ)
+        for i in image_paths:
+            image_md_text = '![代替テキスト:縦x横](' + i + ' "説明")'
+            self.txt.insert('insert', image_md_text)
+
+    ################
+    # SUBMENU INSERT FONT CHANGE
+
+    def _make_submenu_insert_font_change(self, menu):
+        submenu = tkinter.Menu(menu, tearoff=False)
+        menu.add_cascade(label='フォントの変更を挿入', menu=submenu)
+        #
+        submenu.add_command(label='明朝体を変える',
+                            command=self.insert_selected_font)
+        submenu.add_separator()
+        submenu.add_command(label='ゴシック体に変える',
+                            command=self.insert_gothic_font)
+        submenu.add_separator()
+        submenu.add_command(label='手動入力',
+                            command=self.insert_font_manually)
+
+    ######
+    # COMMAND
+
+    def insert_selected_font(self):
+        mincho_list = []
+        for f in tkinter.font.families():
+            if '明朝' in f:
+                mincho_list.append(f)
+        self.MinchoDialog(self.txt, mincho_list)
+
+    class MinchoDialog(tkinter.simpledialog.Dialog):
+
+        def __init__(self, win, candidates):
+            self.win = win
+            self.candidates = candidates
+            super().__init__(win, title='明朝体を変える')
+
+        def body(self, win):
+            self.mincho = tkinter.StringVar()
+            for cnd in self.candidates:
+                rd = tkinter.Radiobutton(win, text=cnd,
+                                         font=(GOTHIC_FONT, 24),
+                                         variable=self.mincho, value=cnd)
+                rd.pack(side=tkinter.TOP, padx=3, pady=3)
+            # self.bind('<Key-Return>', self.ok)
+            # self.bind('<Key-Escape>', self.cancel)
+            # super().body(win)
+
+        # def buttonbox(self):
+        #     btn = tkinter.Frame(self)
+        #     self.btn1 = tkinter.Button(btn, text='OK', width=6,
+        #                                command=self.ok)
+        #     self.btn1.pack(side=tkinter.LEFT, padx=3, pady=3)
+        #     self.btn2 = tkinter.Button(btn, text='Cancel', width=6,
+        #                                command=self.cancel)
+        #     self.btn2.pack(side=tkinter.LEFT, padx=3, pady=3)
+        #     btn.pack()
+
+        def apply(self):
+            m = self.mincho.get()
+            d = '@' + m + '@（ここはフォントが変わる）@' + m + '@'
+            self.win.insert('insert', d)
+            self.win.mark_set('insert', 'insert-' + str(len(m) + 2) + 'c')
+            self.win.focus_set()
+
+    def insert_gothic_font(self):
+        self.txt.insert('insert', '`（ここはゴシック体）`')
+        self.txt.mark_set('insert', 'insert-1c')
+
+    def insert_font_manually(self):
+        t = 'フォント'
+        p = 'フォント名を入力してください．'
+        s = tkinter.simpledialog.askstring(title=t, prompt=p)
+        d = '@' + s + '@（ここはフォントが変わる）@' + s + '@'
+        self.txt.insert('insert', d)
+        self.txt.mark_set('insert', 'insert-' + str(len(s) + 2) + 'c')
+
+    ################
+    # SUBMENU INSERT FONT SIZE CHANGE
+
+    def _make_submenu_insert_font_size_change(self, menu):
+        submenu = tkinter.Menu(menu, tearoff=False)
+        menu.add_cascade(label='文字の大きさの変更を挿入', menu=submenu)
+        #
+        submenu.add_command(label='特小サイズ',
+                            command=self.insert_ss_font_size)
+        submenu.add_command(label='小サイズ',
+                            command=self.insert_s_font_size)
+        submenu.add_command(label='大サイズ',
+                            command=self.insert_l_font_size)
+        submenu.add_command(label='特大サイズ',
+                            command=self.insert_ll_font_size)
+        submenu.add_separator()
+        submenu.add_command(label='手動入力',
+                            command=self.insert_font_size_manually)
+
+    ######
+    # COMMAND
+
+    def insert_ss_font_size(self):
+        self.txt.insert('insert', '---（ここは文字が特に小さい）---')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_s_font_size(self):
+        self.txt.insert('insert', '--（ここは文字が小さい）--')
+        self.txt.mark_set('insert', 'insert-2c')
+
+    def insert_l_font_size(self):
+        self.txt.insert('insert', '++（ここは文字が大きい）++')
+        self.txt.mark_set('insert', 'insert-2c')
+
+    def insert_ll_font_size(self):
+        self.txt.insert('insert', '+++（ここは文字が特に大きい）+++')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_font_size_manually(self):
+        t = '文字の大きさ'
+        p = '文字の大きさを1から100までの数字を入力してください．'
+        f = tkinter.simpledialog.askfloat(title=t, prompt=p,
+                                          minvalue=1, maxvalue=100)
+        if f is None:
+            return
+        s = str(f)
+        s = re.sub('\\.0+$', '', s)
+        d = '@' + s + '@（ここは文字の大きさが変わる）@' + s + '@'
+        self.txt.insert('insert', d)
+        self.txt.mark_set('insert', 'insert-' + str(len(s) + 2) + 'c')
+
+    ################
+    # SUBMENU INSERT FONT WIDTH CHANGE
+
+    def _make_submenu_insert_font_width_change(self, menu):
+        submenu = tkinter.Menu(menu, tearoff=False)
+        menu.add_cascade(label='文字の幅の変更を挿入', menu=submenu)
+        #
+        submenu.add_command(label='特細サイズ',
+                            command=self.insert_ss_font_width)
+        submenu.add_command(label='細サイズ',
+                            command=self.insert_s_font_width)
+        submenu.add_command(label='太サイズ',
+                            command=self.insert_l_font_width)
+        submenu.add_command(label='特太サイズ',
+                            command=self.insert_ll_font_width)
+
+    ######
+    # COMMAND
+
+    def insert_ss_font_width(self):
+        self.txt.insert('insert', '>>>（ここは文字が特に細い）<<<')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_s_font_width(self):
+        self.txt.insert('insert', '>>（ここは文字が細い）<<')
+        self.txt.mark_set('insert', 'insert-2c')
+
+    def insert_l_font_width(self):
+        self.txt.insert('insert', '<<（ここは文字が太い）>>')
+        self.txt.mark_set('insert', 'insert-2c')
+
+    def insert_ll_font_width(self):
+        self.txt.insert('insert', '<<<（ここは文字が特に太い）>>>')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    ################
+    # SUBMENU INSERT UNDERLINE
+
+    def _make_submenu_insert_underline(self, menu):
+        submenu = tkinter.Menu(menu, tearoff=False)
+        menu.add_cascade(label='文字に下線をを引く', menu=submenu)
+        #
+        submenu.add_command(label='単線',
+                            command=self.insert_single_underline)
+        submenu.add_command(label='二重線',
+                            command=self.insert_double_underline)
+        submenu.add_command(label='波線',
+                            command=self.insert_wave_underline)
+        submenu.add_command(label='破線',
+                            command=self.insert_dash_underline)
+        submenu.add_command(label='点線',
+                            command=self.insert_dot_underline)
+
+    ######
+    # COMMAND
+
+    def insert_single_underline(self):
+        self.txt.insert('insert', '__（ここは下線が引かれる）__')
+        self.txt.mark_set('insert', 'insert-2c')
+
+    def insert_double_underline(self):
+        self.txt.insert('insert', '_=_（ここは下線が引かれる）_=_')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_wave_underline(self):
+        self.txt.insert('insert', '_~_（ここは下線が引かれる）_~_')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_dash_underline(self):
+        self.txt.insert('insert', '_-_（ここは下線が引かれる）_-_')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_dot_underline(self):
+        self.txt.insert('insert', '_._（ここは下線が引かれる）_._')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    ################
+    # SUBMENU INSERT FONT COLOR CHANGE
+
+    def _make_submenu_insert_font_color_change(self, menu):
+        submenu = tkinter.Menu(menu, tearoff=False)
+        menu.add_cascade(label='文字色を変える', menu=submenu)
+        #
+        submenu.add_command(label='赤色',
+                            command=self.insert_r_font_color)
+        submenu.add_command(label='黄色',
+                            command=self.insert_y_font_color)
+        submenu.add_command(label='緑色',
+                            command=self.insert_g_font_color)
+        submenu.add_command(label='シアン',
+                            command=self.insert_c_font_color)
+        submenu.add_command(label='青色',
+                            command=self.insert_b_font_color)
+        submenu.add_command(label='マゼンタ',
+                            command=self.insert_m_font_color)
+        submenu.add_command(label='白色',
+                            command=self.insert_w_font_color)
+
+    ######
+    # COMMAND
+
+    def insert_r_font_color(self):
+        self.txt.insert('insert', '^R^（ここは文字が赤色）^R^')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_y_font_color(self):
+        self.txt.insert('insert', '^Y^（ここは文字が黄色）^Y^')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_g_font_color(self):
+        self.txt.insert('insert', '^G^（ここは文字が緑色）^G^')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_c_font_color(self):
+        self.txt.insert('insert', '^C^（ここは文字がシアン）^C^')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_b_font_color(self):
+        self.txt.insert('insert', '^B^（ここは文字が青色）^B^')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_m_font_color(self):
+        self.txt.insert('insert', '^M^（ここは文字がマゼンタ）^M^')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_w_font_color(self):
+        self.txt.insert('insert', '^^（ここは文字が白色）^^')
+        self.txt.mark_set('insert', 'insert-2c')
+
+    ################
+    # SUBMENU INSERT HIGHLIGHT COLOR CHANGE
+
+    def _make_submenu_insert_highlight_color_change(self, menu):
+        submenu = tkinter.Menu(menu, tearoff=False)
+        menu.add_cascade(label='下地色を変える', menu=submenu)
+        #
+        submenu.add_command(label='赤色',
+                            command=self.insert_r_highlight_color)
+        submenu.add_command(label='黄色',
+                            command=self.insert_y_highlight_color)
+        submenu.add_command(label='緑色',
+                            command=self.insert_g_highlight_color)
+        submenu.add_command(label='シアン',
+                            command=self.insert_c_highlight_color)
+        submenu.add_command(label='青色',
+                            command=self.insert_b_highlight_color)
+        submenu.add_command(label='マゼンタ',
+                            command=self.insert_m_highlight_color)
+
+    ######
+    # COMMAND
+
+    def insert_r_highlight_color(self):
+        self.txt.insert('insert', '_R_（ここは下地が赤色）_R_')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_y_highlight_color(self):
+        self.txt.insert('insert', '_Y_（ここは下地が黄色）_Y_')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_g_highlight_color(self):
+        self.txt.insert('insert', '_G_（ここは下地が緑色）_G_')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_c_highlight_color(self):
+        self.txt.insert('insert', '_C_（ここは下地がシアン）_C_')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_b_highlight_color(self):
+        self.txt.insert('insert', '_B_（ここは下地が青色）_B_')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_m_highlight_color(self):
+        self.txt.insert('insert', '_M_（ここは下地がマゼンタ）_M_')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    ################
+    # SUBMENU INSERT IVS CHARACTER
+
+    def _make_submenu_insert_ivs_character(self, menu):
+        submenu = tkinter.Menu(menu, tearoff=False)
+        menu.add_cascade(label='人名・地名の字体を挿入', menu=submenu)
+        #
+        submenu.add_command(label='文字コードから人名・地名の字体を挿入',
+                            command=self.insert_ivs)
+        submenu.add_separator()
+        submenu.add_command(label='"祇"の人名・地名の字体の候補を全て挿入',
+                            command=self.insert_ivs_of_7947)
+        submenu.add_command(label='"花"の人名・地名の字体の候補を全て挿入',
+                            command=self.insert_ivs_of_82b1)
+        submenu.add_command(label='"葛"の人名・地名の字体の候補を全て挿入',
+                            command=self.insert_ivs_of_845b)
+        submenu.add_command(label='"邉"の人名・地名の字体の候補を全て挿入',
+                            command=self.insert_ivs_of_9089)
+        submenu.add_command(label='"邊"の人名・地名の字体の候補を全て挿入',
+                            command=self.insert_ivs_of_908a)
+
+    ######
+    # COMMAND
+
+    def insert_ivs(self):
+        self.IvsDialog(self.txt)
+
+    class IvsDialog(tkinter.simpledialog.Dialog):
+
+        def __init__(self, win):
+            self.win = win
+            super().__init__(win, title='文字コードから人名・地名漢字を挿入')
+
+        def body(self, win):
+            t = '下記のURLで漢字を検索してください．\n' + \
+                'https://moji.or.jp/mojikibansearch/basic\n\n' + \
+                '「対応するUCS」の下の段を下に入力してください．\n' + \
+                '例：花の場合→<82B1,E0102>\n'
+            self.text1 = tkinter.Label(win, text=t)
+            self.text1.pack(side=tkinter.TOP, anchor=tkinter.W)
+            self.entry1 = tkinter.Label(win, text='　　　　　<')
+            self.entry1.pack(side=tkinter.LEFT)
+            self.entry2 = tkinter.Entry(win, width=7)
+            self.entry2.pack(side=tkinter.LEFT)
+            self.entry3 = tkinter.Label(win, text=',')
+            self.entry3.pack(side=tkinter.LEFT)
+            self.entry4 = tkinter.Entry(win, width=7)
+            self.entry4.pack(side=tkinter.LEFT)
+            self.entry5 = tkinter.Label(win, text='>')
+            self.entry5.pack(side=tkinter.LEFT)
+            # self.bind('<Key-Return>', self.ok)
+            # self.bind('<Key-Escape>', self.cancel)
+            # super().body(win)
+
+        # def buttonbox(self):
+        #     btn = tkinter.Frame(self)
+        #     self.btn1 = tkinter.Button(btn, text='OK', width=6,
+        #                                command=self.ok)
+        #     self.btn1.pack(side=tkinter.LEFT, padx=3, pady=3)
+        #     self.btn2 = tkinter.Button(btn, text='Cancel', width=6,
+        #                                command=self.cancel)
+        #     self.btn2.pack(side=tkinter.LEFT, padx=3, pady=3)
+        #     btn.pack()
+
+        def apply(self):
+            ucs = self.entry2.get()
+            ivs = self.entry4.get()
+            if re.match('^[0-9a-fA-F]{4}$', ucs):
+                self.win.insert('insert', chr(int(ucs, 16)))
+                if re.match('^E01[0-9a-eA-E][0-9a-fA-F]$', ivs):
+                    self.win.insert('insert', str(int(ivs, 16) - 917760) + ';')
+
+    def insert_ivs_of_7947(self):
+        self.txt.insert('insert',
+                        'A祇2;' +  # E0102
+                        'B祇3;')   # E0103
+
+    def insert_ivs_of_82b1(self):
+        self.txt.insert('insert',
+                        'A花2;' +  # E0102
+                        'B花3;' +  # E0103
+                        'C花4;' +  # E0104
+                        'D花6;')   # E0106
+
+    def insert_ivs_of_845b(self):
+        self.txt.insert('insert',
+                        'A葛2;' +  # E0102
+                        'B葛3;' +  # E0103
+                        'C葛4;' +  # E0104
+                        'D葛5;' +  # E0105
+                        'E葛6;' +  # E0106
+                        'F葛7;' +  # E0107
+                        'G葛8;')   # E0108
+
+    def insert_ivs_of_9089(self):
+        self.txt.insert('insert',
+                        'A邉15;' +  # E010F
+                        'B邉16;' +  # E0110
+                        'C邉17;' +  # E0111
+                        'D邉18;' +  # E0112
+                        'E邉19;' +  # E0113
+                        'F邉20;' +  # E0114
+                        'G邉21;' +  # E0115
+                        'H邉22;' +  # E0116
+                        'I邉23;' +  # E0117
+                        'J邉24;' +  # E0118
+                        'K邉25;' +  # E0119
+                        'L邉26;' +  # E011A
+                        'M邉27;' +  # E011B
+                        'N邉28;' +  # E011C
+                        'O邉29;' +  # E011D
+                        'P邉31;')   # E011F
+
+    def insert_ivs_of_908a(self):
+        self.txt.insert('insert',
+                        'A邊8;' +   # E0108
+                        'B邊9;' +   # E0109
+                        'C邊10;' +  # E010A
+                        'D邊11;' +  # E010B
+                        'E邊12;' +  # E010C
+                        'F邊13;' +  # E010D
+                        'G邊14;' +  # E010E
+                        'H邊15;' +  # E010F
+                        'I邊16;' +  # E0110
+                        'J邊17;' +  # E0111
+                        'K邊18;')   # E0112
+
+    ################
+    # SUBMENU INSERT TIME
+
+    def _make_submenu_insert_time(self, menu):
+        submenu = tkinter.Menu(menu, tearoff=False)
+        menu.add_cascade(label='日時を挿入', menu=submenu)
+        #
+        submenu.add_command(label='YY年M月D日',
+                            command=self.insert_date_YYMD)
+        submenu.add_command(label='令和Y年M月D日',
+                            command=self.insert_date_GYMD)
+        submenu.add_command(label='yy年m月d日',
+                            command=self.insert_date_yymd)
+        submenu.add_command(label='令和y年m月d日',
+                            command=self.insert_date_Gymd)
+        submenu.add_command(label='yyyy-mm-dd',
+                            command=self.insert_date_iso)
+        submenu.add_command(label='gyy-mm-dd',
+                            command=self.insert_date_giso)
+        submenu.add_separator()
+        #
+        submenu.add_command(label='H時M分S秒',
+                            command=self.insert_time_HHMS)
+        submenu.add_command(label='午前H時M分S秒',
+                            command=self.insert_time_GHMS)
+        submenu.add_command(label='h時m分s秒',
+                            command=self.insert_time_hhms)
+        submenu.add_command(label='午前h時m分s秒',
+                            command=self.insert_time_Ghms)
+        submenu.add_command(label='hh:mm:ss',
+                            command=self.insert_time_iso)
+        submenu.add_command(label='AMhh:mm:ss',
+                            command=self.insert_time_giso)
+        submenu.add_separator()
+        #
+        submenu.add_command(label='yyyy-mm-ddThh:mm:ss+09:00',
+                            command=self.insert_datetime)
+        submenu.add_command(label='yy-mm-dd hh:mm:ss',
+                            command=self.insert_datetime_symple)
+
+    ######
+    # COMMAND
+
+    def insert_date_YYMD(self):
+        now = self._get_now()
+        date = now.strftime('%Y年%m月%d日')
+        date = self._remove_zero(date)
+        date = self._convert_half_to_full(date)
+        self.txt.insert('insert', date)
+
+    def insert_date_GYMD(self):
+        now = self._get_now()
+        year = int(now.strftime('%Y')) - 2018
+        date = '令和' + str(year) + '年' + now.strftime('%m月%d日')
+        date = self._remove_zero(date)
+        date = self._convert_half_to_full(date)
+        self.txt.insert('insert', date)
+
+    def insert_date_yymd(self):
+        now = self._get_now()
+        date = now.strftime('%Y年%m月%d日')
+        date = self._remove_zero(date)
+        self.txt.insert('insert', date)
+
+    def insert_date_Gymd(self):
+        now = self._get_now()
+        year = int(now.strftime('%Y')) - 2018
+        date = '令和' + str(year) + '年' + now.strftime('%m月%d日')
+        date = self._remove_zero(date)
+        self.txt.insert('insert', date)
+
+    def insert_date_iso(self):
+        now = self._get_now()
+        date = now.strftime('%Y-%m-%d')
+        self.txt.insert('insert', date)
+
+    def insert_date_giso(self):
+        now = self._get_now()
+        year = int(now.strftime('%Y')) - 2018
+        if year < 10:
+            date = 'R0' + str(year) + '-' + now.strftime('%m-%d')
+        else:
+            date = 'R' + str(year) + '-' + now.strftime('%m-%d')
+        self.txt.insert('insert', date)
+
+    def insert_time_HHMS(self):
+        now = self._get_now()
+        time = now.strftime('%H時%M分%S秒')
+        time = self._remove_zero(time)
+        time = self._convert_half_to_full(time)
+        self.txt.insert('insert', time)
+
+    def insert_time_GHMS(self):
+        now = self._get_now()
+        hour = int(now.strftime('%H'))
+        if hour < 12:
+            time = '午前' + str(hour) + '時' + now.strftime('%M分%S秒')
+        else:
+            time = '午後' + str(hour - 12) + '時' + now.strftime('%M分%S秒')
+        time = self._remove_zero(time)
+        time = self._convert_half_to_full(time)
+        self.txt.insert('insert', time)
+
+    def insert_time_hhms(self):
+        now = self._get_now()
+        time = now.strftime('%H時%M分%S秒')
+        time = self._remove_zero(time)
+        self.txt.insert('insert', time)
+
+    def insert_time_Ghms(self):
+        now = self._get_now()
+        hour = int(now.strftime('%H'))
+        if hour < 12:
+            time = '午前' + str(hour) + '時' + now.strftime('%M分%S秒')
+        else:
+            time = '午後' + str(hour - 12) + '時' + now.strftime('%M分%S秒')
+        time = self._remove_zero(time)
+        self.txt.insert('insert', time)
+
+    def insert_time_iso(self):
+        now = self._get_now()
+        time = now.strftime('%H:%M:%S')
+        self.txt.insert('insert', time)
+
+    def insert_time_giso(self):
+        now = self._get_now()
+        hour = int(now.strftime('%H'))
+        if hour < 12:
+            time = 'AM' + str(hour) + ':' + now.strftime('%M:%S')
+        else:
+            time = 'PM' + str(hour - 12) + ':' + now.strftime('%M:%S')
+        self.txt.insert('insert', time)
+
+    def insert_datetime(self):
+        now = self._get_now()
+        self.txt.insert('insert', now.isoformat(timespec='seconds'))
+
+    def insert_datetime_symple(self):
+        now = self._get_now()
+        self.txt.insert('insert', now.strftime('%y-%m-%d %H:%M:%S'))
+
+    @staticmethod
+    def _remove_zero(text):
+        text = re.sub('^0', '', text)
+        text = re.sub('年0', '年', text)
+        text = re.sub('月0', '月', text)
+        text = re.sub('時0', '時', text)
+        text = re.sub('分0', '分', text)
+        return text
+
+    ################
+    # SUBMENU INSERT FILE
+
+    def _make_submenu_insert_file_name(self, menu):
+        submenu = tkinter.Menu(menu, tearoff=False)
+        menu.add_cascade(label='ファイル名を挿入', menu=submenu)
+        #
+        submenu.add_command(label='フルパスで挿入',
+                            command=self.insert_file_paths)
+        submenu.add_command(label='ファイル名のみを挿入',
+                            command=self.insert_file_names)
+
+    ######
+    # COMMAND
+
+    def insert_file_paths(self):
+        file_paths = tkinter.filedialog.askopenfilenames()
+        for f in file_paths:
+            self.txt.insert('insert', f + '\n')
+
+    def insert_file_names(self):
+        file_paths = tkinter.filedialog.askopenfilenames()
+        for f in file_paths:
+            f = re.sub('^(.|\n)*/', '', f)
+            self.txt.insert('insert', f + '\n')
+
+    ################
+    # COMMAND
+
+    def insert_file(self):
+        file_path = tkinter.filedialog.askopenfilename()
+        if file_path != () and file_path != '':
+            with open(file_path, 'rb') as f:
+                raw_data = f.read()
+            encoding = self._get_encoding(raw_data)
+            decoded_data = self._decode_data(encoding, raw_data)
+            self.txt.insert('insert', decoded_data)
+
+    def insert_symbol(self):
+        candidates = ['⑴', '⑵', '⑶', '⑷', '⑸', '⑹', '⑺', '⑻', '⑼', '⑽',
+                      '⑾', '⑿', '⒀', '⒁', '⒂', '⒃', '⒄', '⒅', '⒆', '⒇',
+                      '⓪',
+                      '①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩',
+                      '⑪', '⑫', '⑬', '⑭', '⑮', '⑯', '⑰', '⑱', '⑲', '⑳',
+                      '²', '³',
+                      '㊞',
+                      ]
+        self.SymbolDialog(self.txt, candidates)
+
+    class SymbolDialog(tkinter.simpledialog.Dialog):
+
+        def __init__(self, win, candidates):
+            self.win = win
+            self.candidates = candidates
+            super().__init__(win, title='記号を挿入')
+
+        def body(self, win):
+            self.symbol = tkinter.StringVar()
+            for i, cnd in enumerate(self.candidates):
+                rd = tkinter.Radiobutton(win, text=cnd,
+                                         font=(GOTHIC_FONT, 24),
+                                         variable=self.symbol, value=cnd)
+                y, x = int(i / 10), (i % 10)
+                rd.grid(row=y, column=x, columnspan=1, padx=3, pady=3)
+            # self.bind('<Key-Return>', self.ok)
+            # self.bind('<Key-Escape>', self.cancel)
+            # super().body(win)
+
+        # def buttonbox(self):
+        #     btn = tkinter.Frame(self)
+        #     self.btn1 = tkinter.Button(btn, text='OK', width=6,
+        #                                command=self.ok)
+        #     self.btn1.pack(side=tkinter.LEFT, padx=3, pady=3)
+        #     self.btn2 = tkinter.Button(btn, text='Cancel', width=6,
+        #                                command=self.cancel)
+        #     self.btn2.pack(side=tkinter.LEFT, padx=3, pady=3)
+        #     btn.pack()
+
+        def apply(self):
+            symbol = self.symbol.get()
+            self.win.insert('insert', symbol)
+            # self.win.mark_set('insert', 'insert-1c')
+            self.win.focus_set()
+
+    ################
+    # SUBMENU INSERT HORIZONTAL LINE
+
+    def _make_submenu_insert_horizontal_line(self, menu):
+        submenu = tkinter.Menu(menu, tearoff=False)
+        menu.add_cascade(label='横棒を挿入', menu=submenu)
+        #
+        submenu.add_command(label='"-"（002D）半角ハイフンマイナス',
+                            command=self.insert_hline_002d)
+        submenu.add_command(label='"‐"（2010）全角ハイフン',
+                            command=self.insert_hline_2010)
+        submenu.add_command(label='"—"（2014）全角Ｍダッシュ',
+                            command=self.insert_hline_2014)
+        submenu.add_command(label='"―"（2015）全角水平線',
+                            command=self.insert_hline_2015)
+        submenu.add_command(label='"−"（2212）全角マイナスサイン',
+                            command=self.insert_hline_2212)
+        submenu.add_command(label='"－"（FF0D）全角ハイフンマイナス',
+                            command=self.insert_hline_ff0d)
+
+    ######
+    # COMMAND
+
+    # "-"（002D）半角ハイフンマイナス
+    # "‐"（2010）全角ハイフン
+    # "—"（2014）全角Ｍダッシュ
+    # "―"（2015）全角水平線
+    # "−"（2212）全角マイナスサイン
+    # "－"（FF0D）ハイフンマイナス
+
+    def insert_hline_002d(self):
+        self.txt.insert('insert', '\u002D')  # 半角ハイフンマイナス
+
+    def insert_hline_2010(self):
+        self.txt.insert('insert', '\u2010')  # 全角ハイフン
+
+    def insert_hline_2014(self):
+        self.txt.insert('insert', '\u2014')  # 全角Ｍダッシュ
+
+    def insert_hline_2015(self):
+        self.txt.insert('insert', '\u2015')  # 全角水平線
+
+    def insert_hline_2212(self):
+        self.txt.insert('insert', '\u2212')  # 全角マイナスサイン
+
+    def insert_hline_ff0d(self):
+        self.txt.insert('insert', '\uFF0D')  # 全角ハイフンマイナス
+
+    ################
+    # SUBMENU INSERT SAMPLE
+
+    def _make_submenu_insert_sample(self, menu):
+        submenu = tkinter.Menu(menu, tearoff=False)
+        menu.add_cascade(label='サンプルを挿入', menu=submenu)
+        #
+        submenu.add_command(label='基本',
+                            command=self.insert_basis_sample)
+        submenu.add_command(label='民法',
+                            command=self.insert_law_sample)
+        submenu.add_command(label='訴状',
+                            command=self.insert_petition_sample)
+        submenu.add_command(label='証拠説明書',
+                            command=self.insert_evidence_sample)
+        submenu.add_command(label='和解契約書',
+                            command=self.insert_settlement_sample)
+
+    ######
+    # COMMAND
+
+    def insert_basis_sample(self):
+        document = self.insert_configuration_sample('普通', '0.0') + \
+            SAMPLE_BASIS
+        self.insert_sample(document)
+
+    def insert_law_sample(self):
+        document = self.insert_configuration_sample('条文', '0.0') + \
+            SAMPLE_LAW
+        self.insert_sample(document)
+
+    def insert_petition_sample(self):
+        document = self.insert_configuration_sample('普通', '1.0') + \
+            SAMPLE_PETITION
+        self.insert_sample(document)
+
+    def insert_evidence_sample(self):
+        document = self.insert_configuration_sample('普通', '0.0') + \
+            SAMPLE_EVIDENCE
+        self.insert_sample(document)
+
+    def insert_settlement_sample(self):
+        document = self.insert_configuration_sample('契約', '1.0') + \
+            SAMPLE_SETTLEMENT
+        self.insert_sample(document)
+
+    def insert_configuration_sample(self, document_style, space_before):
+        document = '''\
+<!--------------------------【設定】-----------------------------
+
+# プロパティに表示される文書のタイトルを指定できます。
+書題名: -
+
+# 3つの書式（普通、契約、条文）を指定できます。
+文書式: ''' + document_style + '''
+
+# 用紙のサイズ（A3横、A3縦、A4横、A4縦）を指定できます。
+用紙サ: A4縦
+
+# 用紙の上下左右の余白をセンチメートル単位で指定できます。
+上余白: 3.5 cm
+下余白: 2.2 cm
+左余白: 3.0 cm
+右余白: 2.0 cm
+
+# ページのヘッダーに表示する文字列（別紙 :等）を指定できます。
+頭書き:
+
+# ページ番号の書式（無、有、n :、-n-、n/N等）を指定できます。
+頁番号: 有
+
+# 行番号の記載（無、有）を指定できます。
+行番号: 無
+
+# 明朝体とゴシック体と異字体（IVS）のフォントを指定できます。
+明朝体: Times New Roman / ＭＳ 明朝
+ゴシ体: = / ＭＳ ゴシック
+異字体: IPAmj明朝
+
+# 基本の文字の大きさをポイント単位で指定できます。
+文字サ: 12 pt
+
+# 行間隔を基本の文字の高さの何倍にするかを指定できます。
+行間隔: 2.14 倍
+
+# セクションタイトル前後の余白を行間隔の倍数で指定できます。
+前余白: 0.0 倍, ''' + space_before + ''' 倍, 0.0 倍, 0.0 倍, 0.0 倍, 0.0 倍
+後余白: 0.0 倍, 0.0 倍, 0.0 倍, 0.0 倍, 0.0 倍, 0.0 倍
+
+# 半角文字と全角文字の間の間隔調整（無、有）を指定できます。
+字間整: 無
+
+# 備考書（コメント）などを消して完成させます。
+完成稿: 偽
+
+# 原稿の作成日時と更新日時が自動で記録されます。
+作成時: - USER
+更新時: - USER
+
+---------------------------------------------------------------->
+'''
+        return document
+
+    def insert_sample(self, sample_document):
+        txt_text = self.txt.get('1.0', 'end-1c')
+        if txt_text != '':
+            n, m = 'エラー', 'テキストが空ではありません．'
+            tkinter.messagebox.showerror(n, m)
+            return
+        self.file_lines = sample_document.split('\n')
+        self.txt.insert('1.0', sample_document)
+        self.txt.focus_set()
+        self.txt.mark_set('insert', '1.0')
+        # PAINT
+        self.line_data = [LineDatum() for line in self.file_lines]
+        for i, line in enumerate(self.file_lines):
+            self.line_data[i].line_number = i
+            self.line_data[i].line_text = line + '\n'
+            if i > 0:
+                self.line_data[i].beg_chars_state \
+                    = self.line_data[i - 1].end_chars_state.copy()
+                self.line_data[i].beg_chars_state.reset_partially()
+            self.line_data[i].paint_line(self.txt)
+        # CLEAR THE UNDO STACK
+        self.txt.edit_reset()
+
+    ##########################
+    # MENU PARAGRAPH
+
+    def _make_menu_paragraph(self):
+        menu = tkinter.Menu(self.mnb, tearoff=False)
+        self.mnb.add_cascade(label='段落(P)', menu=menu, underline=3)
+        #
+        menu.add_command(label='余白の長さを設定',
+                         command=self.set_paragraph_length)
+        menu.add_separator()
+        #
+        self._make_submenu_insert_chapter(menu)
+        self._make_submenu_insert_section(menu)
+        self._make_submenu_insert_list(menu)
+        menu.add_command(label='画像を挿入',
+                             command=self.insert_image_paragraph)
+        self._make_submenu_insert_table(menu)
+        menu.add_command(label='改ページを挿入',
+                             command=self.insert_page_break)
+        menu.add_separator()
+        #
+        menu.add_command(label='チャプターの番号を変更',
+                         command=self.set_chapter_number)
+        menu.add_command(label='セクションの番号を変更',
+                         command=self.set_section_number)
+        menu.add_command(label='箇条書きの番号を変更',
+                         command=self.set_list_number)
+
+    ################
+    # COMMAND
 
     def set_paragraph_length(self):
         self.LengthRevisersDialog(self.txt)
@@ -5286,6 +5875,222 @@ class Makdo:
                 leng_revs = re.sub(' $', '', leng_revs)
                 self.win.insert(beg, leng_revs + '\n')
 
+    ################
+    # SUBMENU INSERT CHAPTER
+
+    def _make_submenu_insert_chapter(self, menu):
+        submenu = tkinter.Menu(menu, tearoff=False)
+        menu.add_cascade(label='チャプターを挿入', menu=submenu)
+        #
+        submenu.add_command(label='第１編　…',
+                            command=self.insert_chap_1)
+        submenu.add_command(label='　第１章　…',
+                            command=self.insert_chap_2)
+        submenu.add_command(label='　　第１節　…',
+                            command=self.insert_chap_3)
+        submenu.add_command(label='　　　第１款　…',
+                            command=self.insert_chap_4)
+        submenu.add_command(label='　　　　第１目　…',
+                            command=self.insert_chap_5)
+
+    ######
+    # COMMAND
+
+    def insert_chap_1(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '$ ')  # 第1編
+
+    def insert_chap_2(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '$$ ')  # 第1章
+
+    def insert_chap_3(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '$$$ ')  # 第1節
+
+    def insert_chap_4(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '$$$$ ')  # 第1款
+
+    def insert_chap_5(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '$$$$$ ')  # 第1目
+
+    ################
+    # SUBMENU INSERT SECTION
+
+    def _make_submenu_insert_section(self, menu):
+        submenu = tkinter.Menu(menu, tearoff=False)
+        menu.add_cascade(label='セクションを挿入', menu=submenu)
+        #
+        submenu.add_command(label='（書面のタイトル）',
+                            command=self.insert_sect_1)
+        submenu.add_command(label='第１　…',
+                            command=self.insert_sect_2)
+        submenu.add_command(label='　１　…',
+                            command=self.insert_sect_3)
+        submenu.add_command(label='　　(1) …',
+                            command=self.insert_sect_4)
+        submenu.add_command(label='　　　ア　…',
+                            command=self.insert_sect_5)
+        submenu.add_command(label='　　　　(ｱ) …',
+                            command=self.insert_sect_6)
+        submenu.add_command(label='　　　　　ａ　…',
+                            command=self.insert_sect_7)
+        submenu.add_command(label='　　　　　　(a) …',
+                            command=self.insert_sect_8)
+
+    ######
+    # COMMAND
+
+    def insert_sect_1(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '# ')  # タイトル
+
+    def insert_sect_2(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '## ')  # 第1
+
+    def insert_sect_3(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '### ')  # 1
+
+    def insert_sect_4(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '#### ')  # (1)
+
+    def insert_sect_5(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '##### ')  # ア
+
+    def insert_sect_6(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '###### ')  # (ｱ)
+
+    def insert_sect_7(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '####### ')  # ａ
+
+    def insert_sect_8(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '######## ')  # (a)
+
+    ################
+    # SUBMENU INSERT LIST
+
+    def _make_submenu_insert_list(self, menu):
+        submenu = tkinter.Menu(menu, tearoff=False)
+        menu.add_cascade(label='箇条書きを挿入', menu=submenu)
+        #
+        submenu.add_command(label='①　…',
+                            command=self.insert_nlist_1)
+        submenu.add_command(label='　㋐　…',
+                            command=self.insert_nlist_2)
+        submenu.add_command(label='　　ⓐ　…',
+                            command=self.insert_nlist_3)
+        submenu.add_command(label='　　　㊀　…',
+                            command=self.insert_nlist_4)
+        submenu.add_separator()
+        #
+        submenu.add_command(label='・　…',
+                            command=self.insert_blist_1)
+        submenu.add_command(label='　○　…',
+                            command=self.insert_blist_2)
+        submenu.add_command(label='　　△　…',
+                            command=self.insert_blist_3)
+        submenu.add_command(label='　　　◇　…',
+                            command=self.insert_blist_4)
+
+    ######
+    # COMMAND
+
+    def insert_nlist_1(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '1. ')
+
+    def insert_nlist_2(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '  1. ')
+
+    def insert_nlist_3(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '    1. ')
+
+    def insert_nlist_4(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '      1. ')
+
+    def insert_blist_1(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '- ')
+
+    def insert_blist_2(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '  - ')
+
+    def insert_blist_3(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '    - ')
+
+    def insert_blist_4(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '      - ')
+
+    ################
+    # COMMAND
+
+    def insert_image_paragraph(self):
+        typ = [('画像', '.jpg .jpeg .png .gif .tif .tiff .bmp'),
+               ('全てのファイル', '*')]
+        image_path = tkinter.filedialog.askopenfilename(filetypes=typ)
+        if image_path != () and image_path != '':
+            self._insert_line_break_as_necessary()
+            image_md_text = '![代替テキスト:縦x横](' + image_path + ' "説明")'
+            self.txt.insert('insert', image_md_text)
+
+    def insert_page_break(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '<pgbr>')
+
+    ################
+    # SUBMENU INSERT TABLE
+
+    def _make_submenu_insert_table(self, menu):
+        submenu = tkinter.Menu(menu, tearoff=False)
+        menu.add_cascade(label='表を挿入', menu=submenu)
+        submenu.add_command(label='エクセルから挿入',
+                            command=self.insert_table_from_excel)
+        submenu.add_command(label='書式を挿入',
+                            command=self.insert_table_format)
+
+    ######
+    # COMMAND
+
+    def insert_table_from_excel(self, file_path=None):
+        if file_path is None:
+            typ = [('エクセル', '.xlsx')]
+            file_path = tkinter.filedialog.askopenfilename(filetypes=typ)
+        wb = openpyxl.load_workbook(file_path)
+        for sheet_name in wb.sheetnames:
+            self.txt.insert('insert', '<!-- ' + sheet_name + ' -->\n')
+            ws = wb[sheet_name]
+            table = ''
+            for row in ws.iter_rows(min_row=1, max_row=ws.max_row,
+                                    min_col=1, max_col=ws.max_column):
+                for cell in row:
+                    table += '|' + str(cell.value)
+                table += '|\n'
+            self.txt.insert('insert', table + '\n')
+
+    def insert_table_format(self):
+        self._insert_line_break_as_necessary()
+        table_md_text = ''
+        table_md_text += '|タイトル  |タイトル  |タイトル  |=\n'
+        table_md_text += '|:---------|:--------:|---------:|\n'
+        table_md_text += '|左寄せセル|中寄せセル|右寄せセル|\n'
+        table_md_text += '|左寄せセル|中寄せセル|右寄せセル|'
+        self.txt.insert('insert', table_md_text)
+
     def set_chapter_number(self):
         self.ChapterNumberDialog(self.txt)
 
@@ -5325,8 +6130,7 @@ class Makdo:
             int4, err4 = self._apply(str4)
             str5 = self.entry5.get()
             int5, err5 = self._apply(str5)
-            if err1 == True or err2 == True or err3 == True or \
-               err4 == True or err5 == True:
+            if err1 or err2 or err3 or err4 or err5:
                 Makdo.ChapterNumberDialog(self.win,
                                           [int1, int2, int3, int4, int5])
             else:
@@ -5408,9 +6212,7 @@ class Makdo:
             str6, int6, err6 = self._apply(str6, 'alph')
             str7 = self.entry7.get()
             str7, int7, err7 = self._apply(str7, 'alph')
-            if err1 == True or err2 == True or err3 == True or \
-               err4 == True or err5 == True or err6 == True or \
-               err7 == True:
+            if err1 or err2 or err3 or err4 or err5 or err6 or err7:
                 lst = [str1, str2, str3, str4, str5, str6, str7]
                 Makdo.SectionNumberDialog(self.win, lst)
             else:
@@ -5452,7 +6254,6 @@ class Makdo:
                 return '', -1, True
             return strn, intn, False
 
-
     def set_list_number(self):
         self.ListNumberDialog(self.txt)
 
@@ -5461,7 +6262,7 @@ class Makdo:
         def __init__(self, win, cnd=['', '', '', '']):
             self.win = win
             self.cnd = cnd
-            super().__init__(win, title='リストの番号を変更')
+            super().__init__(win, title='箇条書きの番号を変更')
 
         def body(self, win):
             self.entry1 = self._body(win, 0, '①', self.cnd[0])
@@ -5493,7 +6294,7 @@ class Makdo:
             str3, int3, err3 = self._apply(str3, 'alph')
             str4 = self.entry4.get()
             str4, int4, err4 = self._apply(str4, 'kanj')
-            if err1 == True or err2 == True or err3 == True or err4 == True:
+            if err1 or err2 or err3 or err4:
                 Makdo.ListNumberDialog(self.win, [str1, str2, str3, str4])
             else:
                 doc = self.win.get('1.0', 'insert')
@@ -5529,121 +6330,93 @@ class Makdo:
                 return '', -1, True
             return strn, intn, False
 
-    ################################
-    # CHAPER
+    ##########################
+    # MENU VISUAL
 
-    def insert_chap_1(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '$ ')  # 第1編
+    def _make_menu_visual(self):
+        menu = tkinter.Menu(self.mnb, tearoff=False)
+        self.mnb.add_cascade(label='表示(V)', menu=menu, underline=3)
+        #
+        menu.add_command(label='文頭に移動',
+                         command=self.move_to_beg_of_doc)
+        menu.add_command(label='文末に移動',
+                         command=self.move_to_end_of_doc)
+        menu.add_command(label='行頭に移動',
+                         command=self.move_to_beg_of_line)
+        menu.add_command(label='行末に移動',
+                         command=self.move_to_end_of_line)
+        menu.add_separator()
+        #
+        self._make_submenu_background_color(menu)
+        menu.add_separator()
+        #
+        self._make_submenu_character_size(menu)
+        menu.add_separator()
+        #
+        self.must_paint_keywords = tkinter.BooleanVar(value=False)
+        if self.args_paint_keywords:
+            self.must_paint_keywords.set(True)
+        menu.add_checkbutton(label='キーワードに色付け',
+                             variable=self.must_paint_keywords)
+        menu.add_separator()
+        #
+        menu.add_command(label='セクションを折り畳む（テスト）',
+                         command=self.fold_section)
+        menu.add_command(label='セクションを展開（テスト）',
+                         command=self.unfold_section)
+        menu.add_command(label='セクションを全て展開（テスト）',
+                         command=self.unfold_section_fully)
 
-    def insert_chap_2(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '$$ ')  # 第1章
+    ################
+    # COMMAND
 
-    def insert_chap_3(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '$$$ ')  # 第1節
+    def move_to_beg_of_doc(self):
+        self.txt.mark_set('insert', '1.0')
 
-    def insert_chap_4(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '$$$$ ')  # 第1款
+    def move_to_end_of_doc(self):
+        self.txt.mark_set('insert', 'end-1c')
 
-    def insert_chap_5(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '$$$$$ ')  # 第1目
+    def move_to_beg_of_line(self):
+        self.txt.mark_set('insert', 'insert linestart')
 
-    ################################
-    # SECTION
+    def move_to_end_of_line(self):
+        self.txt.mark_set('insert', 'insert lineend')
 
-    def insert_sect_1(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '# ')  # タイトル
+    ################
+    # SUBMENU BACKGROUND COLOR AND CHARACTER SIZE
 
-    def insert_sect_2(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '## ')  # 第1
+    def _make_submenu_background_color(self, menu):
+        submenu = tkinter.Menu(self.mnb, tearoff=False)
+        menu.add_cascade(label='背景色', menu=submenu)
+        self.background_color \
+            = tkinter.StringVar(value=self.args_background_color)
+        colors = {'W': '白色', 'B': '黒色', 'G': '緑色'}
+        for c in colors:
+            submenu.add_radiobutton(label=colors[c],
+                                    variable=self.background_color, value=c,
+                                    command=self.set_font)
 
-    def insert_sect_3(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '### ')  # 1
+    def _make_submenu_character_size(self, menu):
+        submenu = tkinter.Menu(self.mnb, tearoff=False)
+        menu.add_cascade(label='文字サイズ', menu=submenu)
+        sizes = [3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36,
+                 42, 48, 54, 60, 66, 72, 78, 84, 90, 96, 102, 108]
+        self.font_size = tkinter.IntVar(value=sizes[5])
+        for s in sizes:
+            submenu.add_radiobutton(label=str(s) + 'px',
+                                    variable=self.font_size, value=s,
+                                    command=self.set_font)
 
-    def insert_sect_4(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '#### ')  # (1)
-
-    def insert_sect_5(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '##### ')  # ア
-
-    def insert_sect_6(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '###### ')  # (ｱ)
-
-    def insert_sect_7(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '####### ')  # ａ
-
-    def insert_sect_8(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '######## ')  # (a)
-
-    ################################
-    # IMAGES
-
-    def insert_image_paragraph(self):
-        typ = [('画像', '.jpg .jpeg .png .gif .tif .tiff .bmp'),
-               ('全てのファイル', '*')]
-        image_path = tkinter.filedialog.askopenfilename(filetypes=typ)
-        if image_path != () and image_path != '':
-            self._insert_line_break_as_necessary()
-            image_md_text = '![代替テキスト:縦x横](' + image_path + ' "説明")'
-            self.txt.insert('insert', image_md_text)
-
-    ################################
-    # TABLE
-
-    def insert_table_from_excel(self, file_path=None):
-        if file_path is None:
-            typ = [('エクセル', '.xlsx')]
-            file_path = tkinter.filedialog.askopenfilename(filetypes=typ)
-        wb = openpyxl.load_workbook(file_path)
-        for sheet_name in wb.sheetnames:
-            self.txt.insert('insert', '<!-- ' + sheet_name + ' -->\n')
-            ws = wb[sheet_name]
-            table = ''
-            for row in ws.iter_rows(min_row=1, max_row=ws.max_row,
-                                    min_col=1, max_col=ws.max_column):
-                for cell in row:
-                    table += '|' + str(cell.value)
-                table += '|\n'
-            self.txt.insert('insert', table + '\n')
-
-    def insert_table_format(self):
-        self._insert_line_break_as_necessary()
-        table_md_text = ''
-        table_md_text += '|タイトル  |タイトル  |タイトル  |=\n'
-        table_md_text += '|:---------|:--------:|---------:|\n'
-        table_md_text += '|左寄せセル|中寄せセル|右寄せセル|\n'
-        table_md_text += '|左寄せセル|中寄せセル|右寄せセル|'
-        self.txt.insert('insert', table_md_text)
-
-    ################################
-    # PAGE BREAK
-
-    def insert_page_break(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '<pgbr>')
-
-    ################################################################
-    # VISUAL
+    ######
+    # COMMAND
 
     def set_font(self):
         background_color = self.background_color.get()
         size = self.font_size.get()
         # BASIC FONT
         self.txt['font'] = (GOTHIC_FONT, size)
+        self.stb_sor1['font'] = (GOTHIC_FONT, size)
         self.stb_sor2['font'] = (GOTHIC_FONT, size)
-        self.stb_sor4['font'] = (GOTHIC_FONT, size)
         self.txt.tag_config('error_tag', foreground='#FF0000')
         self.txt.tag_config('search_tag', background='#777777')
         # COLOR FONT
@@ -5701,8 +6474,8 @@ class Makdo:
                         self.txt.tag_config(tag, font=fon,
                                             foreground=col, underline=und)
 
-    ################################
-    # FOLD
+    ################
+    # COMMAND
 
     def fold_section(self):
         sub_document = self.txt.get('insert linestart', 'end-1c')
@@ -6010,638 +6783,25 @@ class Makdo:
     def fold_or_unfold_section(self):
         pass
 
-    ################################
-    # MOVE
-
-    def move_to_beg_of_doc(self):
-        self.txt.mark_set('insert', '1.0')
-
-    def move_to_end_of_doc(self):
-        self.txt.mark_set('insert', 'end-1c')
-
-    def move_to_beg_of_line(self):
-        self.txt.mark_set('insert', 'insert linestart')
-
-    def move_to_end_of_line(self):
-        self.txt.mark_set('insert', 'insert lineend')
-
-    ################################################################
-    # INSERT
-
-    ################################
-    # MARKDOWN
-
-    def insert_space(self):
-        t = '空白の幅'
-        p = '空白の幅を数字を入力してください．'
-        f = tkinter.simpledialog.askfloat(title=t, prompt=p)
-        self.txt.insert('insert', '< ' + str(f) + ' >')
-
-    def insert_line_break(self):
-        self.txt.insert('insert', '<br>')
-
-    def insert_images(self):
-        typ = [('画像', '.jpg .jpeg .png .gif .tif .tiff .bmp'),
-               ('全てのファイル', '*')]
-        image_paths = tkinter.filedialog.askopenfilenames(filetypes=typ)
-        for i in image_paths:
-            image_md_text = '![代替テキスト:縦x横](' + i + ' "説明")'
-            self.txt.insert('insert', image_md_text)
-
-    def insert_font_select(self):
-        mincho_list = []
-        for f in tkinter.font.families():
-            if '明朝' in f:
-                mincho_list.append(f)
-        self.MinchoDialog(self.txt, mincho_list)
-
-    class MinchoDialog(tkinter.simpledialog.Dialog):
-
-        def __init__(self, win, candidates):
-            self.win = win
-            self.candidates = candidates
-            super().__init__(win, title='明朝体を変える')
-
-        def body(self, win):
-            self.mincho = tkinter.StringVar()
-            for cnd in self.candidates:
-                rd = tkinter.Radiobutton(win, text=cnd, value=cnd,
-                                         font=(GOTHIC_FONT, 24),
-                                         variable=self.mincho)
-                rd.pack(side=tkinter.TOP, padx=3, pady=3)
-            # self.bind('<Key-Return>', self.ok)
-            # self.bind('<Key-Escape>', self.cancel)
-            # super().body(win)
-
-        # def buttonbox(self):
-        #     btn = tkinter.Frame(self)
-        #     self.btn1 = tkinter.Button(btn, text='OK', width=6,
-        #                                command=self.ok)
-        #     self.btn1.pack(side=tkinter.LEFT, padx=3, pady=3)
-        #     self.btn2 = tkinter.Button(btn, text='Cancel', width=6,
-        #                                command=self.cancel)
-        #     self.btn2.pack(side=tkinter.LEFT, padx=3, pady=3)
-        #     btn.pack()
-
-        def apply(self):
-            m = self.mincho.get()
-            d = '@' + m + '@（ここはフォントが変わる）@' + m + '@'
-            self.win.insert('insert', d)
-            self.win.mark_set('insert', 'insert-' + str(len(m) + 2) + 'c')
-            self.win.focus_set()
-
-    def insert_gothic_font(self):
-        self.txt.insert('insert', '`（ここはゴシック体）`')
-        self.txt.mark_set('insert', 'insert-1c')
-
-    def insert_font_manually(self):
-        t = 'フォント'
-        p = 'フォント名を入力してください．'
-        s = tkinter.simpledialog.askstring(title=t, prompt=p)
-        d = '@' + s + '@（ここはフォントが変わる）@' + s + '@'
-        self.txt.insert('insert', d)
-        self.txt.mark_set('insert', 'insert-' + str(len(s) + 2) + 'c')
-
-    def insert_ss_font_size(self):
-        self.txt.insert('insert', '---（ここは文字が特に小さい）---')
-        self.txt.mark_set('insert', 'insert-3c')
-
-    def insert_s_font_size(self):
-        self.txt.insert('insert', '--（ここは文字が小さい）--')
-        self.txt.mark_set('insert', 'insert-2c')
-
-    def insert_l_font_size(self):
-        self.txt.insert('insert', '++（ここは文字が大きい）++')
-        self.txt.mark_set('insert', 'insert-2c')
-
-    def insert_ll_font_size(self):
-        self.txt.insert('insert', '+++（ここは文字が特に大きい）+++')
-        self.txt.mark_set('insert', 'insert-3c')
-
-    def insert_font_size_manually(self):
-        t = '文字の大きさ'
-        p = '文字の大きさを1から100までの数字を入力してください．'
-        f = tkinter.simpledialog.askfloat(title=t, prompt=p,
-                                          minvalue=1, maxvalue=100)
-        if f is None:
-            return
-        s = str(f)
-        s = re.sub('\\.0+$', '', s)
-        d = '@' + s + '@（ここは文字の大きさが変わる）@' + s + '@'
-        self.txt.insert('insert', d)
-        self.txt.mark_set('insert', 'insert-' + str(len(s) + 2) + 'c')
-
-    def insert_ss_font_width(self):
-        self.txt.insert('insert', '>>>（ここは文字が特に細い）<<<')
-        self.txt.mark_set('insert', 'insert-3c')
-
-    def insert_s_font_width(self):
-        self.txt.insert('insert', '>>（ここは文字が細い）<<')
-        self.txt.mark_set('insert', 'insert-2c')
-
-    def insert_l_font_width(self):
-        self.txt.insert('insert', '<<（ここは文字が太い）>>')
-        self.txt.mark_set('insert', 'insert-2c')
-
-    def insert_ll_font_width(self):
-        self.txt.insert('insert', '<<<（ここは文字が特に太い）>>>')
-        self.txt.mark_set('insert', 'insert-3c')
-
-    def insert_single_underline(self):
-        self.txt.insert('insert', '__（ここは下線が引かれる）__')
-        self.txt.mark_set('insert', 'insert-2c')
-
-    def insert_double_underline(self):
-        self.txt.insert('insert', '_=_（ここは下線が引かれる）_=_')
-        self.txt.mark_set('insert', 'insert-3c')
-
-    def insert_wave_underline(self):
-        self.txt.insert('insert', '_~_（ここは下線が引かれる）_~_')
-        self.txt.mark_set('insert', 'insert-3c')
-
-    def insert_dash_underline(self):
-        self.txt.insert('insert', '_-_（ここは下線が引かれる）_-_')
-        self.txt.mark_set('insert', 'insert-3c')
-
-    def insert_dot_underline(self):
-        self.txt.insert('insert', '_._（ここは下線が引かれる）_._')
-        self.txt.mark_set('insert', 'insert-3c')
-
-    def insert_r_font_color(self):
-        self.txt.insert('insert', '^R^（ここは文字が赤色）^R^')
-        self.txt.mark_set('insert', 'insert-3c')
-
-    def insert_y_font_color(self):
-        self.txt.insert('insert', '^Y^（ここは文字が黄色）^Y^')
-        self.txt.mark_set('insert', 'insert-3c')
-
-    def insert_g_font_color(self):
-        self.txt.insert('insert', '^G^（ここは文字が緑色）^G^')
-        self.txt.mark_set('insert', 'insert-3c')
-
-    def insert_c_font_color(self):
-        self.txt.insert('insert', '^C^（ここは文字がシアン）^C^')
-        self.txt.mark_set('insert', 'insert-3c')
-
-    def insert_b_font_color(self):
-        self.txt.insert('insert', '^B^（ここは文字が青色）^B^')
-        self.txt.mark_set('insert', 'insert-3c')
-
-    def insert_m_font_color(self):
-        self.txt.insert('insert', '^M^（ここは文字がマゼンタ）^M^')
-        self.txt.mark_set('insert', 'insert-3c')
-
-    def insert_w_font_color(self):
-        self.txt.insert('insert', '^^（ここは文字が白色）^^')
-        self.txt.mark_set('insert', 'insert-2c')
-
-    def insert_r_highlight_color(self):
-        self.txt.insert('insert', '_R_（ここは下地が赤色）_R_')
-        self.txt.mark_set('insert', 'insert-3c')
-
-    def insert_y_highlight_color(self):
-        self.txt.insert('insert', '_Y_（ここは下地が黄色）_Y_')
-        self.txt.mark_set('insert', 'insert-3c')
-
-    def insert_g_highlight_color(self):
-        self.txt.insert('insert', '_G_（ここは下地が緑色）_G_')
-        self.txt.mark_set('insert', 'insert-3c')
-
-    def insert_c_highlight_color(self):
-        self.txt.insert('insert', '_C_（ここは下地がシアン）_C_')
-        self.txt.mark_set('insert', 'insert-3c')
-
-    def insert_b_highlight_color(self):
-        self.txt.insert('insert', '_B_（ここは下地が青色）_B_')
-        self.txt.mark_set('insert', 'insert-3c')
-
-    def insert_m_highlight_color(self):
-        self.txt.insert('insert', '_M_（ここは下地がマゼンタ）_M_')
-        self.txt.mark_set('insert', 'insert-3c')
-
-    ################################
-    # IVS
-
-    def insert_ivs(self):
-        self.IvsDialog(self.txt)
-
-    class IvsDialog(tkinter.simpledialog.Dialog):
-
-        def __init__(self, win):
-            self.win = win
-            super().__init__(win, title='文字コードから人名・地名漢字を挿入')
-
-        def body(self, win):
-            t = '下記のURLで漢字を検索してください．\n' + \
-                'https://moji.or.jp/mojikibansearch/basic\n\n' + \
-                '「対応するUCS」の下の段を下に入力してください．\n' + \
-                '例：花の場合→<82B1,E0102>\n'
-            self.text1 = tkinter.Label(win, text=t)
-            self.text1.pack(side=tkinter.TOP, anchor=tkinter.W)
-            self.entry1 = tkinter.Label(win, text='　　　　　<')
-            self.entry1.pack(side=tkinter.LEFT)
-            self.entry2 = tkinter.Entry(win, width=7)
-            self.entry2.pack(side=tkinter.LEFT)
-            self.entry3 = tkinter.Label(win, text=',')
-            self.entry3.pack(side=tkinter.LEFT)
-            self.entry4 = tkinter.Entry(win, width=7)
-            self.entry4.pack(side=tkinter.LEFT)
-            self.entry5 = tkinter.Label(win, text='>')
-            self.entry5.pack(side=tkinter.LEFT)
-            # self.bind('<Key-Return>', self.ok)
-            # self.bind('<Key-Escape>', self.cancel)
-            # super().body(win)
-
-        # def buttonbox(self):
-        #     btn = tkinter.Frame(self)
-        #     self.btn1 = tkinter.Button(btn, text='OK', width=6,
-        #                                command=self.ok)
-        #     self.btn1.pack(side=tkinter.LEFT, padx=3, pady=3)
-        #     self.btn2 = tkinter.Button(btn, text='Cancel', width=6,
-        #                                command=self.cancel)
-        #     self.btn2.pack(side=tkinter.LEFT, padx=3, pady=3)
-        #     btn.pack()
-
-        def apply(self):
-            ucs = self.entry2.get()
-            ivs = self.entry4.get()
-            if re.match('^[0-9a-fA-F]{4}$', ucs):
-                self.win.insert('insert', chr(int(ucs, 16)))
-                if re.match('^E01[0-9a-eA-E][0-9a-fA-F]$', ivs):
-                    self.win.insert('insert', str(int(ivs, 16) - 917760) + ';')
-
-    def insert_ivs_of_7947(self):
-        self.txt.insert('insert',
-                        'A祇2;' +  # E0102
-                        'B祇3;')   # E0103
-
-    def insert_ivs_of_82b1(self):
-        self.txt.insert('insert',
-                        'A花2;' +  # E0102
-                        'B花3;' +  # E0103
-                        'C花4;' +  # E0104
-                        'D花6;')   # E0106
-
-    def insert_ivs_of_845b(self):
-        self.txt.insert('insert',
-                        'A葛2;' +  # E0102
-                        'B葛3;' +  # E0103
-                        'C葛4;' +  # E0104
-                        'D葛5;' +  # E0105
-                        'E葛6;' +  # E0106
-                        'F葛7;' +  # E0107
-                        'G葛8;')   # E0108
-
-    def insert_ivs_of_9089(self):
-        self.txt.insert('insert',
-                        'A邉15;' +  # E010F
-                        'B邉16;' +  # E0110
-                        'C邉17;' +  # E0111
-                        'D邉18;' +  # E0112
-                        'E邉19;' +  # E0113
-                        'F邉20;' +  # E0114
-                        'G邉21;' +  # E0115
-                        'H邉22;' +  # E0116
-                        'I邉23;' +  # E0117
-                        'J邉24;' +  # E0118
-                        'K邉25;' +  # E0119
-                        'L邉26;' +  # E011A
-                        'M邉27;' +  # E011B
-                        'N邉28;' +  # E011C
-                        'O邉29;' +  # E011D
-                        'P邉31;')   # E011F
-
-    def insert_ivs_of_908a(self):
-        self.txt.insert('insert',
-                        'A邊8;' +   # E0108
-                        'B邊9;' +   # E0109
-                        'C邊10;' +  # E010A
-                        'D邊11;' +  # E010B
-                        'E邊12;' +  # E010C
-                        'F邊13;' +  # E010D
-                        'G邊14;' +  # E010E
-                        'H邊15;' +  # E010F
-                        'I邊16;' +  # E0110
-                        'J邊17;' +  # E0111
-                        'K邊18;')   # E0112
-
-    ################################
-    # DATE AND TIME
-
-    def insert_date_YYMD(self):
-        now = self._get_now()
-        date = now.strftime('%Y年%m月%d日')
-        date = self._remove_zero(date)
-        date = self._convert_half_to_full(date)
-        self.txt.insert('insert', date)
-
-    def insert_date_GYMD(self):
-        now = self._get_now()
-        year = int(now.strftime('%Y')) - 2018
-        date = '令和' + str(year) + '年' + now.strftime('%m月%d日')
-        date = self._remove_zero(date)
-        date = self._convert_half_to_full(date)
-        self.txt.insert('insert', date)
-
-    def insert_date_yymd(self):
-        now = self._get_now()
-        date = now.strftime('%Y年%m月%d日')
-        date = self._remove_zero(date)
-        self.txt.insert('insert', date)
-
-    def insert_date_Gymd(self):
-        now = self._get_now()
-        year = int(now.strftime('%Y')) - 2018
-        date = '令和' + str(year) + '年' + now.strftime('%m月%d日')
-        date = self._remove_zero(date)
-        self.txt.insert('insert', date)
-
-    def insert_date_iso(self):
-        now = self._get_now()
-        date = now.strftime('%Y-%m-%d')
-        self.txt.insert('insert', date)
-
-    def insert_date_giso(self):
-        now = self._get_now()
-        year = int(now.strftime('%Y')) - 2018
-        if year < 10:
-            date = 'R0' + str(year) + '-' + now.strftime('%m-%d')
-        else:
-            date = 'R' + str(year) + '-' + now.strftime('%m-%d')
-        self.txt.insert('insert', date)
-
-    def insert_time_HHMS(self):
-        now = self._get_now()
-        time = now.strftime('%H時%M分%S秒')
-        time = self._remove_zero(time)
-        time = self._convert_half_to_full(time)
-        self.txt.insert('insert', time)
-
-    def insert_time_GHMS(self):
-        now = self._get_now()
-        hour = int(now.strftime('%H'))
-        if hour < 12:
-            time = '午前' + str(hour) + '時' + now.strftime('%M分%S秒')
-        else:
-            time = '午後' + str(hour - 12) + '時' + now.strftime('%M分%S秒')
-        time = self._remove_zero(time)
-        time = self._convert_half_to_full(time)
-        self.txt.insert('insert', time)
-
-    def insert_time_hhms(self):
-        now = self._get_now()
-        time = now.strftime('%H時%M分%S秒')
-        time = self._remove_zero(time)
-        self.txt.insert('insert', time)
-
-    def insert_time_Ghms(self):
-        now = self._get_now()
-        hour = int(now.strftime('%H'))
-        if hour < 12:
-            time = '午前' + str(hour) + '時' + now.strftime('%M分%S秒')
-        else:
-            time = '午後' + str(hour - 12) + '時' + now.strftime('%M分%S秒')
-        time = self._remove_zero(time)
-        self.txt.insert('insert', time)
-
-    def insert_time_iso(self):
-        now = self._get_now()
-        time = now.strftime('%H:%M:%S')
-        self.txt.insert('insert', time)
-
-    def insert_time_giso(self):
-        now = self._get_now()
-        hour = int(now.strftime('%H'))
-        if hour < 12:
-            time = 'AM' + str(hour) + ':' + now.strftime('%M:%S')
-        else:
-            time = 'PM' + str(hour - 12) + ':' + now.strftime('%M:%S')
-        self.txt.insert('insert', time)
-
-    def insert_datetime(self):
-        now = self._get_now()
-        self.txt.insert('insert', now.isoformat(timespec='seconds'))
-
-    def insert_datetime_symple(self):
-        now = self._get_now()
-        self.txt.insert('insert', now.strftime('%y-%m-%d %H:%M:%S'))
-
-    @staticmethod
-    def _remove_zero(text):
-        text = re.sub('^0', '', text)
-        text = re.sub('年0', '年', text)
-        text = re.sub('月0', '月', text)
-        text = re.sub('時0', '時', text)
-        text = re.sub('分0', '分', text)
-        return text
-
-    ################################
-    # FILE
-
-    def insert_file_paths(self):
-        file_paths = tkinter.filedialog.askopenfilenames()
-        for f in file_paths:
-            self.txt.insert('insert', f + '\n')
-
-    def insert_file_names(self):
-        file_paths = tkinter.filedialog.askopenfilenames()
-        for f in file_paths:
-            f = re.sub('^(.|\n)*/', '', f)
-            self.txt.insert('insert', f + '\n')
-
-    def insert_file(self):
-        file_path = tkinter.filedialog.askopenfilename()
-        if file_path != () and file_path != '':
-            with open(file_path, 'rb') as f:
-                raw_data = f.read()
-            encoding = self._get_encoding(raw_data)
-            decoded_data = self._decode_data(encoding, raw_data)
-            self.txt.insert('insert', decoded_data)
-
-    ################################
-    # SYMBOL
-
-    def insert_symbol(self):
-        candidates = ['⑴', '⑵', '⑶', '⑷', '⑸', '⑹', '⑺', '⑻', '⑼', '⑽',
-                      '⑾', '⑿', '⒀', '⒁', '⒂', '⒃', '⒄', '⒅', '⒆', '⒇',
-                      '⓪',
-                      '①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩',
-                      '⑪', '⑫', '⑬', '⑭', '⑮', '⑯', '⑰', '⑱', '⑲', '⑳',
-                      '²', '³',
-                      '㊞',
-                      ]
-        self.SymbolDialog(self.txt, candidates)
-
-    class SymbolDialog(tkinter.simpledialog.Dialog):
-
-        def __init__(self, win, candidates):
-            self.win = win
-            self.candidates = candidates
-            super().__init__(win, title='記号を挿入')
-
-        def body(self, win):
-            self.symbol = tkinter.StringVar()
-            for i, cnd in enumerate(self.candidates):
-                rd = tkinter.Radiobutton(win, text=cnd, value=cnd,
-                                         font=(GOTHIC_FONT, 24),
-                                         variable=self.symbol)
-                y, x = int(i / 10), (i % 10)
-                rd.grid(row=y, column=x, columnspan=1, padx=3, pady=3)
-            # self.bind('<Key-Return>', self.ok)
-            # self.bind('<Key-Escape>', self.cancel)
-            # super().body(win)
-
-        # def buttonbox(self):
-        #     btn = tkinter.Frame(self)
-        #     self.btn1 = tkinter.Button(btn, text='OK', width=6,
-        #                                command=self.ok)
-        #     self.btn1.pack(side=tkinter.LEFT, padx=3, pady=3)
-        #     self.btn2 = tkinter.Button(btn, text='Cancel', width=6,
-        #                                command=self.cancel)
-        #     self.btn2.pack(side=tkinter.LEFT, padx=3, pady=3)
-        #     btn.pack()
-
-        def apply(self):
-            symbol = self.symbol.get()
-            self.win.insert('insert', symbol)
-            # self.win.mark_set('insert', 'insert-1c')
-            self.win.focus_set()
-
-    # "-"（002D）半角ハイフンマイナス
-    # "‐"（2010）全角ハイフン
-    # "—"（2014）全角Ｍダッシュ
-    # "―"（2015）全角水平線
-    # "−"（2212）全角マイナスサイン
-    # "－"（FF0D）ハイフンマイナス
-
-    def insert_hline_002d(self):
-        self.txt.insert('insert', '\u002D')  # 半角ハイフンマイナス
-
-    def insert_hline_2010(self):
-        self.txt.insert('insert', '\u2010')  # 全角ハイフン
-
-    def insert_hline_2014(self):
-        self.txt.insert('insert', '\u2014')  # 全角Ｍダッシュ
-
-    def insert_hline_2015(self):
-        self.txt.insert('insert', '\u2015')  # 全角水平線
-
-    def insert_hline_2212(self):
-        self.txt.insert('insert', '\u2212')  # 全角マイナスサイン
-
-    def insert_hline_ff0d(self):
-        self.txt.insert('insert', '\uFF0D')  # 全角ハイフンマイナス
-
-    ################################
-    # SAMPLE
-
-    def insert_basis(self):
-        document = self.insert_configuration('普通', '0.0') + \
-            SAMPLE_BASIS
-        self.insert_sample(document)
-
-    def insert_law(self):
-        document = self.insert_configuration('条文', '0.0') + \
-            SAMPLE_LAW
-        self.insert_sample(document)
-
-    def insert_petition(self):
-        document = self.insert_configuration('普通', '1.0') + \
-            SAMPLE_PETITION
-        self.insert_sample(document)
-
-    def insert_evidence(self):
-        document = self.insert_configuration('普通', '0.0') + \
-            SAMPLE_EVIDENCE
-        self.insert_sample(document)
-
-    def insert_settlement(self):
-        document = self.insert_configuration('契約', '1.0') + \
-            SAMPLE_SETTLEMENT
-        self.insert_sample(document)
-
-    def insert_configuration(self, document_style, space_before):
-        document = '''\
-<!--------------------------【設定】-----------------------------
-
-# プロパティに表示される文書のタイトルを指定できます。
-書題名: -
-
-# 3つの書式（普通、契約、条文）を指定できます。
-文書式: ''' + document_style + '''
-
-# 用紙のサイズ（A3横、A3縦、A4横、A4縦）を指定できます。
-用紙サ: A4縦
-
-# 用紙の上下左右の余白をセンチメートル単位で指定できます。
-上余白: 3.5 cm
-下余白: 2.2 cm
-左余白: 3.0 cm
-右余白: 2.0 cm
-
-# ページのヘッダーに表示する文字列（別紙 :等）を指定できます。
-頭書き:
-
-# ページ番号の書式（無、有、n :、-n-、n/N等）を指定できます。
-頁番号: 有
-
-# 行番号の記載（無、有）を指定できます。
-行番号: 無
-
-# 明朝体とゴシック体と異字体（IVS）のフォントを指定できます。
-明朝体: Times New Roman / ＭＳ 明朝
-ゴシ体: = / ＭＳ ゴシック
-異字体: IPAmj明朝
-
-# 基本の文字の大きさをポイント単位で指定できます。
-文字サ: 12 pt
-
-# 行間隔を基本の文字の高さの何倍にするかを指定できます。
-行間隔: 2.14 倍
-
-# セクションタイトル前後の余白を行間隔の倍数で指定できます。
-前余白: 0.0 倍, ''' + space_before + ''' 倍, 0.0 倍, 0.0 倍, 0.0 倍, 0.0 倍
-後余白: 0.0 倍, 0.0 倍, 0.0 倍, 0.0 倍, 0.0 倍, 0.0 倍
-
-# 半角文字と全角文字の間の間隔調整（無、有）を指定できます。
-字間整: 無
-
-# 備考書（コメント）などを消して完成させます。
-完成稿: 偽
-
-# 原稿の作成日時と更新日時が自動で記録されます。
-作成時: - USER
-更新時: - USER
-
----------------------------------------------------------------->
-'''
-        return document
-
-    def insert_sample(self, sample_document):
-        txt_text = self.txt.get('1.0', 'end-1c')
-        if txt_text != '':
-            n, m = 'エラー', 'テキストが空ではありません．'
-            tkinter.messagebox.showerror(n, m)
-            return
-        self.file_lines = sample_document.split('\n')
-        self.txt.insert('1.0', sample_document)
-        self.txt.focus_set()
-        self.txt.mark_set('insert', '1.0')
-        # PAINT
-        self.line_data = [LineDatum() for line in self.file_lines]
-        for i, line in enumerate(self.file_lines):
-            self.line_data[i].line_number = i
-            self.line_data[i].line_text = line + '\n'
-            if i > 0:
-                self.line_data[i].beg_chars_state \
-                    = self.line_data[i - 1].end_chars_state.copy()
-                self.line_data[i].beg_chars_state.reset_partially()
-            self.line_data[i].paint_line(self.txt)
-        # CLEAR THE UNDO STACK
-        self.txt.edit_reset()
-
-    ################################################################
-    # CONFIGURATION
+    ##########################
+    # MENU CONFIGURATION
+
+    def _make_menu_configuration(self):
+        menu = tkinter.Menu(self.mnb, tearoff=False)
+        self.mnb.add_cascade(label='設定(S)', menu=menu, underline=3)
+        #
+        self.is_read_only = tkinter.BooleanVar(value=False)
+        if self.args_read_only:
+            self.is_read_only.set(True)
+        menu.add_checkbutton(label='読取専用',
+                             variable=self.is_read_only,
+                             command=self.toggle_read_only)
+        menu.add_separator()
+        #
+        self._make_submenu_digit_separator(menu)
+
+    ################
+    # COMMAND
 
     def toggle_read_only(self):
         is_read_only = self.is_read_only.get()
@@ -6650,8 +6810,59 @@ class Makdo:
         if self.txt['state'] == 'disabled' and not is_read_only:
             self.txt.configure(state='normal')
 
-    ################################################################
-    # NET
+    ################
+    # SUBMENU DIGIT SEPARATOR
+
+    def _make_submenu_digit_separator(self, menu):
+        submenu = tkinter.Menu(self.mnb, tearoff=False)
+        menu.add_cascade(label='計算結果', menu=submenu)
+        #
+        self.digit_separator = tkinter.StringVar(value='4')
+        submenu.add_radiobutton(label='桁区切りなし（12345678）',
+                                variable=self.digit_separator, value='0')
+        submenu.add_radiobutton(label='3桁区切り（12,345,678）',
+                                variable=self.digit_separator, value='3')
+        submenu.add_radiobutton(label='4桁区切り（1234万5678）',
+                                variable=self.digit_separator, value='4')
+
+    ##########################
+    # MENU INTERNET
+
+    def _make_menu_internet(self):
+        menu = tkinter.Menu(self.mnb, tearoff=False)
+        self.mnb.add_cascade(label='ネット(H)', menu=menu, underline=4)
+        #
+        menu.add_command(label='辞書で調べる',
+                         command=self.browse_dictionary)
+        menu.add_command(label='Wikipediaで調べる',
+                         command=self.browse_wikipedia)
+        menu.add_separator()
+        #
+        menu.add_command(label='法律を調べる',
+                         command=self.browse_law)
+        menu.add_command(label='・日本国憲法',
+                         command=self.browse_law_constitution_law)
+        menu.add_command(label='・民法',
+                         command=self.browse_law_civil_law)
+        menu.add_command(label='・商法',
+                         command=self.browse_law_commercial_law)
+        menu.add_command(label='・会社法',
+                         command=self.browse_law_corporation_law)
+        menu.add_command(label='・民事訴訟法',
+                         command=self.browse_law_civil_procedure)
+        menu.add_command(label='・刑法',
+                         command=self.browse_law_crime_law)
+        menu.add_command(label='・刑事訴訟法',
+                         command=self.browse_law_crime_procedure)
+        menu.add_command(label='裁判所規則を調べる',
+                         command=self.browse_rule_of_court)
+        menu.add_separator()
+        #
+        menu.add_command(label='人名・地名漢字を探す',
+                         command=self.browse_ivs)
+
+    ################
+    # COMMAND
 
     def browse_dictionary(self):
         if self.txt.tag_ranges('sel'):
@@ -6706,11 +6917,30 @@ class Makdo:
     def browse_ivs(self):
         webbrowser.open('https://moji.or.jp/mojikibansearch/basic')
 
-    ################################################################
-    # HELP
+    ##########################
+    # MENU HELP
 
-    ################################
-    # CHARACTER INFORMATION
+    def _make_menu_help(self):
+        menu = tkinter.Menu(self.mnb, tearoff=False)
+        self.mnb.add_cascade(label='ヘルプ(H)', menu=menu, underline=4)
+        #
+        menu.add_command(label='文字情報',
+                         command=self.show_char_info)
+        menu.add_separator()
+        #
+        menu.add_command(label='ヘルプ(H)', underline=4,
+                         command=self.show_help)
+        menu.add_separator()
+        #
+        menu.add_command(label='ライセンス情報(F)', underline=8,
+                         command=self.show_license_info)
+        menu.add_separator()
+        #
+        menu.add_command(label='Makdoについて(A)', underline=10,
+                         command=self.show_about_makdo)
+
+    ################
+    # COMMAND
 
     def show_char_info(self):
         n = '文字情報'
@@ -6742,18 +6972,12 @@ class Makdo:
             m = re.sub('\n+$', '', m)
             tkinter.messagebox.showinfo(n, m)
 
-    ################################
-    # HELP
-
     def show_help(self):
         n = 'ヘルプ'
         m = 'このダイアログを閉じた後、' + \
             'ウィンドウにMS_Wordのファイル（拡張子docx）を' + \
             'ドラッグアンドドロップしてみてください．'
         tkinter.messagebox.showinfo(n, m)
-
-    ################################
-    # LICENSE INFO
 
     def show_license_info(self):
         n = 'ライセンス情報'
@@ -6800,20 +7024,27 @@ class Makdo:
             'SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.'
         tkinter.messagebox.showinfo(n, m)
 
-    ################################
-    # ABOUT MAKDO
-
     def show_about_makdo(self):
         n = 'バージョン情報'
         m = 'makdo ' + __version__ + '\n\n' + \
             '秦誠一郎により開発されています．'
         tkinter.messagebox.showinfo(n, m)
 
-    ################################################################
-    # TEXT
+    ####################################
+    # KEY CONFIGURATION
 
-    ################################
-    # KEY
+    def _make_key_configuration(self):
+        self.txt.bind('<Key>', self.process_key)
+        self.txt.bind('<KeyRelease>', self.process_key_release)
+        self.txt.bind('<Button-1>', self.process_button1)
+        self.txt.bind('<Button-2>', self.process_button2)
+        self.txt.bind('<Button-3>', self.process_button3)
+        self.txt.bind('<ButtonRelease-1>', self.process_button1_release)
+        self.txt.bind('<ButtonRelease-2>', self.process_button2_release)
+        self.txt.bind('<ButtonRelease-3>', self.process_button3_release)
+
+    ##########################
+    # COMMAND
 
     def process_key(self, key):
         self.set_message_on_status_bar('')
@@ -6997,8 +7228,7 @@ class Makdo:
             self.txt.tag_add('akauni_tag', 'insert', 'akauni')
         self.last_point = self.txt.get('insert')
 
-    ################################
-    # MOUSE LEFT
+    # MOUSE BUTTON LEFT
 
     def process_button1(self, click):
         pass
@@ -7010,9 +7240,7 @@ class Makdo:
             pass
         self.set_position_info_on_status_bar()
 
-    ################################
-    # MOUSE CENTER
-
+    # MOUSE BUTTON CENTER
     def process_button2(self, click):
         pass
 
@@ -7024,8 +7252,7 @@ class Makdo:
         self.paste_text()
         return 'break'
 
-    ################################
-    # MOUSE RIGHT
+    # MOUSE BUTTON RIGHT
 
     def process_button3(self, click):
         try:
@@ -7044,11 +7271,25 @@ class Makdo:
     def process_button3_release(self, click):
         pass
 
-    ################################################################
+    ####################################
     # STATUS BAR
 
-    ################################
-    # FILE NAME
+    def _make_status_bar(self):
+        self._make_status_file_name()
+        self._make_status_position_information()
+        self._make_status_search_or_replace()
+        self._make_status_message()
+
+    ##########################
+    # STATUS FILE NAME
+
+    def _make_status_file_name(self):
+        self.stb_fnm1 = tkinter.Label(self.stb, text='')
+        self.stb_fnm1.pack(side=tkinter.LEFT)
+        tkinter.Label(self.stb, text=' ').pack(side=tkinter.LEFT)
+
+    ################
+    # COMMAND
 
     def set_file_name_on_status_bar(self, file_name):
         fn = file_name
@@ -7064,8 +7305,16 @@ class Makdo:
             nam = re.sub('^(.{' + str(14 - len(ext)) + '})(.*)', '\\1…', nam)
         self.stb_fnm1['text'] = nam + ext
 
-    ################################
-    # POSITON INFORMATION
+    ##########################
+    # STATUS POSITION INFORMATION
+
+    def _make_status_position_information(self):
+        self.stb_pos1 = tkinter.Label(self.stb, text='1x0/1x0')
+        self.stb_pos1.pack(side=tkinter.LEFT)
+        tkinter.Label(self.stb, text=' ').pack(side=tkinter.LEFT)
+
+    ################
+    # COMMAND
 
     def set_position_info_on_status_bar(self):
         pos = self.txt.index('insert')
@@ -7075,12 +7324,35 @@ class Makdo:
         max_p = str(max_v) + 'x' + str(max_h)
         self.stb_pos1['text'] = cur_p + '/' + max_p
 
-    ################################
-    # SEARCH OR REPLACE
+    ##########################
+    # STATUS SEARCH OR REPLACE
+
+    def _make_status_search_or_replace(self):
+        # tkinter.Label(self.stb, text='探').pack(side=tkinter.LEFT)
+        self.stb_sor1 = tkinter.Entry(self.stb, width=20)
+        self.stb_sor1.pack(side=tkinter.LEFT)
+        # self.stb_sor1.insert(0, '（検索語）')
+        # tkinter.Label(self.stb, text='換').pack(side=tkinter.LEFT)
+        self.stb_sor2 = tkinter.Entry(self.stb, width=20)
+        self.stb_sor2.pack(side=tkinter.LEFT)
+        # self.stb_sor2.insert(0, '（置換語）')
+        self.stb_sor3 = tkinter.Button(self.stb, text='前',
+                                       command=self.search_or_replace_backward)
+        self.stb_sor3.pack(side=tkinter.LEFT)
+        self.stb_sor4 = tkinter.Button(self.stb, text='次',
+                                       command=self.search_or_replace_forward)
+        self.stb_sor4.pack(side=tkinter.LEFT)
+        self.stb_sor5 = tkinter.Button(self.stb, text='消',
+                                       command=self.clear_search_word)
+        self.stb_sor5.pack(side=tkinter.LEFT)
+        tkinter.Label(self.stb, text=' ').pack(side=tkinter.LEFT)
+
+    ################
+    # COMMAND
 
     def search_or_replace_backward(self):
-        word1 = self.stb_sor2.get()
-        word2 = self.stb_sor4.get()
+        word1 = self.stb_sor1.get()
+        word2 = self.stb_sor2.get()
         if word1 == '':
             return
         if Makdo.search_word != word1:
@@ -7106,8 +7378,8 @@ class Makdo:
                                        '（' + str(n) + '/' + str(m) + '）')
 
     def search_or_replace_forward(self):
-        word1 = self.stb_sor2.get()
-        word2 = self.stb_sor4.get()
+        word1 = self.stb_sor1.get()
+        word2 = self.stb_sor2.get()
         if word1 == '':
             return
         if Makdo.search_word != word1:
@@ -7132,8 +7404,8 @@ class Makdo:
                                        '（' + str(n) + '/' + str(m) + '）')
 
     def clear_search_word(self):
+        self.stb_sor1.delete('0', 'end')
         self.stb_sor2.delete('0', 'end')
-        self.stb_sor4.delete('0', 'end')
         self.txt.tag_remove('search_tag', '1.0', 'end')
         Makdo.search_word = ''
 
@@ -7152,87 +7424,30 @@ class Makdo:
                              '1.0+' + str(end) + 'c',)
             beg = end
 
-    ################################
-    # MESSAGE
+    ##########################
+    # STATUS MESSAGE
+
+    def _make_status_message(self):
+        self.stb_msg1 = tkinter.Label(self.stb, text='')
+        self.stb_msg1.pack(side=tkinter.LEFT)
+        # tkinter.Label(self.stb, text=' ')..pack(side=tkinter.LEFT)
+
+    ################
+    # COMMAND
 
     def set_message_on_status_bar(self, msg):
         self.stb_msg1['text'] = msg
 
-    ################################################################
-    # AUTO SAVE
+    ####################################
+    # RUN PERIODICALLY
 
-    def get_auto_path(self, file_path):
-        if file_path is None or file_path == '':
-            return None
-        if '/' in file_path or '\\' in file_path:
-            d = re.sub('^((?:.|\n)*[/\\\\])(.*)$', '\\1', file_path)
-            f = re.sub('^((?:.|\n)*[/\\\\])(.*)$', '\\2', file_path)
-        else:
-            d = ''
-            f = file_path
-        if '.' in f:
-            n = re.sub('^((?:.|\n)*)(\\..*)$', '\\1', f)
-            e = re.sub('^((?:.|\n)*)(\\..*)$', '\\2', f)
-        else:
-            n = f
-            e = ''
-        n = re.sub('^((?:.|\n){,240})(.*)$', '\\1', n)
-        return d + '~$' + n + e + '.zip'
+    def run_periodically(self):
+        self.run_periodically_to_paint_line()
+        self.run_periodically_to_set_position_info()
+        self.run_periodically_to_save_auto_file()
 
-    def exists_auto_file(self, file_path):
-        auto_path = self.get_auto_path(file_path)
-        if os.path.exists(auto_path):
-            # auto_file = re.sub('^(.|\n)*[/\\\\]', '', auto_path)
-            n = 'エラー'
-            m = '自動保存ファイルが存在します．\n' + \
-                '"' + auto_path + '"\n\n' + \
-                '①現在、ファイルを編集中\n' + \
-                '②過去の編集中のファイルが残存\n' + \
-                'の2つの可能性が考えられます．\n\n' + \
-                '①現在、ファイルを編集中\n' + \
-                'の場合は、「No」を選択してください．\n\n' + \
-                '②過去の編集中のファイルが残存\n' + \
-                'の場合、異常終了したものと思われます．\n' + \
-                '「No」を選択して、' + \
-                '自動保存ファイルの中身を確認してから、' + \
-                '削除することをおすすめします．\n\n' + \
-                '自動保存ファイルを削除しますか？'
-            ans = tkinter.messagebox.askyesno(n, m, default='no')
-            if ans:
-                try:
-                    self.remove_auto_file(file_path)
-                except BaseException:
-                    n, m = 'エラー', '自動保存ファイルの削除に失敗しました．'
-                    tkinter.messagebox.showerror(n, m)
-        if os.path.exists(auto_path):
-            return True
-        else:
-            return False
-
-    def save_auto_file(self, file_path):
-        if file_path is not None and file_path != '':
-            new_text = self.txt.get('1.0', 'end-1c')
-            auto_path = self.get_auto_path(file_path)
-            if os.path.exists(auto_path):
-                with zipfile.ZipFile(auto_path, 'r') as old_zip:
-                    with old_zip.open('doc.md', 'r') as f:
-                        old_text = f.read()
-                        if new_text == old_text.decode():
-                            return
-            with zipfile.ZipFile(auto_path, 'w',
-                                 compression=zipfile.ZIP_DEFLATED,
-                                 compresslevel=9) as new_zip:
-                new_zip.writestr('doc.md', new_text)
-
-    def remove_auto_file(self, file_path):
-        if file_path is not None and file_path != '':
-            auto_path = self.get_auto_path(file_path)
-            if re.match('(^|(.|\n)*[/\\\\])~\\$(.|\n)+\\.zip$', auto_path):
-                if os.path.exists(auto_path):
-                    os.remove(auto_path)
-
-    ################################################################
-    # RECURSIVE CALL
+    ##########################
+    # COMMAND
 
     def run_periodically_to_paint_line(self):
         # GLOBAL PAINTING
@@ -7262,6 +7477,10 @@ class Makdo:
         self.save_auto_file(self.file_path)
         interval = 60_000
         self.win.after(interval, self.run_periodically_to_save_auto_file)
+
+
+######################################################################
+# MAIN
 
 
 if __name__ == '__main__':
