@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.31-11:44:09-JST>
+# Time-stamp:   <2024.09.01-06:04:36-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -105,7 +105,7 @@ COLOR_SPACE = (
     ('#006441', '#00A76D', '#00EA99', '#94FFDA'),  # 160 :
     ('#006351', '#00A586', '#00E7BC', '#8EFFEA'),  # 170 :
     ('#006161', '#00A2A2', '#00E3E3', '#87FFFF'),  # 180 : algin, 申立人
-    ('#005F75', '#009FC3', '#21D6FF', '#B5F1FF'),  # 190 :
+    ('#005F75', '#009FC3', '#21D6FF', '#B5F1FF'),  # 190 : table
     ('#005D8E', '#009AED', '#59C5FF', '#C8ECFF'),  # 200 : (fsp), ins
     ('#0059B2', '#1F8FFF', '#79BCFF', '#D2E9FF'),  # 210 : chap1
     ('#0053EF', '#4385FF', '#8EB6FF', '#D9E7FF'),  # 220 : chap2, (tab)
@@ -2958,6 +2958,8 @@ class CharsState:
         self.has_underline = False
         self.has_specific_font = False
         self.has_frame = False
+        self.is_resized = ''
+        self.is_stretched = ''
         self.is_length_reviser = False
         self.chapter_depth = 0
         self.section_depth = 0
@@ -2975,6 +2977,10 @@ class CharsState:
             return False
         if self.has_frame != other.has_frame:
             return False
+        if self.is_resized != other.is_resized:
+            return False
+        if self.is_stretched != other.is_stretched:
+            return False
         return True
 
     def copy(self):
@@ -2986,6 +2992,8 @@ class CharsState:
         copy.has_underline = self.has_underline
         copy.has_specific_font = self.has_specific_font
         copy.has_frame = self.has_frame
+        copy.is_resized = self.is_resized
+        copy.is_stretched = self.is_stretched
         copy.is_length_reviser = self.is_length_reviser
         copy.chapter_depth = self.chapter_depth
         copy.section_depth = self.section_depth
@@ -3025,6 +3033,50 @@ class CharsState:
         elif fd == '|]':
             self.has_frame = False
 
+    def set_is_resized(self, fd):
+        if fd == '---':
+            if self.is_resized == '---':
+                self.is_resized = ''
+            else:
+                self.is_resized = '---'
+        elif fd == '--':
+            if self.is_resized == '--':
+                self.is_resized = ''
+            else:
+                self.is_resized = '--'
+        elif fd == '++':
+            if self.is_resized == '++':
+                self.is_resized = ''
+            else:
+                self.is_resized = '++'
+        elif fd == '+++':
+            if self.is_resized == '+++':
+                self.is_resized = ''
+            else:
+                self.is_resized = '+++'
+
+    def set_is_stretched(self, fd):
+        if fd == '>>>':
+            if self.is_stretched == '<<<':
+                self.is_stretched = ''
+            else:
+                self.is_stretched = '>>>'
+        elif fd == '>>':
+            if self.is_stretched == '<<':
+                self.is_stretched = ''
+            else:
+                self.is_stretched = '>>'
+        elif fd == '<<':
+            if self.is_stretched == '>>':
+                self.is_stretched = ''
+            else:
+                self.is_stretched = '<<'
+        elif fd == '<<<':
+            if self.is_stretched == '>>>':
+                self.is_stretched = ''
+            else:
+                self.is_stretched = '<<<'
+
     def apply_parenthesis(self, parenthesis):
         ps = self.parentheses
         p = parenthesis
@@ -3060,6 +3112,8 @@ class CharsState:
             key += '-0'
         elif chars == 'font decorator':
             key += '-120'
+        elif chars == 'table':
+            key += '-190'
         elif chars == 'half number':
             key += '-30'
         elif chars == 'full number':
@@ -3120,6 +3174,8 @@ class CharsState:
         # UNDERLINE
         if chars == 'font decorator':
             key += '-x'  # no underline
+        elif chars == 'table':
+            key += '-x'  # no underline
         elif chars == ' ' or chars == '\t' or chars == '\u3000':
             # if not self.is_in_comment:
             key += '-u'  # underline
@@ -3129,6 +3185,10 @@ class CharsState:
             key += '-u'  # specific font
         elif not self.is_in_comment and self.has_frame:
             key += '-u'  # frame
+        elif not self.is_in_comment and self.is_resized != '':
+            key += '-u'  # resized
+        elif not self.is_in_comment and self.is_stretched != '':
+            key += '-u'  # stretched
         else:
             key += '-x'  # no underline
         # RETURN
@@ -3403,6 +3463,22 @@ class LineDatum:
                 tmp = ''                                                # 5.tmp
                 beg = end                                               # 6.beg
                 continue
+            # TABLE CONFIGURE
+            if ((c == ':' and (c2 == '|' or c0 == '-' or c0 == ':')) or
+                ((c == '^' or c == '=') and c2 == '-')):
+                key = chars_state.get_key('')                           # 1.key
+                end = str(i + 1) + '.' + str(j)                         # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                # tmp = ':'                                             # 5.tmp
+                beg = end                                               # 6.beg
+                key = chars_state.get_key('font decorator')             # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                tmp = ''                                                # 5.tmp
+                beg = end                                               # 6.beg
+                continue
             # FONT DECORATOR ("---", "+++", ">>>", "<<<")
             if (not chars_state.is_in_comment) and \
                (s3 == '---' or s3 == '+++' or s3 == '>>>' or s3 == '<<<') and \
@@ -3411,12 +3487,17 @@ class LineDatum:
                 end = str(i + 1) + '.' + str(j - 2)                     # 2.end
                 txt.tag_add(key, beg, end)                              # 3.tag
                 #                                                       # 4.set
-                # tmp = '---' or '+++' or '>>>' or '<<<'                # 5.tmp
+                tmp = re.sub('^(.*)(...)$', '\\2', tmp)                 # 5.tmp
                 beg = end                                               # 6.beg
                 key = chars_state.get_key('font decorator')             # 1.key
                 end = str(i + 1) + '.' + str(j + 1)                     # 2.end
                 txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
+                res1, res2 = '^.*:-+$', '^-*:.*$'
+                if not re.match(res1, s_lft) and not re.match(res2, s_rgt):
+                    if tmp == '---' or tmp == '+++':
+                        chars_state.set_is_resized(tmp)                 # 4.set
+                    else:
+                        chars_state.set_is_stretched(tmp)               # 4.set
                 tmp = ''                                                # 5.tmp
                 beg = end                                               # 6.beg
                 continue
@@ -3429,12 +3510,19 @@ class LineDatum:
                 end = str(i + 1) + '.' + str(j - 1)                     # 2.end
                 txt.tag_add(key, beg, end)                              # 3.tag
                 #                                                       # 4.set
-                # tmp = '--' or '++' or '>>' or '<<'                    # 5.tmp
+                tmp = re.sub('^(.*)(..)$', '\\2', tmp)                  # 5.tmp
                 beg = end                                               # 6.beg
                 key = chars_state.get_key('font decorator')             # 1.key
                 end = str(i + 1) + '.' + str(j + 1)                     # 2.end
                 txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
+                res1, res2 = '^.*:-+$', '^-*:.*$'
+                if not re.match(res1, s_lft) and not re.match(res2, s_rgt):
+                    res = '^=[-\\+]?[0-9]*(\\.?[0-9]+)(\\s.*)?$'
+                    if s2 != '<<' or not re.match(res, s_rgt):
+                        if tmp == '--' or tmp == '++':
+                            chars_state.set_is_resized(tmp)             # 4.set
+                        else:
+                            chars_state.set_is_stretched(tmp)           # 4.set
                 tmp = ''                                                # 5.tmp
                 beg = end                                               # 6.beg
                 continue
@@ -3486,6 +3574,21 @@ class LineDatum:
                 end = str(i + 1) + '.' + str(j + 1)                     # 2.end
                 txt.tag_add(key, beg, end)                              # 3.tag
                 chars_state.attach_or_remove_frame(c2 + c)              # 4.set
+                tmp = ''                                                # 5.tmp
+                beg = end                                               # 6.beg
+                continue
+            # TABLE
+            if c == '|':
+                key = chars_state.get_key('')                           # 1.key
+                end = str(i + 1) + '.' + str(j)                         # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                # tmp = '|'                                             # 5.tmp
+                beg = end                                               # 6.beg
+                key = chars_state.get_key('table')                      # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
                 tmp = ''                                                # 5.tmp
                 beg = end                                               # 6.beg
                 continue
@@ -6366,6 +6469,12 @@ class Makdo:
                          command=self.unfold_section)
         menu.add_command(label='セクションを全て展開（テスト）',
                          command=self.unfold_section_fully)
+        menu.add_separator()
+        #
+        menu.add_command(label='画面を二つに分割',
+                         command=self.split_window)
+        menu.add_command(label='画面を一つに統合',
+                         command=self.unify_window)
 
     ################
     # COMMAND
@@ -6782,6 +6891,14 @@ class Makdo:
 
     def fold_or_unfold_section(self):
         pass
+
+    # SPLIT AND UNIFY WINDOW
+
+    def split_window(self):
+        return
+
+    def unify_window(self):
+        return
 
     ##########################
     # MENU CONFIGURATION
