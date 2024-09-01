@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.09.01-06:04:36-JST>
+# Time-stamp:   <2024.09.02-07:58:39-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -3829,6 +3829,7 @@ class Makdo:
         self.key_history = ['', '', '', '', '']
         self.last_point = ''
         self.must_display_folding_message = True
+        self.current_pane = 'txt'
         # WINDOW
         self.win = TkinterDnD.Tk()  # drag and drop
         # self.win = tkinter.Tk()
@@ -3836,25 +3837,45 @@ class Makdo:
         self.win.geometry(WINDOW_SIZE)
         self.win.protocol("WM_DELETE_WINDOW", self.quit_makdo)
         # FRAME
-        self.frm = tkinter.Frame()
-        self.frm.pack(expand=True, fill=tkinter.BOTH)
+        #self.frm = tkinter.Frame()
+        #self.frm.pack(expand=True, fill=tkinter.BOTH)
         # MENU BAR
-        self.mnb = tkinter.Menu()
+        self.mnb = tkinter.Menu(self.win)
         self._make_menu()
-        # TEXT
-        self.txt = tkinter.Text(self.frm, width=80, height=30, undo=True)
+        # PANED WINDOW
+        self.pnd = tkinter.PanedWindow(self.win, bd=3, sashwidth=3,
+                                       orient='vertical')
+        self.pnd.pack(expand=True, fill=tkinter.BOTH)
+        self.pnd1 = tkinter.PanedWindow(self.pnd, bd=0, bg='#FF5D5D')  #   0
+        self.pnd2 = tkinter.PanedWindow(self.pnd, bd=0, bg='#BC7A00')  #  40
+        self.pnd3 = tkinter.PanedWindow(self.pnd, bd=0, bg='#758F00')  #  70
+        self.pnd4 = tkinter.PanedWindow(self.pnd, bd=0, bg='#00A586')  # 170
+        self.pnd5 = tkinter.PanedWindow(self.pnd, bd=0, bg='#7676FF')  # 240
+        self.pnd6 = tkinter.PanedWindow(self.pnd, bd=0, bg='#C75DFF')  # 280
+        self.pnd7 = tkinter.PanedWindow(self.pnd, bd=0, bg='#FF5D5D')  #   0
+        self.pnd.add(self.pnd1)
+        # MAIN TEXT
+        self.txt = tkinter.Text(self.pnd1, undo=True)
         self.txt.pack(expand=True, fill=tkinter.BOTH)
-        self.txt.drop_target_register(DND_FILES)               # drag and drop
-        self.txt.dnd_bind('<<Drop>>', self.open_dropped_file)  # drag and drop
-        self._make_key_configuration()
         self.txt.config(insertbackground='#FF7777', blockcursor=True)  # cursor
-        # SCROLL BAR
+        self._make_txt_key_configuration()
         scb = tkinter.Scrollbar(self.txt, orient=tkinter.VERTICAL,
                                 command=self.txt.yview)
         scb.pack(side=tkinter.RIGHT, fill=tkinter.Y)
         self.txt['yscrollcommand'] = scb.set
+        self.txt.drop_target_register(DND_FILES)               # drag and drop
+        self.txt.dnd_bind('<<Drop>>', self.open_dropped_file)  # drag and drop
+        # SUB TEXT
+        self.sub = tkinter.Text(self.pnd2, undo=True)
+        # self.sub.pack(expand=True, fill=tkinter.BOTH)
+        self.sub.config(insertbackground='#FF7777', blockcursor=True)  # cursor
+        self._make_sub_key_configuration()
+        scb = tkinter.Scrollbar(self.sub, orient=tkinter.VERTICAL,
+                                command=self.sub.yview)
+        scb.pack(side=tkinter.RIGHT, fill=tkinter.Y)
+        self.sub['yscrollcommand'] = scb.set
         # STATUS BAR
-        self.stb = tkinter.Frame(self.frm)
+        self.stb = tkinter.Frame(self.win)
         self.stb.pack(anchor=tkinter.W)
         self._make_status_bar()
         # FONT
@@ -4535,15 +4556,14 @@ class Makdo:
             c = self.txt.get('sel.first', 'sel.last')
             self.win.clipboard_clear()
             self.win.clipboard_append(c)
-            self.txt.delete('sel.first', 'sel.last')  # delete
-        return
+            self.txt.delete('sel.first', 'sel.last')
 
     def copy_text(self):
         if self.txt.tag_ranges('sel'):
             c = self.txt.get('sel.first', 'sel.last')
             self.win.clipboard_clear()
             self.win.clipboard_append(c)
-        return
+            self.txt.delete('sel.first', 'sel.last')
 
     def paste_text(self):
         beg = self.get_insert_v_number()
@@ -4556,11 +4576,9 @@ class Makdo:
         end = self.get_insert_v_number()
         for i in range(beg - 1, end - 1):
             self.paint_out_line(i)
-        return
 
     def select_all(self):
         self.txt.tag_add('sel', '1.0', 'end-1c')
-        return
 
     def replace_all(self):
         word1 = self.stb_sor1.get()
@@ -4569,7 +4587,6 @@ class Makdo:
             return
         if Makdo.search_word != word1:
             Makdo.search_word = word1
-            self._highlight_search_word()
         if self.txt.tag_ranges('sel'):
             beg, end = self.txt.index('sel.first'), self.txt.index('sel.last')
         elif 'akauni' in self.txt.mark_names():
@@ -6441,13 +6458,27 @@ class Makdo:
         self.mnb.add_cascade(label='表示(V)', menu=menu, underline=3)
         #
         menu.add_command(label='文頭に移動',
-                         command=self.move_to_beg_of_doc)
+                         command=self.goto_beg_of_doc)
         menu.add_command(label='文末に移動',
-                         command=self.move_to_end_of_doc)
+                         command=self.goto_end_of_doc)
         menu.add_command(label='行頭に移動',
-                         command=self.move_to_beg_of_line)
+                         command=self.goto_beg_of_line)
         menu.add_command(label='行末に移動',
-                         command=self.move_to_end_of_line)
+                         command=self.goto_end_of_line)
+        menu.add_separator()
+        #
+        menu.add_command(label='フラッグ１をセット',
+                         command=self.set_flag1)
+        menu.add_command(label='フラッグ２をセット',
+                         command=self.set_flag2)
+        menu.add_command(label='フラッグ３をセット',
+                         command=self.set_flag3)
+        menu.add_command(label='フラッグ１に移動',
+                         command=self.goto_flag1)
+        menu.add_command(label='フラッグ２に移動',
+                         command=self.goto_flag2)
+        menu.add_command(label='フラッグ３に移動',
+                         command=self.goto_flag3)
         menu.add_separator()
         #
         self._make_submenu_background_color(menu)
@@ -6463,33 +6494,65 @@ class Makdo:
                              variable=self.must_paint_keywords)
         menu.add_separator()
         #
-        menu.add_command(label='セクションを折り畳む（テスト）',
-                         command=self.fold_section)
-        menu.add_command(label='セクションを展開（テスト）',
-                         command=self.unfold_section)
+        menu.add_command(label='セクションを折り畳む・展開（テスト）',
+                         command=self.fold_or_unfold_section)
         menu.add_command(label='セクションを全て展開（テスト）',
                          command=self.unfold_section_fully)
         menu.add_separator()
         #
-        menu.add_command(label='画面を二つに分割',
-                         command=self.split_window)
-        menu.add_command(label='画面を一つに統合',
-                         command=self.unify_window)
+        menu.add_command(label='画面を二つに分割・統合',
+                         command=self.split_or_unify_window)
 
     ################
     # COMMAND
 
-    def move_to_beg_of_doc(self):
+    def goto_beg_of_doc(self):
         self.txt.mark_set('insert', '1.0')
 
-    def move_to_end_of_doc(self):
+    def goto_end_of_doc(self):
         self.txt.mark_set('insert', 'end-1c')
 
-    def move_to_beg_of_line(self):
+    def goto_beg_of_line(self):
         self.txt.mark_set('insert', 'insert linestart')
 
-    def move_to_end_of_line(self):
+    def goto_end_of_line(self):
         self.txt.mark_set('insert', 'insert lineend')
+
+    def set_flag1(self):
+        if 'flag1' in self.txt.mark_names():
+            self.txt.mark_unset('flag1')
+        self.txt.mark_set('flag1', 'insert')
+
+    def set_flag2(self):
+        if 'flag2' in self.txt.mark_names():
+            self.txt.mark_unset('flag2')
+        self.txt.mark_set('flag2', 'insert')
+
+    def set_flag3(self):
+        if 'flag3' in self.txt.mark_names():
+            self.txt.mark_unset('flag3')
+        self.txt.mark_set('flag3', 'insert')
+
+    def goto_flag1(self):
+        if 'flag1' not in self.txt.mark_names():
+            n, m = 'エラー', 'フラッグ１は設定されていません．'
+            tkinter.messagebox.showerror(n, m)
+            return
+        self.txt.mark_set('insert', 'flag1')
+
+    def goto_flag2(self):
+        if 'flag2' not in self.txt.mark_names():
+            n, m = 'エラー', 'フラッグ２は設定されていません．'
+            tkinter.messagebox.showerror(n, m)
+            return
+        self.txt.mark_set('insert', 'flag2')
+
+    def goto_flag3(self):
+        if 'flag3' not in self.txt.mark_names():
+            n, m = 'エラー', 'フラッグ３は設定されていません．'
+            tkinter.messagebox.showerror(n, m)
+            return
+        self.txt.mark_set('insert', 'flag3')
 
     ################
     # SUBMENU BACKGROUND COLOR AND CHARACTER SIZE
@@ -6528,10 +6591,12 @@ class Makdo:
         self.stb_sor2['font'] = (GOTHIC_FONT, size)
         self.txt.tag_config('error_tag', foreground='#FF0000')
         self.txt.tag_config('search_tag', background='#777777')
+        self.sub.tag_config('search_tag', background='#777777')
         # COLOR FONT
         if background_color == 'W':
             self.txt.config(bg='white', fg='black')
             self.txt.tag_config('akauni_tag', background='#CCCCCC')
+            self.sub.tag_config('akauni_tag', background='#CCCCCC')
             self.txt.tag_config('hsp_tag', foreground='#C8C8FF',
                                 underline=True)                   # (0.8, 240)
             self.txt.tag_config('tab_tag', background='#D9E7FF')  # (0.9, 220)
@@ -6540,6 +6605,7 @@ class Makdo:
         elif background_color == 'B':
             self.txt.config(bg='black', fg='white')
             self.txt.tag_config('akauni_tag', background='#666666')
+            self.sub.tag_config('akauni_tag', background='#666666')
             self.txt.tag_config('hsp_tag', foreground='#7676FF',
                                 underline=True)                   # (0.5, 240)
             self.txt.tag_config('tab_tag', background='#0053EF')  # (0.3, 220)
@@ -6548,6 +6614,7 @@ class Makdo:
         elif background_color == 'G':
             self.txt.config(bg='darkgreen', fg='lightyellow')
             self.txt.tag_config('akauni_tag', background='#888888')
+            self.sub.tag_config('akauni_tag', background='#888888')
             self.txt.tag_config('hsp_tag', foreground='#7676FF',
                                 underline=True)                   # (0.5, 240)
             self.txt.tag_config('tab_tag', background='#0053EF')  # (0.3, 220)
@@ -6890,15 +6957,51 @@ class Makdo:
         return new_document
 
     def fold_or_unfold_section(self):
-        pass
+        sub_document = self.txt.get('insert linestart', 'end-1c')
+        # CHECK THAT THE LINE IS SECITION
+        res = '^#+(?:-#+)*(?:\\s.*)?\n'
+        if not re.match(res, sub_document):
+            n = 'エラー'
+            m = '行がセクションの見出し（"#"から始まる行）ではありません．'
+            tkinter.messagebox.showerror(n, m)
+            return
+        # CHECK THAT SECITION IS FOLDED
+        res = '^#+(?:-#+)*(?:\\s.*)?\\.\\.\\.\\[([0-9]+)\\]\n(?:.|\n)*$'
+        if not re.match(res, sub_document):
+            self.fold_section()
+        else:
+            self.unfold_section()
 
-    # SPLIT AND UNIFY WINDOW
+    # SPLIT OR UNIFY WINDOW
 
-    def split_window(self):
-        return
+    def split_or_unify_window(self):
+        if len(self.pnd.panes()) == 1:
+            self._split_window()
+        else:
+            self._unify_window()
 
-    def unify_window(self):
-        return
+    def _split_window(self):
+        self.pnd.update()
+        half_height = int(self.pnd.winfo_height() / 2) - 5
+        self.pnd.remove(self.pnd1)
+        self.pnd.remove(self.pnd2)
+        self.pnd.add(self.pnd1, height=half_height, minsize=100)
+        self.pnd.add(self.pnd2, height=half_height)
+        self.pnd.update()
+        #
+        self.sub.pack(expand=True, fill=tkinter.BOTH)
+        for key in self.txt.configure():
+            self.sub.configure({key: self.txt.cget(key)})
+        #
+        doc = self.txt.get('1.0', 'end-1c')
+        self.sub.delete('1.0', 'end')
+        self.sub.insert('1.0', doc)
+        self.sub.mark_set('insert', '1.0')
+        # self.sub.configure(state='disabled')
+
+    def _unify_window(self):
+        self.pnd.remove(self.pnd2)
+        self.txt.focus_set()
 
     ##########################
     # MENU CONFIGURATION
@@ -7150,20 +7253,31 @@ class Makdo:
     ####################################
     # KEY CONFIGURATION
 
-    def _make_key_configuration(self):
-        self.txt.bind('<Key>', self.process_key)
-        self.txt.bind('<KeyRelease>', self.process_key_release)
-        self.txt.bind('<Button-1>', self.process_button1)
-        self.txt.bind('<Button-2>', self.process_button2)
-        self.txt.bind('<Button-3>', self.process_button3)
-        self.txt.bind('<ButtonRelease-1>', self.process_button1_release)
-        self.txt.bind('<ButtonRelease-2>', self.process_button2_release)
-        self.txt.bind('<ButtonRelease-3>', self.process_button3_release)
+    def _make_txt_key_configuration(self):
+        self.txt.bind('<Key>', self.txt_process_key)
+        self.txt.bind('<KeyRelease>', self.txt_process_key_release)
+        self.txt.bind('<Button-1>', self.txt_process_button1)
+        self.txt.bind('<Button-2>', self.txt_process_button2)
+        self.txt.bind('<Button-3>', self.txt_process_button3)
+        self.txt.bind('<ButtonRelease-1>', self.txt_process_button1_release)
+        self.txt.bind('<ButtonRelease-2>', self.txt_process_button2_release)
+        self.txt.bind('<ButtonRelease-3>', self.txt_process_button3_release)
+
+    def _make_sub_key_configuration(self):
+        self.sub.bind('<Key>', self.sub_process_key)
+        self.sub.bind('<KeyRelease>', self.sub_process_key_release)
+        self.sub.bind('<Button-1>', self.sub_process_button1)
+        self.sub.bind('<Button-2>', self.sub_process_button2)
+        self.sub.bind('<Button-3>', self.sub_process_button3)
+        self.sub.bind('<ButtonRelease-1>', self.sub_process_button1_release)
+        self.sub.bind('<ButtonRelease-2>', self.sub_process_button2_release)
+        self.sub.bind('<ButtonRelease-3>', self.sub_process_button3_release)
 
     ##########################
     # COMMAND
 
-    def process_key(self, key):
+    def txt_process_key(self, key):
+        self.current_pane = 'txt'
         self.set_message_on_status_bar('')
         self.set_position_info_on_status_bar()
         self.paint_out_line(self.get_insert_v_number() - 1)
@@ -7171,6 +7285,10 @@ class Makdo:
         self.key_history.append(key.keysym)
         self.key_history.pop(0)
         if key.keysym == 'F19':              # x (ctrl)
+            if self.key_history[-2] == 'F19':
+                self.sub.focus_set()
+                self.key_history.pop(-1)
+                self.key_history.pop(-1)
             return 'break'
         elif key.keysym == 'Left':
             if 'akauni' in self.txt.mark_names():
@@ -7335,7 +7453,7 @@ class Makdo:
                 if self.last_point == self.txt.get('insert'):
                     self.txt.mark_set('insert', 'end-1c')
 
-    def process_key_release(self, key):
+    def txt_process_key_release(self, key):
         self.set_position_info_on_status_bar()
         # self.paint_out_line(self.get_insert_v_number() - 1)
         # FOR AKAUNI
@@ -7345,23 +7463,141 @@ class Makdo:
             self.txt.tag_add('akauni_tag', 'insert', 'akauni')
         self.last_point = self.txt.get('insert')
 
+    def sub_process_key(self, key):
+        self.current_pane = 'sub'
+        # FOR AKAUNI
+        self.key_history.append(key.keysym)
+        self.key_history.pop(0)
+        if key.keysym == 'F19':              # x (ctrl)
+            if self.key_history[-2] == 'F19':
+                self.txt.focus_set()
+                self.key_history.pop(-1)
+                self.key_history.pop(-1)
+            return 'break'
+        elif key.keysym == 'Left':
+            if 'akauni' in self.sub.mark_names():
+                self.sub.tag_remove('akauni_tag', '1.0', 'end')
+                self.sub.tag_add('akauni_tag', 'akauni', 'insert-1c')
+                self.sub.tag_add('akauni_tag', 'insert-1c', 'akauni')
+            return
+        elif key.keysym == 'Right':
+            if 'akauni' in self.sub.mark_names():
+                self.sub.tag_remove('akauni_tag', '1.0', 'end')
+                self.sub.tag_add('akauni_tag', 'akauni', 'insert+1c')
+                self.sub.tag_add('akauni_tag', 'insert+1c', 'akauni')
+            return
+        elif key.keysym == 'Up':
+            if 'akauni' in self.sub.mark_names():
+                self.sub.tag_remove('akauni_tag', '1.0', 'end')
+                self.sub.tag_add('akauni_tag', 'akauni', 'insert-1l')
+                self.sub.tag_add('akauni_tag', 'insert-1l', 'akauni')
+            return
+        elif key.keysym == 'Down':
+            if 'akauni' in self.sub.mark_names():
+                self.sub.tag_remove('akauni_tag', '1.0', 'end')
+                self.sub.tag_add('akauni_tag', 'akauni', 'insert+1l')
+                self.sub.tag_add('akauni_tag', 'insert+1l', 'akauni')
+            return
+        elif key.keysym == 'F22':            # f (mark, save)
+            if 'akauni' in self.sub.mark_names():
+                self.sub.mark_unset('akauni')
+            self.sub.mark_set('akauni', 'insert')
+            return 'break'
+        elif key.keysym == 'Delete':         # d (delete, quit)
+            if 'akauni' in self.sub.mark_names():
+                self.sub.tag_remove('akauni_tag', '1.0', 'end')
+                akn = self.sub.index('akauni')
+                pos = self.sub.index('insert')
+                beg = re.sub('\\..*$', '.0', akn)
+                if akn == pos and akn != beg:
+                    c = self.sub.get(beg, akn)
+                    self.win.clipboard_clear()
+                    self.win.clipboard_append(c)
+                else:
+                    c = ''
+                    c += self.sub.get('akauni', 'insert')
+                    c += self.sub.get('insert', 'akauni')
+                    self.win.clipboard_clear()
+                    self.win.clipboard_append(c)
+                self.sub.mark_unset('akauni')
+                return 'break'
+        elif key.keysym == 'F14':            # v (quit)
+            if 'akauni' in self.sub.mark_names():
+                self.sub.tag_remove('akauni_tag', '1.0', 'end')
+                self.sub.mark_unset('akauni')
+                return 'break'
+        elif key.keysym == 'F16':            # c (search forward)
+            self.search_or_replace_forward()
+            return 'break'
+        elif key.keysym == 'cent':           # cent (search backward)
+            self.search_or_replace_backward()
+            return 'break'
+        #
+        if key.char == 'q':
+            self._unify_window()
+        elif key.keysym == 'Delete':
+            if self.sub.tag_ranges('sel'):
+                self.cut_text()
+            else:
+                pos = self.sub.index('insert')
+                end = re.sub('\\..*$', '.end', pos)
+                c = self.sub.get(pos, end)
+                if self.key_history[-2] != 'Delete':
+                    self.win.clipboard_clear()
+                if c == '':
+                    self.win.clipboard_append('\n')
+                    self.sub.delete(pos, end)
+                else:
+                    self.win.clipboard_append(c)
+                    self.sub.delete(pos, end + '-1c')
+        elif key.keysym == 'Prior':
+            if self.key_history[-2] == 'Prior':
+                if self.last_point == self.sub.get('insert'):
+                    self.sub.mark_set('insert', '1.0')
+        elif key.keysym == 'Next':
+            if self.key_history[-2] == 'Next':
+                if self.last_point == self.sub.get('insert'):
+                    self.sub.mark_set('insert', 'end-1c')
+        return 'break'
+
+    def sub_process_key_release(self, key):
+        # FOR AKAUNI
+        if 'akauni' in self.sub.mark_names():
+            self.sub.tag_remove('akauni_tag', '1.0', 'end')
+            self.sub.tag_add('akauni_tag', 'akauni', 'insert')
+            self.sub.tag_add('akauni_tag', 'insert', 'akauni')
+        self.last_point = self.sub.get('insert')
+        return 'break'
+
     # MOUSE BUTTON LEFT
 
-    def process_button1(self, click):
+    def txt_process_button1(self, click):
+        self.current_pane = 'txt'
         pass
 
-    def process_button1_release(self, click):
+    def txt_process_button1_release(self, click):
         try:
             self.bt3.destroy()
         except BaseException:
             pass
         self.set_position_info_on_status_bar()
 
-    # MOUSE BUTTON CENTER
-    def process_button2(self, click):
+    def sub_process_button1(self, click):
+        self.current_pane = 'sub'
         pass
 
-    def process_button2_release(self, click):
+    def sub_process_button1_release(self, click):
+        try:
+            self.bt3.destroy()
+        except BaseException:
+            pass
+
+    # MOUSE BUTTON CENTER
+
+    def txt_process_button2(self, click):
+        pass
+
+    def txt_process_button2_release(self, click):
         try:
             self.bt3.destroy()
         except BaseException:
@@ -7369,9 +7605,19 @@ class Makdo:
         self.paste_text()
         return 'break'
 
+    def sub_process_button2(self, click):
+        return 'break'
+
+    def sub_process_button2_release(self, click):
+        try:
+            self.bt3.destroy()
+        except BaseException:
+            pass
+        return 'break'
+
     # MOUSE BUTTON RIGHT
 
-    def process_button3(self, click):
+    def txt_process_button3(self, click):
         try:
             self.bt3.destroy()
         except BaseException:
@@ -7385,8 +7631,29 @@ class Makdo:
                              command=self.paste_text)
         self.bt3.post(click.x_root, click.y_root)
 
-    def process_button3_release(self, click):
+    def txt_process_button3_release(self, click):
         pass
+
+    def sub_process_button3(self, click):
+        try:
+            self.bt3.destroy()
+        except BaseException:
+            pass
+        self.bt3 = tkinter.Menu(self.win, tearoff=False)
+        self.bt3.add_command(label='コピー',
+                             command=self.copy_sub_text)
+        self.bt3.post(click.x_root, click.y_root)
+        return 'break'
+
+    def sub_process_button3_release(self, click):
+        return 'break'
+
+    def copy_sub_text(self):
+        if self.sub.tag_ranges('sel'):
+            c = self.sub.get('sel.first', 'sel.last')
+            self.sub.delete('sel.first', 'sel.last')
+            self.win.clipboard_clear()
+            self.win.clipboard_append(c)
 
     ####################################
     # STATUS BAR
@@ -7468,6 +7735,10 @@ class Makdo:
     # COMMAND
 
     def search_or_replace_backward(self):
+        if self.current_pane == 'sub':
+            pane = self.sub
+        else:
+            pane = self.txt
         word1 = self.stb_sor1.get()
         word2 = self.stb_sor2.get()
         if word1 == '':
@@ -7475,26 +7746,31 @@ class Makdo:
         if Makdo.search_word != word1:
             Makdo.search_word = word1
             self._highlight_search_word()
-        tex = self.txt.get('1.0', 'insert')
+        tex = pane.get('1.0', 'insert')
         tex = re.sub(word1 + '$', '', tex)
         res = '^((?:.|\n)*' + word1 + ')((?:.|\n)*)$'
         if re.match(res, tex):
             sub = re.sub(res, '\\1', tex)
             # SEARCH
-            self.txt.mark_set('insert', '1.0 +' + str(len(sub)) + 'c')
-            self.txt.yview('insert -10line')
-            if word2 != '':  # and word2 != '（置換語）'
-                # REPLACE
-                self.txt.delete('insert-' + str(len(word1)) + 'c', 'insert')
-                self.txt.insert('insert', word2)
-        self.txt.focus_set()
+            pane.mark_set('insert', '1.0 +' + str(len(sub)) + 'c')
+            pane.yview('insert -10line')
+            if self.current_pane == 'txt':
+                if word2 != '':  # and word2 != '（置換語）'
+                    # REPLACE
+                    pane.delete('insert-' + str(len(word1)) + 'c', 'insert')
+                    pane.insert('insert', word2)
+        pane.focus_set()
         # MESSAGE
-        n = self.txt.get('1.0', 'insert').count(word1)
-        m = self.txt.get('1.0', 'end-1c').count(word1)
+        n = pane.get('1.0', 'insert').count(word1)
+        m = pane.get('1.0', 'end-1c').count(word1)
         self.set_message_on_status_bar(str(m) + '個が見付かりました' +
                                        '（' + str(n) + '/' + str(m) + '）')
 
     def search_or_replace_forward(self):
+        if self.current_pane == 'sub':
+            pane = self.sub
+        else:
+            pane = self.txt
         word1 = self.stb_sor1.get()
         word2 = self.stb_sor2.get()
         if word1 == '':
@@ -7502,21 +7778,22 @@ class Makdo:
         if Makdo.search_word != word1:
             Makdo.search_word = word1
             self._highlight_search_word()
-        tex = self.txt.get('insert', 'end-1c')
+        tex = pane.get('insert', 'end-1c')
         res = '^((?:.|\n)*?' + word1 + ')((?:.|\n)*)$'
         if re.match(res, tex):
             sub = re.sub(res, '\\1', tex)
             # SEARCH
-            self.txt.mark_set('insert', 'insert +' + str(len(sub)) + 'c')
-            self.txt.yview('insert -10line')
-            if word2 != '':  # and word2 != '（置換語）'
-                # REPLACE
-                self.txt.delete('insert-' + str(len(word1)) + 'c', 'insert')
-                self.txt.insert('insert', word2)
-        self.txt.focus_set()
+            pane.mark_set('insert', 'insert +' + str(len(sub)) + 'c')
+            pane.yview('insert -10line')
+            if self.current_pane == 'txt':
+                if word2 != '':  # and word2 != '（置換語）'
+                    # REPLACE
+                    pane.delete('insert-' + str(len(word1)) + 'c', 'insert')
+                    pane.insert('insert', word2)
+        pane.focus_set()
         # MESSAGE
-        n = self.txt.get('1.0', 'insert').count(word1)
-        m = self.txt.get('1.0', 'end-1c').count(word1)
+        n = pane.get('1.0', 'insert').count(word1)
+        m = pane.get('1.0', 'end-1c').count(word1)
         self.set_message_on_status_bar(str(m) + '個が見付かりました' +
                                        '（' + str(n) + '/' + str(m) + '）')
 
@@ -7527,8 +7804,12 @@ class Makdo:
         Makdo.search_word = ''
 
     def _highlight_search_word(self):
+        if self.current_pane == 'sub':
+            pane = self.sub
+        else:
+            pane = self.txt
         word = Makdo.search_word
-        tex = self.txt.get('1.0', 'end-1c')
+        tex = pane.get('1.0', 'end-1c')
         beg = 0
         res = '^((?:.|\n)*?)' + word + '((?:.|\n)*)$'
         while re.match(res, tex):
@@ -7536,9 +7817,9 @@ class Makdo:
             tex = re.sub(res, '\\2', tex)
             beg += len(pre)
             end = beg + len(word)
-            self.txt.tag_add('search_tag',
-                             '1.0+' + str(beg) + 'c',
-                             '1.0+' + str(end) + 'c',)
+            pane.tag_add('search_tag',
+                         '1.0+' + str(beg) + 'c',
+                         '1.0+' + str(end) + 'c',)
             beg = end
 
     ##########################
