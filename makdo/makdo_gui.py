@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.09.02-07:58:39-JST>
+# Time-stamp:   <2024.09.04-06:33:39-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -126,18 +126,24 @@ COLOR_SPACE = (
 
 KEYWORDS = [
     ['(加害者' +
-     '|被告|本訴被告|反訴原告|被控訴人|被上告人' +
+     '|被告|本訴被告|反訴原告|別訴原告|被控訴人|被上告人' +
      '|相手方' +
      '|被疑者|被告人|弁護人|対象弁護士' +
+     '|反訴' +
+     '|弁護士会' +
      '|乙|戊|辛)',
      'magenta'],
     ['(被害者' +
-     '|原告|本訴原告|反訴被告|控訴人|上告人' +
+     '|原告|本訴原告|反訴被告|別訴被告|控訴人|上告人' +
      '|申立人' +
      '|検察官|検察事務官|懲戒請求者' +
+     '|本訴' +
+     '|検察庁' +
      '|甲|丁|庚|癸)',
      'cyan'],
     ['(裁判官|審判官|調停官|調停委員|司法委員|専門委員|書記官|事務官|訴外' +
+     '|別訴' +
+     '|裁判所' +
      '|丙|己|壬)',
      'yellow']]
 
@@ -3769,11 +3775,14 @@ class LineDatum:
                     if re.match('^(.*?)' + kw[0] + '$', tmp):
                         t1 = re.sub('^(.*?)' + kw[0] + '$', '\\1', tmp)
                         t2 = re.sub('^(.*?)' + kw[0] + '$', '\\2', tmp)
+                        if t2 == '本訴' or t2 == '反訴' or t2 == '別訴':
+                            if re.match('^(原|被)告', s_rgt):
+                                continue  # 本訴/原告
                         if t2 == '原告' or t2 == '被告':
-                            if re.match('^(?:.|\n)*(本|反)訴$', t1):
-                                continue
+                            if re.match('^(?:.|\n)*(本|反|別)訴$', t1):
+                                continue  # 本訴原告/
                         if t2 == '被告' and c0 == '人':
-                            continue
+                            continue  # 被告/人
                         key = chars_state.get_key('')                   # 1.key
                         end = str(i + 1) + '.' + str(j - len(t2) + 1)   # 2.end
                         txt.tag_add(key, beg, end)                      # 3.tag
@@ -3843,7 +3852,7 @@ class Makdo:
         self.mnb = tkinter.Menu(self.win)
         self._make_menu()
         # PANED WINDOW
-        self.pnd = tkinter.PanedWindow(self.win, bd=3, sashwidth=3,
+        self.pnd = tkinter.PanedWindow(self.win, bd=0, sashwidth=3,
                                        orient='vertical')
         self.pnd.pack(expand=True, fill=tkinter.BOTH)
         self.pnd1 = tkinter.PanedWindow(self.pnd, bd=0, bg='#FF5D5D')  #   0
@@ -4089,6 +4098,7 @@ class Makdo:
         self._make_menu_edit()
         self._make_menu_insert()
         self._make_menu_paragraph()
+        self._make_menu_tool()
         self._make_menu_visual()
         self._make_menu_configuration()
         self._make_menu_internet()
@@ -4122,6 +4132,7 @@ class Makdo:
         #
         menu.add_command(label='終了(Q)', underline=3,
                          command=self.quit_makdo, accelerator='Ctrl+Q')
+        # menu.add_separator()
 
     ################
     # COMMAND
@@ -4535,6 +4546,7 @@ class Makdo:
                          command=self.comment_out)
         menu.add_command(label='コメントアウトを取り消す',
                          command=self.uncomment)
+        # menu.add_separator()
 
     ######
     # COMMAND
@@ -4931,6 +4943,7 @@ class Makdo:
         menu.add_separator()
         #
         self._make_submenu_insert_sample(menu)
+        # menu.add_separator()
 
     ################
     # COMMAND
@@ -5814,6 +5827,7 @@ class Makdo:
                          command=self.set_section_number)
         menu.add_command(label='箇条書きの番号を変更',
                          command=self.set_list_number)
+        # menu.add_separator()
 
     ################
     # COMMAND
@@ -6453,6 +6467,31 @@ class Makdo:
     ##########################
     # MENU VISUAL
 
+    def _make_menu_tool(self):
+        menu = tkinter.Menu(self.mnb, tearoff=False)
+        self.mnb.add_cascade(label='ツール(T)', menu=menu, underline=4)
+        #
+        menu.add_command(label='別ファイルと内容を比較（準備中）',
+                         command=self.compare_files)
+        # menu.add_separator()
+
+    ################
+    # COMMAND
+
+    def compare_files(self):
+        self.pnd.update()
+        half_height = int(self.pnd.winfo_height() / 2) - 5
+        self.pnd.remove(self.pnd1)
+        self.pnd.remove(self.pnd3)
+        self.pnd.forget(self.pnd3)
+        self.pnd3 = tkinter.PanedWindow(self.pnd, bd=0, bg='#758F00')  #  70
+        self.pnd.add(self.pnd1, height=half_height, minsize=100)
+        self.pnd.add(self.pnd3, height=half_height)
+        self.pnd.update()
+
+    ##########################
+    # MENU VISUAL
+
     def _make_menu_visual(self):
         menu = tkinter.Menu(self.mnb, tearoff=False)
         self.mnb.add_cascade(label='表示(V)', menu=menu, underline=3)
@@ -7044,13 +7083,14 @@ class Makdo:
                                 variable=self.digit_separator, value='3')
         submenu.add_radiobutton(label='4桁区切り（1234万5678）',
                                 variable=self.digit_separator, value='4')
+        # menu.add_separator()
 
     ##########################
     # MENU INTERNET
 
     def _make_menu_internet(self):
         menu = tkinter.Menu(self.mnb, tearoff=False)
-        self.mnb.add_cascade(label='ネット(H)', menu=menu, underline=4)
+        self.mnb.add_cascade(label='ネット(N)', menu=menu, underline=4)
         #
         menu.add_command(label='辞書で調べる',
                          command=self.browse_dictionary)
@@ -7080,6 +7120,7 @@ class Makdo:
         #
         menu.add_command(label='人名・地名漢字を探す',
                          command=self.browse_ivs)
+        # menu.add_separator()
 
     ################
     # COMMAND
@@ -7158,6 +7199,7 @@ class Makdo:
         #
         menu.add_command(label='Makdoについて(A)', underline=10,
                          command=self.show_about_makdo)
+        # menu.add_separator()
 
     ################
     # COMMAND
@@ -7727,7 +7769,7 @@ class Makdo:
                                        command=self.search_or_replace_forward)
         self.stb_sor4.pack(side=tkinter.LEFT)
         self.stb_sor5 = tkinter.Button(self.stb, text='消',
-                                       command=self.clear_search_word)
+                                       command=self.clear_search_or_replace)
         self.stb_sor5.pack(side=tkinter.LEFT)
         tkinter.Label(self.stb, text=' ').pack(side=tkinter.LEFT)
 
@@ -7748,21 +7790,26 @@ class Makdo:
             self._highlight_search_word()
         tex = pane.get('1.0', 'insert')
         tex = re.sub(word1 + '$', '', tex)
-        res = '^((?:.|\n)*' + word1 + ')((?:.|\n)*)$'
+        res = '^((?:.|\n)*?)(' + word1 + ')(?:.|\n)*$'
         if re.match(res, tex):
-            sub = re.sub(res, '\\1', tex)
+            sub = ''
+            while re.match(res, tex):
+                s = re.sub(res, '\\1', tex)
+                w = re.sub(res, '\\2', tex)
+                tex = re.sub('^' + s + w, '', tex)
+                sub += s + w
+                wrd = w
             # SEARCH
             pane.mark_set('insert', '1.0 +' + str(len(sub)) + 'c')
             pane.yview('insert -10line')
             if self.current_pane == 'txt':
                 if word2 != '':  # and word2 != '（置換語）'
                     # REPLACE
-                    pane.delete('insert-' + str(len(word1)) + 'c', 'insert')
+                    pane.delete('insert-' + str(len(wrd)) + 'c', 'insert')
                     pane.insert('insert', word2)
         pane.focus_set()
         # MESSAGE
-        n = pane.get('1.0', 'insert').count(word1)
-        m = pane.get('1.0', 'end-1c').count(word1)
+        n, m = self._count_word(pane, word1)
         self.set_message_on_status_bar(str(m) + '個が見付かりました' +
                                        '（' + str(n) + '/' + str(m) + '）')
 
@@ -7779,31 +7826,50 @@ class Makdo:
             Makdo.search_word = word1
             self._highlight_search_word()
         tex = pane.get('insert', 'end-1c')
-        res = '^((?:.|\n)*?' + word1 + ')((?:.|\n)*)$'
+        res = '^((?:.|\n)*?)(' + word1 + ')(?:.|\n)*$'
         if re.match(res, tex):
-            sub = re.sub(res, '\\1', tex)
+            sub = re.sub(res, '\\1\\2', tex)
+            wrd = re.sub(res, '\\2', tex)
             # SEARCH
             pane.mark_set('insert', 'insert +' + str(len(sub)) + 'c')
             pane.yview('insert -10line')
             if self.current_pane == 'txt':
                 if word2 != '':  # and word2 != '（置換語）'
                     # REPLACE
-                    pane.delete('insert-' + str(len(word1)) + 'c', 'insert')
+                    pane.delete('insert-' + str(len(wrd)) + 'c', 'insert')
                     pane.insert('insert', word2)
         pane.focus_set()
         # MESSAGE
-        n = pane.get('1.0', 'insert').count(word1)
-        m = pane.get('1.0', 'end-1c').count(word1)
+        n, m = self._count_word(pane, word1)
         self.set_message_on_status_bar(str(m) + '個が見付かりました' +
                                        '（' + str(n) + '/' + str(m) + '）')
 
-    def clear_search_word(self):
+    def _count_word(self, pane, word):
+        res = '^((?:.|\n)*?' + word + ')(?:.|\n)*$'
+        #
+        x = 0
+        tex = pane.get('1.0', 'insert')
+        while re.match(res, tex):
+            x += 1
+            pre = re.sub(res, '\\1', tex)
+            tex = re.sub('^' + pre, '', tex)
+        #
+        y = 0
+        tex = pane.get('insert', 'end-1c')
+        while re.match(res, tex):
+            y += 1
+            pre = re.sub(res, '\\1', tex)
+            tex = re.sub('^' + pre, '', tex)
+        return x, x + y
+
+    def clear_search_or_replace(self):
         self.stb_sor1.delete('0', 'end')
         self.stb_sor2.delete('0', 'end')
         self.txt.tag_remove('search_tag', '1.0', 'end')
         Makdo.search_word = ''
 
     def _highlight_search_word(self):
+        self.txt.tag_remove('search_tag', '1.0', 'end')
         if self.current_pane == 'sub':
             pane = self.sub
         else:
@@ -7811,12 +7877,13 @@ class Makdo:
         word = Makdo.search_word
         tex = pane.get('1.0', 'end-1c')
         beg = 0
-        res = '^((?:.|\n)*?)' + word + '((?:.|\n)*)$'
+        res = '^((?:.|\n)*?)(' + word + ')(?:.|\n)*$'
         while re.match(res, tex):
             pre = re.sub(res, '\\1', tex)
-            tex = re.sub(res, '\\2', tex)
+            wrd = re.sub(res, '\\2', tex)
+            tex = re.sub('^' + pre + wrd, '', tex)
             beg += len(pre)
-            end = beg + len(word)
+            end = beg + len(wrd)
             pane.tag_add('search_tag',
                          '1.0+' + str(beg) + 'c',
                          '1.0+' + str(end) + 'c',)
