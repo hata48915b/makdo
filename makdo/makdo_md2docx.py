@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.08.27-06:42:40-JST>
+# Time-stamp:   <2024.09.19-17:14:31-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5949,6 +5949,20 @@ class ParagraphHorizontalLine(Paragraph):
         sa = (((line_spacing - 1) * 0.25 + 0.5) * f_size) \
             + (0.5 * length_docx['line spacing'] * line_spacing * f_size) \
             + length_docx['space after'] * line_spacing * f_size
+        if sb < 0:
+            msg = '※ 警告: ' \
+                + '段落前の余白「v」の値が小さ過ぎます'
+            # msg = 'warning: ' \
+            #     + '"space before" is too small'
+            self.md_lines[0].append_warning_message(msg)
+            sb = 0
+        if sa < 0:
+            msg = '※ 警告: ' \
+                + '段落前の余白「V」の値が小さ過ぎます'
+            # msg = 'warning: ' \
+            #     + '"space after" is too small'
+            self.md_lines[0].append_warning_message(msg)
+            sa = 0
         ms_fmt.space_before = Pt(sb)
         ms_fmt.space_after = Pt(sa)
         opts = {}

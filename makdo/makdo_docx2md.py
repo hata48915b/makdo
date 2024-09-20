@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.09.18-04:02:06-JST>
+# Time-stamp:   <2024.09.20-08:59:32-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -7199,6 +7199,8 @@ class ParagraphEmpty(Paragraph):
             return False
         if ParagraphHorizontalLine.is_this_class(rp):
             return False
+        if rp.raw_class == 'w:p':
+            return False
         if rp.raw_text == '':
             has_run = False
             for xl in xls:
@@ -8473,7 +8475,8 @@ class ParagraphHorizontalLine(Paragraph):
 
     @classmethod
     def is_this_class(cls, raw_paragraph):
-        if raw_paragraph.horizontal_line != '':
+        rp = raw_paragraph
+        if rp.horizontal_line != '':
             return True
         return False
 
