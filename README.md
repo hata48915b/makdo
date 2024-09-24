@@ -1,8 +1,8 @@
-<!-- Time-stamp:   <2024.04.30-11:29:18-JST> -->
+<!-- Time-stamp:   <2024.09.24-05:41:53-JST> -->
 
 # MAKDO（MS Wordの互換アプリ）
 
-![MAKDOのLOGO](https://raw.githubusercontent.com/hata48915b/makdo/main/image/md8docx.png "MAKDOのLOGO")
+![MAKDOのLOGO](https://raw.githubusercontent.com/hata48915b/makdo/main/image/makdoL.png "MAKDOのLOGO")
 
 〜〜 Markdown形式からMS Word形式へ、MS Word形式からMarkdown形式へ 〜〜
 
