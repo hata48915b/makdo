@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.09.19-17:14:31-JST>
+# Time-stamp:   <2024.09.27-06:27:07-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -68,12 +68,12 @@
 
 import os
 import sys
-import argparse
+import argparse     # Python Software Foundation License
 import re
 import unicodedata
-import datetime
-import docx
-import chardet
+import chardet      # GNU Lesser General Public License v2 or later (LGPLv2+)
+import datetime     # Zope Public License
+import docx         # MIT License
 from docx.shared import Cm, Pt
 # from docx.enum.text import WD_LINE_SPACING
 from docx.enum.text import WD_ALIGN_PARAGRAPH
