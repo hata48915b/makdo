@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.09.20-08:59:32-JST>
+# Time-stamp:   <2024.09.26-14:13:04-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4549,11 +4549,17 @@ class LineTruncation:
                 phrases.append(tmp1)
                 tmp1 = ''
                 continue
+            # REMOVED 24.09.26 >
             # END
-            if i == m:
-                if tmp1 != '':
-                    phrases.append(tmp1)
-                break
+            # if i == m:
+            #     if tmp1 != '':
+            #         phrases.append(tmp1)
+            #         tmp1 = ''
+            #     break
+            # <
+        if tmp1 != '':
+            phrases.append(tmp1)
+            tmp1 = ''
         # REMOVE EMPTY
         while '' in phrases:
             phrases.remove('')
