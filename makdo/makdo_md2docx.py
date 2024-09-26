@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.09.27-06:27:07-JST>
+# Time-stamp:   <2024.09.27-07:03:23-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -66,12 +66,12 @@
 # SETTING
 
 
-import os
 import sys
+import os
 import argparse     # Python Software Foundation License
 import re
-import unicodedata
 import chardet      # GNU Lesser General Public License v2 or later (LGPLv2+)
+import unicodedata
 import datetime     # Zope Public License
 import docx         # MIT License
 from docx.shared import Cm, Pt

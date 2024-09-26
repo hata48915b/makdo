@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.09.27-06:17:59-JST>
+# Time-stamp:   <2024.09.27-06:47:55-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -66,8 +66,8 @@
 # SETTING
 
 
-import os
 import sys
+import os
 import shutil
 import argparse     # Python Software Foundation License
 import re
