@@ -10,6 +10,6 @@ setup(
     author_email='hata48915b@post.nifty.jp',
     url='https://github.com/hata48915b/makdo/',
     license='GPLv3+',
-    install_requires=['python-docx', 'chardet', 'tkinterdnd2'],
+    install_requires=['python-docx', 'chardet', 'tkinterdnd2', 'pywin32', 'openpyxl', 'openai', 'Levenshtein'],
     packages=['makdo'],
 )
