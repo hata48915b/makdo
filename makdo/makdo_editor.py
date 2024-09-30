@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.09.30-09:04:30-JST>
+# Time-stamp:   <2024.09.30-18:50:38-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -163,7 +163,7 @@ KEYWORDS = [
     ['(加害者' +
      '|被告|本訴被告|反訴原告|別訴原告|被控訴人|被上告人' +
      '|相手方' +
-     '|被疑者|被告人|弁護人|対象弁護士' +
+     '|被疑者|被告人|弁護人|対象弁護士|弁護士' +
      '|反訴' +
      '|弁護士会' +
      '|乙|戊|辛)',
@@ -3965,6 +3965,7 @@ class LineDatum:
                         #                                               # 4.set
                         tmp = ''                                        # 5.tmp
                         beg = end                                       # 6.beg
+                if tmp == '':
                     continue
             # END OF THE LINE "\n"
             if c1 == '\n':
@@ -4395,6 +4396,7 @@ class Makdo:
         self.win.title(file_name + ' - MAKDO')
         self.set_file_name_on_status_bar(file_name)
         # PAINT
+        paint_keywords = self.paint_keywords.get()
         self.line_data = [LineDatum() for line in self.file_lines]
         for i, line in enumerate(self.file_lines):
             self.line_data[i].line_number = i
@@ -4403,7 +4405,7 @@ class Makdo:
                 self.line_data[i].beg_chars_state \
                     = self.line_data[i - 1].end_chars_state.copy()
                 self.line_data[i].beg_chars_state.reset_partially()
-            self.line_data[i].paint_line(self.txt)
+            self.line_data[i].paint_line(self.txt, paint_keywords)
         # CLEAR THE UNDO STACK
         self.txt.edit_reset()
 
@@ -4522,6 +4524,7 @@ class Makdo:
                     # return
             self.set_message_on_status_bar('保存しました')
             self.init_text = self.get_fully_unfolded_document(file_text)
+            #
             return True
 
     def _stamp_time(self, file_text):
@@ -4749,6 +4752,7 @@ class Makdo:
         menu.add_command(label='やり直す(R)', underline=5,
                          command=self.edit_modified_redo, accelerator='Ctrl+Y')
         menu.add_separator()
+        #
         menu.add_command(label='切り取り(C)', underline=5,
                          command=self.cut_text, accelerator='Ctrl+X')
         menu.add_command(label='コピー(Y)', underline=4,
@@ -4756,18 +4760,29 @@ class Makdo:
         menu.add_command(label='貼り付け(P)', underline=5,
                          command=self.paste_text, accelerator='Ctrl+V')
         menu.add_separator()
+        #
         menu.add_command(label='全て選択(A)', underline=5,
                          command=self.select_all, accelerator='Ctrl+A')
         menu.add_separator()
+        #
         menu.add_command(label='全て置換',
                          command=self.replace_all)
         menu.add_separator()
+        #
+        menu.add_command(label='選択範囲の行を正順にソート（並替え）',
+                         command=self.sort_lines)
+        menu.add_command(label='選択範囲の行を逆順にソート（並替え）',
+                         command=self.sort_lines_in_reverse_order)
+        menu.add_separator()
+        #
         menu.add_command(label='数式を計算',
                          command=self.calculate)
         menu.add_separator()
+        #
         menu.add_command(label='字体を変える',
                          command=self.transform_to_another_typeface)
         menu.add_separator()
+        #
         menu.add_command(label='コメントアウトにする',
                          command=self.comment_out_region)
         menu.add_command(label='コメントアウトを取り消す',
@@ -4849,6 +4864,41 @@ class Makdo:
         self.txt.focus_set()
         # MESSAGE
         self.set_message_on_status_bar(str(m) + '個を置換しました')
+
+    def sort_lines(self):
+        self._sort_lines(True)
+
+    def sort_lines_in_reverse_order(self):
+        self._sort_lines(False)
+
+    def _sort_lines(self, is_ascending_order=True):
+        if self.txt.tag_ranges('sel'):
+            beg, end = self.txt.index('sel.first'), self.txt.index('sel.last')
+        elif 'akauni' in self.txt.mark_names():
+            beg, end = self._get_indices_in_order('insert', 'akauni')
+        else:
+            return
+        beg_line = int(re.sub('\\.[0-9]+', '', beg))
+        end_line = int(re.sub('\\.[0-9]+', '', end))
+        if not re.match('^[0-9]+\\.0$', beg):
+            beg_line += 1
+        end_line -= 1
+        lines_str = self.txt.get(str(beg_line) + '.0', str(end_line) + '.end')
+        lines_lst = lines_str.split('\n')
+        self.txt.delete(str(beg_line) + '.0', str(end_line) + '.end')
+        if self.txt.tag_ranges('sel'):
+            self.txt.tag_remove('sel', "1.0", "end")
+        elif 'akauni' in self.txt.mark_names():
+            self.txt.tag_remove('akauni_tag', '1.0', 'end')
+            self.txt.mark_unset('akauni')
+        sorted_lst = sorted(lines_lst)
+        if not is_ascending_order:
+            sorted_lst.reverse()
+        sorted_str = '\n'.join(sorted_lst)
+        self.txt.insert(str(beg_line) + '.0', sorted_str)
+        for j, line in enumerate(sorted_lst):
+            i = beg_line - 1 + j
+            self.paint_out_line(i)
 
     def calculate(self):
         line = self.txt.get('insert linestart', 'insert lineend')
@@ -6100,6 +6150,7 @@ class Makdo:
         self.txt.focus_set()
         self.txt.mark_set('insert', '1.0')
         # PAINT
+        paint_keywords = self.paint_keywords.get()
         self.line_data = [LineDatum() for line in self.file_lines]
         for i, line in enumerate(self.file_lines):
             self.line_data[i].line_number = i
@@ -6108,7 +6159,7 @@ class Makdo:
                 self.line_data[i].beg_chars_state \
                     = self.line_data[i - 1].end_chars_state.copy()
                 self.line_data[i].beg_chars_state.reset_partially()
-            self.line_data[i].paint_line(self.txt)
+            self.line_data[i].paint_line(self.txt, paint_keywords)
         # CLEAR THE UNDO STACK
         self.txt.edit_reset()
 
@@ -7533,6 +7584,7 @@ class Makdo:
         self.txt.focus_set()
         self.txt.mark_set('insert', '1.0')
         # PAINT
+        paint_keywords = self.paint_keywords.get()
         self.line_data = [LineDatum() for line in self.file_lines]
         for i, line in enumerate(self.file_lines):
             self.line_data[i].line_number = i
@@ -7541,7 +7593,7 @@ class Makdo:
                 self.line_data[i].beg_chars_state \
                     = self.line_data[i - 1].end_chars_state.copy()
                 self.line_data[i].beg_chars_state.reset_partially()
-            self.line_data[i].paint_line(self.txt)
+            self.line_data[i].paint_line(self.txt, paint_keywords)
 
     def get_fully_unfolded_document(self, old_document):
         # |                ->  |
@@ -7784,7 +7836,7 @@ class Makdo:
             return
         q = re.sub('\n$', '', q)
         pos = self.txt.index('insert')
-        self.set_message_on_status_bar('質問しています')
+        self.set_message_on_status_bar('質問しています', True)
         res = openai.OpenAI(api_key=k).chat.completions.create(
             model=self.openai_model,
             n=1, max_tokens=1000,
@@ -7877,6 +7929,7 @@ class Makdo:
                     'insert-file-names-in-same-folder',
                     'insert-symbol',
                     'place-flag',
+                    'save',
                     'search-or-replace-backward',
                     'search-or-replace-forward',
                     'split-or-unify-window',
@@ -7913,6 +7966,8 @@ class Makdo:
             '　ファイル名のみを一括挿入\n' + \
             'insert-symbol\n' + \
             '　記号を挿入\n' + \
+            'save\n' + \
+            '　ファイルを保存\n' + \
             'search-or-replace-backward\n' + \
             '　前を検索又は置換\n' + \
             'search-or-replace-forward\n' + \
@@ -7925,7 +7980,7 @@ class Makdo:
         if sys.platform == 'linux':
             help_message += \
                 '\n' + \
-                'look-in-dictionary' + \
+                'look-in-dictionary\n' + \
                 '　epwing形式の辞書で意味を調べる'
 
         history = []
@@ -7964,7 +8019,9 @@ class Makdo:
             if len(self.history) > 1:
                 if Makdo.MiniBuffer.history[-2] == com:
                     Makdo.MiniBuffer.history.pop(-1)
-            if com == 'help':
+            if com == '':
+                return
+            elif com == 'help':
                 tkinter.messagebox.showinfo('ヘルプ', self.help_message)
                 Makdo.MiniBuffer(self, self.mother)
             elif com == 'ask-openai':
@@ -7991,6 +8048,8 @@ class Makdo:
                 self.mother.look_in_dictionary(self)
             elif com == 'place-flag':
                 self.mother.place_flag1()
+            elif com == 'save':
+                self.mother.save_file()
             elif com == 'search-or-replace-backward':
                 self.mother.search_or_replace_backward_from_dialog(self)
             elif com == 'search-or-replace-forward':
@@ -8724,12 +8783,7 @@ class Makdo:
                 win.mark_unset('akauni')
                 return 'break'
         elif key.keysym == 'F15':            # g (paste)
-            try:
-                c = self.win.clipboard_get()
-                win.insert('insert', c)
-                # win.yview('insert -20 line')
-            except BaseException:
-                pass
+            self.paste_text()
             return 'break'
         elif key.keysym == 'F16':            # c (search forward)
             self.search_or_replace_forward()
@@ -9118,9 +9172,10 @@ class Makdo:
     ################
     # COMMAND
 
-    def set_message_on_status_bar(self, msg):
+    def set_message_on_status_bar(self, msg, must_update=False):
         self.stb_msg1['text'] = msg
-        self.stb.update()
+        if must_update:
+            self.stb.update()
 
     ##########################
     # STATUS SEARCH OR REPLACE
