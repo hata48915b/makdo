@@ -1,8 +1,10 @@
-<!-- Time-stamp:   <2024.09.30-09:45:52-JST> -->
+<!-- Time-stamp:   <2024.09.30-10:16:04-JST> -->
 
 # MAKDO（MS WordのファイルをMarkdownで編集するアプリ）
 
 ![MAKDOのLOGO](https://raw.githubusercontent.com/hata48915b/makdo/main/image/makdoL.png "MAKDOのLOGO")
+
+〜〜 Be an author, not a designer. 〜〜
 
 〜〜 MS Wordがなくても、MS Word形式のファイルを読んだり編集できたりします 〜〜
 
