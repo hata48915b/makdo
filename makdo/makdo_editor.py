@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.09.30-18:50:38-JST>
+# Time-stamp:   <2024.10.01-07:43:10-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -49,7 +49,7 @@ elif sys.platform == 'darwin':
     CONFIG_FILE = CONFIG_DIR + '/init.md'
 elif sys.platform == 'linux':
     import subprocess
-    import makdo.eblook
+    import makdo.eblook  # epwing
     CONFIG_DIR = os.getenv('HOME') + '/.config/makdo'
     CONFIG_FILE = CONFIG_DIR + '/init.md'
 else:
@@ -7702,6 +7702,8 @@ class Makdo:
 
     # LOOK IN DICTIONARY
     def look_in_dictionary(self, win):
+        if sys.platform != 'linux':  # epwing
+            return
         w = ''
         if self.txt.tag_ranges('sel'):
             w = self.txt.get('sel.first', 'sel.last')
@@ -7929,14 +7931,15 @@ class Makdo:
                     'insert-file-names-in-same-folder',
                     'insert-symbol',
                     'place-flag',
-                    'save',
+                    'save_file',
                     'search-or-replace-backward',
                     'search-or-replace-forward',
                     'split-or-unify-window',
                     'toggle-read-only',
-                    'uncomment-in-region']
+                    'uncomment-in-region',
+                    'quit-makdo']
 
-        if sys.platform == 'linux':
+        if sys.platform == 'linux':  # epwing
             commands.append('look-in-dictionary')
 
         help_message = \
@@ -7966,7 +7969,7 @@ class Makdo:
             '　ファイル名のみを一括挿入\n' + \
             'insert-symbol\n' + \
             '　記号を挿入\n' + \
-            'save\n' + \
+            'save_file\n' + \
             '　ファイルを保存\n' + \
             'search-or-replace-backward\n' + \
             '　前を検索又は置換\n' + \
@@ -7975,9 +7978,11 @@ class Makdo:
             'split-or-unify-window\n' + \
             '　画面を分割又は統合\n' + \
             'toggle-read-only\n' + \
-            '　読取専用を指定又は解除'
+            '　読取専用を指定又は解除\n' + \
+            'quit-makdo\n' + \
+            '　Makdoを終了'
 
-        if sys.platform == 'linux':
+        if sys.platform == 'linux':  # epwing
             help_message += \
                 '\n' + \
                 'look-in-dictionary\n' + \
@@ -8048,7 +8053,7 @@ class Makdo:
                 self.mother.look_in_dictionary(self)
             elif com == 'place-flag':
                 self.mother.place_flag1()
-            elif com == 'save':
+            elif com == 'save_file':
                 self.mother.save_file()
             elif com == 'search-or-replace-backward':
                 self.mother.search_or_replace_backward_from_dialog(self)
@@ -8065,6 +8070,9 @@ class Makdo:
                 # self.mother.toggle_read_only()
             elif com == 'uncomment-in-region':
                 self.mother.uncomment_in_region()
+            elif com == 'quit-makdo':
+                # 2 ERRORS OCCUR
+                self.mother.quit_makdo()
             else:
                 Makdo.MiniBuffer(self, self.mother, com)
 
@@ -8357,9 +8365,10 @@ class Makdo:
             if self.openai_key is not None:
                 f.write('openai_key:       '
                         + self.openai_key + '\n')
-            if self.dict_directory is not None:
-                f.write('dict_directory:   '
-                        + self.dict_directory + '\n')
+            if sys.platform == 'linux':  # epwing
+                if self.dict_directory is not None:
+                    f.write('dict_directory:   '
+                            + self.dict_directory + '\n')
             self.set_message_on_status_bar('保存しました')
 
     ##########################
