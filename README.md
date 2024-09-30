@@ -1,4 +1,4 @@
-<!-- Time-stamp:   <2024.09.28-12:23:59-JST> -->
+<!-- Time-stamp:   <2024.09.30-09:41:59-JST> -->
 
 # MAKDO（MS WordのファイルをMarkdownで編集するアプリ）
 
@@ -22,13 +22,13 @@ MS Word形式（拡張子"docx"）のファイルを読んだり編集したり�
 ⑤ 編集した原稿をそのままMarkdown形式のファイルに保存したり、
 簡単にできます。
 
-↓↓↓ MAKDOの実行の様子
+↓↓↓ MAKDOで原稿を編集する様子
 
-![MAKDOの実行の様子](https://raw.githubusercontent.com/hata48915b/makdo/main/image/sojo-makdo.png "MAKDOの実行の様子")
+![MAKDOで原稿を編集する様子](https://raw.githubusercontent.com/hata48915b/makdo/main/image/sojo-makdo.png "MAKDOで原稿を編集する様子")
 
-↓↓↓ MAKDOで作成したファイルをMS Wordで開いた様子
+↓↓↓ MAKDOで編集した原稿をMS Wordで開いた様子
 
-![MS Wordで開いた様子](https://raw.githubusercontent.com/hata48915b/makdo/main/image/sojo-msword.png "MS Wordで開いた様子")
+![MAKDOで編集した原稿をMS Wordで開いた様子](https://raw.githubusercontent.com/hata48915b/makdo/main/image/sojo-msword.png "MAKDOで編集した原稿をMS Wordで開いた様子")
 
 ## このアプリのメリット
 
