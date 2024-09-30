@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.09.28-13:29:48-JST>
+# Time-stamp:   <2024.09.30-09:04:30-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -3851,12 +3851,17 @@ class LineDatum:
                 tmp = ''                                                # 5.tmp
                 beg = end                                               # 6.beg
                 continue
-            if re.match('[０-９零一二三四五六七八九十]', c):
+            if re.match('[' + \
+                        '０-９' + \
+                        '零一二三四五六七八九十' + \
+                        '⑴⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀⒁⒂⒃⒄⒅⒆⒇' + \
+                        '①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳' + \
+                        ']', c):
                 key = chars_state.get_key('')                           # 1.key
                 end = str(i + 1) + '.' + str(j)                         # 2.end
                 txt.tag_add(key, beg, end)                              # 3.tag
                 #                                                       # 4.set
-                # tmp = '[０-９]'                                       # 5.tmp
+                # tmp = '[０-９...]'                                    # 5.tmp
                 beg = end                                               # 6.beg
                 key = chars_state.get_key('full number')                # 1.key
                 end = str(i + 1) + '.' + str(j + 1)                     # 2.end
