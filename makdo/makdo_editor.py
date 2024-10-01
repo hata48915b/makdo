@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.02-06:45:43-JST>
+# Time-stamp:   <2024.10.02-07:29:45-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -7084,16 +7084,20 @@ class Makdo:
         self.txt.focus_force()
 
     def update_memo_pad(self):
-        memo_pad_path = CONFIG_DIR + '/memo.md'
         memo_pad_memory = self.memo_pad_memory
         if self.memo_pad_memory is None:
             return False
+        memo_pad_path = CONFIG_DIR + '/memo.md'
         # DISPLAY
         memo_pad_display = self.sub.get('1.0', 'end-1c')
         if memo_pad_display != memo_pad_memory:
             # MEMORY
             self.memo_pad_memory = memo_pad_display
             # FILE
+            try:
+                os.rename(memo_pad_path, memo_pad_path + '~')
+            except BaseException:
+                pass
             try:
                 with open(memo_pad_path, 'w') as f:
                     f.write(memo_pad_display)
