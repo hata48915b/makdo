@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.01-17:09:34-JST>
+# Time-stamp:   <2024.10.02-06:45:43-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -3851,11 +3851,11 @@ class LineDatum:
                 tmp = ''                                                # 5.tmp
                 beg = end                                               # 6.beg
                 continue
-            if re.match('[' + \
-                        '０-９' + \
-                        '零一二三四五六七八九十' + \
-                        '⑴⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀⒁⒂⒃⒄⒅⒆⒇' + \
-                        '①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳' + \
+            if re.match('[' +
+                        '０-９' +
+                        '零一二三四五六七八九十' +
+                        '⑴⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀⒁⒂⒃⒄⒅⒆⒇' +
+                        '①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳' +
                         ']', c):
                 key = chars_state.get_key('')                           # 1.key
                 end = str(i + 1) + '.' + str(j)                         # 2.end
@@ -4024,6 +4024,7 @@ class Makdo:
         self.openai_model = 'gpt-3.5-turbo'
         self.openai_key = None
         self.dict_directory = None
+        self.memo_pad_memory = None
         # GET CONFIGURATION
         self.get_and_set_configurations()
         # WINDOW
@@ -7003,6 +7004,10 @@ class Makdo:
         menu = tkinter.Menu(self.mnb, tearoff=False)
         self.mnb.add_cascade(label='ツール(T)', menu=menu, underline=4)
         #
+        menu.add_command(label='メモ帳を開く',
+                         command=self.open_memo_pad)
+        menu.add_separator()
+        #
         menu.add_command(label='画面を二つに分割・統合',
                          command=self.split_or_unify_window)
         menu.add_separator()
@@ -7037,6 +7042,79 @@ class Makdo:
     ################
     # COMMAND
 
+    # OPEN MEMO PAD
+
+    def open_memo_pad(self):
+        if CONFIG_DIR is None:
+            return False
+        memo_pad_path = CONFIG_DIR + '/memo.md'
+        if not os.path.exists(memo_pad_path):
+            try:
+                open(memo_pad_path, 'w').close()
+            except BaseException:
+                return False
+        if not os.path.exists(memo_pad_path):
+            return False
+        try:
+            with open(memo_pad_path, 'r') as f:
+                self.memo_pad_memory = f.read()
+        except BaseException:
+            return False
+        #
+        self.pnd.update()
+        half_height = int(self.pnd.winfo_height() / 2) - 5
+        self.pnd.remove(self.pnd1)
+        self.pnd.remove(self.pnd2)
+        self.pnd.remove(self.pnd3)
+        self.pnd.remove(self.pnd4)
+        self.pnd.remove(self.pnd5)
+        self.pnd.remove(self.pnd6)
+        self.pnd.add(self.pnd1, height=half_height, minsize=100)
+        self.pnd.add(self.pnd2, height=half_height)
+        self.pnd.update()
+        #
+        self.sub.pack(expand=True, fill=tkinter.BOTH)
+        for key in self.txt.configure():
+            self.sub.configure({key: self.txt.cget(key)})
+        self.sub_btn.pack()
+        #
+        self.sub.delete('1.0', 'end')
+        self.sub.insert('1.0', self.memo_pad_memory)
+        self.sub.mark_set('insert', '1.0')
+        self.txt.focus_force()
+
+    def update_memo_pad(self):
+        memo_pad_path = CONFIG_DIR + '/memo.md'
+        memo_pad_memory = self.memo_pad_memory
+        if self.memo_pad_memory is None:
+            return False
+        # DISPLAY
+        memo_pad_display = self.sub.get('1.0', 'end-1c')
+        if memo_pad_display != memo_pad_memory:
+            # MEMORY
+            self.memo_pad_memory = memo_pad_display
+            # FILE
+            try:
+                with open(memo_pad_path, 'w') as f:
+                    f.write(memo_pad_display)
+            except BaseException:
+                return False
+            return True
+        # FILE
+        if not os.path.exists(memo_pad_path):
+            return False
+        try:
+            with open(memo_pad_path, 'r') as f:
+                memo_pad_file = f.read()
+        except BaseException:
+            return False
+        if memo_pad_file != memo_pad_memory:
+            # MEMORY
+            self.memo_pad_memory = memo_pad_file
+            # DISPLAY
+            self.sub.delete('1.0', 'end')
+            self.sub.insert('1.0', memo_pad_file)
+
     # SPLIT OR UNIFY WINDOW
 
     def split_or_unify_window(self):
@@ -7050,6 +7128,10 @@ class Makdo:
         half_height = int(self.pnd.winfo_height() / 2) - 5
         self.pnd.remove(self.pnd1)
         self.pnd.remove(self.pnd2)
+        self.pnd.remove(self.pnd3)
+        self.pnd.remove(self.pnd4)
+        self.pnd.remove(self.pnd5)
+        self.pnd.remove(self.pnd6)
         self.pnd.add(self.pnd1, height=half_height, minsize=100)
         self.pnd.add(self.pnd2, height=half_height)
         self.pnd.update()
@@ -7068,6 +7150,8 @@ class Makdo:
         self.txt.focus_force()
 
     def _unify_window(self):
+        self.update_memo_pad()
+        self.memo_pad_memory = None
         self.pnd.remove(self.pnd2)
         self.txt.focus_set()
 
@@ -7157,7 +7241,11 @@ class Makdo:
         self.pnd.update()
         half_height = int(self.pnd.winfo_height() / 2) - 5
         self.pnd.remove(self.pnd1)
+        self.pnd.remove(self.pnd2)
         self.pnd.remove(self.pnd3)
+        self.pnd.remove(self.pnd4)
+        self.pnd.remove(self.pnd5)
+        self.pnd.remove(self.pnd6)
         self.pnd.forget(self.pnd3)
         self.pnd3 = tkinter.PanedWindow(self.pnd, bd=0, bg='#758F00')  # 070
         self.pnd.add(self.pnd1, height=half_height, minsize=100)
@@ -7338,10 +7426,18 @@ class Makdo:
         self.pnd.update()
         half_height = int(self.pnd.winfo_height() / 2) - 5
         self.pnd.remove(self.pnd1)
+        self.pnd.remove(self.pnd2)
+        self.pnd.remove(self.pnd3)
         self.pnd.remove(self.pnd4)
+        self.pnd.remove(self.pnd5)
+        self.pnd.remove(self.pnd6)
         self.pnd.add(self.pnd1, height=half_height, minsize=100)
         self.pnd.add(self.pnd4, height=half_height)
         self.pnd.update()
+        #
+        btn = tkinter.Button(self.pnd4, text='キャンセル',
+                             command=self._quit_converting_directly)
+        btn.pack(side='bottom')
         #
         self.pool = tkinter.Text(self.pnd4)
         self.pool.drop_target_register(tkinterdnd2.DND_FILES)
@@ -7351,10 +7447,6 @@ class Makdo:
         self.pool.config(bg='#00A586', fg='white')
         size = self.font_size.get()
         self.pool['font'] = (GOTHIC_FONT, size)
-        #
-        btn = tkinter.Button(self.pnd4, text='キャンセル',
-                             command=self._quit_converting_directly)
-        btn.pack(side='bottom')
 
     def _convert_dropped_file(self, event):
         filename = event.data
@@ -7734,6 +7826,10 @@ class Makdo:
         half_height = int(self.pnd.winfo_height() / 2) - 5
         self.pnd.remove(self.pnd1)
         self.pnd.remove(self.pnd2)
+        self.pnd.remove(self.pnd3)
+        self.pnd.remove(self.pnd4)
+        self.pnd.remove(self.pnd5)
+        self.pnd.remove(self.pnd6)
         self.pnd.add(self.pnd1, height=half_height, minsize=100)
         self.pnd.add(self.pnd2, height=half_height)
         self.pnd.update()
@@ -7851,6 +7947,10 @@ class Makdo:
         half_height = int(self.pnd.winfo_height() / 2) - 5
         self.pnd.remove(self.pnd1)
         self.pnd.remove(self.pnd2)
+        self.pnd.remove(self.pnd3)
+        self.pnd.remove(self.pnd4)
+        self.pnd.remove(self.pnd5)
+        self.pnd.remove(self.pnd6)
         self.pnd.add(self.pnd1, height=half_height, minsize=100)
         self.pnd.add(self.pnd2, height=half_height)
         self.pnd.update()
@@ -7931,6 +8031,7 @@ class Makdo:
                     'insert-current-time',
                     'insert-file-names-in-same-folder',
                     'insert-symbol',
+                    'open-memo-pad',
                     'place-flag',
                     'save_file',
                     'search-or-replace-backward',
@@ -7971,6 +8072,8 @@ class Makdo:
             '　ファイル名のみを一括挿入\n' + \
             'insert-symbol\n' + \
             '　記号を挿入\n' + \
+            'open-memo-pad\n' + \
+            '　メモ帳を開く\n' + \
             'save_file\n' + \
             '　ファイルを保存\n' + \
             'search-or-replace-backward\n' + \
@@ -8055,6 +8158,8 @@ class Makdo:
                 self.mother.insert_symbol()
             elif com == 'look-in-dictionary':
                 self.mother.look_in_dictionary(self)
+            elif com == 'open-memo-pad':
+                self.mother.open_memo_pad()
             elif com == 'place-flag':
                 self.mother.place_flag1()
             elif com == 'save_file':
@@ -8696,7 +8801,13 @@ class Makdo:
             return self.read_and_write_process_key(self.txt, key)
 
     def sub_process_key(self, key):
-        return self.read_only_process_key(self.sub, key)
+        if key.keysym == 'Escape':
+            self._unify_window()
+            return 'break'
+        if self.memo_pad_memory is None:
+            return self.read_only_process_key(self.sub, key)
+        else:
+            return self.read_and_write_process_key(self.txt, key)
 
     def read_and_write_process_key(self, win, key):
         self.current_pane = 'txt'
@@ -8987,9 +9098,7 @@ class Makdo:
             self.search_or_replace_backward()
             return 'break'
         #
-        if key.keysym == 'Escape':
-            self._unify_window()
-        elif key.keysym == 'Delete':
+        if key.keysym == 'Delete':
             if win.tag_ranges('sel'):
                 # self.cut_text()
                 pass
@@ -9432,6 +9541,7 @@ class Makdo:
         self.run_periodically_to_paint_line()
         self.run_periodically_to_set_position_info()
         self.run_periodically_to_save_auto_file()
+        self.run_periodically_to_update_memo_pad()
 
     ##########################
     # COMMAND
@@ -9482,6 +9592,11 @@ class Makdo:
         self.save_auto_file(self.file_path)
         interval = 60_000
         self.win.after(interval, self.run_periodically_to_save_auto_file)
+
+    def run_periodically_to_update_memo_pad(self):
+        self.update_memo_pad()
+        interval = 1_000
+        self.win.after(interval, self.run_periodically_to_update_memo_pad)
 
 
 ######################################################################
