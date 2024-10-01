@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.01-07:43:10-JST>
+# Time-stamp:   <2024.10.01-17:09:34-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4383,6 +4383,7 @@ class Makdo:
         try:
             decoded_data = self._decode_data(encoding, raw_data)
         except BaseException:
+            self.file_path = None
             return
         init_text = self.get_fully_unfolded_document(decoded_data)
         self.file_path = file_path
@@ -4780,7 +4781,7 @@ class Makdo:
         menu.add_separator()
         #
         menu.add_command(label='字体を変える',
-                         command=self.transform_to_another_typeface)
+                         command=self.change_typeface)
         menu.add_separator()
         #
         menu.add_command(label='コメントアウトにする',
@@ -5049,7 +5050,7 @@ class Makdo:
         self.win.clipboard_clear()
         self.win.clipboard_append(r)
 
-    def transform_to_another_typeface(self):
+    def change_typeface(self):
         c = self.txt.get('insert', 'insert+1c')
         for tf in TYPEFACES:
             if c in tf:
@@ -7921,9 +7922,9 @@ class Makdo:
 
         commands = ['help',
                     'ask-openai',
+                    'change_typeface',
                     'comment-out-region',
                     'compare-with-previous-draft',
-                    'character-information',
                     'fold-or-unfold-section',
                     'goto-flag',
                     'insert-current-date',
@@ -7937,7 +7938,8 @@ class Makdo:
                     'split-or-unify-window',
                     'toggle-read-only',
                     'uncomment-in-region',
-                    'quit-makdo']
+                    'quit-makdo',
+                    'show-character-information']
 
         if sys.platform == 'linux':  # epwing
             commands.append('look-in-dictionary')
@@ -7947,14 +7949,14 @@ class Makdo:
             '　このメッセージを表示\n' + \
             'ask-openai\n' + \
             '　OpenAIに質問\n' + \
+            'change_typeface\n' + \
+            '　字体を変える\n' + \
             'comment-out-region\n' + \
             '　指定範囲をコメントアウト\n' + \
             'compare-with-previous-draft\n' + \
             '　編集前の原稿と比較\n' + \
             'uncomment-in-region\n' + \
             '　指定範囲のコメントアウトを解除\n' + \
-            'character-information\n' + \
-            '　文字情報を表示\n' + \
             'fold-or-unfold-section\n' + \
             '　セクションの折畳又は展開\n' + \
             'place-flag\n' + \
@@ -7980,7 +7982,9 @@ class Makdo:
             'toggle-read-only\n' + \
             '　読取専用を指定又は解除\n' + \
             'quit-makdo\n' + \
-            '　Makdoを終了'
+            '　Makdoを終了\n' + \
+            'show-character-information\n' + \
+            '　文字情報を表示'
 
         if sys.platform == 'linux':  # epwing
             help_message += \
@@ -8031,12 +8035,12 @@ class Makdo:
                 Makdo.MiniBuffer(self, self.mother)
             elif com == 'ask-openai':
                 self.mother.ask_openai(self)
+            elif com == 'change_typeface':
+                self.mother.change_typeface()
             elif com == 'comment-out-region':
                 self.mother.comment_out_region()
             elif com == 'compare-with-previous-draft':
                 self.mother.compare_with_previous_draft()
-            elif com == 'character-information':
-                self.mother.show_char_info()
             elif com == 'fold-or-unfold-section':
                 self.mother.fold_or_unfold_section()
             elif com == 'goto-flag':
@@ -8073,6 +8077,8 @@ class Makdo:
             elif com == 'quit-makdo':
                 # 2 ERRORS OCCUR
                 self.mother.quit_makdo()
+            elif com == 'show-character-information':
+                self.mother.show_char_info()
             else:
                 Makdo.MiniBuffer(self, self.mother, com)
 
@@ -8567,9 +8573,16 @@ class Makdo:
     def show_char_info(self):
         n = '文字情報'
         c = self.txt.get('insert', 'insert+1c')
-        if c != '':
+        if c != '' and c != '\n':
             m = ''
-            m += '文字：\t' + c + '\n'
+            if c == ' ':
+                m += '文字：\t（半角スペース）\n'
+            elif c == '\t':
+                m += '文字：\t（水平タブ）\n'
+            elif c == '\u3000':
+                m += '文字：\t（全角スペース）\n'
+            else:
+                m += '文字：\t' + c + '\n'
             m += 'UTF-8：\t' + re.sub('^0x', '', hex(ord(c))).upper() + '\n\n'
             for jk in JOYOKANJI:
                 if c in jk[1]:
@@ -8604,46 +8617,43 @@ class Makdo:
     def show_license_info(self):
         n = 'ライセンス情報'
         m = 'Copyright (C) 2022-2024  Seiichiro HATA\n\n' + \
-            'このソフトウェアは、' + \
-            '"GPLv3"というライセンスで開発されています．\n\n' + \
-            'This program is free software: you can redistribute it ' + \
-            'and/or modify it under the terms of the GNU General Public ' + \
-            'License as published by the Free Software Foundation, either ' + \
-            'version 3 of the License, or (at your option) any later ' + \
-            'version.\n\n' + \
-            'This program is distributed in the hope that it will be ' + \
-            'useful, but WITHOUT ANY WARRANTY; without even the implied ' + \
-            'warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR ' + \
-            'PURPOSE.  ' + \
-            'See the GNU General Public License for more details.\n\n' + \
-            'You should have received a copy of the GNU General Public ' + \
-            'License along with this program.  ' + \
-            'If not, see <http://www.gnu.org/licenses/>.\n\n\n' + \
-            'このソフトウェアは、' + \
-            '"python-docx"というライブラリを利用しています．\n' + \
-            '"python-docx"は、' + \
-            '"MIT_License"というライセンスで開発されています．\n\n' + \
-            'The MIT License (MIT)\n\n' + \
-            'Copyright (c) 2013 Steve Canny, https://github.com/scanny\n\n' + \
-            'Permission is hereby granted, free of charge, to any person ' + \
-            'obtaining a copy of this software and associated ' + \
-            'documentation files (the "Software"), to deal in the ' + \
-            'Software without restriction, including without limitation ' + \
-            'the rights to use, copy, modify, merge, publish, distribute, ' + \
-            'sublicense, and/or sell copies of the Software, and to ' + \
-            'permit persons to whom the Software is furnished to do so, ' + \
-            'subject to the following conditions:\n\n' + \
-            'The above copyright notice and this permission notice shall ' + \
-            'be included in all copies or substantial portions of the ' + \
-            'Software.\n\n' + \
-            'THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY ' + \
-            'KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE ' + \
-            'WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR ' + \
-            'PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS ' + \
-            'OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR ' + \
-            'OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR ' + \
-            'OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE ' + \
-            'SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.'
+            'このソフトウェアは、\n' + \
+            '"GNU GENERAL PUBLIC LICENSE\n' + \
+            '　　Version 3 (GPLv3)"\n' + \
+            'というライセンスで開発されています．\n\n' + \
+            'このソフトウェアは、\n' + \
+            '次のモジュールを利用しており、\n' + \
+            'それぞれ付記したライセンスで\n' + \
+            '配布されています．\n' + \
+            '- argparse: PSF License\n' + \
+            '- chardet: LGPLv2+\n' + \
+            '- python-docx: MIT License\n' + \
+            '- lxml: BSD License (3-Clause)\n' + \
+            '- typing_extensions: PSF License\n' + \
+            '- tkinterdnd2: MIT License\n' + \
+            '- openpyxl: MIT License\n' + \
+            '- et-xmlfile: MIT License\n' + \
+            '- openai: Apache Software License\n' + \
+            '- annotated-types: MIT License\n' + \
+            '- anyio: MIT License\n' + \
+            '- certifi: Mozilla Public License 2.0\n' + \
+            '- distro: Apache Software License\n' + \
+            '- exceptiongroup: MIT License\n' + \
+            '- h11: MIT License\n' + \
+            '- httpcore: BSD License\n' + \
+            '- httpx: BSD License\n' + \
+            '- idna: BSD License\n' + \
+            '- jiter: MIT License\n' + \
+            '- pydantic: MIT License\n' + \
+            '- pydantic_core: MIT License\n' + \
+            '- sniffio: Apache Software License;\n' + \
+            '　　MIT License\n' + \
+            '- tqdm: MIT License;\n' + \
+            '　　Mozilla Public License 2.0\n' + \
+            '- pywin32: PSF License\n' + \
+            '- Levenshtein: GPLv2+\n' + \
+            '\n利用、改変、再配布等をする場合には、\n' + \
+            'ライセンスに十分ご注意ください．'
         tkinter.messagebox.showinfo(n, m)
 
     def show_about_makdo(self):
