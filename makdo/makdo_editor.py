@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.02-09:24:10-JST>
+# Time-stamp:   <2024.10.03-05:08:40-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4317,7 +4317,7 @@ class Makdo:
         #                  command=self.name_and_save)
         menu.add_separator()
         #
-        menu.add_command(label='PDFに変換',
+        menu.add_command(label='PDFに返還',
                          command=self.convert_to_pdf)
         menu.add_command(label='MS Wordを起動して確認・印刷(P)', underline=18,
                          command=self.start_writer, accelerator='Ctrl+P')
@@ -6172,7 +6172,7 @@ class Makdo:
         menu = tkinter.Menu(self.mnb, tearoff=False)
         self.mnb.add_cascade(label='段落(P)', menu=menu, underline=3)
         #
-        menu.add_command(label='余白の長さを設定',
+        menu.add_command(label='段落の余白の長さを設定',
                          command=self.set_paragraph_length)
         menu.add_separator()
         #
@@ -7012,13 +7012,13 @@ class Makdo:
                          command=self.split_or_unify_window)
         menu.add_separator()
         #
-        menu.add_command(label='編集前の原稿と比較',
+        menu.add_command(label='編集前の原稿と比較して元に戻す',
                          command=self.compare_with_previous_draft)
-        menu.add_command(label='別ファイルと内容を比較',
+        menu.add_command(label='別ファイルと内容を比較して反映',
                          command=self.compare_files)
         menu.add_separator()
         #
-        menu.add_command(label='ファイル形式を直接変換',
+        menu.add_command(label='ファイル形式を相互に直接変換',
                          command=self.convert_directly)
         menu.add_separator()
         #
@@ -8493,6 +8493,10 @@ class Makdo:
         menu = tkinter.Menu(self.mnb, tearoff=False)
         self.mnb.add_cascade(label='ネット(N)', menu=menu, underline=4)
         #
+        menu.add_command(label='最新のMakdoを確認',
+                         command=self.browse_makdo_home)
+        menu.add_separator()
+        #
         menu.add_command(label='人名・地名漢字を探す',
                          command=self.browse_ivs)
         menu.add_separator()
@@ -8543,6 +8547,9 @@ class Makdo:
 
     ################
     # COMMAND
+
+    def browse_makdo_home(self):
+        webbrowser.open('https://github.com/hata48915b/makdo/')
 
     def browse_ivs(self):
         c = ''
