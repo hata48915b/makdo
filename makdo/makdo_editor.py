@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.02-07:29:45-JST>
+# Time-stamp:   <2024.10.02-09:24:10-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -8728,8 +8728,8 @@ class Makdo:
         m = 'Copyright (C) 2022-2024  Seiichiro HATA\n\n' + \
             'このソフトウェアは、\n' + \
             '"GNU GENERAL PUBLIC LICENSE\n' + \
-            '　　Version 3 (GPLv3)"\n' + \
-            'というライセンスで開発されています．\n\n' + \
+            'Version 3 (GPLv3)"という\n' + \
+            'ライセンスで開発されています．\n\n' + \
             'このソフトウェアは、\n' + \
             '次のモジュールを利用しており、\n' + \
             'それぞれ付記したライセンスで\n' + \
@@ -8762,7 +8762,13 @@ class Makdo:
             '- pywin32: PSF License\n' + \
             '- Levenshtein: GPLv2+\n' + \
             '\n利用、改変、再配布等をする場合には、\n' + \
-            'ライセンスに十分ご注意ください．'
+            'ライセンスに十分ご注意ください．\n' + \
+            'スクリプトファイルは、\n' + \
+            '外部のモジュールを読み込みますが、\n' + \
+            'バイナリファイルは、\n' + \
+            '内部にモジュールを含んでいますので、\n' + \
+            '特にご注意ください．'
+
         tkinter.messagebox.showinfo(n, m)
 
     def show_about_makdo(self):
