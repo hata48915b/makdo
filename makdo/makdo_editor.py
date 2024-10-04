@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.03-05:08:40-JST>
+# Time-stamp:   <2024.10.04-09:31:42-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4024,6 +4024,7 @@ class Makdo:
         self.openai_model = 'gpt-3.5-turbo'
         self.openai_key = None
         self.dict_directory = None
+        self.formula_number = -1
         self.memo_pad_memory = None
         # GET CONFIGURATION
         self.get_and_set_configurations()
@@ -4072,7 +4073,7 @@ class Makdo:
                                 command=self.sub.yview)
         scb.pack(side=tkinter.RIGHT, fill=tkinter.Y)
         self.sub['yscrollcommand'] = scb.set
-        self.sub_btn = tkinter.Button(self.pnd2, text='キャンセル',
+        self.sub_btn = tkinter.Button(self.pnd2, text='終了',
                                       command=self._unify_window)
         # STATUS BAR
         self.stbr = tkinter.Frame(self.win)
@@ -4315,6 +4316,10 @@ class Makdo:
                          command=self.name_and_save_by_docx)
         # menu.add_command(label='名前を付けて保存(A)', underline=9,
         #                  command=self.name_and_save)
+        menu.add_separator()
+        #
+        menu.add_command(label='ファイル形式を相互に直接変換',
+                         command=self.convert_directly)
         menu.add_separator()
         #
         menu.add_command(label='PDFに返還',
@@ -4684,6 +4689,73 @@ class Makdo:
             if re.match('(^|(.|\n)*[/\\\\])~\\$(.|\n)+\\.zip$', auto_path):
                 if os.path.exists(auto_path):
                     os.remove(auto_path)
+
+    # CONVERT DIRECTLY
+
+    def convert_directly(self):
+        self.pnd.update()
+        half_height = int(self.pnd.winfo_height() / 2) - 5
+        self.pnd.remove(self.pnd1)
+        self.pnd.remove(self.pnd2)
+        self.pnd.remove(self.pnd3)
+        self.pnd.remove(self.pnd4)
+        self.pnd.remove(self.pnd5)
+        self.pnd.remove(self.pnd6)
+        self.pnd.add(self.pnd1, height=half_height, minsize=100)
+        self.pnd.add(self.pnd4, height=half_height)
+        self.pnd.update()
+        #
+        btn = tkinter.Button(self.pnd4, text='キャンセル',
+                             command=self._quit_converting_directly)
+        btn.pack(side='bottom')
+        #
+        self.pool = tkinter.Text(self.pnd4)
+        self.pool.drop_target_register(tkinterdnd2.DND_FILES)
+        self.pool.insert('end', 'ここにmdファイル又はdocxファイルをドロップしてください\n')
+        self.pool.dnd_bind('<<Drop>>', self._convert_dropped_file)
+        self.pool.pack(expand=True, side='top', fill='both')
+        self.pool.config(bg='#00A586', fg='white')
+        size = self.font_size.get()
+        self.pool['font'] = (GOTHIC_FONT, size)
+
+    def _convert_dropped_file(self, event):
+        filename = event.data
+        filename = re.sub('^{(.*)}$', '\\1', filename)
+        basename = os.path.basename(filename)
+        self.pool.delete('1.0', 'end')
+        self.pool.insert('end', '"' + basename + '"を受け取りました\n')
+        stderr = sys.stderr
+        sys.stderr = tempfile.TemporaryFile(mode='w+')
+        if re.match('^.*\\.(m|M)(d|D)$', filename):
+            self.pool.insert('end', 'docxファイルを作成します\n')
+            try:
+                importlib.reload(makdo.makdo_md2docx)
+                m2d = makdo.makdo_md2docx.Md2Docx(filename)
+                m2d.save('')
+                self.pool.insert('end', 'docxファイルを作成しました\n')
+            except BaseException:
+                sys.stderr.seek(0)
+                self.pool.insert('end', sys.stderr.read())
+                self.pool.insert('end', 'docxファイルを作成できませんでした\n')
+        elif re.match('^.*\\.(d|D)(o|O)(c|C)(x|X)$', filename):
+            self.pool.insert('end', 'mdファイルを作成します\n')
+            try:
+                importlib.reload(makdo.makdo_docx2md)
+                d2m = makdo.makdo_docx2md.Docx2Md(filename)
+                d2m.save('')
+                self.pool.insert('end', 'mdファイルを作成しました\n')
+            except BaseException:
+                sys.stderr.seek(0)
+                self.pool.insert('end', sys.stderr.read())
+                self.pool.insert('end', 'mdファイルを作成できませんでした\n')
+        else:
+            self.pool.insert('end', '不適切なファイルです\n')
+        sys.stderr = stderr
+        self.pool.insert('end', '\nここにmdファイル又はdocxファイルをドロップしてください\n')
+
+    def _quit_converting_directly(self):
+        self.pnd.remove(self.pnd4)
+        self.txt.focus_set()
 
     # CONVERT TO PDF
 
@@ -6861,26 +6933,8 @@ class Makdo:
                          command=self.goto_end_of_line)
         menu.add_separator()
         #
-        menu.add_command(label='フラグ１を立てる',
-                         command=self.place_flag1)
-        menu.add_command(label='フラグ２を立てる',
-                         command=self.place_flag2)
-        menu.add_command(label='フラグ３を立てる',
-                         command=self.place_flag3)
-        menu.add_command(label='フラグ４を立てる',
-                         command=self.place_flag4)
-        menu.add_command(label='フラグ５を立てる',
-                         command=self.place_flag5)
-        menu.add_command(label='フラグ１に移動',
-                         command=self.goto_flag1)
-        menu.add_command(label='フラグ２に移動',
-                         command=self.goto_flag2)
-        menu.add_command(label='フラグ３に移動',
-                         command=self.goto_flag3)
-        menu.add_command(label='フラグ４に移動',
-                         command=self.goto_flag4)
-        menu.add_command(label='フラグ５に移動',
-                         command=self.goto_flag5)
+        self._make_submenu_place_flag(menu)
+        self._make_submenu_goto_flag(menu)
         menu.add_separator()
         #
         menu.add_command(label='行数・文字数を指定して移動',
@@ -6901,6 +6955,27 @@ class Makdo:
 
     def goto_end_of_line(self):
         self.txt.mark_set('insert', 'insert lineend')
+
+    ################
+    # SUBMENU PLACE FLAG
+
+    def _make_submenu_place_flag(self, menu):
+        submenu = tkinter.Menu(self.mnb, tearoff=False)
+        menu.add_cascade(label='フラグを設置', menu=submenu)
+        #
+        submenu.add_command(label='フラグ１を設置',
+                            command=self.place_flag1)
+        submenu.add_command(label='フラグ２を設置',
+                            command=self.place_flag2)
+        submenu.add_command(label='フラグ３を設置',
+                            command=self.place_flag3)
+        submenu.add_command(label='フラグ４を設置',
+                            command=self.place_flag4)
+        submenu.add_command(label='フラグ５を設置',
+                            command=self.place_flag5)
+
+    #######
+    # COMMAND
 
     def place_flag1(self):
         if 'flag1' in self.txt.mark_names():
@@ -6926,6 +7001,27 @@ class Makdo:
         if 'flag5' in self.txt.mark_names():
             self.txt.mark_unset('flag5')
         self.txt.mark_set('flag5', 'insert')
+
+    ################
+    # SUBMENU GOTO FLAG
+
+    def _make_submenu_goto_flag(self, menu):
+        submenu = tkinter.Menu(self.mnb, tearoff=False)
+        menu.add_cascade(label='フラグに移動', menu=submenu)
+        #
+        submenu.add_command(label='フラグ１に移動',
+                            command=self.goto_flag1)
+        submenu.add_command(label='フラグ２に移動',
+                            command=self.goto_flag2)
+        submenu.add_command(label='フラグ３に移動',
+                            command=self.goto_flag3)
+        submenu.add_command(label='フラグ４に移動',
+                            command=self.goto_flag4)
+        submenu.add_command(label='フラグ５に移動',
+                            command=self.goto_flag5)
+
+    #######
+    # COMMAND
 
     def goto_flag1(self):
         if 'flag1' not in self.txt.mark_names():
@@ -7004,6 +7100,12 @@ class Makdo:
         menu = tkinter.Menu(self.mnb, tearoff=False)
         self.mnb.add_cascade(label='ツール(T)', menu=menu, underline=4)
         #
+        menu.add_command(label='定型句を挿入',
+                         command=self.insert_formula)
+        menu.add_command(label='定型句を編集',
+                         command=self.edit_formula)
+        menu.add_separator()
+        #
         menu.add_command(label='メモ帳を開く',
                          command=self.open_memo_pad)
         menu.add_separator()
@@ -7016,10 +7118,6 @@ class Makdo:
                          command=self.compare_with_previous_draft)
         menu.add_command(label='別ファイルと内容を比較して反映',
                          command=self.compare_files)
-        menu.add_separator()
-        #
-        menu.add_command(label='ファイル形式を相互に直接変換',
-                         command=self.convert_directly)
         menu.add_separator()
         #
         menu.add_command(label='セクションを折り畳む・展開',
@@ -7041,6 +7139,171 @@ class Makdo:
 
     ################
     # COMMAND
+
+    # INSERT AND EDIT FORMULA
+
+    def insert_formula(self):
+        t = '定型句を挿入'
+        m = '挿入する定型句を選んでください．'
+        fd = self.FormulaDialog(self.txt, self, t, m)
+        self.formula_number = fd.get_value()
+        self._insert_formula()
+
+    def _insert_formula(self):
+        n = self.formula_number
+        formula_path = CONFIG_DIR + '/formula' + str(n) + '.md'
+        try:
+            with open(formula_path, 'r') as f:
+                a = f.read()
+        except BaseException:
+            return
+        self.txt.insert('insert', a)
+
+    def insert_formula1(self):
+        self.formula_number = 1
+        self._insert_formula()
+
+    def insert_formula2(self):
+        self.formula_number = 2
+        self._insert_formula()
+
+    def insert_formula3(self):
+        self.formula_number = 3
+        self._insert_formula()
+
+    def insert_formula4(self):
+        self.formula_number = 4
+        self._insert_formula()
+
+    def insert_formula5(self):
+        self.formula_number = 5
+        self._insert_formula()
+
+    def edit_formula(self):
+        t = '定型句を編集'
+        m = '編集する定型句を選んでください．'
+        fd = self.FormulaDialog(self.txt, self, t, m)
+        self.formula_number = fd.get_value()
+        self._edit_formula()
+
+    def _edit_formula(self):
+        n = self.formula_number
+        formula_path = CONFIG_DIR + '/formula' + str(n) + '.md'
+        if not os.path.exists(formula_path):
+            open(formula_path, 'w').close()
+        try:
+            with open(formula_path, 'r') as f:
+                formula = f.read()
+        except BaseException:
+            return
+        #
+        self.pnd.update()
+        half_height = int(self.pnd.winfo_height() / 2) - 5
+        self.pnd.remove(self.pnd1)
+        self.pnd.remove(self.pnd2)
+        self.pnd.remove(self.pnd3)
+        self.pnd.remove(self.pnd4)
+        self.pnd.remove(self.pnd5)
+        self.pnd.remove(self.pnd6)
+        self.pnd.add(self.pnd1, height=half_height, minsize=100)
+        self.pnd.add(self.pnd2, height=half_height)
+        self.pnd.update()
+        #
+        self.sub.pack(expand=True, fill=tkinter.BOTH)
+        for key in self.txt.configure():
+            self.sub.configure({key: self.txt.cget(key)})
+        self.sub_btn.pack()
+        #
+        self.sub.delete('1.0', 'end')
+        self.sub.insert('1.0', formula)
+        self.sub.mark_set('insert', '1.0')
+        self.txt.focus_force()
+        # self.sub.focus_set()
+
+    def edit_formula1(self):
+        self.formula_number = 1
+        self._edit_formula()
+
+    def edit_formula2(self):
+        self.formula_number = 2
+        self._edit_formula()
+
+    def edit_formula3(self):
+        self.formula_number = 3
+        self._edit_formula()
+
+    def edit_formula4(self):
+        self.formula_number = 4
+        self._edit_formula()
+
+    def edit_formula5(self):
+        self.formula_number = 5
+        self._edit_formula()
+
+    def quit_editing_formula(self):
+        n = self.formula_number
+        self.formula_number = -1
+        formula_path = CONFIG_DIR + '/formula' + str(n) + '.md'
+        try:
+            os.rename(formula_path, formula_path + '~')
+        except BaseException:
+            pass
+        try:
+            with open(formula_path, 'w') as f:
+                a = self.sub.get('1.0', 'end-1c')
+                f.write(a)
+        except BaseException:
+            return False
+        return True
+
+    class FormulaDialog(tkinter.simpledialog.Dialog):
+
+        def __init__(self, win, mother, title, prompt):
+            self.win = win
+            self.mother = mother
+            self.prompt = prompt
+            self.value = None
+            super().__init__(win, title=title)
+
+        def body(self, win):
+            prompt = tkinter.Label(win, text=self.prompt)
+            prompt.pack(side='top', anchor='w')
+            self.value = tkinter.IntVar()
+            self.value.set(1)
+            rb1 = tkinter.Radiobutton(win, text=self.get_head(1),
+                                      variable=self.value, value=1)
+            rb1.pack(side='top', anchor='w')
+            rb2 = tkinter.Radiobutton(win, text=self.get_head(2),
+                                      variable=self.value, value=2)
+            rb2.pack(side='top', anchor='w')
+            rb3 = tkinter.Radiobutton(win, text=self.get_head(3),
+                                      variable=self.value, value=3)
+            rb3.pack(side='top', anchor='w')
+            rb4 = tkinter.Radiobutton(win, text=self.get_head(4),
+                                      variable=self.value, value=4)
+            rb4.pack(side='top', anchor='w')
+            rb5 = tkinter.Radiobutton(win, text=self.get_head(5),
+                                      variable=self.value, value=5)
+            rb5.pack(side='top', anchor='w')
+            super().body(win)
+            return rb1
+
+        def get_head(self, n):
+            try:
+                with open(CONFIG_DIR + '/formula' + str(n) + '.md', 'r') as f:
+                    a = f.read()
+                    h = re.sub('\n', ' ', a)
+                    if len(h) > 15:
+                        h = h[:14] + '…'
+                    return h
+            except BaseException:
+                return '（空）'
+
+        def apply(self):
+            pass
+
+        def get_value(self):
+            return self.value.get()
 
     # OPEN MEMO PAD
 
@@ -7154,6 +7417,7 @@ class Makdo:
         self.txt.focus_force()
 
     def _unify_window(self):
+        self.quit_editing_formula()
         self.update_memo_pad()
         self.memo_pad_memory = None
         self.pnd.remove(self.pnd2)
@@ -7423,73 +7687,6 @@ class Makdo:
         self.txt.focus_set()
 
     # MDDIFF<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-    # CONVERT DIRECTLY
-
-    def convert_directly(self):
-        self.pnd.update()
-        half_height = int(self.pnd.winfo_height() / 2) - 5
-        self.pnd.remove(self.pnd1)
-        self.pnd.remove(self.pnd2)
-        self.pnd.remove(self.pnd3)
-        self.pnd.remove(self.pnd4)
-        self.pnd.remove(self.pnd5)
-        self.pnd.remove(self.pnd6)
-        self.pnd.add(self.pnd1, height=half_height, minsize=100)
-        self.pnd.add(self.pnd4, height=half_height)
-        self.pnd.update()
-        #
-        btn = tkinter.Button(self.pnd4, text='キャンセル',
-                             command=self._quit_converting_directly)
-        btn.pack(side='bottom')
-        #
-        self.pool = tkinter.Text(self.pnd4)
-        self.pool.drop_target_register(tkinterdnd2.DND_FILES)
-        self.pool.insert('end', 'ここにmdファイル又はdocxファイルをドロップしてください\n')
-        self.pool.dnd_bind('<<Drop>>', self._convert_dropped_file)
-        self.pool.pack(expand=True, side='top', fill='both')
-        self.pool.config(bg='#00A586', fg='white')
-        size = self.font_size.get()
-        self.pool['font'] = (GOTHIC_FONT, size)
-
-    def _convert_dropped_file(self, event):
-        filename = event.data
-        filename = re.sub('^{(.*)}$', '\\1', filename)
-        basename = os.path.basename(filename)
-        self.pool.delete('1.0', 'end')
-        self.pool.insert('end', '"' + basename + '"を受け取りました\n')
-        stderr = sys.stderr
-        sys.stderr = tempfile.TemporaryFile(mode='w+')
-        if re.match('^.*\\.(m|M)(d|D)$', filename):
-            self.pool.insert('end', 'docxファイルを作成します\n')
-            try:
-                importlib.reload(makdo.makdo_md2docx)
-                m2d = makdo.makdo_md2docx.Md2Docx(filename)
-                m2d.save('')
-                self.pool.insert('end', 'docxファイルを作成しました\n')
-            except BaseException:
-                sys.stderr.seek(0)
-                self.pool.insert('end', sys.stderr.read())
-                self.pool.insert('end', 'docxファイルを作成できませんでした\n')
-        elif re.match('^.*\\.(d|D)(o|O)(c|C)(x|X)$', filename):
-            self.pool.insert('end', 'mdファイルを作成します\n')
-            try:
-                importlib.reload(makdo.makdo_docx2md)
-                d2m = makdo.makdo_docx2md.Docx2Md(filename)
-                d2m.save('')
-                self.pool.insert('end', 'mdファイルを作成しました\n')
-            except BaseException:
-                sys.stderr.seek(0)
-                self.pool.insert('end', sys.stderr.read())
-                self.pool.insert('end', 'mdファイルを作成できませんでした\n')
-        else:
-            self.pool.insert('end', '不適切なファイルです\n')
-        sys.stderr = stderr
-        self.pool.insert('end', '\nここにmdファイル又はdocxファイルをドロップしてください\n')
-
-    def _quit_converting_directly(self):
-        self.pnd.remove(self.pnd4)
-        self.txt.focus_set()
 
     # FOLD
 
@@ -8029,14 +8226,32 @@ class Makdo:
                     'change_typeface',
                     'comment-out-region',
                     'compare-with-previous-draft',
+                    'edit-formula1',
+                    'edit-formula2',
+                    'edit-formula3',
+                    'edit-formula4',
+                    'edit-formula5',
                     'fold-or-unfold-section',
-                    'goto-flag',
+                    'goto-flag1',
+                    'goto-flag2',
+                    'goto-flag3',
+                    'goto-flag4',
+                    'goto-flag5',
                     'insert-current-date',
                     'insert-current-time',
                     'insert-file-names-in-same-folder',
+                    'insert-formula1',
+                    'insert-formula2',
+                    'insert-formula3',
+                    'insert-formula4',
+                    'insert-formula5',
                     'insert-symbol',
                     'open-memo-pad',
-                    'place-flag',
+                    'place-flag1',
+                    'place-flag2',
+                    'place-flag3',
+                    'place-flag4',
+                    'place-flag5',
                     'save_file',
                     'search-or-replace-backward',
                     'search-or-replace-forward',
@@ -8060,14 +8275,18 @@ class Makdo:
             '　指定範囲をコメントアウト\n' + \
             'compare-with-previous-draft\n' + \
             '　編集前の原稿と比較\n' + \
+            'edit-formulaX(X=1..5)\n' + \
+            '　定型句Xを編集\n' + \
+            'insert-formulaX(X=1..5)\n' + \
+            '　定型句Xを挿入\n' + \
             'uncomment-in-region\n' + \
             '　指定範囲のコメントアウトを解除\n' + \
             'fold-or-unfold-section\n' + \
             '　セクションの折畳又は展開\n' + \
-            'place-flag\n' + \
-            '　フラグを立てる\n' + \
-            'goto-flag\n' + \
-            '　フラグに移動\n' + \
+            'place-flagX(X=1..5)\n' + \
+            '　フラグXを設置\n' + \
+            'goto-flagX(X=1..5)\n' + \
+            '　フラグXに移動\n' + \
             'insert-current-date\n' + \
             '　今日の日付を挿入\n' + \
             'insert-current-time\n' + \
@@ -8148,24 +8367,60 @@ class Makdo:
                 self.mother.comment_out_region()
             elif com == 'compare-with-previous-draft':
                 self.mother.compare_with_previous_draft()
+            elif com == 'edit-formula1' or com == 'edit-formula':
+                self.mother.edit_formula1()
+            elif com == 'edit-formula2':
+                self.mother.edit_formula2()
+            elif com == 'edit-formula3':
+                self.mother.edit_formula3()
+            elif com == 'edit-formula4':
+                self.mother.edit_formula4()
+            elif com == 'edit-formula5':
+                self.mother.edit_formula5()
             elif com == 'fold-or-unfold-section':
                 self.mother.fold_or_unfold_section()
-            elif com == 'goto-flag':
+            elif com == 'goto-flag1' or com == 'goto-flag':
                 self.mother.goto_flag1()
+            elif com == 'goto-flag2':
+                self.mother.goto_flag2()
+            elif com == 'goto-flag3':
+                self.mother.goto_flag3()
+            elif com == 'goto-flag4':
+                self.mother.goto_flag4()
+            elif com == 'goto-flag5':
+                self.mother.goto_flag5()
             elif com == 'insert-current-date':
                 self.mother.insert_date_Gymd()
             elif com == 'insert-current-time':
                 self.mother.insert_datetime_simple()
             elif com == 'insert-file-names-in-same-folder':
                 self.mother.insert_file_names_in_same_folder()
+            elif com == 'insert-formula1' or com == 'insert-formula':
+                self.mother.insert_formula1()
+            elif com == 'insert-formula2':
+                self.mother.insert_formula2()
+            elif com == 'insert-formula3':
+                self.mother.insert_formula3()
+            elif com == 'insert-formula4':
+                self.mother.insert_formula4()
+            elif com == 'insert-formula5':
+                self.mother.insert_formula5()
             elif com == 'insert-symbol':
                 self.mother.insert_symbol()
             elif com == 'look-in-dictionary':
                 self.mother.look_in_dictionary(self)
             elif com == 'open-memo-pad':
                 self.mother.open_memo_pad()
-            elif com == 'place-flag':
+            elif com == 'place-flag1' or com == 'place-flag':
                 self.mother.place_flag1()
+            elif com == 'place-flag2':
+                self.mother.place_flag2()
+            elif com == 'place-flag3':
+                self.mother.place_flag3()
+            elif com == 'place-flag4':
+                self.mother.place_flag4()
+            elif com == 'place-flag5':
+                self.mother.place_flag5()
             elif com == 'save_file':
                 self.mother.save_file()
             elif com == 'search-or-replace-backward':
@@ -8209,10 +8464,12 @@ class Makdo:
                     nx, ny = len(x), len(y)
                     nz = min(nx, ny)
                     for n in range(nz):
-                        if x[:n] != y[:n]:
-                            x = z
+                        if x[:n+1] != y[:n+1]:
+                            if n == 0:
+                                x = ''
+                            else:
+                                x = x[:n]
                             break
-                        z = x[:n]
             if x != '':
                 self.etr.delete(0, 'end')
                 self.etr.insert(0, x)
@@ -8811,6 +9068,7 @@ class Makdo:
     # COMMAND
 
     def txt_process_key(self, key):
+        self.current_pane = 'txt'
         is_read_only = self.is_read_only.get()
         if is_read_only:
             return self.read_only_process_key(self.txt, key)
@@ -8818,16 +9076,16 @@ class Makdo:
             return self.read_and_write_process_key(self.txt, key)
 
     def sub_process_key(self, key):
+        self.current_pane = 'sub'
         if key.keysym == 'Escape':
             self._unify_window()
             return 'break'
-        if self.memo_pad_memory is None:
+        if self.formula_number < 0 and self.memo_pad_memory is None:
             return self.read_only_process_key(self.sub, key)
         else:
             return self.read_and_write_process_key(self.txt, key)
 
     def read_and_write_process_key(self, win, key):
-        self.current_pane = 'txt'
         self.set_message_on_status_bar('')
         self.set_position_info_on_status_bar()
         self.paint_out_line(self.get_insert_v_number() - 1)
@@ -8836,7 +9094,10 @@ class Makdo:
         self.key_history.pop(0)
         if key.keysym == 'F19':              # x (ctrl)
             if self.key_history[-2] == 'F19':
-                self.sub.focus_set()
+                if self.current_pane == 'sub':
+                    self.txt.focus_set()
+                else:
+                    self.sub.focus_set()
                 self.key_history[-1] = ''
             return 'break'
         elif key.keysym == 'F16':            # c (search)
@@ -8867,7 +9128,10 @@ class Makdo:
                 win.tag_add('akauni_tag', 'insert+1c', 'akauni')
         elif key.keysym == 'Up':
             if self.key_history[-2] == 'F19':
-                self.sub.focus_set()
+                if self.current_pane == 'sub':
+                    self.txt.focus_set()
+                else:
+                    self.sub.focus_set()
                 return 'break'
             if 'akauni' in win.mark_names():
                 win.tag_remove('akauni_tag', '1.0', 'end')
@@ -8875,7 +9139,10 @@ class Makdo:
                 win.tag_add('akauni_tag', 'insert-1l', 'akauni')
         elif key.keysym == 'Down':
             if self.key_history[-2] == 'F19':
-                self.sub.focus_set()
+                if self.current_pane == 'sub':
+                    self.txt.focus_set()
+                else:
+                    self.sub.focus_set()
                 return 'break'
             if 'akauni' in win.mark_names():
                 win.tag_remove('akauni_tag', '1.0', 'end')
@@ -9026,16 +9293,12 @@ class Makdo:
                     win.mark_set('insert', 'end-1c')
 
     def read_only_process_key(self, win, key):
-        if win == self.sub:
-            self.current_pane = 'sub'
-        else:
-            self.current_pane = 'txt'
         # FOR AKAUNI
         self.key_history.append(key.keysym)
         self.key_history.pop(0)
         if key.keysym == 'F19':              # x (ctrl)
             if self.key_history[-2] == 'F19':
-                if win == self.sub:
+                if self.current_pane == 'sub':
                     self.txt.focus_set()
                 else:
                     self.sub.focus_set()
@@ -9055,7 +9318,7 @@ class Makdo:
             return
         elif key.keysym == 'Up':
             if self.key_history[-2] == 'F19':
-                if win == self.sub:
+                if self.current_pane == 'sub':
                     self.txt.focus_set()
                 else:
                     self.sub.focus_set()
@@ -9067,7 +9330,7 @@ class Makdo:
             return
         elif key.keysym == 'Down':
             if self.key_history[-2] == 'F19':
-                if win == self.sub:
+                if self.current_pane == 'sub':
                     self.txt.focus_set()
                 else:
                     self.sub.focus_set()
