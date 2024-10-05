@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.05-13:28:16-JST>
+# Time-stamp:   <2024.10.06-05:08:22-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4327,7 +4327,7 @@ class Makdo:
 
     def _is_read_only_pane(self, pane):
         if pane == self.sub:
-            if self.formula_number < 0 and self.memo_pad_memory is None:
+            if self.formula_number <= 0 and self.memo_pad_memory is None:
                 return True
             else:
                 return False
@@ -4791,6 +4791,8 @@ class Makdo:
     # CONVERT DIRECTLY
 
     def convert_directly(self):
+        self.quit_editing_formula()
+        self.close_memo_pad()
         self.pnd.update()
         half_height = int(self.pnd.winfo_height() / 2) - 5
         self.pnd.remove(self.pnd1)
@@ -7418,6 +7420,7 @@ class Makdo:
         self._insert_formula()
 
     def edit_formula(self):
+        self.quit_editing_formula()
         t = '定型句を編集'
         m = '編集する定型句を選んでください．'
         fd = self.FormulaDialog(self.txt, self, t, m)
@@ -7425,6 +7428,8 @@ class Makdo:
         self._edit_formula()
 
     def _edit_formula(self):
+        if self.formula_number <= 0:
+            return False
         n = self.formula_number
         formula_path = CONFIG_DIR + '/formula' + str(n) + '.md'
         if not os.path.exists(formula_path):
@@ -7435,6 +7440,7 @@ class Makdo:
         except BaseException:
             return
         #
+        self.close_memo_pad()
         self.pnd.update()
         half_height = int(self.pnd.winfo_height() / 2) - 5
         self.pnd.remove(self.pnd1)
@@ -7459,26 +7465,33 @@ class Makdo:
         # self.sub.focus_set()
 
     def edit_formula1(self):
+        self.quit_editing_formula()
         self.formula_number = 1
         self._edit_formula()
 
     def edit_formula2(self):
+        self.quit_editing_formula()
         self.formula_number = 2
         self._edit_formula()
 
     def edit_formula3(self):
+        self.quit_editing_formula()
         self.formula_number = 3
         self._edit_formula()
 
     def edit_formula4(self):
+        self.quit_editing_formula()
         self.formula_number = 4
         self._edit_formula()
 
     def edit_formula5(self):
+        self.quit_editing_formula()
         self.formula_number = 5
         self._edit_formula()
 
     def quit_editing_formula(self):
+        if self.formula_number <= 0:
+            return False
         n = self.formula_number
         self.formula_number = -1
         formula_path = CONFIG_DIR + '/formula' + str(n) + '.md'
@@ -7562,6 +7575,7 @@ class Makdo:
         except BaseException:
             return False
         #
+        self.quit_editing_formula()
         self.pnd.update()
         half_height = int(self.pnd.winfo_height() / 2) - 5
         self.pnd.remove(self.pnd1)
@@ -7620,6 +7634,11 @@ class Makdo:
             self.sub.delete('1.0', 'end')
             self.sub.insert('1.0', memo_pad_file)
 
+    def close_memo_pad(self):
+        if self.memo_pad_memory is not None:
+            self.update_memo_pad()
+            self.memo_pad_memory = None
+
     # SPLIT OR UNIFY WINDOW
 
     def split_or_unify_window(self):
@@ -7629,6 +7648,8 @@ class Makdo:
             self._unify_window()
 
     def _split_window(self):
+        self.quit_editing_formula()
+        self.close_memo_pad()
         self.pnd.update()
         half_height = int(self.pnd.winfo_height() / 2) - 5
         self.pnd.remove(self.pnd1)
@@ -7748,6 +7769,8 @@ class Makdo:
         comp.paragraphs[0].sub_paragraph \
             = makdo.makdo_mddiff.File.set_configs(p, configs)[0]
         #
+        self.quit_editing_formula()
+        self.close_memo_pad()
         self.pnd.update()
         half_height = int(self.pnd.winfo_height() / 2) - 5
         self.pnd.remove(self.pnd1)
@@ -8260,6 +8283,8 @@ class Makdo:
             dic += '●\u3000' + ei.dictionary.k_name \
                 + '\u3000' + ei.title + '\n'
             dic += ei.content + '\n\n'
+        self.quit_editing_formula()
+        self.close_memo_pad()
         self.pnd.update()
         half_height = int(self.pnd.winfo_height() / 2) - 5
         self.pnd.remove(self.pnd1)
@@ -8381,6 +8406,8 @@ class Makdo:
         )
         self.set_message_on_status_bar('')
         #
+        self.quit_editing_formula()
+        self.close_memo_pad()
         self.pnd.update()
         half_height = int(self.pnd.winfo_height() / 2) - 5
         self.pnd.remove(self.pnd1)
