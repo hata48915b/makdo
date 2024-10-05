@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.05-12:19:48-JST>
+# Time-stamp:   <2024.10.05-13:28:16-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4020,10 +4020,6 @@ class Makdo:
         self.key_history = ['', '', '', '', '', '', '', '', '', '',
                             '', '', '', '', '', '', '', '', '', '', '']
         self.last_position = ''
-        self.must_show_folding_help_message = True
-        self.must_show_keyboard_macro_help_message = True
-        # self.keyboard_macro = []
-        # self.keyborad_macro_h_position = -1
         self.current_pane = 'txt'
         self.openai_model = 'gpt-3.5-turbo'
         self.openai_key = None
@@ -4031,6 +4027,10 @@ class Makdo:
         self.formula_number = -1
         self.memo_pad_memory = None
         self.rectangle_text_list = []
+        #
+        self.must_show_folding_help_message = True
+        self.must_show_keyboard_macro_help_message = True
+        self.must_show_config_help_message = True
         # GET CONFIGURATION
         self.get_and_set_configurations()
         # WINDOW
@@ -4091,8 +4091,7 @@ class Makdo:
         # OPEN FILE
         if self.args_input_file is not None:
             self.just_open_file(self.args_input_file)
-        elif not self.dont_show_help.get():
-            self.show_first_help_message()
+        self.show_first_help_message()
         self.txt.focus_set()
         # RUN PERIODICALLY
         self.run_periodically()
@@ -5124,12 +5123,12 @@ class Makdo:
         self.txt.tag_add('sel', '1.0', 'end-1c')
 
     def replace_all(self):
-        if self.is_read_only_pane():
-            return
         if self.current_pane == 'sub':
             pane = self.sub
         else:
             pane = self.txt
+        if self._is_read_only_pane(pane):
+            return
         word1 = self.stb_sor1.get()
         word2 = self.stb_sor2.get()
         if word1 == '':
@@ -5173,12 +5172,12 @@ class Makdo:
         self._sort_lines(False)
 
     def _sort_lines(self, is_ascending_order=True):
-        if self.is_read_only_pane():
-            return
         if self.current_pane == 'sub':
             pane = self.sub
         else:
             pane = self.txt
+        if self._is_read_only_pane(pane):
+            return
         if pane.tag_ranges('sel'):
             beg, end = pane.index('sel.first'), pane.index('sel.last')
         elif 'akauni' in pane.mark_names():
@@ -5408,12 +5407,12 @@ class Makdo:
             self.pane.focus_set()
 
     def comment_out_region(self):
-        if self.is_read_only_pane():
-            return
         if self.current_pane == 'sub':
             pane = self.sub
         else:
             pane = self.txt
+        if self._is_read_only_pane(pane):
+            return
         if pane.tag_ranges('sel'):
             beg, end = pane.index('sel.first'), pane.index('sel.last')
         elif 'akauni' in pane.mark_names():
@@ -5447,12 +5446,12 @@ class Makdo:
             pane.mark_unset('akauni')
 
     def uncomment_in_region(self):
-        if self.is_read_only_pane():
-            return
         if self.current_pane == 'sub':
             pane = self.sub
         else:
             pane = self.txt
+        if self._is_read_only_pane(pane):
+            return
         #
         if pane.tag_ranges('sel'):
             beg, end = pane.index('sel.first'), pane.index('sel.last')
@@ -7964,10 +7963,7 @@ class Makdo:
             tkinter.messagebox.showerror(n, m)
             return
         # SHOW MESSAGE
-        if self.must_show_folding_help_message:
-            if not self.dont_show_help.get():
-                self.show_folding_help_message()
-                self.must_show_folding_help_message = False
+        self.show_folding_help_message()
         # GET FOLDING NUMBER
         folding_number = 1
         all_document = self.txt.get('1.0', 'end-1c')
@@ -8062,9 +8058,7 @@ class Makdo:
             tkinter.messagebox.showerror(n, m)
             return
         # DISPLAY MESSAGE
-        if self.must_show_folding_help_message:
-            self.show_folding_help_message()
-            self.must_show_folding_help_message = False
+        self.show_folding_help_message()
         # GET TEXT
         text_a = re.sub(res, '\\1', sub_document)  # unconcerned
         text_b = re.sub(res, '\\2', sub_document)  # dont edit message
@@ -8446,6 +8440,7 @@ class Makdo:
         if om is None:
             return
         self.openai_model = om
+        self.show_config_help_message()
 
     def input_openai_key(self):
         t = 'OpenAIのキー'
@@ -8454,6 +8449,7 @@ class Makdo:
         if ok is None:
             return
         self.openai_key = self._encode(ok)
+        self.show_config_help_message()
 
     # OPENAI<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
@@ -8462,10 +8458,7 @@ class Makdo:
             pane = self.sub
         else:
             pane = self.txt
-        if self.must_show_keyboard_macro_help_message:
-            if not self.dont_show_help.get():
-                self.show_keyboard_macro_help_message()
-                self.must_show_keyboard_macro_help_message = False
+        self.show_keyboard_macro_help_message()
         reversed_history = list(reversed(self.key_history))
         if reversed_history[1] != 'Ctrl+e':
             if reversed_history[0] == 'Ctrl+e':
@@ -8836,12 +8829,13 @@ class Makdo:
         menu.add_separator()
         #
         self.dont_show_help = tkinter.BooleanVar(value=False)
-        if self.args_dont_show_help is not None:
-            self.dont_show_help.set(self.args_dont_show_help)
-        elif self.file_dont_show_help is not None:
-            self.dont_show_help.set(self.file_dont_show_help)
+        if self.args_dont_show_help:
+            self.dont_show_help.set(True)
+        elif self.file_dont_show_help:
+            self.dont_show_help.set(True)
         menu.add_checkbutton(label='ヘルプを表示しない',
-                             variable=self.dont_show_help)
+                             variable=self.dont_show_help,
+                             command=self.show_config_help_message)
         menu.add_separator()
         #
         self._make_submenu_background_color(menu)
@@ -8849,21 +8843,23 @@ class Makdo:
         menu.add_separator()
         #
         self.paint_keywords = tkinter.BooleanVar(value=False)
-        if self.args_paint_keywords is not None:
-            self.paint_keywords.set(self.args_paint_keywords)
-        elif self.file_paint_keywords is not None:
-            self.paint_keywords.set(self.file_paint_keywords)
+        if self.args_paint_keywords:
+            self.paint_keywords.set(True)
+        elif self.file_paint_keywords:
+            self.paint_keywords.set(True)
         menu.add_checkbutton(label='キーワードに色付け',
-                             variable=self.paint_keywords)
+                             variable=self.paint_keywords,
+                             command=self.show_config_help_message)
         menu.add_separator()
         #
         self.make_backup_file = tkinter.BooleanVar(value=False)
-        if self.args_make_backup_file is not None:
-            self.make_backup_file.set(self.args_make_backup_file)
-        elif self.file_make_backup_file is not None:
-            self.make_backup_file.set(self.file_make_backup_file)
+        if self.args_make_backup_file:
+            self.make_backup_file.set(True)
+        elif self.file_make_backup_file:
+            self.make_backup_file.set(True)
         menu.add_checkbutton(label='バックアップファイルを残す',
-                             variable=self.make_backup_file)
+                             variable=self.make_backup_file,
+                             command=self.show_config_help_message)
         menu.add_separator()
         #
         self._make_submenu_digit_separator(menu)
@@ -8895,7 +8891,7 @@ class Makdo:
         for c in colors:
             submenu.add_radiobutton(label=colors[c],
                                     variable=self.background_color, value=c,
-                                    command=self.set_font)
+                                    command=self.set_background_color)
 
     def _make_submenu_character_size(self, menu):
         submenu = tkinter.Menu(self.mnb, tearoff=False)
@@ -8910,10 +8906,18 @@ class Makdo:
         for s in sizes:
             submenu.add_radiobutton(label=str(s) + 'px',
                                     variable=self.font_size, value=s,
-                                    command=self.set_font)
+                                    command=self.set_character_size)
 
     ######
     # COMMAND
+
+    def set_background_color(self):
+        self.show_config_help_message()
+        self.set_font()
+
+    def set_character_size(self):
+        self.show_config_help_message()
+        self.set_font()
 
     def set_font(self):
         background_color = self.background_color.get()
@@ -9001,11 +9005,14 @@ class Makdo:
         #
         self.digit_separator = tkinter.StringVar(value='4')
         submenu.add_radiobutton(label='桁区切りなし（12345678）',
-                                variable=self.digit_separator, value='0')
+                                variable=self.digit_separator, value='0',
+                                command=self.show_config_help_message)
         submenu.add_radiobutton(label='3桁区切り（12,345,678）',
-                                variable=self.digit_separator, value='3')
+                                variable=self.digit_separator, value='3',
+                                command=self.show_config_help_message)
         submenu.add_radiobutton(label='4桁区切り（1234万5678）',
-                                variable=self.digit_separator, value='4')
+                                variable=self.digit_separator, value='4',
+                                command=self.show_config_help_message)
         # menu.add_separator()
 
     ################
@@ -9021,8 +9028,10 @@ class Makdo:
                     item = re.sub('^\\s*(\\S*)\\s*:\\s*(.*)\\s*$', '\\1', line)
                     valu = re.sub('^\\s*(\\S*)\\s*:\\s*(.*)\\s*$', '\\2', line)
                     if item == 'dont_show_help':
-                        if valu == 'True' or valu == 'False':
-                            Makdo.file_dont_show_help = bool(valu)
+                        if valu == 'True':
+                            Makdo.file_dont_show_help = True
+                        elif valu == 'True':
+                            Makdo.file_dont_show_help = False
                     elif item == 'background_color':
                         if valu == 'W' or valu == 'B' or valu == 'G':
                             Makdo.file_background_color = valu
@@ -9030,14 +9039,18 @@ class Makdo:
                         if re.match('^[0-9]+$', valu) and (int(valu) % 3) == 0:
                             Makdo.file_font_size = int(valu)
                     elif item == 'paint_keywords':
-                        if valu == 'True' or valu == 'False':
-                            Makdo.file_paint_keywords = bool(valu)
+                        if valu == 'True':
+                            Makdo.file_paint_keywords = True
+                        elif valu == 'False':
+                            Makdo.file_paint_keywords = False
                     elif item == 'digit_separator':
                         if valu == '3' or valu == '4':
                             Makdo.file_digit_separator = valu
                     elif item == 'make_backup_file':
-                        if valu == 'True' or valu == 'False':
-                            Makdo.file_make_backup_file = bool(valu)
+                        if valu == 'True':
+                            Makdo.file_make_backup_file = True
+                        elif valu == 'False':
+                            Makdo.file_make_backup_file = False
                     elif item == 'openai_model':
                         self.openai_model = valu
                     elif item == 'openai_key':
@@ -9073,7 +9086,7 @@ class Makdo:
                 if self.dict_directory is not None:
                     f.write('dict_directory:   '
                             + self.dict_directory + '\n')
-            self.set_message_on_status_bar('保存しました')
+            self.set_message_on_status_bar('設定を保存しました')
 
     ##########################
     # MENU INTERNET
@@ -10150,6 +10163,8 @@ class Makdo:
     # SHOW MESSAGE
 
     def show_first_help_message(self):
+        if self.dont_show_help.get():
+            return
         n = 'ご説明'
         m = 'MS Word形式（拡張子docx）の\n' + \
             'ファイルを、この画面に\n' + \
@@ -10166,6 +10181,10 @@ class Makdo:
         tkinter.messagebox.showinfo(n, m)
 
     def show_folding_help_message(self):
+        if self.dont_show_help.get():
+            return
+        if not self.must_show_folding_help_message:
+            return
         n = 'ご説明'
         m = 'セクションを折り畳みます．' + \
             '（セクションの中身を一時的に文面の最後に移動させます）．\n\n' + \
@@ -10181,8 +10200,13 @@ class Makdo:
             '折り畳んだことを記録したもので展開する際に必要ですので、' + \
             '絶対に書き替えたり消したりしないでください．'
         tkinter.messagebox.showinfo(n, m)
+        self.must_show_folding_help_message = False
 
     def show_keyboard_macro_help_message(self):
+        if self.dont_show_help.get():
+            return
+        if not self.must_show_keyboard_macro_help_message:
+            return
         n = 'ご説明'
         m = 'キー入力の中から、繰り返しを探して、\n' + \
             'その繰り返しを実行します．\n\n' + \
@@ -10190,6 +10214,19 @@ class Makdo:
             '便利です．\n\n' + \
             '"Ctrl+E"でも実行できます．'
         tkinter.messagebox.showinfo(n, m)
+        self.must_show_keyboard_macro_help_message = False
+
+    def show_config_help_message(self):
+        if self.dont_show_help.get():
+            return
+        if not self.must_show_config_help_message:
+            return
+        n = 'ご説明'
+        m = '設定を次回以降に引き継ぐ場合は、\n' + \
+            '「設定」の項目の「設定を保存」を\n' + \
+            'クリックして、保存してください．'
+        tkinter.messagebox.showinfo(n, m)
+        self.must_show_config_help_message = False
 
     ####################################
     # RUN PERIODICALLY
