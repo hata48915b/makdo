@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.07-15:24:53-JST>
+# Time-stamp:   <2024.10.08-07:55:28-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -85,14 +85,19 @@ __version__ = 'v07 Furuichibashi'
 
 WINDOW_SIZE = '900x600'
 
-GOTHIC_FONT = 'BIZ UDゴシック'         # 現時点で最適
-MINCHO_FONT = 'BIZ UD明朝'
-# GOTHIC_FONT = 'Noto Sans Mono CJK JP'  # 使えるがLinuxでは上下に間延びする
-# MINCHO_FONT = 'Noto Serif CJK JP'
-# GOTHIC_FONT = 'ＭＳ ゴシック'          # ボールドがないため幅が合わない
-# MINCHO_FONT = 'ＭＳ 明朝'
-# GOTHIC_FONT = 'IPAゴシック'            # ボールドがないため幅が合わない
-# MINCHO_FONT = 'IPA明朝'
+# エディタフォント
+BIZUD_GOTHIC_FONT = 'BIZ UDゴシック'        # 現時点で最適
+BIZUD_MINCHO_FONT = 'BIZ UD明朝'
+NOTO_GOTHIC_FONT = 'Noto Sans Mono CJK JP'  # 使えるがLinuxでは上下に間延びする
+NOTO_MINCHO_FONT = 'Noto Serif CJK JP'
+# MS_GOTHIC_FONT = 'ＭＳ ゴシック'            # ボールドがないため幅が合わない
+# MS_INCHO_FONT = 'ＭＳ 明朝'
+# IPA_GOTHIC_FONT = 'IPAゴシック'             # ボールドがないため幅が合わない
+# IPA_MINCHO_FONT = 'IPA明朝'
+YU_MINCHO_FONT = '游明朝'
+HIRAGINO_MINCHO_FONT = 'ヒラギノ明朝 ProN'
+# MS Word形式ファイルのデフォルトフォント
+MS_INCHO_FONT = 'ＭＳ 明朝'
 
 NOT_ESCAPED = '^((?:(?:.|\n)*?[^\\\\])??(?:\\\\\\\\)*?)??'
 
@@ -3979,11 +3984,10 @@ class OneWordDialog(tkinter.simpledialog.Dialog):
         super().__init__(pane, title=title)
 
     def body(self, pane):
-        font_size = self.mother.font_size.get()
-        font = (GOTHIC_FONT, font_size)
+        fon = self.mother.gothic_font
         prompt = tkinter.Label(pane, text=self.prompt)
         prompt.pack(side='top', anchor='w')
-        self.entry = tkinter.Entry(pane, width=25, font=font)
+        self.entry = tkinter.Entry(pane, width=25, font=fon)
         self.entry.pack(side='top')
         self.entry.insert(0, self.init)
         super().body(pane)
@@ -4009,14 +4013,13 @@ class TwoWordsDialog(tkinter.simpledialog.Dialog):
         super().__init__(pane, title=title)
 
     def body(self, pane):
-        font_size = self.mother.font_size.get()
-        font = (GOTHIC_FONT, font_size)
+        fon = self.mother.gothic_font
         prompt = tkinter.Label(pane, text=self.prompt)
         prompt.pack(side='top', anchor='w')
-        self.entry1 = tkinter.Entry(pane, width=25, font=font)
+        self.entry1 = tkinter.Entry(pane, width=25, font=fon)
         self.entry1.pack(side='top')
         self.entry1.insert(0, self.init1)
-        self.entry2 = tkinter.Entry(pane, width=25, font=font)
+        self.entry2 = tkinter.Entry(pane, width=25, font=fon)
         self.entry2.pack(side='top')
         self.entry2.insert(0, self.init2)
         super().body(pane)
@@ -5015,17 +5018,37 @@ class Makdo:
         self.stb.pack(side='left', anchor='w')
         self._make_status_bar()
         # FONT
-        # families = tkinter.font.families()
-        # if ('BIZ UDゴシック' in families and
-        #     'BIZ UD明朝' in families):
-        #     self.gothic_font = 'BIZ UDゴシック'
-        #     self.mincho_font = 'BIZ UD明朝'
-        # elif ('Noto Sans Mono CJK JP' in families and
-        #       'Noto Serif CJK JP' in families):
-        #     self.gothic_font = 'Noto Sans Mono CJK JP'
-        #     self.mincho_font = 'Noto Serif CJK JP'
-        # else:
-        #     pass
+        families = tkinter.font.families()
+        for f in families:
+            if re.match('^' + BIZUD_GOTHIC_FONT, f):
+                self.gothic_font \
+                    = tkinter.font.Font(self.win,family=BIZUD_GOTHIC_FONT)
+                break
+            if re.match('^' + NOTO_GOTHIC_FONT, f):
+                self.gothic_font \
+                    = tkinter.font.Font(self.win,family=NOTO_GOTHIC_FONT)
+                break
+        else:
+            self.gothic_font = tkinter.font.nametofont("TkFixedFont").copy()
+        for f in families:
+            if re.match('^' + BIZUD_MINCHO_FONT, f):
+                self.mincho_font \
+                    = tkinter.font.Font(self.win,family=BIZUD_MINCHO_FONT)
+                break
+            if re.match('^' + NOTO_MINCHO_FONT, f):
+                self.mincho_font \
+                    = tkinter.font.Font(self.win,family=NOTO_MINCHO_FONT)
+                break
+            if re.match('^' + YU_MINCHO_FONT, f):
+                self.mincho_font \
+                    = tkinter.font.Font(self.win,family=YU_MINCHO_FONT)
+                break
+            if re.match('^' + HIRAGINO_MINCHO_FONT, f):
+                self.mincho_font \
+                    = tkinter.font.Font(self.win,family=HIRAGINO_MINCHO_FONT)
+                break
+        else:
+            self.mincho_font = tkinter.font.nametofont("TkFixedFont").copy()
         self.set_font()
         # OPEN FILE
         if self.args_input_file is not None:
@@ -5754,8 +5777,7 @@ class Makdo:
         self.pool.dnd_bind('<<Drop>>', self._convert_dropped_file)
         self.pool.pack(expand=True, side='top', fill='both')
         self.pool.config(bg='#00A586', fg='white')
-        size = self.font_size.get()
-        self.pool['font'] = (GOTHIC_FONT, size)
+        self.pool['font'] = self.gothic_font
 
     def _convert_dropped_file(self, event):
         filename = event.data
@@ -6317,11 +6339,10 @@ class Makdo:
             super().__init__(pane, title='字体を変える')
 
         def body(self, pane):
-            font_size = self.mother.font_size.get()
-            font = (GOTHIC_FONT, font_size)
+            fon = self.mother.gothic_font
             self.typeface = tkinter.StringVar()
             for cnd in self.candidates:
-                rd = tkinter.Radiobutton(pane, text=cnd, font=font,
+                rd = tkinter.Radiobutton(pane, text=cnd, font=fon,
                                          variable=self.typeface, value=cnd)
                 rd.pack(side=tkinter.LEFT, padx=3, pady=3)
                 if cnd == self.old_typeface:
@@ -6509,7 +6530,7 @@ class Makdo:
         menu.add_cascade(label='フォントの変更を挿入', menu=submenu)
         #
         self.mincho = tkinter.StringVar()
-        self.mincho.set(MINCHO_FONT)
+        self.mincho.set(MS_INCHO_FONT)
         submenu.add_command(label='明朝体を変える',
                             command=self.insert_selected_font)
         submenu.add_separator()
@@ -6539,10 +6560,9 @@ class Makdo:
             super().__init__(pane, title='明朝体を変える')
 
         def body(self, pane):
-            font_size = self.mother.font_size.get()
-            font = (GOTHIC_FONT, font_size)
+            fon = self.mother.gothic_font
             for cnd in self.candidates:
-                rd = tkinter.Radiobutton(pane, text=cnd, font=font,
+                rd = tkinter.Radiobutton(pane, text=cnd, font=fon,
                                          variable=self.mother.mincho, value=cnd)
                 rd.pack(side='top', padx=3, pady=3, anchor='nw')
             super().body(pane)
@@ -6869,8 +6889,7 @@ class Makdo:
             super().__init__(pane, title='文字コードから人名・地名漢字を挿入')
 
         def body(self, pane):
-            font_size = self.mother.font_size.get()
-            font = (GOTHIC_FONT, font_size)
+            fon = self.mother.gothic_font
             t = '下記のURLで漢字を検索してください．\n' + \
                 'https://moji.or.jp/mojikibansearch/basic\n\n' + \
                 '「対応するUCS」の下の段を下に入力してください．\n' + \
@@ -6883,13 +6902,13 @@ class Makdo:
             frm.pack(side=tkinter.TOP)
             txt = tkinter.Label(frm, text='<')
             txt.pack(side=tkinter.LEFT)
-            self.entry1 = tkinter.Entry(frm, width=7, font=font)
+            self.entry1 = tkinter.Entry(frm, width=7, font=fon)
             self.entry1.pack(side=tkinter.LEFT)
             if self.code is not None:
                 self.entry1.insert(0, self.code)
             txt = tkinter.Label(frm, text=',')
             txt.pack(side=tkinter.LEFT)
-            self.entry2 = tkinter.Entry(frm, width=7, font=font)
+            self.entry2 = tkinter.Entry(frm, width=7, font=fon)
             self.entry2.pack(side=tkinter.LEFT)
             txt = tkinter.Label(frm, text='>')
             txt.pack(side=tkinter.LEFT)
@@ -7200,11 +7219,10 @@ class Makdo:
             super().__init__(pane, title='記号を挿入')
 
         def body(self, pane):
-            font_size = self.mother.font_size.get()
-            font = (GOTHIC_FONT, font_size)
+            fon = self.mother.gothic_font
             self.symbol = tkinter.StringVar()
             for i, cnd in enumerate(self.candidates):
-                rd = tkinter.Radiobutton(pane, text=cnd, font=font,
+                rd = tkinter.Radiobutton(pane, text=cnd, font=fon,
                                          variable=self.symbol, value=cnd)
                 y, x = int(i / 10), (i % 10)
                 rd.grid(row=y, column=x, columnspan=1, padx=3, pady=3)
@@ -7491,8 +7509,7 @@ class Makdo:
             super().__init__(pane, title='段落の長さを設定')
 
         def body(self, pane):
-            font_size = self.mother.font_size.get()
-            f = (GOTHIC_FONT, font_size)
+            f = self.mother.gothic_font
             self.title1 = tkinter.Label(pane, text='前の段落との間の幅')
             self.title1.grid(row=0, column=0)
             self.entry1 = tkinter.Entry(pane, width=7, font=f, justify='right')
@@ -7851,11 +7868,10 @@ class Makdo:
             return self.entry1
 
         def _body(self, pane, row, unit, cnd):
-            font_size = self.mother.font_size.get()
-            font = (GOTHIC_FONT, font_size)
+            fon = self.mother.gothic_font
             head = tkinter.Label(pane, text='第１' + unit + '　→　第')
             head.grid(row=row, column=0)
-            entry = tkinter.Entry(pane, width=4, justify='center', font=font)
+            entry = tkinter.Entry(pane, width=3, justify='center', font=fon)
             entry.grid(row=row, column=1)
             if cnd >= 0:
                 entry.insert(0, str(cnd))
@@ -7875,7 +7891,7 @@ class Makdo:
             str5 = self.entry5.get()
             int5, err5 = self._apply(str5)
             if err1 or err2 or err3 or err4 or err5:
-                Makdo.ChapterNumberDialog(self.pane,
+                Makdo.ChapterNumberDialog(self.pane, self.mother,
                                           [int1, int2, int3, int4, int5])
             else:
                 doc = self.pane.get('1.0', 'insert')
@@ -7929,15 +7945,14 @@ class Makdo:
             return self.entry1
 
         def _body(self, pane, row, pre, num, pos, cnd):
-            font_size = self.mother.font_size.get()
-            font = (GOTHIC_FONT, font_size)
+            fon = self.mother.gothic_font
             txt = tkinter.Label(pane, text=pre + num + pos)
             txt.grid(row=row, column=0)
             txt = tkinter.Label(pane, text='　→　')
             txt.grid(row=row, column=1)
             txt = tkinter.Label(pane, text=pre)
             txt.grid(row=row, column=2)
-            entry = tkinter.Entry(pane, width=4, justify='center', font=font)
+            entry = tkinter.Entry(pane, width=3, justify='center', font=fon)
             entry.grid(row=row, column=3)
             if cnd is not None:
                 entry.insert(0, str(cnd))
@@ -7962,7 +7977,7 @@ class Makdo:
             str7, int7, err7 = self._apply(str7, 'alph')
             if err1 or err2 or err3 or err4 or err5 or err6 or err7:
                 lst = [str1, str2, str3, str4, str5, str6, str7]
-                Makdo.SectionNumberDialog(self.pane, lst)
+                Makdo.SectionNumberDialog(self.pane, self.mother, lst)
             else:
                 doc = self.pane.get('1.0', 'insert')
                 res = '^(' \
@@ -8021,15 +8036,14 @@ class Makdo:
             return self.entry1
 
         def _body(self, pane, row, num, cnd):
-            font_size = self.mother.font_size.get()
-            font = (GOTHIC_FONT, font_size)
+            fon = self.mother.gothic_font
             txt = tkinter.Label(pane, text=num)
             txt.grid(row=row, column=0)
             txt = tkinter.Label(pane, text='　→　')
             txt.grid(row=row, column=1)
             txt = tkinter.Label(pane, text='（')
             txt.grid(row=row, column=2)
-            entry = tkinter.Entry(pane, width=4, justify='center', font=font)
+            entry = tkinter.Entry(pane, width=4, justify='center', font=fon)
             entry.grid(row=row, column=3)
             if cnd is not None:
                 entry.insert(0, str(cnd))
@@ -8047,7 +8061,8 @@ class Makdo:
             str4 = self.entry4.get()
             str4, int4, err4 = self._apply(str4, 'kanj')
             if err1 or err2 or err3 or err4:
-                Makdo.ListNumberDialog(self.pane, [str1, str2, str3, str4])
+                Makdo.ListNumberDialog(self.pane, self.mother,
+                                       [str1, str2, str3, str4])
             else:
                 doc = self.pane.get('1.0', 'insert')
                 res = '^(' \
@@ -8235,17 +8250,16 @@ class Makdo:
             super().__init__(pane, title='行数・文字数を指定して移動')
 
         def body(self, pane):
+            fon = self.mother.gothic_font
             t = '行数・文字数を入力してください．\n'
             self.text1 = tkinter.Label(pane, text=t)
             self.text1.pack(side=tkinter.TOP, anchor=tkinter.W)
             self.frame = tkinter.Frame(pane)
             self.frame.pack(side=tkinter.TOP)
-            font_size = self.mother.font_size.get()
-            font = (GOTHIC_FONT, font_size)
-            self.entry1 = tkinter.Entry(self.frame, width=7, font=font)
+            self.entry1 = tkinter.Entry(self.frame, width=7, font=fon)
             self.entry1.pack(side='left')
             tkinter.Label(self.frame, text='行目').pack(side='left')
-            self.entry2 = tkinter.Entry(self.frame, width=7, font=font)
+            self.entry2 = tkinter.Entry(self.frame, width=7, font=fon)
             self.entry2.pack(side='left')
             tkinter.Label(self.frame, text='文字目').pack(side='left')
             # self.bind('<Key-Return>', self.ok)
@@ -8738,7 +8752,6 @@ class Makdo:
         # cvs_frm.bind('<Up>', lambda e: cvs.yview_scroll(-1, 'units'))
         # cvs_frm.bind('<Down>', lambda e: cvs.yview_scroll(1, 'units'))
         self.btns = []
-        size = self.font_size.get()
         for p in comp.paragraphs:
             if p.ses_symbol == '.':
                 continue
@@ -8756,7 +8769,7 @@ class Makdo:
                                   command=self._goto_diff(p.diff_id, comp))
             self.btns.append(btn3)
             lbl = tkinter.Label(frm2, text=p.diff_text,
-                                font=(GOTHIC_FONT, size), justify='left')
+                                font=self.gothic_font, justify='left')
             if background_color == 'W':
                 frm0.configure(bg='white')
                 frm1.configure(bg='white')
@@ -9613,12 +9626,12 @@ class Makdo:
             super().__init__(pane, title='ミニバッファ')
 
         def body(self, pane):
+            fon = self.mother.gothic_font
             t = 'コマンドを入力してください．\n' \
                 + '分からなければ"help"と入力してください．'
             lbl = tkinter.Label(pane, text=t, justify='left')
             lbl.pack(side='top', anchor='w')
-            size = self.mother.font_size.get()
-            self.etr = tkinter.Entry(pane, font=(GOTHIC_FONT, size), width=50)
+            self.etr = tkinter.Entry(pane, font=fon, width=50)
             self.etr.pack(side='top')
             self.etr.insert(0, self.init)
             self.bind('<Key-Tab>', self.key_tab)
@@ -9880,10 +9893,12 @@ class Makdo:
     def set_font(self):
         background_color = self.background_color.get()
         size = self.font_size.get()
+        self.gothic_font['size'] = size
+        self.mincho_font['size'] = size
         # BASIC FONT
-        self.txt['font'] = (GOTHIC_FONT, size)
-        self.stb_sor1['font'] = (GOTHIC_FONT, size)
-        self.stb_sor2['font'] = (GOTHIC_FONT, size)
+        self.txt['font'] = self.gothic_font
+        self.stb_sor1['font'] = self.gothic_font
+        self.stb_sor2['font'] = self.gothic_font
         self.txt.tag_config('error_tag', foreground='#FF0000')
         self.sub.tag_config('error_tag', foreground='#FF0000')
         self.txt.tag_config('search_tag', background='#777777')
@@ -9928,9 +9943,9 @@ class Makdo:
             und = False if u == '-x' else True
             for f in ['-g', '-m']:
                 if f == '-g':
-                    fon = (GOTHIC_FONT, size)
+                    fon = self.gothic_font.copy()
                 else:
-                    fon = (MINCHO_FONT, size)
+                    fon = self.mincho_font.copy()
                 # WHITE
                 for i in range(3):
                     a = '-XXX'
@@ -9943,9 +9958,10 @@ class Makdo:
                     self.txt.tag_config(tag, font=fon,
                                         foreground=col, underline=und)
                 if f == '-g':
-                    fon = (GOTHIC_FONT, size, 'bold')
+                    fon = self.gothic_font.copy()
                 else:
-                    fon = (MINCHO_FONT, size, 'bold')
+                    fon = self.mincho_font.copy()
+                fon['weight'] = 'bold'
                 # COLOR
                 for i in range(3):  # lightness
                     y = '-' + str(i)
