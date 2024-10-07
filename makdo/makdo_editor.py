@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.07-11:24:28-JST>
+# Time-stamp:   <2024.10.07-15:24:53-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5015,6 +5015,17 @@ class Makdo:
         self.stb.pack(side='left', anchor='w')
         self._make_status_bar()
         # FONT
+        # families = tkinter.font.families()
+        # if ('BIZ UDゴシック' in families and
+        #     'BIZ UD明朝' in families):
+        #     self.gothic_font = 'BIZ UDゴシック'
+        #     self.mincho_font = 'BIZ UD明朝'
+        # elif ('Noto Sans Mono CJK JP' in families and
+        #       'Noto Serif CJK JP' in families):
+        #     self.gothic_font = 'Noto Sans Mono CJK JP'
+        #     self.mincho_font = 'Noto Serif CJK JP'
+        # else:
+        #     pass
         self.set_font()
         # OPEN FILE
         if self.args_input_file is not None:
