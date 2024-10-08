@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         mddiff.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.09.27-07:01:35-JST>
+# Time-stamp:   <2024.10.09-07:33:02-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -194,6 +194,8 @@ class File:
             raw_paragraphs.append(block)
         # CORRECTION OF LAST LINE
         raw_paragraphs[-1] = re.sub('=\n$', '', raw_paragraphs[-1])
+        if raw_paragraphs[-1] == '':
+            raw_paragraphs.pop(-1)
         return raw_paragraphs
 
     @staticmethod
