@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.08-10:26:56-JST>
+# Time-stamp:   <2024.10.08-11:09:50-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4419,10 +4419,10 @@ class LineDatum:
             if not chars_state.is_in_comment and j >= 2 and \
                re.match('\\s', c3) and c2 == ':' and c == '\n':
                 key = chars_state.get_key('')                           # 1.key
-                end = str(i + 1) + '.' + str(j - 2)                     # 2.end
+                end = str(i + 1) + '.' + str(j - 1)                     # 2.end
                 txt.tag_add(key, beg, end)                              # 3.tag
                 #                                                       # 4.set
-                # tmp = ' :\n'                                          # 5.tmp
+                # tmp = ':\n'                                           # 5.tmp
                 beg = end                                               # 6.beg
                 key = chars_state.get_key('alignment')                  # 1.key
                 end = str(i + 1) + '.' + str(j + 1)                     # 2.end
@@ -4498,7 +4498,7 @@ class LineDatum:
                 tmp = ''                                                # 5.tmp
                 beg = end                                               # 6.beg
                 continue
-            # SPACE
+            # SPACE (<X>)
             if ((re.match('^.*<\\s*[0-9]+$', s_lft) and
                  re.match('^[0-9]*\\s*>.*$', s_rgt)) or
                 (re.match('^.*<\\s*[0-9]+$', s_lft) and
@@ -5070,7 +5070,8 @@ class Makdo:
         # OPEN FILE
         if self.args_input_file is not None:
             self.just_open_file(self.args_input_file)
-        self.show_first_help_message()
+        else:
+            self.show_first_help_message()
         self.txt.focus_set()
         # RUN PERIODICALLY
         self.run_periodically()
