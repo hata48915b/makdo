@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.08-07:55:28-JST>
+# Time-stamp:   <2024.10.08-09:00:12-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -85,11 +85,11 @@ __version__ = 'v07 Furuichibashi'
 
 WINDOW_SIZE = '900x600'
 
-# エディタフォント
-BIZUD_GOTHIC_FONT = 'BIZ UDゴシック'        # 現時点で最適
+# Makdoエディタ用のフォント
+BIZUD_GOTHIC_FONT = 'BIZ UDゴシックa'        # 現時点で最適
 BIZUD_MINCHO_FONT = 'BIZ UD明朝'
-NOTO_GOTHIC_FONT = 'Noto Sans Mono CJK JP'  # 使えるがLinuxでは上下に間延びする
-NOTO_MINCHO_FONT = 'Noto Serif CJK JP'
+# NOTO_GOTHIC_FONT = 'Noto Sans Mono CJK JP'  # 使えるがLinuxでは上下に間延びする
+# NOTO_MINCHO_FONT = 'Noto Serif CJK JP'
 # MS_GOTHIC_FONT = 'ＭＳ ゴシック'            # ボールドがないため幅が合わない
 # MS_INCHO_FONT = 'ＭＳ 明朝'
 # IPA_GOTHIC_FONT = 'IPAゴシック'             # ボールドがないため幅が合わない
@@ -97,7 +97,7 @@ NOTO_MINCHO_FONT = 'Noto Serif CJK JP'
 YU_MINCHO_FONT = '游明朝'
 HIRAGINO_MINCHO_FONT = 'ヒラギノ明朝 ProN'
 # MS Word形式ファイルのデフォルトフォント
-MS_INCHO_FONT = 'ＭＳ 明朝'
+# MS_INCHO_FONT = 'ＭＳ 明朝'
 
 NOT_ESCAPED = '^((?:(?:.|\n)*?[^\\\\])??(?:\\\\\\\\)*?)??'
 
@@ -5019,37 +5019,42 @@ class Makdo:
         self._make_status_bar()
         # FONT
         families = tkinter.font.families()
-        for f in families:
-            if re.match('^' + BIZUD_GOTHIC_FONT, f):
-                self.gothic_font \
-                    = tkinter.font.Font(self.win,family=BIZUD_GOTHIC_FONT)
-                break
-            if re.match('^' + NOTO_GOTHIC_FONT, f):
-                self.gothic_font \
-                    = tkinter.font.Font(self.win,family=NOTO_GOTHIC_FONT)
-                break
-        else:
+        self.gothic_font = None
+        self.mincho_font = None
+        if self.gothic_font is None:
+            for f in families:
+                if re.match('^' + BIZUD_GOTHIC_FONT, f):
+                    self.gothic_font \
+                        = tkinter.font.Font(self.win,family=BIZUD_GOTHIC_FONT)
+                    break
+        if self.mincho_font is None:
+            for f in families:
+                if re.match('^' + BIZUD_MINCHO_FONT, f):
+                    self.mincho_font \
+                        = tkinter.font.Font(self.win,family=BIZUD_MINCHO_FONT)
+                    break
+        if self.mincho_font is None:
+            for f in families:
+                if re.match('^' + YU_MINCHO_FONT, f):
+                    self.mincho_font \
+                        = tkinter.font.Font(self.win,family=YU_MINCHO_FONT)
+                    break
+        if self.mincho_font is None:
+            for f in families:
+                if re.match('^' + HIRAGINO_MINCHO_FONT, f):
+                    self.mincho_font \
+                        = tkinter.font.Font(self.win,family=HIRAGINO_MINCHO_FONT)
+                    break
+        if self.gothic_font is None:
             self.gothic_font = tkinter.font.nametofont("TkFixedFont").copy()
-        for f in families:
-            if re.match('^' + BIZUD_MINCHO_FONT, f):
-                self.mincho_font \
-                    = tkinter.font.Font(self.win,family=BIZUD_MINCHO_FONT)
-                break
-            if re.match('^' + NOTO_MINCHO_FONT, f):
-                self.mincho_font \
-                    = tkinter.font.Font(self.win,family=NOTO_MINCHO_FONT)
-                break
-            if re.match('^' + YU_MINCHO_FONT, f):
-                self.mincho_font \
-                    = tkinter.font.Font(self.win,family=YU_MINCHO_FONT)
-                break
-            if re.match('^' + HIRAGINO_MINCHO_FONT, f):
-                self.mincho_font \
-                    = tkinter.font.Font(self.win,family=HIRAGINO_MINCHO_FONT)
-                break
-        else:
+        if self.mincho_font is None:
             self.mincho_font = tkinter.font.nametofont("TkFixedFont").copy()
         self.set_font()
+        for f in families:
+            if re.match('^' + BIZUD_GOTHIC_FONT, f):
+                break
+        else:
+            self.show_font_help_message()
         # OPEN FILE
         if self.args_input_file is not None:
             self.just_open_file(self.args_input_file)
@@ -6530,7 +6535,7 @@ class Makdo:
         menu.add_cascade(label='フォントの変更を挿入', menu=submenu)
         #
         self.mincho = tkinter.StringVar()
-        self.mincho.set(MS_INCHO_FONT)
+        # self.mincho.set(MS_INCHO_FONT)
         submenu.add_command(label='明朝体を変える',
                             command=self.insert_selected_font)
         submenu.add_separator()
@@ -11146,6 +11151,28 @@ class Makdo:
 
     ####################################
     # SHOW MESSAGE
+
+    def show_font_help_message(self):
+        if self.dont_show_help.get():
+            return
+        n = 'ご説明'
+        m = 'Markdownで書かれた原稿は、\n' + \
+            '文字幅が均一なフォントで表示すると、\n' + \
+            '位置が揃って、読みやすくなります．\n' + \
+            'また、\n' + \
+            'ウェイトが複数用意されていると、\n' + \
+            'ボールド（太字）にしたときも、\n' + \
+            '文字幅が広がったりせず、\n' + \
+            '位置が揃います．\n\n' + \
+            'すなわち、\n' + \
+            'ウェイトが複数ある等幅フォントが、\n' + \
+            '最適です．\n\n' + \
+            'この条件を満たすフォントの中で、\n' + \
+            '①字体の読みやすさと、\n' + \
+            '②無料で使えること（感謝！）から、\n' + \
+            '"BIZ UDゴシック"をおすすめしています．\n\n' + \
+            'https://fonts.google.com/specimen/BIZ+UDGothic'
+        tkinter.messagebox.showinfo(n, m)
 
     def show_first_help_message(self):
         if self.dont_show_help.get():
