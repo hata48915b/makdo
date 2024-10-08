@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.09.27-06:47:55-JST>
+# Time-stamp:   <2024.10.08-12:25:31-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1592,6 +1592,7 @@ class Form:
         right_x = -1.0
         # STATISTICS
         afonts, jfonts, fsizes = {}, {}, {}
+        afonts[''], jfonts[''], fsizes[''] = 0, 0, 0
         for xl in xml_lines:
             width_x = XML.get_value('w:pgSz', 'w:w', width_x, xl)
             height_x = XML.get_value('w:pgSz', 'w:h', height_x, xl)
@@ -1600,16 +1601,45 @@ class Form:
             left_x = XML.get_value('w:pgMar', 'w:left', left_x, xl)
             right_x = XML.get_value('w:pgMar', 'w:right', right_x, xl)
             # STATISTICS
-            if re.match('^.* w:ascii=[\'"]([^\'"]*)[\'"].*$', xl):
-                afonts = XML.count_values('w:rFonts', 'w:ascii', afonts, xl)
+            if re.match('^<w:rPr( .*)?>$', xl):
+                af, jf, fs, fsc = '', '', '', ''
+            elif re.match('^</w:rPr( .*)?>$', xl):
+                if re.match('^.* w:ascii=[\'"]([^\'"]*)[\'"].*$', af):
+                    afonts = XML.count_values('w:rFonts', 'w:ascii',
+                                              afonts, af)
+                elif re.match('^.* w:cs=[\'"]([^\'"]*)[\'"].*$', af):
+                    afonts = XML.count_values('w:rFonts', 'w:cs',
+                                              afonts, af)
+                else:
+                    afonts[''] += 1
+                if re.match('^.* w:eastAsia=[\'"]([^\'"]*)[\'"].*$', jf):
+                    jfonts = XML.count_values('w:rFonts', 'w:eastAsia',
+                                              jfonts, jf)
+                elif re.match('^.* w:cs=[\'"]([^\'"]*)[\'"].*$', af):
+                    jfonts = XML.count_values('w:rFonts', 'w:cs',
+                                              jfonts, jf)
+                else:
+                    jfonts[''] += 1
+                if fs != '':
+                    fsizes = XML.count_values('w:sz', 'w:val', fsizes, fs)
+                elif fsc != '':
+                    fsizes = XML.count_values('w:szCs', 'w:val', fsizes, fsc)
+                else:
+                    fsizes[''] += 1
             else:
-                afonts = XML.count_values('w:rFonts', 'w:cs', afonts, xl)
-            if re.match('^.* w:eastAsia=[\'"]([^\'"]*)[\'"].*$', xl):
-                jfonts = XML.count_values('w:rFonts', 'w:eastAsia', jfonts, xl)
-            else:
-                jfonts = XML.count_values('w:rFonts', 'w:cs', jfonts, xl)
-            fsizes = XML.count_values('w:sz', 'w:val', fsizes, xl)
-            fsizes = XML.count_values('w:szCs', 'w:val', fsizes, xl)
+                if re.match('^<w:rFonts( .*)/>$', xl):
+                    if re.match('^.* w:ascii=[\'"]([^\'"]*)[\'"].*$', xl):
+                        af = xl
+                    elif re.match('^.* w:cs=[\'"]([^\'"]*)[\'"].*$', xl):
+                        af = xl
+                    if re.match('^.* w:eastAsia=[\'"]([^\'"]*)[\'"].*$', xl):
+                        jf = xl
+                    elif re.match('^.* w:cs=[\'"]([^\'"]*)[\'"].*$', xl):
+                        jf = xl
+                    elif re.match('^<w:sz( .*)/>$', xl):
+                        fs = xl
+                    elif re.match('^<w:szCs( .*)/>$', xl):
+                        fsc = xl
             # LINE NUMBER
             if re.match('^<w:lnNumType( .*)?>$', xl):
                 Form.line_number = True
