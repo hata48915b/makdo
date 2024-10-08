@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.08-09:00:12-JST>
+# Time-stamp:   <2024.10.08-10:26:56-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -86,7 +86,7 @@ __version__ = 'v07 Furuichibashi'
 WINDOW_SIZE = '900x600'
 
 # Makdoエディタ用のフォント
-BIZUD_GOTHIC_FONT = 'BIZ UDゴシックa'        # 現時点で最適
+BIZUD_GOTHIC_FONT = 'BIZ UDゴシック'        # 現時点で最適
 BIZUD_MINCHO_FONT = 'BIZ UD明朝'
 # NOTO_GOTHIC_FONT = 'Noto Sans Mono CJK JP'  # 使えるがLinuxでは上下に間延びする
 # NOTO_MINCHO_FONT = 'Noto Serif CJK JP'
@@ -97,7 +97,9 @@ BIZUD_MINCHO_FONT = 'BIZ UD明朝'
 YU_MINCHO_FONT = '游明朝'
 HIRAGINO_MINCHO_FONT = 'ヒラギノ明朝 ProN'
 # MS Word形式ファイルのデフォルトフォント
-# MS_INCHO_FONT = 'ＭＳ 明朝'
+
+DEFAULT_MINCHO_FONT = 'ＭＳ 明朝'
+DEFAULT_ALPHANUMERIC_FONT = 'Times New Roman'
 
 NOT_ESCAPED = '^((?:(?:.|\n)*?[^\\\\])??(?:\\\\\\\\)*?)??'
 
@@ -4936,7 +4938,7 @@ class Makdo:
     ##############################################
     # INIT
 
-    def __init__(self, win):
+    def __init__(self):
         self.win = None
         self.temp_dir = ''
         self.file_path = self.args_input_file
@@ -4963,8 +4965,14 @@ class Makdo:
         self.must_show_config_help_message = True
         # GET CONFIGURATION
         self.get_and_set_configurations()
+        # SPLASH SCREEN
+        self.win = tkinterdnd2.TkinterDnD.Tk()  # need to do first
+        if getattr(sys, 'frozen', False):
+            import pyi_splash
+            pyi_splash.close()
+        else:
+            self.show_splash_screen(SPLASH_IMG)
         # WINDOW
-        self.win = win
         # self.win = tkinter.Tk()
         # self.win = tkinterdnd2.TkinterDnD.Tk()
         self.win.title('MAKDO')
@@ -5025,25 +5033,29 @@ class Makdo:
             for f in families:
                 if re.match('^' + BIZUD_GOTHIC_FONT, f):
                     self.gothic_font \
-                        = tkinter.font.Font(self.win,family=BIZUD_GOTHIC_FONT)
+                        = tkinter.font.Font(self.win,
+                                            family=BIZUD_GOTHIC_FONT)
                     break
         if self.mincho_font is None:
             for f in families:
                 if re.match('^' + BIZUD_MINCHO_FONT, f):
                     self.mincho_font \
-                        = tkinter.font.Font(self.win,family=BIZUD_MINCHO_FONT)
+                        = tkinter.font.Font(self.win,
+                                            family=BIZUD_MINCHO_FONT)
                     break
         if self.mincho_font is None:
             for f in families:
                 if re.match('^' + YU_MINCHO_FONT, f):
                     self.mincho_font \
-                        = tkinter.font.Font(self.win,family=YU_MINCHO_FONT)
+                        = tkinter.font.Font(self.win,
+                                            family=YU_MINCHO_FONT)
                     break
         if self.mincho_font is None:
             for f in families:
                 if re.match('^' + HIRAGINO_MINCHO_FONT, f):
                     self.mincho_font \
-                        = tkinter.font.Font(self.win,family=HIRAGINO_MINCHO_FONT)
+                        = tkinter.font.Font(self.win,
+                                            family=HIRAGINO_MINCHO_FONT)
                     break
         if self.gothic_font is None:
             self.gothic_font = tkinter.font.nametofont("TkFixedFont").copy()
@@ -5064,6 +5076,31 @@ class Makdo:
         self.run_periodically()
         # LOOP
         self.win.mainloop()
+
+    ####################################
+    # SPLASH SCREEN
+
+    def show_splash_screen(self, image):
+        self.splash_screen = tkinter.Tk()
+        sw = self.splash_screen.winfo_screenwidth()
+        sh = self.splash_screen.winfo_screenheight()
+        self.splash_image \
+            = tkinter.PhotoImage(data=image, master=self.splash_screen)
+        iw = self.splash_image.width()
+        ih = self.splash_image.height()
+        size = str(iw - 1) + 'x' + str(ih - 1)
+        position = str(int((sw - iw) / 2)) + '+' + str(int((sh - ih) / 2))
+        self.splash_screen.geometry(size + '+' + position)
+        self.splash_screen.overrideredirect(1)  # no title bar
+        canvas \
+            = tkinter.Canvas(self.splash_screen, bg=None, width=iw, height=ih)
+        canvas.place(x=-1, y=-1)
+        canvas.create_image(0, 0, image=self.splash_image, anchor='nw')
+        self.splash_screen.after(5000, self.destroy_splash_screen)
+
+    def destroy_splash_screen(self):
+        self.splash_image = None
+        self.splash_screen.destroy()
 
     ####################################
     # TOOLS
@@ -6534,10 +6571,11 @@ class Makdo:
         submenu = tkinter.Menu(menu, tearoff=False)
         menu.add_cascade(label='フォントの変更を挿入', menu=submenu)
         #
-        self.mincho = tkinter.StringVar()
         # self.mincho.set(MS_INCHO_FONT)
         submenu.add_command(label='明朝体を変える',
-                            command=self.insert_selected_font)
+                            command=self.insert_selected_mincho_font)
+        submenu.add_command(label='欧文フォントを変える',
+                            command=self.insert_selected_alphanumeric_font)
         submenu.add_separator()
         submenu.add_command(label='ゴシック体に変える',
                             command=self.insert_gothic_font)
@@ -6548,32 +6586,60 @@ class Makdo:
     ######
     # COMMAND
 
-    def insert_selected_font(self):
-        mincho_list = []
+    def insert_selected_mincho_font(self):
+        mincho_font_list = []
         for f in tkinter.font.families():
-            if ('明朝' in f) and (f not in mincho_list):
-                mincho_list.append(f)
-        mincho_list.sort()
-        self.MinchoDialog(self.txt, self, mincho_list)
+            if ('明朝' in f) and (f not in mincho_font_list):
+                if not re.match('^@', f):
+                    mincho_font_list.append(f)
+        mincho_font_list.sort()
+        self.ChangeFontDialog(self.txt, self, '明朝体を変える',
+                              mincho_font_list,
+                              DEFAULT_MINCHO_FONT)
 
-    class MinchoDialog(tkinter.simpledialog.Dialog):
+    def insert_selected_alphanumeric_font(self):
+        alphanumeric_font_list_candidates = [
+            'Times New Roman',
+            'Cambria',
+            'Century',
+            'Contantia',
+            'Garamond',
+            'Georgia',
+            'Platino',
+        ]
+        alphanumeric_font_list = []
+        for fc in alphanumeric_font_list_candidates:
+            for f in tkinter.font.families():
+                if re.match('^' + fc, f) and (f not in alphanumeric_font_list):
+                    alphanumeric_font_list.append(f)
+        alphanumeric_font_list.sort()
+        self.ChangeFontDialog(self.txt, self, '欧文フォントを変える',
+                              alphanumeric_font_list,
+                              DEFAULT_ALPHANUMERIC_FONT)
 
-        def __init__(self, pane, mother, candidates):
+    class ChangeFontDialog(tkinter.simpledialog.Dialog):
+
+        def __init__(self, pane, mother, title, candidates, default=None):
             self.pane = pane
             self.mother = mother
             self.candidates = candidates
-            super().__init__(pane, title='明朝体を変える')
+            self.default = default
+            super().__init__(pane, title=title)
 
         def body(self, pane):
             fon = self.mother.gothic_font
+            self.new_font = tkinter.StringVar()
+            if self.default is not None:
+                self.new_font.set(self.default)
             for cnd in self.candidates:
                 rd = tkinter.Radiobutton(pane, text=cnd, font=fon,
-                                         variable=self.mother.mincho, value=cnd)
+                                         variable=self.new_font,
+                                         value=cnd)
                 rd.pack(side='top', padx=3, pady=3, anchor='nw')
             super().body(pane)
 
         def apply(self):
-            m = self.mother.mincho.get()
+            m = self.new_font.get()
             if m == '':
                 return
             d = '@' + m + '@（ここはフォントが変わる）@' + m + '@'
@@ -11309,39 +11375,7 @@ class Makdo:
 # MAIN
 
 
-class Splash:
-
-    def __init__(self, image):
-        self.splash = tkinter.Tk()
-        sw = self.splash.winfo_screenwidth()
-        sh = self.splash.winfo_screenheight()
-        self.splash_img = tkinter.PhotoImage(data=image, master=self.splash)
-        iw = self.splash_img.width()
-        ih = self.splash_img.height()
-        size = str(iw - 1) + 'x' + str(ih - 1)
-        position = str(int((sw - iw) / 2)) + '+' + str(int((sh - ih) / 2))
-        self.splash.geometry(size + '+' + position)
-        self.splash.overrideredirect(1)  # no title bar
-        canvas = tkinter.Canvas(self.splash, bg=None, width=iw, height=ih)
-        canvas.place(x=-1, y=-1)
-        canvas.create_image(0, 0, image=self.splash_img, anchor='nw')
-        self.splash.after(5000, self.destroy_myself)
-
-    def destroy_myself(self):
-        self.splash_img = None
-        self.splash.destroy()
-
-
 if __name__ == '__main__':
-
-    win = tkinterdnd2.TkinterDnD.Tk()  # drag and drop
-
-    # SPLASH
-    if getattr(sys, 'frozen', False):
-        import pyi_splash
-        pyi_splash.close()
-    else:
-        splash = Splash(SPLASH_IMG)
 
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -11402,4 +11436,4 @@ if __name__ == '__main__':
     Makdo.args_make_backup_file = args.make_backup_file
     Makdo.args_input_file = args.input_file
 
-    Makdo(win)
+    Makdo()
