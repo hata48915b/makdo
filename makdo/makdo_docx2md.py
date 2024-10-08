@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.08-12:25:31-JST>
+# Time-stamp:   <2024.10.08-13:05:39-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -3240,15 +3240,15 @@ class MathDatum:
                 md_cur.append_fr_and_bk_fds('s-2', 's-2')  # footnotesize
             elif s < f_size * 0.9:
                 md_cur.append_fr_and_bk_fds('s-1', 's-1')  # small
-            elif s < f_size * 1.1:
+            elif s <= f_size * 1.1:
                 pass                                       # normalsize
-            elif s < f_size * 1.3:
+            elif s <= f_size * 1.3:
                 md_cur.append_fr_and_bk_fds('s+1', 's+1')  # large
-            elif s < f_size * 1.5:
+            elif s <= f_size * 1.5:
                 md_cur.append_fr_and_bk_fds('s+2', 's+2')  # Large
-            elif s < f_size * 1.7:
+            elif s <= f_size * 1.7:
                 md_cur.append_fr_and_bk_fds('s+3', 's+3')  # LARGE
-            elif s < f_size * 1.9:
+            elif s <= f_size * 1.9:
                 md_cur.append_fr_and_bk_fds('s+4', 's+4')  # huge
             else:
                 md_cur.append_fr_and_bk_fds('s+5', 's+5')  # Huge
@@ -3264,15 +3264,15 @@ class MathDatum:
                 md_cur.append_fr_and_bk_fds('w-2', 'w-2')
             elif v < 90:
                 md_cur.append_fr_and_bk_fds('w-1', 'w-1')
-            elif v < 110:
+            elif v <= 110:
                 pass
-            elif v < 130:
+            elif v <= 130:
                 md_cur.append_fr_and_bk_fds('w+1', 'w+1')
-            elif v < 150:
+            elif v <= 150:
                 md_cur.append_fr_and_bk_fds('w+2', 'w+2')
-            elif v < 170:
+            elif v <= 170:
                 md_cur.append_fr_and_bk_fds('w+3', 'w+3')
-            elif v < 190:
+            elif v <= 190:
                 md_cur.append_fr_and_bk_fds('w+4', 'w+4')
             else:
                 md_cur.append_fr_and_bk_fds('w+5', 'w+5')
@@ -5844,7 +5844,7 @@ class RawParagraph:
             v = XML.get_value('w:szCs', 'w:val', v, xl)  # (for complex script)
             if v > 0:
                 s = round(v / 2, 1)
-                if s < Form.font_size * 0.5:
+                if s < Form.font_size * 0.4:     # changed from "0.5" to "0.4"
                     cd.fr_fd_cls.font_scale = '@' + str(s) + '@'
                     cd.bk_fd_cls.font_scale = '@' + str(s) + '@'
                 elif s < Form.font_size * 0.7:
@@ -5853,12 +5853,12 @@ class RawParagraph:
                 elif s < Form.font_size * 0.9:
                     cd.fr_fd_cls.font_scale = '--'
                     cd.bk_fd_cls.font_scale = '--'
-                elif s < Form.font_size * 1.1:
+                elif s <= Form.font_size * 1.1:
                     pass
-                elif s < Form.font_size * 1.3:
+                elif s <= Form.font_size * 1.3:
                     cd.fr_fd_cls.font_scale = '++'
                     cd.bk_fd_cls.font_scale = '++'
-                elif s < Form.font_size * 1.5:
+                elif s <= Form.font_size * 1.6:  # changed from "1.5" to "1.6"
                     cd.fr_fd_cls.font_scale = '+++'
                     cd.bk_fd_cls.font_scale = '+++'
                 else:
