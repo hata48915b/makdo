@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.08-11:09:50-JST>
+# Time-stamp:   <2024.10.09-09:29:29-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6022,6 +6022,9 @@ class Makdo:
         if must_cut:
             pane.delete(beg, end)
         self._cancel_region(pane)
+        if must_cut:
+            i = self._get_v_position_of_insert() - 1
+            self.paint_out_line(i)
         return True
 
     def paste_region(self):
@@ -6044,7 +6047,7 @@ class Makdo:
         if self.current_pane == 'txt':
             end_v = self._get_v_position_of_insert()
         if self.current_pane == 'txt':
-            for i in range(beg_v - 1, end_v - 1):
+            for i in range(beg_v - 1, end_v):
                 self.paint_out_line(i)
         return True
 
@@ -6074,9 +6077,10 @@ class Makdo:
         end_ih = get_ideal_width(s)
         min_ih = min(beg_ih, end_ih)
         max_ih = max(beg_ih, end_ih)
+        self._cancel_region(pane)
         self.rectangle_text_list = []
-        for i in range(beg_v, end_v + 1):
-            line = pane.get(str(i) + '.0', str(i) + '.end')
+        for i in range(beg_v - 1, end_v):
+            line = pane.get(str(i + 1) + '.0', str(i + 1) + '.end')
             line_pre, line_mid, line_pos = '', '', ''
             for c in line:
                 if get_ideal_width(line_pre) < min_ih:
@@ -6087,10 +6091,9 @@ class Makdo:
                     line_pos += c
             self.rectangle_text_list.append(line_mid)
             if must_cut:
-                pane.delete(str(i) + '.' + str(len(line_pre)),
-                            str(i) + '.' + str(len(line_pre + line_mid)))
+                pane.delete(str(i + 1) + '.' + str(len(line_pre)),
+                            str(i + 1) + '.' + str(len(line_pre + line_mid)))
                 self.paint_out_line(i)
-        self._cancel_region(pane)
         return True
 
     def paste_rectangle(self):
@@ -6107,16 +6110,16 @@ class Makdo:
         s = pane.get(str(ins_v) + '.0', 'insert')
         ins_ih = get_ideal_width(s)
         for j, line_md in enumerate(self.rectangle_text_list):
-            i = ins_v + j
-            if i < max_v:
-                line = pane.get(str(i) + '.0', str(i) + '.end')
+            i = ins_v + j - 1
+            if i < max_v - 1:
+                line = pane.get(str(i + 1) + '.0', str(i + 1) + '.end')
                 line_pre, line_pos = '', ''
                 for c in line:
                     if get_ideal_width(line_pre) < ins_ih:
                         line_pre += c
                     else:
                         break
-                ins_h = str(i) + '.' + str(len(line_pre))
+                ins_h = str(i + 1) + '.' + str(len(line_pre))
             else:
                 ins_h = 'end'
                 line_md += '\n'
@@ -8889,15 +8892,20 @@ class Makdo:
                         t = self.txt.get('1.0', '1.0+' + str(beg) + 'c')
                         beg_line = t.count('\n')
                         end_line = beg_line + insert_text.count('\n')
-                        for i in range(beg_line - 1, end_line):
+                        for i in range(beg_line, end_line):
                             self.paint_out_line(i)
                 elif cp.ses_symbol == '-':
                     self.txt.delete('1.0+' + str(beg) + 'c',
                                     '1.0+' + str(end) + 'c')
                 elif cp.ses_symbol == '+':
                     if cp.sub_paragraph != '':  # for empty configuration
-                        if beg >= len(txt) and \
-                           not re.match('^(.|\n)*\n$', txt):
+                        if beg == 0:
+                            insert_text = cp.sub_paragraph + '\n\n'
+                        elif beg == 1:
+                            beg = 0
+                            insert_text = cp.sub_paragraph + '\n'
+                        elif (beg >= len(txt) and
+                              not re.match('^(.|\n)*\n$', txt)):
                             insert_text = '\n\n' + cp.sub_paragraph + '\n'
                         else:
                             insert_text = '\n' + cp.sub_paragraph + '\n'
@@ -8943,12 +8951,17 @@ class Makdo:
             if cp.diff_id == diff_id:
                 s = cp.ses_symbol
                 break
-        par = pars[n - 1]
-        if p != re.sub('\n+$', '', par):
-            n = 'エラー'
-            m = '編集場所が見当たりません．'
-            tkinter.messagebox.showerror(n, m)
-            return -1, -1
+        if len(pars) > 0 and re.match('^\n+$', pars[0]):
+            n += 1
+        if len(pars) == 0:
+            pars = ['']
+        elif n > 0:
+            par = pars[n - 1]
+            if p != re.sub('\n+$', '', par):
+                n = 'エラー'
+                m = '編集場所が見当たりません．'
+                tkinter.messagebox.showerror(n, m)
+                return -1, -1
         if s != '+':
             pre = ''.join(pars[:n - 1])
         else:
@@ -9122,6 +9135,8 @@ class Makdo:
         # PAINT
         beg = self._get_v_position_of_insert()
         end = beg + text_d.count('\n')
+        for i in range(beg - 1, end):
+            self.paint_out_line(i)
         # REMOVE TEXT TO UNFOLD
         text_e = text_a + text_b + text_c + text_d
         beg = 'insert linestart +' + str(len(text_d + text_a)) + 'c'
@@ -9521,15 +9536,32 @@ class Makdo:
                     = self._get_ideal_h_position_of_insert(pane)
             else:
                 self.keyboard_macro = []
+        ascii = {'space': ' ', 'exclam': '!', 'quotedbl': '"',
+                 'numbersign': '#', 'dollar': '$', 'percent': '%',
+                 'ampersand': '&', 'apostrophe': "'", 'parenleft': '(',
+                 'parenright': ')', 'asterisk': '*', 'plus': '+', 'comma': ',',
+                 'minus': '-', 'period': '.', 'slash': '/', 'colon': ':',
+                 'semicolon': ';', 'less': '<', 'equal': '=', 'greater': '>',
+                 'question': '?', 'at': '@', 'bracketleft': '[',
+                 'backslash': '\\', 'bracketright': ']', 'asciicircum': '^',
+                 'underscore': '_', 'grave': '`', 'braceleft': '{', 'bar': '|',
+                 'braceright': '}', 'asciitilde': '~'}
         for i, key in enumerate(self.keyboard_macro):
+            if key in ascii:
+                key = ascii[key]
             if key == 'BackSpace':
                 pane.delete('insert-1c', 'insert')
+                self.paint_out_line(self._get_v_position_of_insert() - 1)
             elif key == 'Delete':
                 if i > 0 and self.keyboard_macro[i - 1] != 'Delete':
                     self.win.clipboard_clear()
                 self._execute_when_delete_is_pressed(pane)
+                self.paint_out_line(self._get_v_position_of_insert() - 1)
             elif key == 'Return':
                 pane.insert('insert', '\n')
+                if pane == self.txt:
+                    self.paint_out_line(self._get_v_position_of_insert() - 2)
+                    self.paint_out_line(self._get_v_position_of_insert() - 1)
             elif key == 'Ctrl+p' or key == 'F15':
                 self.paste_region()
             elif key == 'Home':
@@ -9568,6 +9600,7 @@ class Makdo:
                 pane.mark_set('akauni', 'insert')
             else:
                 pane.insert('insert', key)
+                self.paint_out_line(self._get_v_position_of_insert() - 1)
             if key != 'Up' and key != 'Down':
                 self.keyborad_macro_h_position \
                     = self._get_ideal_h_position_of_insert(pane)
@@ -9581,7 +9614,7 @@ class Makdo:
 
         commands = ['help',
                     'ask-openai',
-                    'change_typeface',
+                    'change-typeface',
                     'comment-out-region',
                     'compare-with-previous-draft',
                     'edit-formula1',
@@ -9615,9 +9648,12 @@ class Makdo:
                     'save-file',
                     'search-or-replace-backward',
                     'search-or-replace-forward',
+                    'sort-lines',
+                    'sort-lines-in-reverse-order',
                     'split-or-unify-window',
                     'toggle-read-only',
                     'uncomment-in-region',
+                    'unfold-section-fully',
                     'quit-makdo',
                     'show-character-information']
 
@@ -9629,7 +9665,7 @@ class Makdo:
             '　このメッセージを表示\n' + \
             'ask-openai\n' + \
             '　OpenAIに質問\n' + \
-            'change_typeface\n' + \
+            'change-typeface\n' + \
             '　字体を変える\n' + \
             'comment-out-region\n' + \
             '　指定範囲をコメントアウト\n' + \
@@ -9643,6 +9679,8 @@ class Makdo:
             '　指定範囲のコメントアウトを解除\n' + \
             'fold-or-unfold-section\n' + \
             '　セクションの折畳又は展開\n' + \
+            'unfold-section-fully\n' + \
+            '　セクションを全て展開\n' + \
             'place-flagX(X=1..5)\n' + \
             '　フラグXを設置\n' + \
             'goto-flagX(X=1..5)\n' + \
@@ -9667,6 +9705,10 @@ class Makdo:
             '　前を検索又は置換\n' + \
             'search-or-replace-forward\n' + \
             '　次を検索又は置換\n' + \
+            'sort-lines\n' + \
+            '　選択範囲の行を正順にソート\n' + \
+            'sort-lines-in-reverse-order\n' + \
+            '　選択範囲の行を逆順にソート\n' + \
             'split-or-unify-window\n' + \
             '　画面を分割又は統合\n' + \
             'toggle-read-only\n' + \
@@ -9725,7 +9767,7 @@ class Makdo:
                 Makdo.MiniBuffer(self, self.mother)
             elif com == 'ask-openai':
                 self.mother.ask_openai(self)
-            elif com == 'change_typeface':
+            elif com == 'change-typeface':
                 self.mother.change_typeface()
             elif com == 'comment-out-region':
                 self.mother.comment_out_region()
@@ -9795,6 +9837,10 @@ class Makdo:
                 self.mother.search_or_replace_backward_from_dialog(self)
             elif com == 'search-or-replace-forward':
                 self.mother.search_or_replace_forward_from_dialog(self)
+            elif com == 'sort-lines':
+                self.mother.sort_lines()
+            elif com == 'sort-lines-in-reverse-order':
+                self.mother.sort_lines_in_reverse_order()
             elif com == 'split-or-unify-window':
                 self.mother.split_or_unify_window()
             elif com == 'toggle-read-only':
@@ -9806,6 +9852,8 @@ class Makdo:
                 # self.mother.toggle_read_only()
             elif com == 'uncomment-in-region':
                 self.mother.uncomment_in_region()
+            elif com == 'unfold-section-fully':
+                self.mother.unfold_section_fully()
             elif com == 'quit-makdo':
                 # 2 ERRORS OCCUR
                 self.mother.quit_makdo()
@@ -10467,10 +10515,12 @@ class Makdo:
 
     def txt_process_key(self, key):
         self.current_pane = 'txt'
+        self.set_position_info_on_status_bar()
         is_read_only = self.is_read_only.get()
         if is_read_only:
             return self.read_only_process_key(self.txt, key)
         else:
+            self.paint_out_line(self._get_v_position_of_insert() - 1)
             return self.read_and_write_process_key(self.txt, key)
 
     def sub_process_key(self, key):
@@ -10483,10 +10533,31 @@ class Makdo:
         else:
             return self.read_and_write_process_key(self.sub, key)
 
+    def txt_process_key_release(self, key):
+        is_read_only = self.is_read_only.get()
+        if not is_read_only:
+            if key.keysym == 'Return' or \
+               (key.state == 8192 and key.keysym == 'm'):
+                self.paint_out_line(self._get_v_position_of_insert() - 2)
+                self.paint_out_line(self._get_v_position_of_insert() - 1)
+        # FOR AKAUNI
+        if 'akauni' in self.txt.mark_names():
+            self.txt.tag_remove('akauni_tag', '1.0', 'end')
+            self.txt.tag_add('akauni_tag', 'akauni', 'insert')
+            self.txt.tag_add('akauni_tag', 'insert', 'akauni')
+        self.last_position = self.txt.get('insert')
+
+    def sub_process_key_release(self, key):
+        # FOR AKAUNI
+        if 'akauni' in self.sub.mark_names():
+            self.sub.tag_remove('akauni_tag', '1.0', 'end')
+            self.sub.tag_add('akauni_tag', 'akauni', 'insert')
+            self.sub.tag_add('akauni_tag', 'insert', 'akauni')
+        self.last_position = self.sub.get('insert')
+        return 'break'
+
     def read_and_write_process_key(self, pane, key):
         self.set_message_on_status_bar('')
-        self.set_position_info_on_status_bar()
-        self.paint_out_line(self._get_v_position_of_insert() - 1)
         # HISTORY
         if key.keysym == 'Shift_L' or key.keysym == 'Shift_R':
             return
@@ -10836,25 +10907,6 @@ class Makdo:
             if self.key_history[-2] == 'Next':
                 if self.last_position == pane.get('insert'):
                     pane.mark_set('insert', 'end-1c')
-        return 'break'
-
-    def txt_process_key_release(self, key):
-        self.set_position_info_on_status_bar()
-        # self.paint_out_line(self._get_v_position_of_insert() - 1)
-        # FOR AKAUNI
-        if 'akauni' in self.txt.mark_names():
-            self.txt.tag_remove('akauni_tag', '1.0', 'end')
-            self.txt.tag_add('akauni_tag', 'akauni', 'insert')
-            self.txt.tag_add('akauni_tag', 'insert', 'akauni')
-        self.last_position = self.txt.get('insert')
-
-    def sub_process_key_release(self, key):
-        # FOR AKAUNI
-        if 'akauni' in self.sub.mark_names():
-            self.sub.tag_remove('akauni_tag', '1.0', 'end')
-            self.sub.tag_add('akauni_tag', 'akauni', 'insert')
-            self.sub.tag_add('akauni_tag', 'insert', 'akauni')
-        self.last_position = self.sub.get('insert')
         return 'break'
 
     # MOUSE BUTTON LEFT
@@ -11332,10 +11384,7 @@ class Makdo:
             i = self.txt.index('insert')
             self.standard_line = int(re.sub('\\..*$', '', i)) - 1
             self.local_line_to_paint = 0
-        # POSITION PAINTING
-        # self.paint_out_line(self._get_v_position_of_insert() - 1)
         # LINE AND EOF PAINTING
-
         ii = self.txt.index('insert lineend +1c')
         ei = self.txt.index('end lineend')
         self.txt.tag_remove('line_eof_tag', '1.0', 'end')
