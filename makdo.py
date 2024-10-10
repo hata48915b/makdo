@@ -1,7 +1,7 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 # Name:         makdo.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.09.28-13:00:10-JST>
+# Time-stamp:   <2024.10.10-11:28:30-JST>
 
 # makdo.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -30,6 +30,7 @@
 
 
 import argparse
+from makdo import Makdo
 
 
 __version__ = 'v07 Furuichibashi'
@@ -55,10 +56,11 @@ def get_arguments():
         nargs='?',
         help='MS Wordファイル又はMarkdownファイル')
     return parser.parse_args()
+
+
 args = get_arguments()
 
 
-from makdo import Makdo
 if args.input_file != '':
     Makdo.args_input_file = args.input_file
 Makdo()
