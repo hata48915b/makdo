@@ -1,8 +1,8 @@
-<!-- Time-stamp:   <2024.10.10-11:16:22-JST> -->
+<!-- Time-stamp:   <2024.10.10-12:08:14-JST> -->
 
 # MAKDO（MS WordのファイルをMarkdownで編集するアプリ）
 
-[実行ファイルのダウンロード](https://hata-o.jp/kian/download?makdo-v07r11.zip)
+[[実行ファイルのダウンロード]](https://hata-o.jp/kian/download?makdo-v07r11.zip)
 
 ![MAKDOのLOGO](https://raw.githubusercontent.com/hata48915b/makdo/main/image/makdoL.png "MAKDOのLOGO")
 
