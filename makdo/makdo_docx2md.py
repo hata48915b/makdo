@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.11-11:10:44-JST>
+# Time-stamp:   <2024.10.11-11:55:08-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -8447,6 +8447,8 @@ class ParagraphAlignment(Paragraph):
 
     def _get_md_text(self, raw_text):
         alignment = self.alignment
+        head_space = self.head_space
+        tail_space = self.tail_space
         md_text = ''
         for ln in raw_text.split('\n'):
             if ln == '':
@@ -8461,6 +8463,14 @@ class ParagraphAlignment(Paragraph):
                 else:
                     md_text += ': ' + ln + '\n'
         md_text = re.sub('\n$', '', md_text)
+        if head_space != '':
+            if alignment == 'left' or alignment == 'center':
+                md_text = re.sub('^: ', ': \\' + head_space, md_text)
+                self.head_space = ''
+        if tail_space != '':
+            if alignment == 'center' or alignment == 'right':
+                md_text = re.sub(' :$', tail_space + '\\ :', md_text)
+                self.tail_space = ''
         return md_text
 
 
