@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.08-13:05:39-JST>
+# Time-stamp:   <2024.10.11-11:10:44-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4904,7 +4904,7 @@ class Document:
         self.paragraphs = self._modpar_length_reviser_to_depth_setter()
         # CHANGE HORIZONTAL LENGTH
         self.paragraphs = self._modpar_one_line_paragraph()
-        self.paragraphs = self._modpar_cancel_first_indent()
+        self.paragraphs = self._modpar_cancel_head_indent()
         # CHANGE VERTICAL LENGTH
         self.paragraphs = self._modpar_vertical_length()
         # ISOLATE FONT REVISERS
@@ -5309,7 +5309,7 @@ class Document:
             p.text_to_write_with_reviser = p._get_text_to_write_with_reviser()
         return self.paragraphs
 
-    def _modpar_cancel_first_indent(self):
+    def _modpar_cancel_head_indent(self):
         # |             ->  |
         # |　1行の段落  ->  |<<=-1.0
         # |             ->  |1行の段落
