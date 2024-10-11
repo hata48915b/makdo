@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.11-17:45:52-JST>
+# Time-stamp:   <2024.10.12-06:23:30-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6027,16 +6027,12 @@ class RawParagraph:
             rub_cd = chars_data[i - 3]
             bas_cd = chars_data[i - 1]
             end_cd = chars_data[i - 0]
-            rub_cd.bk_fd_cls, bas_cd.fr_fd_cls \
-                = FontDecorator.cancel_fds(rub_cd.bk_fd_cls, bas_cd.fr_fd_cls)
-            bas_cd.fr_fd_cls, bas_cd.bk_fd_cls \
-                = FontDecorator.cancel_fds(bas_cd.fr_fd_cls, bas_cd.bk_fd_cls)
-            rub_cd.fr_fd_cls, rub_cd.bk_fd_cls \
-                = FontDecorator.cancel_fds(rub_cd.fr_fd_cls, rub_cd.bk_fd_cls)
-            beg_cd.fr_fd_cls = rub_cd.fr_fd_cls
+            beg_cd.fr_fd_cls = bas_cd.fr_fd_cls
             end_cd.bk_fd_cls = bas_cd.bk_fd_cls
-            rub_cd.fr_fd_cls = FontDecorator([])
+            bas_cd.fr_fd_cls = FontDecorator([])
             bas_cd.bk_fd_cls = FontDecorator([])
+            rub_cd.fr_fd_cls = FontDecorator([])
+            rub_cd.bk_fd_cls = FontDecorator([])
         # self.chars_data = chars_data
         # self.images = images
         return chars_data, images
