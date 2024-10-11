@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.11-11:55:08-JST>
+# Time-stamp:   <2024.10.11-17:45:52-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6013,6 +6013,30 @@ class RawParagraph:
                 width = 100
                 cd = CharsDatum([], '', [])
                 continue
+        # RUBY (PUT OUT OR CANCEL FONT DECORATORS)
+        for i in range(len(chars_data)):
+            if i < 4:
+                continue
+            if chars_data[i - 4].chars != '^<':
+                continue
+            if chars_data[i - 2].chars != '>/<':
+                continue
+            if chars_data[i - 0].chars != '>$':
+                continue
+            beg_cd = chars_data[i - 4]
+            rub_cd = chars_data[i - 3]
+            bas_cd = chars_data[i - 1]
+            end_cd = chars_data[i - 0]
+            rub_cd.bk_fd_cls, bas_cd.fr_fd_cls \
+                = FontDecorator.cancel_fds(rub_cd.bk_fd_cls, bas_cd.fr_fd_cls)
+            bas_cd.fr_fd_cls, bas_cd.bk_fd_cls \
+                = FontDecorator.cancel_fds(bas_cd.fr_fd_cls, bas_cd.bk_fd_cls)
+            rub_cd.fr_fd_cls, rub_cd.bk_fd_cls \
+                = FontDecorator.cancel_fds(rub_cd.fr_fd_cls, rub_cd.bk_fd_cls)
+            beg_cd.fr_fd_cls = rub_cd.fr_fd_cls
+            end_cd.bk_fd_cls = bas_cd.bk_fd_cls
+            rub_cd.fr_fd_cls = FontDecorator([])
+            bas_cd.bk_fd_cls = FontDecorator([])
         # self.chars_data = chars_data
         # self.images = images
         return chars_data, images
