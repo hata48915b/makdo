@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.13-05:51:25-JST>
+# Time-stamp:   <2024.10.13-06:10:02-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -10529,7 +10529,6 @@ class Makdo:
         if is_read_only:
             return self.read_only_process_key(self.txt, key)
         else:
-            self.paint_out_line(self._get_v_position_of_insert() - 1)
             return self.read_and_write_process_key(self.txt, key)
 
     def sub_process_key(self, key):
@@ -10545,10 +10544,12 @@ class Makdo:
     def txt_process_key_release(self, key):
         is_read_only = self.is_read_only.get()
         if not is_read_only:
-            if key.keysym == 'Return' or \
-               (key.state == 8192 and key.keysym == 'm'):
+            self.paint_out_line(self._get_v_position_of_insert() - 1)
+            if key.keysym == 'Return':
                 self.paint_out_line(self._get_v_position_of_insert() - 2)
-                self.paint_out_line(self._get_v_position_of_insert() - 1)
+            # FOR AKAUNI
+            if key.state == 8192 and key.keysym == 'm':
+                self.paint_out_line(self._get_v_position_of_insert() - 2)
         # FOR AKAUNI
         if 'akauni' in self.txt.mark_names():
             self.txt.tag_remove('akauni_tag', '1.0', 'end')
