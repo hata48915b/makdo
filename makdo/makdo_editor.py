@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.09-09:29:29-JST>
+# Time-stamp:   <2024.10.12-12:01:40-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6593,9 +6593,10 @@ class Makdo:
     def insert_selected_mincho_font(self):
         mincho_font_list = []
         for f in tkinter.font.families():
-            if ('明朝' in f) and (f not in mincho_font_list):
-                if not re.match('^@', f):
-                    mincho_font_list.append(f)
+            if f not in mincho_font_list:
+                if not re.match('^@', f):  # ROTATED FONT
+                    if ('明朝' in f) or (f == 'Noto Serif CJK JP'):
+                        mincho_font_list.append(f)
         mincho_font_list.sort()
         self.ChangeFontDialog(self.txt, self, '明朝体を変える',
                               mincho_font_list,
