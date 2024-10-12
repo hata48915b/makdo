@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.12-12:01:40-JST>
+# Time-stamp:   <2024.10.13-05:51:25-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6445,13 +6445,17 @@ class Makdo:
                     pane.delete(beg + '+' + str(len(sub)) + 'c',
                                 beg + '+' + str(len(sub + t[0])) + 'c')
                     pane.insert(beg + '+' + str(len(sub)) + 'c', t[1])
-        pane.insert(end, '-->')
         pane.insert(beg, '<!--')
+        pane.insert(end, '-->')
         if pane.tag_ranges('sel'):
             pane.tag_remove('sel', "1.0", "end")
         elif 'akauni' in pane.mark_names():
             pane.tag_remove('akauni_tag', '1.0', 'end')
             pane.mark_unset('akauni')
+        beg_v = int(re.sub('\\.[0-9]+$', '', beg))
+        end_v = int(re.sub('\\.[0-9]+$', '', end))
+        for i in range(beg_v - 1, end_v):
+            self.paint_out_line(i)
 
     def uncomment_in_region(self):
         if self.current_pane == 'sub':
@@ -6505,6 +6509,10 @@ class Makdo:
         elif 'akauni' in pane.mark_names():
             pane.tag_remove('akauni_tag', '1.0', 'end')
             pane.mark_unset('akauni')
+        beg_v = int(re.sub('\\.[0-9]+$', '', beg))
+        end_v = int(re.sub('\\.[0-9]+$', '', end))
+        for i in range(beg_v - 1, end_v):
+            self.paint_out_line(i)
 
     ##########################
     # MENU INSERT
