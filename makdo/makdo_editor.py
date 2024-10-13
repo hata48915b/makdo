@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.14-06:37:57-JST>
+# Time-stamp:   <2024.10.14-08:34:38-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5018,7 +5018,7 @@ class Makdo:
         scb.pack(side=tkinter.RIGHT, fill=tkinter.Y)
         self.sub['yscrollcommand'] = scb.set
         self.sub_btn = tkinter.Button(self.pnd2, text='終了',
-                                      command=self._unify_window)
+                                      command=self._close_sub_pane)
         # STATUS BAR
         self.stbr = tkinter.Frame(self.win)
         self.stbr.pack(side='right', anchor='e')
@@ -5296,6 +5296,99 @@ class Makdo:
             return
         return docx_path
 
+    def _read_file(self, file_path):
+        try:
+            with open(file_path, 'rb') as f:
+                raw_data = f.read()
+        except BaseException:
+            return None
+        encoding = self._get_encoding(raw_data)
+        try:
+            document = self._decode_data(encoding, raw_data)
+        except BaseException:
+            return None
+        return document
+
+    def _read_docx_file(self, file_path):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        md_path = self.temp_dir.name + '/doc.md'
+        stderr = sys.stderr
+        sys.stderr = tempfile.TemporaryFile(mode='w+')
+        importlib.reload(makdo.makdo_docx2md)
+        try:
+            d2m = makdo.makdo_docx2md.Docx2Md(file_path)
+            d2m.save(md_path)
+        except BaseException:
+            pass
+        sys.stderr.seek(0)
+        msg = sys.stderr.read()
+        sys.stderr = stderr
+        if msg != '':
+            n = 'エラー'
+            tkinter.messagebox.showerror(n, msg)
+            return None
+        document = self._read_md_file(md_path)
+        return document
+
+    def _read_md_file(self, file_path):
+        document = self._read_file(file_path)
+        if document is None:
+            return None
+        document = self.get_fully_unfolded_document(document)
+        return document
+
+    def _read_txt_file(self, file_path):
+        document = self._read_file(file_path)
+        if document is None:
+            return None
+        return document
+
+    def _read_csv_file(self, file_path):
+        document = self._read_file(file_path)
+        if document is None:
+            return None
+        is_in_cell = False
+        table = '|'
+        for i, c in enumerate(document):
+            if c == '\n':
+                if not is_in_cell:
+                    table += '|\n|'
+                else:
+                    table += '<br>'
+            elif c == '\r':
+                continue
+            elif c == ',':
+                if not is_in_cell:
+                    table += '|'
+                else:
+                    table += ','
+            elif c == '"':
+                is_in_cell = not is_in_cell
+                if i > 0 and document[i - 1] == '"':
+                    if is_in_cell:
+                        table += '"'
+            else:
+                table += c
+        if not re.match('^(.|\n)*\\|$', table):
+            table += '|'
+        if re.match('^(.|\n)*\n\\|$', table):
+            table = re.sub('\n\\|$', '', table)
+        table += '\n'
+        return table
+
+    def _read_xlsx_file(self, file_path):
+        wb = openpyxl.load_workbook(file_path)
+        for sheet_name in wb.sheetnames:
+            self.txt.insert('insert', '<!-- ' + sheet_name + ' -->\n')
+            ws = wb[sheet_name]
+            table = ''
+            for row in ws.iter_rows(min_row=1, max_row=ws.max_row,
+                                    min_col=1, max_col=ws.max_column):
+                for cell in row:
+                    table += '|' + str(cell.value)
+                table += '|\n'
+        return table
+
     def _insert_line_break_as_necessary(self):
         t = self.txt.get('1.0', 'insert')
         if len(t) == 0:
@@ -5383,6 +5476,44 @@ class Makdo:
             return position2, position1
         return position1, position2
 
+    def _open_sub_pane(self, document):
+        self.quit_editing_formula()
+        self.close_memo_pad()
+        self.pnd.update()
+        half_height = int(self.pnd.winfo_height() / 2) - 5
+        self.pnd.remove(self.pnd1)
+        self.pnd.remove(self.pnd2)
+        self.pnd.remove(self.pnd3)
+        self.pnd.remove(self.pnd4)
+        self.pnd.remove(self.pnd5)
+        self.pnd.remove(self.pnd6)
+        self.pnd.add(self.pnd1, height=half_height, minsize=100)
+        self.pnd.add(self.pnd2, height=half_height)
+        self.pnd.update()
+        #
+        self.sub.pack(expand=True, fill=tkinter.BOTH)
+        for key in self.txt.configure():
+            self.sub.configure({key: self.txt.cget(key)})
+        self.sub_btn.pack()
+        #
+        self.sub.delete('1.0', 'end')
+        self.sub.insert('1.0', document)
+        self.sub.mark_set('insert', '1.0')
+        # self.sub.configure(state='disabled')
+        #
+        self.txt.focus_force()
+
+    def _close_sub_pane(self):
+        self.quit_editing_formula()
+        self.update_memo_pad()
+        self.memo_pad_memory = None
+        try:
+            self.bt3.destroy()
+        except BaseException:
+            pass
+        self.pnd.remove(self.pnd2)
+        self.txt.focus_set()
+
     ####################################
     # MENU
 
@@ -5459,42 +5590,14 @@ class Makdo:
             self.init_text = ''
             self.file_lines = []
             return
-        # DOCX OR MD
         if re.match('^(?:.|\n)+.docx$', file_path):
-            self.temp_dir = tempfile.TemporaryDirectory()
-            md_path = self.temp_dir.name + '/doc.md'
+            document = self._read_docx_file(file_path)
         else:
-            md_path = file_path
-        # OPEN DOCX FILE
-        if re.match('^(?:.|\n)+.docx$', file_path):
-            stderr = sys.stderr
-            sys.stderr = tempfile.TemporaryFile(mode='w+')
-            importlib.reload(makdo.makdo_docx2md)
-            try:
-                d2m = makdo.makdo_docx2md.Docx2Md(file_path)
-                d2m.save(md_path)
-            except BaseException:
-                pass
-            sys.stderr.seek(0)
-            msg = sys.stderr.read()
-            sys.stderr = stderr
-            if msg != '':
-                n = 'エラー'
-                tkinter.messagebox.showerror(n, msg)
-                return
-        # OPEN MD FILE
-        try:
-            with open(md_path, 'rb') as f:
-                raw_data = f.read()
-        except BaseException:
-            return
-        encoding = self._get_encoding(raw_data)
-        try:
-            decoded_data = self._decode_data(encoding, raw_data)
-        except BaseException:
+            document = self._read_md_file(file_path)
+        if document is None:
             self.file_path = None
             return
-        init_text = self.get_fully_unfolded_document(decoded_data)
+        init_text = document
         self.file_path = file_path
         self.init_text = init_text
         self.file_lines = init_text.split('\n')
@@ -6556,7 +6659,7 @@ class Makdo:
         #
         self._make_submenu_insert_time(menu)
         self._make_submenu_insert_file_name(menu)
-        menu.add_command(label='テキストファイルの内容を挿入',
+        menu.add_command(label='ファイルの内容を挿入',
                          command=self.insert_file)
         menu.add_separator()
         #
@@ -7291,13 +7394,25 @@ class Makdo:
     # COMMAND
 
     def insert_file(self):
-        file_path = tkinter.filedialog.askopenfilename()
-        if file_path != () and file_path != '':
-            with open(file_path, 'rb') as f:
-                raw_data = f.read()
-            encoding = self._get_encoding(raw_data)
-            decoded_data = self._decode_data(encoding, raw_data)
-            self.txt.insert('insert', decoded_data)
+        typ = [('読み込み可能なファイル', '.docx .md .txt .xlsx .csv')]
+        file_path = tkinter.filedialog.askopenfilename(filetypes=typ)
+        if file_path == () or file_path == '':
+            return
+        if re.match('^(?:.|\n)+.xlsx$', file_path):
+            document = self._read_xlsx_file(file_path)
+        elif re.match('^(?:.|\n)+.csv$', file_path):
+            document = self._read_csv_file(file_path)
+        elif re.match('^(?:.|\n)+.docx$', file_path):
+            document = self._read_docx_file(file_path)
+            if re.match('^<!--', document):
+                document = re.sub('^<!--(.|\n)*?-->\n*', '', document)
+        elif re.match('^(?:.|\n)+.md$', file_path):
+            document = self._read_md_file(file_path)
+        else:
+            document = self._read_txt_file(file_path)
+        if document is None:
+            return
+        self.txt.insert('insert', document)
 
     def insert_symbol(self):
         candidates = ['⑴', '⑵', '⑶', '⑷', '⑸', '⑹', '⑺', '⑻', '⑼', '⑽',
@@ -7927,56 +8042,14 @@ class Makdo:
         if file_path is None:
             typ = [('エクセル', '.xlsx .csv')]
             file_path = tkinter.filedialog.askopenfilename(filetypes=typ)
-        if re.match('^(?:.|\n)+.csv$', file_path):
-            try:
-                with open(file_path, 'rb') as f:
-                    raw_data = f.read()
-            except BaseException:
-                return
-            encoding = self._get_encoding(raw_data)
-            try:
-                decoded_data = self._decode_data(encoding, raw_data)
-            except BaseException:
-                return
-            is_in_cell = False
-            table = '|'
-            for i, c in enumerate(decoded_data):
-                if c == '\n':
-                    if not is_in_cell:
-                        table += '|\n|'
-                    else:
-                        table += '<br>'
-                elif c == '\r':
-                    continue
-                elif c == ',':
-                    if not is_in_cell:
-                        table += '|'
-                    else:
-                        table += ','
-                elif c == '"':
-                    is_in_cell = not is_in_cell
-                    if i > 0 and decoded_data[i - 1] == '"':
-                        if is_in_cell:
-                            table += '"'
-                else:
-                    table += c
-            if not re.match('^(.|\n)*\\|$', table):
-                table += '|'
-            if re.match('^(.|\n)*\n\\|$', table):
-                table = re.sub('\n\\|$', '', table)
-            self.txt.insert('insert', table + '\n')
+        if file_path == () or file_path == '':
+            return
+        if re.match('^(?:.|\n)+.xlsx$', file_path):
+            table = self._read_xlsx_file(file_path)
         else:
-            wb = openpyxl.load_workbook(file_path)
-            for sheet_name in wb.sheetnames:
-                self.txt.insert('insert', '<!-- ' + sheet_name + ' -->\n')
-                ws = wb[sheet_name]
-                table = ''
-                for row in ws.iter_rows(min_row=1, max_row=ws.max_row,
-                                        min_col=1, max_col=ws.max_column):
-                    for cell in row:
-                        table += '|' + str(cell.value)
-                    table += '|\n'
-                self.txt.insert('insert', table + '\n')
+            table = self._read_csv_file(file_path)
+        if table is not None:
+            self.txt.insert('insert', table)
 
     def insert_table_format(self):
         self._insert_line_break_as_necessary()
@@ -8461,9 +8534,13 @@ class Makdo:
                          command=self.split_or_unify_window)
         menu.add_separator()
         #
+        menu.add_command(label='別ファイルの内容を見る',
+                         command=self.show_file)
+        menu.add_separator()
+        #
         menu.add_command(label='編集前の原稿と比較して元に戻す',
                          command=self.compare_with_previous_draft)
-        menu.add_command(label='別ファイルと内容を比較して反映',
+        menu.add_command(label='別ファイルの内容と比較して反映',
                          command=self.compare_files)
         menu.add_separator()
         #
@@ -8755,48 +8832,32 @@ class Makdo:
 
     def split_or_unify_window(self):
         if len(self.pnd.panes()) == 1:
-            self._split_window()
+            # SPLIT
+            document = self.txt.get('1.0', 'end-1c')
+            self._open_sub_pane(document)
         else:
-            self._unify_window()
+            # UNIFY
+            self._close_sub_pane()
 
-    def _split_window(self):
-        self.quit_editing_formula()
-        self.close_memo_pad()
-        self.pnd.update()
-        half_height = int(self.pnd.winfo_height() / 2) - 5
-        self.pnd.remove(self.pnd1)
-        self.pnd.remove(self.pnd2)
-        self.pnd.remove(self.pnd3)
-        self.pnd.remove(self.pnd4)
-        self.pnd.remove(self.pnd5)
-        self.pnd.remove(self.pnd6)
-        self.pnd.add(self.pnd1, height=half_height, minsize=100)
-        self.pnd.add(self.pnd2, height=half_height)
-        self.pnd.update()
+    def show_file(self):
+        typ = [('読み込み可能なファイル', '.docx .md .txt .xlsx .csv')]
+        file_path = tkinter.filedialog.askopenfilename(filetypes=typ)
+        if file_path == () or file_path == '':
+            return
+        if re.match('^(?:.|\n)+.xlsx$', file_path):
+            document = self._read_xlsx_file(file_path)
+        elif re.match('^(?:.|\n)+.csv$', file_path):
+            document = self._read_csv_file(file_path)
+        elif re.match('^(?:.|\n)+.docx$', file_path):
+            document = self._read_docx_file(file_path)
+        elif re.match('^(?:.|\n)+.md$', file_path):
+            document = self._read_md_file(file_path)
+        else:
+            document = self._read_txt_file(file_path)
+        if document is None:
+            return
         #
-        self.sub.pack(expand=True, fill=tkinter.BOTH)
-        for key in self.txt.configure():
-            self.sub.configure({key: self.txt.cget(key)})
-        self.sub_btn.pack()
-        #
-        doc = self.txt.get('1.0', 'end-1c')
-        self.sub.delete('1.0', 'end')
-        self.sub.insert('1.0', doc)
-        self.sub.mark_set('insert', '1.0')
-        # self.sub.configure(state='disabled')
-        #
-        self.txt.focus_force()
-
-    def _unify_window(self):
-        self.quit_editing_formula()
-        self.update_memo_pad()
-        self.memo_pad_memory = None
-        try:
-            self.bt3.destroy()
-        except BaseException:
-            pass
-        self.pnd.remove(self.pnd2)
-        self.txt.focus_set()
+        self._open_sub_pane(document)
 
     # COMPARE
 
@@ -8853,14 +8914,10 @@ class Makdo:
                 tkinter.messagebox.showerror(n, msg)
                 return
         # OPEN MD FILE
-        try:
-            with open(md_path, 'rb') as f:
-                raw_data = f.read()
-        except BaseException:
-            return
-        encoding = self._get_encoding(raw_data)
-        decoded_data = self._decode_data(encoding, raw_data)
-        return decoded_data
+        document = self._read_md_file(md_path)
+        if document is None:
+            return None
+        return document
 
     def _compare_files_loop(self, para2):
         text1 = self.txt.get('1.0', 'end-1c')
@@ -10613,7 +10670,7 @@ class Makdo:
     def sub_process_key(self, key):
         self.current_pane = 'sub'
         if key.keysym == 'Escape':
-            self._unify_window()
+            self._close_sub_pane()
             return 'break'
         if self.formula_number < 0 and self.memo_pad_memory is None:
             return self.read_only_process_key(self.sub, key)
