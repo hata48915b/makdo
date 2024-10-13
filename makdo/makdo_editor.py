@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.13-06:10:02-JST>
+# Time-stamp:   <2024.10.13-10:12:37-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -9212,7 +9212,7 @@ class Makdo:
         remain_lines = [True for i in old_lines]
         m = len(old_lines) - 1
         line_numbers = [0]
-        res_mark = '\\.\\.\\.\\[([0-9])+\\]'
+        res_mark = '\\.\\.\\.\\[([0-9]+)\\]'
         res_from = '^(#+(?:-#+)*(?:\\s.*)?)' + res_mark + '$'
         res_to = '^' + res_mark + '#+(-#+)*(\\s|$)'
         while line_numbers != []:
@@ -9272,6 +9272,7 @@ class Makdo:
                 if must_warn:
                     n, m = 'エラー', '折り畳まれたセクションが残っています．'
                     tkinter.messagebox.showerror(n, m)
+                    must_warn = False
                 new_lines.append(old_lines[i])
         new_document = '\n'.join(new_lines) + '\n\n'
         new_document = re.sub('\n\n+', '\n\n', new_document)
@@ -10781,6 +10782,8 @@ class Makdo:
             if self.key_history[-2] == 'Next':
                 if self.last_position == pane.get('insert'):
                     pane.mark_set('insert', 'end-1c')
+        elif key.keysym == 'Escape':
+            self.set_message_on_status_bar('"Esc"が押されました．')
 
     def read_only_process_key(self, pane, key):
         # HISTORY
@@ -11081,7 +11084,10 @@ class Makdo:
     # COMMAND
 
     def set_message_on_status_bar(self, msg, must_update=False):
-        self.stb_msg1['text'] = msg
+        if msg == '':
+            self.stb_msg1['text'] = ''
+        else:
+            self.stb_msg1['text'] = '→ ' + msg
         if must_update:
             self.stb.update()
 
