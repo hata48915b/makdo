@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.14-05:58:03-JST>
+# Time-stamp:   <2024.10.14-06:37:57-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -7928,7 +7928,43 @@ class Makdo:
             typ = [('エクセル', '.xlsx .csv')]
             file_path = tkinter.filedialog.askopenfilename(filetypes=typ)
         if re.match('^(?:.|\n)+.csv$', file_path):
-            pass
+            try:
+                with open(file_path, 'rb') as f:
+                    raw_data = f.read()
+            except BaseException:
+                return
+            encoding = self._get_encoding(raw_data)
+            try:
+                decoded_data = self._decode_data(encoding, raw_data)
+            except BaseException:
+                return
+            is_in_cell = False
+            table = '|'
+            for i, c in enumerate(decoded_data):
+                if c == '\n':
+                    if not is_in_cell:
+                        table += '|\n|'
+                    else:
+                        table += '<br>'
+                elif c == '\r':
+                    continue
+                elif c == ',':
+                    if not is_in_cell:
+                        table += '|'
+                    else:
+                        table += ','
+                elif c == '"':
+                    is_in_cell = not is_in_cell
+                    if i > 0 and decoded_data[i - 1] == '"':
+                        if is_in_cell:
+                            table += '"'
+                else:
+                    table += c
+            if not re.match('^(.|\n)*\\|$', table):
+                table += '|'
+            if re.match('^(.|\n)*\n\\|$', table):
+                table = re.sub('\n\\|$', '', table)
+            self.txt.insert('insert', table + '\n')
         else:
             wb = openpyxl.load_workbook(file_path)
             for sheet_name in wb.sheetnames:
