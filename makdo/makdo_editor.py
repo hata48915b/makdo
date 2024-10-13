@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.13-10:12:37-JST>
+# Time-stamp:   <2024.10.14-05:58:03-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5951,6 +5951,10 @@ class Makdo:
                          command=self.select_all, accelerator='Ctrl+A')
         menu.add_separator()
         #
+        menu.add_command(label='前を置換',
+                         command=self.replace_backward)
+        menu.add_command(label='次を置換',
+                         command=self.replace_forward, accelerator='Ctrl+L')
         menu.add_command(label='全て置換',
                          command=self.replace_all)
         menu.add_separator()
@@ -5987,6 +5991,9 @@ class Makdo:
             pane.edit_undo()
         except BaseException:
             pass
+        word1 = self.stb_sor1.get()
+        if Makdo.search_word == word1:
+            self._highlight_search_word()
 
     def edit_modified_redo(self):
         if self.current_pane == 'sub':
@@ -5997,6 +6004,9 @@ class Makdo:
             pane.edit_redo()
         except BaseException:
             pass
+        word1 = self.stb_sor1.get()
+        if Makdo.search_word == word1:
+            self._highlight_search_word()
 
     def cut_region(self):
         self._cut_or_copy_region(True)
@@ -6130,6 +6140,12 @@ class Makdo:
 
     def select_all(self):
         self.txt.tag_add('sel', '1.0', 'end-1c')
+
+    def replace_backward(self):
+        self.search_or_replace_backward(True)  # must_replace = True
+
+    def replace_forward(self):
+        self.search_or_replace_forward(True)   # must_replace = True
 
     def replace_all(self):
         if self.current_pane == 'sub':
@@ -7909,19 +7925,22 @@ class Makdo:
 
     def insert_table_from_excel(self, file_path=None):
         if file_path is None:
-            typ = [('エクセル', '.xlsx')]
+            typ = [('エクセル', '.xlsx .csv')]
             file_path = tkinter.filedialog.askopenfilename(filetypes=typ)
-        wb = openpyxl.load_workbook(file_path)
-        for sheet_name in wb.sheetnames:
-            self.txt.insert('insert', '<!-- ' + sheet_name + ' -->\n')
-            ws = wb[sheet_name]
-            table = ''
-            for row in ws.iter_rows(min_row=1, max_row=ws.max_row,
-                                    min_col=1, max_col=ws.max_column):
-                for cell in row:
-                    table += '|' + str(cell.value)
-                table += '|\n'
-            self.txt.insert('insert', table + '\n')
+        if re.match('^(?:.|\n)+.csv$', file_path):
+            pass
+        else:
+            wb = openpyxl.load_workbook(file_path)
+            for sheet_name in wb.sheetnames:
+                self.txt.insert('insert', '<!-- ' + sheet_name + ' -->\n')
+                ws = wb[sheet_name]
+                table = ''
+                for row in ws.iter_rows(min_row=1, max_row=ws.max_row,
+                                        min_col=1, max_col=ws.max_column):
+                    for cell in row:
+                        table += '|' + str(cell.value)
+                    table += '|\n'
+                self.txt.insert('insert', table + '\n')
 
     def insert_table_format(self):
         self._insert_line_break_as_necessary()
@@ -8198,6 +8217,12 @@ class Makdo:
                          command=self.goto_end_of_line)
         menu.add_separator()
         #
+        menu.add_command(label='前を検索',
+                         command=self.search_backward)
+        menu.add_command(label='次を検索',
+                         command=self.search_forward, accelerator='Ctrl+F')
+        menu.add_separator()
+        #
         self._make_submenu_place_flag(menu)
         self._make_submenu_goto_flag(menu)
         menu.add_separator()
@@ -8220,6 +8245,28 @@ class Makdo:
 
     def goto_end_of_line(self):
         self.txt.mark_set('insert', 'insert lineend')
+
+    def search_backward(self):
+        word1 = self.stb_sor1.get()
+        if word1 == '':
+            if self.current_pane == 'sub':
+                pane = self.sub
+            else:
+                pane = self.txt
+            self.search_backward_from_dialog(pane)
+        else:
+            self.search_or_replace_backward(False)  # must_replace = False
+
+    def search_forward(self):
+        word1 = self.stb_sor1.get()
+        if word1 == '':
+            if self.current_pane == 'sub':
+                pane = self.sub
+            else:
+                pane = self.txt
+            self.search_forward_from_dialog(pane)
+        else:
+            self.search_or_replace_forward(False)   # must_replace = False
 
     ################
     # SUBMENU PLACE FLAG
@@ -9627,37 +9674,25 @@ class Makdo:
                     'change-typeface',
                     'comment-out-region',
                     'compare-with-previous-draft',
-                    'edit-formula1',
-                    'edit-formula2',
-                    'edit-formula3',
-                    'edit-formula4',
-                    'edit-formula5',
+                    'edit-formula1', 'edit-formula2', 'edit-formula3',
+                    'edit-formula4', 'edit-formula5',
                     'fold-or-unfold-section',
-                    'goto-flag1',
-                    'goto-flag2',
-                    'goto-flag3',
-                    'goto-flag4',
-                    'goto-flag5',
+                    'goto-flag1', 'goto-flag2', 'goto-flag3',
+                    'goto-flag4', 'goto-flag5',
                     'insert-current-date',
                     'insert-current-time',
                     'insert-file',
                     'insert-file-names-in-same-folder',
-                    'insert-formula1',
-                    'insert-formula2',
-                    'insert-formula3',
-                    'insert-formula4',
-                    'insert-formula5',
+                    'insert-formula1', 'insert-formula2', 'insert-formula3',
+                    'insert-formula4', 'insert-formula5',
                     'insert-symbol',
                     'open-memo-pad',
-                    'place-flag1',
-                    'place-flag2',
-                    'place-flag3',
-                    'place-flag4',
-                    'place-flag5',
+                    'place-flag1', 'place-flag2', 'place-flag3',
+                    'place-flag4', 'place-flag5',
                     'replace-all',
+                    'replace', 'replace-backward', 'replace-forward',
                     'save-file',
-                    'search-or-replace-backward',
-                    'search-or-replace-forward',
+                    'search', 'search-backward', 'search-forward',
                     'sort-lines',
                     'sort-lines-in-reverse-order',
                     'split-or-unify-window',
@@ -9709,12 +9744,12 @@ class Makdo:
             '　メモ帳を開く\n' + \
             'replace-all\n' + \
             '　文章全体又は指定範囲を全置換\n' + \
+            'replace-X(X=backward,forward)\n' + \
+            '　X（前,次）を置換\n' + \
             'save-file\n' + \
             '　ファイルを保存\n' + \
-            'search-or-replace-backward\n' + \
-            '　前を検索又は置換\n' + \
-            'search-or-replace-forward\n' + \
-            '　次を検索又は置換\n' + \
+            'search-X(backward,forward)\n' + \
+            '　X（前,次）を検索\n' + \
             'sort-lines\n' + \
             '　選択範囲の行を正順にソート\n' + \
             'sort-lines-in-reverse-order\n' + \
@@ -9841,12 +9876,16 @@ class Makdo:
                 self.mother.place_flag5()
             elif com == 'replace-all':
                 self.mother.replace_all()
+            elif com == 'replace-backward':
+                self.mother.replace_backward_from_dialog(self)
+            elif com == 'replace-forward' or com == 'replace':
+                self.mother.replace_forward_from_dialog(self)
             elif com == 'save-file':
                 self.mother.save_file()
-            elif com == 'search-or-replace-backward':
-                self.mother.search_or_replace_backward_from_dialog(self)
-            elif com == 'search-or-replace-forward':
-                self.mother.search_or_replace_forward_from_dialog(self)
+            elif com == 'search-backward':
+                self.mother.search_backward_from_dialog(self)
+            elif com == 'search-forward' or com == 'search':
+                self.mother.search_forward_from_dialog(self)
             elif com == 'sort-lines':
                 self.mother.sort_lines()
             elif com == 'sort-lines-in-reverse-order':
@@ -9896,6 +9935,8 @@ class Makdo:
                             else:
                                 x = x[:n]
                             break
+                    else:
+                        x = x[:nz]
             if x != '':
                 self.etr.delete(0, 'end')
                 self.etr.insert(0, x)
@@ -10032,6 +10073,7 @@ class Makdo:
         self.txt.tag_config('error_tag', foreground='#FF0000')
         self.sub.tag_config('error_tag', foreground='#FF0000')
         self.txt.tag_config('search_tag', background='#777777')
+        self.sub.tag_config('search_tag', background='#777777')
         # COLOR FONT
         if background_color == 'W':
             self.txt.config(bg='white', fg='black')
@@ -10594,21 +10636,21 @@ class Makdo:
                     self.current_pane = 'sub'
                 self.key_history[-1] = ''
             return 'break'
-        elif key.keysym == 'F16':            # c (search)
+        elif key.keysym == 'F16':            # c (search forward)
             if self.key_history[-2] == 'F13':
                 if self.key_history[-3] == 'F16' and \
                    self.key_history[-4] == 'F13' and \
                    Makdo.search_word != '':
-                    self.search_or_replace_backward()
+                    self.search_backward()
                 else:
-                    self.search_or_replace_backward_from_dialog(pane)
+                    self.search_backward_from_dialog(pane)
             else:
                 if self.key_history[-2] == 'F16' and \
                    self.key_history[-3] != 'F13' and \
                    Makdo.search_word != '':
-                    self.search_or_replace_forward()
+                    self.search_forward()
                 else:
-                    self.search_or_replace_forward_from_dialog(pane)
+                    self.search_forward_from_dialog(pane)
             return 'break'
         elif key.keysym == 'Left':
             if 'akauni' in pane.mark_names():
@@ -10697,40 +10739,46 @@ class Makdo:
             if self.key_history[-2] == 'Escape':
                 self.MiniBuffer(pane, self)
                 return 'break'
-        # ctrl+a '\x01' select all          # ctrl+n '\x0e' new document
-        # ctrl+b '\x02' bold                # ctrl+o '\x0f' open document
-        # ctrl+c '\x03' copy                # ctrl+p '\x10' print
-        # ctrl+d '\x04' font                # ctrl+q '\x11' quit
-        # ctrl+e '\x05' centered            # ctrl+r '\x12' right
-        # ctrl+f '\x06' search              # ctrl+s '\x13' save
-        # ctrl+g '\x07' move                # ctrl+t '\x14' hanging indent
-        # ctrl+h '\x08' replace             # ctrl+u '\x15' underline
-        # ctrl+i '\x09' italic              # ctrl+v '\x16' paste
-        # ctrl+j '\x0a' justified           # ctrl+w '\x17' close document
-        # ctrl+k '\x0b' hyper link          # ctrl+x '\x18' cut
-        # ctrl+l '\x0c' left                # ctrl+y '\x19' redo
-        # ctrl+m '\x0d' indent              # ctrl+z '\x1a' undo
-        if key.char == '\x01':    # ctrl-a
+        # Ctrl+A '\x01' select all          # Ctrl+N '\x0e' new document
+        # Ctrl+B '\x02' bold                # Ctrl+O '\x0f' open document
+        # Ctrl+C '\x03' copy                # Ctrl+P '\x10' print
+        # Ctrl+D '\x04' font                # Ctrl+Q '\x11' quit
+        # Ctrl+E '\x05' centered            # Ctrl+R '\x12' right
+        # Ctrl+F '\x06' search              # Ctrl+S '\x13' save
+        # Ctrl+G '\x07' move                # Ctrl+T '\x14' hanging indent
+        # Ctrl+H '\x08' replace             # Ctrl+U '\x15' underline
+        # Ctrl+I '\x09' italic              # Ctrl+V '\x16' paste
+        # Ctrl+J '\x0a' justified           # Ctrl+W '\x17' close document
+        # Ctrl+K '\x0b' hyper link          # Ctrl+X '\x18' cut
+        # Ctrl+L '\x0c' left                # Ctrl+Y '\x19' redo
+        # Ctrl+M '\x0d' indent              # Ctrl+Z '\x1a' undo
+        if key.char == '\x01':    # Ctrl+A
             self.select_all()
             return 'break'
-        elif key.char == '\x03':  # ctrl-c
+        elif key.char == '\x03':  # Ctrl+C
             self.copy_region()
-        elif key.char == '\x05':  # ctrl-e
+        elif key.char == '\x05':  # Ctrl+E
             self.execute_keyboard_macro()
             return 'break'
-        elif key.char == '\x10':  # ctrl-p
+        elif key.char == '\x06':  # Ctrl+F
+            self.search_forward()
+            return 'break'
+        elif key.char == '\x0c':  # Ctrl+L
+            self.replace_forward()
+            return 'break'
+        elif key.char == '\x10':  # Ctrl+P
             self.start_writer()
-        elif key.char == '\x11':  # ctrl-q
+        elif key.char == '\x11':  # Ctrl+Q
             self.quit_makdo()
-        elif key.char == '\x13':  # ctrl-s
+        elif key.char == '\x13':  # Ctrl+S
             self.save_file()
-        elif key.char == '\x16':  # ctrl-v
+        elif key.char == '\x16':  # Ctrl+V
             self.paste_region()
-        elif key.char == '\x18':  # ctrl-x
+        elif key.char == '\x18':  # Ctrl+X
             self.cut_region()
-        elif key.char == '\x19':  # ctrl-y
+        elif key.char == '\x19':  # Ctrl+Y
             self.edit_modified_redo()
-        elif key.char == '\x1a':  # ctrl-z
+        elif key.char == '\x1a':  # Ctrl+Z
             self.edit_modified_undo()
         elif key.keysym == 'Tab':
             text = pane.get('1.0', 'insert')
@@ -10873,44 +10921,61 @@ class Makdo:
                 pane.mark_unset('akauni')
                 return 'break'
         elif key.keysym == 'F16':            # c (search forward)
-            self.search_or_replace_forward()
+            if self.key_history[-2] == 'F13':
+                if self.key_history[-3] == 'F16' and \
+                   self.key_history[-4] == 'F13' and \
+                   Makdo.search_word != '':
+                    self.search_backward()
+                else:
+                    self.search_backward_from_dialog(pane)
+            else:
+                if self.key_history[-2] == 'F16' and \
+                   self.key_history[-3] != 'F13' and \
+                   Makdo.search_word != '':
+                    self.search_forward()
+                else:
+                    self.search_forward_from_dialog(pane)
             return 'break'
         elif key.keysym == 'cent':           # cent (search backward)
             self.search_or_replace_backward()
             return 'break'
-        # ctrl+a '\x01' select all          # ctrl+n '\x0e' new document
-        # ctrl+b '\x02' bold                # ctrl+o '\x0f' open document
-        # ctrl+c '\x03' copy                # ctrl+p '\x10' print
-        # ctrl+d '\x04' font                # ctrl+q '\x11' quit
-        # ctrl+e '\x05' centered            # ctrl+r '\x12' right
-        # ctrl+f '\x06' search              # ctrl+s '\x13' save
-        # ctrl+g '\x07' move                # ctrl+t '\x14' hanging indent
-        # ctrl+h '\x08' replace             # ctrl+u '\x15' underline
-        # ctrl+i '\x09' italic              # ctrl+v '\x16' paste
-        # ctrl+j '\x0a' justified           # ctrl+w '\x17' close document
-        # ctrl+k '\x0b' hyper link          # ctrl+x '\x18' cut
-        # ctrl+l '\x0c' left                # ctrl+y '\x19' redo
-        # ctrl+m '\x0d' indent              # ctrl+z '\x1a' undo
-        if key.char == '\x01':    # ctrl-a
+        # Ctrl+A '\x01' select all          # Ctrl+N '\x0e' new document
+        # Ctrl+B '\x02' bold                # Ctrl+O '\x0f' open document
+        # Ctrl+C '\x03' copy                # Ctrl+P '\x10' print
+        # Ctrl+D '\x04' font                # Ctrl+Q '\x11' quit
+        # Ctrl+E '\x05' centered            # Ctrl+R '\x12' right
+        # Ctrl+F '\x06' search              # Ctrl+S '\x13' save
+        # Ctrl+G '\x07' move                # Ctrl+T '\x14' hanging indent
+        # Ctrl+H '\x08' replace             # Ctrl+U '\x15' underline
+        # Ctrl+I '\x09' italic              # Ctrl+V '\x16' paste
+        # Ctrl+J '\x0a' justified           # Ctrl+W '\x17' close document
+        # Ctrl+K '\x0b' hyper link          # Ctrl+X '\x18' cut
+        # Ctrl+L '\x0c' left                # Ctrl+Y '\x19' redo
+        # Ctrl+M '\x0d' indent              # Ctrl+Z '\x1a' undo
+        if key.char == '\x01':    # Ctrl+A
             self.select_all()
             return 'break'
-        elif key.char == '\x03':  # ctrl-c
+        elif key.char == '\x03':  # Ctrl+C
             self.copy_region()
-        # elif key.char == '\x05':  # ctrl-e
+        # elif key.char == '\x05':  # Ctrl+E
         #     self.execute_keyboard_macro()
-        # elif key.char == '\x10':  # ctrl-p
+        elif key.char == '\x06':  # Ctrl+F
+            self.search_forward()
+        # elif key.char == '\x0c':  # Ctrl+L
+        #     self.replace_forward()
+        # elif key.char == '\x10':  # Ctrl+P
         #     self.start_writer()
-        # elif key.char == '\x11':  # ctrl-q
+        # elif key.char == '\x11':  # Ctrl+Q
         #     self.quit_makdo()
-        # elif key.char == '\x13':  # ctrl-s
+        # elif key.char == '\x13':  # Ctrl+S
         #     self.save_file()
-        # elif key.char == '\x16':  # ctrl-v
+        # elif key.char == '\x16':  # Ctrl+V
         #     self.paste_region()
-        # elif key.char == '\x18':  # ctrl-x
+        # elif key.char == '\x18':  # Ctrl+X
         #     self.cut_region()
-        # elif key.char == '\x19':  # ctrl-y
+        # elif key.char == '\x19':  # Ctrl+Y
         #     self.edit_modified_redo()
-        # elif key.char == '\x1a':  # ctrl-z
+        # elif key.char == '\x1a':  # Ctrl+Z
         #     self.edit_modified_undo()
         elif key.keysym == 'Prior':
             if self.key_history[-2] == 'Prior':
@@ -11104,11 +11169,13 @@ class Makdo:
         self.stb_sor2 = tkinter.Entry(self.stbr, width=20)
         self.stb_sor2.pack(side='left')
         # self.stb_sor2.insert(0, '（置換語）')
-        self.stb_sor3 = tkinter.Button(self.stbr, text='前',
-                                       command=self.search_or_replace_backward)
+        self.stb_sor3 \
+            = tkinter.Button(self.stbr, text='前',
+                             command=self.search_or_replace_backward_on_stb)
         self.stb_sor3.pack(side='left')
-        self.stb_sor4 = tkinter.Button(self.stbr, text='次',
-                                       command=self.search_or_replace_forward)
+        self.stb_sor4 \
+            = tkinter.Button(self.stbr, text='次',
+                             command=self.search_or_replace_forward_on_stb)
         self.stb_sor4.pack(side='left')
         self.stb_sor5 = tkinter.Button(self.stbr, text='消',
                                        command=self.clear_search_or_replace)
@@ -11117,7 +11184,14 @@ class Makdo:
     ################
     # COMMAND
 
-    def search_or_replace_backward(self):
+    def search_or_replace_backward_on_stb(self):
+        word2 = self.stb_sor2.get()
+        if word2 == '':
+            self.search_or_replace_backward(False)
+        else:
+            self.search_or_replace_backward(True)
+
+    def search_or_replace_backward(self, must_replace=False):
         if self.current_pane == 'sub':
             pane = self.sub
         else:
@@ -11148,7 +11222,7 @@ class Makdo:
             # SEARCH
             pane.mark_set('insert', '1.0 +' + str(len(sub)) + 'c')
             pane.yview('insert -10line')
-            if word2 != '':  # and word2 != '（置換語）'
+            if must_replace:
                 if not self._is_read_only_pane(pane):
                     # REPLACE
                     pane.delete('insert-' + str(len(wrd)) + 'c', 'insert')
@@ -11160,7 +11234,14 @@ class Makdo:
                                        '（' + str(n) + '/' + str(m) + '）')
         self.stb.update()
 
-    def search_or_replace_forward(self):
+    def search_or_replace_forward_on_stb(self):
+        word2 = self.stb_sor2.get()
+        if word2 == '':
+            self.search_or_replace_forward(False)
+        else:
+            self.search_or_replace_forward(True)
+
+    def search_or_replace_forward(self, must_replace=False):
         if self.current_pane == 'sub':
             pane = self.sub
         else:
@@ -11183,7 +11264,7 @@ class Makdo:
             # SEARCH
             pane.mark_set('insert', 'insert +' + str(len(sub)) + 'c')
             pane.yview('insert -10line')
-            if word2 != '':  # and word2 != '（置換語）'
+            if must_replace:
                 if not self._is_read_only_pane(pane):
                     # REPLACE
                     pane.delete('insert-' + str(len(wrd)) + 'c', 'insert')
@@ -11224,36 +11305,34 @@ class Makdo:
         Makdo.search_word = ''
 
     def _highlight_search_word(self):
-        self.txt.tag_remove('search_tag', '1.0', 'end')
-        if self.current_pane == 'sub':
-            pane = self.sub
-        else:
-            pane = self.txt
+
         word = Makdo.search_word
-        tex = pane.get('1.0', 'end-1c')
-        beg = 0
-        res = '^((?:.|\n)*?)(' + word + ')((?:.|\n)*)$'
-        while re.match(res, tex):
-            pre = re.sub(res, '\\1', tex)
-            wrd = re.sub(res, '\\2', tex)
-            tex = re.sub(res, '\\3', tex)
-            if wrd == '':
-                break
-            beg += len(pre)
-            end = beg + len(wrd)
-            pane.tag_add('search_tag',
-                         '1.0+' + str(beg) + 'c',
-                         '1.0+' + str(end) + 'c',)
-            beg = end
+        for pane in (self.txt, self.sub):
+            pane.tag_remove('search_tag', '1.0', 'end')
+            tex = pane.get('1.0', 'end-1c')
+            beg = 0
+            res = '^((?:.|\n)*?)(' + word + ')((?:.|\n)*)$'
+            while re.match(res, tex):
+                pre = re.sub(res, '\\1', tex)
+                wrd = re.sub(res, '\\2', tex)
+                tex = re.sub(res, '\\3', tex)
+                if wrd == '':
+                    break
+                beg += len(pre)
+                end = beg + len(wrd)
+                pane.tag_add('search_tag',
+                             '1.0+' + str(beg) + 'c',
+                             '1.0+' + str(end) + 'c',)
+                beg = end
 
-    def search_or_replace_backward_from_dialog(self, pane):
-        t = '前検索'
+    def replace_backward_from_dialog(self, pane):
+        t = '前検索又は置換'
         m = '検索する言葉と置換する言葉を入力してください．'
         word1 = self.stb_sor1.get()
         word2 = self.stb_sor2.get()
         sd = TwoWordsDialog(pane, self, t, m, word1, word2)
         word1, word2 = sd.get_value()
-        if word1 is not None and word2 is not None:
+        if word1 is not None:
             if word1 == '':
                 self.clear_search_or_replace()
             else:
@@ -11263,16 +11342,36 @@ class Makdo:
                 self.stb_sor1.insert(0, word1)
                 self.stb_sor2.delete(0, 'end')
                 self.stb_sor2.insert(0, word2)
-                self.search_or_replace_backward()
+                self.search_or_replace_backward(True)  # must_replace = True
 
-    def search_or_replace_forward_from_dialog(self, pane):
+    def replace_forward_from_dialog(self, pane):
+        t = '後検索又は置換'
+        m = '検索する言葉と置換する言葉を入力してください．'
+        word1 = self.stb_sor1.get()
+        word2 = self.stb_sor2.get()
+        sd = TwoWordsDialog(pane, self, t, m, word1, word2)
+        word1, word2 = sd.get_value()
+        if word1 is not None:
+            if word1 == '':
+                self.clear_search_or_replace()
+            else:
+                Makdo.search_word = word1
+                self._highlight_search_word()
+                self.stb_sor1.delete(0, 'end')
+                self.stb_sor1.insert(0, word1)
+                self.stb_sor2.delete(0, 'end')
+                self.stb_sor2.insert(0, word2)
+                self.search_or_replace_forward(True)   # must_replace = True
+
+    def search_backward_from_dialog(self, pane):
         t = '後検索'
-        m = '検索する言葉と置換する言葉を入力してください．'
+        m = '検索する言葉を入力してください．'
         word1 = self.stb_sor1.get()
-        word2 = self.stb_sor2.get()
-        sd = TwoWordsDialog(pane, self, t, m, word1, word2)
-        word1, word2 = sd.get_value()
-        if word1 is not None and word2 is not None:
+        sd = OneWordDialog(pane, self, t, m, word1)
+        word1 = sd.get_value()
+        self.stb_sor2.delete(0, 'end')
+        self.stb_sor2.insert(0, '')
+        if word1 is not None:
             if word1 == '':
                 self.clear_search_or_replace()
             else:
@@ -11280,9 +11379,25 @@ class Makdo:
                 self._highlight_search_word()
                 self.stb_sor1.delete(0, 'end')
                 self.stb_sor1.insert(0, word1)
-                self.stb_sor2.delete(0, 'end')
-                self.stb_sor2.insert(0, word2)
-                self.search_or_replace_forward()
+                self.search_or_replace_backward(False)  # must_replace = False
+
+    def search_forward_from_dialog(self, pane):
+        t = '後検索'
+        m = '検索する言葉を入力してください．'
+        word1 = self.stb_sor1.get()
+        sd = OneWordDialog(pane, self, t, m, word1)
+        word1 = sd.get_value()
+        self.stb_sor2.delete(0, 'end')
+        self.stb_sor2.insert(0, '')
+        if word1 is not None:
+            if word1 == '':
+                self.clear_search_or_replace()
+            else:
+                Makdo.search_word = word1
+                self._highlight_search_word()
+                self.stb_sor1.delete(0, 'end')
+                self.stb_sor1.insert(0, word1)
+                self.search_or_replace_forward(False)   # must_replace = False
 
     ####################################
     # SHOW MESSAGE
