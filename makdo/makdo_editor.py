@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.14-21:56:06-JST>
+# Time-stamp:   <2024.10.15-05:15:20-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1164,7 +1164,7 @@ PARAGRAPH_SAMPLE = ['', '\t',
                     '\\[<!--数式-->\\]', '<pgbr><!--改ページ-->',
                     '']
 
-FONT_DECORATOR_SAMPLE = ['\t',
+FONT_DECORATOR_SAMPLE = ['', '\t',
                          '*<!--斜体-->*',
                          '*<!--太字-->*',
                          '__<!--下線-->__',
@@ -1185,7 +1185,20 @@ FONT_DECORATOR_SAMPLE = ['\t',
                          '_B_<!--地青-->_B_',
                          '_M_<!--地マ-->_M_',
                          '@游明朝@<!--游明朝-->@游明朝@',
-                         '', '\t']
+                         '']
+
+SCRIPT_SAMPLE = ['',
+                 'sum = 0',
+                 'sum += ?',
+                 'x = ?; sum += x; print(x)',
+                 'x = ?; sum += x; print(x, "3")',
+                 'x = ?; sum += x; print(x, "4")',
+                 'x = ?; sum += x; print(x, "4s")',
+                 'print(sum)',
+                 'print(sum, "3")',
+                 'print(sum, "4")',
+                 'print(sum, "4s")',
+                 '']
 
 # 平成22年内閣告示第2号
 JOYOKANJI = (
@@ -6671,6 +6684,9 @@ class Makdo:
         self._make_submenu_insert_horizontal_line(menu)
         menu.add_separator()
         #
+        self._make_submenu_insert_script(menu)
+        menu.add_separator()
+        #
         self._make_submenu_insert_sample(menu)
         # menu.add_separator()
 
@@ -7511,6 +7527,38 @@ class Makdo:
 
     def insert_hline_ff0d(self):
         self.txt.insert('insert', '\uFF0D')  # 全角ハイフンマイナス
+
+    ################
+    # SUBMENU INSERT SCRIPT
+
+    def _make_submenu_insert_script(self, menu):
+        submenu = tkinter.Menu(menu, tearoff=False)
+        menu.add_cascade(label='スクリプトを挿入', menu=submenu)
+        #
+        submenu.add_command(label='1回目に実行するスクリプトを挿入',
+                            command=self.insert_script_to_exec_1st_time)
+        submenu.add_command(label='2回目に実行するスクリプトを挿入',
+                            command=self.insert_script_to_exec_2nd_time)
+        submenu.add_command(label='3回目に実行するスクリプトを挿入',
+                            command=self.insert_script_to_exec_3rd_time)
+
+    ######
+    # COMMAND
+
+    def insert_script_to_exec_1st_time(self):
+        msg = '（ここにスクリプトを挿入（サンプルはTabを押す））'
+        self.txt.insert('insert', '{{' + msg + '}}')
+        self.txt.mark_set('insert', 'insert-2c')
+
+    def insert_script_to_exec_2nd_time(self):
+        msg = '（ここにスクリプトを挿入（サンプルはTabを押す））'
+        self.txt.insert('insert', '{2{' + msg + '}2}')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_script_to_exec_3rd_time(self):
+        msg = '（ここにスクリプトを挿入（サンプルはTabを押す））'
+        self.txt.insert('insert', '{3{' + msg + '}3}')
+        self.txt.mark_set('insert', 'insert-3c')
 
     ################
     # SUBMENU INSERT SAMPLE
@@ -10898,6 +10946,34 @@ class Makdo:
                 if not re.match(res_close, text):
                     self.calculate()
                     return 'break'
+            # SCRIPT
+            res_open = '^((?:.|\n)*){([0-9]*){((?:.|\n)*)'
+            res_close = '^((?:.|\n)*)}([0-9]*)}((?:.|\n)*)'
+            if re.match(res_open, text):
+                befo = re.sub(res_open, '\\1', text)
+                numb = re.sub(res_open, '\\2', text)
+                scri = re.sub(res_open, '\\3', text)
+                if not re.match(res_close, text):
+                    cur_to_end = pane.get('insert', 'end-1c')
+                    if re.match('^}' + numb + '}', cur_to_end):
+                        msg = '（ここにスクリプトを挿入（サンプルはTabを押す））'
+                        if scri == msg:
+                            beg_n = len(befo + '{' + numb + '{')
+                            end_n = beg_n + len(scri)
+                            beg = '1.0+' + str(beg_n) + 'c'
+                            end = '1.0+' + str(end_n) + 'c'
+                            pane.delete(beg, end)
+                            pane.insert(beg, SCRIPT_SAMPLE[1])
+                            return 'break'
+                        for i, sample in enumerate(SCRIPT_SAMPLE):
+                            if scri == sample:
+                                beg_n = len(befo + '{' + numb + '{')
+                                end_n = beg_n + len(scri)
+                                beg = '1.0+' + str(beg_n) + 'c'
+                                end = '1.0+' + str(end_n) + 'c'
+                                pane.delete(beg, end)
+                                pane.insert(beg, SCRIPT_SAMPLE[i + 1])
+                                return 'break'
             # INSERT
             if re.match('^.*\\.0$', posi):
                 for i, sample in enumerate(PARAGRAPH_SAMPLE):
