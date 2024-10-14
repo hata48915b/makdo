@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.14-08:34:38-JST>
+# Time-stamp:   <2024.10.14-21:56:06-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5682,7 +5682,10 @@ class Makdo:
         return tkinter.messagebox.askyesnocancel(n, m, default=d)
 
     def save_file(self):
-        if self._has_edited():
+        if not self._has_edited():
+            self.set_message_on_status_bar('保存済みです')
+            return False
+        else:
             file_text = self.txt.get('1.0', 'end-1c')
             self._stamp_time(file_text)
             if file_text == '' or file_text[-1] != '\n':
