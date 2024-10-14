@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         makdo_gui.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.15-05:15:20-JST>
+# Time-stamp:   <2024.10.15-05:22:56-JST>
 
 # makdo_gui.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -7706,6 +7706,8 @@ class Makdo:
         self._make_submenu_insert_table(menu)
         menu.add_command(label='改ページを挿入',
                          command=self.insert_page_break)
+        menu.add_command(label='数式を挿入',
+                         command=self.insert_math)
         menu.add_separator()
         #
         menu.add_command(label='チャプターの番号を変更',
@@ -8074,6 +8076,11 @@ class Makdo:
     def insert_page_break(self):
         self._insert_line_break_as_necessary()
         self.txt.insert('insert', '<pgbr>')
+
+    def insert_math(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '\[（ここに"LaTeX"形式の数式を挿入）\]')
+        self.txt.mark_set('insert', 'insert-2c')
 
     ################
     # SUBMENU INSERT TABLE
