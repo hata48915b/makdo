@@ -1,9 +1,9 @@
 #!/usr/bin/python3
-# Name:         makdo_gui.py
+# Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.15-05:22:56-JST>
+# Time-stamp:   <2024.10.16-15:04:16-JST>
 
-# makdo_gui.py
+# editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
 #
 # This program is free software: you can redistribute it and/or modify
@@ -4953,7 +4953,7 @@ class Makdo:
 
     def __init__(self):
         self.win = None
-        self.temp_dir = ''
+        self.temp_dir = tempfile.TemporaryDirectory()
         self.file_path = self.args_input_file
         self.init_text = ''
         self.file_lines = []
@@ -5082,7 +5082,11 @@ class Makdo:
             self.show_font_help_message()
         # OPEN FILE
         if self.args_input_file is not None:
-            self.just_open_file(self.args_input_file)
+            if os.path.exists(self.args_input_file):
+                self.just_open_file(self.args_input_file)
+            else:
+                self.file_path = self.args_input_file
+                self._set_file_name(self.file_path)
         else:
             self.show_first_help_message()
         self.txt.focus_set()
@@ -5118,6 +5122,11 @@ class Makdo:
 
     ####################################
     # TOOLS
+
+    def _set_file_name(self, file_path):
+        file_name = os.path.basename(file_path)
+        self.win.title(file_name + ' - MAKDO')
+        self.set_file_name_on_status_bar(file_name)
 
     def _get_v_position_of_insert(self):
         insert_position = self.txt.index('insert')
@@ -5281,7 +5290,6 @@ class Makdo:
         return decoded_data
 
     def _get_tmp_md(self):
-        self.temp_dir = tempfile.TemporaryDirectory()
         md_path = self.temp_dir.name + '/doc.md'
         file_text = self.txt.get('1.0', 'end-1c')
         file_text = self.get_fully_unfolded_document(file_text)
@@ -5323,7 +5331,6 @@ class Makdo:
         return document
 
     def _read_docx_file(self, file_path):
-        self.temp_dir = tempfile.TemporaryDirectory()
         md_path = self.temp_dir.name + '/doc.md'
         stderr = sys.stderr
         sys.stderr = tempfile.TemporaryFile(mode='w+')
@@ -5575,6 +5582,10 @@ class Makdo:
                          command=self.start_writer, accelerator='Ctrl+P')
         menu.add_separator()
         #
+        menu.add_command(label='OneDriveのフォルダにアップロード',
+                         command=self.upload_to_onedrive)
+        menu.add_separator()
+        #
         menu.add_command(label='終了(Q)', underline=3,
                          command=self.quit_makdo, accelerator='Ctrl+Q')
         # menu.add_separator()
@@ -5618,9 +5629,7 @@ class Makdo:
         self.txt.insert('1.0', init_text)
         self.txt.focus_set()
         self.txt.mark_set('insert', '1.0')
-        file_name = re.sub('^.*[/\\\\]', '', file_path)
-        self.win.title(file_name + ' - MAKDO')
-        self.set_file_name_on_status_bar(file_name)
+        self._set_file_name(file_path)
         # PAINT
         paint_keywords = self.paint_keywords.get()
         self.line_data = [LineDatum() for line in self.file_lines]
@@ -5819,26 +5828,8 @@ class Makdo:
         file_name = re.sub('^.*[/\\\\]', '', file_path)
         self.win.title(file_name + ' - MAKDO')
         self.set_file_name_on_status_bar(file_name)
-        self.temp_dir = tempfile.TemporaryDirectory()
         self.save_file()
         return True
-
-    # def name_and_save(self):
-    #     typ = [('可能な形式', '.md .docx'),
-    #            ('Markdown', '.md'), ('MS Word', '.docx')]
-    #     file_path = tkinter.filedialog.asksaveasfilename(filetypes=typ)
-    #     if file_path == () or file_path == '':
-    #         return False
-    #     self.remove_auto_file(self.file_path)
-    #     self.file_path = file_path
-    #     self.init_text = ''
-    #     file_name = re.sub('^.*[/\\\\]', '', file_path)
-    #     self.win.title(file_name + ' - MAKDO')
-    #     self.set_file_name_on_status_bar(file_name)
-    #     if re.match('^(.|\n)+\\.docx$', self.file_path):
-    #         self.temp_dir = tempfile.TemporaryDirectory()
-    #     self.save_file()
-    #     return True
 
     # AUTO SAVE
 
@@ -6026,6 +6017,53 @@ class Makdo:
                                  shell=True,
                                  stdout=subprocess.PIPE,
                                  encoding="utf-8")
+
+    # UPLOAD TO ONEDRIVE
+
+    def upload_to_onedrive(self):
+        onedrive_path = os.path.expanduser('~/OneDrive')
+        if not os.path.exists(onedrive_path):
+            onedrive_path = tkinter.filedialog.askdirectory()
+            if onedrive_path == ():
+                return False
+        if self.file_path is None:
+            typ = [('MS Word', '.docx')]
+            file_path = tkinter.filedialog.asksaveasfilename(
+                initialdir=onedrive_path, filetypes=typ)
+            if file_path == ():
+                return False
+        elif re.match('^(.|\n)*\\.md$', self.file_path):
+            file_name = re.sub('md$', 'docx', os.path_basename(self.file_path))
+            file_path = onedrive_path + '/' + file_name
+        elif re.match('^(.|\n)*\\.docx$', self.file_path):
+            file_name = os.path_basename(filepath)
+            file_path = onedrive_path + '/' + file_name
+        file_text = self.txt.get('1.0', 'end-1c')
+        md_path = self.temp_dir.name + '/doc.md'
+        try:
+            with open(md_path, 'w') as f:
+                f.write(file_text)
+        except BaseException:
+            n, m = 'エラー', 'ファイルの保存に失敗しました．'
+            tkinter.messagebox.showerror(n, m)
+            return False
+        stderr = sys.stderr
+        sys.stderr = tempfile.TemporaryFile(mode='w+')
+        importlib.reload(makdo.makdo_md2docx)
+        try:
+            m2d = makdo.makdo_md2docx.Md2Docx(md_path)
+            m2d.save(file_path)
+        except BaseException:
+            pass
+        sys.stderr.seek(0)
+        msg = sys.stderr.read()
+        sys.stderr = stderr
+        if msg != '':
+            n = '警告'
+            tkinter.messagebox.showwarning(n, msg)
+        # return
+        self.set_message_on_status_bar('アップロードしました')
+        return True
 
     # QUIT
 
@@ -8950,7 +8988,6 @@ class Makdo:
             return False
         # DOCX OR MD
         if re.match('^(?:.|\n)+.docx$', file_path):
-            self.temp_dir = tempfile.TemporaryDirectory()
             md_path = self.temp_dir.name + '/doc.md'
         else:
             md_path = file_path
