@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.16-16:52:08-JST>
+# Time-stamp:   <2024.10.16-18:05:50-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5717,8 +5717,10 @@ class Makdo:
             if (self.file_path is None) or (self.file_path == ''):
                 typ = [('Markdown', '*.md')]
                 file_path = tkinter.filedialog.asksaveasfilename(filetypes=typ)
-                if file_path == ():
+                if file_path == () or file_path == '':
                     return False
+                if not re.match('\\.md$', file_path):
+                    file_path += '.md'
                 self.file_path = file_path
                 self._set_file_name(file_path)
             if self.make_backup_file.get() and not self.has_made_backup_file:
@@ -5809,6 +5811,8 @@ class Makdo:
         file_path = tkinter.filedialog.asksaveasfilename(filetypes=typ)
         if file_path == () or file_path == '':
             return False
+        if not re.match('\\.md$', file_path):
+            file_path += '.md'
         self.remove_auto_file(self.file_path)
         self.file_path = file_path
         self.init_text = ''
@@ -5821,6 +5825,8 @@ class Makdo:
         file_path = tkinter.filedialog.asksaveasfilename(filetypes=typ)
         if file_path == () or file_path == '':
             return False
+        if not re.match('\\.docx$', file_path):
+            file_path += '.docx'
         self.remove_auto_file(self.file_path)
         self.file_path = file_path
         self.init_text = ''
@@ -5973,6 +5979,10 @@ class Makdo:
     def convert_to_pdf(self):
         typ = [('PDF', '.pdf')]
         pdf_path = tkinter.filedialog.asksaveasfilename(filetypes=typ)
+        if file_path == () or file_path == '':
+            return False
+        if not re.match('\\.pdf$', file_path):
+            file_path += '.pdf'
         tmp_docx = self._get_tmp_docx()
         if sys.platform == 'win32':
             Application = win32com.client.Dispatch("Word.Application")
@@ -6027,13 +6037,15 @@ class Makdo:
             typ = [('MS Word', '.docx')]
             file_path = tkinter.filedialog.asksaveasfilename(
                 initialdir=onedrive_path, filetypes=typ)
-            if file_path == ():
+            if file_path == () or file_path == '':
                 return False
+            if not re.match('\\.docx$', file_path):
+                file_path += '.docx'
         elif re.match('^(.|\n)*\\.md$', self.file_path):
-            file_name = re.sub('md$', 'docx', os.path_basename(self.file_path))
+            file_name = re.sub('md$', 'docx', os.path.basename(self.file_path))
             file_path = onedrive_path + '/' + file_name
         elif re.match('^(.|\n)*\\.docx$', self.file_path):
-            file_name = os.path_basename(filepath)
+            file_name = os.path.basename(filepath)
             file_path = onedrive_path + '/' + file_name
         file_text = self.txt.get('1.0', 'end-1c')
         md_path = self.temp_dir.name + '/doc.md'
