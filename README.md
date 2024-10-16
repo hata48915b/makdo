@@ -1,12 +1,12 @@
-<!-- Time-stamp:   <2024.10.16-16:01:23-JST> -->
+<!-- Time-stamp:   <2024.10.17-08:26:49-JST> -->
 
 # MAKDO（MS WordのファイルをMarkdownで編集するアプリ）
 
-[［実行ファイル（Windows）のダウンロード］](https://makdo.jp/makdo_win.zip)
+- [［実行ファイル（Windows）のダウンロード］](https://makdo.jp/makdo_win.zip)
 
-[［実行ファイル（macOS）のダウンロード］](https://makdo.jp/makdo_mac.zip)（準備中）
+- [［実行ファイル（macOS）のダウンロード］](https://makdo.jp/makdo_mac.zip)（準備中）
 
-[［実行ファイル（Linux）のダウンロード］](https://makdo.jp/makdo_lin.zip)
+- [［実行ファイル（Linux）のダウンロード］](https://makdo.jp/makdo_lin.zip)
 
 ![MAKDOのLOGO](https://raw.githubusercontent.com/hata48915b/makdo/main/image/makdoL.png "MAKDOのLOGO")
 
