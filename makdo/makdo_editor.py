@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.16-15:04:16-JST>
+# Time-stamp:   <2024.10.16-16:52:08-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5720,6 +5720,7 @@ class Makdo:
                 if file_path == ():
                     return False
                 self.file_path = file_path
+                self._set_file_name(file_path)
             if self.make_backup_file.get() and not self.has_made_backup_file:
                 if os.path.exists(self.file_path) and \
                    not os.path.islink(self.file_path):
@@ -5811,9 +5812,7 @@ class Makdo:
         self.remove_auto_file(self.file_path)
         self.file_path = file_path
         self.init_text = ''
-        file_name = re.sub('^.*[/\\\\]', '', file_path)
-        self.win.title(file_name + ' - MAKDO')
-        self.set_file_name_on_status_bar(file_name)
+        self._set_file_name(file_path)
         self.save_file()
         return True
 
@@ -5825,9 +5824,7 @@ class Makdo:
         self.remove_auto_file(self.file_path)
         self.file_path = file_path
         self.init_text = ''
-        file_name = re.sub('^.*[/\\\\]', '', file_path)
-        self.win.title(file_name + ' - MAKDO')
-        self.set_file_name_on_status_bar(file_name)
+        self._set_file_name(file_path)
         self.save_file()
         return True
 
