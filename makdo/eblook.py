@@ -70,6 +70,7 @@ GAIJI_KANJIGEN = {
     'za13c': 'ヱ',
     'za160': '❶', 'za161': '❷', 'za162': '❸', 'za163': '❹', 'za164': '❺',
     'za165': '❻', 'za166': '❼', 'za167': '❽', 'za168': '❾', 'za169': '❿',
+    'za16f': '【一】', 'za170': '【二】',
     'za173': '①', 'za174': '②', 'za175': '③', 'za176': '④', 'za177': '⑤',
     'za178': '⑥', 'za179': '⑦', 'za17a': '⑧', 'za17b': '⑨', 'za17c': '⑩',
     'za233': '【呉】', 'za234': '【漢】',
@@ -119,6 +120,10 @@ GAIJI_BIZTEC = {
     'za14d': '⇔',
     'za153': '-',
     'za154': '【Ｕ】',
+}
+
+GAIJI_NANMED = {
+    'hb127': 'ê',
 }
 
 
@@ -171,7 +176,9 @@ class Eblook:
                 if d.a_name == 'biztec4a':
                     for g in GAIJI_BIZTEC:
                         d.gaiji[g] = GAIJI_BIZTEC[g]
-
+                if d.a_name == 'nanmed18':
+                    for g in GAIJI_NANMED:
+                        d.gaiji[g] = GAIJI_NANMED[g]
                 dictionaries.append(d)
         self.dictionaries = dictionaries
 

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.17-09:29:37-JST>
+# Time-stamp:   <2024.10.17-12:09:16-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -9556,12 +9556,20 @@ class Makdo:
         s = OneWordDialog(pane, self, t, p, w).get_value()
         if s is None:
             return
+        msg = '辞書で検索しています'
+        self.set_message_on_status_bar(msg, True)
         eb = makdo.eblook.Eblook()
         if self.dict_directory is None:
             return
         eb.set_dictionary_directory(self.dict_directory)
         eb.set_search_word(s)
         dic = ''
+        if len(eb.items) == 0:
+            msg = '辞書に登録がありません'
+            self.set_message_on_status_bar(msg)
+            return
+        msg = '検索結果を表示しました'
+        self.set_message_on_status_bar(msg, True)
         for ei in eb.items:
             dic += '====================================='
             dic += '=====================================\n'
