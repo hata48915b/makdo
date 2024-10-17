@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.17-12:09:16-JST>
+# Time-stamp:   <2024.10.17-12:15:33-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -9568,7 +9568,7 @@ class Makdo:
             msg = '辞書に登録がありません'
             self.set_message_on_status_bar(msg)
             return
-        msg = '検索結果を表示しました'
+        msg = ''
         self.set_message_on_status_bar(msg, True)
         for ei in eb.items:
             dic += '====================================='
@@ -11214,10 +11214,12 @@ class Makdo:
             if self.key_history[-2] == 'Prior':
                 if self.last_position == pane.get('insert'):
                     pane.mark_set('insert', '1.0')
+            return
         elif key.keysym == 'Next':
             if self.key_history[-2] == 'Next':
                 if self.last_position == pane.get('insert'):
                     pane.mark_set('insert', 'end-1c')
+            return
         return 'break'
 
     # MOUSE BUTTON LEFT
