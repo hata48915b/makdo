@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.16-18:05:50-JST>
+# Time-stamp:   <2024.10.17-09:27:12-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -10414,27 +10414,27 @@ class Makdo:
         if os.path.exists(CONFIG_FILE):
             os.rename(CONFIG_FILE, CONFIG_FILE + '~')
         with open(CONFIG_FILE, 'w') as f:
-            f.write('dont_show_help:   '
+            f.write('dont_show_help:         '
                     + str(self.dont_show_help.get()) + '\n')
-            f.write('background_color: '
+            f.write('background_color:       '
                     + self.background_color.get() + '\n')
-            f.write('font_size:        '
+            f.write('font_size:              '
                     + str(self.font_size.get()) + '\n')
-            f.write('paint_keywords:   '
+            f.write('paint_keywords:         '
                     + str(self.paint_keywords.get()) + '\n')
-            f.write('digit_separator:  '
+            f.write('digit_separator:        '
                     + str(self.digit_separator.get()) + '\n')
-            f.write('make_backup_file: '
+            f.write('make_backup_file:       '
                     + str(self.make_backup_file.get()) + '\n')
             if self.openai_model is not None:
-                f.write('openai_model:     '
+                f.write('openai_model:           '
                         + self.openai_model + '\n')
             if self.openai_key is not None:
-                f.write('openai_key:       '
+                f.write('openai_key:             '
                         + self.openai_key + '\n')
             if sys.platform == 'linux':  # epwing
                 if self.dict_directory is not None:
-                    f.write('dict_directory:   '
+                    f.write('dict_directory:         '
                             + self.dict_directory + '\n')
             self.set_message_on_status_bar('設定を保存しました')
 
