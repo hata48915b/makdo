@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.17-09:27:12-JST>
+# Time-stamp:   <2024.10.17-09:29:37-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -8126,7 +8126,7 @@ class Makdo:
 
     def insert_math(self):
         self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '\[（ここに"LaTeX"形式の数式を挿入）\]')
+        self.txt.insert('insert', '\\[（ここに"LaTeX"形式の数式を挿入）\\]')
         self.txt.mark_set('insert', 'insert-2c')
 
     ################
