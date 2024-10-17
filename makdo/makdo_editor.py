@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.17-12:15:33-JST>
+# Time-stamp:   <2024.10.18-07:43:46-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4968,10 +4968,12 @@ class Makdo:
         self.current_pane = 'txt'
         self.openai_model = 'gpt-3.5-turbo'
         self.openai_key = None
-        self.dict_directory = None
         self.formula_number = -1
         self.memo_pad_memory = None
         self.rectangle_text_list = []
+        #
+        self.onedrive_directory = None
+        self.dict_directory = None
         #
         self.must_show_folding_help_message = True
         self.must_show_keyboard_macro_help_message = True
@@ -5582,7 +5584,7 @@ class Makdo:
                          command=self.start_writer, accelerator='Ctrl+P')
         menu.add_separator()
         #
-        menu.add_command(label='OneDriveのフォルダにアップロード',
+        menu.add_command(label='OneDriveのフォルダにコピーをアップロード',
                          command=self.upload_to_onedrive)
         menu.add_separator()
         #
@@ -6028,25 +6030,24 @@ class Makdo:
     # UPLOAD TO ONEDRIVE
 
     def upload_to_onedrive(self):
-        onedrive_path = os.path.expanduser('~/OneDrive')
-        if not os.path.exists(onedrive_path):
-            onedrive_path = tkinter.filedialog.askdirectory()
-            if onedrive_path == ():
-                return False
+        if self.onedrive_directory is None:
+            self.set_onedrive_directory()
+        if self.onedrive_directory is None:
+            return False
         if self.file_path is None:
             typ = [('MS Word', '.docx')]
             file_path = tkinter.filedialog.asksaveasfilename(
-                initialdir=onedrive_path, filetypes=typ)
+                initialdir=self.onedrive_directory, filetypes=typ)
             if file_path == () or file_path == '':
                 return False
-            if not re.match('\\.docx$', file_path):
+            if not re.match('^(.|\n)*\\.docx$', file_path):
                 file_path += '.docx'
         elif re.match('^(.|\n)*\\.md$', self.file_path):
             file_name = re.sub('md$', 'docx', os.path.basename(self.file_path))
-            file_path = onedrive_path + '/' + file_name
+            file_path = self.onedrive_directory + '/' + file_name
         elif re.match('^(.|\n)*\\.docx$', self.file_path):
             file_name = os.path.basename(filepath)
-            file_path = onedrive_path + '/' + file_name
+            file_path = self.onedrive_directory + '/' + file_name
         file_text = self.txt.get('1.0', 'end-1c')
         md_path = self.temp_dir.name + '/doc.md'
         try:
@@ -10212,6 +10213,10 @@ class Makdo:
         self._make_submenu_digit_separator(menu)
         menu.add_separator()
         #
+        menu.add_command(label='OneDriveのフォルダを指定',
+                         command=self.set_onedrive_directory)
+        menu.add_separator()
+        #
         menu.add_command(label='OpenAIのモデルを入力',
                          command=self.input_openai_model)
         menu.add_command(label='OpenAIのキーを入力',
@@ -10374,6 +10379,25 @@ class Makdo:
         # menu.add_separator()
 
     ################
+    # COMMAND
+
+    def set_onedrive_directory(self):
+        od = self.onedrive_directory
+        if od is None:
+            d = os.path.expanduser('~/OneDrive')
+            if os.path.exists(d):
+                if os.path.exists(d) and os.path.isdir(d):
+                    od = d
+        if od is None:
+            od = tkinter.filedialog.askdirectory()
+        else:
+            od = tkinter.filedialog.askdirectory(initialdir=od)
+        if od == () or od == '':
+            return False
+        self.onedrive_directory = od
+        return True
+
+    ################
     # CONFIGURATION FILE
 
     def get_and_set_configurations(self):
@@ -10413,6 +10437,8 @@ class Makdo:
                         self.openai_model = valu
                     elif item == 'openai_key':
                         self.openai_key = valu
+                    elif item == 'onedrive_directory':
+                        self.onedrive_directory = valu
                     elif item == 'dict_directory':
                         self.dict_directory = valu
 
@@ -10440,6 +10466,9 @@ class Makdo:
             if self.openai_key is not None:
                 f.write('openai_key:             '
                         + self.openai_key + '\n')
+            if self.onedrive_directory is not None:
+                f.write('onedrive_directory:     '
+                        + self.onedrive_directory + '\n')
             if sys.platform == 'linux':  # epwing
                 if self.dict_directory is not None:
                     f.write('dict_directory:         '
