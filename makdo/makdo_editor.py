@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.18-08:05:23-JST>
+# Time-stamp:   <2024.10.18-16:51:46-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1063,20 +1063,20 @@ COLOR_SPACE = (
     ('#525200', '#898900', '#C0C000', '#F7F700'),  # 060 : sect4, 判断者
     ('#465600', '#758F00', '#A4C900', '#D5FF1A'),  # 070 : sect5
     ('#3A5A00', '#619500', '#88D100', '#C2FF50'),  # 080 : sect6, paren1
-    ('#2F5D00', '#4E9B00', '#6DD900', '#B8FF70'),  # 090 : sect7, paren2
-    ('#226100', '#38A200', '#4FE200', '#B0FF86'),  # 100 : sect8, paren3
+    ('#2F5D00', '#4E9B00', '#6DD900', '#B8FF70'),  # 090 : sect7
+    ('#226100', '#38A200', '#4FE200', '#B0FF86'),  # 100 : sect8
     ('#136500', '#1FA900', '#2CED00', '#AAFF97'),  # 110 :
-    ('#006B00', '#00B200', '#00FA00', '#A5FFA5'),  # 120 : fontdeco
+    ('#006B00', '#00B200', '#00FA00', '#A5FFA5'),  # 120 : fontdeco, paren2
     ('#006913', '#00AF20', '#00F52D', '#A1FFB2'),  # 130 :
     ('#006724', '#00AC3C', '#00F154', '#9DFFBF'),  # 140 :
     ('#006633', '#00AA55', '#00EE77', '#98FFCC'),  # 150 : length reviser
     ('#006441', '#00A76D', '#00EA99', '#94FFDA'),  # 160 :
-    ('#006351', '#00A586', '#00E7BC', '#8EFFEA'),  # 170 :
+    ('#006351', '#00A586', '#00E7BC', '#8EFFEA'),  # 170 : paren3
     ('#006161', '#00A2A2', '#00E3E3', '#87FFFF'),  # 180 : algin, 申立人
     ('#005F75', '#009FC3', '#21D6FF', '#B5F1FF'),  # 190 : table
-    ('#005D8E', '#009AED', '#59C5FF', '#C8ECFF'),  # 200 : (fsp), ins
+    ('#005D8E', '#009AED', '#59C5FF', '#C8ECFF'),  # 200 : (fsp), ins, paren4
     ('#0059B2', '#1F8FFF', '#79BCFF', '#D2E9FF'),  # 210 : chap1
-    ('#0053EF', '#4385FF', '#8EB6FF', '#D9E7FF'),  # 220 : chap2, (tab)
+    ('#0053EF', '#4385FF', '#8EB6FF', '#D9E7FF'),  # 220 : chap2, (tab), paren5
     ('#1F48FF', '#5F7CFF', '#9FB1FF', '#DFE5FF'),  # 230 : chap3
     ('#3F3FFF', '#7676FF', '#ADADFF', '#E4E4FF'),  # 240 : chap4, (hsp)
     ('#5B36FF', '#8A70FF', '#B9A9FF', '#E8E2FF'),  # 250 : chap5
@@ -4182,12 +4182,18 @@ class CharsState:
     def apply_parenthesis(self, parenthesis):
         ps = self.parentheses
         p = parenthesis
-        if p == '「' or p == '『' or p == '[' or p == '（' or p == '(':
+        if p == '「' or p == '『' or p == '[' or \
+           p == '｛' or p == '{' or \
+           p == '（' or p == '(':
             ps.append(p)
-        if p == ')' or p == '）' or p == ']' or p == '』' or p == '」':
+        elif p == ')' or p == '）' or \
+             p == '}' or p == '｝' or \
+             p == ']' or p == '』' or p == '」':
             if len(ps) > 0:
                 if ps[-1] == '(' and p == ')' or \
                    ps[-1] == '（' and p == '）' or \
+                   ps[-1] == '{' and p == '}' or \
+                   ps[-1] == '｛' and p == '｝' or \
                    ps[-1] == '[' and p == ']' or \
                    ps[-1] == '『' and p == '』' or \
                    ps[-1] == '「' and p == '」':
@@ -4229,14 +4235,22 @@ class CharsState:
                 key += '-80'
             elif len(self.parentheses) == 1:
                 key += '-120'
-            elif len(self.parentheses) >= 2:
-                key += '-160'
+            elif len(self.parentheses) == 2:
+                key += '-170'
+            elif len(self.parentheses) == 3:
+                key += '-200'
+            elif len(self.parentheses) >= 4:
+                key += '-220'
         elif len(self.parentheses) == 1:
             key += '-80'
         elif len(self.parentheses) == 2:
             key += '-120'
-        elif len(self.parentheses) >= 3:
-            key += '-160'
+        elif len(self.parentheses) == 3:
+            key += '-170'
+        elif len(self.parentheses) == 4:
+            key += '-200'
+        elif len(self.parentheses) >= 5:
+            key += '-220'
         elif chars == '<br>' or chars == '<pgbr>' or chars == 'hline':
             key += '-270'
         elif chars == 'R' or chars == 'red':
@@ -4764,7 +4778,9 @@ class LineDatum:
                 beg = end                                               # 6.beg
                 continue  # ...[n]# xxx /
             # PARENTHESES
-            if c == '「' or c == '『' or c == '[' or c == '（' or c == '(':
+            if c == '「' or c == '『' or c == '[' or \
+               c == '｛' or c == '{' or \
+               c == '（' or c == '(':
                 key = chars_state.get_key('')                           # 1.key
                 end = str(i + 1) + '.' + str(j)                         # 2.end
                 txt.tag_add(key, beg, end)                              # 3.tag
@@ -4772,7 +4788,9 @@ class LineDatum:
                 tmp = c                                                 # 5.tmp
                 beg = end                                               # 6.beg
                 continue
-            if c == ')' or c == '）' or c == ']' or c == '』' or c == '」':
+            if c == ')' or c == '）' or \
+               c == '}' or c == '｝' or \
+               c == ']' or c == '』' or c == '」':
                 key = chars_state.get_key('')                           # 1.key
                 end = str(i + 1) + '.' + str(j + 1)                     # 2.end
                 txt.tag_add(key, beg, end)                              # 3.tag
