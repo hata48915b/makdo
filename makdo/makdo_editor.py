@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.18-16:51:46-JST>
+# Time-stamp:   <2024.10.19-05:49:04-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4232,25 +4232,41 @@ class CharsState:
             key += '-180'
         elif chars == 'image':
             if len(self.parentheses) == 0:
-                key += '-80'
-            elif len(self.parentheses) == 1:
                 key += '-120'
+            elif len(self.parentheses) == 1:
+                key += '-160'
             elif len(self.parentheses) == 2:
-                key += '-170'
+                key += '-180'
             elif len(self.parentheses) == 3:
                 key += '-200'
-            elif len(self.parentheses) >= 4:
+            elif len(self.parentheses) == 4:
                 key += '-220'
+            elif len(self.parentheses) == 5:
+                key += '-240'
+            elif len(self.parentheses) == 6:
+                key += '-260'
+            elif len(self.parentheses) == 7:
+                key += '-280'
+            elif len(self.parentheses) >= 8:
+                key += '-290'
         elif len(self.parentheses) == 1:
-            key += '-80'
-        elif len(self.parentheses) == 2:
             key += '-120'
+        elif len(self.parentheses) == 2:
+            key += '-160'
         elif len(self.parentheses) == 3:
-            key += '-170'
+            key += '-180'
         elif len(self.parentheses) == 4:
             key += '-200'
-        elif len(self.parentheses) >= 5:
+        elif len(self.parentheses) == 5:
             key += '-220'
+        elif len(self.parentheses) == 6:
+            key += '-240'
+        elif len(self.parentheses) == 7:
+            key += '-260'
+        elif len(self.parentheses) == 8:
+            key += '-280'
+        elif len(self.parentheses) >= 9:
+            key += '-290'
         elif chars == '<br>' or chars == '<pgbr>' or chars == 'hline':
             key += '-270'
         elif chars == 'R' or chars == 'red':
