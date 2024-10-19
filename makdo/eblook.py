@@ -155,7 +155,7 @@ class Eblook:
                 d.a_name = re.sub(res, '\\2', sos)
                 d.k_name = re.sub(res, '\\3', sos)
                 d.gaiji = self._get_gaiji(d.a_name)
-                if d.a_name == 'kojien5':
+                if re.match('^kojien', d.a_name):
                     for g in GAIJI_KOJIEN:
                         d.gaiji[g] = GAIJI_KOJIEN[g]
                 if d.a_name == 'kanjigen':
@@ -207,7 +207,7 @@ class Eblook:
             y = dne.lower()
             y = re.sub('\\.plist$', '', y)
             y = re.sub('[0-9]+', '', y)
-            if x.upper() == y.upper():
+            if x.upper() == y.upper():  #
                 with open(gaiji_directory + '/' + dne, 'r') as f:
                     gaiji = {}
                     for line in f.readlines():
@@ -286,7 +286,7 @@ class Item:
     def get_title(self, title):
         gaiji = self.dictionary.gaiji
         for g in gaiji:
-            while re.match('^(.|\n)*<gaiji=' + g + '>(.|\n)*$', title):
+            while re.match('^(.|\n)*<gaiji=' + g + '>(.|\n)*$', title, re.I):
                 title = re.sub('<gaiji=' + g + '>', gaiji[g], title, re.I)
         return title
 
@@ -310,7 +310,7 @@ class Item:
         so = re.sub('^eblook> eblook> ', '', so)
         so = re.sub('\neblook> ', '', so)
         for g in gaiji:
-            while re.match('^(.|\n)*<gaiji=' + g + '>(.|\n)*$', so):
+            while re.match('^(.|\n)*<gaiji=' + g + '>(.|\n)*$', so, re.I):
                 so = re.sub('<gaiji=' + g + '>', gaiji[g], so, re.I)
         so = re.sub('<prev>(.*?)</prev>', '前：\\1', so)
         so = re.sub('<next>(.*?)</next>', '次：\\1', so)
