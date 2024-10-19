@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.19-05:49:04-JST>
+# Time-stamp:   <2024.10.20-08:32:18-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -85,21 +85,21 @@ __version__ = 'v07 Furuichibashi'
 
 WINDOW_SIZE = '900x600'
 
-# Makdoエディタ用のフォント
-BIZUD_GOTHIC_FONT = 'BIZ UDゴシック'        # 現時点で最適
-BIZUD_MINCHO_FONT = 'BIZ UD明朝'
-# NOTO_GOTHIC_FONT = 'Noto Sans Mono CJK JP'  # 使えるがLinuxでは上下に間延びする
-# NOTO_MINCHO_FONT = 'Noto Serif CJK JP'
-# MS_GOTHIC_FONT = 'ＭＳ ゴシック'            # ボールドがないため幅が合わない
-# MS_INCHO_FONT = 'ＭＳ 明朝'
-# IPA_GOTHIC_FONT = 'IPAゴシック'             # ボールドがないため幅が合わない
-# IPA_MINCHO_FONT = 'IPA明朝'
-YU_MINCHO_FONT = '游明朝'
-HIRAGINO_MINCHO_FONT = 'ヒラギノ明朝 ProN'
-# MS Word形式ファイルのデフォルトフォント
+# MD用のフォント
+BIZUD_GOTHIC_FONT = ('BIZ UDゴシック', 'BIZ UDGothic')  # 現時点で最適
+BIZUD_MINCHO_FONT = ('BIZ UD明朝', 'BIZ UDMincho')
+# NOTO_GOTHIC_FONT = ('Noto Sans Mono CJK JP')  # Linuxで上下に間延びする
+# NOTO_MINCHO_FONT = ('Noto Serif CJK JP')
+# MS_GOTHIC_FONT = ('ＭＳ ゴシック', 'MS Gothic')  # ボールドがなく幅が合わない
+# MS_MINCHO_FONT = ('ＭＳ 明朝', 'MS Mincho')
+# IPA_GOTHIC_FONT = ('IPAゴシック', 'IPAGothic')  # ボールドがなく幅が合わない
+# IPA_MINCHO_FONT = ('IPA明朝', 'IPAMincho')
+YU_MINCHO_FONT = ('游明朝', 'Yu Mincho')
+HIRAGINO_MINCHO_FONT = ('ヒラギノ明朝 ProN', 'Hiragino Mincho ProN')
 
-DEFAULT_MINCHO_FONT = 'ＭＳ 明朝'
-DEFAULT_ALPHANUMERIC_FONT = 'Times New Roman'
+# DOCX用のフォント
+DOCX_MINCHO_FONT = 'ＭＳ 明朝'
+DOCX_ALPHANUMERIC_FONT = 'Times New Roman'
 
 NOT_ESCAPED = '^((?:(?:.|\n)*?[^\\\\])??(?:\\\\\\\\)*?)??'
 
@@ -1062,28 +1062,28 @@ COLOR_SPACE = (
     ('#604E00', '#A08300', '#E0B700', '#FFE882'),  # 050 : sect3
     ('#525200', '#898900', '#C0C000', '#F7F700'),  # 060 : sect4, 判断者
     ('#465600', '#758F00', '#A4C900', '#D5FF1A'),  # 070 : sect5
-    ('#3A5A00', '#619500', '#88D100', '#C2FF50'),  # 080 : sect6, paren1
+    ('#3A5A00', '#619500', '#88D100', '#C2FF50'),  # 080 : sect6
     ('#2F5D00', '#4E9B00', '#6DD900', '#B8FF70'),  # 090 : sect7
     ('#226100', '#38A200', '#4FE200', '#B0FF86'),  # 100 : sect8
     ('#136500', '#1FA900', '#2CED00', '#AAFF97'),  # 110 :
-    ('#006B00', '#00B200', '#00FA00', '#A5FFA5'),  # 120 : fontdeco, paren2
+    ('#006B00', '#00B200', '#00FA00', '#A5FFA5'),  # 120 : fontdeco, par1
     ('#006913', '#00AF20', '#00F52D', '#A1FFB2'),  # 130 :
     ('#006724', '#00AC3C', '#00F154', '#9DFFBF'),  # 140 :
     ('#006633', '#00AA55', '#00EE77', '#98FFCC'),  # 150 : length reviser
-    ('#006441', '#00A76D', '#00EA99', '#94FFDA'),  # 160 :
-    ('#006351', '#00A586', '#00E7BC', '#8EFFEA'),  # 170 : paren3
-    ('#006161', '#00A2A2', '#00E3E3', '#87FFFF'),  # 180 : algin, 申立人
+    ('#006441', '#00A76D', '#00EA99', '#94FFDA'),  # 160 : par2
+    ('#006351', '#00A586', '#00E7BC', '#8EFFEA'),  # 170 :
+    ('#006161', '#00A2A2', '#00E3E3', '#87FFFF'),  # 180 : algin, 申立人, par3
     ('#005F75', '#009FC3', '#21D6FF', '#B5F1FF'),  # 190 : table
-    ('#005D8E', '#009AED', '#59C5FF', '#C8ECFF'),  # 200 : (fsp), ins, paren4
+    ('#005D8E', '#009AED', '#59C5FF', '#C8ECFF'),  # 200 : (fsp), ins, par4
     ('#0059B2', '#1F8FFF', '#79BCFF', '#D2E9FF'),  # 210 : chap1
-    ('#0053EF', '#4385FF', '#8EB6FF', '#D9E7FF'),  # 220 : chap2, (tab), paren5
+    ('#0053EF', '#4385FF', '#8EB6FF', '#D9E7FF'),  # 220 : chap2, (tab), par5
     ('#1F48FF', '#5F7CFF', '#9FB1FF', '#DFE5FF'),  # 230 : chap3
-    ('#3F3FFF', '#7676FF', '#ADADFF', '#E4E4FF'),  # 240 : chap4, (hsp)
+    ('#3F3FFF', '#7676FF', '#ADADFF', '#E4E4FF'),  # 240 : chap4, (hsp), par6
     ('#5B36FF', '#8A70FF', '#B9A9FF', '#E8E2FF'),  # 250 : chap5
-    ('#772EFF', '#9E6AFF', '#C5A5FF', '#ECE1FF'),  # 260 :
+    ('#772EFF', '#9E6AFF', '#C5A5FF', '#ECE1FF'),  # 260 : par7
     ('#9226FF', '#B164FF', '#D0A2FF', '#EFE0FF'),  # 270 : br, pgbr, hline
-    ('#B01DFF', '#C75DFF', '#DD9EFF', '#F4DFFF'),  # 280 :
-    ('#D312FF', '#E056FF', '#EC9AFF', '#F9DDFF'),  # 290 :
+    ('#B01DFF', '#C75DFF', '#DD9EFF', '#F4DFFF'),  # 280 : par8
+    ('#D312FF', '#E056FF', '#EC9AFF', '#F9DDFF'),  # 290 : par9
     ('#FF05FF', '#FF4DFF', '#FF94FF', '#FFDBFF'),  # 300 : 相手方
     ('#FF0AD2', '#FF50DF', '#FF96EC', '#FFDCF9'),  # 310 :
     ('#FF0EAB', '#FF53C3', '#FF98DB', '#FFDDF3'),  # 320 :
@@ -5062,10 +5062,6 @@ class Makdo:
         # self.sub.pack(expand=True, fill=tkinter.BOTH)
         self.sub.config(insertbackground='#FF7777', blockcursor=True)  # cursor
         self._make_sub_key_configuration()
-        scb = tkinter.Scrollbar(self.sub, orient=tkinter.VERTICAL,
-                                command=self.sub.yview)
-        scb.pack(side=tkinter.RIGHT, fill=tkinter.Y)
-        self.sub['yscrollcommand'] = scb.set
         self.sub_btn = tkinter.Button(self.pnd2, text='終了',
                                       command=self._close_sub_pane)
         # STATUS BAR
@@ -5080,42 +5076,45 @@ class Makdo:
         self.mincho_font = None
         if self.gothic_font is None:
             for f in families:
-                if re.match('^' + BIZUD_GOTHIC_FONT, f):
-                    self.gothic_font \
-                        = tkinter.font.Font(self.win,
-                                            family=BIZUD_GOTHIC_FONT)
-                    break
+                for gf in BIZUD_GOTHIC_FONT:
+                    if re.match('^' + gf, f):
+                        self.gothic_font \
+                            = tkinter.font.Font(self.win, family=gf)
+                        break
+                else:
+                    continue
+                break
+        if self.gothic_font is None:
+            self.show_font_help_message()
         if self.mincho_font is None:
             for f in families:
-                if re.match('^' + BIZUD_MINCHO_FONT, f):
-                    self.mincho_font \
-                        = tkinter.font.Font(self.win,
-                                            family=BIZUD_MINCHO_FONT)
-                    break
+                for mf in BIZUD_MINCHO_FONT:
+                    if re.match('^' + mf, f):
+                        self.mincho_font \
+                            = tkinter.font.Font(self.win, family=mf)
+                        break
+                else:
+                    continue
+                break
         if self.mincho_font is None:
+            if sys.platform == 'darwin':
+                mfs = HIRAGINO_MINCHO_FONT + YU_MINCHO_FONT
+            else:
+                mfs = YU_MINCHO_FONT + HIRAGINO_MINCHO_FONT
             for f in families:
-                if re.match('^' + YU_MINCHO_FONT, f):
-                    self.mincho_font \
-                        = tkinter.font.Font(self.win,
-                                            family=YU_MINCHO_FONT)
-                    break
-        if self.mincho_font is None:
-            for f in families:
-                if re.match('^' + HIRAGINO_MINCHO_FONT, f):
-                    self.mincho_font \
-                        = tkinter.font.Font(self.win,
-                                            family=HIRAGINO_MINCHO_FONT)
-                    break
+                for mf in mfs:
+                    if re.match('^' + mf, f):
+                        self.mincho_font \
+                            = tkinter.font.Font(self.win, family=mf)
+                        break
+                else:
+                    continue
+                break
         if self.gothic_font is None:
             self.gothic_font = tkinter.font.nametofont("TkFixedFont").copy()
         if self.mincho_font is None:
             self.mincho_font = tkinter.font.nametofont("TkFixedFont").copy()
         self.set_font()
-        for f in families:
-            if re.match('^' + BIZUD_GOTHIC_FONT, f):
-                break
-        else:
-            self.show_font_help_message()
         # OPEN FILE
         if self.args_input_file is not None:
             if os.path.exists(self.args_input_file):
@@ -5551,6 +5550,10 @@ class Makdo:
         for key in self.txt.configure():
             self.sub.configure({key: self.txt.cget(key)})
         self.sub_btn.pack()
+        scb = tkinter.Scrollbar(self.sub, orient=tkinter.VERTICAL,
+                                command=self.sub.yview)
+        scb.pack(side=tkinter.RIGHT, fill=tkinter.Y)
+        self.sub['yscrollcommand'] = scb.set
         #
         self.sub.delete('1.0', 'end')
         self.sub.insert('1.0', document)
@@ -6828,7 +6831,7 @@ class Makdo:
         mincho_font_list.sort()
         self.ChangeFontDialog(self.txt, self, '明朝体を変える',
                               mincho_font_list,
-                              DEFAULT_MINCHO_FONT)
+                              DOCX_MINCHO_FONT)
 
     def insert_selected_alphanumeric_font(self):
         alphanumeric_font_list_candidates = [
@@ -6848,7 +6851,7 @@ class Makdo:
         alphanumeric_font_list.sort()
         self.ChangeFontDialog(self.txt, self, '欧文フォントを変える',
                               alphanumeric_font_list,
-                              DEFAULT_ALPHANUMERIC_FONT)
+                              DOCX_ALPHANUMERIC_FONT)
 
     class ChangeFontDialog(tkinter.simpledialog.Dialog):
 
@@ -8786,12 +8789,15 @@ class Makdo:
         for key in self.txt.configure():
             self.sub.configure({key: self.txt.cget(key)})
         self.sub_btn.pack()
+        scb = tkinter.Scrollbar(self.sub, orient=tkinter.VERTICAL,
+                                command=self.sub.yview)
+        scb.pack(side=tkinter.RIGHT, fill=tkinter.Y)
+        self.sub['yscrollcommand'] = scb.set
         #
         self.sub.delete('1.0', 'end')
         self.sub.insert('1.0', formula)
         self.sub.mark_set('insert', '1.0')
-        self.txt.focus_force()
-        # self.sub.focus_set()
+        self.sub.focus_set()
 
     def edit_formula1(self):
         self.quit_editing_formula()
@@ -9611,28 +9617,7 @@ class Makdo:
             dic += '●\u3000' + ei.dictionary.k_name \
                 + '\u3000' + ei.title + '\n'
             dic += ei.content + '\n\n'
-        self.quit_editing_formula()
-        self.close_memo_pad()
-        self.pnd.update()
-        half_height = int(self.pnd.winfo_height() / 2) - 5
-        self.pnd.remove(self.pnd1)
-        self.pnd.remove(self.pnd2)
-        self.pnd.remove(self.pnd3)
-        self.pnd.remove(self.pnd4)
-        self.pnd.remove(self.pnd5)
-        self.pnd.remove(self.pnd6)
-        self.pnd.add(self.pnd1, height=half_height, minsize=100)
-        self.pnd.add(self.pnd2, height=half_height)
-        self.pnd.update()
-        #
-        self.sub.pack(expand=True, fill=tkinter.BOTH)
-        for key in self.txt.configure():
-            self.sub.configure({key: self.txt.cget(key)})
-        self.sub_btn.pack()
-        #
-        self.sub.delete('1.0', 'end')
-        self.sub.insert('1.0', dic)
-        self.sub.mark_set('insert', '1.0')
+        self._open_sub_pane(dic)
         n = 0
         pos = dic
         res = '^((?:.|\n)*?)(<gaiji=[^<>]+>)((?:.|\n)*)$'
@@ -9702,7 +9687,7 @@ class Makdo:
 
     def ask_openai(self, pane=None):
         if self.openai_key is None:
-            self.input_openai_key()
+            self.set_openai_key()
         if self.openai_key is None:
             return
         k = self._decode(self.openai_key)
@@ -9788,7 +9773,7 @@ class Makdo:
             return True
         return False
 
-    def input_openai_model(self):
+    def set_openai_model(self):
         t = 'OpenAIのモデル'
         m = 'OpenAIのモデルを入力してください．'
         om = OneWordDialog(self.txt, self, t, m, self.openai_model)
@@ -9797,7 +9782,7 @@ class Makdo:
         self.openai_model = om
         self.show_config_help_message()
 
-    def input_openai_key(self):
+    def set_openai_key(self):
         t = 'OpenAIのキー'
         m = 'OpenAIのキーを入力してください．'
         ok = tkinter.simpledialog.askstring(t, m, show='*')
@@ -10252,10 +10237,15 @@ class Makdo:
         menu.add_separator()
         #
         menu.add_command(label='OpenAIのモデルを入力',
-                         command=self.input_openai_model)
+                         command=self.set_openai_model)
         menu.add_command(label='OpenAIのキーを入力',
-                         command=self.input_openai_key)
+                         command=self.set_openai_key)
         menu.add_separator()
+        #
+        if sys.platform == 'linux':
+            menu.add_command(label='辞書ディレクトリを設定',
+                             command=self.set_dict_directory)
+            menu.add_separator()
         #
         menu.add_checkbutton(label='設定を保存',
                              command=self.save_configurations)
@@ -10475,6 +10465,17 @@ class Makdo:
                         self.onedrive_directory = valu
                     elif item == 'dict_directory':
                         self.dict_directory = valu
+
+    def set_dict_directory(self):
+        od = self.dict_directory
+        if od is None:
+            od = tkinter.filedialog.askdirectory()
+        else:
+            od = tkinter.filedialog.askdirectory(initialdir=od)
+        if od == () or od == '':
+            return False
+        self.dict_directory = od
+        return True
 
     def save_configurations(self):
         if os.path.exists(CONFIG_FILE + '~'):
