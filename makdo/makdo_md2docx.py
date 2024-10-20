@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.09.27-07:03:23-JST>
+# Time-stamp:   <2024.10.20-12:35:54-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -2283,6 +2283,8 @@ class XML:
         # SUPERSCRIPT
         if chars_state.sub_or_sup == 'sup':
             oe2 = XML.add_tag(oe1, 'w:vertAlign', {'w:val': 'superscript'})
+        # SPACING
+        oe2 = XML.add_tag(oe1, 'w:spacing', {'w:val': '5'})
 
     @staticmethod
     def set_font(style_or_run, font):
