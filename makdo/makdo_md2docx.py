@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.21-06:34:03-JST>
+# Time-stamp:   <2024.10.21-07:54:07-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -2288,7 +2288,7 @@ class XML:
             oe2 = XML.add_tag(oe1, 'w:vertAlign', {'w:val': 'superscript'})
         # SPACING
         cs_char = DEFAULT_CHAR_SPACING + chars_state.char_spacing
-        cs_int = int(round(cs_char * chars_state.font_size * 20))
+        cs_int = int(round(cs_char * Form.font_size * 20))
         oe2 = XML.add_tag(oe1, 'w:spacing', {'w:val': str(cs_int)})
 
     @staticmethod
