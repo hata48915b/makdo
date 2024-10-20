@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.20-12:35:54-JST>
+# Time-stamp:   <2024.10.21-06:34:03-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -356,6 +356,8 @@ DEFAULT_FONT_SIZE = 12.0
 
 DEFAULT_LINE_SPACING = 2.14  # (2.0980+2.1812)/2=2.1396
 TABLE_LINE_SPACING = 1.5
+
+DEFAULT_CHAR_SPACING = 0.0208333 # 5/12/20=.0208333...
 
 DEFAULT_SPACE_BEFORE = ''
 DEFAULT_SPACE_AFTER = ''
@@ -1945,6 +1947,7 @@ class CharsState:
         self.highlight_color = None
         self.sub_or_sup = ''
         self.track_changes = ''  # ''|'del'|'ins'
+        self.char_spacing = 0.0
 
     def copy(self):
         copy = CharsState()
@@ -2284,7 +2287,9 @@ class XML:
         if chars_state.sub_or_sup == 'sup':
             oe2 = XML.add_tag(oe1, 'w:vertAlign', {'w:val': 'superscript'})
         # SPACING
-        oe2 = XML.add_tag(oe1, 'w:spacing', {'w:val': '5'})
+        cs_char = DEFAULT_CHAR_SPACING + chars_state.char_spacing
+        cs_int = int(round(cs_char * chars_state.font_size * 20))
+        oe2 = XML.add_tag(oe1, 'w:spacing', {'w:val': str(cs_int)})
 
     @staticmethod
     def set_font(style_or_run, font):
@@ -3776,7 +3781,7 @@ class RawParagraph:
         res_cr = '^\\s*(' + ParagraphChapter.res_reviser + ')(?:\\s*(.*))?$'
         res_sr = '^\\s*(' + ParagraphSection.res_reviser + ')(?:\\s*(.*))?$'
         res_lr = '^(\\s*' + ParagraphList.res_reviser + ')(?:\\s*(.*))?$'
-        res_er = '^\\s*((?:v|V|X|<<|<|>)=' + RES_NUMBER + ')(?:\\s*(.*))?$'
+        res_er = '^\\s*((?:v|V|X|x|<<|<|>)=' + RES_NUMBER + ')(?:\\s*(.*))?$'
         res_fr = '^(' + '|'.join(FONT_DECORATORS) + ')(.*)$'
         res_tr = NOT_ESCAPED + '(' + '|'.join(FONT_DECORATORS) + ')$'
         res_hl = '^' + ParagraphHorizontalLine.res_feature + '$'
@@ -4048,6 +4053,7 @@ class Paragraph:
         self.beg_chars_state = CharsState()
         self.end_chars_state = CharsState()
         self.chars_state = CharsState()
+        self.char_spacing = 0.0
         # SUBSTITUTE
         Paragraph.paragraph_number += 1
         self.paragraph_number = Paragraph.paragraph_number
@@ -4187,9 +4193,11 @@ class Paragraph:
         length_revi \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
+        self.char_spacing = 0.0
         res_v = '^v=(' + RES_NUMBER + ')$'
         res_cv = '^V=(' + RES_NUMBER + ')$'
         res_cx = '^X=(' + RES_NUMBER + ')$'
+        res_x = '^x=(' + RES_NUMBER + ')$'
         res_gg = '^<<=(' + RES_NUMBER + ')$'
         res_g = '^<=(' + RES_NUMBER + ')$'
         res_l = '^>=(' + RES_NUMBER + ')$'
@@ -4200,6 +4208,8 @@ class Paragraph:
                 length_revi['space after'] += float(re.sub(res_cv, '\\1', lr))
             elif re.match(res_cx, lr):
                 length_revi['line spacing'] += float(re.sub(res_cx, '\\1', lr))
+            elif re.match(res_x, lr):
+                self.char_spacing += float(re.sub(res_x, '\\1', lr))
             elif re.match(res_gg, lr):
                 length_revi['first indent'] -= float(re.sub(res_gg, '\\1', lr))
             elif re.match(res_g, lr):
@@ -4454,6 +4464,7 @@ class Paragraph:
         # CHARS STATE
         self.beg_chars_state = Paragraph.bridge_chars_state.copy()
         self.chars_state = self.beg_chars_state.copy()
+        self.chars_state.char_spacing = self.char_spacing
         paragraph_class = self.paragraph_class
         tail_section_depth = self.tail_section_depth
         alignment = self.alignment
