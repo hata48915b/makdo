@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.21-08:53:38-JST>
+# Time-stamp:   <2024.10.21-10:21:35-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5238,6 +5238,7 @@ class ParagraphTable(Paragraph):
         # CHARS STATE
         self.beg_chars_state = Paragraph.bridge_chars_state.copy()
         self.chars_state = self.beg_chars_state.copy()
+        self.chars_state.char_spacing = self.char_spacing
         self.chars_state.apply_font_decorators(self.head_font_revisers)
         md_lines = self.md_lines
         length_docx = self.length_docx
