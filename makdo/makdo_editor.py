@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.20-08:32:18-JST>
+# Time-stamp:   <2024.10.21-08:50:14-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4186,9 +4186,10 @@ class CharsState:
            p == '｛' or p == '{' or \
            p == '（' or p == '(':
             ps.append(p)
-        elif p == ')' or p == '）' or \
-             p == '}' or p == '｝' or \
-             p == ']' or p == '』' or p == '」':
+            return
+        if p == ')' or p == '）' or \
+           p == '}' or p == '｝' or \
+           p == ']' or p == '』' or p == '」':
             if len(ps) > 0:
                 if ps[-1] == '(' and p == ')' or \
                    ps[-1] == '（' and p == '）' or \
@@ -4198,6 +4199,7 @@ class CharsState:
                    ps[-1] == '『' and p == '』' or \
                    ps[-1] == '「' and p == '」':
                     ps.pop(-1)
+            return
 
     def set_chapter_depth(self, depth):
         self.chapter_depth = depth

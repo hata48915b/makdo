@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.12-07:49:23-JST>
+# Time-stamp:   <2024.10.21-09:06:42-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -276,6 +276,8 @@ MS_FONTS = [
 
 DEFAULT_LINE_SPACING = 2.14  # (2.0980+2.1812)/2=2.1396
 TABLE_LINE_SPACING = 1.5
+
+DEFAULT_CHAR_SPACING = 0.0208  # 5/12/20=.0208333...
 
 DEFAULT_SPACE_BEFORE = ''
 DEFAULT_SPACE_AFTER = ''
@@ -6311,7 +6313,7 @@ class RawParagraph:
         raw_text = re.sub('(\n)([ \t\u3000]+)', '\\1\\\\\\2', raw_text)
         raw_text = re.sub('([ \t\u3000]+)(\n)', '\\1\\\\\\2', raw_text)
         # LENGTH REVISER
-        if re.match('^(v|V|X|<<|<|>)=\\s*[0-9]+', raw_text):
+        if re.match('^(v|V|X|x|<<|<|>)=\\s*(\\-|\\+)?[0-9]+', raw_text):
             raw_text = '\\' + raw_text
         # REMARKS
         if re.match('^&quot;&quot;(\\s|$)', raw_text):
@@ -6619,6 +6621,7 @@ class Paragraph:
         self.pre_text_to_write = ''
         self.post_text_to_write = ''
         self.text_to_write_with_reviser = ''
+        self.char_spacing = 0.0
         # SUBSTITUTION
         Paragraph.paragraph_number += 1
         self.paragraph_number = Paragraph.paragraph_number
@@ -6646,6 +6649,7 @@ class Paragraph:
                                                self.section_states,
                                                self.numbering_revisers,
                                                self.length_revisers)
+        self.char_spacing = self._get_char_spacing(self.xml_lines)
         # EXECUTION
         self.md_lines_text = self._get_md_lines_text(self.md_text)
         self.text_to_write = self._get_text_to_write()
@@ -7123,6 +7127,17 @@ class Paragraph:
                                 length_revisers.remove('<=+1.0')
         return section_states, numbering_revisers, length_revisers
 
+    @staticmethod
+    def _get_char_spacing(xml_lines):
+        for xl in xml_lines:
+            if xl == '</w:rPr>':
+                return 0.0
+            sp = XML.get_value('w:spacing', 'w:val', 0.0, xl)
+            if sp != 0.0:
+                cs = (sp / Form.font_size / 20) - DEFAULT_CHAR_SPACING
+                return round(cs, 2)
+        return 0.0
+
     def _get_md_lines_text(self, md_text):
         paragraph_class = self.paragraph_class
         # FOR TRAILING WHITE SPACE
@@ -7174,6 +7189,7 @@ class Paragraph:
         paragraph_class = self.paragraph_class
         numbering_revisers = self.numbering_revisers
         length_revisers = self.length_revisers
+        char_spacing = self.char_spacing
         head_font_revisers = self.head_font_revisers
         tail_font_revisers = self.tail_font_revisers
         text_to_write = self.text_to_write
@@ -7190,6 +7206,11 @@ class Paragraph:
             ttwwr += pre_text_to_write + '\n'
         for rev in length_revisers:
             ttwwr += rev + ' '
+        if char_spacing != 0.0:
+            if char_spacing > 0.0:
+                ttwwr += 'x=+' + str(char_spacing) + ' '
+            else:
+                ttwwr += 'x=' + str(char_spacing) + ' '
         if re.match('^(.|\n)* $', ttwwr):
             ttwwr = re.sub(' $', '\n', ttwwr)
         for rev in numbering_revisers:
