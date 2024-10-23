@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.21-08:50:14-JST>
+# Time-stamp:   <2024.10.23-16:31:42-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6353,19 +6353,21 @@ class Makdo:
     def replace_forward(self):
         self.search_or_replace_forward(True)   # must_replace = True
 
-    def replace_all(self):
+    def replace_all(self, focus=None):
         if self.current_pane == 'sub':
             pane = self.sub
         else:
             pane = self.txt
         if self._is_read_only_pane(pane):
             return
+        if focus is None:
+            focus = pane
         word1 = self.stb_sor1.get()
         word2 = self.stb_sor2.get()
         if word1 == '':
             t = '全置換'
             m = '検索する言葉と置換する言葉を入力してください．'
-            sd = TwoWordsDialog(pane, self, t, m, word1, word2)
+            sd = TwoWordsDialog(focus, self, t, m, word1, word2)
             word1, word2 = sd.get_value()
         if word1 == '':
             return
@@ -10102,7 +10104,7 @@ class Makdo:
             elif com == 'place-flag5':
                 self.mother.place_flag5()
             elif com == 'replace-all':
-                self.mother.replace_all()
+                self.mother.replace_all(self)
             elif com == 'replace-backward':
                 self.mother.replace_backward_from_dialog(self)
             elif com == 'replace-forward' or com == 'replace':
