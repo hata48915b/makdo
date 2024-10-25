@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.21-11:17:52-JST>
+# Time-stamp:   <2024.10.25-13:13:49-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -358,7 +358,8 @@ DEFAULT_FONT_SIZE = 12.0
 DEFAULT_LINE_SPACING = 2.14  # (2.0980+2.1812)/2=2.1396
 TABLE_LINE_SPACING = 1.5
 
-DEFAULT_CHAR_SPACING = 0.0208  # 5/12/20=.0208333...
+DEFAULT_CHAR_SPACING = 0.0
+# DEFAULT_CHAR_SPACING = 0.0208  # 5/12/20=.0208333...
 
 DEFAULT_SPACE_BEFORE = ''
 DEFAULT_SPACE_AFTER = ''
