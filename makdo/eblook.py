@@ -99,6 +99,7 @@ GAIJI_KOJIEN = {
     'zd465': '衕',
     'zd65d': '【漢字（起の己が巳）】',
     'zd759': '辤',
+    'zda38': '馱',
     'zda62': '髙',
     'zdc35': '壴',
 }
@@ -141,6 +142,7 @@ GAIJI_CHUJITEN = {
     'za33c': '≡',
     'za33f': '→',
     'za34f': '⇔',
+    'za37e': '♮',
 }
 
 GAIJI_GENIUS = {
@@ -151,6 +153,7 @@ GAIJI_GENIUS = {
     'zb478': '→',
     'zb434': '↝',
     'zb43b': '︙',
+    'zb44e': '♮',
 }
 
 GAIJI_BIZTEC = {
