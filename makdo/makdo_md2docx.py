@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.25-13:18:48-JST>
+# Time-stamp:   <2024.10.25-16:21:16-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -350,7 +350,9 @@ PAPER_WIDTH = {'A3': 42.0, 'A3L': 42.0, 'A3P': 29.7,
 DEFAULT_TOP_MARGIN = 3.5
 DEFAULT_BOTTOM_MARGIN = 2.2
 DEFAULT_LEFT_MARGIN = 3.0
-DEFAULT_RIGHT_MARGIN = 2.0
+DEFAULT_RIGHT_MARGIN = 2.3  # 21.0 - (2.54/72*12*37) - 3.0 = 2.3366666...
+# DEFAULT_RIGHT_MARGIN = 1.9  # 21.0 - (2.54/72*12*38) - 3.0 = 1.9133333...
+# DEFAULT_RIGHT_MARGIN = 2.0
 
 DEFAULT_HEADER_STRING = ''
 
