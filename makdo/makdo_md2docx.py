@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.25-13:13:49-JST>
+# Time-stamp:   <2024.10.25-13:18:48-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -54,6 +54,16 @@
 # m2d.set_content_status('sss')
 # m2d.set_has_completed('ttt')
 # m2d.save('xxx.docx')
+
+
+############################################################
+# NOTICE
+
+
+# LibreOfficeには、一つのファイルの中で、
+# ○●□■を半角文字と認識したり、全角文字と認識したりする
+# バグがあるので、注意が必要です。
+# （改行の次の行頭は、半角文字と認識するようです。）
 
 
 ############################################################
