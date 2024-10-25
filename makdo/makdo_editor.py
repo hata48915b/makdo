@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.25-07:32:22-JST>
+# Time-stamp:   <2024.10.25-10:07:27-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -3609,6 +3609,73 @@ v=+0.5
 その同意又はこれに代わる許可を得ないでしたものは、取り消すことができる。
 '''
 
+SAMPLE_SETTLEMENT = '''
+# 和解契約書
+
+v=+1.0
+★（以下「甲」という。）と
+★（以下「乙」という。）は、
+★に関し、次のとおり和解した。
+
+## （★）
+
+★
+
+###
+★
+
+###
+★
+
+## （債務）
+
+乙は、甲に対し、
+★万★円の債務を負っていることを認める。
+
+## （支払）
+
+乙は、甲に対し、
+令和★年★月★日限り、
+前条の★万★円を下記の口座に振り込んで支払う。
+ただし、振込手数料は乙の負担とする。
+
+<=-1.0 v=+0.5
+金融機関__　　　　　　　　　　　__　本支店名__　　　　　　　　　　　__
+
+<=-1.0 v=+0.5
+普通・当座等__　　　　　　　__　口座番号__　　　　　　　　　　　　　__
+
+<=-1.0 v=+0.5
+<名義/フリガナ>__　　　　　　　　　　　　　　　　　　　　　　　　　　　　　__
+
+## （清算条項）
+
+甲と乙は、甲と乙の間には、
+★本件に関し、
+上記各条項に定めるほか、何らの債権債務のないことを相互に確認する。
+
+v=+1.0
+本和解の成立を証するため、本書を★通作成し、各自1通を所持するものとする。
+
+# ##=1 ###=1
+
+v=+1.0
+: 令和★年★月★日
+
+v=+1.0
+: 甲　　　　★
+: \\　　　　　　　　　　　★　　　　　　　　　　　　　　　　　　　　㊞
+
+: ★代理人　★
+: \\　　　　　　　弁護士　★　　　　　　　　　　　　　　　　　　　　㊞
+
+v=+0.5
+: ★　住所　^DDD^__　　　　　　　　　　　　　　　　　　　　　　　　　　　　__^DDD^
+
+v=+0.5
+: \\　　氏名　__　　　　　　　　　　　　　　　　　　　　　　　　　　　㊞__
+'''
+
 SAMPLE_PETITION = '''
 # 訴状
 
@@ -3747,75 +3814,186 @@ v=+1.0
 --
 '''
 
-SAMPLE_SETTLEMENT = '''
-# 和解契約書
-
-v=+1.0
-★（以下「甲」という。）と
-★（以下「乙」という。）は、
-★に関し、次のとおり和解した。
-
-## （★）
-
-★
-
-###
-★
-
-###
-★
-
-## （債務）
-
-乙は、甲に対し、
-★万★円の債務を負っていることを認める。
-
-## （支払）
-
-乙は、甲に対し、
-令和★年★月★日限り、
-前条の★万★円を下記の口座に振り込んで支払う。
-ただし、振込手数料は乙の負担とする。
-
-<=-1.0 v=+0.5
-金融機関__　　　　　　　　　　　__　本支店名__　　　　　　　　　　　__
-
-<=-1.0 v=+0.5
-普通・当座等__　　　　　　　__　口座番号__　　　　　　　　　　　　　__
-
-<=-1.0 v=+0.5
-<名義/フリガナ>__　　　　　　　　　　　　　　　　　　　　　　　　　　　　　__
-
-## （清算条項）
-
-甲と乙は、甲と乙の間には、
-★本件に関し、
-上記各条項に定めるほか、何らの債権債務のないことを相互に確認する。
-
-v=+1.0
-本和解の成立を証するため、本書を★通作成し、各自1通を所持するものとする。
-
-# ##=1 ###=1
-
-v=+1.0
-: 令和★年★月★日
-
-v=+1.0
-: 甲　　　　★
-: \\　　　　　　　　　　　★　　　　　　　　　　　　　　　　　　　　㊞
-
-: ★代理人　★
-: \\　　　　　　　弁護士　★　　　　　　　　　　　　　　　　　　　　㊞
+SAMPLE_INDICTMENT = '''
+令和★年検第★号 :
 
 v=+0.5
-: ★　住所　^DDD^__　　　　　　　　　　　　　　　　　　　　　　　　　　　　__^DDD^
+# 起訴状
 
 v=+0.5
-: \\　　氏名　__　　　　　　　　　　　　　　　　　　　　　　　　　　　㊞__
+: ★地方裁判所　殿
+
+v=+0.5 <=-20.0
+: ★地方検察庁
+: \　　検察官検事　★★　★★
+
+v=+1.0
+: 下記被告事件につき公訴を提起する。
+
+: 記 :
+
+: 本籍　★
+: 住居　★
+: 職業　★
+: \　　　　　　　　　　　　　　　勾留中（★拘置所）
+: \　　　　　　　　　　　　　　　　　　　　　　　　　★★　★★
+: \　　　　　　　　　　　　　　　　　　　　　　　　　平成★年★月★日生
+
+v=+1.0
+: 公訴事実 :
+
+被告人は、
+
+## ★し
+
+## ★し
+
+#
+
+<<=1.0
+たものである。
+
+: 罪名及び罰条 :
+
+<=-8.0
+: 第1　★　　　　　　　　　　　★法第★条
+: 第2　★　　　　　　　　　　　★法第★条
 '''
 
-SAMPLE_INDICTMENT = '''
+SAMPLE_CIVIL_JUDGEMENT = '''
+: 令和★年★月★日判決言渡　同日原本領収　裁判所書記官
+: 令和★年（ワ）第★号　★請求事件
+: 口頭弁論終結の日　令和★年★月★日
 
+: 判決 :
+
+<=-4.0
+: ★県★市★
+: \　　　　　　　　原告　　　　　　　　　　　　　★★　★★
+: \　　　　　　　　同代表者代表取締役　　　　　　★★　★★
+: \　　　　　　　　同訴訟代理人弁護士　　　　　　★★　★★
+: ★県★市★
+: \　　　　　　　　被告　　　　　　　　　　　　　★★　★★
+: \　　　　　　　　同代表者代表取締役　　　　　　★★　★★
+: \　　　　　　　　同訴訟代理人弁護士　　　　　　★★　★★
+
+: 主文 :
+
+<=-4.0
+### 
+被告は、原告に対し、
+★万円及びこれに対する令和★年★月★日から支払済みまで年3分の割合による
+金員を支払え。
+
+<=-4.0
+### 
+訴訟費用は被告の負担とする。
+
+<=-4.0
+### 
+この判決は第1項に限り仮に執行することができる。
+
+## 請求の趣旨
+
+★
+
+## 事案の概要
+
+★
+
+## 当裁判所の判断
+
+★
+
+## 結論
+
+★
+
+よって、主文のとおり判決する。
+
+: \　　　　★裁判所
+: \　　　　　　裁判官
+'''
+
+SAMPLE_CRIMINAL_JUDGEMENT = '''
+: 令和★年★月★日宣告　裁判所書記官
+: 令和★年（わ）第★号
+
+: 判決 :
+
+<=-1.0
+: 本籍　★
+: 住居　★
+: 職業　★
+: \　　　　　　　　　　　　　　　　　　　　　　　　　★★　★★
+: \　　　　　　　　　　　　　　　　　　　　　　　　（★★　★★）
+: \　　　　　　　　　　　　　　　　　　　　　　　　　平成★年★月★日生
+
+上記の者に対する★被告事件につき、当裁判所は、
+検察官★、
+弁護人★
+出席の上審理し、次のとおり判決する。
+
+: 主文 :
+
+<=-5.0
+: 被告を懲役★年★月に処する。
+: この裁判が確定した日から★年間その刑の執行を猶予する。
+
+: 理由 :
+
+: （罪となるべき事実）
+
+## 被告人は、★したものである。
+
+## 被告人は、★したものである。
+
+: （証拠の標目）
+
+第★回公判調書中の被告人の供述部分
+
+被害届（甲1）、★
+
+: （事実認定の補足説明）
+
+### 争点
+
+★
+
+### 前提となる事実
+
+★
+
+### 当裁判所の判断
+
+★
+
+### 結論
+
+: （法令の適用）
+
+: 罰条　　　　　　　　　刑法★条
+: 刑種の選択　　　　　　懲役刑を選択
+: 刑の全部の執行猶予　　刑法25条1項
+: 訴訟費用の不負担　　　刑事訴訟法181条1項ただし書
+
+<!--
+: 罰<7.0>条　　刑法★条
+: 刑<1.0>種<1.0>の<1.0>選<1.0>択　　懲役刑を選択
+: 刑の全部の執行猶予　　刑法25条1項
+: 訴<.143>訟<.143>費<.143>用<.143>の<.143>不<.143>負<.143>担　　刑事訴訟法181条1項ただし書
+-->
+
+: （量刑の理由）
+
+★
+
+: （検察官の求刑）
+
+: 令和★年★月★日
+
+: ★地方裁判所
+: \　　裁判官
 '''
 
 DONT_EDIT_MESSAGE = '<!--【以下は必要なデータですので編集しないでください】-->'
@@ -7677,39 +7855,60 @@ class Makdo:
                             command=self.insert_basis_sample)
         submenu.add_command(label='民法',
                             command=self.insert_law_sample)
+        submenu.add_command(label='和解契約書',
+                            command=self.insert_settlement_sample)
         submenu.add_command(label='訴状',
                             command=self.insert_petition_sample)
         submenu.add_command(label='証拠説明書',
                             command=self.insert_evidence_sample)
-        submenu.add_command(label='和解契約書',
-                            command=self.insert_settlement_sample)
+        submenu.add_command(label='判決（民事事件）',
+                            command=self.insert_civil_judgement_sample)
+        submenu.add_command(label='起訴状',
+                            command=self.insert_indictment_sample)
+        submenu.add_command(label='判決（刑事事件）',
+                            command=self.insert_criminal_judgement_sample)
 
     ######
     # COMMAND
 
-    def insert_basis_sample(self):
+    def insert_basis_sample(self):               # 基本
         document = self.insert_configuration_sample('普通', '0.0') + \
             SAMPLE_BASIS
         self.insert_sample(document)
 
-    def insert_law_sample(self):
+    def insert_law_sample(self):                 # 民法
         document = self.insert_configuration_sample('条文', '0.0') + \
             SAMPLE_LAW
         self.insert_sample(document)
 
-    def insert_petition_sample(self):
+    def insert_settlement_sample(self):          # 和解契約書
+        document = self.insert_configuration_sample('契約', '1.0') + \
+            SAMPLE_SETTLEMENT
+        self.insert_sample(document)
+
+    def insert_petition_sample(self):            # 訴状
         document = self.insert_configuration_sample('普通', '1.0') + \
             SAMPLE_PETITION
         self.insert_sample(document)
 
-    def insert_evidence_sample(self):
+    def insert_evidence_sample(self):            # 証拠説明書
         document = self.insert_configuration_sample('普通', '0.0') + \
             SAMPLE_EVIDENCE
         self.insert_sample(document)
 
-    def insert_settlement_sample(self):
-        document = self.insert_configuration_sample('契約', '1.0') + \
-            SAMPLE_SETTLEMENT
+    def insert_civil_judgement_sample(self):     # 判決（民事事件）
+        document = self.insert_configuration_sample('普通', '0.0') + \
+            SAMPLE_CIVIL_JUDGEMENT
+        self.insert_sample(document)
+
+    def insert_indictment_sample(self):          # 起訴状
+        document = self.insert_configuration_sample('普通', '0.0') + \
+            SAMPLE_INDICTMENT
+        self.insert_sample(document)
+
+    def insert_criminal_judgement_sample(self):  # 判決（刑事事件）
+        document = self.insert_configuration_sample('普通', '0.0') + \
+            SAMPLE_CRIMINAL_JUDGEMENT
         self.insert_sample(document)
 
     def insert_configuration_sample(self, document_style, space_before):
