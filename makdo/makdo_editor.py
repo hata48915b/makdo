@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.25-10:07:27-JST>
+# Time-stamp:   <2024.10.26-07:35:06-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5261,6 +5261,8 @@ class Makdo:
         self._make_sub_key_configuration()
         self.sub_btn = tkinter.Button(self.pnd2, text='終了',
                                       command=self._close_sub_pane)
+        self.sub_scb = tkinter.Scrollbar(self.sub, orient=tkinter.VERTICAL,
+                                         command=self.sub.yview)
         # STATUS BAR
         self.stbr = tkinter.Frame(self.win)
         self.stbr.pack(side='right', anchor='e')
@@ -5747,10 +5749,8 @@ class Makdo:
         for key in self.txt.configure():
             self.sub.configure({key: self.txt.cget(key)})
         self.sub_btn.pack()
-        scb = tkinter.Scrollbar(self.sub, orient=tkinter.VERTICAL,
-                                command=self.sub.yview)
-        scb.pack(side=tkinter.RIGHT, fill=tkinter.Y)
-        self.sub['yscrollcommand'] = scb.set
+        self.sub_scb.pack(side=tkinter.RIGHT, fill=tkinter.Y)
+        self.sub['yscrollcommand'] = self.sub_scb.set
         #
         self.sub.delete('1.0', 'end')
         self.sub.insert('1.0', document)
