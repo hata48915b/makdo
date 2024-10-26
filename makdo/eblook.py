@@ -159,6 +159,7 @@ GAIJI_CHUJITEN = {
 
 GAIJI_GENIUS = {
     'ha12d': '(ə)',
+    # 'ha174': '',
     'ha270': 'ɪ̀',
     'zb430': '【Ｃ】',
     'zb431': '【Ｕ】',
