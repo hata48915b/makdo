@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.26-07:35:06-JST>
+# Time-stamp:   <2024.10.26-10:41:45-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5324,6 +5324,7 @@ class Makdo:
         else:
             self.show_first_help_message()
         self.txt.focus_set()
+        self.current_pane = 'txt'
         # RUN PERIODICALLY
         self.run_periodically()
         # LOOP
@@ -5758,6 +5759,7 @@ class Makdo:
         # self.sub.configure(state='disabled')
         #
         self.txt.focus_force()
+        self.current_pane = 'txt'
 
     def _close_sub_pane(self):
         self.quit_editing_formula()
@@ -5768,7 +5770,9 @@ class Makdo:
         except BaseException:
             pass
         self.pnd.remove(self.pnd2)
-        self.txt.focus_set()
+        #
+        self.txt.focus_force()
+        self.current_pane = 'txt'
 
     ####################################
     # MENU
@@ -5864,6 +5868,7 @@ class Makdo:
         # self.txt.delete('1.0', 'end')
         self.txt.insert('1.0', init_text)
         self.txt.focus_set()
+        self.current_pane = 'txt'
         self.txt.mark_set('insert', '1.0')
         self._set_file_name(file_path)
         # PAINT
@@ -6209,6 +6214,7 @@ class Makdo:
     def _quit_converting_directly(self):
         self.pnd.remove(self.pnd4)
         self.txt.focus_set()
+        self.current_pane = 'txt'
 
     # CONVERT TO PDF
 
@@ -7977,6 +7983,7 @@ class Makdo:
         self.file_lines = sample_document.split('\n')
         self.txt.insert('1.0', sample_document)
         self.txt.focus_set()
+        self.current_pane = 'txt'
         self.txt.mark_set('insert', '1.0')
         # PAINT
         paint_keywords = self.paint_keywords.get()
@@ -8924,6 +8931,11 @@ class Makdo:
                          accelerator='Ctrl+E')
         menu.add_separator()
         #
+        if sys.platform == 'linux':
+            menu.add_command(label='epwing形式の辞書で調べる',
+                             command=self.look_in_dictionary)
+            menu.add_separator()
+        #
         menu.add_command(label='コマンドを入力して実行',
                          command=self.start_minibuffer,
                          accelerator='Esc+X')
@@ -9017,7 +9029,9 @@ class Makdo:
         self.sub.delete('1.0', 'end')
         self.sub.insert('1.0', formula)
         self.sub.mark_set('insert', '1.0')
+        self.current_pane = 'sub'
         self.sub.focus_set()
+        self.current_pane = 'sub'
 
     def edit_formula1(self):
         self.quit_editing_formula()
@@ -9152,6 +9166,7 @@ class Makdo:
         self.sub.insert('1.0', self.memo_pad_memory)
         self.sub.mark_set('insert', '1.0')
         self.txt.focus_force()
+        self.current_pane = 'txt'
 
     def update_memo_pad(self):
         memo_pad_memory = self.memo_pad_memory
@@ -9493,6 +9508,7 @@ class Makdo:
     def _quit_diff(self):
         self.pnd.remove(self.pnd3)
         self.txt.focus_set()
+        self.current_pane = 'txt'
 
     # MDDIFF<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
@@ -9681,6 +9697,7 @@ class Makdo:
         self.txt.insert('1.0', new_document)
         self.txt.delete('1.0+' + str(len(new_document)) + 'c', 'end')
         self.txt.focus_set()
+        self.current_pane = 'txt'
         self.txt.mark_set('insert', '1.0')
         # PAINT
         paint_keywords = self.paint_keywords.get()
@@ -9801,9 +9818,11 @@ class Makdo:
             self.unfold_section()
 
     # LOOK IN DICTIONARY
-    def look_in_dictionary(self, pane):
+    def look_in_dictionary(self, pane=None):
         if sys.platform != 'linux':  # epwing
             return
+        if pane is None:
+            self.txt
         w = ''
         if self.txt.tag_ranges('sel'):
             w = self.txt.get('sel.first', 'sel.last')
@@ -9850,7 +9869,8 @@ class Makdo:
             n += len(pre) + len(key)
             self.sub.tag_add('error_tag', beg, end)
         #
-        self.txt.focus_set()
+        self.sub.focus_force()
+        self.current_pane = 'sub'
 
     # OPENAI>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
@@ -9981,6 +10001,7 @@ class Makdo:
         # self.sub.configure(state='disabled')
         #
         self.txt.focus_force()
+        self.current_pane = 'txt'
 
     def reset_openai(self):
         t = 'OpenAIの履歴の削除'
@@ -10212,7 +10233,7 @@ class Makdo:
             help_message += \
                 '\n' + \
                 'look-in-dictionary\n' + \
-                '　epwing形式の辞書で意味を調べる'
+                '　epwing形式の辞書で調べる'
 
         history = []
 
@@ -11509,8 +11530,8 @@ class Makdo:
     # MOUSE BUTTON LEFT
 
     def txt_process_button1(self, click):
-        self.current_pane = 'txt'
         self.txt.focus_set()
+        self.current_pane = 'txt'
         return
 
     def txt_process_button1_release(self, click):
@@ -11522,8 +11543,8 @@ class Makdo:
         return 'break'
 
     def sub_process_button1(self, click):
-        self.current_pane = 'sub'
         self.sub.focus_set()
+        self.current_pane = 'sub'
         return
 
     def sub_process_button1_release(self, click):
