@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.28-11:47:02-JST>
+# Time-stamp:   <2024.10.28-12:30:09-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -9156,6 +9156,7 @@ class Makdo:
                 f.write(a)
         except BaseException:
             return False
+        os.chmod(formula_path, 0o600)
         return True
 
     class FormulaDialog(tkinter.simpledialog.Dialog):
@@ -9165,6 +9166,7 @@ class Makdo:
             self.mother = mother
             self.prompt = prompt
             self.value = None
+            self.has_pressed_ok = False
             super().__init__(pane, title=title)
 
         def body(self, pane):
@@ -9202,10 +9204,14 @@ class Makdo:
                 return '（空）'
 
         def apply(self):
-            pass
+            self.has_pressed_ok = True
+            self.or_or_cancel = 'ok'
 
         def get_value(self):
-            return self.value.get()
+            if self.has_pressed_ok:
+                return self.value.get()
+            else:
+                return ''
 
     # OPEN MEMO PAD
 
@@ -9270,6 +9276,7 @@ class Makdo:
                     f.write(memo_pad_display)
             except BaseException:
                 return False
+            os.chmod(memo_pad_path, 0o600)
             return True
         # FILE
         if not os.path.exists(memo_pad_path):
@@ -10027,6 +10034,7 @@ class Makdo:
                 of.write(md)
         except BaseException:
             pass
+        os.chmod(memo_pad_path, 0o600)
         #
         self.sub.delete('1.0', 'end')
         self.sub.insert('1.0', md)
@@ -10521,8 +10529,8 @@ class Makdo:
                              command=self.set_dict_directory)
             menu.add_separator()
         #
-        menu.add_checkbutton(label='設定を保存',
-                             command=self.save_configurations)
+        menu.add_command(label='設定を保存',
+                         command=self.save_configurations)
         # menu.add_separator()
 
     ################
@@ -10783,6 +10791,7 @@ class Makdo:
                     f.write('dict_directory:         '
                             + self.dict_directory + '\n')
             self.set_message_on_status_bar('設定を保存しました')
+        os.chmod(CONFIG_FILE, 0o400)
 
     ##########################
     # MENU INTERNET
