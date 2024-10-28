@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.26-11:04:48-JST>
+# Time-stamp:   <2024.10.28-11:47:02-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4235,6 +4235,89 @@ class TwoWordsDialog(tkinter.simpledialog.Dialog):
 
     def get_value(self):
         return self.value1, self.value2
+
+
+############################################################
+# WITCH
+
+
+class Witch:
+
+    # 00-94 (32-126)
+    pepper = [
+        42, 84, 62, 18, 76,  4, 68, 37, 53, 26, 59, 71, 23, 27, 33, 29,
+        51, 20, 25, 76, 89, 30, 90, 86, 45, 74,  6, 42, 14,  7, 34, 51,
+        31, 31, 13, 74, 68, 32, 41, 44, 17, 39, 34,  4, 41, 25, 79, 94,
+        56, 61, 23, 42, 58, 44, 79, 91, 38,  7, 42, 14,  7, 11, 12, 75,
+        43, 71,  5,  1,  4, 42, 45, 32, 68, 83, 42,  5, 52, 13, 32, 47,
+        39,  7, 48, 90,  1,  1, 53, 80, 42, 57, 64, 56,  5, 82, 30, 15,
+        12, 82, 51, 48, 43, 63, 12, 14, 20, 62, 93, 55, 13, 24, 68, 63,
+        71, 30, 79, 20, 22, 42, 29, 81, 56, 61, 70, 37, 35, 37, 27, 37,
+        57, 82, 58, 71, 83,  4, 57, 62,  3, 31, 40, 48, 21, 51, 87, 49,
+        38, 27, 48,  7, 54, 35, 45, 58, 85, 35, 39, 11, 88, 37, 18, 90,
+        90, 21, 66, 56, 18, 91, 36, 71, 63, 48, 46, 75, 52, 65, 12, 33,
+        42, 72, 41, 31, 86, 59, 24, 56, 27, 94, 23, 47, 92, 42, 15, 15,
+        40, 27, 62, 53, 65, 59, 36, 38, 93, 21, 37, 32, 43, 55, 77, 64,
+        17, 67, 48, 88, 74, 75, 67,  9, 94, 84,  4,  0, 90, 48, 24, 50,
+        22,  6, 27, 39, 38, 10, 68, 46, 90,  5, 66, 34,  4, 40, 50, 31,
+        93,  5, 54, 89, 43, 44, 54, 57, 90, 26, 60, 61, 33, 33, 45, 28,
+    ]
+
+    @staticmethod
+    def enchant(dechant_word):
+        m = len(dechant_word)
+        ns = []
+        for i in range(m):
+            j = i - m // 2
+            if j < 0:
+                j += m
+            # j = i - 1
+            # if j == -1:
+            #     j = -1
+            c_i = dechant_word[i]
+            c_j = dechant_word[j]
+            n_i = (ord(c_i) - 32) // 5  # 0-18
+            n_j = (ord(c_j) - 32) % 5   # 0-4
+            n = (n_j * 19) + n_i        # (4 * 19) + 18 = 94
+            # n = (n_i * 5) + n_j        # (18 * 5) + 4 = 94
+            ns.append(n)
+        enchant_word = ''
+        for i in range(m):
+            n = ns[i]
+            n += Witch.pepper[i % len(Witch.pepper)]
+            if n >= 95:
+                n -= 95
+            e = chr(n + 32)
+            enchant_word += e
+        return enchant_word
+
+    @staticmethod
+    def dechant(enchant_word):
+        m = len(enchant_word)
+        ns = []
+        for i in range(m):
+            e = enchant_word[i]
+            n = ord(e) - 32
+            n -= Witch.pepper[i % len(Witch.pepper)]
+            if n < 0:
+                n += 95
+            ns.append(n)
+        dechant_word = ''
+        for i in range(m):
+            j = i + m // 2
+            if j >= m:
+                j -= m
+            # j = i + 1
+            # if j == m:
+            #     j = 0
+            n_i = ns[i] % 19     # 0 -> 18
+            n_j = ns[j] // 19    # 0 -> 4
+            # n_i = ns[i] // 5    # 0 -> 18
+            # n_j = ns[j] % 5     # 0 -> 4
+            n = (n_i * 5) + n_j  # (18 * 5) + 4 = 94
+            d = chr(n + 32)
+            dechant_word += d
+        return dechant_word
 
 
 ############################################################
@@ -9873,55 +9956,6 @@ class Makdo:
 
     # OPENAI>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-    openai_pepper = \
-        'oBj5zRwt68RD2sgeLgtQKT39CoVPi7gesQPOJn0yGatizlokBCheNry4KsUrlO0J3' + \
-        'Z5LXChEYjAaIzsNpFw27YDY65ADQPFgiCtOSpyKkvxhngvqPDXs5NUhcb8ZhsBBtX' + \
-        'qiyf24IwPwRe6HJucepPA1CRpTIfkAEZsxReTvL4GSDzLiwd22HE12VhAcZ4p28Pv' + \
-        'WrgiIv7JucXdOa5l1wBJj1zGRPDXmERLGevOsZ3nLlFinxhbb30TiHtVPcgIlDXlw' + \
-        'i6jVojxMXUVKiRuOAaTx60c68K3NAYOwQxUwJawwz8JdCAQyq8HbdiPU6yat24Ado'
-
-    def _encode(self, decoded):
-        encoded = ''
-        for n in range(len(decoded)):
-            if re.match('^[0-9A-Za-z]$', decoded[n]):
-                x = self._c2i(decoded[n])
-                y = self._c2i(self.openai_pepper[n])
-                z = (x + y) % 62
-                encoded += self._i2c(z)
-            else:
-                encoded += decoded[n]
-        return encoded
-
-    def _decode(self, encoded):
-        decoded = ''
-        for n in range(len(encoded)):
-            if re.match('^[0-9A-Za-z]$', encoded[n]):
-                z = self._c2i(encoded[n])
-                y = self._c2i(self.openai_pepper[n])
-                x = (z - y + 62) % 62
-                decoded += self._i2c(x)
-            else:
-                decoded += encoded[n]
-        return decoded
-
-    @staticmethod
-    def _c2i(c):
-        if re.match('^[0-9]$', c):
-            return ord(c) - 48 + 0
-        elif re.match('^[A-Z]$', c):
-            return ord(c) - 65 + 10
-        else:
-            return ord(c) - 97 + 36
-
-    @staticmethod
-    def _i2c(i):
-        if i < 10:
-            return chr(i + 48 - 0)
-        elif i < 36:
-            return chr(i + 65 - 10)
-        else:
-            return chr(i + 97 - 36)
-
     openai_file = CONFIG_DIR + '/openai.md'
 
     def ask_openai(self, pane=None):
@@ -9929,7 +9963,7 @@ class Makdo:
             self.set_openai_key()
         if self.openai_key is None:
             return
-        k = self._decode(self.openai_key)
+        ok = Witch.dechant(self.openai_key)
         if self.txt.tag_ranges('sel'):
             beg, end = self.txt.index('sel.first'), self.txt.index('sel.last')
             q = self.txt.get(beg, end)
@@ -9951,7 +9985,7 @@ class Makdo:
         q = re.sub('\n$', '', q)
         pos = self.txt.index('insert')
         self.set_message_on_status_bar('質問しています', True)
-        res = openai.OpenAI(api_key=k).chat.completions.create(
+        res = openai.OpenAI(api_key=ok).chat.completions.create(
             model=self.openai_model,
             n=1, max_tokens=1000,
             messages=[{'role': 'user', 'content': q}],
@@ -10028,7 +10062,7 @@ class Makdo:
         ok = tkinter.simpledialog.askstring(t, m, show='*')
         if ok is None:
             return
-        self.openai_key = self._encode(ok)
+        self.openai_key = Witch.enchant(ok)
         self.show_config_help_message()
 
     # OPENAI<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
