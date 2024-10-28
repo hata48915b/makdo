@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.28-12:30:09-JST>
+# Time-stamp:   <2024.10.28-12:35:49-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -10034,7 +10034,7 @@ class Makdo:
                 of.write(md)
         except BaseException:
             pass
-        os.chmod(memo_pad_path, 0o600)
+        os.chmod(self.openai_file, 0o600)
         #
         self.sub.delete('1.0', 'end')
         self.sub.insert('1.0', md)
