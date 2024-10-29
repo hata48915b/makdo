@@ -1,4 +1,4 @@
-<!-- Time-stamp:   <2024.10.29-09:01:21-JST> -->
+<!-- Time-stamp:   <2024.10.30-07:33:56-JST> -->
 
 # MAKDO（MS WordのファイルをMarkdownで編集するアプリ）
 
@@ -10,7 +10,7 @@
 
 ![MAKDOのLOGO](https://raw.githubusercontent.com/hata48915b/makdo/main/image/makdoL.png "MAKDOのLOGO")
 
-〜〜 MS Word形式のファイルの作成・編集に、LaTeXの論理性とEmacsの機能性 〜〜
+〜〜 LaTeXの論理性とEmacsの機能性を、MS Word形式のファイルの作成・編集に！ 〜〜
 
 〜〜 MS Wordがなくても、MS Word形式のファイルを読んだり編集できたりします 〜〜
 
