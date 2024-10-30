@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.30-22:34:43-JST>
+# Time-stamp:   <2024.10.31-07:39:39-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5327,13 +5327,13 @@ class Makdo:
         self.pnd.add(self.pnd1)
         # MAIN TEXT
         self.txt = tkinter.Text(self.pnd1, undo=True)
-        self.txt.pack(expand=True, fill=tkinter.BOTH)
-        self.txt.config(insertbackground='#FF7777', blockcursor=True)  # cursor
-        self._make_txt_key_configuration()
-        scb = tkinter.Scrollbar(self.txt, orient=tkinter.VERTICAL,
+        scb = tkinter.Scrollbar(self.pnd1, orient=tkinter.VERTICAL,
                                 command=self.txt.yview)
         scb.pack(side=tkinter.RIGHT, fill=tkinter.Y)
         self.txt['yscrollcommand'] = scb.set
+        self.txt.pack(expand=True, fill=tkinter.BOTH)
+        self.txt.config(insertbackground='#FF7777', blockcursor=True)  # cursor
+        self._make_txt_key_configuration()
         self.txt.drop_target_register(tkinterdnd2.DND_FILES)   # drag and drop
         self.txt.dnd_bind('<<Drop>>', self.open_dropped_file)  # drag and drop
         # SUB TEXT
@@ -5341,10 +5341,10 @@ class Makdo:
         # self.sub.pack(expand=True, fill=tkinter.BOTH)
         self.sub.config(insertbackground='#FF7777', blockcursor=True)  # cursor
         self._make_sub_key_configuration()
+        self.sub_scb = tkinter.Scrollbar(self.pnd2, orient=tkinter.VERTICAL,
+                                         command=self.sub.yview)
         self.sub_btn = tkinter.Button(self.pnd2, text='終了',
                                       command=self._close_sub_pane)
-        self.sub_scb = tkinter.Scrollbar(self.sub, orient=tkinter.VERTICAL,
-                                         command=self.sub.yview)
         # STATUS BAR
         self.stbr = tkinter.Frame(self.win)
         self.stbr.pack(side='right', anchor='e')
@@ -5828,12 +5828,12 @@ class Makdo:
         self.pnd.add(self.pnd2, height=half_height)
         self.pnd.update()
         #
+        self.sub_scb.pack(side=tkinter.RIGHT, fill=tkinter.Y)
         self.sub.pack(expand=True, fill=tkinter.BOTH)
         for key in self.txt.configure():
             self.sub.configure({key: self.txt.cget(key)})
-        self.sub_btn.pack()
-        self.sub_scb.pack(side=tkinter.RIGHT, fill=tkinter.Y)
         self.sub['yscrollcommand'] = self.sub_scb.set
+        self.sub_btn.pack()
         #
         self.sub.delete('1.0', 'end')
         self.sub.insert('1.0', document)
@@ -9099,14 +9099,12 @@ class Makdo:
         self.pnd.add(self.pnd2, height=half_height)
         self.pnd.update()
         #
+        self.sub_scb.pack(side=tkinter.RIGHT, fill=tkinter.Y)
         self.sub.pack(expand=True, fill=tkinter.BOTH)
         for key in self.txt.configure():
             self.sub.configure({key: self.txt.cget(key)})
+        self.sub['yscrollcommand'] = self.sub_scb.set
         self.sub_btn.pack()
-        scb = tkinter.Scrollbar(self.sub, orient=tkinter.VERTICAL,
-                                command=self.sub.yview)
-        scb.pack(side=tkinter.RIGHT, fill=tkinter.Y)
-        self.sub['yscrollcommand'] = scb.set
         #
         self.sub.delete('1.0', 'end')
         self.sub.insert('1.0', formula)
@@ -9199,9 +9197,11 @@ class Makdo:
                     h = re.sub('\n', ' ', a)
                     if len(h) > 15:
                         h = h[:14] + '…'
+                    if h == '':
+                        return '（空）'
                     return h
             except BaseException:
-                return '（空）'
+                return '（無）'
 
         def apply(self):
             self.has_pressed_ok = True
@@ -10593,9 +10593,10 @@ class Makdo:
         # COLOR FONT
         if background_color == 'W':
             self.txt.config(bg='white', fg='black')
-            self.txt.tag_config('line_eof_tag', background='#CCCCCC')
+            self.txt.tag_config('eol_tag', background='#CCCCCC')
             self.txt.tag_config('line_tag', background='#EEEEEE')
             self.txt.tag_config('eof_tag', background='#EEEEEE')
+            self.sub.tag_config('eof_tag', background='#EEEEEE')
             self.txt.tag_config('akauni_tag', background='#CCCCCC')
             self.sub.tag_config('akauni_tag', background='#CCCCCC')
             self.txt.tag_config('hsp_tag', foreground='#C8C8FF',
@@ -10605,9 +10606,10 @@ class Makdo:
                                 underline=True)                   # (0.8, 200)
         elif background_color == 'B':
             self.txt.config(bg='black', fg='white')
-            self.txt.tag_config('line_eof_tag', background='#666666')
+            self.txt.tag_config('eol_tag', background='#666666')
             self.txt.tag_config('line_tag', background='#333333')
             self.txt.tag_config('eof_tag', background='#333333')
+            self.sub.tag_config('eof_tag', background='#333333')
             self.txt.tag_config('akauni_tag', background='#666666')
             self.sub.tag_config('akauni_tag', background='#666666')
             self.txt.tag_config('hsp_tag', foreground='#7676FF',
@@ -10617,9 +10619,10 @@ class Makdo:
                                 underline=True)                   # (0.5, 200)
         elif background_color == 'G':
             self.txt.config(bg='darkgreen', fg='lightyellow')
-            self.txt.tag_config('line_eof_tag', background='#339733')
+            self.txt.tag_config('eol_tag', background='#339733')
             self.txt.tag_config('line_tag', background='#117511')
             self.txt.tag_config('eof_tag', background='#117511')
+            self.sub.tag_config('eof_tag', background='#117511')
             self.txt.tag_config('akauni_tag', background='#888888')
             self.sub.tag_config('akauni_tag', background='#888888')
             self.txt.tag_config('hsp_tag', foreground='#7676FF',
@@ -12097,12 +12100,12 @@ class Makdo:
         # LINE AND EOF PAINTING
         ii = self.txt.index('insert lineend +1c')
         ei = self.txt.index('end lineend')
-        self.txt.tag_remove('line_eof_tag', '1.0', 'end')
+        self.txt.tag_remove('eol_tag', '1.0', 'end')
         self.txt.tag_remove('line_tag', '1.0', 'end')
         self.txt.tag_remove('eof_tag', '1.0', 'end')
         if ii == ei:
-            # LINE EOF PAINTING
-            self.txt.tag_add('line_eof_tag',
+            # EOL PAINTING
+            self.txt.tag_add('eol_tag',
                              'insert lineend', 'insert lineend +1c')
         else:
             # LINE PAINTING
@@ -12111,6 +12114,8 @@ class Makdo:
             # EOF PAINTING
             self.txt.tag_add('eof_tag',
                              'end-1c', 'end')
+        self.sub.tag_remove('eof_tag', '1.0', 'end')
+        self.sub.tag_add('eof_tag', 'end-1c', 'end')
         # TO NEXT
         interval = 10
         self.win.after(interval, self.run_periodically_to_paint_line)  # NEXT
