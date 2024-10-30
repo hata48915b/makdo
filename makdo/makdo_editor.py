@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.28-12:35:49-JST>
+# Time-stamp:   <2024.10.30-22:34:43-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6042,8 +6042,8 @@ class Makdo:
                 file_path = tkinter.filedialog.asksaveasfilename(filetypes=typ)
                 if file_path == () or file_path == '':
                     return False
-                if not re.match('\\.md$', file_path):
-                    file_path += '.md'
+                # if not re.match('^(?:.|\n)\\.md$', file_path):
+                #     file_path += '.md'
                 self.file_path = file_path
                 self._set_file_name(file_path)
             if self.make_backup_file.get() and not self.has_made_backup_file:
@@ -11146,18 +11146,14 @@ class Makdo:
             if key.state == 8192 and key.keysym == 'm':
                 self.paint_out_line(self._get_v_position_of_insert() - 2)
         # FOR AKAUNI
-        if 'akauni' in self.txt.mark_names():
-            self.txt.tag_remove('akauni_tag', '1.0', 'end')
-            self.txt.tag_add('akauni_tag', 'akauni', 'insert')
-            self.txt.tag_add('akauni_tag', 'insert', 'akauni')
+        self._paint_akauni_region(self.txt, '')
+        # LAST POSITION FOR "Prior" and "Next"
         self.last_position = self.txt.get('insert')
 
     def sub_process_key_release(self, key):
         # FOR AKAUNI
-        if 'akauni' in self.sub.mark_names():
-            self.sub.tag_remove('akauni_tag', '1.0', 'end')
-            self.sub.tag_add('akauni_tag', 'akauni', 'insert')
-            self.sub.tag_add('akauni_tag', 'insert', 'akauni')
+        self._paint_akauni_region(self.sub, '')
+        # LAST POSITION FOR "Prior" and "Next"
         self.last_position = self.sub.get('insert')
         return 'break'
 
@@ -11205,15 +11201,11 @@ class Makdo:
                     self.search_forward_from_dialog(pane)
             return 'break'
         elif key.keysym == 'Left':
-            if 'akauni' in pane.mark_names():
-                pane.tag_remove('akauni_tag', '1.0', 'end')
-                pane.tag_add('akauni_tag', 'akauni', 'insert-1c')
-                pane.tag_add('akauni_tag', 'insert-1c', 'akauni')
+            self._paint_akauni_region(pane, '-1c')
+            return
         elif key.keysym == 'Right':
-            if 'akauni' in pane.mark_names():
-                pane.tag_remove('akauni_tag', '1.0', 'end')
-                pane.tag_add('akauni_tag', 'akauni', 'insert+1c')
-                pane.tag_add('akauni_tag', 'insert+1c', 'akauni')
+            self._paint_akauni_region(pane, '+1c')
+            return
         elif key.keysym == 'Up':
             if self.key_history[-2] == 'F19':
                 if pane == self.sub:
@@ -11223,10 +11215,8 @@ class Makdo:
                     self.sub.focus_set()
                     self.current_pane = 'sub'
                 return 'break'
-            if 'akauni' in pane.mark_names():
-                pane.tag_remove('akauni_tag', '1.0', 'end')
-                pane.tag_add('akauni_tag', 'akauni', 'insert-1l')
-                pane.tag_add('akauni_tag', 'insert-1l', 'akauni')
+            #self._paint_akauni_region(pane, '-1l')
+            return
         elif key.keysym == 'Down':
             if self.key_history[-2] == 'F19':
                 if pane == self.sub:
@@ -11236,10 +11226,14 @@ class Makdo:
                     self.sub.focus_set()
                     self.current_pane = 'sub'
                 return 'break'
-            if 'akauni' in pane.mark_names():
-                pane.tag_remove('akauni_tag', '1.0', 'end')
-                pane.tag_add('akauni_tag', 'akauni', 'insert+1l')
-                pane.tag_add('akauni_tag', 'insert+1l', 'akauni')
+            #self._paint_akauni_region(pane, '+1l')
+            return
+        elif key.keysym == 'Home':
+            self._paint_akauni_region(pane, ' linestart')
+            return
+        elif key.keysym == 'End':
+            self._paint_akauni_region(pane, ' lineend')
+            return
         elif key.keysym == 'F17':            # } (, calc)
             if self.key_history[-2] == 'F13':
                 self.calculate()
@@ -11440,16 +11434,10 @@ class Makdo:
                 self.key_history[-1] = ''
                 return 'break'
         elif key.keysym == 'Left':
-            if 'akauni' in pane.mark_names():
-                pane.tag_remove('akauni_tag', '1.0', 'end')
-                pane.tag_add('akauni_tag', 'akauni', 'insert-1c')
-                pane.tag_add('akauni_tag', 'insert-1c', 'akauni')
+            self._paint_akauni_region(pane, '-1c')
             return
         elif key.keysym == 'Right':
-            if 'akauni' in pane.mark_names():
-                pane.tag_remove('akauni_tag', '1.0', 'end')
-                pane.tag_add('akauni_tag', 'akauni', 'insert+1c')
-                pane.tag_add('akauni_tag', 'insert+1c', 'akauni')
+            self._paint_akauni_region(pane, '+1c')
             return
         elif key.keysym == 'Up':
             if self.key_history[-2] == 'F19':
@@ -11460,10 +11448,7 @@ class Makdo:
                     self.sub.focus_set()
                     self.current_pane = 'sub'
                 return 'break'
-            if 'akauni' in pane.mark_names():
-                pane.tag_remove('akauni_tag', '1.0', 'end')
-                pane.tag_add('akauni_tag', 'akauni', 'insert-1l')
-                pane.tag_add('akauni_tag', 'insert-1l', 'akauni')
+            #self._paint_akauni_region(pane, '-1l')
             return
         elif key.keysym == 'Down':
             if self.key_history[-2] == 'F19':
@@ -11474,10 +11459,13 @@ class Makdo:
                     self.sub.focus_set()
                     self.current_pane = 'sub'
                 return 'break'
-            if 'akauni' in pane.mark_names():
-                pane.tag_remove('akauni_tag', '1.0', 'end')
-                pane.tag_add('akauni_tag', 'akauni', 'insert+1l')
-                pane.tag_add('akauni_tag', 'insert+1l', 'akauni')
+            #self._paint_akauni_region(pane, '+1l')
+            return
+        elif key.keysym == 'Home':
+            self._paint_akauni_region(pane, ' linestart')
+            return
+        elif key.keysym == 'End':
+            self._paint_akauni_region(pane, ' lineend')
             return
         elif key.keysym == 'F22':            # f (mark, save)
             if 'akauni' in pane.mark_names():
@@ -11568,6 +11556,15 @@ class Makdo:
                     pane.mark_set('insert', 'end-1c')
             return
         return 'break'
+
+    @staticmethod
+    def _paint_akauni_region(pane, shift=''):
+        if 'akauni' in pane.mark_names():
+            pane.tag_remove('akauni_tag', '1.0', 'end')
+            if pane.compare('akauni', '<', 'insert' + shift):
+                pane.tag_add('akauni_tag', 'akauni', 'insert' + shift)
+            else:
+                pane.tag_add('akauni_tag', 'insert' + shift, 'akauni')
 
     # MOUSE BUTTON LEFT
 
