@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.31-07:39:39-JST>
+# Time-stamp:   <2024.10.31-09:01:07-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5277,7 +5277,6 @@ class Makdo:
         self.local_line_to_paint = 0
         self.key_history = ['', '', '', '', '', '', '', '', '', '',
                             '', '', '', '', '', '', '', '', '', '', '']
-        self.last_position = ''
         self.current_pane = 'txt'
         self.openai_model = 'gpt-3.5-turbo'
         self.openai_key = None
@@ -5445,8 +5444,8 @@ class Makdo:
         self.win.title(file_name + ' - MAKDO')
         self.set_file_name_on_status_bar(file_name)
 
-    def _get_v_position_of_insert(self):
-        insert_position = self.txt.index('insert')
+    def _get_v_position_of_insert(self, pane):
+        insert_position = pane.index('insert')
         insert_v_number = int(re.sub('\\.[0-9]+$', '', insert_position))
         return insert_v_number
 
@@ -5855,6 +5854,18 @@ class Makdo:
         #
         self.txt.focus_force()
         self.current_pane = 'txt'
+
+    def _get_ideal_position_index_in_line(self, pane, v_position, ideal_width):
+        i = v_position
+        line = pane.get(str(i) + '.0', str(i) + '.end')
+        line_pre, line_pos = '', ''
+        for c in line:
+            iw = get_ideal_width(line_pre + c)
+            if iw > ideal_width:
+                break
+            line_pre += c
+        j = len(line_pre)
+        return str(i) + '.' + str(j)
 
     ####################################
     # MENU
@@ -6522,7 +6533,7 @@ class Makdo:
             pane.delete(beg, end)
         self._cancel_region(pane)
         if must_cut:
-            i = self._get_v_position_of_insert() - 1
+            i = self._get_v_position_of_insert(pane) - 1
             self.paint_out_line(i)
         return True
 
@@ -6534,7 +6545,7 @@ class Makdo:
         if self._is_read_only_pane(pane):
             return False
         if self.current_pane == 'txt':
-            beg_v = self._get_v_position_of_insert()
+            beg_v = self._get_v_position_of_insert(self.txt)
         try:
             cb = self.win.clipboard_get()
         except BaseException:
@@ -6544,7 +6555,7 @@ class Makdo:
         pane.insert('insert', cb)
         # pane.yview('insert -20 line')
         if self.current_pane == 'txt':
-            end_v = self._get_v_position_of_insert()
+            end_v = self._get_v_position_of_insert(self.txt)
         if self.current_pane == 'txt':
             for i in range(beg_v - 1, end_v):
                 self.paint_out_line(i)
@@ -6604,7 +6615,7 @@ class Makdo:
             return False
         if self.rectangle_text_list == []:
             return True
-        ins_v = self._get_v_position_of_insert()
+        ins_v = self._get_v_position_of_insert(pane)
         max_v = self._get_max_v_position()
         s = pane.get(str(ins_v) + '.0', 'insert')
         ins_ih = get_ideal_width(s)
@@ -6863,7 +6874,7 @@ class Makdo:
             if re.match('^.*[0-9]{5}$', i):
                 i = re.sub('([0-9]{4})$', '万\\1', i)
         r = i + f
-        v_number = self._get_v_position_of_insert()
+        v_number = self._get_v_position_of_insert(self.txt)
         beg = str(v_number) + '.' + str(len(line_head + line_math))
         end = str(v_number) + '.' + str(len(line_head + line_math + line_rslt))
         self.txt.delete(beg, end)
@@ -9752,7 +9763,7 @@ class Makdo:
         # INSERT TEXT TO UNFOLD
         self.txt.insert('insert lineend +1c', text_d)
         # PAINT
-        beg = self._get_v_position_of_insert()
+        beg = self._get_v_position_of_insert(self.txt)
         end = beg + text_d.count('\n')
         for i in range(beg - 1, end):
             self.paint_out_line(i)
@@ -10115,17 +10126,18 @@ class Makdo:
                 key = ascii[key]
             if key == 'BackSpace':
                 pane.delete('insert-1c', 'insert')
-                self.paint_out_line(self._get_v_position_of_insert() - 1)
+                self.paint_out_line(self._get_v_position_of_insert(pane) - 1)
             elif key == 'Delete':
                 if i > 0 and self.keyboard_macro[i - 1] != 'Delete':
                     self.win.clipboard_clear()
                 self._execute_when_delete_is_pressed(pane)
-                self.paint_out_line(self._get_v_position_of_insert() - 1)
+                self.paint_out_line(self._get_v_position_of_insert(pane) - 1)
             elif key == 'Return':
                 pane.insert('insert', '\n')
                 if pane == self.txt:
-                    self.paint_out_line(self._get_v_position_of_insert() - 2)
-                    self.paint_out_line(self._get_v_position_of_insert() - 1)
+                    vp = self._get_v_position_of_insert(pane)
+                    self.paint_out_line(vp - 2)
+                    self.paint_out_line(vp - 1)
             elif key == 'Ctrl+p' or key == 'F15':
                 self.paste_region()
             elif key == 'Home':
@@ -10133,27 +10145,15 @@ class Makdo:
             elif key == 'End':
                 pane.mark_set('insert', 'insetr lineend')
             elif key == 'Up':
-                i = self._get_v_position_of_insert() - 1
-                line = pane.get(str(i) + '.0', str(i) + '.end')
-                line_pre, line_pos = '', ''
-                for c in line:
-                    ih = get_ideal_width(line_pre + c)
-                    if ih > self.keyborad_macro_h_position:
-                        break
-                    line_pre += c
-                j = len(line_pre)
-                pane.mark_set('insert', str(i) + '.' + str(j))
+                i = self._get_v_position_of_insert(pane) - 1
+                j = self.keyborad_macro_h_position
+                m = self._get_ideal_position_index_in_line(pane, i, j)
+                pane.mark_set('insert', m)
             elif key == 'Down':
-                i = self._get_v_position_of_insert() + 1
-                line = pane.get(str(i) + '.0', str(i) + '.end')
-                line_pre, line_pos = '', ''
-                for c in line:
-                    ih = get_ideal_width(line_pre + c)
-                    if ih > self.keyborad_macro_h_position:
-                        break
-                    line_pre += c
-                j = len(line_pre)
-                pane.mark_set('insert', str(i) + '.' + str(j))
+                i = self._get_v_position_of_insert(pane) + 1
+                j = self.keyborad_macro_h_position
+                m = self._get_ideal_position_index_in_line(pane, i, j)
+                pane.mark_set('insert', m)
             elif key == 'Left':
                 pane.mark_set('insert', 'insert-1c')
             elif key == 'Right':
@@ -10164,7 +10164,7 @@ class Makdo:
                 pane.mark_set('akauni', 'insert')
             else:
                 pane.insert('insert', key)
-                self.paint_out_line(self._get_v_position_of_insert() - 1)
+                self.paint_out_line(self._get_v_position_of_insert(pane) - 1)
             if key != 'Up' and key != 'Down':
                 self.keyborad_macro_h_position \
                     = self._get_ideal_h_position_of_insert(pane)
@@ -11142,22 +11142,18 @@ class Makdo:
     def txt_process_key_release(self, key):
         is_read_only = self.is_read_only.get()
         if not is_read_only:
-            self.paint_out_line(self._get_v_position_of_insert() - 1)
+            vp = self._get_v_position_of_insert(self.txt)
+            self.paint_out_line(vp - 1)
             if key.keysym == 'Return':
-                self.paint_out_line(self._get_v_position_of_insert() - 2)
-            # FOR AKAUNI
-            if key.state == 8192 and key.keysym == 'm':
-                self.paint_out_line(self._get_v_position_of_insert() - 2)
+                self.paint_out_line(vp - 2)
+            elif key.state == 8192 and key.keysym == 'm': # for akauni
+                self.paint_out_line(vp - 2)
         # FOR AKAUNI
         self._paint_akauni_region(self.txt, '')
-        # LAST POSITION FOR "Prior" and "Next"
-        self.last_position = self.txt.get('insert')
 
     def sub_process_key_release(self, key):
         # FOR AKAUNI
         self._paint_akauni_region(self.sub, '')
-        # LAST POSITION FOR "Prior" and "Next"
-        self.last_position = self.sub.get('insert')
         return 'break'
 
     def read_and_write_process_key(self, pane, key):
@@ -11218,8 +11214,15 @@ class Makdo:
                     self.sub.focus_set()
                     self.current_pane = 'sub'
                 return 'break'
-            #self._paint_akauni_region(pane, '-1l')
-            return
+            if self.key_history[-2] != 'Up':
+                self.ideal_h_position \
+                    = self._get_ideal_h_position_of_insert(pane)
+            i = self._get_v_position_of_insert(pane) - 1
+            j = self.ideal_h_position
+            m = self._get_ideal_position_index_in_line(pane, i, j)
+            pane.mark_set('insert', m)
+            self._paint_akauni_region(pane, '')
+            return 'break'
         elif key.keysym == 'Down':
             if self.key_history[-2] == 'F19':
                 if pane == self.sub:
@@ -11229,14 +11232,46 @@ class Makdo:
                     self.sub.focus_set()
                     self.current_pane = 'sub'
                 return 'break'
-            #self._paint_akauni_region(pane, '+1l')
-            return
+            if self.key_history[-2] != 'Down':
+                self.ideal_h_position \
+                    = self._get_ideal_h_position_of_insert(pane)
+            i = self._get_v_position_of_insert(pane) + 1
+            j = self.ideal_h_position
+            m = self._get_ideal_position_index_in_line(pane, i, j)
+            pane.mark_set('insert', m)
+            self._paint_akauni_region(pane, '')
+            return 'break'
         elif key.keysym == 'Home':
-            self._paint_akauni_region(pane, ' linestart')
-            return
+            if self.key_history[-2] != 'Home':
+                self.ideal_h_position \
+                    = self._get_ideal_h_position_of_insert(pane)
+            if self.ideal_h_position - 100 >= 0:
+                self.ideal_h_position -= 100
+            else:
+                self.ideal_h_position = 0
+            i = self._get_v_position_of_insert(pane)
+            j = self.ideal_h_position
+            m = self._get_ideal_position_index_in_line(pane, i, j)
+            pane.mark_set('insert', m)
+            self._paint_akauni_region(pane, '')
+            return 'break'
         elif key.keysym == 'End':
-            self._paint_akauni_region(pane, ' lineend')
-            return
+            if self.key_history[-2] != 'End':
+                self.ideal_h_position \
+                    = self._get_ideal_h_position_of_insert(pane)
+            vp = self._get_v_position_of_insert(pane)
+            line = pane.get(str(vp) + '.0', str(vp) + '.end')
+            max_width = get_ideal_width(line)
+            if self.ideal_h_position + 100 <= max_width:
+                self.ideal_h_position += 100
+            else:
+                self.ideal_h_position = max_width
+            i = self._get_v_position_of_insert(pane)
+            j = self.ideal_h_position
+            m = self._get_ideal_position_index_in_line(pane, i, j)
+            pane.mark_set('insert', m)
+            self._paint_akauni_region(pane, '')
+            return 'break'
         elif key.keysym == 'F17':            # } (, calc)
             if self.key_history[-2] == 'F13':
                 self.calculate()
@@ -11400,13 +11435,35 @@ class Makdo:
                         pane.mark_set('insert', posi)
                         return 'break'
         elif key.keysym == 'Prior':
-            if self.key_history[-2] == 'Prior':
-                if self.last_position == pane.get('insert'):
-                    pane.mark_set('insert', '1.0')
+            if self.key_history[-2] != 'Prior':
+                self.ideal_h_position \
+                    = self._get_ideal_h_position_of_insert(pane)
+            i = self._get_v_position_of_insert(pane)
+            if i - 100 >= 0:
+                i -= 100
+            else:
+                i = 0
+            j = self.ideal_h_position
+            m = self._get_ideal_position_index_in_line(pane, i, j)
+            pane.mark_set('insert', m)
+            self._paint_akauni_region(pane, '')
+            return 'break'
         elif key.keysym == 'Next':
-            if self.key_history[-2] == 'Next':
-                if self.last_position == pane.get('insert'):
-                    pane.mark_set('insert', 'end-1c')
+            if self.key_history[-2] != 'Next':
+                self.ideal_h_position \
+                    = self._get_ideal_h_position_of_insert(pane)
+            end = pane.index('end-1c')
+            max_height = int(re.sub('\\.[0-9]+$', '', end))
+            i = self._get_v_position_of_insert(pane)
+            if i + 100 <= max_height:
+                i += 100
+            else:
+                i = max_height
+            j = self.ideal_h_position
+            m = self._get_ideal_position_index_in_line(pane, i, j)
+            pane.mark_set('insert', m)
+            self._paint_akauni_region(pane, '')
+            return 'break'
         elif key.keysym == 'Escape':
             self.set_message_on_status_bar('"Esc"が押されました．')
 
@@ -11451,8 +11508,15 @@ class Makdo:
                     self.sub.focus_set()
                     self.current_pane = 'sub'
                 return 'break'
-            #self._paint_akauni_region(pane, '-1l')
-            return
+            if self.key_history[-2] != 'Up':
+                self.ideal_h_position \
+                    = self._get_ideal_h_position_of_insert(pane)
+            i = self._get_v_position_of_insert(pane) - 1
+            j = self.ideal_h_position
+            m = self._get_ideal_position_index_in_line(pane, i, j)
+            pane.mark_set('insert', m)
+            self._paint_akauni_region(pane, '')
+            return 'break'
         elif key.keysym == 'Down':
             if self.key_history[-2] == 'F19':
                 if pane == self.sub:
@@ -11462,14 +11526,46 @@ class Makdo:
                     self.sub.focus_set()
                     self.current_pane = 'sub'
                 return 'break'
-            #self._paint_akauni_region(pane, '+1l')
-            return
+            if self.key_history[-2] != 'Down':
+                self.ideal_h_position \
+                    = self._get_ideal_h_position_of_insert(pane)
+            i = self._get_v_position_of_insert(pane) + 1
+            j = self.ideal_h_position
+            m = self._get_ideal_position_index_in_line(pane, i, j)
+            pane.mark_set('insert', m)
+            self._paint_akauni_region(pane, '')
+            return 'break'
         elif key.keysym == 'Home':
-            self._paint_akauni_region(pane, ' linestart')
-            return
+            if self.key_history[-2] != 'Home':
+                self.ideal_h_position \
+                    = self._get_ideal_h_position_of_insert(pane)
+            if self.ideal_h_position - 100 >= 0:
+                self.ideal_h_position -= 100
+            else:
+                self.ideal_h_position = 0
+            i = self._get_v_position_of_insert(pane)
+            j = self.ideal_h_position
+            m = self._get_ideal_position_index_in_line(pane, i, j)
+            pane.mark_set('insert', m)
+            self._paint_akauni_region(pane, '')
+            return 'break'
         elif key.keysym == 'End':
-            self._paint_akauni_region(pane, ' lineend')
-            return
+            if self.key_history[-2] != 'End':
+                self.ideal_h_position \
+                    = self._get_ideal_h_position_of_insert(pane)
+            vp = self._get_v_position_of_insert(pane)
+            line = pane.get(str(vp) + '.0', str(vp) + '.end')
+            max_width = get_ideal_width(line)
+            if self.ideal_h_position + 100 <= max_width:
+                self.ideal_h_position += 100
+            else:
+                self.ideal_h_position = max_width
+            i = self._get_v_position_of_insert(pane)
+            j = self.ideal_h_position
+            m = self._get_ideal_position_index_in_line(pane, i, j)
+            pane.mark_set('insert', m)
+            self._paint_akauni_region(pane, '')
+            return 'break'
         elif key.keysym == 'F22':            # f (mark, save)
             if 'akauni' in pane.mark_names():
                 pane.mark_unset('akauni')
@@ -11549,15 +11645,35 @@ class Makdo:
         # elif key.char == '\x1a':  # Ctrl+Z
         #     self.edit_modified_undo()
         elif key.keysym == 'Prior':
-            if self.key_history[-2] == 'Prior':
-                if self.last_position == pane.get('insert'):
-                    pane.mark_set('insert', '1.0')
-            return
+            if self.key_history[-2] != 'Prior':
+                self.ideal_h_position \
+                    = self._get_ideal_h_position_of_insert(pane)
+            i = self._get_v_position_of_insert(pane)
+            if i - 100 >= 0:
+                i -= 100
+            else:
+                i = 0
+            j = self.ideal_h_position
+            m = self._get_ideal_position_index_in_line(pane, i, j)
+            pane.mark_set('insert', m)
+            self._paint_akauni_region(pane, '')
+            return 'break'
         elif key.keysym == 'Next':
-            if self.key_history[-2] == 'Next':
-                if self.last_position == pane.get('insert'):
-                    pane.mark_set('insert', 'end-1c')
-            return
+            if self.key_history[-2] != 'Next':
+                self.ideal_h_position \
+                    = self._get_ideal_h_position_of_insert(pane)
+            end = pane.index('end-1c')
+            max_height = int(re.sub('\\.[0-9]+$', '', end))
+            i = self._get_v_position_of_insert(pane)
+            if i + 100 <= max_height:
+                i += 100
+            else:
+                i = max_height
+            j = self.ideal_h_position
+            m = self._get_ideal_position_index_in_line(pane, i, j)
+            pane.mark_set('insert', m)
+            self._paint_akauni_region(pane, '')
+            return 'break'
         return 'break'
 
     @staticmethod
