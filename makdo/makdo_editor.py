@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.31-09:01:07-JST>
+# Time-stamp:   <2024.10.31-10:09:09-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -11150,10 +11150,45 @@ class Makdo:
                 self.paint_out_line(vp - 2)
         # FOR AKAUNI
         self._paint_akauni_region(self.txt, '')
+        # SCROLL
+        if key.keysym == 'Up' or key.keysym == 'Down' or \
+           key.keysym == 'Prior' or key.keysym == 'Next' or \
+           (key.state == 8192 and key.keysym == 'r') or \
+           (key.state == 8192 and key.keysym == 'n') or \
+           (key.state == 8192 and key.keysym == 'bracketleft') or \
+           (key.state == 8192 and key.keysym == 'bracketright'):
+            p = self.txt.index('@0,0')
+            h_min = int(re.sub('\\.[0-9]+$', '', p))
+            p = self.txt.index('@1000000,1000000')
+            h_max = int(re.sub('\\.[0-9]+$', '', p)) - 1
+            p = self.txt.index('insert')
+            h_cur = int(re.sub('\\.[0-9]+$', '', p))
+            if h_cur < h_min:
+                self.txt.yview('insert')
+            elif h_cur >= h_max:
+                self.txt.yview('insert-' + str(h_max - h_min) + 'l')
 
     def sub_process_key_release(self, key):
         # FOR AKAUNI
         self._paint_akauni_region(self.sub, '')
+        # SCROLL
+        if key.keysym == 'Up' or key.keysym == 'Down' or \
+           key.keysym == 'Prior' or key.keysym == 'Next' or \
+           (key.state == 8192 and key.keysym == 'r') or \
+           (key.state == 8192 and key.keysym == 'n') or \
+           (key.state == 8192 and key.keysym == 'bracketleft') or \
+           (key.state == 8192 and key.keysym == 'bracketright'):
+            p = self.sub.index('@0,0')
+            h_min = int(re.sub('\\.[0-9]+$', '', p))
+            p = self.sub.index('@1000000,1000000')
+            h_max = int(re.sub('\\.[0-9]+$', '', p)) - 1
+            p = self.sub.index('insert')
+            h_cur = int(re.sub('\\.[0-9]+$', '', p))
+            if h_cur < h_min:
+                self.sub.yview('insert')
+            elif h_cur >= h_max:
+                self.sub.yview('insert-' + str(h_max - h_min) + 'l')
+        # BREAK
         return 'break'
 
     def read_and_write_process_key(self, pane, key):
