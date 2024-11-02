@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.01-08:28:54-JST>
+# Time-stamp:   <2024.11.03-01:26:19-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5841,10 +5841,14 @@ class Makdo:
         self.sub.mark_set('insert', '1.0')
         # self.sub.configure(state='disabled')
         #
-        self.txt.focus_set()
+        self.txt.focus_force()
         self.current_pane = 'txt'
+        #
+        self._put_back_cursor_to_pane(self.txt)
 
     def _close_sub_pane(self):
+        if len(self.pnd.panes()) == 1:
+            return False
         self.quit_editing_formula()
         self.update_memo_pad()
         self.memo_pad_memory = None
@@ -5856,6 +5860,8 @@ class Makdo:
         #
         self.txt.focus_force()
         self.current_pane = 'txt'
+        #
+        return True
 
     @staticmethod
     def _put_back_cursor_to_pane(pane):
@@ -9038,8 +9044,8 @@ class Makdo:
                          command=self.open_memo_pad)
         menu.add_separator()
         #
-        menu.add_command(label='画面を二つに分割・統合',
-                         command=self.split_or_unify_window)
+        menu.add_command(label='画面を二つに分割',
+                         command=self.split_window)
         menu.add_separator()
         #
         menu.add_command(label='別ファイルの内容を見る',
@@ -9073,6 +9079,10 @@ class Makdo:
             menu.add_command(label='epwing形式の辞書で調べる',
                              command=self.look_in_dictionary)
             menu.add_separator()
+        #
+        menu.add_command(label='サブウィンドウを閉じる',
+                         command=self._close_sub_pane)
+        menu.add_separator()
         #
         menu.add_command(label='コマンドを入力して実行',
                          command=self.start_minibuffer,
@@ -9356,14 +9366,10 @@ class Makdo:
 
     # SPLIT OR UNIFY WINDOW
 
-    def split_or_unify_window(self):
-        if len(self.pnd.panes()) == 1:
-            # SPLIT
-            document = self.txt.get('1.0', 'end-1c')
-            self._open_sub_pane(document)
-        else:
-            # UNIFY
-            self._close_sub_pane()
+    def split_window(self):
+        self._close_sub_pane()
+        document = self.txt.get('1.0', 'end-1c')
+        self._open_sub_pane(document)
 
     def show_file(self):
         typ = [('読み込み可能なファイル', '.docx .md .txt .xlsx .csv')]
@@ -10218,6 +10224,7 @@ class Makdo:
         commands = ['help',
                     'ask-openai',
                     'change-typeface',
+                    'close-sub-window',
                     'comment-out-region',
                     'compare-with-previous-draft',
                     'edit-formula1', 'edit-formula2', 'edit-formula3',
@@ -10241,7 +10248,7 @@ class Makdo:
                     'search', 'search-backward', 'search-forward',
                     'sort-lines',
                     'sort-lines-in-reverse-order',
-                    'split-or-unify-window',
+                    'split-window',
                     'toggle-read-only',
                     'uncomment-in-region',
                     'unfold-section-fully',
@@ -10258,6 +10265,8 @@ class Makdo:
             '　OpenAIに質問\n' + \
             'change-typeface\n' + \
             '　字体を変える\n' + \
+            'close-sub-window\n' + \
+            '　サブウィンドウを閉じる\n' + \
             'comment-out-region\n' + \
             '　指定範囲をコメントアウト\n' + \
             'compare-with-previous-draft\n' + \
@@ -10300,7 +10309,7 @@ class Makdo:
             '　選択範囲の行を正順にソート\n' + \
             'sort-lines-in-reverse-order\n' + \
             '　選択範囲の行を逆順にソート\n' + \
-            'split-or-unify-window\n' + \
+            'split-window\n' + \
             '　画面を分割又は統合\n' + \
             'toggle-read-only\n' + \
             '　読取専用を指定又は解除\n' + \
@@ -10360,6 +10369,8 @@ class Makdo:
                 self.mother.ask_openai(self)
             elif com == 'change-typeface':
                 self.mother.change_typeface()
+            elif com == 'close-sub-window':
+                self.mother._close_sub_pane()
             elif com == 'comment-out-region':
                 self.mother.comment_out_region()
             elif com == 'compare-with-previous-draft':
@@ -10436,8 +10447,8 @@ class Makdo:
                 self.mother.sort_lines()
             elif com == 'sort-lines-in-reverse-order':
                 self.mother.sort_lines_in_reverse_order()
-            elif com == 'split-or-unify-window':
-                self.mother.split_or_unify_window()
+            elif com == 'split-window':
+                self.mother.split_window()
             elif com == 'toggle-read-only':
                 is_read_only = self.mother.is_read_only.get()
                 if is_read_only:
