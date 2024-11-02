@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.03-01:26:19-JST>
+# Time-stamp:   <2024.11.03-01:32:46-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -11327,6 +11327,9 @@ class Makdo:
                 pane.tag_remove('akauni_tag', '1.0', 'end')
                 pane.mark_unset('akauni')
                 return 'break'
+        elif key.keysym == 'BackSpace':      # h (backspace)
+            if self.key_history[-2] == 'F19':
+                self.split_window()
         elif key.keysym == 'F15':            # g (paste)
             if self.key_history[-2] == 'F13':
                 self.paste_rectangle()
