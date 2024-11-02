@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.03-01:32:46-JST>
+# Time-stamp:   <2024.11.03-08:18:21-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4177,6 +4177,32 @@ def adjust_line(document):
 ############################################################
 # SIMPLE DAILOG
 
+class Days:
+
+    def __init__(self, date):
+        res = '([MTSHR]?)([0-9]+)-([0-9]+)-([0-9]+)'
+        era = re.sub(res, '\\1', date)
+        yea = re.sub(res, '\\2', date)
+        mon = re.sub(res, '\\3', date)
+        day = re.sub(res, '\\4', date)
+        if era == 'M':
+            yea = str(int(yea) + 1867)
+        elif era == 'T':
+            yea = str(int(yea) + 1911)
+        elif era == 'S':
+            yea = str(int(yea) + 1925)
+        elif era == 'H':
+            yea = str(int(yea) + 1988)
+        elif era == 'R':
+            yea = str(int(yea) + 2018)
+        if int(yea) < 100:
+            yea = str(int(yea) + 2000)
+        ymd_hms = yea + '-' + mon + '-' + day + ' 09:00:00 UTC'
+        date = datetime.datetime.strptime(ymd_hms, '%Y-%m-%d %H:%M:%S %Z')
+        unix_time = date.timestamp()
+        self.days = round(unix_time / 86400)
+
+
 class OneWordDialog(tkinter.simpledialog.Dialog):
 
     def __init__(self, pane, mother, title, prompt, init=''):
@@ -6805,6 +6831,12 @@ class Makdo:
         if line_math == '':
             return
         math = line_math
+        res = '^(.*)days\\(([MTSHR]?[0-9]+-[0-9]+-[0-9]+)\\)(.*)$'
+        while re.match(res, math):
+            pre = re.sub(res, '\\1', math)
+            dat = re.sub(res, '\\2', math)
+            pos = re.sub(res, '\\3', math)
+            math = pre + str(Days(dat).days) + pos
         math = math.replace('\t', ' ').replace('\u3000', ' ')
         math = math.replace('，', ',').replace('．', '.')
         math = math.replace('０', '0').replace('１', '1').replace('２', '2')
