@@ -1,7 +1,7 @@
 import sys
 from setuptools import setup
 
-VERSION = '07.14'
+VERSION = '07.15'
 
 INSTALL_REQUIRES = ['python-docx', 'chardet', 'tkinterdnd2', 'openpyxl', 'openai', 'Levenshtein']
 if sys.platform == 'win32':
