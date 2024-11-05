@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.05-09:45:37-JST>
+# Time-stamp:   <2024.11.05-10:31:29-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -10116,7 +10116,6 @@ class Makdo:
         else:
             m = []
         m.append({'role': 'user', 'content': q})
-        print(m)
         res = openai.OpenAI(api_key=ok).chat.completions.create(
             model=self.openai_model,
             n=1, max_tokens=1000,
