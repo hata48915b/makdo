@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.03-08:18:21-JST>
+# Time-stamp:   <2024.11.05-09:45:37-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -9098,8 +9098,10 @@ class Makdo:
         #
         menu.add_command(label='OpenAIに質問',
                          command=self.ask_openai)
+        menu.add_command(label='OpenAIの履歴を見る',
+                         command=self.show_openai_history)
         menu.add_command(label='OpenAIの履歴を消去',
-                         command=self.reset_openai)
+                         command=self.reset_openai_history)
         menu.add_separator()
         #
         menu.add_command(label='キーボードマクロを実行',
@@ -10086,36 +10088,49 @@ class Makdo:
         q = re.sub('\n$', '', q)
         pos = self.txt.index('insert')
         self.set_message_on_status_bar('質問しています', True)
+        if os.path.exists(self.openai_file):
+            m = []
+            with open(self.openai_file, 'r') as of:
+                is_in_qestion, que, ans = True, '', ''
+                for line in of:
+                    if line == ('-' * MD_TEXT_WIDTH) + '\n':
+                        is_in_qestion = True
+                        if ans != '':
+                            ans = re.sub('^\n+', '', ans)
+                            ans = re.sub('\n+$', '', ans)
+                            m.append({'role': 'assistant', 'content': ans})
+                        que, ans = '', ''
+                        continue
+                    elif line == ('-' * (MD_TEXT_WIDTH // 2)) + '\n':
+                        is_in_qestion = False
+                        if que != '':
+                            que = re.sub('^\n+', '', que)
+                            que = re.sub('\n+$', '', que)
+                            m.append({'role': 'user', 'content': que})
+                        que, ans = '', ''
+                        continue
+                    if is_in_qestion:
+                        que += line
+                    else:
+                        ans += line
+        else:
+            m = []
+        m.append({'role': 'user', 'content': q})
+        print(m)
         res = openai.OpenAI(api_key=ok).chat.completions.create(
             model=self.openai_model,
             n=1, max_tokens=1000,
-            messages=[{'role': 'user', 'content': q}],
+            messages=m,
         )
         self.set_message_on_status_bar('')
-        #
-        self.quit_editing_formula()
-        self.close_memo_pad()
-        self.pnd.update()
-        half_height = int(self.pnd.winfo_height() / 2) - 5
-        self.pnd.remove(self.pnd1)
-        self.pnd.remove(self.pnd2)
-        self.pnd.remove(self.pnd3)
-        self.pnd.remove(self.pnd4)
-        self.pnd.remove(self.pnd5)
-        self.pnd.remove(self.pnd6)
-        self.pnd.add(self.pnd1, height=half_height, minsize=100)
-        self.pnd.add(self.pnd2, height=half_height)
-        self.pnd.update()
-        #
-        self.sub.pack(expand=True, fill=tkinter.BOTH)
-        for key in self.txt.configure():
-            self.sub.configure({key: self.txt.cget(key)})
-        self.sub_btn.pack()
         #
         md = ''
         for c in res.choices:
             n = adjust_line(c.message.content)
-            md = '# ' + q + '\n\n' + n + '\n\n' + '-' * MD_TEXT_WIDTH + '\n\n'
+            md = q + '\n\n' \
+                + '-' * (MD_TEXT_WIDTH // 2) + '\n\n' \
+                + n + '\n\n' \
+                + '-' * MD_TEXT_WIDTH + '\n\n'
         if os.path.exists(self.openai_file):
             try:
                 with open(self.openai_file, 'r') as of:
@@ -10130,15 +10145,19 @@ class Makdo:
             pass
         os.chmod(self.openai_file, 0o600)
         #
-        self.sub.delete('1.0', 'end')
-        self.sub.insert('1.0', md)
-        self.sub.mark_set('insert', '1.0')
-        # self.sub.configure(state='disabled')
-        #
-        self.txt.focus_force()
-        self.current_pane = 'txt'
+        self.show_openai_history()
 
-    def reset_openai(self):
+    def show_openai_history(self):
+        if not os.path.exists(self.openai_file):
+            return False
+        try:
+            with open(self.openai_file, 'r') as of:
+                document = of.read()
+        except BaseException:
+            pass
+        self._open_sub_pane(document)
+
+    def reset_openai_history(self):
         t = 'OpenAIの履歴の削除'
         m = 'OpenAIの履歴を削除しますか'
         if tkinter.messagebox.askyesno(t, m, default='no'):
