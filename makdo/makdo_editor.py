@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.05-10:31:29-JST>
+# Time-stamp:   <2024.11.05-16:25:11-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6569,6 +6569,7 @@ class Makdo:
         word1 = self.stb_sor1.get()
         if Makdo.search_word == word1:
             self._highlight_search_word()
+        self.set_message_on_status_bar('元に戻しました（undo）')
 
     def edit_modified_redo(self):
         if self.current_pane == 'sub':
@@ -6582,6 +6583,7 @@ class Makdo:
         word1 = self.stb_sor1.get()
         if Makdo.search_word == word1:
             self._highlight_search_word()
+        self.set_message_on_status_bar('やり直しました（redo）')
 
     def cut_region(self):
         self._cut_or_copy_region(True)
