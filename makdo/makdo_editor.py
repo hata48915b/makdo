@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.05-16:25:11-JST>
+# Time-stamp:   <2024.11.07-11:36:55-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5617,7 +5617,7 @@ class Makdo:
             # ...
             encoding = 'SHIFT_JIS'
             n = '警告'
-            m = '文字コードを「SHIFT_JIS」に修正しました'
+            m = '文字コードを「SHIFT_JIS」に修正しました．'
             tkinter.messagebox.showwarning(n, m)
         return encoding
 
@@ -5789,7 +5789,7 @@ class Makdo:
 
     def _is_read_only_pane(self, pane):
         if pane == self.sub:
-            if self.formula_number <= 0 and self.memo_pad_memory is None:
+            if self.sub_pane_is_read_only:
                 return True
             else:
                 return False
@@ -5840,9 +5840,11 @@ class Makdo:
             return position2, position1
         return position1, position2
 
-    def _open_sub_pane(self, document):
-        self.quit_editing_formula()
-        self.close_memo_pad()
+    def _open_sub_pane(self, document, is_read_only=True):
+        self.sub_pane_is_read_only = is_read_only
+        #
+        # self.quit_editing_formula()
+        # self.close_memo_pad()
         self.pnd.update()
         half_height = int(self.pnd.winfo_height() / 2) - 5
         self.pnd.remove(self.pnd1)
@@ -5855,22 +5857,23 @@ class Makdo:
         self.pnd.add(self.pnd2, height=half_height)
         self.pnd.update()
         #
+        self.sub_btn.pack(side='top')
         self.sub_scb.pack(side=tkinter.RIGHT, fill=tkinter.Y)
         self.sub.pack(expand=True, fill=tkinter.BOTH)
         for key in self.txt.configure():
             self.sub.configure({key: self.txt.cget(key)})
         self.sub['yscrollcommand'] = self.sub_scb.set
-        self.sub_btn.pack()
         #
         self.sub.delete('1.0', 'end')
         self.sub.insert('1.0', document)
         self.sub.mark_set('insert', '1.0')
         # self.sub.configure(state='disabled')
         #
-        self.txt.focus_force()
-        self.current_pane = 'txt'
-        #
         self._put_back_cursor_to_pane(self.txt)
+        self.sub.focus_force()
+        self.current_pane = 'sub'
+        # self.txt.focus_force()
+        # self.current_pane = 'txt'
 
     def _close_sub_pane(self):
         if len(self.pnd.panes()) == 1:
@@ -5942,6 +5945,19 @@ class Makdo:
             self.current_pane = 'txt'
         self.key_history[-1] = ''
 
+    @staticmethod
+    def _save_config_file(file_path, contents):
+        try:
+            os.rename(file_path, file_path + '~')
+        except BaseException:
+            pass
+        try:
+            with open(file_path, 'w') as f:
+                f.write(contents)
+        except BaseException:
+            pass
+        os.chmod(file_path, 0o600)
+
     ####################################
     # MENU
 
@@ -5954,6 +5970,7 @@ class Makdo:
         self._make_menu_tool()
         self._make_menu_configuration()
         self._make_menu_internet()
+        self._make_menu_special()
         self._make_menu_help()
         self.win['menu'] = self.mnb
 
@@ -9173,6 +9190,8 @@ class Makdo:
         m = '編集する定型句を選んでください．'
         fd = self.FormulaDialog(self.txt, self, t, m)
         self.formula_number = fd.get_value()
+        if self.formula_number == '':
+            self.formula_number = -1
         self._edit_formula()
 
     def _edit_formula(self):
@@ -9188,32 +9207,7 @@ class Makdo:
         except BaseException:
             return
         #
-        self.close_memo_pad()
-        self.pnd.update()
-        half_height = int(self.pnd.winfo_height() / 2) - 5
-        self.pnd.remove(self.pnd1)
-        self.pnd.remove(self.pnd2)
-        self.pnd.remove(self.pnd3)
-        self.pnd.remove(self.pnd4)
-        self.pnd.remove(self.pnd5)
-        self.pnd.remove(self.pnd6)
-        self.pnd.add(self.pnd1, height=half_height, minsize=100)
-        self.pnd.add(self.pnd2, height=half_height)
-        self.pnd.update()
-        #
-        self.sub_scb.pack(side=tkinter.RIGHT, fill=tkinter.Y)
-        self.sub.pack(expand=True, fill=tkinter.BOTH)
-        for key in self.txt.configure():
-            self.sub.configure({key: self.txt.cget(key)})
-        self.sub['yscrollcommand'] = self.sub_scb.set
-        self.sub_btn.pack()
-        #
-        self.sub.delete('1.0', 'end')
-        self.sub.insert('1.0', formula)
-        self.sub.mark_set('insert', '1.0')
-        self.current_pane = 'sub'
-        self.sub.focus_set()
-        self.current_pane = 'sub'
+        self._open_sub_pane(formula, False)
 
     def edit_formula1(self):
         self.quit_editing_formula()
@@ -9246,17 +9240,8 @@ class Makdo:
         n = self.formula_number
         self.formula_number = -1
         formula_path = CONFIG_DIR + '/formula' + str(n) + '.md'
-        try:
-            os.rename(formula_path, formula_path + '~')
-        except BaseException:
-            pass
-        try:
-            with open(formula_path, 'w') as f:
-                a = self.sub.get('1.0', 'end-1c')
-                f.write(a)
-        except BaseException:
-            return False
-        os.chmod(formula_path, 0o600)
+        contents = self.sub.get('1.0', 'end-1c')
+        self._save_config_file(formula_path, contents)
         return True
 
     class FormulaDialog(tkinter.simpledialog.Dialog):
@@ -9334,29 +9319,7 @@ class Makdo:
         except BaseException:
             return False
         #
-        self.quit_editing_formula()
-        self.pnd.update()
-        half_height = int(self.pnd.winfo_height() / 2) - 5
-        self.pnd.remove(self.pnd1)
-        self.pnd.remove(self.pnd2)
-        self.pnd.remove(self.pnd3)
-        self.pnd.remove(self.pnd4)
-        self.pnd.remove(self.pnd5)
-        self.pnd.remove(self.pnd6)
-        self.pnd.add(self.pnd1, height=half_height, minsize=100)
-        self.pnd.add(self.pnd2, height=half_height)
-        self.pnd.update()
-        #
-        self.sub.pack(expand=True, fill=tkinter.BOTH)
-        for key in self.txt.configure():
-            self.sub.configure({key: self.txt.cget(key)})
-        self.sub_btn.pack()
-        #
-        self.sub.delete('1.0', 'end')
-        self.sub.insert('1.0', self.memo_pad_memory)
-        self.sub.mark_set('insert', '1.0')
-        self.txt.focus_force()
-        self.current_pane = 'txt'
+        self._open_sub_pane(self.memo_pad_memory, False)
 
     def update_memo_pad(self):
         memo_pad_memory = self.memo_pad_memory
@@ -9366,19 +9329,8 @@ class Makdo:
         # DISPLAY
         memo_pad_display = self.sub.get('1.0', 'end-1c')
         if memo_pad_display != memo_pad_memory:
-            # MEMORY
             self.memo_pad_memory = memo_pad_display
-            # FILE
-            try:
-                os.rename(memo_pad_path, memo_pad_path + '~')
-            except BaseException:
-                pass
-            try:
-                with open(memo_pad_path, 'w') as f:
-                    f.write(memo_pad_display)
-            except BaseException:
-                return False
-            os.chmod(memo_pad_path, 0o600)
+            self._save_config_file(memo_pad_path, memo_pad_display)
             return True
         # FILE
         if not os.path.exists(memo_pad_path):
@@ -10417,6 +10369,8 @@ class Makdo:
             elif com == 'help':
                 tkinter.messagebox.showinfo('ヘルプ', self.help_message)
                 Makdo.MiniBuffer(self, self.mother)
+            elif com == 'ask-llama':
+                self.mother.open_llama()
             elif com == 'ask-openai':
                 self.mother.ask_openai(self)
             elif com == 'change-typeface':
@@ -10844,14 +10798,16 @@ class Makdo:
                             Makdo.file_make_backup_file = True
                         elif valu == 'False':
                             Makdo.file_make_backup_file = False
-                    elif item == 'openai_model':
-                        self.openai_model = valu
-                    elif item == 'openai_key':
-                        self.openai_key = valu
                     elif item == 'onedrive_directory':
                         self.onedrive_directory = valu
                     elif item == 'dict_directory':
                         self.dict_directory = valu
+                    elif item == 'openai_model':
+                        self.openai_model = valu
+                    elif item == 'openai_key':
+                        self.openai_key = valu
+                    elif item == 'llama_model_file':
+                        self.llama_model_file = valu
 
     def set_dict_directory(self):
         od = self.dict_directory
@@ -10882,12 +10838,6 @@ class Makdo:
                     + str(self.digit_separator.get()) + '\n')
             f.write('make_backup_file:       '
                     + str(self.make_backup_file.get()) + '\n')
-            if self.openai_model is not None:
-                f.write('openai_model:           '
-                        + self.openai_model + '\n')
-            if self.openai_key is not None:
-                f.write('openai_key:             '
-                        + self.openai_key + '\n')
             if self.onedrive_directory is not None:
                 f.write('onedrive_directory:     '
                         + self.onedrive_directory + '\n')
@@ -10895,6 +10845,15 @@ class Makdo:
                 if self.dict_directory is not None:
                     f.write('dict_directory:         '
                             + self.dict_directory + '\n')
+            if self.openai_model is not None:
+                f.write('openai_model:           '
+                        + self.openai_model + '\n')
+            if self.openai_key is not None:
+                f.write('openai_key:             '
+                        + self.openai_key + '\n')
+            if self.llama_model_file is not None:
+                f.write('llama_model_file:       '
+                        + self.llama_model_file + '\n')
             self.set_message_on_status_bar('設定を保存しました')
         os.chmod(CONFIG_FILE, 0o400)
 
@@ -11073,6 +11032,34 @@ class Makdo:
         webbrowser.open('https://www.mints.courts.go.jp/user/')
 
     ##########################
+
+    def _make_menu_special(self):
+        menu = tkinter.Menu(self.mnb, tearoff=False)
+        self.mnb.add_cascade(label='秘技(Z)', menu=menu, underline=3)
+        menu.add_command(label='llamaに質問',
+                         command=self.open_llama)
+        menu.add_command(label='llamaのモデルファイルを設定',
+                         command=self.set_llama_model_file)
+
+    @staticmethod
+    def _show_message_reducing_functions():
+        n = '警告'
+        m = 'この機能は使用できません．\n\n' \
+            + '実行ファイル形式は、\n' \
+            + '起動を早くするため、\n' \
+            + '機能の一部を落としています．'
+        tkinter.messagebox.showwarning(n, m)
+
+    def open_llama(self):
+        self._show_message_reducing_functions()
+
+    def set_llama_model_file(self):
+        self._show_message_reducing_functions()
+
+    def execute_job_of_sub_pane(self):
+        return
+
+    ##########################
     # MENU HELP
 
     def _make_menu_help(self):
@@ -11237,7 +11224,7 @@ class Makdo:
         if key.keysym == 'Escape':
             self._close_sub_pane()
             return 'break'
-        if self.formula_number < 0 and self.memo_pad_memory is None:
+        if self.sub_pane_is_read_only:
             return self.read_only_process_key(self.sub, key)
         else:
             return self.read_and_write_process_key(self.sub, key)
@@ -11330,6 +11317,11 @@ class Makdo:
             self._paint_akauni_region(pane, '')
             return 'break'
         elif key.keysym == 'Next':
+            #if self.current_pane == 'sub' and self.key_history[-2] != 'F13':
+            if self.key_history[-2] == 'F13':
+                self.execute_job_of_sub_pane()
+                self.key_history[-1] = ''
+                return 'break'
             if self.key_history[-2] != 'Next':
                 self.ideal_h_position \
                     = self._get_ideal_h_position_of_insert(pane)
@@ -12234,6 +12226,114 @@ class Makdo:
         self.update_memo_pad()
         interval = 1_000
         self.win.after(interval, self.run_periodically_to_update_memo_pad)
+
+    # NOT PYINSTALLER
+    if not getattr(sys, 'frozen', False):
+
+        MiniBuffer.commands.append('ask-llama')
+
+        MiniBuffer.help_message += \
+            '\n' + \
+            'ask-llama\n' + \
+            '　llamaに質問する'
+
+        def open_llama(self):
+            if 'llama_model_file' not in vars(self):
+                t = 'Llamaのモデルファイル'
+                p = 'Llamaのモデルファイルが指定されていません．'
+                f = ''
+                self.llama_model_file \
+                    = OneWordDialog(self.txt, self, t, p, f).get_value()
+            if 'llama_model_file' not in vars(self):
+                n = 'エラー'
+                m = 'Llamaのモデルファイルが指定されていません．'
+                tkinter.messagebox.showerror(n, m)
+                return False
+            if 'llama' not in vars(self):
+                from llama_cpp import Llama  # pip install llama-cpp-python
+                self.set_message_on_status_bar('起動しています', True)
+                self.llama = Llama(
+                    model_path=self.llama_model_file,
+                    n_gpu_layers=0,
+                    n_ctx=65536,  # 2^16
+                )
+                self.llama_qanda = '# 【質問】' + ('-' * 50) + '\n\n'
+                self.set_message_on_status_bar('', True)
+            frm = tkinter.Frame(self.pnd2)
+            frm.pack()
+            sub_btn2 = tkinter.Button(frm, text='質問',
+                                      command=self._ask_llama)
+            sub_btn2.pack(side='left', anchor='e')
+            lbl = tkinter.Label(frm, bg='#BC7A00', fg='#BC7A00', text='　')
+            lbl.pack(expand=True, side='left', anchor='e')
+            sub_btn3 = tkinter.Button(frm, text='終了',
+                                      command=self.close_llama)
+            sub_btn3.pack(side='right', anchor='w')
+            self._open_sub_pane(self.llama_qanda, False)
+            self.sub_btn.destroy()
+            self.sub.mark_set('insert', 'end-1c')
+            self.sub.focus_force()
+            self.execute_job_of_sub_pane = self._ask_llama
+
+        def _ask_llama(self):
+            llama_que_head = '# 【質問】' + ('-' * 50)
+            llama_ans_head = '# 【回答】' + ('-' * 50)
+            messages = []
+            mc = 'あなたは誠実で優秀な日本人のアシスタントです。' \
+                + '特に指示が無い場合は、常に日本語で回答してください。'
+            messages.append({'role': 'system', 'content': mc})
+            mc = ''
+            is_que = False
+            doc = self.sub.get('1.0', 'end-1c') + '\n\n' + llama_ans_head
+            for line in doc.split('\n'):
+                if line == llama_que_head:
+                    if mc != '':
+                        mc = re.sub('^\n+', '', mc)
+                        mc = re.sub('\n+$', '', mc)
+                        messages.append({'role': 'assistant', 'content': mc})
+                        mc = ''
+                    is_que = True
+                elif line == llama_ans_head:
+                    if mc != '':
+                        mc = re.sub('^\n+', '', mc)
+                        mc = re.sub('\n+$', '', mc)
+                        messages.append({'role': 'user', 'content': mc})
+                        mc = ''
+                    is_que = False
+                else:
+                    mc += line + '\n'
+            self.set_message_on_status_bar('質問しています', True)
+            output = self.llama.create_chat_completion(messages=messages)
+            self.set_message_on_status_bar('', True)
+            answer = output['choices'][0]['message']['content']
+            if answer != '':
+                if not re.match('^(.|\n)*\n$', doc):
+                    self.sub.insert('end', '\n')
+                if not re.match('^(.|\n)*\n\n$', doc):
+                    self.sub.insert('end', '\n')
+                self.sub.insert('end', llama_ans_head + '\n\n')
+                self.sub.mark_set('end', 'end-1c')
+                self.sub.insert('end', answer + '\n\n')
+                self.sub.insert('end', llama_que_head + '\n\n')
+                self._put_back_cursor_to_pane(self.sub)
+            self.llama_qanda = self.sub.get('1.0', 'end-1c')
+
+        def close_llama(self):
+            del self.execute_job_of_sub_pane
+            file_path = CONFIG_DIR + '/' + 'llama.md'
+            contents = self.sub.get('1.0', 'end-1c')
+            self._save_config_file(file_path, contents)
+            self._close_sub_pane()
+
+        def set_llama_model_file(self):
+            t = 'Llamaのモデルファイル'
+            p = 'Llamaのモデルファイルを入力してください'
+            f = ''
+            if 'llama_model_file' in vars(self):
+                f = self.llama_model_file
+            self.llama_model_file \
+                = OneWordDialog(self.txt, self, t, p, f).get_value()
+            self.show_config_help_message()
 
 
 ######################################################################
