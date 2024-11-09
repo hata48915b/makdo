@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.07-11:36:55-JST>
+# Time-stamp:   <2024.11.09-09:14:40-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -11317,8 +11317,7 @@ class Makdo:
             self._paint_akauni_region(pane, '')
             return 'break'
         elif key.keysym == 'Next':
-            #if self.current_pane == 'sub' and self.key_history[-2] != 'F13':
-            if self.key_history[-2] == 'F13':
+            if self.key_history[-2] == 'F13' and self.current_pane == 'sub':
                 self.execute_job_of_sub_pane()
                 self.key_history[-1] = ''
                 return 'break'
