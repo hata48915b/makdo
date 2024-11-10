@@ -136,6 +136,7 @@ GAIJI_KANJIGEN = {
     'ha12d': 'ō', 'ha12e': 'ó', 'ha12f': 'ǒ', 'ha130': 'ò',
     'ha131': 'ū', 'ha132': 'ú', 'ha133': 'ǔ', 'ha134': 'ù',
     'ha137': 'ǚ',
+    # 'ha138': '',
     'ha139': 'ü',
     'ha13a': 'ヮ', 'ha13b': 'ヰ', 'ha13c': 'ヱ',
     'za13a': 'ヮ', 'za13b': 'ヰ', 'za13c': 'ヱ',
@@ -180,8 +181,7 @@ GAIJI_GENIUS = {
     'ha12d': '(ə)',
     # 'ha174': '',
     'ha270': 'ɪ̀',
-    'zb430': '【Ｃ】',
-    'zb431': '【Ｕ】',
+    'zb430': '【Ｃ】', 'zb431': '【Ｕ】',
     'zb478': '→',
     'zb434': '↝',
     'zb43b': '︙',
@@ -210,15 +210,76 @@ GAIJI_NANMED = {
 }
 
 
+class Dictionary:
+
+    def __init__(self) -> None:
+        self.number: int = -1
+        self.a_name: str = ''
+        self.k_name: str = ''
+        self.gaiji: dict = {}
+
+
+class Item:
+
+    def __init__(self) -> None:
+        self.dictionary = None
+        self.number = -1
+        self.code = ''
+        self.title = ''
+        self.content = ''
+
+    def make_up_title(self, title: str) -> str:
+        gaiji: dict = self.dictionary.gaiji
+        for g in gaiji:
+            while re.match('^(.|\n)*<gaiji=' + g + '>(.|\n)*$', title, re.I):
+                title = re.sub('<gaiji=' + g + '>', gaiji[g], title, re.I)
+        return title
+
+    def get_content(self, dictionary_directory: str) -> str:
+        gaiji = self.dictionary.gaiji
+        number = self.dictionary.number
+        command = 'echo "' \
+            + 'select ' + str(number) + '\n' \
+            + 'content ' + self.code \
+            + '" | ' \
+            + EBLOOK + ' ' + dictionary_directory
+        try:
+            sr = subprocess.run(command,
+                                check=True,
+                                shell=True,
+                                stdout=subprocess.PIPE,
+                                encoding="utf-8")
+        except subprocess.CalledProcessError:
+            return None
+        so = sr.stdout
+        so = re.sub('^eblook> eblook> ', '', so)
+        so = re.sub('\neblook> ', '', so)
+        for g in gaiji:
+            while re.match('^(.|\n)*<gaiji=' + g + '>(.|\n)*$', so, re.I):
+                so = re.sub('<gaiji=' + g + '>', gaiji[g], so, re.I)
+        so = re.sub('<prev>(.*?)</prev>', '前：\\1', so)
+        so = re.sub('<next>(.*?)</next>', '次：\\1', so)
+        so = re.sub('<reference>(.*?)</reference=([0-9]+:[0-9]+)>',
+                    '\\1<' + str(number) + ':\\2>',
+                    so)
+        return so
+
+    def print_item(self) -> None:
+        print('=====================================' +
+              '=====================================')
+        print('●\u3000' + self.dictionary.k_name + '\u3000' + self.title)
+        print(self.content + '\n')
+
+
 class Eblook:
 
-    def __init__(self):
-        self.dictionary_directory = ''
-        self.dictionaries = []
-        self.search_word = ''
-        self.items = []
+    def __init__(self) -> None:
+        self.dictionary_directory: str = ''
+        self.dictionaries: list[Dictionary] = []
+        self.search_word: str = ''
+        self.items: list[Item] = []
 
-    def set_dictionary_directory(self, dictionary_directory):
+    def set_dictionaries(self, dictionary_directory: str) -> bool:
         self.dictionary_directory = dictionary_directory
         command = 'echo "' \
             + 'list' \
@@ -229,43 +290,44 @@ class Eblook:
                                 check=True,
                                 shell=True,
                                 stdout=subprocess.PIPE,
-                                encoding="utf-8")
+                                encoding='utf-8')
         except subprocess.CalledProcessError:
-            sys.exit(1)
+            return False
         so = sr.stdout
         so = re.sub('^eblook> ', '', so)
-        so = re.sub('\neblook> ', '', so)
-        dictionaries = []
+        so = re.sub('\neblook> $', '', so)
+        dictionaries: list[Dictionary] = []
         for sos in so.split('\n'):
             res = '\\s*([0-9]+)\\.\\s+(\\S+)\\s+(.*)$'
             if re.match(res, sos):
-                d = Dictionary()
-                d.number = int(re.sub(res, '\\1', sos))
-                d.a_name = re.sub(res, '\\2', sos)
-                d.k_name = re.sub(res, '\\3', sos)
-                d.gaiji = self._get_gaiji(d.a_name)
-                if re.match('^kojien', d.a_name):
+                dic = Dictionary()
+                dic.number = int(re.sub(res, '\\1', sos))
+                dic.a_name = re.sub(res, '\\2', sos)
+                dic.k_name = re.sub(res, '\\3', sos)
+                dic.gaiji = self._get_gaiji(dic.a_name)
+                if re.match('^kojien', dic.a_name):
                     for g in GAIJI_KOJIEN:
-                        d.gaiji[g] = GAIJI_KOJIEN[g]
-                if d.a_name == 'kanjigen':
+                        dic.gaiji[g] = GAIJI_KOJIEN[g]
+                if dic.a_name == 'kanjigen':
                     for g in GAIJI_KANJIGEN:
-                        d.gaiji[g] = GAIJI_KANJIGEN[g]
-                if d.a_name == 'chujiten':
+                        dic.gaiji[g] = GAIJI_KANJIGEN[g]
+                if dic.a_name == 'chujiten':
                     for g in GAIJI_CHUJITEN:
-                        d.gaiji[g] = GAIJI_CHUJITEN[g]
-                if d.a_name == 'genius4':
+                        dic.gaiji[g] = GAIJI_CHUJITEN[g]
+                if dic.a_name == 'genius4':
                     for g in GAIJI_GENIUS:
-                        d.gaiji[g] = GAIJI_GENIUS[g]
-                if d.a_name == 'biztec4a':
+                        dic.gaiji[g] = GAIJI_GENIUS[g]
+                if dic.a_name == 'biztec4a':
                     for g in GAIJI_BIZTEC:
-                        d.gaiji[g] = GAIJI_BIZTEC[g]
-                if d.a_name == 'nanmed18':
+                        dic.gaiji[g] = GAIJI_BIZTEC[g]
+                if dic.a_name == 'nanmed18':
                     for g in GAIJI_NANMED:
-                        d.gaiji[g] = GAIJI_NANMED[g]
-                dictionaries.append(d)
+                        dic.gaiji[g] = GAIJI_NANMED[g]
+                dictionaries.append(dic)
         self.dictionaries = dictionaries
+        return True
 
-    def _get_gaiji(self, a_name):
+    def _get_gaiji(self, a_name) -> dict:
         gaiji_directory = self.dictionary_directory + '/GAIJI_XML'
         if not os.path.exists(gaiji_directory):
             return {}
@@ -309,9 +371,9 @@ class Eblook:
                     return gaiji
         return {}
 
-    def set_search_word(self, search_word):
+    def set_search_word(self, search_word: str) -> bool:
         self.search_word = search_word
-        items = []
+        items: [Item] = []
         if re.match('^([0-9]+):([0-9]+:[0-9]+)$', search_word):
             dc = re.sub('^([0-9]+):([0-9]+:[0-9]+)$', '\\1', search_word)
             cc = re.sub('^([0-9]+):([0-9]+:[0-9]+)$', '\\2', search_word)
@@ -336,7 +398,7 @@ class Eblook:
                                         stdout=subprocess.PIPE,
                                         encoding="utf-8")
                 except subprocess.CalledProcessError:
-                    sys.exit(1)
+                    return False
                 so = sr.stdout
                 so = re.sub('^eblook> eblook> ', '', so)
                 so = re.sub('\neblook> ', '', so)
@@ -348,71 +410,11 @@ class Eblook:
                         i.number = int(re.sub(res, '\\1', sos))
                         i.code = re.sub(res, '\\2', sos)
                         i.title = re.sub(res, '\\3', sos)
-                        i.title = i.get_title(i.title)
+                        i.title = i.make_up_title(i.title)
                         i.content = i.get_content(self.dictionary_directory)
                         items.append(i)
         self.items = items
-
-
-class Dictionary:
-
-    def __init__(self):
-        self.number = -1
-        self.a_name = ''
-        self.k_name = ''
-        self.gaiji = {}
-
-
-class Item:
-
-    def __init__(self):
-        self.dictionary = None
-        self.number = -1
-        self.code = ''
-        self.title = ''
-        self.content = ''
-
-    def get_title(self, title):
-        gaiji = self.dictionary.gaiji
-        for g in gaiji:
-            while re.match('^(.|\n)*<gaiji=' + g + '>(.|\n)*$', title, re.I):
-                title = re.sub('<gaiji=' + g + '>', gaiji[g], title, re.I)
-        return title
-
-    def get_content(self, dictionary_directory):
-        gaiji = self.dictionary.gaiji
-        number = self.dictionary.number
-        command = 'echo "' \
-            + 'select ' + str(number) + '\n' \
-            + 'content ' + self.code \
-            + '" | ' \
-            + EBLOOK + ' ' + dictionary_directory
-        try:
-            sr = subprocess.run(command,
-                                check=True,
-                                shell=True,
-                                stdout=subprocess.PIPE,
-                                encoding="utf-8")
-        except subprocess.CalledProcessError:
-            return None
-        so = sr.stdout
-        so = re.sub('^eblook> eblook> ', '', so)
-        so = re.sub('\neblook> ', '', so)
-        for g in gaiji:
-            while re.match('^(.|\n)*<gaiji=' + g + '>(.|\n)*$', so, re.I):
-                so = re.sub('<gaiji=' + g + '>', gaiji[g], so, re.I)
-        so = re.sub('<prev>(.*?)</prev>', '前：\\1', so)
-        so = re.sub('<next>(.*?)</next>', '次：\\1', so)
-        so = re.sub('<reference>(.*?)</reference=([0-9]+:[0-9]+)>',
-                    '\\1<' + str(number) + ':\\2>',
-                    so)
-        return so
-
-    def print_item(self):
-        print('=====================================' +
-              '=====================================')
-        print('●\u3000' + self.dictionary.k_name + '\u3000' + self.title)
-        print(self.content + '\n')
+        return True
 
 
 if __name__ == '__main__':
@@ -439,7 +441,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     eb = Eblook()
-    eb.set_dictionary_directory(args.dictionary_directory)
+    eb.set_dictionaries(args.dictionary_directory)
     eb.set_search_word(args.search_word)
 
     for ei in eb.items:
