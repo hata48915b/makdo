@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.09-09:14:40-JST>
+# Time-stamp:   <2024.11.10-09:24:29-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4004,7 +4004,7 @@ TAB_WIDTH = 4
 # FUNCTION
 
 
-def get_ideal_width(s):
+def get_ideal_width(s: str) -> float:
     wid = 0
     for c in s:
         if (c == '\t'):
@@ -4026,7 +4026,7 @@ def get_ideal_width(s):
     return wid
 
 
-def c2n_n_arab(s):
+def c2n_n_arab(s: str) -> int:
     n = 0
     for c in s:
         n *= 10
@@ -4039,7 +4039,7 @@ def c2n_n_arab(s):
     return n
 
 
-def c2n_n_kata(s):
+def c2n_n_kata(s: str) -> int:
     i = -1
     if len(s) == 1:
         i = ord(s)
@@ -4094,7 +4094,7 @@ def c2n_n_kata(s):
     return -1
 
 
-def c2n_n_alph(s):
+def c2n_n_alph(s: str) -> int:
     i = -1
     if len(s) == 1:
         i = ord(s)
@@ -4109,7 +4109,7 @@ def c2n_n_alph(s):
     return -1
 
 
-def c2n_n_kanj(s):
+def c2n_n_kanj(s: str) -> int:
     i = s
     i = re.sub('[０〇零]', '0', i)
     i = re.sub('[１一壱]', '1', i)
@@ -4142,7 +4142,7 @@ def c2n_n_kanj(s):
     return -1
 
 
-def adjust_line(document):
+def adjust_line(document: str) -> str:
     old = document
     old = re.sub('。', '。\n', old)
     old = re.sub('\n\n+', '\n\n', old)
@@ -4168,47 +4168,52 @@ def adjust_line(document):
             tmp = ''
         new += '\n'
     new = re.sub('\n+$', '', new)
-    return new
+    document = new
+    return document
+
+
+def count_days(date: str) -> int:
+    res = '([MTSHR]?)([0-9]+)-([0-9]+)-([0-9]+)'
+    era = re.sub(res, '\\1', date)
+    yea = re.sub(res, '\\2', date)
+    mon = re.sub(res, '\\3', date)
+    day = re.sub(res, '\\4', date)
+    if era == 'M':
+        yea = str(int(yea) + 1867)
+    elif era == 'T':
+        yea = str(int(yea) + 1911)
+    elif era == 'S':
+        yea = str(int(yea) + 1925)
+    elif era == 'H':
+        yea = str(int(yea) + 1988)
+    elif era == 'R':
+        yea = str(int(yea) + 2018)
+    if int(yea) < 100:
+        yea = str(int(yea) + 2000)
+    ymd_hms = yea + '-' + mon + '-' + day + ' 09:00:00 UTC'
+    date = datetime.datetime.strptime(ymd_hms, '%Y-%m-%d %H:%M:%S %Z')
+    unix_time = date.timestamp()
+    days: int = round(unix_time / 86400)
+    return days
 
 
 ######################################################################
 # CLASS
 
+
 ############################################################
 # SIMPLE DAILOG
-
-class Days:
-
-    def __init__(self, date):
-        res = '([MTSHR]?)([0-9]+)-([0-9]+)-([0-9]+)'
-        era = re.sub(res, '\\1', date)
-        yea = re.sub(res, '\\2', date)
-        mon = re.sub(res, '\\3', date)
-        day = re.sub(res, '\\4', date)
-        if era == 'M':
-            yea = str(int(yea) + 1867)
-        elif era == 'T':
-            yea = str(int(yea) + 1911)
-        elif era == 'S':
-            yea = str(int(yea) + 1925)
-        elif era == 'H':
-            yea = str(int(yea) + 1988)
-        elif era == 'R':
-            yea = str(int(yea) + 2018)
-        if int(yea) < 100:
-            yea = str(int(yea) + 2000)
-        ymd_hms = yea + '-' + mon + '-' + day + ' 09:00:00 UTC'
-        date = datetime.datetime.strptime(ymd_hms, '%Y-%m-%d %H:%M:%S %Z')
-        unix_time = date.timestamp()
-        self.days = round(unix_time / 86400)
 
 
 class OneWordDialog(tkinter.simpledialog.Dialog):
 
-    def __init__(self, pane, mother, title, prompt, init=''):
+    def __init__(self, pane, mother, title, prompt, head, tail,
+                 init=''):
         self.pane = pane
         self.mother = mother
         self.prompt = prompt
+        self.head = head
+        self.tail = tail
         self.init = init
         self.value = None
         super().__init__(pane, title=title)
@@ -4217,9 +4222,13 @@ class OneWordDialog(tkinter.simpledialog.Dialog):
         fon = self.mother.gothic_font
         prompt = tkinter.Label(pane, text=self.prompt)
         prompt.pack(side='top', anchor='w')
-        self.entry = tkinter.Entry(pane, width=25, font=fon)
-        self.entry.pack(side='top')
+        frm = tkinter.Frame(pane)
+        frm.pack()
+        tkinter.Label(frm, text=self.head).pack(side='left')
+        self.entry = tkinter.Entry(frm, width=25, font=fon)
+        self.entry.pack(side='left')
         self.entry.insert(0, self.init)
+        tkinter.Label(frm, text=self.tail).pack(side='left')
         super().body(pane)
         return self.entry
 
@@ -4232,7 +4241,8 @@ class OneWordDialog(tkinter.simpledialog.Dialog):
 
 class TwoWordsDialog(tkinter.simpledialog.Dialog):
 
-    def __init__(self, pane, mother, title, prompt, init1='', init2=''):
+    def __init__(self, pane, mother, title, prompt, head1, head2, tail1, tail2,
+                 init1='', init2=''):
         self.pane = pane
         self.mother = mother
         self.prompt = prompt
@@ -6757,7 +6767,10 @@ class Makdo:
         if word1 == '':
             t = '全置換'
             m = '検索する言葉と置換する言葉を入力してください．'
-            sd = TwoWordsDialog(focus, self, t, m, word1, word2)
+            h1, t1 = '検索', ''
+            h2, t2 = '置換', ''
+            sd = TwoWordsDialog(focus, self, t, m, h1, h2, t1, t2,
+                                word1, word2)
             word1, word2 = sd.get_value()
         if word1 == '':
             return
@@ -6855,7 +6868,7 @@ class Makdo:
             pre = re.sub(res, '\\1', math)
             dat = re.sub(res, '\\2', math)
             pos = re.sub(res, '\\3', math)
-            math = pre + str(Days(dat).days) + pos
+            math = pre + str(count_days(dat)) + pos
         math = math.replace('\t', ' ').replace('\u3000', ' ')
         math = math.replace('，', ',').replace('．', '.')
         math = math.replace('０', '0').replace('１', '1').replace('２', '2')
@@ -7179,11 +7192,12 @@ class Makdo:
     # COMMAND
 
     def insert_space(self):
-        t = '空白の幅'
+        b = '空白の幅'
         p = '空白の幅を文字数（整数又は小数）で入力してください．'
+        h, t = '', '文字'
         f = ''
         while not re.match('^([0-9]*\\.)?[0-9]+$', f):
-            f = OneWordDialog(self.txt, self, t, p, f).get_value()
+            f = OneWordDialog(self.txt, self, b, p, h, t, f).get_value()
             if f is None:
                 return
         self.txt.insert('insert', '< ' + f + ' >')
@@ -7288,9 +7302,10 @@ class Makdo:
         self.txt.mark_set('insert', 'insert-1c')
 
     def insert_font_manually(self):
-        t = 'フォント'
+        b = 'フォント'
         p = 'フォント名を入力してください．'
-        s = OneWordDialog(self.txt, self, t, p).get_value()
+        h, t = '', ''
+        s = OneWordDialog(self.txt, self, b, p, h, t).get_value()
         if s is None:
             return
         d = '@' + s + '@（ここはフォントが変わる）@' + s + '@'
@@ -7336,11 +7351,12 @@ class Makdo:
         self.txt.mark_set('insert', 'insert-3c')
 
     def insert_font_size_manually(self):
-        t = '文字の大きさ'
+        b = '文字の大きさ'
         p = '文字の大きさを1から100までの数字を入力してください．'
+        h, t = '', 'px'
         f = ''
         while not re.match('^([0-9]*\\.)?[0-9]+$', f):
-            f = OneWordDialog(self.txt, self, t, p, f).get_value()
+            f = OneWordDialog(self.txt, self, b, p, h, t, f).get_value()
             if f is None:
                 return
         f = re.sub('\\.0+$', '', f)
@@ -7528,11 +7544,12 @@ class Makdo:
     # COMMAND
 
     def insert_character_by_code(self):
-        t = 'コード番号'
+        b = 'コード番号'
         p = 'コード番号を入力してください．'
+        h, s = '', ''
         s = ''
         while not re.match('^[0-9a-fA-F]{4}$', s):
-            s = OneWordDialog(self.txt, self, t, p, s).get_value()
+            s = OneWordDialog(self.txt, self, b, p, h, t, s).get_value()
             if s is None:
                 return
         self.txt.insert('insert', chr(int(s, 16)))
@@ -9970,9 +9987,10 @@ class Makdo:
             w += self.txt.get('akauni', 'insert')
             w += self.txt.get('insert', 'akauni')
         #
-        t = '辞書で調べる'
+        b = '辞書で調べる'
         p = '調べる言葉を入力してください．'
-        s = OneWordDialog(pane, self, t, p, w).get_value()
+        h, t = '', ''
+        s = OneWordDialog(pane, self, b, p, h, t, w).get_value()
         if s is None:
             return
         msg = '辞書で検索しています'
@@ -10031,12 +10049,13 @@ class Makdo:
             self.txt.tag_remove('akauni_tag', '1.0', 'end')
             self.txt.mark_unset('akauni')
         else:
-            t = 'OpenAIに質問'
+            b = 'OpenAIに質問'
             p = 'OpenAIへの質問を入力してください．'
+            h, t = '', ''
             if pane is None:
-                q = OneWordDialog(self.txt, self, t, p).get_value()
+                q = OneWordDialog(self.txt, self, b, p, h, t).get_value()
             else:
-                q = OneWordDialog(pane, self, t, p).get_value()
+                q = OneWordDialog(pane, self, b, p, h, t).get_value()
         if q is None:
             return
         q = re.sub('\n$', '', q)
@@ -10122,9 +10141,10 @@ class Makdo:
         return False
 
     def set_openai_model(self):
-        t = 'OpenAIのモデル'
+        b = 'OpenAIのモデル'
         m = 'OpenAIのモデルを入力してください．'
-        om = OneWordDialog(self.txt, self, t, m, self.openai_model)
+        h, t = '', ''
+        om = OneWordDialog(self.txt, self, b, m, h, t, self.openai_model)
         if om is None:
             return
         self.openai_model = om
@@ -12003,7 +12023,9 @@ class Makdo:
         m = '検索する言葉と置換する言葉を入力してください．'
         word1 = self.stb_sor1.get()
         word2 = self.stb_sor2.get()
-        sd = TwoWordsDialog(pane, self, t, m, word1, word2)
+        h1, t1 = '検索', ''
+        h2, t2 = '置換', ''
+        sd = TwoWordsDialog(pane, self, t, m, h1, h2, t1, t2, word1, word2)
         word1, word2 = sd.get_value()
         if word1 is not None:
             if word1 == '':
@@ -12022,7 +12044,9 @@ class Makdo:
         m = '検索する言葉と置換する言葉を入力してください．'
         word1 = self.stb_sor1.get()
         word2 = self.stb_sor2.get()
-        sd = TwoWordsDialog(pane, self, t, m, word1, word2)
+        h1, t1 = '検索', ''
+        h2, t2 = '置換', ''
+        sd = TwoWordsDialog(pane, self, t, m, h1, h2, t1, t2, word1, word2)
         word1, word2 = sd.get_value()
         if word1 is not None:
             if word1 == '':
@@ -12037,10 +12061,11 @@ class Makdo:
                 self.search_or_replace_forward(True)   # must_replace = True
 
     def search_backward_from_dialog(self, pane):
-        t = '後検索'
+        b = '後検索'
         m = '検索する言葉を入力してください．'
+        h, t = '', ''
         word1 = self.stb_sor1.get()
-        sd = OneWordDialog(pane, self, t, m, word1)
+        sd = OneWordDialog(pane, self, b, m, h, t, word1)
         word1 = sd.get_value()
         self.stb_sor2.delete(0, 'end')
         self.stb_sor2.insert(0, '')
@@ -12055,10 +12080,11 @@ class Makdo:
                 self.search_or_replace_backward(False)  # must_replace = False
 
     def search_forward_from_dialog(self, pane):
-        t = '後検索'
+        b = '後検索'
         m = '検索する言葉を入力してください．'
+        h, t = '', ''
         word1 = self.stb_sor1.get()
-        sd = OneWordDialog(pane, self, t, m, word1)
+        sd = OneWordDialog(pane, self, b, m, h, t, word1)
         word1 = sd.get_value()
         self.stb_sor2.delete(0, 'end')
         self.stb_sor2.insert(0, '')
@@ -12238,11 +12264,7 @@ class Makdo:
 
         def open_llama(self):
             if 'llama_model_file' not in vars(self):
-                t = 'Llamaのモデルファイル'
-                p = 'Llamaのモデルファイルが指定されていません．'
-                f = ''
-                self.llama_model_file \
-                    = OneWordDialog(self.txt, self, t, p, f).get_value()
+                self.set_llama_model_file()
             if 'llama_model_file' not in vars(self):
                 n = 'エラー'
                 m = 'Llamaのモデルファイルが指定されていません．'
@@ -12325,13 +12347,13 @@ class Makdo:
             self._close_sub_pane()
 
         def set_llama_model_file(self):
-            t = 'Llamaのモデルファイル'
-            p = 'Llamaのモデルファイルを入力してください'
-            f = ''
+            mf = ''
             if 'llama_model_file' in vars(self):
-                f = self.llama_model_file
+                mf = self.llama_model_file
+                md = os.path.dirname(mf)
             self.llama_model_file \
-                = OneWordDialog(self.txt, self, t, p, f).get_value()
+                = tkinter.filedialog.askopenfilename(initialdir=md,
+                                                     initialfile=mf)
             self.show_config_help_message()
 
 
