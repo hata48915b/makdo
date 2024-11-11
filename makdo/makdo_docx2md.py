@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.25-16:22:16-JST>
+# Time-stamp:   <2024.11.11-11:31:55-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -2954,6 +2954,20 @@ class FontDecorator:
                 self.highlight_color,
                 re.sub('^[_\\^]}$', '}', self.sub_or_sup),
                 self.track_changes]
+
+    @staticmethod
+    def get_partner(fd_in: str) -> str:
+        partners = [['>>>', '<<<'], ['>>', '<<'], ['<<', '>>'], ['<<<', '>>>'],
+                    ['->', '<-'], ['+>', '<+']]
+        for p in partners:
+            if fd_in == p[0]:
+                fd_out = p[1]
+                return fd_out
+            if fd_in == p[1]:
+                fd_out = p[0]
+                return fd_out
+        fd_out = fd_in
+        return fd_out
 
     @staticmethod
     def is_same(fr_fd_cls, bk_fd_cls):
