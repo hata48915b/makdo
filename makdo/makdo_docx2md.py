@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.11-11:31:55-JST>
+# Time-stamp:   <2024.11.11-11:36:30-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -2958,6 +2958,8 @@ class FontDecorator:
     @staticmethod
     def get_partner(fd_in: str) -> str:
         partners = [['>>>', '<<<'], ['>>', '<<'], ['<<', '>>'], ['<<<', '>>>'],
+                    ['[|', '|]'],
+                    ['_{', '_}'], ['^{', '^}'],
                     ['->', '<-'], ['+>', '<+']]
         for p in partners:
             if fd_in == p[0]:
