@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.10-09:24:29-JST>
+# Time-stamp:   <2024.11.11-09:22:48-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -49,12 +49,12 @@ elif sys.platform == 'darwin':
     CONFIG_FILE = CONFIG_DIR + '/init.md'
 elif sys.platform == 'linux':
     import subprocess
-    import makdo.eblook  # epwing
     CONFIG_DIR = os.getenv('HOME') + '/.config/makdo'
     CONFIG_FILE = CONFIG_DIR + '/init.md'
 else:
     CONFIG_DIR = None
     CONFIG_FILE = None
+
 
 import shutil
 import argparse     # Python Software Foundation License
@@ -77,7 +77,6 @@ import makdo.makdo_docx2md
 import makdo.makdo_mddiff  # MDDIFF
 import openpyxl     # MIT License
 import webbrowser
-import openai       # Apache Software License
 
 
 __version__ = 'v07 Furuichibashi'
@@ -101,9 +100,11 @@ HIRAGINO_MINCHO_FONT = ('ヒラギノ明朝 ProN', 'Hiragino Mincho ProN')
 DOCX_MINCHO_FONT = 'ＭＳ 明朝'
 DOCX_ALPHANUMERIC_FONT = 'Times New Roman'
 
-NOT_ESCAPED = '^((?:(?:.|\n)*?[^\\\\])??(?:\\\\\\\\)*?)??'
+DEFAULT_OPENAI_MODEL = 'gpt-3.5-turbo'
 
 MD_TEXT_WIDTH = 68
+
+NOT_ESCAPED = '^((?:(?:.|\n)*?[^\\\\])??(?:\\\\\\\\)*?)??'
 
 ICON8_IMG = '''
 iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABGdBTUEAALGPC/xhBQAAACBjSFJN
@@ -4220,7 +4221,7 @@ class OneWordDialog(tkinter.simpledialog.Dialog):
 
     def body(self, pane):
         fon = self.mother.gothic_font
-        prompt = tkinter.Label(pane, text=self.prompt)
+        prompt = tkinter.Label(pane, text=self.prompt + '\n', justify='left')
         prompt.pack(side='top', anchor='w')
         frm = tkinter.Frame(pane)
         frm.pack()
@@ -4246,6 +4247,10 @@ class TwoWordsDialog(tkinter.simpledialog.Dialog):
         self.pane = pane
         self.mother = mother
         self.prompt = prompt
+        self.head1 = head1
+        self.tail1 = tail1
+        self.head2 = head2
+        self.tail2 = tail2
         self.init1 = init1
         self.init2 = init2
         self.value1 = None
@@ -4254,14 +4259,22 @@ class TwoWordsDialog(tkinter.simpledialog.Dialog):
 
     def body(self, pane):
         fon = self.mother.gothic_font
-        prompt = tkinter.Label(pane, text=self.prompt)
+        prompt = tkinter.Label(pane, text=self.prompt + '\n', justify='left')
         prompt.pack(side='top', anchor='w')
-        self.entry1 = tkinter.Entry(pane, width=25, font=fon)
+        frm = tkinter.Frame(pane)
+        frm.pack()
+        tkinter.Label(frm, text=self.head1).pack(side='left')
+        self.entry1 = tkinter.Entry(frm, width=25, font=fon)
         self.entry1.pack(side='top')
         self.entry1.insert(0, self.init1)
-        self.entry2 = tkinter.Entry(pane, width=25, font=fon)
+        tkinter.Label(frm, text=self.tail1).pack(side='left')
+        frm = tkinter.Frame(pane)
+        frm.pack()
+        tkinter.Label(frm, text=self.head2).pack(side='left')
+        self.entry2 = tkinter.Entry(frm, width=25, font=fon)
         self.entry2.pack(side='top')
         self.entry2.insert(0, self.init2)
+        tkinter.Label(frm, text=self.tail2).pack(side='left')
         super().body(pane)
         return self.entry1
 
@@ -5314,14 +5327,11 @@ class Makdo:
         self.key_history = ['', '', '', '', '', '', '', '', '', '',
                             '', '', '', '', '', '', '', '', '', '', '']
         self.current_pane = 'txt'
-        self.openai_model = 'gpt-3.5-turbo'
-        self.openai_key = None
         self.formula_number = -1
         self.memo_pad_memory = None
         self.rectangle_text_list = []
         #
         self.onedrive_directory = None
-        self.dict_directory = None
         #
         self.must_show_folding_help_message = True
         self.must_show_keyboard_macro_help_message = True
@@ -5378,8 +5388,7 @@ class Makdo:
         self._make_sub_key_configuration()
         self.sub_scb = tkinter.Scrollbar(self.pnd2, orient=tkinter.VERTICAL,
                                          command=self.sub.yview)
-        self.sub_btn = tkinter.Button(self.pnd2, text='終了',
-                                      command=self._close_sub_pane)
+        self.sub_frm = tkinter.Frame(self.pnd2)
         # STATUS BAR
         self.stbr = tkinter.Frame(self.win)
         self.stbr.pack(side='right', anchor='e')
@@ -5850,8 +5859,10 @@ class Makdo:
             return position2, position1
         return position1, position2
 
-    def _open_sub_pane(self, document, is_read_only=True):
+    def _open_sub_pane(self, document, is_read_only, button_number=1) -> bool:
         self.sub_pane_is_read_only = is_read_only
+        if len(self.pnd.panes()) > 1:
+            return False
         #
         # self.quit_editing_formula()
         # self.close_memo_pad()
@@ -5867,7 +5878,27 @@ class Makdo:
         self.pnd.add(self.pnd2, height=half_height)
         self.pnd.update()
         #
-        self.sub_btn.pack(side='top')
+        self.sub_frm.pack(side='top')
+        try:
+            self.sub_btn1.destroy()
+            self.sub_btn2.destroy()
+            self.sub_btn3.destroy()
+        except BaseException:
+            pass
+        if button_number == 2:
+            self.sub_btn1 = tkinter.Button(self.sub_frm, text='質問',
+                                           command=self._execute_sub_pane)
+            self.sub_btn1.pack(side='left', anchor='e')
+            self.sub_btn2 = tkinter.Label(self.sub_frm, text='　',
+                                         bg='#BC7A00', fg='#BC7A00')
+            self.sub_btn2.pack(side='left', anchor='e')
+            self.sub_btn3 = tkinter.Button(self.sub_frm, text='終了',
+                                           command=self._close_sub_pane)
+            self.sub_btn3.pack(side='right', anchor='w')
+        else:
+            self.sub_btn1 = tkinter.Button(self.sub_frm, text='終了',
+                                           command=self._close_sub_pane)
+            self.sub_btn1.pack(side='top')
         self.sub_scb.pack(side=tkinter.RIGHT, fill=tkinter.Y)
         self.sub.pack(expand=True, fill=tkinter.BOTH)
         for key in self.txt.configure():
@@ -5884,8 +5915,12 @@ class Makdo:
         self.current_pane = 'sub'
         # self.txt.focus_force()
         # self.current_pane = 'txt'
+        return True
 
-    def _close_sub_pane(self):
+    def _execute_sub_pane(self) -> bool:
+        return True
+
+    def _close_sub_pane(self) -> bool:
         if len(self.pnd.panes()) == 1:
             return False
         self.quit_editing_formula()
@@ -9132,23 +9167,10 @@ class Makdo:
                          command=self.unfold_section_fully)
         menu.add_separator()
         #
-        menu.add_command(label='OpenAIに質問',
-                         command=self.ask_openai)
-        menu.add_command(label='OpenAIの履歴を見る',
-                         command=self.show_openai_history)
-        menu.add_command(label='OpenAIの履歴を消去',
-                         command=self.reset_openai_history)
-        menu.add_separator()
-        #
         menu.add_command(label='キーボードマクロを実行',
                          command=self.execute_keyboard_macro,
                          accelerator='Ctrl+E')
         menu.add_separator()
-        #
-        if sys.platform == 'linux':
-            menu.add_command(label='epwing形式の辞書で調べる',
-                             command=self.look_in_dictionary)
-            menu.add_separator()
         #
         menu.add_command(label='サブウィンドウを閉じる',
                          command=self._close_sub_pane)
@@ -9374,7 +9396,7 @@ class Makdo:
     def split_window(self):
         self._close_sub_pane()
         document = self.txt.get('1.0', 'end-1c')
-        self._open_sub_pane(document)
+        self._open_sub_pane(document, True)
 
     def show_file(self):
         typ = [('読み込み可能なファイル', '.docx .md .txt .xlsx .csv')]
@@ -9394,7 +9416,7 @@ class Makdo:
         if document is None:
             return
         #
-        self._open_sub_pane(document)
+        self._open_sub_pane(document, True)
 
     # COMPARE
 
@@ -9973,194 +9995,6 @@ class Makdo:
         else:
             self.unfold_section()
 
-    # LOOK IN DICTIONARY
-    def look_in_dictionary(self, pane=None):
-        if sys.platform != 'linux':  # epwing
-            return
-        if pane is None:
-            self.txt
-        w = ''
-        if self.txt.tag_ranges('sel'):
-            w = self.txt.get('sel.first', 'sel.last')
-        if 'akauni' in self.txt.mark_names():
-            w = ''
-            w += self.txt.get('akauni', 'insert')
-            w += self.txt.get('insert', 'akauni')
-        #
-        b = '辞書で調べる'
-        p = '調べる言葉を入力してください．'
-        h, t = '', ''
-        s = OneWordDialog(pane, self, b, p, h, t, w).get_value()
-        if s is None:
-            return
-        msg = '辞書で検索しています'
-        self.set_message_on_status_bar(msg, True)
-        eb = makdo.eblook.Eblook()
-        if self.dict_directory is None:
-            return
-        eb.set_dictionary_directory(self.dict_directory)
-        eb.set_search_word(s)
-        dic = ''
-        if len(eb.items) == 0:
-            msg = '辞書に登録がありません'
-            self.set_message_on_status_bar(msg)
-            return
-        msg = ''
-        self.set_message_on_status_bar(msg, True)
-        for ei in eb.items:
-            dic += '====================================='
-            dic += '=====================================\n'
-            dic += '●\u3000' + ei.dictionary.k_name \
-                + '\u3000' + ei.title + '\n'
-            dic += ei.content + '\n\n'
-        self._open_sub_pane(dic)
-        n = 0
-        pos = dic
-        res = '^((?:.|\n)*?)(<gaiji=[^<>]+>)((?:.|\n)*)$'
-        while re.match(res, pos):
-            pre = re.sub(res, '\\1', pos)
-            key = re.sub(res, '\\2', pos)
-            pos = re.sub(res, '\\3', pos)
-            beg = '1.0+' + str(n + len(pre)) + 'c'
-            end = '1.0+' + str(n + len(pre) + len(key)) + 'c'
-            n += len(pre) + len(key)
-            self.sub.tag_add('error_tag', beg, end)
-        #
-        # self.sub.focus_force()
-        # self.current_pane = 'sub'
-
-    # OPENAI>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-    openai_file = CONFIG_DIR + '/openai.md'
-
-    def ask_openai(self, pane=None):
-        if self.openai_key is None:
-            self.set_openai_key()
-        if self.openai_key is None:
-            return
-        ok = Witch.dechant(self.openai_key)
-        if self.txt.tag_ranges('sel'):
-            beg, end = self.txt.index('sel.first'), self.txt.index('sel.last')
-            q = self.txt.get(beg, end)
-            self.txt.tag_remove('sel', "1.0", "end")
-        elif 'akauni' in self.txt.mark_names():
-            beg, end = self._get_indices_in_order(self.txt, 'insert', 'akauni')
-            q = self.txt.get(beg, end)
-            self.txt.tag_remove('akauni_tag', '1.0', 'end')
-            self.txt.mark_unset('akauni')
-        else:
-            b = 'OpenAIに質問'
-            p = 'OpenAIへの質問を入力してください．'
-            h, t = '', ''
-            if pane is None:
-                q = OneWordDialog(self.txt, self, b, p, h, t).get_value()
-            else:
-                q = OneWordDialog(pane, self, b, p, h, t).get_value()
-        if q is None:
-            return
-        q = re.sub('\n$', '', q)
-        pos = self.txt.index('insert')
-        self.set_message_on_status_bar('質問しています', True)
-        if os.path.exists(self.openai_file):
-            m = []
-            with open(self.openai_file, 'r') as of:
-                is_in_qestion, que, ans = True, '', ''
-                for line in of:
-                    if line == ('-' * MD_TEXT_WIDTH) + '\n':
-                        is_in_qestion = True
-                        if ans != '':
-                            ans = re.sub('^\n+', '', ans)
-                            ans = re.sub('\n+$', '', ans)
-                            m.append({'role': 'assistant', 'content': ans})
-                        que, ans = '', ''
-                        continue
-                    elif line == ('-' * (MD_TEXT_WIDTH // 2)) + '\n':
-                        is_in_qestion = False
-                        if que != '':
-                            que = re.sub('^\n+', '', que)
-                            que = re.sub('\n+$', '', que)
-                            m.append({'role': 'user', 'content': que})
-                        que, ans = '', ''
-                        continue
-                    if is_in_qestion:
-                        que += line
-                    else:
-                        ans += line
-        else:
-            m = []
-        m.append({'role': 'user', 'content': q})
-        res = openai.OpenAI(api_key=ok).chat.completions.create(
-            model=self.openai_model,
-            n=1, max_tokens=1000,
-            messages=m,
-        )
-        self.set_message_on_status_bar('')
-        #
-        md = ''
-        for c in res.choices:
-            n = adjust_line(c.message.content)
-            md = q + '\n\n' \
-                + '-' * (MD_TEXT_WIDTH // 2) + '\n\n' \
-                + n + '\n\n' \
-                + '-' * MD_TEXT_WIDTH + '\n\n'
-        if os.path.exists(self.openai_file):
-            try:
-                with open(self.openai_file, 'r') as of:
-                    md += of.read()
-                os.rename(self.openai_file, self.openai_file + '~')
-            except BaseException:
-                pass
-        try:
-            with open(self.openai_file, 'w') as of:
-                of.write(md)
-        except BaseException:
-            pass
-        os.chmod(self.openai_file, 0o600)
-        #
-        self.show_openai_history()
-
-    def show_openai_history(self):
-        if not os.path.exists(self.openai_file):
-            return False
-        try:
-            with open(self.openai_file, 'r') as of:
-                document = of.read()
-        except BaseException:
-            pass
-        self._open_sub_pane(document)
-
-    def reset_openai_history(self):
-        t = 'OpenAIの履歴の削除'
-        m = 'OpenAIの履歴を削除しますか'
-        if tkinter.messagebox.askyesno(t, m, default='no'):
-            if os.path.exists(self.openai_file):
-                os.remove(self.openai_file)
-            if os.path.exists(self.openai_file + '~'):
-                os.remove(self.openai_file + '~')
-            return True
-        return False
-
-    def set_openai_model(self):
-        b = 'OpenAIのモデル'
-        m = 'OpenAIのモデルを入力してください．'
-        h, t = '', ''
-        om = OneWordDialog(self.txt, self, b, m, h, t, self.openai_model)
-        if om is None:
-            return
-        self.openai_model = om
-        self.show_config_help_message()
-
-    def set_openai_key(self):
-        t = 'OpenAIのキー'
-        m = 'OpenAIのキーを入力してください．'
-        ok = tkinter.simpledialog.askstring(t, m, show='*')
-        if ok is None:
-            return
-        self.openai_key = Witch.enchant(ok)
-        self.show_config_help_message()
-
-    # OPENAI<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
     def execute_keyboard_macro(self):
         if self.current_pane == 'sub':
             pane = self.sub
@@ -10246,7 +10080,6 @@ class Makdo:
     class MiniBuffer(tkinter.simpledialog.Dialog):
 
         commands = ['help',
-                    'ask-openai',
                     'change-typeface',
                     'close-sub-window',
                     'comment-out-region',
@@ -10279,14 +10112,9 @@ class Makdo:
                     'quit-makdo',
                     'show-character-information']
 
-        if sys.platform == 'linux':  # epwing
-            commands.append('look-in-dictionary')
-
         help_message = \
             'help\n' + \
             '　このメッセージを表示\n' + \
-            'ask-openai\n' + \
-            '　OpenAIに質問\n' + \
             'change-typeface\n' + \
             '　字体を変える\n' + \
             'close-sub-window\n' + \
@@ -10342,12 +10170,6 @@ class Makdo:
             'show-character-information\n' + \
             '　文字情報を表示'
 
-        if sys.platform == 'linux':  # epwing
-            help_message += \
-                '\n' + \
-                'look-in-dictionary\n' + \
-                '　epwing形式の辞書で調べる'
-
         history = []
 
         def __init__(self, pane, mother, init=''):
@@ -10392,7 +10214,7 @@ class Makdo:
             elif com == 'ask-llama':
                 self.mother.open_llama()
             elif com == 'ask-openai':
-                self.mother.ask_openai(self)
+                self.mother.open_openai()
             elif com == 'change-typeface':
                 self.mother.change_typeface()
             elif com == 'close-sub-window':
@@ -10443,8 +10265,8 @@ class Makdo:
                 self.mother.insert_formula5()
             elif com == 'insert-symbol':
                 self.mother.insert_symbol()
-            elif com == 'look-in-dictionary':
-                self.mother.look_in_dictionary(self)
+            elif com == 'look-in-epwing':
+                self.mother.look_in_epwing(self)
             elif com == 'open-memo-pad':
                 self.mother.open_memo_pad()
             elif com == 'place-flag1' or com == 'place-flag':
@@ -10593,17 +10415,6 @@ class Makdo:
         menu.add_command(label='OneDriveのフォルダを指定',
                          command=self.set_onedrive_directory)
         menu.add_separator()
-        #
-        menu.add_command(label='OpenAIのモデルを入力',
-                         command=self.set_openai_model)
-        menu.add_command(label='OpenAIのキーを入力',
-                         command=self.set_openai_key)
-        menu.add_separator()
-        #
-        if sys.platform == 'linux':
-            menu.add_command(label='辞書ディレクトリを設定',
-                             command=self.set_dict_directory)
-            menu.add_separator()
         #
         menu.add_command(label='設定を保存',
                          command=self.save_configurations)
@@ -10820,25 +10631,16 @@ class Makdo:
                             Makdo.file_make_backup_file = False
                     elif item == 'onedrive_directory':
                         self.onedrive_directory = valu
-                    elif item == 'dict_directory':
-                        self.dict_directory = valu
+                    elif item == 'epwing_directory':
+                        self.epwing_directory = valu
                     elif item == 'openai_model':
                         self.openai_model = valu
                     elif item == 'openai_key':
                         self.openai_key = valu
                     elif item == 'llama_model_file':
                         self.llama_model_file = valu
-
-    def set_dict_directory(self):
-        od = self.dict_directory
-        if od is None:
-            od = tkinter.filedialog.askdirectory()
-        else:
-            od = tkinter.filedialog.askdirectory(initialdir=od)
-        if od == () or od == '':
-            return False
-        self.dict_directory = od
-        return True
+                    elif item == 'llama_context_size':
+                        self.llama_context_size = valu
 
     def save_configurations(self):
         if os.path.exists(CONFIG_FILE + '~'):
@@ -10861,19 +10663,21 @@ class Makdo:
             if self.onedrive_directory is not None:
                 f.write('onedrive_directory:     '
                         + self.onedrive_directory + '\n')
-            if sys.platform == 'linux':  # epwing
-                if self.dict_directory is not None:
-                    f.write('dict_directory:         '
-                            + self.dict_directory + '\n')
-            if self.openai_model is not None:
+            if 'epwing_directory' in vars(self):
+                f.write('epwing_directory:       '
+                        + self.epwing_directory + '\n')
+            if 'openai_model' in vars(self):
                 f.write('openai_model:           '
                         + self.openai_model + '\n')
-            if self.openai_key is not None:
+            if 'openai_key' in vars(self):
                 f.write('openai_key:             '
                         + self.openai_key + '\n')
-            if self.llama_model_file is not None:
+            if 'llama_model_file' in vars(self):
                 f.write('llama_model_file:       '
                         + self.llama_model_file + '\n')
+            if 'llama_context_size' in vars(self):
+                f.write('llama_context_size:     '
+                        + str(self.llama_context_size) + '\n')
             self.set_message_on_status_bar('設定を保存しました')
         os.chmod(CONFIG_FILE, 0o400)
 
@@ -11055,11 +10859,29 @@ class Makdo:
 
     def _make_menu_special(self):
         menu = tkinter.Menu(self.mnb, tearoff=False)
-        self.mnb.add_cascade(label='秘技(Z)', menu=menu, underline=3)
-        menu.add_command(label='llamaに質問',
+        self.mnb.add_cascade(label='裏の技(Z)', menu=menu, underline=3)
+        #
+        menu.add_command(label='Epwing形式の辞書で調べる',
+                         command=self.look_in_epwing)
+        menu.add_command(label='Epwing形式の辞書ディレクトリを設定',
+                         command=self.set_epwing_directory)
+        menu.add_separator()
+        #
+        menu.add_command(label='OpenAIに質問（有料）',
+                         command=self.open_openai)
+        menu.add_command(label='OpenAIのモデルを設定',
+                         command=self.set_openai_model)
+        menu.add_command(label='OpenAIのキーを設定',
+                         command=self.set_openai_key)
+        menu.add_separator()
+        #
+        menu.add_command(label='Llamaに質問（無料）',
                          command=self.open_llama)
-        menu.add_command(label='llamaのモデルファイルを設定',
+        menu.add_command(label='Llamaのモデルファイルを設定',
                          command=self.set_llama_model_file)
+        menu.add_command(label='Llamaのコンテクストサイズを設定',
+                         command=self.set_llama_context_size)
+        # menu.add_separator()
 
     @staticmethod
     def _show_message_reducing_functions():
@@ -11070,14 +10892,34 @@ class Makdo:
             + '機能の一部を落としています．'
         tkinter.messagebox.showwarning(n, m)
 
-    def open_llama(self):
+    def look_in_epwing(self) -> None:
         self._show_message_reducing_functions()
 
-    def set_llama_model_file(self):
+    def set_epwing_directory(self) -> bool:
+        self._show_message_reducing_functions()
+        return False
+
+    def open_openai(self) -> bool:
         self._show_message_reducing_functions()
 
-    def execute_job_of_sub_pane(self):
-        return
+    def set_openai_model(self) -> bool:
+        self._show_message_reducing_functions()
+        return False
+
+    def set_openai_key(self) -> bool:
+        self._show_message_reducing_functions()
+        return False
+
+    def open_llama(self) -> bool:
+        self._show_message_reducing_functions()
+
+    def set_llama_model_file(self) -> bool:
+        self._show_message_reducing_functions()
+        return False
+
+    def set_llama_context_size(self) -> bool:
+        self._show_message_reducing_functions()
+        return False
 
     ##########################
     # MENU HELP
@@ -11159,15 +11001,29 @@ class Makdo:
             'このソフトウェアは、\n' + \
             '次のモジュールを利用しており、\n' + \
             'それぞれ付記したライセンスで\n' + \
-            '配布されています．\n' + \
-            '- argparse: PSF License\n' + \
-            '- chardet: LGPLv2+\n' + \
+            '配布されています．\n'
+        m += \
+            '- argparse: PSF License\n'
+        # PYTHON DOCX
+        m += \
             '- python-docx: MIT License\n' + \
             '- lxml: BSD License (3-Clause)\n' + \
-            '- typing_extensions: PSF License\n' + \
-            '- tkinterdnd2: MIT License\n' + \
+            '- typing_extensions: PSF License\n'
+        # CHARDET
+        m += \
+        '- chardet: LGPLv2+\n'
+        # TKINTERDND2
+        m += \
+            '- tkinterdnd2: MIT License\n'
+        # PYWIN32
+        m += \
+            '- pywin32: PSF License\n'
+        # OPENPYXL (EXCEL)
+        m += \
             '- openpyxl: MIT License\n' + \
-            '- et-xmlfile: MIT License\n' + \
+            '- et_xmlfile: MIT License\n'
+        # OPENAI
+        m += \
             '- openai: Apache Software License\n' + \
             '- annotated-types: MIT License\n' + \
             '- anyio: MIT License\n' + \
@@ -11184,9 +11040,21 @@ class Makdo:
             '- sniffio: Apache Software License;\n' + \
             '　　MIT License\n' + \
             '- tqdm: MIT License;\n' + \
-            '　　Mozilla Public License 2.0\n' + \
-            '- pywin32: PSF License\n' + \
-            '- Levenshtein: GPLv2+\n' + \
+            '　　Mozilla Public License 2.0\n'
+        # LLAMA
+        m += \
+            '- llama_cpp_python: MIT License\n' + \
+            '- Jinja2: BSD License\n' + \
+            '- MarkupSafe: BSD License\n' + \
+            '- diskcache:\n' + \
+            '　　Apache Software License\n' + \
+            '- numpy: BSD License\n'
+            # '- typing_extensions: PSF License\n'
+        # LEVENSHTEIN (MDDIFF)
+        m += \
+            '- Levenshtein: GPLv2+\n'
+        #
+        m += \
             '\n利用、改変、再配布等をする場合には、\n' + \
             'ライセンスに十分ご注意ください．\n' + \
             'スクリプトファイルは、\n' + \
@@ -11338,7 +11206,7 @@ class Makdo:
             return 'break'
         elif key.keysym == 'Next':
             if self.key_history[-2] == 'F13' and self.current_pane == 'sub':
-                self.execute_job_of_sub_pane()
+                self._execute_sub_pane()
                 self.key_history[-1] = ''
                 return 'break'
             if self.key_history[-2] != 'Next':
@@ -12255,14 +12123,225 @@ class Makdo:
     # NOT PYINSTALLER
     if not getattr(sys, 'frozen', False):
 
+        # EPWING
+
+        MiniBuffer.commands.append('look-in-epwing')
+
+        MiniBuffer.help_message += \
+            '\n' + \
+            'look-in-epwing\n' + \
+            '　Epwing形式の辞書で調べる'
+
+        def look_in_epwing(self, pane=None):
+            if pane is None:
+                self.txt
+            # LOAD MODULE
+            if 'eblook_is_loaded' not in vars(self):
+                import makdo.eblook  # epwing
+                self.eblook = makdo.eblook.Eblook()
+                self.eblook_is_loaded = True
+            if 'epwing_directory' not in vars(self):
+                self.set_epwing_directory()
+            w = ''
+            if self.txt.tag_ranges('sel'):
+                w = self.txt.get('sel.first', 'sel.last')
+            if 'akauni' in self.txt.mark_names():
+                w = ''
+                w += self.txt.get('akauni', 'insert')
+                w += self.txt.get('insert', 'akauni')
+            #
+            b = '辞書で調べる'
+            p = '調べる言葉を入力してください．'
+            h, t = '', ''
+            s = OneWordDialog(pane, self, b, p, h, t, w).get_value()
+            if s is None:
+                return
+            msg = '辞書で検索しています'
+            self.set_message_on_status_bar(msg, True)
+            if self.epwing_directory is None:
+                return
+            self.eblook.set_dictionaries(self.epwing_directory)
+            self.eblook.set_search_word(s)
+            dic = ''
+            if len(self.eblook.items) == 0:
+                msg = '辞書に登録がありません'
+                self.set_message_on_status_bar(msg)
+                return
+            msg = ''
+            self.set_message_on_status_bar(msg, True)
+            for ei in self.eblook.items:
+                dic += '# ==================================='
+                dic += '=====================================\n'
+                dic += '●\u3000' + ei.dictionary.k_name \
+                    + '\u3000' + ei.title + '\n'
+                dic += ei.content + '\n\n'
+            self._open_sub_pane(dic, True)
+            n = 0
+            pos = dic
+            res = '^((?:.|\n)*?)(<gaiji=[^<>]+>)((?:.|\n)*)$'
+            while re.match(res, pos):
+                pre = re.sub(res, '\\1', pos)
+                key = re.sub(res, '\\2', pos)
+                pos = re.sub(res, '\\3', pos)
+                beg = '1.0+' + str(n + len(pre)) + 'c'
+                end = '1.0+' + str(n + len(pre) + len(key)) + 'c'
+                n += len(pre) + len(key)
+                self.sub.tag_add('error_tag', beg, end)
+            #
+            # self.sub.focus_force()
+            # self.current_pane = 'sub'
+
+        def set_epwing_directory(self):
+            ed = ''
+            if 'epwing_directory' in vars(self):
+                ed = self.epwing_directory
+            ed = tkinter.filedialog.askdirectory(initialdir=ed)
+            if ed == () or ed == '':
+                return False
+            self.epwing_directory = ed
+            self.show_config_help_message()
+            return True
+
+        # OPENAI
+
+        MiniBuffer.commands.append('ask-openai')
+
+        MiniBuffer.help_message += \
+            '\n' + \
+            'ask-openai\n' + \
+            '　OpenAIに質問する'
+
+        def open_openai(self) -> bool:
+            # LOAD MODULE
+            if 'openai' not in vars(self):
+                import openai  # Apache Software License
+                self.openai = openai
+            if 'openai_qanda' not in vars(self):
+                self.openai_qanda = '# 【OpenAIに質問】' + ('-' * 61) + '\n\n'
+            if 'openai_model' not in vars(self):
+                self.set_openai_model()
+            if 'openai_model' not in vars(self):
+                n = 'エラー'
+                m = 'OpenAIのモデルが指定されていません．'
+                tkinter.messagebox.showerror(n, m)
+                return False
+            if 'openai_key' not in vars(self):
+                self.openai_key()
+            if 'openai_key' not in vars(self):
+                n = 'エラー'
+                m = 'OpenAIのキーが指定されていません．'
+                tkinter.messagebox.showerror(n, m)
+                return False
+            self.txt.focus_force()
+            self._execute_sub_pane = self.ask_openai
+            self._close_sub_pane = self.close_openai
+            self._open_sub_pane(self.openai_qanda, False, 2)
+            self.sub.mark_set('insert', 'end-1c')
+            return True
+
+        def ask_openai(self) -> None:
+            openai_que_head = '# 【OpenAIに質問】' + ('-' * 61)
+            openai_ans_head = '# 【OpenAIの回答】' + ('-' * 61)
+            messages = []
+            mc = 'あなたは誠実で優秀な日本人のアシスタントです。' \
+                + '特に指示が無い場合は、常に日本語で回答してください。'
+            messages.append({'role': 'system', 'content': mc})
+            mc = ''
+            is_que = False
+            doc = self.sub.get('1.0', 'end-1c') + '\n\n' + openai_ans_head
+            for line in doc.split('\n'):
+                if line == openai_que_head:
+                    if mc != '':
+                        mc = re.sub('^\n+', '', mc)
+                        mc = re.sub('\n+$', '', mc)
+                        messages.append({'role': 'assistant', 'content': mc})
+                        mc = ''
+                    is_que = True
+                elif line == openai_ans_head:
+                    if mc != '':
+                        mc = re.sub('^\n+', '', mc)
+                        mc = re.sub('\n+$', '', mc)
+                        messages.append({'role': 'user', 'content': mc})
+                        mc = ''
+                    is_que = False
+                else:
+                    mc += line + '\n'
+            self.set_message_on_status_bar('OpenAIに質問しています', True)
+            ok = Witch.dechant(self.openai_key)
+            output = self.openai.OpenAI(api_key=ok).chat.completions.create(
+                model=self.openai_model,
+                n=1, max_tokens=1000,
+                messages=messages,
+            )
+            self.set_message_on_status_bar('', True)
+            answer = adjust_line(output.choices[0].message.content)
+            if answer != '':
+                if not re.match('^(.|\n)*\n$', doc):
+                    self.sub.insert('end', '\n')
+                if not re.match('^(.|\n)*\n\n$', doc):
+                    self.sub.insert('end', '\n')
+                self.sub.insert('end', openai_ans_head + '\n\n')
+                self.sub.insert('end', answer + '\n\n')
+                self.sub.insert('end', openai_que_head + '\n\n')
+                self.sub.mark_set('insert', 'end-1c')
+                self._put_back_cursor_to_pane(self.sub)
+            self.openai_qanda = self.sub.get('1.0', 'end-1c')
+
+        def close_openai(self) -> None:
+            del self._execute_sub_pane
+            del self._close_sub_pane
+            # file_path = CONFIG_DIR + '/' + 'openai.md'
+            # contents = self.sub.get('1.0', 'end-1c')
+            # self._save_config_file(file_path, contents)
+            self._close_sub_pane()
+
+        def set_openai_model(self) -> bool:
+            b = 'OpenAIのモデル'
+            m = 'OpenAIのモデルを入力してください．'
+            h, t = '', ''
+            if 'openai_model' not in vars(self):
+                self.openai_model = DEFAULT_OPENAI_MODEL
+            om = self.openai_model
+            om = OneWordDialog(self.txt, self, b, m, h, t, om)
+            if om is None:
+                return False
+            self.openai_model = om
+            self.show_config_help_message()
+            return True
+
+        def set_openai_key(self) -> bool:
+            t = 'OpenAIのキー'
+            m = 'OpenAIのキーを入力してください．'
+            ok = tkinter.simpledialog.askstring(t, m, show='*')
+            if ok is None:
+                return False
+            self.openai_key = Witch.enchant(ok)
+            self.show_config_help_message()
+            return True
+
+        # LLAMA
+
         MiniBuffer.commands.append('ask-llama')
 
         MiniBuffer.help_message += \
             '\n' + \
             'ask-llama\n' + \
-            '　llamaに質問する'
+            '　Llamaに質問する'
 
-        def open_llama(self):
+        def open_llama(self) -> bool:
+            # LOAD MODULE
+            if 'llama_is_loaded' not in vars(self):
+                from llama_cpp import Llama  # pip install llama-cpp-python
+                self.set_message_on_status_bar('Llamaを起動しています', True)
+                self.llama = Llama(
+                    model_path=self.llama_model_file,
+                    n_gpu_layers=0,
+                    n_ctx=4096,
+                )
+                self.set_message_on_status_bar('', True)
+                self.llama_is_loaded = True
+            if 'llama_qanda' not in vars(self):
+                self.llama_qanda = '# 【Llamaに質問】' + ('-' * 62) + '\n\n'
             if 'llama_model_file' not in vars(self):
                 self.set_llama_model_file()
             if 'llama_model_file' not in vars(self):
@@ -12270,35 +12349,16 @@ class Makdo:
                 m = 'Llamaのモデルファイルが指定されていません．'
                 tkinter.messagebox.showerror(n, m)
                 return False
-            if 'llama' not in vars(self):
-                from llama_cpp import Llama  # pip install llama-cpp-python
-                self.set_message_on_status_bar('起動しています', True)
-                self.llama = Llama(
-                    model_path=self.llama_model_file,
-                    n_gpu_layers=0,
-                    n_ctx=65536,  # 2^16
-                )
-                self.llama_qanda = '# 【質問】' + ('-' * 50) + '\n\n'
-                self.set_message_on_status_bar('', True)
-            frm = tkinter.Frame(self.pnd2)
-            frm.pack()
-            sub_btn2 = tkinter.Button(frm, text='質問',
-                                      command=self._ask_llama)
-            sub_btn2.pack(side='left', anchor='e')
-            lbl = tkinter.Label(frm, bg='#BC7A00', fg='#BC7A00', text='　')
-            lbl.pack(expand=True, side='left', anchor='e')
-            sub_btn3 = tkinter.Button(frm, text='終了',
-                                      command=self.close_llama)
-            sub_btn3.pack(side='right', anchor='w')
-            self._open_sub_pane(self.llama_qanda, False)
-            self.sub_btn.destroy()
+            self.txt.focus_force()
+            self._execute_sub_pane = self.ask_llama
+            self._close_sub_pane = self.close_llama
+            self._open_sub_pane(self.llama_qanda, False, 2)
             self.sub.mark_set('insert', 'end-1c')
-            self.sub.focus_force()
-            self.execute_job_of_sub_pane = self._ask_llama
+            return True
 
-        def _ask_llama(self):
-            llama_que_head = '# 【質問】' + ('-' * 50)
-            llama_ans_head = '# 【回答】' + ('-' * 50)
+        def ask_llama(self) -> None:
+            llama_que_head = '# 【Llamaに質問】' + ('-' * 62)
+            llama_ans_head = '# 【Llamaの回答】' + ('-' * 62)
             messages = []
             mc = 'あなたは誠実で優秀な日本人のアシスタントです。' \
                 + '特に指示が無い場合は、常に日本語で回答してください。'
@@ -12323,38 +12383,60 @@ class Makdo:
                     is_que = False
                 else:
                     mc += line + '\n'
-            self.set_message_on_status_bar('質問しています', True)
+            self.set_message_on_status_bar('Llamaに質問しています', True)
             output = self.llama.create_chat_completion(messages=messages)
             self.set_message_on_status_bar('', True)
-            answer = output['choices'][0]['message']['content']
+            answer = adjust_line(output['choices'][0]['message']['content'])
             if answer != '':
                 if not re.match('^(.|\n)*\n$', doc):
                     self.sub.insert('end', '\n')
                 if not re.match('^(.|\n)*\n\n$', doc):
                     self.sub.insert('end', '\n')
                 self.sub.insert('end', llama_ans_head + '\n\n')
-                self.sub.mark_set('end', 'end-1c')
                 self.sub.insert('end', answer + '\n\n')
                 self.sub.insert('end', llama_que_head + '\n\n')
+                self.sub.mark_set('insert', 'end-1c')
                 self._put_back_cursor_to_pane(self.sub)
             self.llama_qanda = self.sub.get('1.0', 'end-1c')
 
-        def close_llama(self):
-            del self.execute_job_of_sub_pane
-            file_path = CONFIG_DIR + '/' + 'llama.md'
-            contents = self.sub.get('1.0', 'end-1c')
-            self._save_config_file(file_path, contents)
+        def close_llama(self) -> None:
+            del self._execute_sub_pane
+            del self._close_sub_pane
+            # file_path = CONFIG_DIR + '/' + 'llama.md'
+            # contents = self.sub.get('1.0', 'end-1c')
+            # self._save_config_file(file_path, contents)
             self._close_sub_pane()
 
-        def set_llama_model_file(self):
-            mf = ''
+        def set_llama_model_file(self) -> bool:
+            mf, md = '', ''
             if 'llama_model_file' in vars(self):
                 mf = self.llama_model_file
                 md = os.path.dirname(mf)
-            self.llama_model_file \
-                = tkinter.filedialog.askopenfilename(initialdir=md,
+            lmf = tkinter.filedialog.askopenfilename(initialdir=md,
                                                      initialfile=mf)
+            if lmf == () or lmf == '':
+                return False
+            self.llama_model_file = lmf
             self.show_config_help_message()
+            return True
+
+        def set_llama_context_size(self) -> bool:
+            default_size: int = 512
+            b = 'コンテクストサイズ'
+            p = 'コンテクストサイズを整数で入力してください．\n' \
+                + '（初期値:512、推奨値:2048）'
+            h, t = '', ''
+            if 'llama_context_size' not in vars(self):
+                self.llama_context_size = default_size
+            cs = str(self.llama_context_size)
+            while True:
+                cs = OneWordDialog(self.txt, self, b, p, h, t, cs).get_value()
+                if cs is None:
+                    return False
+                if re.match('^[0-9]+$', cs):
+                    break
+            self.llama_context_size = int(cs)
+            return True
 
 
 ######################################################################
