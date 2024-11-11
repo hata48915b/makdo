@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.11-09:57:24-JST>
+# Time-stamp:   <2024.11.11-13:18:04-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1050,8 +1050,9 @@ OjIyOjM2KzAwOjAwVj+NkwAAACV0RVh0ZGF0ZTptb2RpZnkAMjAyNC0xMC0wNlQyMjoyMjozNisw
 MDowMCdiNS8AAAAASUVORK5CYII=
 '''
 
-BLACK_SPACE = ('#9191FF', '#000000', '#2323FF')  # (0.6, 240), BK, (0.2, 240)
-WHITE_SPACE = ('#C0C000', '#FFFFFF', '#F7F700')  # (0.7,  60), WH, (0.9,  60)
+BLACK_SPACE = ('#9191FF', '#000000', '#2323FF')        # (0.6, 240), BK, (0.2, 240)
+WHITE_SPACE = ('#C0C000', '#FFFFFF', '#F7F700')        # (0.7,  60), WH, (0.9,  60)
+LIGHTYELLOW_SPACE = ('#C0C000', '#FFFFE0', '#F7F700')  # (0.7,  60), LY, (0.9,  60)
 
 COLOR_SPACE = (
     # Y=   0.3        0.5        0.7        0.9
@@ -10532,8 +10533,10 @@ class Makdo:
                     tag = 'c' + a + y + f + u
                     if background_color == 'W':
                         col = BLACK_SPACE[i]
-                    else:
+                    elif background_color == 'B':
                         col = WHITE_SPACE[i]
+                    elif background_color == 'G':
+                        col = LIGHTYELLOW_SPACE[i]
                     self.txt.tag_config(tag, font=fon,
                                         foreground=col, underline=und)
                 if f == '-g':
