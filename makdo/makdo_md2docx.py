@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.11-12:28:16-JST>
+# Time-stamp:   <2024.11.12-08:16:16-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6347,18 +6347,18 @@ class Script:
                 tmp += c
         val = tmp
         # STRING AND STRING
-        res = '^\\s*\'((?:.|\n)*)\'\\s*\\+\\s*\'((?:.|\n)*)\'\\s*$'
-        if re.match(res, val):
-            return re.sub(res, "'\\1\\2'", val)
-        res = '^\\s*\'((?:.|\n)*)\'\\s*\\+\\s*"((?:.|\n)*)"\\s*$'
-        if re.match(res, val):
-            return re.sub(res, "'\\1\\2'", val)
-        res = '^\\s*"((?:.|\n)*)"\\s*\\+\\s*\'((?:.|\n)*)\'\\s*$'
-        if re.match(res, val):
-            return re.sub(res, "'\\1\\2'", val)
-        res = '^\\s*"((?:.|\n)*)"\\s*\\+\\s*"((?:.|\n)*)"\\s*$'
-        if re.match(res, val):
-            return re.sub(res, "'\\1\\2'", val)
+        res = '^\\s*\'((?:.|\n)*?)\'\\s*\\+\\s*\'((?:.|\n)*)\'\\s*$'
+        while re.match(res, val):
+            val = re.sub(res, "'\\1\\2'", val)
+        res = '^\\s*\'((?:.|\n)*?)\'\\s*\\+\\s*"((?:.|\n)*)"\\s*$'
+        while re.match(res, val):
+            val = re.sub(res, "'\\1\\2'", val)
+        res = '^\\s*"((?:.|\n)*?)"\\s*\\+\\s*\'((?:.|\n)*)\'\\s*$'
+        while re.match(res, val):
+            val = re.sub(res, "'\\1\\2'", val)
+        res = '^\\s*"((?:.|\n)*?)"\\s*\\+\\s*"((?:.|\n)*)"\\s*$'
+        while re.match(res, val):
+            val = re.sub(res, "'\\1\\2'", val)
         # BINARY OPERATE (x^y, x**y, x/y, x//y, x%y, x*y, x-y, x+y)
         val = self.__binary_operate('\\^|\\*\\*', val, md_line)
         val = self.__binary_operate('/|//|%|\\*', val, md_line)
