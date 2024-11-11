@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.11-13:18:04-JST>
+# Time-stamp:   <2024.11.12-06:26:33-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5865,7 +5865,6 @@ class Makdo:
         self.sub_pane_is_read_only = is_read_only
         if len(self.pnd.panes()) > 1:
             return False
-        #
         # self.quit_editing_formula()
         # self.close_memo_pad()
         self.pnd.update()
@@ -5878,8 +5877,7 @@ class Makdo:
         self.pnd.remove(self.pnd6)
         self.pnd.add(self.pnd1, height=half_height, minsize=100)
         self.pnd.add(self.pnd2, height=half_height)
-        self.pnd.update()
-        #
+        # self.pnd.update()
         self.sub_frm.pack(side='top')
         try:
             self.sub_btn1.destroy()
@@ -5911,12 +5909,9 @@ class Makdo:
         self.sub.insert('1.0', document)
         self.sub.mark_set('insert', '1.0')
         # self.sub.configure(state='disabled')
-        #
         self._put_back_cursor_to_pane(self.txt)
         self.sub.focus_force()
         self.current_pane = 'sub'
-        # self.txt.focus_force()
-        # self.current_pane = 'txt'
         return True
 
     def _execute_sub_pane(self) -> bool:
@@ -6382,8 +6377,10 @@ class Makdo:
     # CONVERT DIRECTLY
 
     def convert_directly(self):
-        self.quit_editing_formula()
-        self.close_memo_pad()
+        if len(self.pnd.panes()) > 1:
+            return False
+        # self.quit_editing_formula()
+        # self.close_memo_pad()
         self.pnd.update()
         half_height = int(self.pnd.winfo_height() / 2) - 5
         self.pnd.remove(self.pnd1)
@@ -6394,11 +6391,11 @@ class Makdo:
         self.pnd.remove(self.pnd6)
         self.pnd.add(self.pnd1, height=half_height, minsize=100)
         self.pnd.add(self.pnd4, height=half_height)
-        self.pnd.update()
+        # self.pnd.update()
         #
-        btn = tkinter.Button(self.pnd4, text='キャンセル',
+        btn = tkinter.Button(self.pnd4, text='終了',
                              command=self._quit_converting_directly)
-        btn.pack(side='bottom')
+        btn.pack(side='top')
         #
         self.pool = tkinter.Text(self.pnd4)
         self.pool.drop_target_register(tkinterdnd2.DND_FILES)
@@ -9395,10 +9392,13 @@ class Makdo:
 
     # SPLIT OR UNIFY WINDOW
 
-    def split_window(self):
+    def split_window(self) -> bool:
+        if len(self.pnd.panes()) > 1:
+            return False
         self._close_sub_pane()
         document = self.txt.get('1.0', 'end-1c')
         self._open_sub_pane(document, True)
+        return True
 
     def show_file(self):
         typ = [('読み込み可能なファイル', '.docx .md .txt .xlsx .csv')]
@@ -9424,7 +9424,9 @@ class Makdo:
 
     # MDDIFF>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-    def compare_with_previous_draft(self):
+    def compare_with_previous_draft(self) -> bool:
+        if len(self.pnd.panes()) > 1:
+            return False
         importlib.reload(makdo.makdo_mddiff)
         text2 = self.init_text
         file2 = makdo.makdo_mddiff.File()
@@ -9433,8 +9435,11 @@ class Makdo:
             = makdo.makdo_mddiff.File.reset_configs(file2.cmp_paragraphs)
         para2 = file2.cmp_paragraphs
         self._compare_files_loop(para2)
+        return True
 
-    def compare_files(self):
+    def compare_files(self) -> bool:
+        if len(self.pnd.panes()) > 1:
+            return False
         importlib.reload(makdo.makdo_mddiff)
         text2 = self._get_text2()
         file2 = makdo.makdo_mddiff.File()
@@ -9443,6 +9448,7 @@ class Makdo:
             = makdo.makdo_mddiff.File.reset_configs(file2.cmp_paragraphs)
         para2 = file2.cmp_paragraphs
         self._compare_files_loop(para2)
+        return True
 
     def _get_text2(self):
         typ = [('可能な形式', '.md .docx'),
@@ -9498,8 +9504,8 @@ class Makdo:
         comp.paragraphs[0].sub_paragraph \
             = makdo.makdo_mddiff.File.set_configs(p, configs)[0]
         #
-        self.quit_editing_formula()
-        self.close_memo_pad()
+        # self.quit_editing_formula()
+        # self.close_memo_pad()
         self.pnd.update()
         half_height = int(self.pnd.winfo_height() / 2) - 5
         self.pnd.remove(self.pnd1)
@@ -9512,7 +9518,7 @@ class Makdo:
         self.pnd3 = tkinter.PanedWindow(self.pnd, bd=0, bg='#758F00')  # 070
         self.pnd.add(self.pnd1, height=half_height, minsize=100)
         self.pnd.add(self.pnd3, height=half_height)
-        self.pnd.update()
+        # self.pnd.update()
         #
         background_color = self.background_color.get()
         if background_color == 'W':
