@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.11-11:36:30-JST>
+# Time-stamp:   <2024.11.11-11:45:49-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -7221,8 +7221,10 @@ class Paragraph:
             text_to_write = re.sub('^# ', '', text_to_write)
             has_left_sharp = True
         ttwwr = ''
+        # PRE TEXT
         if pre_text_to_write != '':
             ttwwr += pre_text_to_write + '\n'
+        # LENGTH REVISER
         for rev in length_revisers:
             ttwwr += rev + ' '
         if char_spacing != 0.0:
@@ -7236,20 +7238,23 @@ class Paragraph:
             ttwwr += rev + ' '
         if re.match('^(.|\n)* $', ttwwr):
             ttwwr = re.sub(' $', '\n', ttwwr)
-        # LEFT SYMBOL
         if has_left_sharp:
             ttwwr += '# '
+        # LEFT SYMBOL
         for rev in head_font_revisers:
             ttwwr += rev
-        if len(head_font_revisers) > 0:
-            ttwwr += '\n'
+        if self.paragraph_class == 'sentence':
+            if len(head_font_revisers) > 0:
+                ttwwr += '\n'
         # TEXT
         ttwwr += text_to_write
         # RIGHT SYMBOL
-        if len(tail_font_revisers) > 0:
-            ttwwr += '\n'
+        if self.paragraph_class == 'sentence':
+            if len(tail_font_revisers) > 0:
+                ttwwr += '\n'
         for rev in tail_font_revisers[::-1]:
             ttwwr += rev
+        # POST TEXT
         if post_text_to_write != '':
             ttwwr += '\n' + post_text_to_write
         # PAGE BREAK

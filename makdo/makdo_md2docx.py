@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.25-16:21:16-JST>
+# Time-stamp:   <2024.11.11-12:06:11-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4384,7 +4384,10 @@ class Paragraph:
                 ml.append_warning_message(msg)
 
     def _edit_data(self):
-        return
+        md_lines = self.md_lines
+        # REMOVE ESCAPING SYMBOL
+        for ml in md_lines:
+            ml.text = re.sub('(\\s+)\\\\$', '\\1', ml.text)
 
     def _edit_data_of_chapter_and_section(self):
         paragraph_class = self.paragraph_class
