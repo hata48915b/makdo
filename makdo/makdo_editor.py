@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.11-09:22:48-JST>
+# Time-stamp:   <2024.11.11-09:57:24-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5175,7 +5175,8 @@ class LineDatum:
                 beg = end                                               # 6.beg
                 continue
             # ERROR ("★")
-            if c == '★':
+            if c == '★' or \
+               re.match('^[⺟⺠⻁⻄⻑⻘⻝⻤⻨⻩⻫⻭⻯⻲戶黑]$', c):  # bushu
                 key = chars_state.get_key('')                           # 1.key
                 end = str(i + 1) + '.' + str(j)                         # 2.end
                 txt.tag_add(key, beg, end)                              # 3.tag
