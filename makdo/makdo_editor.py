@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.12-06:26:33-JST>
+# Time-stamp:   <2024.11.12-10:59:53-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1050,9 +1050,9 @@ OjIyOjM2KzAwOjAwVj+NkwAAACV0RVh0ZGF0ZTptb2RpZnkAMjAyNC0xMC0wNlQyMjoyMjozNisw
 MDowMCdiNS8AAAAASUVORK5CYII=
 '''
 
-BLACK_SPACE = ('#9191FF', '#000000', '#2323FF')        # (0.6, 240), BK, (0.2, 240)
-WHITE_SPACE = ('#C0C000', '#FFFFFF', '#F7F700')        # (0.7,  60), WH, (0.9,  60)
-LIGHTYELLOW_SPACE = ('#C0C000', '#FFFFE0', '#F7F700')  # (0.7,  60), LY, (0.9,  60)
+BLACK_SPACE = ('#9191FF', '#000000', '#2323FF')        # (0.6,240),BK,(0.2,240)
+WHITE_SPACE = ('#C0C000', '#FFFFFF', '#F7F700')        # (0.7, 60),WH,(0.9, 60)
+LIGHTYELLOW_SPACE = ('#C0C000', '#FFFFE0', '#F7F700')  # (0.7, 60),LY,(0.9, 60)
 
 COLOR_SPACE = (
     # Y=   0.3        0.5        0.7        0.9
@@ -4613,6 +4613,8 @@ class CharsState:
             key += '-' + str(210 + ((self.chapter_depth - 1) * 10))
         elif self.section_depth > 0:
             key += '-' + str(30 + ((self.section_depth - 1) * 10))
+        elif re.match('^[0-9]{3}$', chars):
+            key += '-' + chars
         else:
             key += '-XXX'
         # LIGHTNESS
@@ -5136,6 +5138,80 @@ class LineDatum:
                 txt.tag_add(key, beg, end)                              # 3.tag
                 chars_state.apply_parenthesis(c)                        # 4.set
                 # tmp = ''                                              # 5.tmp
+                beg = end                                               # 6.beg
+                continue
+            # HORIZONTAL LINE
+            if c == '\u00AD' or c == '\u058A' or c == '\u05BE' or \
+               c == '\u1806' or c == '\u180A' or c == '\u2010' or \
+               c == '\u2011' or c == '\u2012' or c == '\u2013' or \
+               c == '\u2014' or c == '\u2015' or c == '\u2043' or \
+               c == '\u207B' or c == '\u208B' or c == '\u2212' or \
+               c == '\u2500' or c == '\u2501' or c == '\u2796' or \
+               c == '\u2E3A' or c == '\u2E3B' or c == '\u3127' or \
+               c == '\u3161' or c == '\uFE58' or c == '\uFE63' or \
+               c == '\uFF0D' or c == '\uFF70':
+                key = chars_state.get_key('')                           # 1.key
+                end = str(i + 1) + '.' + str(j)                         # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                # tmp = '-'                                             # 5.tmp
+                beg = end                                               # 6.beg
+                if c == '\u00AD':    # 改行時だけに表示されるハイフン
+                    key = chars_state.get_key('000')                    # 1.key
+                elif c == '\u058A':  # アメリカンハイフン
+                    key = chars_state.get_key('010')                    # 1.key
+                elif c == '\u05BE':  # ヘブライ語のマカフ
+                    key = chars_state.get_key('020')                    # 1.key
+                elif c == '\u1806':  # モンゴル語のソフトハイフン
+                    key = chars_state.get_key('030')                    # 1.key
+                elif c == '\u180A':  # モンゴル語のニルグ
+                    key = chars_state.get_key('040')                    # 1.key
+                elif c == '\u2010':  # ハイフン
+                    key = chars_state.get_key('050')                    # 1.key
+                elif c == '\u2011':  # 改行しないハイフン
+                    key = chars_state.get_key('060')                    # 1.key
+                elif c == '\u2012':  # 数字幅のダッシュ
+                    key = chars_state.get_key('070')                    # 1.key
+                elif c == '\u2013':  # Ｎ幅ダッシュ
+                    key = chars_state.get_key('080')                    # 1.key
+                elif c == '\u2014':  # Ｍ幅ダッシュ
+                    key = chars_state.get_key('090')                    # 1.key
+                elif c == '\u2015':  # 水平線
+                    key = chars_state.get_key('100')                    # 1.key
+                elif c == '\u2043':  # 箇条書きの記号
+                    key = chars_state.get_key('110')                    # 1.key
+                elif c == '\u207B':  # 上付きマイナス
+                    key = chars_state.get_key('120')                    # 1.key
+                elif c == '\u208B':  # 下付きマイナス
+                    key = chars_state.get_key('130')                    # 1.key
+                elif c == '\u2212':  # マイナス記号
+                    key = chars_state.get_key('140')                    # 1.key
+                elif c == '\u2500':  # 罫線
+                    key = chars_state.get_key('150')                    # 1.key
+                elif c == '\u2501':  # 太字罫線
+                    key = chars_state.get_key('160')                    # 1.key
+                elif c == '\u2796':  # 太字マイナス記号
+                    key = chars_state.get_key('170')                    # 1.key
+                elif c == '\u2E3A':  # 2倍幅のＭ幅ダッシュ
+                    key = chars_state.get_key('180')                    # 1.key
+                elif c == '\u2E3B':  # 3倍幅のＭ幅ダッシュ
+                    key = chars_state.get_key('190')                    # 1.key
+                elif c == '\u3127':  # 注音符号の「Ｉ」の発音
+                    key = chars_state.get_key('200')                    # 1.key
+                elif c == '\u3161':  # ハングルの「ウ」
+                    key = chars_state.get_key('210')                    # 1.key
+                elif c == '\uFE58':  # 小さいＭ幅ダッシュ
+                    key = chars_state.get_key('220')                    # 1.key
+                elif c == '\uFE63':  # 小さいハイフンマイナス
+                    key = chars_state.get_key('230')                    # 1.key
+                elif c == '\uFF0D':  # 全角ハイフンマイナス
+                    key = chars_state.get_key('240')                    # 1.key
+                elif c == '\uFF70':  # 半角カナの長音記号
+                    key = chars_state.get_key('250')                    # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                tmp = ''                                                # 5.tmp
                 beg = end                                               # 6.beg
                 continue
             # NUMBER
@@ -5890,7 +5966,7 @@ class Makdo:
                                            command=self._execute_sub_pane)
             self.sub_btn1.pack(side='left', anchor='e')
             self.sub_btn2 = tkinter.Label(self.sub_frm, text='　',
-                                         bg='#BC7A00', fg='#BC7A00')
+                                          bg='#BC7A00', fg='#BC7A00')
             self.sub_btn2.pack(side='left', anchor='e')
             self.sub_btn3 = tkinter.Button(self.sub_frm, text='終了',
                                            command=self._close_sub_pane)
@@ -8023,46 +8099,174 @@ class Makdo:
         submenu = tkinter.Menu(menu, tearoff=False)
         menu.add_cascade(label='横棒を挿入', menu=submenu)
         #
-        submenu.add_command(label='"-"（002D）半角ハイフンマイナス',
+        submenu.add_command(label='"-"（U+002D）半角ハイフンマイナス',
                             command=self.insert_hline_002d)
-        submenu.add_command(label='"‐"（2010）全角ハイフン',
+        submenu.add_command(label='"-"（U+00AD）改行時だけに表示されるハイフン',
+                            command=self.insert_hline_00ad)
+        submenu.add_command(label='"-"（U+058A）アメリカンハイフン',
+                            command=self.insert_hline_058a)
+        submenu.add_command(label='"-"（U+05BE）ヘブライ語のマカフ',
+                            command=self.insert_hline_05be)
+        submenu.add_command(label='"-"（U+1806）モンゴル語のソフトハイフン',
+                            command=self.insert_hline_1806)
+        submenu.add_command(label='"-"（U+180A）モンゴル語のニルグ',
+                            command=self.insert_hline_180a)
+        submenu.add_command(label='"‐"（U+2010）ハイフン',
                             command=self.insert_hline_2010)
-        submenu.add_command(label='"—"（2014）全角Ｍダッシュ',
+        submenu.add_command(label='"-"（U+2011）改行を禁止するハイフン',
+                            command=self.insert_hline_2011)
+        submenu.add_command(label='"-"（U+2012）数字幅のダッシュ',
+                            command=self.insert_hline_2012)
+        submenu.add_command(label='"-"（U+2013）Ｎ幅のダッシュ',
+                            command=self.insert_hline_2013)
+        submenu.add_command(label='"—"（U+2014）Ｍ幅のダッシュ',
                             command=self.insert_hline_2014)
-        submenu.add_command(label='"―"（2015）全角水平線',
+        submenu.add_command(label='"―"（U+2015）水平線',
                             command=self.insert_hline_2015)
-        submenu.add_command(label='"−"（2212）全角マイナスサイン',
+        submenu.add_command(label='"-"（U+2043）箇条書きの記号',
+                            command=self.insert_hline_2043)
+        submenu.add_command(label='"-"（U+207B）上付きマイナス',
+                            command=self.insert_hline_207b)
+        submenu.add_command(label='"-"（U+208B）下付きマイナス',
+                            command=self.insert_hline_208b)
+        submenu.add_command(label='"−"（U+2212）全角マイナスサイン',
                             command=self.insert_hline_2212)
-        submenu.add_command(label='"－"（FF0D）全角ハイフンマイナス',
+        submenu.add_command(label='"-"（U+2500）罫線',
+                            command=self.insert_hline_2500)
+        submenu.add_command(label='"-"（U+2501）太字の罫線',
+                            command=self.insert_hline_2501)
+        submenu.add_command(label='"-"（U+2796）太字マイナス記号',
+                            command=self.insert_hline_2796)
+        submenu.add_command(label='"-"（U+2E3A）2倍幅のＭ幅ダッシュ',
+                            command=self.insert_hline_2e3a)
+        submenu.add_command(label='"-"（U+2E3B）3倍幅のＭ幅ダッシュ',
+                            command=self.insert_hline_2e3b)
+        submenu.add_command(label='"-"（U+3127）注音符号の「Ｉ」の発音',
+                            command=self.insert_hline_3127)
+        submenu.add_command(label='"-"（U+3161）ハングルの「ウ」',
+                            command=self.insert_hline_3161)
+        submenu.add_command(label='"-"（U+FE58）小さいＭ幅ダッシュ',
+                            command=self.insert_hline_fe58)
+        submenu.add_command(label='"-"（U+FE63）小さいハイフンマイナス',
+                            command=self.insert_hline_fe63)
+        submenu.add_command(label='"－"（U+FF0D）全角ハイフンマイナス',
                             command=self.insert_hline_ff0d)
+        submenu.add_command(label='"-"（U+FF70）半角カナの長音記号',
+                            command=self.insert_hline_ff70)
 
     ######
     # COMMAND
 
-    # "-"（002D）半角ハイフンマイナス
-    # "‐"（2010）全角ハイフン
-    # "—"（2014）全角Ｍダッシュ
-    # "―"（2015）全角水平線
-    # "−"（2212）全角マイナスサイン
-    # "－"（FF0D）ハイフンマイナス
+    # "-"（U+002D）HYPHEN-MINUS（半角ハイフンマイナス）
+    # "­"（U+00AD）SOFT HYPHEN（改行時だけに表示されるハイフン',）
+    # "֊"（U+058A）ARMENIAN HYPHEN（アメリカンハイフン）
+    # "־"（U+05BE）HEBREW PUNCTUATION MAQAF（ヘブライ語のマカフ）
+    # "᠆"（U+1806）MONGOLIAN TODO SOFT HYPHEN（モンゴル語のソフトハイフン）
+    # "᠊"（U+180A）MONGOLIAN NIRUGU（モンゴル語のニルグ）
+    # "‐"（U+2010）HYPHEN（ハイフン）
+    # "‑"（U+2011）NON-BREAKING HYPHEN（改行しないハイフン）
+    # "‒"（U+2012）FIGURE DASH（数字幅のダッシュ）
+    # "–"（U+2013）EN DASH（Ｎ幅ダッシュ）
+    # "—"（U+2014）EM DASH（Ｍ幅ダッシュ）
+    # "―"（U+2015）HORIZONTAL BAR（水平線）
+    # "⁃"（U+2043）HYPHEN BULLET（箇条書きの記号）
+    # "⁻"（U+207B）SUPERSCRIPT MINUS（上付きマイナス）
+    # "₋"（U+208B）SUBSCRIPT MINUS（下付きマイナス）
+    # "−"（U+2212）MINUS SIGN（マイナス記号)
+    # "─"（U+2500）BOX DRAWINGS LIGHT HORIZONTAL（罫線）
+    # "━"（U+2501）BOX DRAWINGS HEAVY HORIZONTAL（太字罫線）
+    # "➖"（U+2796）HEAVY MINUS SIGN（太字マイナス記号）
+    # "⸺"（U+2E3A）TWO-EM DASH（2倍幅のＭ幅ダッシュ）
+    # "⸻"（U+2E3B）THREE-EM DASH（3倍幅のＭ幅ダッシュ）
+    # "ー"（U+30FC）KATAKANA-HIRAGANA PROLONGED SOUND MARK（日本語の長音記号）
+    # "ㄧ"（U+3127）BOPOMOFO LETTER I（注音符号の「Ｉ」の発音）
+    # "ㅡ"（U+3161）HANGUL LETTER EU（ハングルの「ウ」）
+    # "一"（U+4E00）CJK IDEOGRAPH FIRST（漢数字の「１」）
+    # "﹘"（U+FE58）SMALL EM DASH（小さいＭ幅ダッシュ）
+    # "﹣"（U+FE63）SMALL HYPHEN-MINUS（小さいハイフンマイナス）
+    # "－"（U+FF0D）FULLWIDTH HYPHEN-MINUS（全角ハイフンマイナス）
+    # "ｰ"（U+FF70）HALFWIDTH KATAKANA-HIRAGANA PROLONGED SOUND MARK（半角カナの長音記号）
 
     def insert_hline_002d(self):
         self.txt.insert('insert', '\u002D')  # 半角ハイフンマイナス
 
+    def insert_hline_00ad(self):
+        self.txt.insert('insert', '\u00AD')  # 改行時だけに表示されるハイフン',
+
+    def insert_hline_058a(self):
+        self.txt.insert('insert', '\u058A')  # アメリカンハイフン
+
+    def insert_hline_05be(self):
+        self.txt.insert('insert', '\u05BE')  # ヘブライ語のマカフ
+
+    def insert_hline_1806(self):
+        self.txt.insert('insert', '\u1806')  # モンゴル語のソフトハイフン
+
+    def insert_hline_180a(self):
+        self.txt.insert('insert', '\u180A')  # モンゴル語のニルグ
+
     def insert_hline_2010(self):
-        self.txt.insert('insert', '\u2010')  # 全角ハイフン
+        self.txt.insert('insert', '\u2010')  # ハイフン
+
+    def insert_hline_2011(self):
+        self.txt.insert('insert', '\u2011')  # 改行しないハイフン
+
+    def insert_hline_2012(self):
+        self.txt.insert('insert', '\u2012')  # 数字幅のダッシュ
+
+    def insert_hline_2013(self):
+        self.txt.insert('insert', '\u2013')  # Ｎ幅ダッシュ
 
     def insert_hline_2014(self):
-        self.txt.insert('insert', '\u2014')  # 全角Ｍダッシュ
+        self.txt.insert('insert', '\u2014')  # Ｍ幅ダッシュ
 
     def insert_hline_2015(self):
-        self.txt.insert('insert', '\u2015')  # 全角水平線
+        self.txt.insert('insert', '\u2015')  # 水平線
+
+    def insert_hline_2043(self):
+        self.txt.insert('insert', '\u2043')  # 箇条書きの記号
+
+    def insert_hline_207b(self):
+        self.txt.insert('insert', '\u207B')  # 上付きマイナス
+
+    def insert_hline_208b(self):
+        self.txt.insert('insert', '\u208B')  # 下付きマイナス
 
     def insert_hline_2212(self):
-        self.txt.insert('insert', '\u2212')  # 全角マイナスサイン
+        self.txt.insert('insert', '\u2212')  # マイナス記号
+
+    def insert_hline_2500(self):
+        self.txt.insert('insert', '\u2500')  # 罫線
+
+    def insert_hline_2501(self):
+        self.txt.insert('insert', '\u2501')  # 太字罫線
+
+    def insert_hline_2796(self):
+        self.txt.insert('insert', '\u2796')  # 太字マイナス記号
+
+    def insert_hline_2e3a(self):
+        self.txt.insert('insert', '\u2E3A')  # 2倍幅のＭ幅ダッシュ
+
+    def insert_hline_2e3b(self):
+        self.txt.insert('insert', '\u2E3B')  # 3倍幅のＭ幅ダッシュ
+
+    def insert_hline_3127(self):
+        self.txt.insert('insert', '\u3127')  # 注音符号のIの発音
+
+    def insert_hline_3161(self):
+        self.txt.insert('insert', '\u3161')  # ハングルの「ウ」
+
+    def insert_hline_fe58(self):
+        self.txt.insert('insert', '\uFE58')  # 小さいＭ幅ダッシュ
+
+    def insert_hline_fe63(self):
+        self.txt.insert('insert', '\uFE63')  # 小さいハイフンマイナス
 
     def insert_hline_ff0d(self):
         self.txt.insert('insert', '\uFF0D')  # 全角ハイフンマイナス
+
+    def insert_hline_ff70(self):
+        self.txt.insert('insert', '\u2FF70')  # 半角カナの長音記号
 
     ################
     # SUBMENU INSERT SCRIPT
@@ -11021,7 +11225,7 @@ class Makdo:
             '- typing_extensions: PSF License\n'
         # CHARDET
         m += \
-        '- chardet: LGPLv2+\n'
+            '- chardet: LGPLv2+\n'
         # TKINTERDND2
         m += \
             '- tkinterdnd2: MIT License\n'
@@ -11059,7 +11263,7 @@ class Makdo:
             '- diskcache:\n' + \
             '　　Apache Software License\n' + \
             '- numpy: BSD License\n'
-            # '- typing_extensions: PSF License\n'
+        # '- typing_extensions: PSF License\n'
         # LEVENSHTEIN (MDDIFF)
         m += \
             '- Levenshtein: GPLv2+\n'
