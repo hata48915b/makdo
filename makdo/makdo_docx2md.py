@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.11-11:45:49-JST>
+# Time-stamp:   <2024.11.12-14:55:16-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -7215,11 +7215,37 @@ class Paragraph:
         pre_text_to_write = self.pre_text_to_write
         post_text_to_write = self.post_text_to_write
         attached_pagebreak = self.attached_pagebreak
-        # LEFT SYMBOL
+        # FONT REVISERS
+        head_pair_font_revisers = []
+        head_single_font_revisers = []
+        tail_pair_font_revisers = []
+        tail_single_font_revisers = []
+        for rev in head_font_revisers:
+            partner = FontDecorator.get_partner(rev)
+            if partner in tail_font_revisers:
+                head_pair_font_revisers.append(rev)
+            else:
+                head_single_font_revisers.append(rev)
+        for rev in tail_font_revisers:
+            partner = FontDecorator.get_partner(rev)
+            if partner in head_font_revisers:
+                tail_pair_font_revisers.append(rev)
+            else:
+                tail_single_font_revisers.append(rev)
+        # CUT SYMBOLS
         has_left_sharp = False
+        is_left_or_center_alignment = False
+        is_center_or_right_alignment = False
         if re.match('^# (.|\n)*$', text_to_write):
             text_to_write = re.sub('^# ', '', text_to_write)
             has_left_sharp = True
+        elif re.match('^: (.|\n)*$', text_to_write):
+            text_to_write = re.sub('^: ', '', text_to_write)
+            is_left_or_center_alignment = True
+        if re.match('^(.|\n)* :$', text_to_write):
+            text_to_write = re.sub(' :$', '', text_to_write)
+            is_center_or_right_alignment = True
+        # INITIALIZE
         ttwwr = ''
         # PRE TEXT
         if pre_text_to_write != '':
@@ -7241,19 +7267,25 @@ class Paragraph:
         if has_left_sharp:
             ttwwr += '# '
         # LEFT SYMBOL
-        for rev in head_font_revisers:
-            ttwwr += rev
-        if self.paragraph_class == 'sentence':
-            if len(head_font_revisers) > 0:
+        if len(head_pair_font_revisers) > 0:
+            ttwwr += ''.join(head_pair_font_revisers) + '\n'
+        if is_left_or_center_alignment:
+            ttwwr += ': '
+        if len(head_single_font_revisers) > 0:
+            ttwwr += ''.join(head_single_font_revisers)
+            if not is_left_or_center_alignment:
                 ttwwr += '\n'
         # TEXT
         ttwwr += text_to_write
         # RIGHT SYMBOL
-        if self.paragraph_class == 'sentence':
-            if len(tail_font_revisers) > 0:
+        if len(tail_single_font_revisers) > 0:
+            if not is_center_or_right_alignment:
                 ttwwr += '\n'
-        for rev in tail_font_revisers[::-1]:
-            ttwwr += rev
+            ttwwr += ''.join(tail_single_font_revisers)
+        if is_center_or_right_alignment:
+            ttwwr += ' :'
+        if len(tail_pair_font_revisers) > 0:
+            ttwwr += '\n' + ''.join(tail_pair_font_revisers)
         # POST TEXT
         if post_text_to_write != '':
             ttwwr += '\n' + post_text_to_write
