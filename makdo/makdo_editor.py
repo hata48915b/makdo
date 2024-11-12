@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.12-11:16:14-JST>
+# Time-stamp:   <2024.11.12-12:42:09-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4554,6 +4554,8 @@ class CharsState:
             key += '-330'
         elif chars == 'alignment':
             key += '-180'
+        elif re.match('^horizontalline[0-9]{3}$', chars):
+            key += '-' + re.sub('^horizontalline0?0?', '', chars)
         elif chars == 'image':
             if len(self.parentheses) == 0:
                 key += '-120'
@@ -4613,8 +4615,6 @@ class CharsState:
             key += '-' + str(210 + ((self.chapter_depth - 1) * 10))
         elif self.section_depth > 0:
             key += '-' + str(30 + ((self.section_depth - 1) * 10))
-        elif re.match('^[0-9]{3}$', chars):
-            key += '-' + re.sub('^00?', '', chars)
         else:
             key += '-XXX'
         # LIGHTNESS
@@ -4650,7 +4650,7 @@ class CharsState:
         else:
             key += '-x'  # no underline
         # RETURN
-        return key
+        return key  # c-XXX-1-g-x, ...
 
 ############################################################
 # LINE DATUM
@@ -5156,58 +5156,60 @@ class LineDatum:
                 #                                                       # 4.set
                 # tmp = '-'                                             # 5.tmp
                 beg = end                                               # 6.beg
-                if c == '\u00AD':    # 改行時だけに表示されるハイフン
-                    key = chars_state.get_key('000')                    # 1.key
+                if False:
+                    pass
+                elif c == '\u2010':  # ハイフン（EUC:A1BE）
+                    key = chars_state.get_key('horizontalline000')      # 1.key
+                elif c == '\u2015':  # 水平線（EUC:A1BD）
+                    key = chars_state.get_key('horizontalline010')      # 1.key
+                elif c == '\u2212':  # マイナス記号（EUC:A1DD）
+                    key = chars_state.get_key('horizontalline020')      # 1.key
+                elif c == '\u2500':  # 罫線（EUC:A8A1）
+                    key = chars_state.get_key('horizontalline030')      # 1.key
+                elif c == '\u2501':  # 太字罫線（EUC:A8AC）
+                    key = chars_state.get_key('horizontalline040')      # 1.key
+                elif c == '\uFF70':  # 半角カナの長音記号（EUC:8EB0）
+                    key = chars_state.get_key('horizontalline050')      # 1.key
+                elif c == '\u00AD':    # 改行時だけに表示されるハイフン
+                    key = chars_state.get_key('horizontalline060')      # 1.key
                 elif c == '\u058A':  # アメリカンハイフン
-                    key = chars_state.get_key('010')                    # 1.key
+                    key = chars_state.get_key('horizontalline070')      # 1.key
                 elif c == '\u05BE':  # ヘブライ語のマカフ
-                    key = chars_state.get_key('020')                    # 1.key
+                    key = chars_state.get_key('horizontalline080')      # 1.key
                 elif c == '\u1806':  # モンゴル語のソフトハイフン
-                    key = chars_state.get_key('030')                    # 1.key
+                    key = chars_state.get_key('horizontalline090')      # 1.key
                 elif c == '\u180A':  # モンゴル語のニルグ
-                    key = chars_state.get_key('040')                    # 1.key
-                elif c == '\u2010':  # ハイフン
-                    key = chars_state.get_key('050')                    # 1.key
+                    key = chars_state.get_key('horizontalline100')      # 1.key
                 elif c == '\u2011':  # 改行しないハイフン
-                    key = chars_state.get_key('060')                    # 1.key
+                    key = chars_state.get_key('horizontalline110')      # 1.key
                 elif c == '\u2012':  # 数字幅のダッシュ
-                    key = chars_state.get_key('070')                    # 1.key
+                    key = chars_state.get_key('horizontalline120')      # 1.key
                 elif c == '\u2013':  # Ｎ幅ダッシュ
-                    key = chars_state.get_key('080')                    # 1.key
+                    key = chars_state.get_key('horizontalline130')      # 1.key
                 elif c == '\u2014':  # Ｍ幅ダッシュ
-                    key = chars_state.get_key('090')                    # 1.key
-                elif c == '\u2015':  # 水平線
-                    key = chars_state.get_key('100')                    # 1.key
+                    key = chars_state.get_key('horizontalline140')      # 1.key
                 elif c == '\u2043':  # 箇条書きの記号
-                    key = chars_state.get_key('110')                    # 1.key
+                    key = chars_state.get_key('horizontalline150')      # 1.key
                 elif c == '\u207B':  # 上付きマイナス
-                    key = chars_state.get_key('120')                    # 1.key
+                    key = chars_state.get_key('horizontalline160')      # 1.key
                 elif c == '\u208B':  # 下付きマイナス
-                    key = chars_state.get_key('130')                    # 1.key
-                elif c == '\u2212':  # マイナス記号
-                    key = chars_state.get_key('140')                    # 1.key
-                elif c == '\u2500':  # 罫線
-                    key = chars_state.get_key('150')                    # 1.key
-                elif c == '\u2501':  # 太字罫線
-                    key = chars_state.get_key('160')                    # 1.key
+                    key = chars_state.get_key('horizontalline170')      # 1.key
                 elif c == '\u2796':  # 太字マイナス記号
-                    key = chars_state.get_key('170')                    # 1.key
+                    key = chars_state.get_key('horizontalline180')      # 1.key
                 elif c == '\u2E3A':  # 2倍幅のＭ幅ダッシュ
-                    key = chars_state.get_key('180')                    # 1.key
+                    key = chars_state.get_key('horizontalline190')      # 1.key
                 elif c == '\u2E3B':  # 3倍幅のＭ幅ダッシュ
-                    key = chars_state.get_key('190')                    # 1.key
-                elif c == '\u3127':  # 注音符号の「Ｉ」の発音
-                    key = chars_state.get_key('200')                    # 1.key
+                    key = chars_state.get_key('horizontalline200')      # 1.key
+                elif c == '\u3127':  # 注音符号の「Ｉ」の発
+                    key = chars_state.get_key('horizontalline210')      # 1.key
                 elif c == '\u3161':  # ハングルの「ウ」
-                    key = chars_state.get_key('210')                    # 1.key
+                    key = chars_state.get_key('horizontalline220')      # 1.key
                 elif c == '\uFE58':  # 小さいＭ幅ダッシュ
-                    key = chars_state.get_key('220')                    # 1.key
+                    key = chars_state.get_key('horizontalline230')      # 1.key
                 elif c == '\uFE63':  # 小さいハイフンマイナス
-                    key = chars_state.get_key('230')                    # 1.key
+                    key = chars_state.get_key('horizontalline240')      # 1.key
                 elif c == '\uFF0D':  # 全角ハイフンマイナス
-                    key = chars_state.get_key('240')                    # 1.key
-                elif c == '\uFF70':  # 半角カナの長音記号
-                    key = chars_state.get_key('250')                    # 1.key
+                    key = chars_state.get_key('horizontalline250')      # 1.key
                 end = str(i + 1) + '.' + str(j + 1)                     # 2.end
                 txt.tag_add(key, beg, end)                              # 3.tag
                 #                                                       # 4.set
@@ -5268,15 +5270,7 @@ class LineDatum:
                 beg = end                                               # 6.beg
                 continue
             # MINCHO
-            # 002D "-" HYPHEN-MINUS
-            # 2010 "‐" HYPHEN
-            # 2014 "—" EM DASH
-            # 2015 "―" HORIZONTAL BAR
-            # 2212 "−" MINUS SIGN
-            # 30FC "ー" KATAKANA-HIRAGANA PROLONGED SOUND MARK
-            # FF0D "－" FULLWIDTH HYPHEN-MINUS
-            if c == '\u2010' or c == '\u2014' or \
-               c == '\u2212' or c == '\u30FC':
+            if c == '\u30FC':  # 長音記号
                 key = chars_state.get_key('')                           # 1.key
                 end = str(i + 1) + '.' + str(j)                         # 2.end
                 txt.tag_add(key, beg, end)                              # 3.tag
@@ -8163,18 +8157,18 @@ class Makdo:
     # "־"（U+05BE）HEBREW PUNCTUATION MAQAF（ヘブライ語のマカフ）
     # "᠆"（U+1806）MONGOLIAN TODO SOFT HYPHEN（モンゴル語のソフトハイフン）
     # "᠊"（U+180A）MONGOLIAN NIRUGU（モンゴル語のニルグ）
-    # "‐"（U+2010）HYPHEN（ハイフン）
+    # "‐"（U+2010）HYPHEN（ハイフン）（EUC:A1BE）
     # "‑"（U+2011）NON-BREAKING HYPHEN（改行しないハイフン）
     # "‒"（U+2012）FIGURE DASH（数字幅のダッシュ）
     # "–"（U+2013）EN DASH（Ｎ幅ダッシュ）
     # "—"（U+2014）EM DASH（Ｍ幅ダッシュ）
-    # "―"（U+2015）HORIZONTAL BAR（水平線）
+    # "―"（U+2015）HORIZONTAL BAR（水平線）（EUC:A1BD）
     # "⁃"（U+2043）HYPHEN BULLET（箇条書きの記号）
     # "⁻"（U+207B）SUPERSCRIPT MINUS（上付きマイナス）
     # "₋"（U+208B）SUBSCRIPT MINUS（下付きマイナス）
-    # "−"（U+2212）MINUS SIGN（マイナス記号)
-    # "─"（U+2500）BOX DRAWINGS LIGHT HORIZONTAL（罫線）
-    # "━"（U+2501）BOX DRAWINGS HEAVY HORIZONTAL（太字罫線）
+    # "−"（U+2212）MINUS SIGN（マイナス記号）（EUC:A1DD）
+    # "─"（U+2500）BOX DRAWINGS LIGHT HORIZONTAL（罫線）（EUC:A8A1）
+    # "━"（U+2501）BOX DRAWINGS HEAVY HORIZONTAL（太字罫線）（EUC:A8AC）
     # "➖"（U+2796）HEAVY MINUS SIGN（太字マイナス記号）
     # "⸺"（U+2E3A）TWO-EM DASH（2倍幅のＭ幅ダッシュ）
     # "⸻"（U+2E3B）THREE-EM DASH（3倍幅のＭ幅ダッシュ）
@@ -8185,7 +8179,8 @@ class Makdo:
     # "﹘"（U+FE58）SMALL EM DASH（小さいＭ幅ダッシュ）
     # "﹣"（U+FE63）SMALL HYPHEN-MINUS（小さいハイフンマイナス）
     # "－"（U+FF0D）FULLWIDTH HYPHEN-MINUS（全角ハイフンマイナス）
-    # "ｰ"（U+FF70）HALFWIDTH KATAKANA-HIRAGANA PROLONGED SOUND MARK（半角カナの長音記号）
+    # "ｰ"（U+FF70）HALFWIDTH KATAKANA-HIRAGANA PROLONGED SOUND MARK
+    #                                        （半角カナの長音記号）（EUC:8EB0）
 
     def insert_hline_002d(self):
         self.txt.insert('insert', '\u002D')  # 半角ハイフンマイナス
