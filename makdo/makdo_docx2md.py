@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.12-14:55:16-JST>
+# Time-stamp:   <2024.11.12-17:22:46-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4216,15 +4216,44 @@ class LineTruncation:
 
         @staticmethod
         def is_paren(char):
-            if len(char) == 1:
-                if LineTruncation.Paren.are_parens(char):
-                    return True
+            if LineTruncation.Paren.is_left_paren(char):
+                return True
+            if LineTruncation.Paren.is_right_paren(char):
+                return True
+            return False
+
+        @staticmethod
+        def is_left_paren(char):
+            if len(char) > 1:
+                return False
+            if LineTruncation.Paren.are_left_parens(char):
+                return True
+            return False
+
+        @staticmethod
+        def is_right_paren(char):
+            if len(char) > 1:
+                return False
+            if LineTruncation.Paren.are_right_parens(char):
+                return True
             return False
 
         @staticmethod
         def are_parens(chars):
+            if LineTruncation.Paren.are_left_parens(chars):
+                return True
+            if LineTruncation.Paren.are_right_parens(chars):
+                return True
+            return False
+
+        @staticmethod
+        def are_left_parens(chars):
             if re.match('^[\\(（「『]+$', chars):
                 return True
+            return False
+
+        @staticmethod
+        def are_right_parens(chars):
             if re.match('^[\\)）」』]+$', chars):
                 return True
             return False
@@ -4589,7 +4618,8 @@ class LineTruncation:
             # PUNCTUATION
             res_pun = '[,\\.，、．。]'
             if re.match('^(.|\n)*' + res_pun + '$', tmp1):
-                if not re.match('^' + res_pun, tmp2):
+                if not re.match('^' + res_pun, tmp2) and \
+                   not LineTruncation.Paren.is_right_paren(c2):
                     phrases.append(tmp1)
                     tmp1 = ''
                     continue
