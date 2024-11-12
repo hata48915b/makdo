@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.12-12:42:09-JST>
+# Time-stamp:   <2024.11.12-16:18:04-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -11390,7 +11390,7 @@ class Makdo:
             if self.key_history[-2] == 'F19':
                 self._jump_to_another_pane()
                 return 'break'
-            if self.key_history[-2] != 'Up':
+            if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
                 self.ideal_h_position \
                     = self._get_ideal_h_position_of_insert(pane)
             self._move_vertical(pane, self.ideal_h_position, -1)
@@ -11400,14 +11400,14 @@ class Makdo:
             if self.key_history[-2] == 'F19':
                 self._jump_to_another_pane()
                 return 'break'
-            if self.key_history[-2] != 'Down':
+            if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
                 self.ideal_h_position \
                     = self._get_ideal_h_position_of_insert(pane)
             self._move_vertical(pane, self.ideal_h_position, +1)
             self._paint_akauni_region(pane, '')
             return 'break'
         elif key.keysym == 'Prior':
-            if self.key_history[-2] != 'Prior':
+            if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
                 self.ideal_h_position \
                     = self._get_ideal_h_position_of_insert(pane)
             self._move_vertical(pane, self.ideal_h_position, -100)
@@ -11418,7 +11418,7 @@ class Makdo:
                 self._execute_sub_pane()
                 self.key_history[-1] = ''
                 return 'break'
-            if self.key_history[-2] != 'Next':
+            if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
                 self.ideal_h_position \
                     = self._get_ideal_h_position_of_insert(pane)
             self._move_vertical(pane, self.ideal_h_position, +100)
@@ -11630,7 +11630,7 @@ class Makdo:
             if self.key_history[-2] == 'F19':
                 self._jump_to_another_pane()
                 return 'break'
-            if self.key_history[-2] != 'Up':
+            if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
                 self.ideal_h_position \
                     = self._get_ideal_h_position_of_insert(pane)
             self._move_vertical(pane, self.ideal_h_position, -1)
@@ -11640,21 +11640,21 @@ class Makdo:
             if self.key_history[-2] == 'F19':
                 self._jump_to_another_pane()
                 return 'break'
-            if self.key_history[-2] != 'Down':
+            if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
                 self.ideal_h_position \
                     = self._get_ideal_h_position_of_insert(pane)
             self._move_vertical(pane, self.ideal_h_position, +1)
             self._paint_akauni_region(pane, '')
             return 'break'
         elif key.keysym == 'Prior':
-            if self.key_history[-2] != 'Prior':
+            if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
                 self.ideal_h_position \
                     = self._get_ideal_h_position_of_insert(pane)
             self._move_vertical(pane, self.ideal_h_position, -100)
             self._paint_akauni_region(pane, '')
             return 'break'
         elif key.keysym == 'Next':
-            if self.key_history[-2] != 'Next':
+            if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
                 self.ideal_h_position \
                     = self._get_ideal_h_position_of_insert(pane)
             self._move_vertical(pane, self.ideal_h_position, +100)
