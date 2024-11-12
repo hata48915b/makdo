@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.12-16:18:04-JST>
+# Time-stamp:   <2024.11.13-08:14:27-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5948,7 +5948,7 @@ class Makdo:
         self.pnd.add(self.pnd1, height=half_height, minsize=100)
         self.pnd.add(self.pnd2, height=half_height)
         # self.pnd.update()
-        self.sub_frm.pack(side='top')
+        self.sub_frm.pack(side='bottom')
         try:
             self.sub_btn1.destroy()
             self.sub_btn2.destroy()
@@ -6006,6 +6006,7 @@ class Makdo:
 
     @staticmethod
     def _put_back_cursor_to_pane(pane):
+        pane.update()
         p = pane.index('@0,0')
         h_min = int(re.sub('\\.[0-9]+$', '', p))
         p = pane.index('@1000000,1000000')
@@ -6231,10 +6232,14 @@ class Makdo:
     def _has_edited(self):
         file_text = self.txt.get('1.0', 'end-1c')
         file_text = self.get_fully_unfolded_document(file_text)
-        if file_text != '':
-            if self.init_text != file_text:
-                return True
-        return False
+        # REMOVED 24.11.13 >
+        # if file_text != '':
+        #     if self.init_text != file_text:
+        #         return True
+        # <
+        if file_text == self.init_text:
+            return False
+        return True
 
     def _ask_to_save(self, message):
         tkinter.Tk().withdraw()
@@ -6465,7 +6470,7 @@ class Makdo:
         #
         btn = tkinter.Button(self.pnd4, text='終了',
                              command=self._quit_converting_directly)
-        btn.pack(side='top')
+        btn.pack(side='bottom')
         #
         self.pool = tkinter.Text(self.pnd4)
         self.pool.drop_target_register(tkinterdnd2.DND_FILES)
@@ -9738,8 +9743,24 @@ class Makdo:
         cvs_frm.bind(
             '<Configure>',
             lambda e: cvs.configure(scrollregion=cvs.bbox('all')))
-        # cvs_frm.bind('<Up>', lambda e: cvs.yview_scroll(-1, 'units'))
-        # cvs_frm.bind('<Down>', lambda e: cvs.yview_scroll(1, 'units'))
+        cvs_frm.bind('<Escape>', lambda e: self._quit_diff())
+        cvs_frm.bind('<Up>', lambda e: cvs.yview_scroll(-1, 'units'))
+        cvs_frm.bind('<Down>', lambda e: cvs.yview_scroll(1, 'units'))
+        cvs_frm.bind('<Prior>', lambda e: cvs.yview_scroll(-100, 'units'))
+        cvs_frm.bind('<Next>', lambda e: cvs.yview_scroll(100, 'units'))
+        if sys.platform == 'win32':
+            cvs_frm.bind_all(
+                '<MouseWheel>',
+                lambda e: cvs.yview_scroll(- int(e.delta / 100), 'units'))
+        elif sys.platform == 'darwin':
+            cvs_frm.bind_all(
+                '<MouseWheel>',
+                lambda e: cvs.yview_scroll(- int(e.delta / 120), 'units'))
+        elif sys.platform == 'linux':
+            cvs_frm.bind_all('<4>', lambda e: cvs.yview_scroll(-1, 'units'))
+            cvs_frm.bind_all('<5>', lambda e: cvs.yview_scroll(1, 'units'))
+        btn = tkinter.Button(self.pnd3, text='終了', command=self._quit_diff)
+        btn.pack(side='bottom')
         self.btns = []
         for p in comp.paragraphs:
             if p.ses_symbol == '.':
@@ -9784,9 +9805,9 @@ class Makdo:
             frm2.pack(expand=True,
                       side=tkinter.TOP, anchor=tkinter.W, fill=tkinter.X)
             lbl.pack(expand=True, side=tkinter.LEFT, anchor=tkinter.W)
-        btn = tkinter.Button(self.pnd3, text='キャンセル', command=self._quit_diff)
-        btn.pack()
-        # cvs_frm.focus_set()
+        self._put_back_cursor_to_pane(self.txt)
+        #self.txt.focus_force()
+        cvs_frm.focus_force()
 
     def _apply_diff(self, frame, diff_id, comp):
         def x():
@@ -9847,6 +9868,7 @@ class Makdo:
             if beg < 0 or end < 0:
                 return False
             self.txt.mark_set('insert', '1.0+' + str(beg) + 'c')
+            self._put_back_cursor_to_pane(self.txt)
             return True
         return x
 
