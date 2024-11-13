@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.13-22:23:10-JST>
+# Time-stamp:   <2024.11.14-06:21:46-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6114,13 +6114,13 @@ class Makdo:
                          command=self.convert_directly)
         menu.add_separator()
         #
-        menu.add_command(label='PDFに返還',
+        menu.add_command(label='PDFに変換',
                          command=self.convert_to_pdf)
         menu.add_command(label='MS Wordを起動して確認・印刷(P)', underline=18,
                          command=self.start_writer, accelerator='Ctrl+P')
         menu.add_separator()
         #
-        menu.add_command(label='OneDriveのフォルダにコピーをアップロード',
+        menu.add_command(label='OneDriveフォルダにコピーをアップロード',
                          command=self.upload_to_onedrive)
         menu.add_separator()
         #
@@ -6137,10 +6137,11 @@ class Makdo:
         ans = self.close_file()
         if ans is None:
             return False
-        typ = [('可能な形式', '.md .docx'),
-               ('Markdown', '.md'), ('MS Word', '.docx'),
-               ('全てのファイル', '*')]
-        file_path = tkinter.filedialog.askopenfilename(filetypes=typ)
+        ti = 'ファイルを開く'
+        ty = [('可能な形式', '.md .docx'),
+              ('Markdown', '.md'), ('MS Word', '.docx'),
+              ('全てのファイル', '*')]
+        file_path = tkinter.filedialog.askopenfilename(title=ti, filetypes=ty)
         if file_path == () or file_path == '':
             return False
         self.just_open_file(file_path)
@@ -6258,8 +6259,10 @@ class Makdo:
             file_text = self.txt.get('1.0', 'end-1c')
             file_text = self.get_fully_unfolded_document(file_text)
             if (self.file_path is None) or (self.file_path == ''):
-                typ = [('Markdown', '*.md')]
-                file_path = tkinter.filedialog.asksaveasfilename(filetypes=typ)
+                ti = 'ファイルを保存'
+                ty = [('Markdown', '*.md')]
+                file_path = tkinter.filedialog.asksaveasfilename(
+                    title=ti, filetypes=ty)
                 if file_path == () or file_path == '':
                     return False
                 # if not re.match('^(?:.|\n)\\.md$', file_path):
@@ -6350,8 +6353,10 @@ class Makdo:
     # NAME AND SAVE
 
     def name_and_save_by_md(self):
-        typ = [('Markdown', '.md')]
-        file_path = tkinter.filedialog.asksaveasfilename(filetypes=typ)
+        ti = 'Markdown形式で名前をつけて保存'
+        ty = [('Markdown', '.md')]
+        file_path \
+            = tkinter.filedialog.asksaveasfilename(title=ti, filetypes=ty)
         if file_path == () or file_path == '':
             return False
         if not re.match('\\.md$', file_path):
@@ -6364,8 +6369,10 @@ class Makdo:
         return True
 
     def name_and_save_by_docx(self):
-        typ = [('MS Word', '.docx')]
-        file_path = tkinter.filedialog.asksaveasfilename(filetypes=typ)
+        ti = 'MS Word形式で名前をつけて保存'
+        ty = [('MS Word', '.docx')]
+        file_path \
+            = tkinter.filedialog.asksaveasfilename(title=ti, filetypes=ty)
         if file_path == () or file_path == '':
             return False
         if not re.match('\\.docx$', file_path):
@@ -6523,8 +6530,9 @@ class Makdo:
     # CONVERT TO PDF
 
     def convert_to_pdf(self):
-        typ = [('PDF', '.pdf')]
-        pdf_path = tkinter.filedialog.asksaveasfilename(filetypes=typ)
+        ti = 'PDFに変換'
+        ty = [('PDF', '.pdf')]
+        pdf_path = tkinter.filedialog.asksaveasfilename(title=ti, filetypes=ty)
         if file_path == () or file_path == '':
             return False
         if not re.match('\\.pdf$', file_path):
@@ -6579,9 +6587,10 @@ class Makdo:
         if self.onedrive_directory is None:
             return False
         if self.file_path is None:
-            typ = [('MS Word', '.docx')]
+            ti = 'OneDriveフォルダにコピーをアップロード'
+            ty = [('MS Word', '.docx')]
             file_path = tkinter.filedialog.asksaveasfilename(
-                initialdir=self.onedrive_directory, filetypes=typ)
+                title=ti, filetypes=ty, initialdir=self.onedrive_directory)
             if file_path == () or file_path == '':
                 return False
             if not re.match('^(.|\n)*\\.docx$', file_path):
@@ -7315,9 +7324,11 @@ class Makdo:
         self.txt.insert('insert', '<br>')
 
     def insert_images(self):
-        typ = [('画像', '.jpg .jpeg .png .gif .tif .tiff .bmp'),
-               ('全てのファイル', '*')]
-        image_paths = tkinter.filedialog.askopenfilenames(filetypes=typ)
+        ti = '画像を挿入'
+        ty = [('画像', '.jpg .jpeg .png .gif .tif .tiff .bmp'),
+              ('全てのファイル', '*')]
+        image_paths \
+            = tkinter.filedialog.askopenfilenames(title=ti, filetypes=ty)
         for i in image_paths:
             image_md_text = '![代替テキスト:縦x横](' + i + ' "説明")'
             self.txt.insert('insert', image_md_text)
@@ -7985,9 +7996,9 @@ class Makdo:
         submenu = tkinter.Menu(menu, tearoff=False)
         menu.add_cascade(label='ファイル名を挿入', menu=submenu)
         #
-        submenu.add_command(label='フルパスで挿入',
+        submenu.add_command(label='ファイル名をフルパスで挿入',
                             command=self.insert_file_paths)
-        submenu.add_command(label='ファイル名のみを挿入',
+        submenu.add_command(label='ファイル名をファイル名のみで挿入',
                             command=self.insert_file_names)
         submenu.add_command(label='編集中のファイルと同じフォルダにある全ファイルのファイル名のみを挿入',
                             command=self.insert_file_names_in_same_folder)
@@ -7996,12 +8007,14 @@ class Makdo:
     # COMMAND
 
     def insert_file_paths(self):
-        file_paths = tkinter.filedialog.askopenfilenames()
+        ti = 'ファイル名をフルパスで挿入'
+        file_paths = tkinter.filedialog.askopenfilenames(title=ti)
         for f in file_paths:
             self.txt.insert('insert', f + '\n')
 
     def insert_file_names(self):
-        file_paths = tkinter.filedialog.askopenfilenames()
+        ti = 'ファイル名をファイル名のみで挿入'
+        file_paths = tkinter.filedialog.askopenfilenames(title=ti)
         for f in file_paths:
             f = re.sub('^(.|\n)*/', '', f)
             self.txt.insert('insert', f + '\n')
@@ -8024,8 +8037,9 @@ class Makdo:
     # COMMAND
 
     def insert_file(self):
-        typ = [('読み込み可能なファイル', '.docx .md .txt .xlsx .csv')]
-        file_path = tkinter.filedialog.askopenfilename(filetypes=typ)
+        ti = 'ファイルの内容を挿入'
+        ty = [('読み込み可能なファイル', '.docx .md .txt .xlsx .csv')]
+        file_path = tkinter.filedialog.askopenfilename(title=ti, filetypes=ty)
         if file_path == () or file_path == '':
             return
         if re.match('^(?:.|\n)+.xlsx$', file_path):
@@ -8827,9 +8841,10 @@ class Makdo:
     # COMMAND
 
     def insert_image_paragraph(self):
-        typ = [('画像', '.jpg .jpeg .png .gif .tif .tiff .bmp'),
+        ti = '画像を挿入'
+        ty = [('画像', '.jpg .jpeg .png .gif .tif .tiff .bmp'),
                ('全てのファイル', '*')]
-        image_path = tkinter.filedialog.askopenfilename(filetypes=typ)
+        image_path = tkinter.filedialog.askopenfilename(title=ti, filetypes=ty)
         if image_path != () and image_path != '':
             self._insert_line_break_as_necessary()
             image_md_text = '![代替テキスト:縦x横](' + image_path + ' "説明")'
@@ -8850,9 +8865,9 @@ class Makdo:
     def _make_submenu_insert_table(self, menu):
         submenu = tkinter.Menu(menu, tearoff=False)
         menu.add_cascade(label='表を挿入', menu=submenu)
-        submenu.add_command(label='エクセルから挿入',
+        submenu.add_command(label='表をエクセルから挿入',
                             command=self.insert_table_from_excel)
-        submenu.add_command(label='書式を挿入',
+        submenu.add_command(label='表を書式で挿入',
                             command=self.insert_table_format)
 
     ######
@@ -8860,8 +8875,10 @@ class Makdo:
 
     def insert_table_from_excel(self, file_path=None):
         if file_path is None:
-            typ = [('エクセル', '.xlsx .csv')]
-            file_path = tkinter.filedialog.askopenfilename(filetypes=typ)
+            ti = '表をエクセルから挿入'
+            ty = [('エクセル', '.xlsx .csv')]
+            file_path \
+                = tkinter.filedialog.askopenfilename(title=ti, filetypes=ty)
         if file_path == () or file_path == '':
             return
         if re.match('^(?:.|\n)+.xlsx$', file_path):
@@ -9605,8 +9622,9 @@ class Makdo:
         return True
 
     def show_file(self):
-        typ = [('読み込み可能なファイル', '.docx .md .txt .xlsx .csv')]
-        file_path = tkinter.filedialog.askopenfilename(filetypes=typ)
+        ti = '別のファイルの内容を見る'
+        ty = [('読み込み可能なファイル', '.docx .md .txt .xlsx .csv')]
+        file_path = tkinter.filedialog.askopenfilename(title=ti, filetypes=ty)
         if file_path == () or file_path == '':
             return
         if re.match('^(?:.|\n)+.xlsx$', file_path):
@@ -9645,7 +9663,9 @@ class Makdo:
         if len(self.pnd.panes()) > 1:
             return False
         importlib.reload(makdo.makdo_mddiff)
-        text2 = self._get_text2()
+        text2 = self._get_text_to_compare()
+        if text2 is None:
+            return False
         file2 = makdo.makdo_mddiff.File()
         file2.set_up_from_text(text2)
         file2.cmp_paragraphs \
@@ -9654,13 +9674,14 @@ class Makdo:
         self._compare_files_loop(para2)
         return True
 
-    def _get_text2(self):
-        typ = [('可能な形式', '.md .docx'),
-               ('Markdown', '.md'), ('MS Word', '.docx'),
-               ('全てのファイル', '*')]
-        file_path = tkinter.filedialog.askopenfilename(filetypes=typ)
+    def _get_text_to_compare(self) -> str:
+        ti = '別のファイルの内容と比較して反映'
+        ty = [('可能な形式', '.md .docx'),
+              ('Markdown', '.md'), ('MS Word', '.docx'),
+              ('全てのファイル', '*')]
+        file_path = tkinter.filedialog.askopenfilename(title=ti, filetypes=ty)
         if file_path == () or file_path == '':
-            return False
+            return None
         # DOCX OR MD
         if re.match('^(?:.|\n)+.docx$', file_path):
             md_path = self.temp_dir.name + '/doc.md'
@@ -10641,7 +10662,7 @@ class Makdo:
         self._make_submenu_digit_separator(menu)
         menu.add_separator()
         #
-        menu.add_command(label='OneDriveのフォルダを指定',
+        menu.add_command(label='OneDriveフォルダを設定',
                          command=self.set_onedrive_directory)
         menu.add_separator()
         #
@@ -10808,17 +10829,18 @@ class Makdo:
     ################
     # COMMAND
 
-    def set_onedrive_directory(self):
+    def set_onedrive_directory(self) -> bool:
         od = self.onedrive_directory
         if od is None:
             d = os.path.expanduser('~/OneDrive')
             if os.path.exists(d):
                 if os.path.exists(d) and os.path.isdir(d):
                     od = d
+        ti = 'OneDriveフォルダを設定'
         if od is None:
-            od = tkinter.filedialog.askdirectory()
+            od = tkinter.filedialog.askdirectory(title=ti)
         else:
-            od = tkinter.filedialog.askdirectory(initialdir=od)
+            od = tkinter.filedialog.askdirectory(title=ti, initialdir=od)
         if od == () or od == '':
             return False
         self.onedrive_directory = od
@@ -11104,7 +11126,7 @@ class Makdo:
         #
         menu.add_command(label='Epwing形式の辞書で調べる',
                          command=self.look_in_epwing)
-        menu.add_command(label='Epwing形式の辞書ディレクトリを設定',
+        menu.add_command(label='Epwing形式の辞書フォルダを設定',
                          command=self.set_epwing_directory)
         menu.add_separator()
         #
@@ -12373,7 +12395,7 @@ class Makdo:
             'look-in-epwing\n' + \
             '　Epwing形式の辞書で調べる'
 
-        def look_in_epwing(self, pane=None):
+        def look_in_epwing(self, pane=None) -> bool:
             if pane is None:
                 self.txt
             # LOAD MODULE
@@ -12383,6 +12405,8 @@ class Makdo:
                 self.eblook_is_loaded = True
             if 'epwing_directory' not in vars(self):
                 self.set_epwing_directory()
+            if 'epwing_directory' not in vars(self):
+                return False
             w = ''
             if self.txt.tag_ranges('sel'):
                 w = self.txt.get('sel.first', 'sel.last')
@@ -12431,12 +12455,14 @@ class Makdo:
             #
             # self.sub.focus_force()
             # self.current_pane = 'sub'
+            return True
 
         def set_epwing_directory(self):
             ed = ''
             if 'epwing_directory' in vars(self):
                 ed = self.epwing_directory
-            ed = tkinter.filedialog.askdirectory(initialdir=ed)
+            ti = 'Epwing形式の辞書フォルダの設定'
+            ed = tkinter.filedialog.askdirectory(title=ti, initialdir=ed)
             if ed == () or ed == '':
                 return False
             self.epwing_directory = ed
@@ -12463,14 +12489,14 @@ class Makdo:
                 self.set_openai_model()
             if 'openai_model' not in vars(self):
                 n = 'エラー'
-                m = 'OpenAIのモデルが指定されていません．'
+                m = 'OpenAIのモデルが設定されていません．'
                 tkinter.messagebox.showerror(n, m)
                 return False
             if 'openai_key' not in vars(self):
                 self.openai_key()
             if 'openai_key' not in vars(self):
                 n = 'エラー'
-                m = 'OpenAIのキーが指定されていません．'
+                m = 'OpenAIのキーが設定されていません．'
                 tkinter.messagebox.showerror(n, m)
                 return False
             self.txt.focus_force()
@@ -12580,7 +12606,7 @@ class Makdo:
                 self.set_llama_model_file()
             if 'llama_model_file' not in vars(self):
                 n = 'エラー'
-                m = 'Llamaのモデルファイルが指定されていません．'
+                m = 'Llamaのモデルファイルが設定されていません．'
                 tkinter.messagebox.showerror(n, m)
                 return False
             if 'llama_context_size' not in vars(self):
@@ -12656,8 +12682,9 @@ class Makdo:
             if 'llama_model_file' in vars(self):
                 mf = self.llama_model_file
                 md = os.path.dirname(mf)
-            lmf = tkinter.filedialog.askopenfilename(initialdir=md,
-                                                     initialfile=mf)
+            ti = 'Llamaのモデルファイルを設定'
+            lmf = tkinter.filedialog.askopenfilename(
+                title=ti, initialdir=md, initialfile=mf)
             if lmf == () or lmf == '':
                 return False
             self.llama_model_file = lmf
@@ -12710,12 +12737,12 @@ if __name__ == '__main__':
         '-c', '--background-color',
         type=str,
         choices=['W', 'B', 'G'],
-        help='背景の色（白、黒、緑）を指定します')
+        help='背景の色（白、黒、緑）を設定します')
     parser.add_argument(
         '-s', '--font-size',
         type=int,
         choices=[12, 15, 18, 21, 24, 27, 30, 33, 36, 42, 48],
-        help='文字の大きさをピクセル単位で指定します')
+        help='文字の大きさをピクセル単位で設定します')
     parser.add_argument(
         '-p', '--paint-keywords',
         action='store_true',
@@ -12724,7 +12751,7 @@ if __name__ == '__main__':
         '-d', '--digit-separator',
         type=str,
         choices=['3', '4'],
-        help='計算結果の区切りを指定します')
+        help='計算結果の区切りを設定します')
     parser.add_argument(
         '-r', '--read-only',
         action='store_true',
