@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.14-06:42:05-JST>
+# Time-stamp:   <2024.11.14-08:38:55-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5937,7 +5937,6 @@ class Makdo:
             return False
         # self.quit_editing_formula()
         # self.close_memo_pad()
-        self.pnd.update()
         half_height = int(self.pnd.winfo_height() / 2) - 5
         self.pnd.remove(self.pnd1)
         self.pnd.remove(self.pnd2)
@@ -5947,7 +5946,12 @@ class Makdo:
         self.pnd.remove(self.pnd6)
         self.pnd.add(self.pnd1, height=half_height, minsize=100)
         self.pnd.add(self.pnd2, height=half_height)
-        # self.pnd.update()
+        self.pnd.update()
+        self._put_back_cursor_to_pane(self.txt)
+        self.pnd.remove(self.pnd1)
+        self.pnd.remove(self.pnd2)
+        self.pnd.add(self.pnd1, height=half_height, minsize=100)
+        self.pnd.add(self.pnd2, height=half_height)
         self.sub_frm.pack(side='bottom')
         try:
             self.sub_btn1.destroy()
@@ -5979,7 +5983,6 @@ class Makdo:
         self.sub.insert('1.0', document)
         self.sub.mark_set('insert', '1.0')
         # self.sub.configure(state='disabled')
-        self._put_back_cursor_to_pane(self.txt)
         self.sub.focus_force()
         self.current_pane = 'sub'
         return True
