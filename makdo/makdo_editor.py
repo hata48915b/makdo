@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.13-08:14:27-JST>
+# Time-stamp:   <2024.11.13-22:23:10-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -10827,51 +10827,61 @@ class Makdo:
     ################
     # CONFIGURATION FILE
 
-    def get_and_set_configurations(self):
+    def get_and_set_configurations(self) -> bool:
         if not os.path.exists(CONFIG_DIR):
             os.mkdir(CONFIG_DIR)
-        if os.path.exists(CONFIG_FILE):
+        if not os.path.exists(CONFIG_FILE):
+            open(CONFIG_FILE, 'w').close()
+        try:
             with open(CONFIG_FILE, 'r') as f:
-                for line in f:
-                    line = line.rstrip()
-                    item = re.sub('^\\s*(\\S*)\\s*:\\s*(.*)\\s*$', '\\1', line)
-                    valu = re.sub('^\\s*(\\S*)\\s*:\\s*(.*)\\s*$', '\\2', line)
-                    if item == 'dont_show_help':
-                        if valu == 'True':
-                            Makdo.file_dont_show_help = True
-                        elif valu == 'True':
-                            Makdo.file_dont_show_help = False
-                    elif item == 'background_color':
-                        if valu == 'W' or valu == 'B' or valu == 'G':
-                            Makdo.file_background_color = valu
-                    elif item == 'font_size':
-                        if re.match('^[0-9]+$', valu) and (int(valu) % 3) == 0:
-                            Makdo.file_font_size = int(valu)
-                    elif item == 'paint_keywords':
-                        if valu == 'True':
-                            Makdo.file_paint_keywords = True
-                        elif valu == 'False':
-                            Makdo.file_paint_keywords = False
-                    elif item == 'digit_separator':
-                        if valu == '3' or valu == '4':
-                            Makdo.file_digit_separator = valu
-                    elif item == 'make_backup_file':
-                        if valu == 'True':
-                            Makdo.file_make_backup_file = True
-                        elif valu == 'False':
-                            Makdo.file_make_backup_file = False
-                    elif item == 'onedrive_directory':
-                        self.onedrive_directory = valu
-                    elif item == 'epwing_directory':
-                        self.epwing_directory = valu
-                    elif item == 'openai_model':
-                        self.openai_model = valu
-                    elif item == 'openai_key':
-                        self.openai_key = valu
-                    elif item == 'llama_model_file':
-                        self.llama_model_file = valu
-                    elif item == 'llama_context_size':
-                        self.llama_context_size = valu
+                lines = f.read().replace('\r', '')
+        except BaseException:
+            return False
+        for line in lines.split('\n'):
+            line = line.rstrip()
+            item = re.sub('^\\s*(\\S*)\\s*:\\s*(.*)\\s*$', '\\1', line)
+            valu = re.sub('^\\s*(\\S*)\\s*:\\s*(.*)\\s*$', '\\2', line)
+            if item == 'dont_show_help':
+                if valu == 'True':
+                    Makdo.file_dont_show_help = True
+                else:
+                    Makdo.file_dont_show_help = False
+            elif item == 'background_color':
+                if valu == 'W' or valu == 'B' or valu == 'G':
+                    Makdo.file_background_color = valu
+            elif item == 'font_size':
+                if re.match('^[0-9]+$', valu) and (int(valu) % 3) == 0:
+                    Makdo.file_font_size = int(valu)
+            elif item == 'paint_keywords':
+                if valu == 'True':
+                    Makdo.file_paint_keywords = True
+                elif valu == 'False':
+                    Makdo.file_paint_keywords = False
+            elif item == 'digit_separator':
+                if valu == '3' or valu == '4':
+                    Makdo.file_digit_separator = valu
+            elif item == 'make_backup_file':
+                if valu == 'True':
+                    Makdo.file_make_backup_file = True
+                elif valu == 'False':
+                    Makdo.file_make_backup_file = False
+            elif item == 'onedrive_directory':
+                if os.path.exists(valu) and os.path.isdir(valu):
+                    self.onedrive_directory = valu
+            elif item == 'epwing_directory':
+                if os.path.exists(valu) and os.path.isdir(valu):
+                    self.epwing_directory = valu
+            elif item == 'openai_model':
+                self.openai_model = valu
+            elif item == 'openai_key':
+                self.openai_key = valu
+            elif item == 'llama_model_file':
+                if os.path.exists(valu) and os.path.isfile(valu):
+                    self.llama_model_file = valu
+            elif item == 'llama_context_size':
+                if re.match('^[0-9]+$', valu):
+                    self.llama_context_size = int(valu)
+        return True
 
     def save_configurations(self):
         if os.path.exists(CONFIG_FILE + '~'):
@@ -12561,16 +12571,9 @@ class Makdo:
 
         def open_llama(self) -> bool:
             # LOAD MODULE
-            if 'llama_is_loaded' not in vars(self):
+            if 'llama_cpp_is_loaded' not in vars(self):
                 from llama_cpp import Llama  # pip install llama-cpp-python
-                self.set_message_on_status_bar('Llamaを起動しています', True)
-                self.llama = Llama(
-                    model_path=self.llama_model_file,
-                    n_gpu_layers=0,
-                    n_ctx=4096,
-                )
-                self.set_message_on_status_bar('', True)
-                self.llama_is_loaded = True
+                self.llama_cpp_is_loaded = True
             if 'llama_qanda' not in vars(self):
                 self.llama_qanda = '# 【Llamaに質問】' + ('-' * 62) + '\n\n'
             if 'llama_model_file' not in vars(self):
@@ -12580,6 +12583,16 @@ class Makdo:
                 m = 'Llamaのモデルファイルが指定されていません．'
                 tkinter.messagebox.showerror(n, m)
                 return False
+            if 'llama_context_size' not in vars(self):
+                self.llama_context_size = 512
+            if 'llama' not in vars(self):
+                self.set_message_on_status_bar('Llamaを起動しています', True)
+                self.llama = Llama(
+                    model_path=self.llama_model_file,
+                    n_gpu_layers=0,
+                    n_ctx=self.llama_context_size,
+                )
+                self.set_message_on_status_bar('', True)
             self.txt.focus_force()
             self._execute_sub_pane = self.ask_llama
             self._close_sub_pane = self.close_llama
