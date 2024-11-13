@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.14-06:21:46-JST>
+# Time-stamp:   <2024.11.14-06:42:05-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6260,7 +6260,9 @@ class Makdo:
             file_text = self.get_fully_unfolded_document(file_text)
             if (self.file_path is None) or (self.file_path == ''):
                 ti = 'ファイルを保存'
-                ty = [('Markdown', '*.md')]
+                ty = [('可能な形式', '.md .docx'),
+                      ('Markdown', '.md'), ('MS Word', '.docx'),
+                      ('全てのファイル', '*')]
                 file_path = tkinter.filedialog.asksaveasfilename(
                     title=ti, filetypes=ty)
                 if file_path == () or file_path == '':
