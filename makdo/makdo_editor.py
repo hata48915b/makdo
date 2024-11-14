@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.14-08:38:55-JST>
+# Time-stamp:   <2024.11.14-09:04:20-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -12440,10 +12440,8 @@ class Makdo:
             msg = ''
             self.set_message_on_status_bar(msg, True)
             for ei in self.eblook.items:
-                dic += '# ==================================='
-                dic += '=====================================\n'
-                dic += '●\u3000' + ei.dictionary.k_name \
-                    + '\u3000' + ei.title + '\n'
+                dic += '●\u3000【' + ei.dictionary.k_name \
+                    + '\u3000' + ei.title + '】\n'
                 dic += ei.content + '\n\n'
             self._open_sub_pane(dic, True)
             n = 0
@@ -12489,7 +12487,8 @@ class Makdo:
                 import openai  # Apache Software License
                 self.openai = openai
             if 'openai_qanda' not in vars(self):
-                self.openai_qanda = '# 【OpenAIに質問】' + ('-' * 61) + '\n\n'
+                n = MD_TEXT_WIDTH - get_ideal_width('# 【OpenAIにＸＸ】')
+                self.openai_qanda = '# 【OpenAIに質問】' + ('-' * n)
             if 'openai_model' not in vars(self):
                 self.set_openai_model()
             if 'openai_model' not in vars(self):
@@ -12512,8 +12511,9 @@ class Makdo:
             return True
 
         def ask_openai(self) -> None:
-            openai_que_head = '# 【OpenAIに質問】' + ('-' * 61)
-            openai_ans_head = '# 【OpenAIの回答】' + ('-' * 61)
+            n = MD_TEXT_WIDTH - get_ideal_width('# 【OpenAIにＸＸ】')
+            openai_que_head = '# 【OpenAIに質問】' + ('-' * n)
+            openai_ans_head = '# 【OpenAIの回答】' + ('-' * n)
             messages = []
             mc = 'あなたは誠実で優秀な日本人のアシスタントです。' \
                 + '特に指示が無い場合は、常に日本語で回答してください。'
@@ -12606,7 +12606,8 @@ class Makdo:
                 from llama_cpp import Llama  # pip install llama-cpp-python
                 self.llama_cpp_is_loaded = True
             if 'llama_qanda' not in vars(self):
-                self.llama_qanda = '# 【Llamaに質問】' + ('-' * 62) + '\n\n'
+                n = MD_TEXT_WIDTH - get_ideal_width('# 【LlamaにＸＸ】')
+                self.llama_qanda = '# 【Llamaに質問】' + ('-' * n) + '\n\n'
             if 'llama_model_file' not in vars(self):
                 self.set_llama_model_file()
             if 'llama_model_file' not in vars(self):
@@ -12632,8 +12633,9 @@ class Makdo:
             return True
 
         def ask_llama(self) -> None:
-            llama_que_head = '# 【Llamaに質問】' + ('-' * 62)
-            llama_ans_head = '# 【Llamaの回答】' + ('-' * 62)
+            n = MD_TEXT_WIDTH - get_ideal_width('# 【LlamaにＸＸ】')
+            llama_que_head = '# 【Llamaに質問】' + ('-' * n)
+            llama_ans_head = '# 【Llamaの回答】' + ('-' * n)
             messages = []
             mc = 'あなたは誠実で優秀な日本人のアシスタントです。' \
                 + '特に指示が無い場合は、常に日本語で回答してください。'
