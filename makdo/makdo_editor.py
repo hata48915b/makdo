@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.14-09:04:20-JST>
+# Time-stamp:   <2024.11.14-14:15:02-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -7691,6 +7691,8 @@ class Makdo:
         submenu.add_separator()
         submenu.add_command(label='"祇"の人名・地名の字体の候補を全て挿入',
                             command=self.insert_ivs_of_7947)
+        submenu.add_command(label='"範"の人名・地名の字体の候補を全て挿入',
+                            command=self.insert_ivs_of_7bc4)
         submenu.add_command(label='"花"の人名・地名の字体の候補を全て挿入',
                             command=self.insert_ivs_of_82b1)
         submenu.add_command(label='"葛"の人名・地名の字体の候補を全て挿入',
@@ -7755,7 +7757,7 @@ class Makdo:
             self.entry1.pack(side=tkinter.LEFT)
             if self.code is not None:
                 self.entry1.insert(0, self.code)
-            txt = tkinter.Label(frm, text=',')
+            txt = tkinter.Label(frm, text=',E01', font=fon)  # E0100-E01EF
             txt.pack(side=tkinter.LEFT)
             self.entry2 = tkinter.Entry(frm, width=7, font=fon)
             self.entry2.pack(side=tkinter.LEFT)
@@ -7784,8 +7786,8 @@ class Makdo:
             ivs = self.entry2.get()
             if re.match('^[0-9a-fA-F]{4}$', ucs):
                 self.pane.insert('insert', chr(int(ucs, 16)))
-                if re.match('^E01[0-9a-eA-E][0-9a-fA-F]$', ivs):
-                    i = int(ivs, 16) - 917760
+                if re.match('^[0-9a-eA-E][0-9a-fA-F]$', ivs):
+                    i = int('E01' + ivs, 16) - 917760
                     self.pane.insert('insert', str(i) + ';')
                     self.has_inserted = True
 
@@ -7793,6 +7795,11 @@ class Makdo:
         self.txt.insert('insert',
                         'A祇2;' +  # E0102
                         'B祇3;')   # E0103
+
+    def insert_ivs_of_7bc4(self):
+        self.txt.insert('insert',
+                        'A範2;' +  # E0102 MJ19583
+                        'B範3;')   # E0103 MJ19584
 
     def insert_ivs_of_82b1(self):
         self.txt.insert('insert',
