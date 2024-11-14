@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.14-14:15:02-JST>
+# Time-stamp:   <2024.11.14-15:45:06-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -7689,6 +7689,8 @@ class Makdo:
         submenu.add_command(label='文字コードから人名・地名の字体を挿入',
                             command=self.insert_ivs)
         submenu.add_separator()
+        submenu.add_command(label='"廣"の人名・地名の字体の候補を全て挿入',
+                            command=self.insert_ivs_of_5ee3)
         submenu.add_command(label='"祇"の人名・地名の字体の候補を全て挿入',
                             command=self.insert_ivs_of_7947)
         submenu.add_command(label='"範"の人名・地名の字体の候補を全て挿入',
@@ -7791,65 +7793,73 @@ class Makdo:
                     self.pane.insert('insert', str(i) + ';')
                     self.has_inserted = True
 
+    def insert_ivs_of_5ee3(self):
+        self.txt.insert('insert',
+                        'A廣3;' +  # E0103 MJ011077
+                        'B廣4;' +  # E0104 MJ011075
+                        'C廣5;' +  # E0105 MJ011076
+                        'D廣12;')  # E010C MJ011078
+
     def insert_ivs_of_7947(self):
         self.txt.insert('insert',
-                        'A祇2;' +  # E0102
-                        'B祇3;')   # E0103
+                        'A祇2;' +  # E0102 MJ018770
+                        'B祇3;')   # E0103 MJ018771
 
     def insert_ivs_of_7bc4(self):
         self.txt.insert('insert',
-                        'A範2;' +  # E0102 MJ19583
-                        'B範3;')   # E0103 MJ19584
+                        'A範1;' +  # E0101 MJ019582
+                        'B範2;' +  # E0102 MJ019583
+                        'C範3;')   # E0103 MJ019584
 
     def insert_ivs_of_82b1(self):
         self.txt.insert('insert',
-                        'A花2;' +  # E0102
-                        'B花3;' +  # E0103
-                        'C花4;' +  # E0104
-                        'D花6;')   # E0106
+                        'A花2;' +  # E0102 MJ021591
+                        'B花3;' +  # E0103 MJ021592
+                        'C花4;' +  # E0104 MJ021593
+                        'D花6;')   # E0106 MJ021594
 
     def insert_ivs_of_845b(self):
         self.txt.insert('insert',
-                        'A葛2;' +  # E0102
-                        'B葛3;' +  # E0103
-                        'C葛4;' +  # E0104
-                        'D葛5;' +  # E0105
-                        'E葛6;' +  # E0106
-                        'F葛7;' +  # E0107
-                        'G葛8;')   # E0108
+                        'A葛2;' +  # E0102 MJ022335
+                        'B葛3;' +  # E0103 MJ022336
+                        'C葛4;' +  # E0104 MJ022340
+                        'D葛5;' +  # E0105 MJ022341
+                        'E葛6;' +  # E0106 MJ022338
+                        'F葛7;' +  # E0107 MJ022337
+                        'G葛8;')   # E0108 MJ022339
 
     def insert_ivs_of_9089(self):
         self.txt.insert('insert',
-                        'A邉15;' +  # E010F
-                        'B邉16;' +  # E0110
-                        'C邉17;' +  # E0111
-                        'D邉18;' +  # E0112
-                        'E邉19;' +  # E0113
-                        'F邉20;' +  # E0114
-                        'G邉21;' +  # E0115
-                        'H邉22;' +  # E0116
-                        'I邉23;' +  # E0117
-                        'J邉24;' +  # E0118
-                        'K邉25;' +  # E0119
-                        'L邉26;' +  # E011A
-                        'M邉27;' +  # E011B
-                        'N邉28;' +  # E011C
-                        'O邉29;' +  # E011D
-                        'P邉31;')   # E011F
+                        'A邉15;' +  # E010F MJ026190
+                        'B邉16;' +  # E0110 MJ060248
+                        'C邉17;' +  # E0111 MJ060239
+                        'D邉18;' +  # E0112 MJ060238
+                        'E邉19;' +  # E0113 MJ060237
+                        'F邉20;' +  # E0114 MJ060235
+                        'G邉21;' +  # E0115 MJ060234
+                        'H邉22;' +  # E0116 MJ058866
+                        'I邉23;' +  # E0117 MJ026197
+                        'J邉24;' +  # E0118 MJ060236
+                        'K邉25;' +  # E0119 MJ026191
+                        'L邉26;' +  # E011A MJ026194
+                        'M邉27;' +  # E011B MJ026192
+                        'N邉28;' +  # E011C MJ026195
+                        'O邉29;' +  # E011D MJ026196
+                        'P邉31;')   # E011F MJ026193
 
     def insert_ivs_of_908a(self):
         self.txt.insert('insert',
-                        'A邊8;' +   # E0108
-                        'B邊9;' +   # E0109
-                        'C邊10;' +  # E010A
-                        'D邊11;' +  # E010B
-                        'E邊12;' +  # E010C
-                        'F邊13;' +  # E010D
-                        'G邊14;' +  # E010E
-                        'H邊15;' +  # E010F
-                        'I邊16;' +  # E0110
-                        'J邊17;' +  # E0111
-                        'K邊18;')   # E0112
+                        'A邊8;' +   # E0108 MJ026200
+                        'B邊9;' +   # E0109 MJ060240
+                        'C邊10;' +  # E010A MJ026205
+                        'D邊11;' +  # E010B MJ026204
+                        'E邊12;' +  # E010C MJ026203
+                        'F邊13;' +  # E010D MJ026202
+                        'G邊14;' +  # E010E MJ026201
+                        'H邊15;' +  # E010F MJ026199
+                        'I邊16;' +  # E0110 MJ026206
+                        'J邊17;' +  # E0111 MJ058870
+                        'K邊18;')   # E0112 MJ026207
 
     ################
     # SUBMENU INSERT TIME
