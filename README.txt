@@ -1,4 +1,4 @@
-<!-- Time-stamp:   <2024.11.13-08:22:25-JST> -->
+<!-- Time-stamp:   <2024.11.15-11:27:44-JST> -->
 
 # MAKDO（MS WordのファイルをMarkdownで編集するアプリ）
 
@@ -181,13 +181,13 @@ Python3をインストールしてください。
 ソースファイルからアプリを起動するためには、
 次のpython3のモジュールをインストールする必要があります。
 
-- python-docx  /  MS Word形式のファイルを作成するために必要です。
-- chardet      /  入力ファイルの文字コードを判別するために必要です。
-- tkinterdnd2  /  GUIのために必要です。
-- pywin32      /  MS Wordやブラウザを起動するために必要です。
-- Levenshtein  /  2つの原稿を比較するために必要です。
-- openpyxl     /  MS Excel形式の表を文書に取り込むために必要です。
-- openai       /  OpenAIの生成AIを使うために必要です。
+- python-docx / MS Word形式のファイルを作成するために必要です。
+- chardet / 入力ファイルの文字コードを判別するために必要です。
+- tkinterdnd2 / GUIのために必要です。
+- pywin32 / MS Wordやブラウザを起動するために必要です。
+- Levenshtein / 2つの原稿を比較するために必要です。
+- openpyxl / MS Excel形式の表を文書に取り込むために必要です。
+- openai / OpenAIの生成AIを使うために必要です。
 - llama_cpp_python / llamaの生成AIを使うために必要です。
 
 コマンドプロンプト（Windowsの場合）又はターミナル（macOSの場合）で、
@@ -215,7 +215,7 @@ python3 -m pip install python-docx --trusted-host pypi.python.org --trusted-host
 
 Epwing形式の辞書を使うためには、`eblook`と辞書データも必要です。
 
-![eblook](http://openlab.jp/edict/eblook/ "eblook")
+[eblookのウェブページ](http://openlab.jp/edict/eblook/)
 
 ### 起動方法
 
