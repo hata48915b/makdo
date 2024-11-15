@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.14-15:45:06-JST>
+# Time-stamp:   <2024.11.15-10:27:18-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -148,6 +148,7 @@ COLOR_SPACE = (
     ('#FF1188', '#FF55AA', '#FF99CC', '#FFDDEE'),  # 330 : list, fnumb
     ('#FF1566', '#FF5892', '#FF9BBE', '#FFDEE9'),  # 340 :
     ('#FF1843', '#FF5A79', '#FF9CAE', '#FFDEE4'),  # 350 :
+    ('#4C4C4C', '#808080', '#B2B2B2', '#E6E6E6'),  # gray
 )
 
 KEYWORDS = [
@@ -4607,6 +4608,8 @@ class CharsState:
             key += '-240'
         elif chars == 'M' or chars == 'magenta':
             key += '-300'
+        elif chars == 'gray':
+            key += '-360'
         elif chars == 'fold':
             key += '-10'
         elif self.is_length_reviser:
@@ -4933,6 +4936,20 @@ class LineDatum:
                 tmp = ''                                                # 5.tmp
                 beg = end                                               # 6.beg
                 continue
+            if (not chars_state.is_in_comment) and re.match('^.*\\^\\^$', tmp):
+                key = chars_state.get_key('')                           # 1.key
+                end = str(i + 1) + '.' + str(j - 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                # tmp = '^^'                                            # 5.tmp
+                beg = end                                               # 6.beg
+                key = chars_state.get_key('gray')                       # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                tmp = ''                                                # 5.tmp
+                beg = end                                               # 6.beg
+                continue
             # TABLE CONFIGURE
             if (c == ':' and (c2 == '|' or c2 == '-' or c2 == ':')) or \
                (c == ':' and c0 == '|') or \
@@ -4997,7 +5014,7 @@ class LineDatum:
                 tmp = ''                                                # 5.tmp
                 beg = end                                               # 6.beg
                 continue
-            # FONT DECORATOR ("@.+@", "^.*^", "_.*_")
+            # FONT DECORATOR ("@.+@", "_.*_")
             if ((re.match('^.*@[0-9]+$', s_lft) and
                  re.match('^[0-9]*@.*$', s_rgt)) or
                 (re.match('^.*@[0-9]+$', s_lft) and
@@ -5007,9 +5024,12 @@ class LineDatum:
                 (re.match('^.*@[0-9]*\\.[0-9]+$', s_lft) and
                  re.match('^[0-9]*@.*$', s_rgt))):
                 continue  # @n@
-            res = NOT_ESCAPED + '(@[^@]{1,66}@|\\^.*\\^|_.*_)$'
+            res = NOT_ESCAPED + '(@[^@]{1,66}@|_.*_)$'
             if re.match(res, tmp) and not chars_state.is_in_comment:
                 mdt = re.sub(res, '\\2', tmp)
+                if re.match('^_.*_$', mdt):
+                    if not re.match('^_[\\$=\\.#\\-~\\+]{,4}_$', mdt):
+                        continue
                 hul = chars_state.has_underline
                 hsf = chars_state.has_specific_font
                 key = chars_state.get_key('')                           # 1.key
@@ -7689,20 +7709,74 @@ class Makdo:
         submenu.add_command(label='文字コードから人名・地名の字体を挿入',
                             command=self.insert_ivs)
         submenu.add_separator()
+        submenu.add_command(label='"兼"の人名・地名の字体の候補を全て挿入',
+                            command=self.insert_ivs_of_517c)
+        submenu.add_command(label='"化"の人名・地名の字体の候補を全て挿入',
+                            command=self.insert_ivs_of_5316)
+        submenu.add_command(label='"啄"の人名・地名の字体の候補を全て挿入',
+                            command=self.insert_ivs_of_5544)
+        submenu.add_command(label='"崩"の人名・地名の字体の候補を全て挿入',
+                            command=self.insert_ivs_of_5d29)
         submenu.add_command(label='"廣"の人名・地名の字体の候補を全て挿入',
                             command=self.insert_ivs_of_5ee3)
+        submenu.add_command(label='"愉"の人名・地名の字体の候補を全て挿入',
+                            command=self.insert_ivs_of_6109)
+        submenu.add_command(label='"拳"の人名・地名の字体の候補を全て挿入',
+                            command=self.insert_ivs_of_62f3)
+        submenu.add_command(label='"曙"の人名・地名の字体の候補を全て挿入',
+                            command=self.insert_ivs_of_66d9)
+        submenu.add_command(label='"梅"の人名・地名の字体の候補を全て挿入',
+                            command=self.insert_ivs_of_6885)
+        submenu.add_command(label='"榊"の人名・地名の字体の候補を全て挿入',
+                            command=self.insert_ivs_of_698a)
+        submenu.add_command(label='"浩"の人名・地名の字体の候補を全て挿入',
+                            command=self.insert_ivs_of_6d69)
+        submenu.add_command(label='"浮"の人名・地名の字体の候補を全て挿入',
+                            command=self.insert_ivs_of_6d6e)
+        submenu.add_command(label='"漢"の人名・地名の字体の候補を全て挿入',
+                            command=self.insert_ivs_of_6f22)
+        submenu.add_command(label='"琢"の人名・地名の字体の候補を全て挿入',
+                            command=self.insert_ivs_of_7422)
+        submenu.add_command(label='"礼"の人名・地名の字体の候補を全て挿入',
+                            command=self.insert_ivs_of_793c)
+        submenu.add_command(label='"社"の人名・地名の字体の候補を全て挿入',
+                            command=self.insert_ivs_of_793e)
         submenu.add_command(label='"祇"の人名・地名の字体の候補を全て挿入',
                             command=self.insert_ivs_of_7947)
+        submenu.add_command(label='"祈"の人名・地名の字体の候補を全て挿入',
+                            command=self.insert_ivs_of_7948)
+        submenu.add_command(label='"祐"の人名・地名の字体の候補を全て挿入',
+                            command=self.insert_ivs_of_7953)
+        submenu.add_command(label='"神"の人名・地名の字体の候補を全て挿入',
+                            command=self.insert_ivs_of_795e)
+        submenu.add_command(label='"祥"の人名・地名の字体の候補を全て挿入',
+                            command=self.insert_ivs_of_7965)
+        submenu.add_command(label='"空"の人名・地名の字体の候補を全て挿入',
+                            command=self.insert_ivs_of_7a7a)
         submenu.add_command(label='"範"の人名・地名の字体の候補を全て挿入',
                             command=self.insert_ivs_of_7bc4)
         submenu.add_command(label='"花"の人名・地名の字体の候補を全て挿入',
                             command=self.insert_ivs_of_82b1)
+        submenu.add_command(label='"菅"の人名・地名の字体の候補を全て挿入',
+                            command=self.insert_ivs_of_83c5)
         submenu.add_command(label='"葛"の人名・地名の字体の候補を全て挿入',
                             command=self.insert_ivs_of_845b)
+        submenu.add_command(label='"藏"の人名・地名の字体の候補を全て挿入',
+                            command=self.insert_ivs_of_85cf)
+        submenu.add_command(label='"覇"の人名・地名の字体の候補を全て挿入',
+                            command=self.insert_ivs_of_8987)
+        submenu.add_command(label='"角"の人名・地名の字体の候補を全て挿入',
+                            command=self.insert_ivs_of_89d2)
+        submenu.add_command(label='"諭"の人名・地名の字体の候補を全て挿入',
+                            command=self.insert_ivs_of_8aed)
+        submenu.add_command(label='"辻"の人名・地名の字体の候補を全て挿入',
+                            command=self.insert_ivs_of_8fbb)
         submenu.add_command(label='"邉"の人名・地名の字体の候補を全て挿入',
                             command=self.insert_ivs_of_9089)
         submenu.add_command(label='"邊"の人名・地名の字体の候補を全て挿入',
                             command=self.insert_ivs_of_908a)
+        submenu.add_command(label='"餅"の人名・地名の字体の候補を全て挿入',
+                            command=self.insert_ivs_of_9905)
 
     ######
     # COMMAND
@@ -7793,6 +7867,32 @@ class Makdo:
                     self.pane.insert('insert', str(i) + ';')
                     self.has_inserted = True
 
+    def insert_ivs_of_517c(self):
+        self.txt.insert('insert',
+                        'A兼2;' +  # E0102 MJ007297
+                        'B兼3;' +  # E0103 MJ007298
+                        'C兼4;' +  # E0104 MJ007296
+                        'D兼5;' +  # E0105 MJ056985
+                        'E兼6;')   # E0106 MJ056989
+
+    def insert_ivs_of_5316(self):
+        self.txt.insert('insert',
+                        'A化2;' +  # E0102 MJ007779
+                        'B化3;')   # E0103 MJ007778
+
+    def insert_ivs_of_5544(self):
+        self.txt.insert('insert',
+                        'A啄2;' +  # E0102 MJ008370
+                        'B啄3;' +  # E0103 MJ008374
+                        'C啄4;' +  # E0104 MJ008372
+                        'D啄5;' +  # E0105 MJ008371
+                        'E啄6;')   # E0106 MJ008373
+
+    def insert_ivs_of_5d29(self):
+        self.txt.insert('insert',
+                        'A崩2;' +  # E0102 MJ010574
+                        'B崩3;')   # E0103 MJ010573
+
     def insert_ivs_of_5ee3(self):
         self.txt.insert('insert',
                         'A廣3;' +  # E0103 MJ011077
@@ -7800,10 +7900,94 @@ class Makdo:
                         'C廣5;' +  # E0105 MJ011076
                         'D廣12;')  # E010C MJ011078
 
+    def insert_ivs_of_6109(self):
+        self.txt.insert('insert',
+                        'A愉2;' +  # E0102 MJ011726
+                        'B愉3;')   # E0103 MJ011725
+
+    def insert_ivs_of_62f3(self):
+        self.txt.insert('insert',
+                        'A拳2;' +  # E0102 MJ012304
+                        'B拳3;')   # E0103 MJ012303
+
+    def insert_ivs_of_66d9(self):
+        self.txt.insert('insert',
+                        'A曙2;' +  # E0102 MJ013447
+                        'B曙3;')   # E0103 MJ013448
+
+    def insert_ivs_of_6885(self):
+        self.txt.insert('insert',
+                        'A梅2;' +  # E0102 MJ013961
+                        'B梅3;')   # E0103 MJ030265
+
+    def insert_ivs_of_698a(self):
+        self.txt.insert('insert',
+                        'A榊2;' +  # E0102 MJ014255
+                        'B榊3;')   # E0103 MJ014256
+
+    def insert_ivs_of_6d69(self):
+        self.txt.insert('insert',
+                        'A浩2;' +  # E0102 MJ015356
+                        'B浩3;')   # E0103 MJ015355
+
+    def insert_ivs_of_6d6e(self):
+        self.txt.insert('insert',
+                        'A浮2;' +  # E0102 MJ015362
+                        'B浮3;')   # E0103 MJ015361
+
+    def insert_ivs_of_6f22(self):
+        self.txt.insert('insert',
+                        'A漢2;' +  # E0102 MJ015841
+                        'B漢3;' +  # E0102 MJ030268
+                        'C漢7;')   # E0107 MJ015844
+
+    def insert_ivs_of_7422(self):
+        self.txt.insert('insert',
+                        'A琢2;' +  # E0102 MJ017282
+                        'B琢3;' +  # E0103 MJ030273
+                        'C琢4;' +  # E0104 MJ017283
+                        'D琢5;')   # E0105 MJ030271
+
+    def insert_ivs_of_793c(self):
+        self.txt.insert('insert',
+                        'A礼2;' +  # E0102 MJ018750
+                        'B礼3;')   # E0103 MJ030210
+
+    def insert_ivs_of_793e(self):
+        self.txt.insert('insert',
+                        'A社2;' +  # E0102 MJ018753
+                        'B社3;' +  # E0103 MJ030274
+                        'C社4;')   # E0104 MJ058201
+
     def insert_ivs_of_7947(self):
         self.txt.insert('insert',
                         'A祇2;' +  # E0102 MJ018770
                         'B祇3;')   # E0103 MJ018771
+
+    def insert_ivs_of_7948(self):
+        self.txt.insert('insert',
+                        'A祈2;' +  # E0102 MJ018772
+                        'B祈3;')   # E0103 MJ030276
+
+    def insert_ivs_of_7953(self):
+        self.txt.insert('insert',
+                        'A祐2;' +  # E0102 MJ018782
+                        'B祐3;')   # E0103 MJ030277
+
+    def insert_ivs_of_795e(self):
+        self.txt.insert('insert',
+                        'A神2;' +  # E0102 MJ018811
+                        'B神3;')   # E0103 MJ030211
+
+    def insert_ivs_of_7965(self):
+        self.txt.insert('insert',
+                        'A祥2;' +  # E0102 MJ018825
+                        'B祥3;')   # E0103 MJ030212
+
+    def insert_ivs_of_7a7a(self):
+        self.txt.insert('insert',
+                        'A空2;' +  # E0102 MJ019210
+                        'B空3;')   # E0103 MJ039211
 
     def insert_ivs_of_7bc4(self):
         self.txt.insert('insert',
@@ -7818,6 +8002,11 @@ class Makdo:
                         'C花4;' +  # E0104 MJ021593
                         'D花6;')   # E0106 MJ021594
 
+    def insert_ivs_of_83c5(self):
+        self.txt.insert('insert',
+                        'A菅1;' +  # E0101 MJ022070
+                        'B菅2;')   # E0102 MJ022071
+
     def insert_ivs_of_845b(self):
         self.txt.insert('insert',
                         'A葛2;' +  # E0102 MJ022335
@@ -7827,6 +8016,35 @@ class Makdo:
                         'E葛6;' +  # E0106 MJ022338
                         'F葛7;' +  # E0107 MJ022337
                         'G葛8;')   # E0108 MJ022339
+
+    def insert_ivs_of_85cf(self):
+        self.txt.insert('insert',
+                        'A藏2;' +  # E0102 MJ023044
+                        'B藏3;' +  # E0103 MJ023046
+                        'C藏4;' +  # E0104 MJ023047
+                        'D藏5;')   # E0105 MJ023045
+
+    def insert_ivs_of_8987(self):
+        self.txt.insert('insert',
+                        'A覇2;' +  # E0102 MJ024210
+                        'B覇3;')   # E0103 MJ024209
+
+    def insert_ivs_of_89d2(self):
+        self.txt.insert('insert',
+                        'A角2;' +  # E0102 MJ024281
+                        'B角3;' +  # E0103 MJ024283
+                        'C角4;')   # E0104 MJ024282
+
+    def insert_ivs_of_8aed(self):
+        self.txt.insert('insert',
+                        'A諭2;' +  # E0102 MJ024620
+                        'B諭3;' +  # E0103 MJ024621
+                        'C諭4;')   # E0104 MJ024619
+
+    def insert_ivs_of_8fbb(self):
+        self.txt.insert('insert',
+                        'A辻2;' +  # E0102 MJ025760
+                        'B辻3;')   # E0103 MJ025761
 
     def insert_ivs_of_9089(self):
         self.txt.insert('insert',
@@ -7860,6 +8078,11 @@ class Makdo:
                         'I邊16;' +  # E0110 MJ026206
                         'J邊17;' +  # E0111 MJ058870
                         'K邊18;')   # E0112 MJ026207
+
+    def insert_ivs_of_9905(self):
+        self.txt.insert('insert',
+                        'A餅2;' +  # E0102 MJ028397
+                        'B餅3;')   # E0103 MJ028398
 
     ################
     # SUBMENU INSERT TIME
@@ -10792,11 +11015,11 @@ class Makdo:
         for u in ['-x', '-u']:
             und = False if u == '-x' else True
             for f in ['-g', '-m']:
+                # WHITE
                 if f == '-g':
                     fon = self.gothic_font.copy()
                 else:
                     fon = self.mincho_font.copy()
-                # WHITE
                 for i in range(3):
                     a = '-XXX'
                     y = '-' + str(i)
@@ -10809,12 +11032,12 @@ class Makdo:
                         col = LIGHTYELLOW_SPACE[i]
                     self.txt.tag_config(tag, font=fon,
                                         foreground=col, underline=und)
+                # COLOR
                 if f == '-g':
                     fon = self.gothic_font.copy()
                 else:
                     fon = self.mincho_font.copy()
                 fon['weight'] = 'bold'
-                # COLOR
                 for i in range(3):  # lightness
                     y = '-' + str(i)
                     for j, c in enumerate(COLOR_SPACE):  # angle
@@ -12457,7 +12680,7 @@ class Makdo:
             msg = ''
             self.set_message_on_status_bar(msg, True)
             for ei in self.eblook.items:
-                dic += '●\u3000【' + ei.dictionary.k_name \
+                dic += '## 【' + ei.dictionary.k_name \
                     + '\u3000' + ei.title + '】\n'
                 dic += ei.content + '\n\n'
             self._open_sub_pane(dic, True)
@@ -12504,8 +12727,8 @@ class Makdo:
                 import openai  # Apache Software License
                 self.openai = openai
             if 'openai_qanda' not in vars(self):
-                n = MD_TEXT_WIDTH - get_ideal_width('# 【OpenAIにＸＸ】')
-                self.openai_qanda = '# 【OpenAIに質問】' + ('-' * n)
+                n = MD_TEXT_WIDTH - get_ideal_width('## 【OpenAIにＸＸ】')
+                self.openai_qanda = '## 【OpenAIに質問】' + ('-' * n)
             if 'openai_model' not in vars(self):
                 self.set_openai_model()
             if 'openai_model' not in vars(self):
@@ -12528,9 +12751,9 @@ class Makdo:
             return True
 
         def ask_openai(self) -> None:
-            n = MD_TEXT_WIDTH - get_ideal_width('# 【OpenAIにＸＸ】')
-            openai_que_head = '# 【OpenAIに質問】' + ('-' * n)
-            openai_ans_head = '# 【OpenAIの回答】' + ('-' * n)
+            n = MD_TEXT_WIDTH - get_ideal_width('## 【OpenAIにＸＸ】')
+            openai_que_head = '## 【OpenAIに質問】' + ('-' * n)
+            openai_ans_head = '## 【OpenAIの回答】' + ('-' * n)
             messages = []
             mc = 'あなたは誠実で優秀な日本人のアシスタントです。' \
                 + '特に指示が無い場合は、常に日本語で回答してください。'
@@ -12623,8 +12846,8 @@ class Makdo:
                 from llama_cpp import Llama  # pip install llama-cpp-python
                 self.llama_cpp_is_loaded = True
             if 'llama_qanda' not in vars(self):
-                n = MD_TEXT_WIDTH - get_ideal_width('# 【LlamaにＸＸ】')
-                self.llama_qanda = '# 【Llamaに質問】' + ('-' * n) + '\n\n'
+                n = MD_TEXT_WIDTH - get_ideal_width('## 【LlamaにＸＸ】')
+                self.llama_qanda = '## 【Llamaに質問】' + ('-' * n) + '\n\n'
             if 'llama_model_file' not in vars(self):
                 self.set_llama_model_file()
             if 'llama_model_file' not in vars(self):
@@ -12650,9 +12873,9 @@ class Makdo:
             return True
 
         def ask_llama(self) -> None:
-            n = MD_TEXT_WIDTH - get_ideal_width('# 【LlamaにＸＸ】')
-            llama_que_head = '# 【Llamaに質問】' + ('-' * n)
-            llama_ans_head = '# 【Llamaの回答】' + ('-' * n)
+            n = MD_TEXT_WIDTH - get_ideal_width('## 【LlamaにＸＸ】')
+            llama_que_head = '## 【Llamaに質問】' + ('-' * n)
+            llama_ans_head = '## 【Llamaの回答】' + ('-' * n)
             messages = []
             mc = 'あなたは誠実で優秀な日本人のアシスタントです。' \
                 + '特に指示が無い場合は、常に日本語で回答してください。'
