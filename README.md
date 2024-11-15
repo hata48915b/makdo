@@ -185,9 +185,10 @@ Python3をインストールしてください。
 - chardet      /  入力ファイルの文字コードを判別するために必要です。
 - tkinterdnd2  /  GUIのために必要です。
 - pywin32      /  MS Wordやブラウザを起動するために必要です。
+- Levenshtein  /  2つの原稿を比較するために必要です。
 - openpyxl     /  MS Excel形式の表を文書に取り込むために必要です。
 - openai       /  OpenAIの生成AIを使うために必要です。
-- Levenshtein  /  2つの原稿を比較するために必要です。
+- llama_cpp_python / llamaの生成AIを使うために必要です。
 
 コマンドプロンプト（Windowsの場合）又はターミナル（macOSの場合）で、
 次のコマンドを実行してインストールしてください（python-docxの場合）。
@@ -209,6 +210,12 @@ python3 -m pip install python-docx --trusted-host pypi.python.org --trusted-host
 
 うまく実行できない場合には、`python3`の実行ファイルをフルパスで指定するか、
 環境変数PATHの設定をお願いします。
+
+### アプリケーションのインストール
+
+Epwing形式の辞書を使うためには、`eblook`と辞書データも必要です。
+
+![eblook](http://openlab.jp/edict/eblook/ "eblook")
 
 ### 起動方法
 
@@ -491,4 +498,3 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ### 2024.04.02 v07 Furuichibashi リリース
 
 大幅な修正を加えたリリースです。
-
