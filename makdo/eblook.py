@@ -10,7 +10,10 @@ import re
 __version__ = 'v01'
 
 
-EBLOOK = '/usr/bin/eblook'
+if os.path.exists('/usr/bin/eblook'):
+    EBLOOK = '/usr/bin/eblook'
+if os.path.exists('/usr/local/bin/eblook'):
+    EBLOOK = '/usr/local/bin/eblook'
 
 GAIJI_KOJIEN = {
     'za422': '【文】',
@@ -66,6 +69,7 @@ GAIJI_KOJIEN = {
     'zb956': '𠆢',  # ひとやね
     'zb95a': '𫝆', 'zb95b': '㠯', 'zb95c': '仡',
     'zb97c': '每',
+    'zba2b': '𠊳', # ⺅㪅
     'zba4e': '【漢字（傷のつくり）】', 'zba4f': '【漢字（修の彡が羽）】',
     'zba58': '僨', 'zba59': '菐',
     'zba72': '【漢字（兼のソが八）】', 'zba73': '【漢字（六の点なし）】',
@@ -271,9 +275,8 @@ class Item:
         return so
 
     def print_item(self) -> None:
-        print('=====================================' +
-              '=====================================')
-        print('●\u3000' + self.dictionary.k_name + '\u3000' + self.title)
+        print('## 【' + self.dictionary.k_name
+              + '\u3000' + self.title + '】')
         print(self.content + '\n')
 
 
