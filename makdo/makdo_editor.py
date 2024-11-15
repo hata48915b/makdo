@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.15-10:27:18-JST>
+# Time-stamp:   <2024.11.15-10:42:14-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -7725,8 +7725,6 @@ class Makdo:
                             command=self.insert_ivs_of_62f3)
         submenu.add_command(label='"曙"の人名・地名の字体の候補を全て挿入',
                             command=self.insert_ivs_of_66d9)
-        submenu.add_command(label='"梅"の人名・地名の字体の候補を全て挿入',
-                            command=self.insert_ivs_of_6885)
         submenu.add_command(label='"榊"の人名・地名の字体の候補を全て挿入',
                             command=self.insert_ivs_of_698a)
         submenu.add_command(label='"浩"の人名・地名の字体の候補を全て挿入',
@@ -7737,20 +7735,10 @@ class Makdo:
                             command=self.insert_ivs_of_6f22)
         submenu.add_command(label='"琢"の人名・地名の字体の候補を全て挿入',
                             command=self.insert_ivs_of_7422)
-        submenu.add_command(label='"礼"の人名・地名の字体の候補を全て挿入',
-                            command=self.insert_ivs_of_793c)
         submenu.add_command(label='"社"の人名・地名の字体の候補を全て挿入',
                             command=self.insert_ivs_of_793e)
         submenu.add_command(label='"祇"の人名・地名の字体の候補を全て挿入',
                             command=self.insert_ivs_of_7947)
-        submenu.add_command(label='"祈"の人名・地名の字体の候補を全て挿入',
-                            command=self.insert_ivs_of_7948)
-        submenu.add_command(label='"祐"の人名・地名の字体の候補を全て挿入',
-                            command=self.insert_ivs_of_7953)
-        submenu.add_command(label='"神"の人名・地名の字体の候補を全て挿入',
-                            command=self.insert_ivs_of_795e)
-        submenu.add_command(label='"祥"の人名・地名の字体の候補を全て挿入',
-                            command=self.insert_ivs_of_7965)
         submenu.add_command(label='"空"の人名・地名の字体の候補を全て挿入',
                             command=self.insert_ivs_of_7a7a)
         submenu.add_command(label='"範"の人名・地名の字体の候補を全て挿入',
@@ -7915,11 +7903,6 @@ class Makdo:
                         'A曙2;' +  # E0102 MJ013447
                         'B曙3;')   # E0103 MJ013448
 
-    def insert_ivs_of_6885(self):
-        self.txt.insert('insert',
-                        'A梅2;' +  # E0102 MJ013961
-                        'B梅3;')   # E0103 MJ030265
-
     def insert_ivs_of_698a(self):
         self.txt.insert('insert',
                         'A榊2;' +  # E0102 MJ014255
@@ -7948,11 +7931,6 @@ class Makdo:
                         'C琢4;' +  # E0104 MJ017283
                         'D琢5;')   # E0105 MJ030271
 
-    def insert_ivs_of_793c(self):
-        self.txt.insert('insert',
-                        'A礼2;' +  # E0102 MJ018750
-                        'B礼3;')   # E0103 MJ030210
-
     def insert_ivs_of_793e(self):
         self.txt.insert('insert',
                         'A社2;' +  # E0102 MJ018753
@@ -7963,26 +7941,6 @@ class Makdo:
         self.txt.insert('insert',
                         'A祇2;' +  # E0102 MJ018770
                         'B祇3;')   # E0103 MJ018771
-
-    def insert_ivs_of_7948(self):
-        self.txt.insert('insert',
-                        'A祈2;' +  # E0102 MJ018772
-                        'B祈3;')   # E0103 MJ030276
-
-    def insert_ivs_of_7953(self):
-        self.txt.insert('insert',
-                        'A祐2;' +  # E0102 MJ018782
-                        'B祐3;')   # E0103 MJ030277
-
-    def insert_ivs_of_795e(self):
-        self.txt.insert('insert',
-                        'A神2;' +  # E0102 MJ018811
-                        'B神3;')   # E0103 MJ030211
-
-    def insert_ivs_of_7965(self):
-        self.txt.insert('insert',
-                        'A祥2;' +  # E0102 MJ018825
-                        'B祥3;')   # E0103 MJ030212
 
     def insert_ivs_of_7a7a(self):
         self.txt.insert('insert',
