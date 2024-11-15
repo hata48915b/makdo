@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.15-16:38:32-JST>
+# Time-stamp:   <2024.11.15-17:10:33-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -128,13 +128,13 @@ COLOR_SPACE = (
     ('#006913', '#00AF20', '#00F52D', '#A1FFB2'),  # 130 :
     ('#006724', '#00AC3C', '#00F154', '#9DFFBF'),  # 140 :
     ('#006633', '#00AA55', '#00EE77', '#98FFCC'),  # 150 : length reviser
-    ('#006441', '#00A76D', '#00EA99', '#94FFDA'),  # 160 : par2
+    ('#006441', '#00A76D', '#00EA99', '#94FFDA'),  # 160 : (tab), par2
     ('#006351', '#00A586', '#00E7BC', '#8EFFEA'),  # 170 :
     ('#006161', '#00A2A2', '#00E3E3', '#87FFFF'),  # 180 : algin, 申立人, par3
     ('#005F75', '#009FC3', '#21D6FF', '#B5F1FF'),  # 190 : table
     ('#005D8E', '#009AED', '#59C5FF', '#C8ECFF'),  # 200 : (fsp), ins, par4
     ('#0059B2', '#1F8FFF', '#79BCFF', '#D2E9FF'),  # 210 : chap1
-    ('#0053EF', '#4385FF', '#8EB6FF', '#D9E7FF'),  # 220 : chap2, (tab), par5
+    ('#0053EF', '#4385FF', '#8EB6FF', '#D9E7FF'),  # 220 : chap2, par5
     ('#1F48FF', '#5F7CFF', '#9FB1FF', '#DFE5FF'),  # 230 : chap3
     ('#3F3FFF', '#7676FF', '#ADADFF', '#E4E4FF'),  # 240 : chap4, (hsp), par6
     ('#5B36FF', '#8A70FF', '#B9A9FF', '#E8E2FF'),  # 250 : chap5
@@ -10937,10 +10937,10 @@ class Makdo:
             self.txt.tag_config('akauni_tag', background='#CCCCCC')
             self.sub.tag_config('akauni_tag', background='#CCCCCC')
             self.txt.tag_config('hsp_tag', foreground='#C8C8FF',
-                                underline=True)                   # (0.8, 240)
+                                underline=True)                   # (0.80, 240)
             self.txt.tag_config('fsp_tag', foreground='#90D9FF',
-                                underline=True)                   # (0.8, 200)
-            self.txt.tag_config('tab_tag', background='#EEEEEE')  # -#111111
+                                underline=True)                   # (0.80, 200)
+            self.txt.tag_config('tab_tag', background='#C9FFEC')  # (0.95, 160)
         elif background_color == 'B':
             self.txt.config(bg='black', fg='white')
             self.txt.tag_config('eol_tag', background='#666666')
@@ -10950,10 +10950,10 @@ class Makdo:
             self.txt.tag_config('akauni_tag', background='#666666')
             self.sub.tag_config('akauni_tag', background='#666666')
             self.txt.tag_config('hsp_tag', foreground='#7676FF',
-                                underline=True)                   # (0.5, 240)
+                                underline=True)                   # (0.50, 240)
             self.txt.tag_config('fsp_tag', foreground='#009AED',
-                                underline=True)                   # (0.5, 200)
-            self.txt.tag_config('tab_tag', background='#444444')  # +#444444
+                                underline=True)                   # (0.50, 200)
+            self.txt.tag_config('tab_tag', background='#005437')  # (0.25, 160)
         elif background_color == 'G':
             self.txt.config(bg='darkgreen', fg='lightyellow')
             self.txt.tag_config('eol_tag', background='#339733')
@@ -10963,10 +10963,10 @@ class Makdo:
             self.txt.tag_config('akauni_tag', background='#888888')
             self.sub.tag_config('akauni_tag', background='#888888')
             self.txt.tag_config('hsp_tag', foreground='#7676FF',
-                                underline=True)                   # (0.5, 240)
+                                underline=True)                   # (0.50, 240)
             self.txt.tag_config('fsp_tag', foreground='#009AED',
-                                underline=True)                   # (0.5, 200)
-            self.txt.tag_config('tab_tag', background='#117511')  # +#111111
+                                underline=True)                   # (0.50, 200)
+            self.txt.tag_config('tab_tag', background='#00754C')  # (0.35, 160)
         for u in ['-x', '-u']:
             und = False if u == '-x' else True
             for f in ['-g', '-m']:
