@@ -3,7 +3,7 @@ from setuptools import setup
 
 VERSION = '07.15'
 
-INSTALL_REQUIRES = ['python-docx', 'chardet', 'tkinterdnd2', 'openpyxl', 'openai', 'Levenshtein']
+INSTALL_REQUIRES = ['python-docx', 'chardet', 'Levenshtein', 'tkinterdnd2', 'openpyxl', 'openai', 'llama_cpp_python']
 if sys.platform == 'win32':
     INSTALL_REQUIRES.append('pywin32')
 
