@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.15-11:09:08-JST>
+# Time-stamp:   <2024.11.15-16:38:32-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -10938,9 +10938,9 @@ class Makdo:
             self.sub.tag_config('akauni_tag', background='#CCCCCC')
             self.txt.tag_config('hsp_tag', foreground='#C8C8FF',
                                 underline=True)                   # (0.8, 240)
-            self.txt.tag_config('tab_tag', background='#D9E7FF')  # (0.9, 220)
             self.txt.tag_config('fsp_tag', foreground='#90D9FF',
                                 underline=True)                   # (0.8, 200)
+            self.txt.tag_config('tab_tag', background='#EEEEEE')  # -#111111
         elif background_color == 'B':
             self.txt.config(bg='black', fg='white')
             self.txt.tag_config('eol_tag', background='#666666')
@@ -10951,9 +10951,9 @@ class Makdo:
             self.sub.tag_config('akauni_tag', background='#666666')
             self.txt.tag_config('hsp_tag', foreground='#7676FF',
                                 underline=True)                   # (0.5, 240)
-            self.txt.tag_config('tab_tag', background='#0053EF')  # (0.3, 220)
             self.txt.tag_config('fsp_tag', foreground='#009AED',
                                 underline=True)                   # (0.5, 200)
+            self.txt.tag_config('tab_tag', background='#444444')  # +#444444
         elif background_color == 'G':
             self.txt.config(bg='darkgreen', fg='lightyellow')
             self.txt.tag_config('eol_tag', background='#339733')
@@ -10964,9 +10964,9 @@ class Makdo:
             self.sub.tag_config('akauni_tag', background='#888888')
             self.txt.tag_config('hsp_tag', foreground='#7676FF',
                                 underline=True)                   # (0.5, 240)
-            self.txt.tag_config('tab_tag', background='#0053EF')  # (0.3, 220)
             self.txt.tag_config('fsp_tag', foreground='#009AED',
                                 underline=True)                   # (0.5, 200)
+            self.txt.tag_config('tab_tag', background='#117511')  # +#111111
         for u in ['-x', '-u']:
             und = False if u == '-x' else True
             for f in ['-g', '-m']:
