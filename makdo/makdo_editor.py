@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.15-17:10:33-JST>
+# Time-stamp:   <2024.11.17-05:41:20-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5431,8 +5431,10 @@ class Makdo:
         # SPLASH SCREEN
         self.win = tkinterdnd2.TkinterDnD.Tk()  # need to do first
         if getattr(sys, 'frozen', False):
-            import pyi_splash
-            pyi_splash.close()
+            # pyinstaller of mac doesn't support splash screen
+            if sys.platform != 'darwin':
+                import pyi_splash
+                pyi_splash.close()
         else:
             self.show_splash_screen(SPLASH_IMG)
         # WINDOW
@@ -5441,8 +5443,9 @@ class Makdo:
         self.win.title('MAKDO')
         self.win.geometry(WINDOW_SIZE)
         self.win.protocol("WM_DELETE_WINDOW", self.quit_makdo)
-        icon8_img = tkinter.PhotoImage(data=ICON8_IMG, master=self.win)
-        self.win.iconphoto(False, icon8_img)
+        if sys.platform != 'darwin':
+            icon8_img = tkinter.PhotoImage(data=ICON8_IMG, master=self.win)
+            self.win.iconphoto(False, icon8_img)
         # FRAME
         # self.frm = tkinter.Frame()
         # self.frm.pack(expand=True, fill=tkinter.BOTH)
@@ -5452,7 +5455,7 @@ class Makdo:
         # PANED WINDOW
         self.pnd = tkinter.PanedWindow(self.win, bd=0, sashwidth=3,
                                        orient='vertical')
-        self.pnd.pack(expand=True, fill=tkinter.BOTH)
+        self.pnd.pack(expand=True, fill='both')
         self.pnd1 = tkinter.PanedWindow(self.pnd, bd=0, bg='#FF5D5D')  # 000
         self.pnd2 = tkinter.PanedWindow(self.pnd, bd=0, bg='#BC7A00')  # 040
         self.pnd3 = tkinter.PanedWindow(self.pnd, bd=0, bg='#758F00')  # 070
@@ -5462,28 +5465,27 @@ class Makdo:
         self.pnd.add(self.pnd1)
         # MAIN TEXT
         self.txt = tkinter.Text(self.pnd1, undo=True)
-        scb = tkinter.Scrollbar(self.pnd1, orient=tkinter.VERTICAL,
+        scb = tkinter.Scrollbar(self.pnd1, orient='vertical',
                                 command=self.txt.yview)
-        scb.pack(side=tkinter.RIGHT, fill=tkinter.Y)
+        scb.pack(side='right', fill='y')
         self.txt['yscrollcommand'] = scb.set
-        self.txt.pack(expand=True, fill=tkinter.BOTH)
+        self.txt.pack(expand=True, fill='both')
         self.txt.config(insertbackground='#FF7777', blockcursor=True)  # cursor
         self._make_txt_key_configuration()
         self.txt.drop_target_register(tkinterdnd2.DND_FILES)   # drag and drop
         self.txt.dnd_bind('<<Drop>>', self.open_dropped_file)  # drag and drop
         # SUB TEXT
         self.sub = tkinter.Text(self.pnd2, undo=True)
-        # self.sub.pack(expand=True, fill=tkinter.BOTH)
         self.sub.config(insertbackground='#FF7777', blockcursor=True)  # cursor
         self._make_sub_key_configuration()
-        self.sub_scb = tkinter.Scrollbar(self.pnd2, orient=tkinter.VERTICAL,
+        self.sub_scb = tkinter.Scrollbar(self.pnd2, orient='vertical',
                                          command=self.sub.yview)
         self.sub_frm = tkinter.Frame(self.pnd2)
         # STATUS BAR
-        self.stbr = tkinter.Frame(self.win)
-        self.stbr.pack(side='right', anchor='e')
-        self.stb = tkinter.Frame(self.win)
+        self.stb = tkinter.Frame(self.win)   # LEFT
         self.stb.pack(side='left', anchor='w')
+        self.stbr = tkinter.Frame(self.win)  # RIGHT
+        self.stbr.pack(side='right', anchor='e')
         self._make_status_bar()
         # FONT
         families = tkinter.font.families()
@@ -5991,8 +5993,8 @@ class Makdo:
             self.sub_btn1 = tkinter.Button(self.sub_frm, text='終了',
                                            command=self._close_sub_pane)
             self.sub_btn1.pack(side='top')
-        self.sub_scb.pack(side=tkinter.RIGHT, fill=tkinter.Y)
-        self.sub.pack(expand=True, fill=tkinter.BOTH)
+        self.sub_scb.pack(side='right', fill='y')
+        self.sub.pack(expand=True, fill='both')
         for key in self.txt.configure():
             self.sub.configure({key: self.txt.cget(key)})
         self.sub['yscrollcommand'] = self.sub_scb.set
@@ -7164,7 +7166,7 @@ class Makdo:
             for cnd in self.candidates:
                 rd = tkinter.Radiobutton(pane, text=cnd, font=fon,
                                          variable=self.typeface, value=cnd)
-                rd.pack(side=tkinter.LEFT, padx=3, pady=3)
+                rd.pack(side='left', padx=3, pady=3)
                 if cnd == self.old_typeface:
                     rd.select()
             # self.bind('<Key-Return>', self.ok)
@@ -7812,19 +7814,19 @@ class Makdo:
             txt = tkinter.Label(frm, text=t, justify='left')
             txt.pack(side='left')
             frm = tkinter.Frame(pane)
-            frm.pack(side=tkinter.TOP)
+            frm.pack(side='top')
             txt = tkinter.Label(frm, text='<')
-            txt.pack(side=tkinter.LEFT)
+            txt.pack(side='left')
             self.entry1 = tkinter.Entry(frm, width=7, font=fon)
-            self.entry1.pack(side=tkinter.LEFT)
+            self.entry1.pack(side='left')
             if self.code is not None:
                 self.entry1.insert(0, self.code)
             txt = tkinter.Label(frm, text=',E01', font=fon)  # E0100-E01EF
-            txt.pack(side=tkinter.LEFT)
+            txt.pack(side='left')
             self.entry2 = tkinter.Entry(frm, width=7, font=fon)
-            self.entry2.pack(side=tkinter.LEFT)
+            self.entry2.pack(side='left')
             txt = tkinter.Label(frm, text='>')
-            txt.pack(side=tkinter.LEFT)
+            txt.pack(side='left')
             # self.bind('<Key-Return>', self.ok)
             # self.bind('<Key-Escape>', self.cancel)
             # super().body(pane)
@@ -9531,9 +9533,9 @@ class Makdo:
             fon = self.mother.gothic_font
             t = '行数・文字数を入力してください．\n'
             self.text1 = tkinter.Label(pane, text=t)
-            self.text1.pack(side=tkinter.TOP, anchor=tkinter.W)
+            self.text1.pack(side='top', anchor='w')
             self.frame = tkinter.Frame(pane)
-            self.frame.pack(side=tkinter.TOP)
+            self.frame.pack(side='top')
             self.entry1 = tkinter.Entry(self.frame, width=7, font=fon)
             self.entry1.pack(side='left')
             tkinter.Label(self.frame, text='行目').pack(side='left')
@@ -9956,10 +9958,9 @@ class Makdo:
         elif background_color == 'G':
             cvs = tkinter.Canvas(self.pnd3, bg='darkgreen')
             cvs_frm = tkinter.Frame(cvs, bg='darkgreen')
-        cvs.pack(expand=True, fill=tkinter.BOTH, anchor=tkinter.W)
-        scb = tkinter.Scrollbar(cvs, orient=tkinter.VERTICAL,
-                                command=cvs.yview)
-        scb.pack(side=tkinter.RIGHT, fill=tkinter.Y)
+        cvs.pack(expand=True, fill='both', anchor='w')
+        scb = tkinter.Scrollbar(cvs, orient='vertical', command=cvs.yview)
+        scb.pack(side='right', fill='y')
         cvs['yscrollcommand'] = scb.set
         cvs.create_window((0, 0), window=cvs_frm, anchor='nw')
         cvs_frm.bind(
@@ -10017,16 +10018,13 @@ class Makdo:
                 frm1.configure(bg='darkgreen')
                 frm2.configure(bg='darkgreen')
                 lbl.configure(bg='darkgreen', fg='lightyellow')
-            frm0.pack(expand=True,
-                      side=tkinter.TOP, anchor=tkinter.W, fill=tkinter.X)
-            frm1.pack(expand=True,
-                      side=tkinter.TOP, anchor=tkinter.W, fill=tkinter.X)
-            btn1.pack(side=tkinter.LEFT)
-            btn2.pack(side=tkinter.LEFT)
-            btn3.pack(side=tkinter.LEFT)
-            frm2.pack(expand=True,
-                      side=tkinter.TOP, anchor=tkinter.W, fill=tkinter.X)
-            lbl.pack(expand=True, side=tkinter.LEFT, anchor=tkinter.W)
+            frm0.pack(expand=True, side='top', anchor='w', fill='x')
+            frm1.pack(expand=True, side='top', anchor='w', fill='x')
+            btn1.pack(side='left')
+            btn2.pack(side='left')
+            btn3.pack(side='left')
+            frm2.pack(expand=True, side='top', anchor='w', fill='x')
+            lbl.pack(expand=True, side='left', anchor='w')
         self._put_back_cursor_to_pane(self.txt)
         cvs_frm.focus_force()
 
@@ -12167,7 +12165,7 @@ class Makdo:
     def _make_status_message(self):
         self.stb_msg1 = tkinter.Label(self.stb, anchor='w', text='')
         self.stb_msg1.pack(side='left')
-        # tkinter.Label(self.stb, text=' ').pack(side=tkinter.LEFT)
+        # tkinter.Label(self.stb, text=' ').pack(side='left')
 
     ################
     # COMMAND
@@ -12201,8 +12199,9 @@ class Makdo:
             = tkinter.Button(self.stbr, text='次',
                              command=self.search_or_replace_forward_on_stb)
         self.stb_sor4.pack(side='left')
-        self.stb_sor5 = tkinter.Button(self.stbr, text='消',
-                                       command=self.clear_search_or_replace)
+        self.stb_sor5 \
+            = tkinter.Button(self.stbr, text='消',
+                             command=self.clear_search_or_replace)
         self.stb_sor5.pack(side='left')
 
     ################
