@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.17-06:42:59-JST>
+# Time-stamp:   <2024.11.17-06:56:21-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5435,13 +5435,13 @@ class Makdo:
         self.win.geometry(WINDOW_SIZE)
         self.win.protocol("WM_DELETE_WINDOW", self.quit_makdo)
         # SPLASH SCREEN
-        if sys.platform != 'darwin':
+        if getattr(sys, 'frozen', False):
             # mac doesn't support splash screen
-            if getattr(sys, 'frozen', False):
+            if sys.platform != 'darwin':
                 import pyi_splash
                 pyi_splash.close()
-            else:
-                self.show_splash_screen(SPLASH_IMG)
+        else:
+            self.show_splash_screen(SPLASH_IMG)
         # TITLE BAR ICON
         if sys.platform != 'darwin':
             # mac doesn't support title bar icon
@@ -5553,6 +5553,9 @@ class Makdo:
     # SPLASH SCREEN
 
     def show_splash_screen(self, image):
+        # mac doesn't support splash screen
+        if sys.platform == 'darwin':
+            return
         self.splash_screen = tkinter.Tk()
         sw = self.splash_screen.winfo_screenwidth()
         sh = self.splash_screen.winfo_screenheight()
@@ -5572,6 +5575,9 @@ class Makdo:
         # self.splash_screen.after(5000, self.destroy_splash_screen)
 
     def destroy_splash_screen(self):
+        # mac doesn't support splash screen
+        if sys.platform == 'darwin':
+            return
         if ('splash_image' in vars(self)) and (self.splash_image is not None):
             self.splash_image = None
             self.splash_screen.destroy()
