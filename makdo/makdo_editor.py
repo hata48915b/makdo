@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.17-05:41:20-JST>
+# Time-stamp:   <2024.11.17-06:42:59-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5428,22 +5428,23 @@ class Makdo:
         self.must_show_config_help_message = True
         # GET CONFIGURATION
         self.get_and_set_configurations()
-        # SPLASH SCREEN
-        self.win = tkinterdnd2.TkinterDnD.Tk()  # need to do first
-        if getattr(sys, 'frozen', False):
-            # pyinstaller of mac doesn't support splash screen
-            if sys.platform != 'darwin':
-                import pyi_splash
-                pyi_splash.close()
-        else:
-            self.show_splash_screen(SPLASH_IMG)
         # WINDOW
+        self.win = tkinterdnd2.TkinterDnD.Tk()  # need to do first
         # self.win = tkinter.Tk()
-        # self.win = tkinterdnd2.TkinterDnD.Tk()
         self.win.title('MAKDO')
         self.win.geometry(WINDOW_SIZE)
         self.win.protocol("WM_DELETE_WINDOW", self.quit_makdo)
+        # SPLASH SCREEN
         if sys.platform != 'darwin':
+            # mac doesn't support splash screen
+            if getattr(sys, 'frozen', False):
+                import pyi_splash
+                pyi_splash.close()
+            else:
+                self.show_splash_screen(SPLASH_IMG)
+        # TITLE BAR ICON
+        if sys.platform != 'darwin':
+            # mac doesn't support title bar icon
             icon8_img = tkinter.PhotoImage(data=ICON8_IMG, master=self.win)
             self.win.iconphoto(False, icon8_img)
         # FRAME
