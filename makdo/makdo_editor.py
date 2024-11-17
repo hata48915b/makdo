@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.17-06:56:21-JST>
+# Time-stamp:   <2024.11.18-08:34:20-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4674,6 +4674,8 @@ class LineDatum:
         self.paint_keywords = paint_keywords
         # RESET TAG
         for tag in txt.tag_names():
+            if tag == 'IMEmarkedtext':  # macos ime
+                continue
             if tag != 'search_tag':
                 txt.tag_remove(tag, str(i + 1) + '.0', str(i + 1) + '.end')
         if line_text == '':
@@ -5990,9 +5992,9 @@ class Makdo:
             self.sub_btn1 = tkinter.Button(self.sub_frm, text='質問',
                                            command=self._execute_sub_pane)
             self.sub_btn1.pack(side='left', anchor='e')
-            self.sub_btn2 = tkinter.Label(self.sub_frm, text='　',
-                                          bg='#BC7A00', fg='#BC7A00')
-            self.sub_btn2.pack(side='left', anchor='e')
+            self.sub_btn2 = tkinter.Label(self.sub_frm, text='\u3000',
+                                          bg='#BC7A00')
+            self.sub_btn2.pack(side='left', anchor='e', fill='both')
             self.sub_btn3 = tkinter.Button(self.sub_frm, text='終了',
                                            command=self._close_sub_pane)
             self.sub_btn3.pack(side='right', anchor='w')
@@ -6391,7 +6393,7 @@ class Makdo:
             = tkinter.filedialog.asksaveasfilename(title=ti, filetypes=ty)
         if file_path == () or file_path == '':
             return False
-        if not re.match('\\.md$', file_path):
+        if not re.match('^(?:.|\n)+\\.md$', file_path):
             file_path += '.md'
         self.remove_auto_file(self.file_path)
         self.file_path = file_path
@@ -6407,7 +6409,7 @@ class Makdo:
             = tkinter.filedialog.asksaveasfilename(title=ti, filetypes=ty)
         if file_path == () or file_path == '':
             return False
-        if not re.match('\\.docx$', file_path):
+        if not re.match('^(?:.|\n)+\\.docx$', file_path):
             file_path += '.docx'
         self.remove_auto_file(self.file_path)
         self.file_path = file_path
@@ -12689,7 +12691,7 @@ class Makdo:
                 self.openai = openai
             if 'openai_qanda' not in vars(self):
                 n = MD_TEXT_WIDTH - get_ideal_width('## 【OpenAIにＸＸ】')
-                self.openai_qanda = '## 【OpenAIに質問】' + ('-' * n)
+                self.openai_qanda = '## 【OpenAIに質問】' + ('-' * n) + '\n\n'
             if 'openai_model' not in vars(self):
                 self.set_openai_model()
             if 'openai_model' not in vars(self):

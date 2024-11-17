@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.12-08:16:16-JST>
+# Time-stamp:   <2024.11.18-05:16:07-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -3603,10 +3603,10 @@ class Document:
         vn = Form.version_number
         cs = Form.content_status
         ms_cp = ms_doc.core_properties
+        ddn = datetime.datetime.now(datetime.timezone.utc)
         ms_cp.identifier \
             = 'makdo(' + __version__.split()[0] + ');' \
-            + hu + '@' + hh + ';' \
-            + datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+            + hu + '@' + hh + ';' + ddn.strftime('%Y-%m-%dT%H:%M:%SZ')
         ms_cp.title = tt               # タイトル
         # ms_cp.subject = ''           # 件名
         # ms_cp.keywords = ''          # タグ
