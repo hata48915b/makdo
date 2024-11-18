@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.18-09:32:16-JST>
+# Time-stamp:   <2024.11.18-19:28:12-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1212,6 +1212,53 @@ gCAIgiAIgiAIgiCIFsH/A5nzBKC8w3Q5AAAAJXRFWHRkYXRlOmNyZWF0ZQAyMDI0LTEwLTA2VDIy
 OjIyOjM2KzAwOjAwVj+NkwAAACV0RVh0ZGF0ZTptb2RpZnkAMjAyNC0xMC0wNlQyMjoyMjozNisw
 MDowMCdiNS8AAAAASUVORK5CYII=
 '''
+
+HALF_FULL_TABLE = [
+    [' ', '\u3000'],
+    ['!', '！'], ['"', '”'], ['#', '＃'], ['$', '＄'], ['%', '％'],
+    ['&', '＆'], ["'", '’'], ['(', '（'], [')', '）'], ['*', '＊'],
+    ['+', '＋'], [',', '、'], ['-', '－'], ['.', '。'], ['/', '／'],
+    ['0', '０'], ['1', '１'], ['2', '２'], ['3', '３'], ['4', '４'],
+    ['5', '５'], ['6', '６'], ['7', '７'], ['8', '８'], ['9', '９'],
+    [':', '：'], [';', '；'], ['<', '＜'], ['=', '＝'], ['>', '＞'],
+    ['?', '？'], ['@', '＠'],
+    ['A', 'Ａ'], ['B', 'Ｂ'], ['C', 'Ｃ'], ['D', 'Ｄ'], ['E', 'Ｅ'],
+    ['F', 'Ｆ'], ['G', 'Ｇ'], ['H', 'Ｈ'], ['I', 'Ｉ'], ['J', 'Ｊ'],
+    ['K', 'Ｋ'], ['L', 'Ｌ'], ['M', 'Ｍ'], ['N', 'Ｎ'], ['O', 'Ｏ'],
+    ['P', 'Ｐ'], ['Q', 'Ｑ'], ['R', 'Ｒ'], ['S', 'Ｓ'], ['T', 'Ｔ'],
+    ['U', 'Ｕ'], ['V', 'Ｖ'], ['W', 'Ｗ'], ['X', 'Ｘ'], ['Y', 'Ｙ'],
+    ['Z', 'Ｚ'],
+    ['[', '「'], ['\\', '＼'], [']', '」'], ['^', '＾'], ['_', '＿'],
+    ['`', '｀'],
+    ['a', 'ａ'], ['b', 'ｂ'], ['c', 'ｃ'], ['d', 'ｄ'], ['e', 'ｅ'],
+    ['f', 'ｆ'], ['g', 'ｇ'], ['h', 'ｈ'], ['i', 'ｉ'], ['j', 'ｊ'],
+    ['k', 'ｋ'], ['l', 'ｌ'], ['m', 'ｍ'], ['n', 'ｎ'], ['o', 'ｏ'],
+    ['p', 'ｐ'], ['q', 'ｑ'], ['r', 'ｒ'], ['s', 'ｓ'], ['t', 'ｔ'],
+    ['u', 'ｕ'], ['v', 'ｖ'], ['w', 'ｗ'], ['x', 'ｘ'], ['y', 'ｙ'],
+    ['z', 'ｚ'],
+    ['{', '｛'], ['|', '｜'], ['}', '｝'], ['~', '〜'],
+    ['｡', '。'], ['｢', '「'], ['｣', '」'], ['､', '、'], ['･', '・'],
+    ['ｳﾞ', 'ヴ'],
+    ['ｶﾞ', 'ガ'], ['ｷﾞ', 'ギ'], ['ｸﾞ', 'グ'], ['ｹﾞ', 'ゲ'], ['ｺﾞ', 'ゴ'],
+    ['ｻﾞ', 'ザ'], ['ｼﾞ', 'ジ'], ['ｽﾞ', 'ズ'], ['ｾﾞ', 'ゼ'], ['ｿﾞ', 'ゾ'],
+    ['ﾀﾞ', 'ダ'], ['ﾁﾞ', 'ヂ'], ['ﾂﾞ', 'ヅ'], ['ﾃﾞ', 'デ'], ['ﾄﾞ', 'ド'],
+    ['ﾊﾞ', 'バ'], ['ﾋﾞ', 'ビ'], ['ﾌﾞ', 'ブ'], ['ﾍﾞ', 'ベ'], ['ﾎﾞ', 'ボ'],
+    ['ﾊﾟ', 'パ'], ['ﾋﾟ', 'ピ'], ['ﾌﾟ', 'プ'], ['ﾍﾟ', 'ペ'], ['ﾎﾟ', 'ポ'],
+    ['ﾜﾞ', 'ヷ'], ['ｦﾞ', 'ヺ'],
+    ['ｦ', 'ヲ'], 
+    ['ｧ', 'ァ'], ['ｨ', 'ィ'], ['ｩ', 'ゥ'], ['ｪ', 'ェ'], ['ｫ', 'ォ'],
+    ['ｬ', 'ャ'], ['ｭ', 'ュ'], ['ｮ', 'ョ'], ['ｯ', 'ッ'], ['ｰ', 'ー'],
+    ['ｱ', 'ア'], ['ｲ', 'イ'], ['ｳ', 'ウ'], ['ｴ', 'エ'], ['ｵ', 'オ'],
+    ['ｶ', 'カ'], ['ｷ', 'キ'], ['ｸ', 'ク'], ['ｹ', 'ケ'], ['ｺ', 'コ'],
+    ['ｻ', 'サ'], ['ｼ', 'シ'], ['ｽ', 'ス'], ['ｾ', 'セ'], ['ｿ', 'ソ'],
+    ['ﾀ', 'タ'], ['ﾁ', 'チ'], ['ﾂ', 'ツ'], ['ﾃ', 'テ'], ['ﾄ', 'ト'],
+    ['ﾅ', 'ナ'], ['ﾆ', 'ニ'], ['ﾇ', 'ヌ'], ['ﾈ', 'ネ'], ['ﾉ', 'ノ'],
+    ['ﾊ', 'ハ'], ['ﾋ', 'ヒ'], ['ﾌ', 'フ'], ['ﾍ', 'ヘ'], ['ﾎ', 'ホ'],
+    ['ﾏ', 'マ'], ['ﾐ', 'ミ'], ['ﾑ', 'ム'], ['ﾒ', 'メ'], ['ﾓ', 'モ'],
+    ['ﾔ', 'ヤ'], ['ﾕ', 'ユ'], ['ﾖ', 'ヨ'],
+    ['ﾗ', 'ラ'], ['ﾘ', 'リ'], ['ﾙ', 'ル'], ['ﾚ', 'レ'], ['ﾛ', 'ロ'],
+    ['ﾜ', 'ワ'], ['ﾝ', 'ン'],
+    ['ﾞ', '゛'], ['ﾟ', '゜']]
 
 # 平成22年内閣告示第2号
 JOYOKANJI = (
@@ -6762,6 +6809,12 @@ class Makdo:
                          command=self.replace_all)
         menu.add_separator()
         #
+        menu.add_command(label='選択範囲の半角文字を全角文字に変換',
+                         command=self.replace_half_width_with_full_width)
+        menu.add_command(label='選択範囲の全角文字を半角文字に変換',
+                         command=self.replace_full_width_with_half_width)
+        menu.add_separator()
+        #
         menu.add_command(label='選択範囲の行を正順にソート（並替え）',
                          command=self.sort_lines)
         menu.add_command(label='選択範囲の行を逆順にソート（並替え）',
@@ -7001,6 +7054,38 @@ class Makdo:
         pane.focus_set()
         # MESSAGE
         self.set_message_on_status_bar(str(m) + '個を置換しました')
+
+    def replace_half_width_with_full_width(self) -> bool:
+        self.replace_half_width_and_full_width(True)
+
+    def replace_full_width_with_half_width(self) -> bool:
+        self.replace_half_width_and_full_width(False)
+
+    def replace_half_width_and_full_width(self, is_from_half_with_full):
+        if self.current_pane == 'sub':
+            pane = self.sub
+        else:
+            pane = self.txt
+        if self._is_read_only_pane(pane):
+            return False
+        if not self._is_region_specified(pane):
+            return False
+        beg_c, end_c = self._get_region(pane)
+        beg_v = int(re.sub('\\.[0-9]+$', '', beg_c))
+        end_v = int(re.sub('\\.[0-9]+$', '', end_c))
+        old = pane.get(beg_c, end_c)
+        new = old
+        for hf in HALF_FULL_TABLE:
+            if is_from_half_with_full:
+                new = new.replace(hf[0], hf[1])
+            else:
+                new = new.replace(hf[1], hf[0])
+        pane.delete(beg_c, end_c)
+        pane.insert(beg_c, new)
+        if self.current_pane == 'txt':
+            for i in range(beg_v - 1, end_v):
+                self.paint_out_line(i)
+        return True
 
     def sort_lines(self):
         self._sort_lines(True)
