@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.18-08:34:20-JST>
+# Time-stamp:   <2024.11.18-09:32:16-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -69,7 +69,9 @@ import tkinter.filedialog
 import tkinter.simpledialog
 import tkinter.messagebox
 import tkinter.font
-import tkinterdnd2  # MIT License
+# mac doesn't support "tkinterdnd2" (drag and drop)
+if sys.platform != 'darwin':
+    import tkinterdnd2  # MIT License
 # from tkinterdnd2 import TkinterDnD, DND_FILES
 import importlib    # Python Software Foundation License
 import makdo.makdo_md2docx
@@ -5431,8 +5433,11 @@ class Makdo:
         # GET CONFIGURATION
         self.get_and_set_configurations()
         # WINDOW
-        self.win = tkinterdnd2.TkinterDnD.Tk()  # need to do first
-        # self.win = tkinter.Tk()
+        # mac doesn't support "tkinterdnd2" (drag and drop)
+        if sys.platform != 'darwin':
+            self.win = tkinterdnd2.TkinterDnD.Tk()  # need to do first
+        else:
+            self.win = tkinter.Tk()
         self.win.title('MAKDO')
         self.win.geometry(WINDOW_SIZE)
         self.win.protocol("WM_DELETE_WINDOW", self.quit_makdo)
@@ -5475,8 +5480,10 @@ class Makdo:
         self.txt.pack(expand=True, fill='both')
         self.txt.config(insertbackground='#FF7777', blockcursor=True)  # cursor
         self._make_txt_key_configuration()
-        self.txt.drop_target_register(tkinterdnd2.DND_FILES)   # drag and drop
-        self.txt.dnd_bind('<<Drop>>', self.open_dropped_file)  # drag and drop
+        # mac doesn't support "tkinterdnd2" (drag and drop)
+        if sys.platform != 'darwin':
+            self.txt.drop_target_register(tkinterdnd2.DND_FILES)
+            self.txt.dnd_bind('<<Drop>>', self.open_dropped_file)
         # SUB TEXT
         self.sub = tkinter.Text(self.pnd2, undo=True)
         self.sub.config(insertbackground='#FF7777', blockcursor=True)  # cursor
@@ -6493,6 +6500,13 @@ class Makdo:
     # CONVERT DIRECTLY
 
     def convert_directly(self):
+        # mac doesn't support "tkinterdnd2" (drag and drop)
+        if sys.platform != 'darwin':
+            self.convert_directly_on_non_mac()
+        else:
+            self.convert_directly_on_mac()
+
+    def convert_directly_on_non_mac(self):
         if len(self.pnd.panes()) > 1:
             return False
         # self.quit_editing_formula()
@@ -6561,16 +6575,51 @@ class Makdo:
         self.txt.focus_set()
         self.current_pane = 'txt'
 
+    def convert_directly_on_mac(self):
+        ti = '相互に直接変換'
+        ty = [('可能な形式', '.md .docx'),
+              ('Markdown', '.md'), ('MS Word', '.docx'),
+              ('全てのファイル', '*')]
+        file_path = tkinter.filedialog.askopenfilename(title=ti, filetypes=ty)
+        if file_path == () or file_path == '':
+            return
+        stderr = sys.stderr
+        sys.stderr = tempfile.TemporaryFile(mode='w+')
+        msg = ''
+        if re.match('^.*\\.(m|M)(d|D)$', file_path):
+            try:
+                importlib.reload(makdo.makdo_md2docx)
+                m2d = makdo.makdo_md2docx.Md2Docx(file_path)
+                m2d.save('')
+            except BaseException:
+                pass
+        elif re.match('^.*\\.(d|D)(o|O)(c|C)(x|X)$', file_path):
+            try:
+                importlib.reload(makdo.makdo_docx2md)
+                d2m = makdo.makdo_docx2md.Docx2Md(file_path)
+                d2m.save('')
+            except BaseException:
+                pass
+        else:
+            n, m = 'エラー', '変換できないファイル形式です．'
+            tkinter.messagebox.showerror(n, m)
+        sys.stderr.seek(0)
+        msg = sys.stderr.read()
+        if msg != '':
+            n = '警告'
+            tkinter.messagebox.showwarning(n, msg)
+        sys.stderr = stderr
+
     # CONVERT TO PDF
 
     def convert_to_pdf(self):
         ti = 'PDFに変換'
         ty = [('PDF', '.pdf')]
         pdf_path = tkinter.filedialog.asksaveasfilename(title=ti, filetypes=ty)
-        if file_path == () or file_path == '':
+        if pdf_path == () or pdf_path == '':
             return False
-        if not re.match('\\.pdf$', file_path):
-            file_path += '.pdf'
+        if not re.match('^(?:.|\n)+\\.pdf$', pdf_path):
+            pdf_path += '.pdf'
         tmp_docx = self._get_tmp_docx()
         if sys.platform == 'win32':
             Application = win32com.client.Dispatch("Word.Application")
@@ -12478,6 +12527,13 @@ class Makdo:
             'MS Wordで必要な編集したものを\n' + \
             'このアプリで開いてみて、\n' + \
             '編集前と見比べてください．'
+        # mac doesn't support "tkinterdnd2" (drag and drop)
+        m += \
+            '\n\nただし、\n' + \
+            'Macをお使いの方は\n' + \
+            'ドラッグ＆ドロップが使えませんので、\n' + \
+            '「ファイル」から「ファイルを開く」で、\n' + \
+            'ファイルを開いてください．'
         tkinter.messagebox.showinfo(n, m)
 
     def show_folding_help_message(self):
