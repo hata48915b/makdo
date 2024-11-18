@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.18-19:28:12-JST>
+# Time-stamp:   <2024.11.19-06:25:02-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5800,11 +5800,14 @@ class Makdo:
         try:
             decoded_data = raw_data.decode(encoding)
         except BaseException:
-            n = 'エラー'
-            m = 'データを読みません（テキストでないかも？）'
-            tkinter.messagebox.showwarning(n, m)
-            raise BaseException('failed to read data')
-            return None
+            try:
+                decoded_data = raw_data.decode('utf-8')
+            except BaseException:
+                n = 'エラー'
+                m = 'データを読みません（テキストでないかも？）'
+                tkinter.messagebox.showwarning(n, m)
+                raise BaseException('failed to read data')
+                return None
         return decoded_data
 
     def _get_tmp_md(self):
