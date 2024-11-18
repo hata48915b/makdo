@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.18-05:16:07-JST>
+# Time-stamp:   <2024.11.19-06:21:22-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1348,15 +1348,18 @@ class MdFile:
         try:
             decoded_data = raw_data.decode(encoding)
         except BaseException:
-            msg = '※ エラー: ' \
-                + 'データを読みません（Markdownでないかも？）'
-            # msg = 'error: ' \
-            #     + 'can\'t read data (maybe not Markdown?)'
-            sys.stderr.write(msg + '\n\n')
-            raise BaseException('failed to read data')
-            if __name__ == '__main__':
-                sys.exit(105)
-            return ''
+            try:
+                decoded_data = raw_data.decode('utf-8')
+            except BaseException:
+                msg = '※ エラー: ' \
+                    + 'データを読みません（Markdownでないかも？）'
+                # msg = 'error: ' \
+                #     + 'can\'t read data (maybe not Markdown?)'
+                sys.stderr.write(msg + '\n\n')
+                raise BaseException('failed to read data')
+                if __name__ == '__main__':
+                    sys.exit(105)
+                return ''
         return decoded_data
 
     @staticmethod
