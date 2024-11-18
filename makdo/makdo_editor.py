@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.19-06:25:02-JST>
+# Time-stamp:   <2024.11.19-07:02:30-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4054,14 +4054,66 @@ TAB_WIDTH = 4
 # FUNCTION
 
 
-def get_ideal_width(s: str) -> float:
+def get_real_width(s: str) -> float:
     wid = 0
     for c in s:
         if (c == '\t'):
             wid += (int(wid / TAB_WIDTH) + 1) * TAB_WIDTH
             continue
         w = unicodedata.east_asian_width(c)
-        if (w == 'F'):    # Full alphabet ...
+        if c == '':
+            wid += 0
+        elif re.match('^[☐☑]$', c):
+            wid += 2
+        elif re.match('^[´¨―‐∥…‥‘’“”±×÷≠≦≧∞∴♂♀°′″℃§]$', c):
+            wid += 2
+        elif re.match('^[☆★○●◎◇◆□■△▲▽▼※→←↑↓]$', c):
+            wid += 2
+        elif re.match('^[∈∋⊆⊇⊂⊃∪∩∧∨⇒⇔∀∃∠⊥⌒∂∇≡≒≪≫√∽∝∵]$', c):
+            wid += 2
+        elif re.match('^[∫∬Å‰♯♭♪†‡¶◯]$', c):
+            wid += 2
+        elif re.match('^[ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩ]$', c):
+            wid += 2
+        elif re.match('^[αβγδεζηθικλμνξοπρστυφχψω]$', c):
+            wid += 2
+        elif re.match('^[АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ]$', c):
+            wid += 2
+        elif re.match('^[абвгдеёжзийклмнопрстуфхцчшщъыьэюя]$', c):
+            wid += 2
+        elif re.match('^[─│┌┐┘└├┬┤┴┼━┃┏┓┛┗┣┳┫┻╋┠┯┨┷┿┝┰┥┸╂]$', c):
+            wid += 2
+        elif re.match('^[№℡≒≡∫∮∑√⊥∠∟⊿∵∩∪]$', c):
+            wid += 2
+        elif re.match('^[⑴⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀⒁⒂⒃⒄⒅⒆⒇]$', c):
+            wid += 2
+        elif re.match('^[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳]$', c):
+            wid += 2
+        elif re.match('^[⒈⒉⒊⒋⒌⒍⒎⒏⒐⒑⒒⒓⒔⒕⒖⒗⒘⒙⒚⒛]$', c):
+            wid += 2
+        elif re.match('^[ⅰⅱⅲⅳⅴⅵⅶⅷⅸⅹⅺⅻ]$', c):
+            wid += 2
+        elif re.match('^[ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪⅫ]$', c):
+            wid += 2
+        elif re.match('^[⒜⒝⒞⒟⒠⒡⒢⒣⒤⒥⒦⒧⒨⒩⒪⒫⒬⒭⒮⒯⒰⒱⒲⒳⒴⒵]$', c):
+            wid += 2
+        elif re.match('^[ⓐⓑⓒⓓⓔⓕⓖⓗⓘⓙⓚⓛⓜⓝⓞⓟⓠⓡⓢⓣⓤⓥⓦⓧⓨⓩ]$', c):
+            wid += 2
+        elif re.match('^[🄐🄑🄒🄓🄔🄕🄖🄗🄘🄙🄚🄛🄜🄝🄞🄟🄠🄡🄢🄣🄤🄥🄦🄧🄨🄩]$', c):
+            wid += 2
+        elif re.match('^[ⒶⒷⒸⒹⒺⒻⒼⒽⒾⒿⓀⓁⓂⓃⓄⓅⓆⓇⓈⓉⓊⓋⓌⓍⓎⓏ]$', c):
+            wid += 2
+        elif re.match('^[㉑㉒㉓㉔㉕㉖㉗㉘㉙㉚㉛㉜㉝㉞㉟㊱㊲㊳㊴㊵㊶㊷㊸㊹㊺㊻㊼㊽㊾㊿]$', c):
+            wid += 2
+        elif re.match('^[🄋➀➁➂➃➄➅➆➇➈➉]$', c):
+            wid += 2
+        elif re.match('^[㋐㋑㋒㋓㋔㋕㋖㋗㋘㋙㋚㋛㋜㋝㋞㋟㋠㋡㋢㋣㋤㋥㋦㋧㋨]$', c):
+            wid += 2
+        elif re.match('^[㋩㋪㋫㋬㋭㋮㋯㋰㋱㋲㋳㋴㋵㋶㋷㋸㋹㋺㋻㋼㋽㋾]$', c):
+            wid += 2
+        elif re.match('^[㊀㊁㊂㊃㊄㊅㊆㊇㊈㊉]$', c):
+            wid += 2
+        elif (w == 'F'):  # Full alphabet ...
             wid += 2
         elif(w == 'H'):   # Half katakana ...
             wid += 1
@@ -4209,7 +4261,7 @@ def adjust_line(document: str) -> str:
         t = re.sub('（', '\n（', t)
         t = re.sub('）', '）\n', t)
         for phr in t.split('\n'):
-            if get_ideal_width(tmp + phr) > makdo.makdo_docx2md.MD_TEXT_WIDTH:
+            if get_real_width(tmp + phr) > makdo.makdo_docx2md.MD_TEXT_WIDTH:
                 new += tmp + '\n'
                 tmp = ''
             tmp += phr
@@ -6123,7 +6175,7 @@ class Makdo:
     @staticmethod
     def _get_ideal_h_position_of_insert(pane):
         s = pane.get('insert linestart', 'insert')
-        return get_ideal_width(s)
+        return get_real_width(s)
 
     @staticmethod
     def _get_ideal_position_index_in_line(pane, v_position, ideal_width):
@@ -6131,7 +6183,7 @@ class Makdo:
         line = pane.get(str(i) + '.0', str(i) + '.end')
         line_pre, line_pos = '', ''
         for c in line:
-            iw = get_ideal_width(line_pre + c)
+            iw = get_real_width(line_pre + c)
             if iw > ideal_width:
                 break
             line_pre += c
@@ -6943,10 +6995,10 @@ class Makdo:
             return False
         beg_v = int(re.sub('\\.[0-9]+$', '', beg))
         s = pane.get(beg + ' linestart', beg)
-        beg_ih = get_ideal_width(s)
+        beg_ih = get_real_width(s)
         end_v = int(re.sub('\\.[0-9]+$', '', end))
         s = pane.get(end + ' linestart', end)
-        end_ih = get_ideal_width(s)
+        end_ih = get_real_width(s)
         min_ih = min(beg_ih, end_ih)
         max_ih = max(beg_ih, end_ih)
         self._cancel_region(pane)
@@ -6955,9 +7007,9 @@ class Makdo:
             line = pane.get(str(i + 1) + '.0', str(i + 1) + '.end')
             line_pre, line_mid, line_pos = '', '', ''
             for c in line:
-                if get_ideal_width(line_pre) < min_ih:
+                if get_real_width(line_pre) < min_ih:
                     line_pre += c
-                elif get_ideal_width(line_pre + line_mid) < max_ih:
+                elif get_real_width(line_pre + line_mid) < max_ih:
                     line_mid += c
                 else:
                     line_pos += c
@@ -6980,14 +7032,14 @@ class Makdo:
         ins_v = self._get_v_position_of_insert(pane)
         max_v = self._get_max_v_position(pane)
         s = pane.get(str(ins_v) + '.0', 'insert')
-        ins_ih = get_ideal_width(s)
+        ins_ih = get_real_width(s)
         for j, line_md in enumerate(self.rectangle_text_list):
             i = ins_v + j - 1
             if i < max_v - 1:
                 line = pane.get(str(i + 1) + '.0', str(i + 1) + '.end')
                 line_pre, line_pos = '', ''
                 for c in line:
-                    if get_ideal_width(line_pre) < ins_ih:
+                    if get_real_width(line_pre) < ins_ih:
                         line_pre += c
                     else:
                         break
@@ -12294,12 +12346,12 @@ class Makdo:
         p = self.txt.index('insert')
         cur_v = re.sub('\\.[0-9]+$', '', p)
         s = self.txt.get('insert linestart', 'insert')
-        cur_h = str(get_ideal_width(s))
+        cur_h = str(get_real_width(s))
         cur_p = cur_v + 'x' + cur_h
         p = self.txt.index('end-1c')
         max_v = re.sub('\\.[0-9]+$', '', p)
         s = self.txt.get('insert linestart', 'insert lineend')
-        max_h = str(get_ideal_width(s))
+        max_h = str(get_real_width(s))
         max_p = max_v + 'x' + max_h
         self.stb_pos1['text'] = cur_p + '/' + max_p
         if must_update:
@@ -12834,7 +12886,7 @@ class Makdo:
                 import openai  # Apache Software License
                 self.openai = openai
             if 'openai_qanda' not in vars(self):
-                n = MD_TEXT_WIDTH - get_ideal_width('## 【OpenAIにＸＸ】')
+                n = MD_TEXT_WIDTH - get_real_width('## 【OpenAIにＸＸ】')
                 self.openai_qanda = '## 【OpenAIに質問】' + ('-' * n) + '\n\n'
             if 'openai_model' not in vars(self):
                 self.set_openai_model()
@@ -12858,7 +12910,7 @@ class Makdo:
             return True
 
         def ask_openai(self) -> None:
-            n = MD_TEXT_WIDTH - get_ideal_width('## 【OpenAIにＸＸ】')
+            n = MD_TEXT_WIDTH - get_real_width('## 【OpenAIにＸＸ】')
             openai_que_head = '## 【OpenAIに質問】' + ('-' * n)
             openai_ans_head = '## 【OpenAIの回答】' + ('-' * n)
             messages = []
@@ -12953,7 +13005,7 @@ class Makdo:
                 from llama_cpp import Llama  # pip install llama-cpp-python
                 self.llama_cpp_is_loaded = True
             if 'llama_qanda' not in vars(self):
-                n = MD_TEXT_WIDTH - get_ideal_width('## 【LlamaにＸＸ】')
+                n = MD_TEXT_WIDTH - get_real_width('## 【LlamaにＸＸ】')
                 self.llama_qanda = '## 【Llamaに質問】' + ('-' * n) + '\n\n'
             if 'llama_model_file' not in vars(self):
                 self.set_llama_model_file()
@@ -12980,7 +13032,7 @@ class Makdo:
             return True
 
         def ask_llama(self) -> None:
-            n = MD_TEXT_WIDTH - get_ideal_width('## 【LlamaにＸＸ】')
+            n = MD_TEXT_WIDTH - get_real_width('## 【LlamaにＸＸ】')
             llama_que_head = '## 【Llamaに質問】' + ('-' * n)
             llama_ans_head = '## 【Llamaの回答】' + ('-' * n)
             messages = []

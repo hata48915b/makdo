@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.12-17:22:46-JST>
+# Time-stamp:   <2024.11.19-06:58:08-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -731,7 +731,7 @@ def get_real_width(s):
         w = unicodedata.east_asian_width(c)
         if c == '':
             wid += 0.0
-        elif re.match('^[−☐☑]$', c):
+        elif re.match('^[☐☑]$', c):
             wid += 2.0
         elif re.match('^[´¨―‐∥…‥‘’“”±×÷≠≦≧∞∴♂♀°′″℃§]$', c):
             wid += 2.0
