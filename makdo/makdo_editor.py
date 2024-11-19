@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.19-10:22:48-JST>
+# Time-stamp:   <2024.11.19-10:33:12-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -12017,6 +12017,7 @@ class Makdo:
                     else:
                         self.clipboard_list_number -= 1
                     if self.clipboard_list_number < 0:
+                        self.set_message_on_status_bar('履歴がなくなりました')
                         return 'break'
                     prev = self.clipboard_list[self.clipboard_list_number + 1]
                     curr = self.clipboard_list[self.clipboard_list_number]
