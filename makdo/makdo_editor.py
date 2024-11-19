@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.20-07:56:43-JST>
+# Time-stamp:   <2024.11.20-08:07:29-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -7052,7 +7052,7 @@ class Makdo:
         #
         menu.add_command(label='前を置換',
                          command=self.replace_backward)
-        menu.add_command(label='次を置換',
+        menu.add_command(label='後を置換',
                          command=self.replace_forward, accelerator='Ctrl+L')
         menu.add_command(label='全て置換',
                          command=self.replace_all)
@@ -9819,7 +9819,7 @@ class Makdo:
         #
         menu.add_command(label='前を検索',
                          command=self.search_backward)
-        menu.add_command(label='次を検索',
+        menu.add_command(label='後を検索',
                          command=self.search_forward, accelerator='Ctrl+F')
         menu.add_separator()
         #
@@ -11053,11 +11053,11 @@ class Makdo:
             'replace-all\n' + \
             '　文章全体又は指定範囲を全置換\n' + \
             'replace-X(X=backward,forward)\n' + \
-            '　X（前,次）を置換\n' + \
+            '　X（前,後）を置換\n' + \
             'save-file\n' + \
             '　ファイルを保存\n' + \
             'search-X(backward,forward)\n' + \
-            '　X（前,次）を検索\n' + \
+            '　X（前,後）を検索\n' + \
             'sort-lines\n' + \
             '　選択範囲の行を正順にソート\n' + \
             'sort-lines-in-reverse-order\n' + \
@@ -12694,7 +12694,7 @@ class Makdo:
                              command=self.search_or_replace_backward_on_stb)
         self.stb_sor3.pack(side='left')
         self.stb_sor4 \
-            = tkinter.Button(self.stbr, text='次',
+            = tkinter.Button(self.stbr, text='後',
                              command=self.search_or_replace_forward_on_stb)
         self.stb_sor4.pack(side='left')
         self.stb_sor5 \
@@ -12974,7 +12974,7 @@ class Makdo:
 
     def replace_backward_from_dialog(self, pane):
         t = '前検索又は置換'
-        m = '検索する言葉と置換する言葉を入力してください．'
+        m = '前を検索する言葉と置換する言葉を入力してください．'
         word1, word2 = self.stb_sor1.get(), self.stb_sor2.get()
         hist1, hist2 = self.search_word_history, self.replace_word_history
         h1, t1 = '検索', ''
@@ -12998,7 +12998,7 @@ class Makdo:
 
     def replace_forward_from_dialog(self, pane):
         t = '後検索又は置換'
-        m = '検索する言葉と置換する言葉を入力してください．'
+        m = '後を検索する言葉と置換する言葉を入力してください．'
         word1, word2 = self.stb_sor1.get(), self.stb_sor2.get()
         hist1, hist2 = self.search_word_history, self.replace_word_history
         hist1.pop(-1)
@@ -13021,8 +13021,8 @@ class Makdo:
                 self.search_or_replace_forward(True)   # must_replace = True
 
     def search_backward_from_dialog(self, pane):
-        b = '後検索'
-        m = '検索する言葉を入力してください．'
+        b = '前検索'
+        m = '前を検索する言葉を入力してください．'
         h, t = '', ''
         word1 = self.stb_sor1.get()
         hist1 = self.search_word_history
@@ -13043,7 +13043,7 @@ class Makdo:
 
     def search_forward_from_dialog(self, pane):
         b = '後検索'
-        m = '検索する言葉を入力してください．'
+        m = '後を検索する言葉を入力してください．'
         h, t = '', ''
         word1 = self.stb_sor1.get()
         hist1 = self.search_word_history
