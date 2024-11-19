@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.19-06:58:08-JST>
+# Time-stamp:   <2024.11.19-09:52:13-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -7647,7 +7647,7 @@ class ParagraphSection(Paragraph):
                 w = XML.get_value('w:w', 'w:val', -1.0, xl)
                 if (s > 0 and s < xl_size * 0.7) or (w > 0 and w < 70):
                     head_font_revisers.insert(0, '---')
-                    tail_font_revisers.intert(0, '---')
+                    tail_font_revisers.insert(0, '---')
                     # raw_text = '---' + raw_text + '---'
                 elif (s > 0 and s < xl_size * 0.9) or (w > 0 and w < 90):
                     head_font_revisers.insert(0, '--')

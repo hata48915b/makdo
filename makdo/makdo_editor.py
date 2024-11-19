@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.19-07:02:30-JST>
+# Time-stamp:   <2024.11.19-10:22:48-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5517,6 +5517,7 @@ class Makdo:
         self.standard_line = 0
         self.global_line_to_paint = 0
         self.local_line_to_paint = 0
+        self.clipboard_list = ['']
         self.key_history = ['', '', '', '', '', '', '', '', '', '',
                             '', '', '', '', '', '', '', '', '', '', '']
         self.current_pane = 'txt'
@@ -5736,6 +5737,9 @@ class Makdo:
                 c = pane.get(beg, akn)
                 self.win.clipboard_clear()
                 self.win.clipboard_append(c)
+                if self.clipboard_list[-1] != '':
+                    self.clipboard_list.append('')
+                self.clipboard_list[-1] += c
                 if not self._is_read_only_pane(pane):
                     pane.delete(beg, akn)
                 self._cancel_region(pane)
@@ -5751,12 +5755,17 @@ class Makdo:
             if self._is_read_only_pane(pane):
                 self.win.clipboard_clear()
                 self.win.clipboard_append(c)
+                if self.clipboard_list[-1] != '':
+                    self.clipboard_list.append('')
+                self.clipboard_list[-1] += c
             else:
                 if c == '':
                     self.win.clipboard_append('\n')
+                    self.clipboard_list[-1] += '\n'
                     pane.delete(ins, end + '+1c')
                 else:
                     self.win.clipboard_append(c)
+                    self.clipboard_list[-1] += c
                     pane.delete(ins, end)
 
     def paint_out_line(self, line_number):
@@ -6191,12 +6200,12 @@ class Makdo:
         return str(i) + '.' + str(j)
 
     def _jump_to_another_pane(self):
-        if self.current_pane == 'txt':
-            self.sub.focus_set()
-            self.current_pane = 'sub'
-        else:
+        if self.current_pane == 'sub':
             self.txt.focus_set()
             self.current_pane = 'txt'
+        else:
+            self.sub.focus_set()
+            self.current_pane = 'sub'
         self.key_history[-1] = ''
 
     @staticmethod
@@ -6842,6 +6851,8 @@ class Makdo:
                          command=self.copy_region, accelerator='Ctrl+C')
         menu.add_command(label='貼り付け(P)', underline=5,
                          command=self.paste_region, accelerator='Ctrl+V')
+        menu.add_command(label='リストから貼り付け',
+                         command=self.paste_region_from_list)
         menu.add_separator()
         #
         menu.add_command(label='矩形（四角形）を切り取り',
@@ -6942,6 +6953,9 @@ class Makdo:
         c = pane.get(beg, end)
         self.win.clipboard_clear()
         self.win.clipboard_append(c)
+        if self.clipboard_list[-1] != '':
+            self.clipboard_list.append('')
+        self.clipboard_list[-1] += c
         if must_cut:
             pane.delete(beg, end)
         self._cancel_region(pane)
@@ -6974,6 +6988,59 @@ class Makdo:
                 self.paint_out_line(i)
         self._put_back_cursor_to_pane(pane)
         return True
+
+    def paste_region_from_list(self):
+        if self.current_pane == 'sub':
+            pane = self.sub
+        else:
+            pane = self.txt
+        t = 'リストから貼付け'
+        m = '貼り付ける文節を選んでください．'
+        cd = self.ClipboardListDialog(pane, self, t, m)
+        n = cd.get_value()
+        if n >= 0:
+            pane.insert('insert', self.clipboard_list[n])
+
+    class ClipboardListDialog(tkinter.simpledialog.Dialog):
+
+        def __init__(self, pane, mother, title, prompt):
+            self.pane = pane
+            self.mother = mother
+            self.prompt = prompt
+            self.value = None
+            self.has_pressed_ok = False
+            super().__init__(pane, title=title)
+
+        def body(self, pane):
+            prompt = tkinter.Label(pane, text=self.prompt)
+            prompt.pack(side='top', anchor='w')
+            m = len(self.mother.clipboard_list) - 1
+            self.value = tkinter.IntVar()
+            self.value.set(m)
+            rbs = []
+            for n in range(m, -1, -1):
+                head = self.mother.clipboard_list[n]
+                head = re.sub('\n', ' ', head)
+                if len(head) > 15:
+                    head = head[:14] + '…'
+                if head == '':
+                    return '（空）'
+                rb = tkinter.Radiobutton(pane, text=head,
+                                         variable=self.value, value=n)
+                rb.pack(side='top', anchor='w')
+                rbs.append(rb)
+            super().body(pane)
+            return rbs[0]
+
+        def apply(self):
+            self.has_pressed_ok = True
+            self.or_or_cancel = 'ok'
+
+        def get_value(self):
+            if self.has_pressed_ok:
+                return self.value.get()
+            else:
+                return -1
 
     def cut_rectangle(self):
         self._cut_or_copy_rectangle(True)
@@ -7337,6 +7404,9 @@ class Makdo:
         self.txt.insert(beg, '=' + r)
         self.win.clipboard_clear()
         self.win.clipboard_append(r)
+        if self.clipboard_list[-1] != '':
+            self.clipboard_list.append('')
+        self.clipboard_list[-1] += c
 
     def change_typeface(self):
         c = self.txt.get('insert', 'insert+1c')
@@ -10685,6 +10755,8 @@ class Makdo:
             elif key == 'Delete':
                 if i > 0 and self.keyboard_macro[i - 1] != 'Delete':
                     self.win.clipboard_clear()
+                    if self.clipboard_list[-1] != '':
+                        self.clipboard_list.append('')
                 self._execute_when_delete_is_pressed(pane)
                 self.paint_out_line(self._get_v_position_of_insert(pane) - 1)
             elif key == 'Return':
@@ -11910,6 +11982,8 @@ class Makdo:
                 return 'break'
             if self.key_history[-2] != 'Delete':
                 self.win.clipboard_clear()
+                if self.clipboard_list[-1] != '':
+                    self.clipboard_list.append('')
             self._execute_when_delete_is_pressed(pane)
             return 'break'
         elif key.keysym == 'F14':            # v (quit)
@@ -11932,6 +12006,23 @@ class Makdo:
         elif key.keysym == 'cent':           # cent (search backward)
             self.search_or_replace_backward()
             return 'break'
+        elif key.keysym == 'g':
+            if self.key_history[-2] == 'Escape':
+                if ((self.key_history[-3] == 'F15' and
+                     self.key_history[-4] != 'F13') or
+                    (self.key_history[-3] == 'g' and
+                     self.key_history[-4] == 'Escape')):
+                    if self.key_history[-3] == 'F15':
+                        self.clipboard_list_number = len(self.clipboard_list) - 2
+                    else:
+                        self.clipboard_list_number -= 1
+                    if self.clipboard_list_number < 0:
+                        return 'break'
+                    prev = self.clipboard_list[self.clipboard_list_number + 1]
+                    curr = self.clipboard_list[self.clipboard_list_number]
+                    pane.delete('insert-' + str(len(prev)) + 'c', 'insert')
+                    pane.insert('insert', curr)
+                    return 'break'
         elif key.keysym == 'x':
             if self.key_history[-2] == 'Escape':
                 self.MiniBuffer(pane, self)
@@ -12132,6 +12223,8 @@ class Makdo:
                 return 'break'
             if self.key_history[-2] != 'Delete':
                 self.win.clipboard_clear()
+                if self.clipboard_list[-1] != '':
+                    self.clipboard_list.append('')
             self._execute_when_delete_is_pressed(pane)
             return 'break'
         elif key.keysym == 'F14':            # v (quit)
