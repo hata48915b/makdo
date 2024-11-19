@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.19-17:15:04-JST>
+# Time-stamp:   <2024.11.20-07:56:43-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4334,8 +4334,10 @@ class OneWordDialog(tkinter.simpledialog.Dialog):
         self.entry.pack(side='left')
         self.entry.insert(0, self.init)
         tkinter.Label(frm, text=self.tail).pack(side='left')
-        self.entry.bind('<Key-Up>', self.key_up)
-        self.entry.bind('<Key-Down>', self.key_down)
+        self.entry.bind('<Key>', self.entry_key)
+        self.entry.bind('<Button-1>', self.entry_button0)
+        self.entry.bind('<Button-2>', self.entry_button0)
+        self.entry.bind('<Button-3>', self.entry_button3)
         super().body(pane)
         return self.entry
 
@@ -4349,21 +4351,55 @@ class OneWordDialog(tkinter.simpledialog.Dialog):
     def get_value(self):
         return self.value
 
-    def key_up(self, event):
-        if self.cnum == len(self.cand) - 1:
-            self.cand[-1] = self.entry.get()
-        if self.cnum > 0:
-            self.cnum -= 1
-            self.entry.delete(0, 'end')
-            self.entry.insert(0, self.cand[self.cnum])
+    def entry_key(self, key):
+        if key.keysym == 'Up':
+            if self.cnum == len(self.cand) - 1:
+                self.cand[-1] = self.entry.get()
+            if self.cnum > 0:
+                self.cnum -= 1
+                self.entry.delete(0, 'end')
+                self.entry.insert(0, self.cand[self.cnum])
+            return 'break'
+        elif key.keysym == 'Down':
+            # if self.cnum == len(self.cand) - 1:
+            #     self.cand[-1] = self.entry.get()
+            if self.cnum < len(self.cand) - 1:
+                self.cnum += 1
+                self.entry.delete(0, 'end')
+                self.entry.insert(0, self.cand[self.cnum])
+            return 'break'
+        elif key.keysym == 'F15':   # g (paste)
+            self.entry_paste_word()
+            return 'break'
+        elif key.char == '\x16':    # Ctrl+V
+            self.entry_paste_word()
+            return 'break'
 
-    def key_down(self, event):
-        # if self.cnum == len(self.cand) - 1:
-        #     self.cand[-1] = self.entry.get()
-        if self.cnum < len(self.cand) - 1:
-            self.cnum += 1
-            self.entry.delete(0, 'end')
-            self.entry.insert(0, self.cand[self.cnum])
+    def entry_button0(self, click):
+        try:
+            self.mother.bt3.destroy()
+        except BaseException:
+            pass
+        self.entry.focus_force()
+
+    def entry_button3(self, click):
+        try:
+            self.mother.bt3.destroy()
+        except BaseException:
+            pass
+        self.entry.focus_force()
+        self.mother.bt3 = tkinter.Menu(self, tearoff=False)
+        self.mother.bt3.add_command(label='貼り付け',
+                                    command=self.entry_paste_word)
+        self.mother.bt3.post(click.x_root, click.y_root)
+
+    def entry_paste_word(self):
+        try:
+            cb = self.mother.win.clipboard_get()
+        except BaseException:
+            cb = ''
+        if cb != '':
+            self.entry.insert('insert', cb)
 
 
 class TwoWordsDialog(tkinter.simpledialog.Dialog):
@@ -4407,10 +4443,14 @@ class TwoWordsDialog(tkinter.simpledialog.Dialog):
         self.entry2.pack(side='top')
         self.entry2.insert(0, self.init2)
         tkinter.Label(frm, text=self.tail2).pack(side='left')
-        self.entry1.bind('<Key-Up>', self.key_up1)
-        self.entry1.bind('<Key-Down>', self.key_down1)
-        self.entry2.bind('<Key-Up>', self.key_up2)
-        self.entry2.bind('<Key-Down>', self.key_down2)
+        self.entry1.bind('<Key>', self.entry1_key)
+        self.entry1.bind('<Button-1>', self.entry1_button0)
+        self.entry1.bind('<Button-2>', self.entry1_button0)
+        self.entry1.bind('<Button-3>', self.entry1_button3)
+        self.entry2.bind('<Key>', self.entry2_key)
+        self.entry2.bind('<Button-1>', self.entry2_button0)
+        self.entry2.bind('<Button-2>', self.entry2_button0)
+        self.entry2.bind('<Button-3>', self.entry2_button3)
         super().body(pane)
         return self.entry1
 
@@ -4429,37 +4469,105 @@ class TwoWordsDialog(tkinter.simpledialog.Dialog):
     def get_value(self):
         return self.value1, self.value2
 
-    def key_up1(self, event):
-        if self.cnum1 == len(self.cand1) - 1:
-            self.cand1[-1] = self.entry1.get()
-        if self.cnum1 > 0:
-            self.cnum1 -= 1
-            self.entry1.delete(0, 'end')
-            self.entry1.insert(0, self.cand1[self.cnum1])
+    def entry1_key(self, key):
+        if key.keysym == 'Up':
+            if self.cnum1 == len(self.cand1) - 1:
+                self.cand1[-1] = self.entry1.get()
+            if self.cnum1 > 0:
+                self.cnum1 -= 1
+                self.entry1.delete(0, 'end')
+                self.entry1.insert(0, self.cand1[self.cnum1])
+            return 'break'
+        elif key.keysym == 'Down':
+            # if self.cnum1 == len(self.cand1) - 1:
+            #     self.cand1[-1] = self.entry1.get()
+            if self.cnum1 < len(self.cand1) - 1:
+                self.cnum1 += 1
+                self.entry1.delete(0, 'end')
+                self.entry1.insert(0, self.cand1[self.cnum1])
+            return 'break'
+        elif key.keysym == 'F15':   # g (paste)
+            self.entry1_paste_word()
+            return 'break'
+        elif key.char == '\x16':    # Ctrl+V
+            self.entry1_paste_word()
+            return 'break'
 
-    def key_down1(self, event):
-        # if self.cnum1 == len(self.cand1) - 1:
-        #     self.cand1[-1] = self.entry1.get()
-        if self.cnum1 < len(self.cand1) - 1:
-            self.cnum1 += 1
-            self.entry1.delete(0, 'end')
-            self.entry1.insert(0, self.cand1[self.cnum1])
+    def entry2_key(self, key):
+        if key.keysym == 'Up':
+            if self.cnum2 == len(self.cand2) - 1:
+                self.cand2[-1] = self.entry2.get()
+            if self.cnum2 > 0:
+                self.cnum2 -= 1
+                self.entry2.delete(0, 'end')
+                self.entry2.insert(0, self.cand2[self.cnum2])
+            return 'break'
+        elif key.keysym == 'Down':
+            # if self.cnum2 == len(self.cand2) - 1:
+            #     self.cand2[-1] = self.entry2.get()
+            if self.cnum2 < len(self.cand2) - 1:
+                self.cnum2 += 1
+                self.entry2.delete(0, 'end')
+                self.entry2.insert(0, self.cand2[self.cnum2])
+            return 'break'
+        elif key.keysym == 'F15':   # g (paste)
+            self.entry2_paste_word()
+            return 'break'
+        elif key.char == '\x16':    # Ctrl+V
+            self.entry2_paste_word()
+            return 'break'
 
-    def key_up2(self, event):
-        if self.cnum2 == len(self.cand2) - 1:
-            self.cand2[-1] = self.entry2.get()
-        if self.cnum2 > 0:
-            self.cnum2 -= 1
-            self.entry2.delete(0, 'end')
-            self.entry2.insert(0, self.cand2[self.cnum2])
+    def entry1_button0(self, click):
+        try:
+            self.mother.bt3.destroy()
+        except BaseException:
+            pass
+        self.entry1.focus_force()
 
-    def key_down2(self, event):
-        # if self.cnum2 == len(self.cand2) - 1:
-        #     self.cand2[-1] = self.entry2.get()
-        if self.cnum2 < len(self.cand2) - 1:
-            self.cnum2 += 1
-            self.entry2.delete(0, 'end')
-            self.entry2.insert(0, self.cand2[self.cnum2])
+    def entry2_button0(self, click):
+        try:
+            self.mother.bt3.destroy()
+        except BaseException:
+            pass
+        self.entry2.focus_force()
+
+    def entry1_button3(self, click):
+        try:
+            self.mother.bt3.destroy()
+        except BaseException:
+            pass
+        self.entry1.focus_force()
+        self.mother.bt3 = tkinter.Menu(self, tearoff=False)
+        self.mother.bt3.add_command(label='貼り付け',
+                                    command=self.entry1_paste_word)
+        self.mother.bt3.post(click.x_root, click.y_root)
+
+    def entry2_button3(self, click):
+        try:
+            self.mother.bt3.destroy()
+        except BaseException:
+            pass
+        self.entry2.focus_force()
+        self.mother.bt3 = tkinter.Menu(self, tearoff=False)
+        self.mother.bt3.add_command(label='貼り付け',
+                                    command=self.entry2_paste_word)
+        self.mother.bt3.post(click.x_root, click.y_root)
+
+    def entry1_paste_word(self):
+        try:
+            cb = self.mother.win.clipboard_get()
+        except BaseException:
+            cb = ''
+        if cb != '':
+            self.entry1.insert('insert', cb)
+
+    def entry2_paste_word(self):
+        try:
+            cb = self.mother.win.clipboard_get()
+        except BaseException:
+            cb = ''
+        if cb != '':
+            self.entry2.insert('insert', cb)
 
 
 ############################################################
@@ -12121,6 +12229,7 @@ class Makdo:
             return 'break'
         elif key.char == '\x03':  # Ctrl+C
             self.copy_region()
+            return 'break'
         elif key.char == '\x05':  # Ctrl+E
             self.execute_keyboard_macro()
             return 'break'
@@ -12132,18 +12241,25 @@ class Makdo:
             return 'break'
         elif key.char == '\x10':  # Ctrl+P
             self.start_writer()
+            return 'break'
         elif key.char == '\x11':  # Ctrl+Q
             self.quit_makdo()
+            return 'break'
         elif key.char == '\x13':  # Ctrl+S
             self.save_file()
+            return 'break'
         elif key.char == '\x16':  # Ctrl+V
             self.paste_region()
+            return 'break'
         elif key.char == '\x18':  # Ctrl+X
             self.cut_region()
+            return 'break'
         elif key.char == '\x19':  # Ctrl+Y
             self.edit_modified_redo()
+            return 'break'
         elif key.char == '\x1a':  # Ctrl+Z
             self.edit_modified_undo()
+            return 'break'
         elif key.keysym == 'Tab':
             text = pane.get('1.0', 'insert')
             line = pane.get('insert linestart', 'insert lineend')
@@ -12345,26 +12461,37 @@ class Makdo:
             return 'break'
         elif key.char == '\x03':  # Ctrl+C
             self.copy_region()
+            return 'break'
         # elif key.char == '\x05':  # Ctrl+E
         #     self.execute_keyboard_macro()
+        #     return 'break'
         elif key.char == '\x06':  # Ctrl+F
             self.search_forward()
+            return 'break'
         # elif key.char == '\x0c':  # Ctrl+L
         #     self.replace_forward()
+        #     return 'break'
         # elif key.char == '\x10':  # Ctrl+P
         #     self.start_writer()
+        #     return 'break'
         # elif key.char == '\x11':  # Ctrl+Q
         #     self.quit_makdo()
+        #     return 'break'
         # elif key.char == '\x13':  # Ctrl+S
         #     self.save_file()
+        #     return 'break'
         # elif key.char == '\x16':  # Ctrl+V
         #     self.paste_region()
+        #     return 'break'
         # elif key.char == '\x18':  # Ctrl+X
         #     self.cut_region()
+        #     return 'break'
         # elif key.char == '\x19':  # Ctrl+Y
         #     self.edit_modified_redo()
+        #     return 'break'
         # elif key.char == '\x1a':  # Ctrl+Z
         #     self.edit_modified_undo()
+        #     return 'break'
         return 'break'
 
     @staticmethod
@@ -12553,14 +12680,14 @@ class Makdo:
         # tkinter.Label(self.stb, text='探').pack(side='left')
         self.stb_sor1 = tkinter.Entry(self.stbr, width=20)
         self.stb_sor1.pack(side='left')
-        self.stb_sor1.bind('<Key-Up>', self.key_up_sor1)
-        self.stb_sor1.bind('<Key-Down>', self.key_down_sor1)
+        self.stb_sor1.bind('<Key>', self.sor1_key)
+        self.stb_sor1.bind('<Button-3>', self.sor1_button3)
         # self.stb_sor1.insert(0, '（検索語）')
         # tkinter.Label(self.stb, text='換').pack(side='left')
         self.stb_sor2 = tkinter.Entry(self.stbr, width=20)
         self.stb_sor2.pack(side='left')
-        self.stb_sor2.bind('<Key-Up>', self.key_up_sor2)
-        self.stb_sor2.bind('<Key-Down>', self.key_down_sor2)
+        self.stb_sor2.bind('<Key>', self.sor2_key)
+        self.stb_sor2.bind('<Button-3>', self.sor2_button3)
         # self.stb_sor2.insert(0, '（置換語）')
         self.stb_sor3 \
             = tkinter.Button(self.stbr, text='前',
@@ -12581,49 +12708,101 @@ class Makdo:
     ################
     # COMMAND
 
-    def key_up_sor1(self, event):
-        h = self.search_word_history
-        n = self.search_word_history_number
-        if n == len(h) - 1:
-            h[-1] = self.stb_sor1.get()
-        if n > 0:
-            n -= 1
-            self.stb_sor1.delete(0, 'end')
-            self.stb_sor1.insert(0, h[n])
-            self.search_word_history_number = n
+    def sor1_key(self, key):
+        if key.keysym == 'Up':
+            h = self.search_word_history
+            n = self.search_word_history_number
+            if n == len(h) - 1:
+                h[-1] = self.stb_sor1.get()
+            if n > 0:
+                n -= 1
+                self.stb_sor1.delete(0, 'end')
+                self.stb_sor1.insert(0, h[n])
+                self.search_word_history_number = n
+            return 'break'
+        elif key.keysym == 'Down':
+            h = self.search_word_history
+            n = self.search_word_history_number
+            # if n == len(h) - 1:
+            #     h[-1] = self.stb_sor1.get()
+            if n < len(h) - 1:
+                n += 1
+                self.stb_sor1.delete(0, 'end')
+                self.stb_sor1.insert(0, h[n])
+                self.search_word_history_number = n
+            return 'break'
+        elif key.keysym == 'F15':   # g (paste)
+            self.sor1_paste_word()
+            return 'break'
+        elif key.char == '\x16':    # Ctrl+V
+            self.sor1_paste_word()
+            return 'break'
 
-    def key_down_sor1(self, event):
-        h = self.search_word_history
-        n = self.search_word_history_number
-        # if n == len(h) - 1:
-        #     h[-1] = self.stb_sor1.get()
-        if n < len(h) - 1:
-            n += 1
-            self.stb_sor1.delete(0, 'end')
-            self.stb_sor1.insert(0, h[n])
-            self.search_word_history_number = n
+    def sor2_key(self, key):
+        if key.keysym == 'Up':
+            h = self.replace_word_history
+            n = self.replace_word_history_number
+            if n == len(h) - 1:
+                h[-1] = self.stb_sor2.get()
+            if n > 0:
+                n -= 1
+                self.stb_sor2.delete(0, 'end')
+                self.stb_sor2.insert(0, h[n])
+                self.replace_word_history_number = n
+        elif key.keysym == 'Down':
+            h = self.replace_word_history
+            n = self.replace_word_history_number
+            # if n == len(h) - 1:
+            #     h[-1] = self.stb_sor1.get()
+            if n < len(h) - 1:
+                n += 1
+                self.stb_sor2.delete(0, 'end')
+                self.stb_sor2.insert(0, h[n])
+                self.replace_word_history_number = n
+        elif key.keysym == 'F15':   # g (paste)
+            self.sor2_paste_word()
+            return 'break'
+        elif key.char == '\x16':    # Ctrl+V
+            self.sor2_paste_word()
+            return 'break'
 
-    def key_up_sor2(self, event):
-        h = self.replace_word_history
-        n = self.replace_word_history_number
-        if n == len(h) - 1:
-            h[-1] = self.stb_sor2.get()
-        if n > 0:
-            n -= 1
-            self.stb_sor2.delete(0, 'end')
-            self.stb_sor2.insert(0, h[n])
-            self.replace_word_history_number = n
+    def sor1_button3(self, click):
+        try:
+            self.bt3.destroy()
+        except BaseException:
+            pass
+        self.stb_sor1.focus_force()
+        self.bt3 = tkinter.Menu(self.win, tearoff=False)
+        self.bt3.add_command(label='貼り付け',
+                             command=self.sor1_paste_word)
+        self.bt3.post(click.x_root, click.y_root)
 
-    def key_down_sor2(self, event):
-        h = self.replace_word_history
-        n = self.replace_word_history_number
-        # if n == len(h) - 1:
-        #     h[-1] = self.stb_sor1.get()
-        if n < len(h) - 1:
-            n += 1
-            self.stb_sor2.delete(0, 'end')
-            self.stb_sor2.insert(0, h[n])
-            self.replace_word_history_number = n
+    def sor2_button3(self, click):
+        try:
+            self.bt3.destroy()
+        except BaseException:
+            pass
+        self.stb_sor2.focus_force()
+        self.bt3 = tkinter.Menu(self.win, tearoff=False)
+        self.bt3.add_command(label='貼り付け',
+                             command=self.sor2_paste_word)
+        self.bt3.post(click.x_root, click.y_root)
+
+    def sor1_paste_word(self):
+        try:
+            cb = self.win.clipboard_get()
+        except BaseException:
+            cb = ''
+        if cb != '':
+            self.stb_sor1.insert('insert', cb)
+
+    def sor2_paste_word(self):
+        try:
+            cb = self.win.clipboard_get()
+        except BaseException:
+            cb = ''
+        if cb != '':
+            self.stb_sor2.insert('insert', cb)
 
     def search_or_replace_backward_on_stb(self):
         word2 = self.stb_sor2.get()
