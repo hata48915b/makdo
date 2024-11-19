@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.19-09:52:13-JST>
+# Time-stamp:   <2024.11.19-12:18:16-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5009,8 +5009,8 @@ class Document:
                 p.length_revisers = p._get_length_revisers(p.length_revi)
                 # p.md_lines_text = p._get_md_lines_text(p.md_text)
                 # p.text_to_write = p._get_text_to_write()
-                p.text_to_write_with_reviser \
-                    = p._get_text_to_write_with_reviser()
+                # p.text_to_write_with_reviser \
+                #     = p._get_text_to_write_with_reviser()
                 p.paragraph_class = 'empty'
             if p.paragraph_class == 'empty' and p_next is not None:
                 lg_sb = p.length_revi['space before']
@@ -5035,8 +5035,26 @@ class Document:
                 # p_next.md_lines_text \
                 #     = p_next._get_md_lines_text(p_next.md_text)
                 # p_next.text_to_write = p_next._get_text_to_write()
-                p_next.text_to_write_with_reviser \
-                    = p_next._get_text_to_write_with_reviser()
+                # p_next.text_to_write_with_reviser \
+                #     = p_next._get_text_to_write_with_reviser()
+        # CANCEL FONT REVISERS
+        p_prev = None
+        for p_next in self.paragraphs:
+            if p_next.has_removed:
+                continue
+            if p_next.paragraph_class == 'empty':
+                continue
+            if p_prev is not None:
+                for tfr in p_prev.tail_font_revisers:
+                    hfr = FontDecorator.get_partner(tfr)
+                    if hfr in p_next.head_font_revisers:
+                        p_prev.tail_font_revisers.remove(tfr)
+                        p_next.head_font_revisers.remove(hfr)
+            p_prev = p_next
+        # REMAKE TEXT TO WRITE WITH REVISERS
+        for p_next in self.paragraphs:
+                p.text_to_write_with_reviser \
+                    = p._get_text_to_write_with_reviser()
         return self.paragraphs
 
     # ARTICLE TITLE (MIMI=EAR)
