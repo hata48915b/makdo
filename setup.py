@@ -3,9 +3,11 @@ from setuptools import setup
 
 VERSION = '07.16'
 
-INSTALL_REQUIRES = ['python-docx', 'chardet', 'Levenshtein', 'tkinterdnd2', 'openpyxl', 'openai', 'llama_cpp_python']
+INSTALL_REQUIRES = ['python-docx', 'chardet', 'Levenshtein', 'openpyxl', 'openai', 'llama_cpp_python']
 if sys.platform == 'win32':
     INSTALL_REQUIRES.append('pywin32')
+if sys.platform != 'darwin':
+    INSTALL_REQUIRES.append('tkinterdnd2')
 
 setup(
     name='makdo',
