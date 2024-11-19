@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.19-10:33:12-JST>
+# Time-stamp:   <2024.11.19-17:15:04-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4310,14 +4310,17 @@ def count_days(date: str) -> int:
 class OneWordDialog(tkinter.simpledialog.Dialog):
 
     def __init__(self, pane, mother, title, prompt, head, tail,
-                 init=''):
+                 init='', cand=[]):
         self.pane = pane
         self.mother = mother
         self.prompt = prompt
         self.head = head
         self.tail = tail
         self.init = init
+        self.cand = cand
         self.value = None
+        self.cand.append(init)
+        self.cnum = len(cand) - 1
         super().__init__(pane, title=title)
 
     def body(self, pane):
@@ -4331,20 +4334,42 @@ class OneWordDialog(tkinter.simpledialog.Dialog):
         self.entry.pack(side='left')
         self.entry.insert(0, self.init)
         tkinter.Label(frm, text=self.tail).pack(side='left')
+        self.entry.bind('<Key-Up>', self.key_up)
+        self.entry.bind('<Key-Down>', self.key_down)
         super().body(pane)
         return self.entry
 
     def apply(self):
         self.value = self.entry.get()
+        if (len(self.cand) > 1) and (self.cand[-2] == self.value):
+                self.cand.pop(-1)
+        else:
+            self.cand[-1] = self.value
 
     def get_value(self):
         return self.value
+
+    def key_up(self, event):
+        if self.cnum == len(self.cand) - 1:
+            self.cand[-1] = self.entry.get()
+        if self.cnum > 0:
+            self.cnum -= 1
+            self.entry.delete(0, 'end')
+            self.entry.insert(0, self.cand[self.cnum])
+
+    def key_down(self, event):
+        # if self.cnum == len(self.cand) - 1:
+        #     self.cand[-1] = self.entry.get()
+        if self.cnum < len(self.cand) - 1:
+            self.cnum += 1
+            self.entry.delete(0, 'end')
+            self.entry.insert(0, self.cand[self.cnum])
 
 
 class TwoWordsDialog(tkinter.simpledialog.Dialog):
 
     def __init__(self, pane, mother, title, prompt, head1, head2, tail1, tail2,
-                 init1='', init2=''):
+                 init1='', init2='', cand1=[], cand2=[]):
         self.pane = pane
         self.mother = mother
         self.prompt = prompt
@@ -4354,8 +4379,14 @@ class TwoWordsDialog(tkinter.simpledialog.Dialog):
         self.tail2 = tail2
         self.init1 = init1
         self.init2 = init2
+        self.cand1 = cand1
+        self.cand2 = cand2
         self.value1 = None
         self.value2 = None
+        self.cand1.append(init1)
+        self.cnum1 = len(cand1) - 1
+        self.cand2.append(init2)
+        self.cnum2 = len(cand2) - 1
         super().__init__(pane, title=title)
 
     def body(self, pane):
@@ -4376,15 +4407,59 @@ class TwoWordsDialog(tkinter.simpledialog.Dialog):
         self.entry2.pack(side='top')
         self.entry2.insert(0, self.init2)
         tkinter.Label(frm, text=self.tail2).pack(side='left')
+        self.entry1.bind('<Key-Up>', self.key_up1)
+        self.entry1.bind('<Key-Down>', self.key_down1)
+        self.entry2.bind('<Key-Up>', self.key_up2)
+        self.entry2.bind('<Key-Down>', self.key_down2)
         super().body(pane)
         return self.entry1
 
     def apply(self):
         self.value1 = self.entry1.get()
         self.value2 = self.entry2.get()
+        if (len(self.cand1) > 1) and (self.cand1[-2] == self.value1):
+                self.cand1.pop(-1)
+        else:
+            self.cand1[-1] = self.value1
+        if (len(self.cand2) > 1) and (self.cand2[-2] == self.value2):
+                self.cand2.pop(-1)
+        else:
+            self.cand2[-1] = self.value2
 
     def get_value(self):
         return self.value1, self.value2
+
+    def key_up1(self, event):
+        if self.cnum1 == len(self.cand1) - 1:
+            self.cand1[-1] = self.entry1.get()
+        if self.cnum1 > 0:
+            self.cnum1 -= 1
+            self.entry1.delete(0, 'end')
+            self.entry1.insert(0, self.cand1[self.cnum1])
+
+    def key_down1(self, event):
+        # if self.cnum1 == len(self.cand1) - 1:
+        #     self.cand1[-1] = self.entry1.get()
+        if self.cnum1 < len(self.cand1) - 1:
+            self.cnum1 += 1
+            self.entry1.delete(0, 'end')
+            self.entry1.insert(0, self.cand1[self.cnum1])
+
+    def key_up2(self, event):
+        if self.cnum2 == len(self.cand2) - 1:
+            self.cand2[-1] = self.entry2.get()
+        if self.cnum2 > 0:
+            self.cnum2 -= 1
+            self.entry2.delete(0, 'end')
+            self.entry2.insert(0, self.cand2[self.cnum2])
+
+    def key_down2(self, event):
+        # if self.cnum2 == len(self.cand2) - 1:
+        #     self.cand2[-1] = self.entry2.get()
+        if self.cnum2 < len(self.cand2) - 1:
+            self.cnum2 += 1
+            self.entry2.delete(0, 'end')
+            self.entry2.insert(0, self.cand2[self.cnum2])
 
 
 ############################################################
@@ -12478,10 +12553,14 @@ class Makdo:
         # tkinter.Label(self.stb, text='探').pack(side='left')
         self.stb_sor1 = tkinter.Entry(self.stbr, width=20)
         self.stb_sor1.pack(side='left')
+        self.stb_sor1.bind('<Key-Up>', self.key_up_sor1)
+        self.stb_sor1.bind('<Key-Down>', self.key_down_sor1)
         # self.stb_sor1.insert(0, '（検索語）')
         # tkinter.Label(self.stb, text='換').pack(side='left')
         self.stb_sor2 = tkinter.Entry(self.stbr, width=20)
         self.stb_sor2.pack(side='left')
+        self.stb_sor2.bind('<Key-Up>', self.key_up_sor2)
+        self.stb_sor2.bind('<Key-Down>', self.key_down_sor2)
         # self.stb_sor2.insert(0, '（置換語）')
         self.stb_sor3 \
             = tkinter.Button(self.stbr, text='前',
@@ -12495,9 +12574,56 @@ class Makdo:
             = tkinter.Button(self.stbr, text='消',
                              command=self.clear_search_or_replace)
         self.stb_sor5.pack(side='left')
+        #
+        self.search_word_history, self.search_word_history_number = [''], 0
+        self.replace_word_history, self.replace_word_history_number = [''], 0
 
     ################
     # COMMAND
+
+    def key_up_sor1(self, event):
+        h = self.search_word_history
+        n = self.search_word_history_number
+        if n == len(h) - 1:
+            h[-1] = self.stb_sor1.get()
+        if n > 0:
+            n -= 1
+            self.stb_sor1.delete(0, 'end')
+            self.stb_sor1.insert(0, h[n])
+            self.search_word_history_number = n
+
+    def key_down_sor1(self, event):
+        h = self.search_word_history
+        n = self.search_word_history_number
+        # if n == len(h) - 1:
+        #     h[-1] = self.stb_sor1.get()
+        if n < len(h) - 1:
+            n += 1
+            self.stb_sor1.delete(0, 'end')
+            self.stb_sor1.insert(0, h[n])
+            self.search_word_history_number = n
+
+    def key_up_sor2(self, event):
+        h = self.replace_word_history
+        n = self.replace_word_history_number
+        if n == len(h) - 1:
+            h[-1] = self.stb_sor2.get()
+        if n > 0:
+            n -= 1
+            self.stb_sor2.delete(0, 'end')
+            self.stb_sor2.insert(0, h[n])
+            self.replace_word_history_number = n
+
+    def key_down_sor2(self, event):
+        h = self.replace_word_history
+        n = self.replace_word_history_number
+        # if n == len(h) - 1:
+        #     h[-1] = self.stb_sor1.get()
+        if n < len(h) - 1:
+            n += 1
+            self.stb_sor2.delete(0, 'end')
+            self.stb_sor2.insert(0, h[n])
+            self.replace_word_history_number = n
 
     def search_or_replace_backward_on_stb(self):
         word2 = self.stb_sor2.get()
@@ -12513,6 +12639,20 @@ class Makdo:
             pane = self.txt
         word1 = self.stb_sor1.get()
         word2 = self.stb_sor2.get()
+        if word1 != '':
+            if len(self.search_word_history) <= 1 or \
+               self.search_word_history[-2] != word1:
+                self.search_word_history[-1] = word1
+                self.search_word_history.append(word1)
+                self.search_word_history_number \
+                    = len(self.search_word_history) - 1
+        if word2 != '':
+            if len(self.replace_word_history) <= 1 or \
+               self.replace_word_history[-2] != word2:
+                self.replace_word_history[-1] = word2
+                self.replace_word_history.append(word2)
+                self.replace_word_history_number \
+                    = len(self.replace_word_history) - 1
         if word1 == '':
             return
         if Makdo.search_word != word1:
@@ -12563,6 +12703,20 @@ class Makdo:
             pane = self.txt
         word1 = self.stb_sor1.get()
         word2 = self.stb_sor2.get()
+        if word1 != '':
+            if len(self.search_word_history) <= 1 or \
+               self.search_word_history[-2] != word1:
+                self.search_word_history[-1] = word1
+                self.search_word_history.append(word1)
+                self.search_word_history_number \
+                    = len(self.search_word_history) - 1
+        if word2 != '':
+            if len(self.replace_word_history) <= 1 or \
+               self.replace_word_history[-2] != word2:
+                self.replace_word_history[-1] = word2
+                self.replace_word_history.append(word2)
+                self.replace_word_history_number \
+                    = len(self.replace_word_history) - 1
         if word1 == '':
             return
         if Makdo.search_word != word1:
@@ -12620,7 +12774,6 @@ class Makdo:
         Makdo.search_word = ''
 
     def _highlight_search_word(self):
-
         word = Makdo.search_word
         for pane in (self.txt, self.sub):
             pane.tag_remove('search_tag', '1.0', 'end')
@@ -12643,11 +12796,14 @@ class Makdo:
     def replace_backward_from_dialog(self, pane):
         t = '前検索又は置換'
         m = '検索する言葉と置換する言葉を入力してください．'
-        word1 = self.stb_sor1.get()
-        word2 = self.stb_sor2.get()
+        word1, word2 = self.stb_sor1.get(), self.stb_sor2.get()
+        hist1, hist2 = self.search_word_history, self.replace_word_history
         h1, t1 = '検索', ''
         h2, t2 = '置換', ''
-        sd = TwoWordsDialog(pane, self, t, m, h1, h2, t1, t2, word1, word2)
+        hist1.pop(-1)
+        hist2.pop(-1)
+        sd = TwoWordsDialog(pane, self, t, m, h1, h2, t1, t2,
+                            word1, word2, hist1, hist2)
         word1, word2 = sd.get_value()
         if word1 is not None:
             if word1 == '':
@@ -12664,11 +12820,14 @@ class Makdo:
     def replace_forward_from_dialog(self, pane):
         t = '後検索又は置換'
         m = '検索する言葉と置換する言葉を入力してください．'
-        word1 = self.stb_sor1.get()
-        word2 = self.stb_sor2.get()
+        word1, word2 = self.stb_sor1.get(), self.stb_sor2.get()
+        hist1, hist2 = self.search_word_history, self.replace_word_history
+        hist1.pop(-1)
+        hist2.pop(-1)
         h1, t1 = '検索', ''
         h2, t2 = '置換', ''
-        sd = TwoWordsDialog(pane, self, t, m, h1, h2, t1, t2, word1, word2)
+        sd = TwoWordsDialog(pane, self, t, m, h1, h2, t1, t2,
+                            word1, word2, hist1, hist2)
         word1, word2 = sd.get_value()
         if word1 is not None:
             if word1 == '':
@@ -12687,7 +12846,9 @@ class Makdo:
         m = '検索する言葉を入力してください．'
         h, t = '', ''
         word1 = self.stb_sor1.get()
-        sd = OneWordDialog(pane, self, b, m, h, t, word1)
+        hist1 = self.search_word_history
+        hist1.pop(-1)
+        sd = OneWordDialog(pane, self, b, m, h, t, word1, hist1)
         word1 = sd.get_value()
         self.stb_sor2.delete(0, 'end')
         self.stb_sor2.insert(0, '')
@@ -12706,7 +12867,9 @@ class Makdo:
         m = '検索する言葉を入力してください．'
         h, t = '', ''
         word1 = self.stb_sor1.get()
-        sd = OneWordDialog(pane, self, b, m, h, t, word1)
+        hist1 = self.search_word_history
+        hist1.pop(-1)
+        sd = OneWordDialog(pane, self, b, m, h, t, word1, hist1)
         word1 = sd.get_value()
         self.stb_sor2.delete(0, 'end')
         self.stb_sor2.insert(0, '')
@@ -12905,6 +13068,8 @@ class Makdo:
                 self.set_epwing_directory()
             if 'epwing_directory' not in vars(self):
                 return False
+            if 'epwing_history' not in vars(self):
+                self.epwing_history = []
             w = ''
             if self.txt.tag_ranges('sel'):
                 w = self.txt.get('sel.first', 'sel.last')
@@ -12916,7 +13081,8 @@ class Makdo:
             b = '辞書で調べる'
             p = '調べる言葉を入力してください．'
             h, t = '', ''
-            s = OneWordDialog(pane, self, b, p, h, t, w).get_value()
+            e = self.epwing_history
+            s = OneWordDialog(pane, self, b, p, h, t, w, e).get_value()
             if s is None:
                 return
             msg = '辞書で検索しています'
