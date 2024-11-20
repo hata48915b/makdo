@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.20-08:07:29-JST>
+# Time-stamp:   <2024.11.20-11:31:49-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5775,10 +5775,10 @@ class Makdo:
                                          command=self.sub.yview)
         self.sub_frm = tkinter.Frame(self.pnd2)
         # STATUS BAR
-        self.stb = tkinter.Frame(self.win)   # LEFT
-        self.stb.pack(side='left', anchor='w')
-        self.stbr = tkinter.Frame(self.win)  # RIGHT
-        self.stbr.pack(side='right', anchor='e')
+        self.stb_l = tkinter.Frame(self.win)   # LEFT
+        self.stb_l.pack(side='left', anchor='w')
+        self.stb_r = tkinter.Frame(self.win)  # RIGHT
+        self.stb_r.pack(side='right', anchor='e')
         self._make_status_bar()
         # FONT
         families = tkinter.font.families()
@@ -12604,9 +12604,9 @@ class Makdo:
     # STATUS FILE NAME
 
     def _make_status_file_name(self):
-        self.stb_fnm1 = tkinter.Label(self.stb, anchor='w', text='')
+        self.stb_fnm1 = tkinter.Label(self.stb_l, anchor='w', text='')
         self.stb_fnm1.pack(side='left')
-        tkinter.Label(self.stb, text=' ').pack(side='left')
+        #tkinter.Label(self.stb_l, text=' ').pack(side='left')
 
     ################
     # COMMAND
@@ -12625,15 +12625,15 @@ class Makdo:
             nam = re.sub('^(.{' + str(14 - len(ext)) + '})(.*)', '\\1…', nam)
         self.stb_fnm1['text'] = nam + ext
         if must_update:
-            self.stb.update()
+            self.stb_l.update()
 
     ##########################
     # STATUS POSITION INFORMATION
 
     def _make_status_position_information(self):
-        self.stb_pos1 = tkinter.Label(self.stb, anchor='w', text='1x0/1x0')
+        self.stb_pos1 = tkinter.Label(self.stb_l, anchor='w', text='1x0/1x0')
         self.stb_pos1.pack(side='left')
-        tkinter.Label(self.stb, text=' ').pack(side='left')
+        #tkinter.Label(self.stb_l, text=' ').pack(side='left')
 
     ################
     # COMMAND
@@ -12651,15 +12651,15 @@ class Makdo:
         max_p = max_v + 'x' + max_h
         self.stb_pos1['text'] = cur_p + '/' + max_p
         if must_update:
-            self.stb.update()
+            self.stb_l.update()
 
     ##########################
     # STATUS MESSAGE
 
     def _make_status_message(self):
-        self.stb_msg1 = tkinter.Label(self.stb, anchor='w', text='')
+        self.stb_msg1 = tkinter.Label(self.stb_l, anchor='w', text='')
         self.stb_msg1.pack(side='left')
-        # tkinter.Label(self.stb, text=' ').pack(side='left')
+        # tkinter.Label(self.stb_l, text=' ').pack(side='left')
 
     ################
     # COMMAND
@@ -12670,35 +12670,33 @@ class Makdo:
         else:
             self.stb_msg1['text'] = '→ ' + msg
         if must_update:
-            self.stb.update()
+            self.stb_l.update()
 
     ##########################
     # STATUS SEARCH OR REPLACE
 
     def _make_status_search_or_replace(self):
-        tkinter.Label(self.stbr, text=' ').pack(side='left')
-        # tkinter.Label(self.stb, text='探').pack(side='left')
-        self.stb_sor1 = tkinter.Entry(self.stbr, width=20)
+        tkinter.Label(self.stb_r, text=' ').pack(side='left')
+        self.stb_sor1 = tkinter.Entry(self.stb_r, width=20)
         self.stb_sor1.pack(side='left')
         self.stb_sor1.bind('<Key>', self.sor1_key)
+        self.stb_sor1.bind('<Button-1>', self.sor1_button0)
+        self.stb_sor1.bind('<Button-2>', self.sor1_button0)
         self.stb_sor1.bind('<Button-3>', self.sor1_button3)
-        # self.stb_sor1.insert(0, '（検索語）')
-        # tkinter.Label(self.stb, text='換').pack(side='left')
-        self.stb_sor2 = tkinter.Entry(self.stbr, width=20)
+        self.stb_sor2 = tkinter.Entry(self.stb_r, width=20)
         self.stb_sor2.pack(side='left')
         self.stb_sor2.bind('<Key>', self.sor2_key)
         self.stb_sor2.bind('<Button-3>', self.sor2_button3)
-        # self.stb_sor2.insert(0, '（置換語）')
         self.stb_sor3 \
-            = tkinter.Button(self.stbr, text='前',
+            = tkinter.Button(self.stb_r, text='前',
                              command=self.search_or_replace_backward_on_stb)
         self.stb_sor3.pack(side='left')
         self.stb_sor4 \
-            = tkinter.Button(self.stbr, text='後',
+            = tkinter.Button(self.stb_r, text='後',
                              command=self.search_or_replace_forward_on_stb)
         self.stb_sor4.pack(side='left')
         self.stb_sor5 \
-            = tkinter.Button(self.stbr, text='消',
+            = tkinter.Button(self.stb_r, text='消',
                              command=self.clear_search_or_replace)
         self.stb_sor5.pack(side='left')
         #
@@ -12766,6 +12764,13 @@ class Makdo:
             self.sor2_paste_word()
             return 'break'
 
+    def sor1_button0(self, click):
+        try:
+            self.bt3.destroy()
+        except BaseException:
+            pass
+        self.stb_sor1.focus_force()
+
     def sor1_button3(self, click):
         try:
             self.bt3.destroy()
@@ -12776,6 +12781,13 @@ class Makdo:
         self.bt3.add_command(label='貼り付け',
                              command=self.sor1_paste_word)
         self.bt3.post(click.x_root, click.y_root)
+
+    def sor2_button0(self, click):
+        try:
+            self.bt3.destroy()
+        except BaseException:
+            pass
+        self.stb_sor2.focus_force()
 
     def sor2_button3(self, click):
         try:
