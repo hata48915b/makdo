@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.20-11:31:49-JST>
+# Time-stamp:   <2024.11.20-11:58:27-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -11372,6 +11372,8 @@ class Makdo:
         self.mincho_font['size'] = size
         # BASIC FONT
         self.txt['font'] = self.gothic_font
+        self.stb_sep1['font'] = self.gothic_font
+        self.stb_sep2['font'] = self.gothic_font
         self.stb_sor1['font'] = self.gothic_font
         self.stb_sor2['font'] = self.gothic_font
         self.txt.tag_config('error_tag', foreground='#FF0000')
@@ -12606,7 +12608,9 @@ class Makdo:
     def _make_status_file_name(self):
         self.stb_fnm1 = tkinter.Label(self.stb_l, anchor='w', text='')
         self.stb_fnm1.pack(side='left')
-        #tkinter.Label(self.stb_l, text=' ').pack(side='left')
+        self.stb_sep1 = tkinter.Label(self.stb_l, width=0, text='|')
+        self.stb_sep1.pack(side='left')
+        # tkinter.Label(self.stb_l, text=' ').pack(side='left')
 
     ################
     # COMMAND
@@ -12633,7 +12637,9 @@ class Makdo:
     def _make_status_position_information(self):
         self.stb_pos1 = tkinter.Label(self.stb_l, anchor='w', text='1x0/1x0')
         self.stb_pos1.pack(side='left')
-        #tkinter.Label(self.stb_l, text=' ').pack(side='left')
+        self.stb_sep2 = tkinter.Label(self.stb_l, width=0, text='|')
+        self.stb_sep2.pack(side='left')
+        # tkinter.Label(self.stb_l, text=' ').pack(side='left')
 
     ################
     # COMMAND
@@ -12659,7 +12665,6 @@ class Makdo:
     def _make_status_message(self):
         self.stb_msg1 = tkinter.Label(self.stb_l, anchor='w', text='')
         self.stb_msg1.pack(side='left')
-        # tkinter.Label(self.stb_l, text=' ').pack(side='left')
 
     ################
     # COMMAND
