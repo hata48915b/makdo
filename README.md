@@ -1,6 +1,6 @@
-<!-- Time-stamp:   <2024.11.16-11:30:34-JST> -->
+<!-- Time-stamp:   <2024.11.20-09:36:53-JST> -->
 
-# MAKDO（MS WordのファイルをMarkdownで編集するアプリ）
+# MAKDO（MS WordのファイルをMarkdownで作成・編集）
 
 - [［実行ファイル（Windows）のダウンロード］](https://makdo.jp/makdo_win.zip)
 
@@ -252,7 +252,7 @@ MS Word形式とは、
 サンプル画像を用意しましたので、
 "image"フォルダの中の"sojo-msword.png"をご覧ください。
 
-↓↓↓ 公用文書書式のMS Word形式のファイルのサンプル画像
+↓↓↓ MS Word形式のファイルのサンプル画像
 
 ![MS Word形式のファイルのサンプル画像](https://raw.githubusercontent.com/hata48915b/makdo/main/image/sojo-msword.png "MS Word形式のファイルのサンプル画像")
 

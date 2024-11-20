@@ -12,7 +12,7 @@ if sys.platform != 'darwin':
 setup(
     name='makdo',
     version=VERSION,
-    description='日本の公用文書（司法文書、行政文書）をMarkdown形式とMicrosoft Word形式との間で変換します',
+    description='MS WordのファイルをMarkdownで作成・編集します',
     long_description=open('README.md', encoding='utf-8').read(),
     long_description_content_type='text/markdown',
     author='Seiichiro HATA',
