@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.21-06:20:58-JST>
+# Time-stamp:   <2024.11.21-12:28:42-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -7591,7 +7591,7 @@ class Makdo:
         self.win.clipboard_append(r)
         if self.clipboard_list[-1] != '':
             self.clipboard_list.append('')
-        self.clipboard_list[-1] += c
+        self.clipboard_list[-1] += r
 
     def change_typeface(self):
         c = self.txt.get('insert', 'insert+1c')
