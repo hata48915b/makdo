@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.21-12:28:42-JST>
+# Time-stamp:   <2024.11.22-09:02:35-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -186,7 +186,7 @@ KEYWORDS = [
 
 CONFIGURATION_SAMPLE = [
     '',
-    '書題名: -',
+    '書題名: ',
     '文書式: 普通', '文書式: 契約', '文書式: 条文',
     '用紙サ: A3横', '用紙サ: A3縦', '用紙サ: A4横', '用紙サ: A4縦',
     '上余白: 3.5 cm',
@@ -233,6 +233,19 @@ PARAGRAPH_SAMPLE = ['', '\t',
                     '\\[<!--数式-->\\]', '<pgbr><!--改ページ-->',
                     '']
 
+SCRIPT_SAMPLE = ['',
+                 'sum = 0',
+                 'sum += ?',
+                 'x = ?; sum += x; print(x)',
+                 'x = ?; sum += x; print(x, "3")',
+                 'x = ?; sum += x; print(x, "4")',
+                 'x = ?; sum += x; print(x, "4s")',
+                 'print(sum)',
+                 'print(sum, "3")',
+                 'print(sum, "4")',
+                 'print(sum, "4s")',
+                 '']
+
 FONT_DECORATOR_SAMPLE = ['', '\t',
                          '*<!--斜体-->*',
                          '*<!--太字-->*',
@@ -255,19 +268,6 @@ FONT_DECORATOR_SAMPLE = ['', '\t',
                          '_M_<!--地マ-->_M_',
                          '@游明朝@<!--游明朝-->@游明朝@',
                          '']
-
-SCRIPT_SAMPLE = ['',
-                 'sum = 0',
-                 'sum += ?',
-                 'x = ?; sum += x; print(x)',
-                 'x = ?; sum += x; print(x, "3")',
-                 'x = ?; sum += x; print(x, "4")',
-                 'x = ?; sum += x; print(x, "4s")',
-                 'print(sum)',
-                 'print(sum, "3")',
-                 'print(sum, "4")',
-                 'print(sum, "4s")',
-                 '']
 
 ICON8_IMG = '''
 iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABGdBTUEAALGPC/xhBQAAACBjSFJN
@@ -1245,7 +1245,7 @@ HALF_FULL_TABLE = [
     ['ﾊﾞ', 'バ'], ['ﾋﾞ', 'ビ'], ['ﾌﾞ', 'ブ'], ['ﾍﾞ', 'ベ'], ['ﾎﾞ', 'ボ'],
     ['ﾊﾟ', 'パ'], ['ﾋﾟ', 'ピ'], ['ﾌﾟ', 'プ'], ['ﾍﾟ', 'ペ'], ['ﾎﾟ', 'ポ'],
     ['ﾜﾞ', 'ヷ'], ['ｦﾞ', 'ヺ'],
-    ['ｦ', 'ヲ'], 
+    ['ｦ', 'ヲ'],
     ['ｧ', 'ァ'], ['ｨ', 'ィ'], ['ｩ', 'ゥ'], ['ｪ', 'ェ'], ['ｫ', 'ォ'],
     ['ｬ', 'ャ'], ['ｭ', 'ュ'], ['ｮ', 'ョ'], ['ｯ', 'ッ'], ['ｰ', 'ー'],
     ['ｱ', 'ア'], ['ｲ', 'イ'], ['ｳ', 'ウ'], ['ｴ', 'エ'], ['ｵ', 'オ'],
@@ -4344,7 +4344,7 @@ class OneWordDialog(tkinter.simpledialog.Dialog):
     def apply(self):
         self.value = self.entry.get()
         if (len(self.cand) > 1) and (self.cand[-2] == self.value):
-                self.cand.pop(-1)
+            self.cand.pop(-1)
         else:
             self.cand[-1] = self.value
 
@@ -4458,11 +4458,11 @@ class TwoWordsDialog(tkinter.simpledialog.Dialog):
         self.value1 = self.entry1.get()
         self.value2 = self.entry2.get()
         if (len(self.cand1) > 1) and (self.cand1[-2] == self.value1):
-                self.cand1.pop(-1)
+            self.cand1.pop(-1)
         else:
             self.cand1[-1] = self.value1
         if (len(self.cand2) > 1) and (self.cand2[-2] == self.value2):
-                self.cand2.pop(-1)
+            self.cand2.pop(-1)
         else:
             self.cand2[-1] = self.value2
 
@@ -5444,7 +5444,7 @@ class LineDatum:
                 # tmp = ''                                              # 5.tmp
                 beg = end                                               # 6.beg
                 continue
-            # HORIZONTAL LINE
+            # HORIZONTAL LINES
             if c == '\u00AD' or c == '\u058A' or c == '\u05BE' or \
                c == '\u1806' or c == '\u180A' or c == '\u2010' or \
                c == '\u2011' or c == '\u2012' or c == '\u2013' or \
@@ -6588,7 +6588,7 @@ class Makdo:
             return False
         else:
             file_text = self.txt.get('1.0', 'end-1c')
-            self._stamp_time(file_text)
+            self._stamp_config(file_text)
             if file_text == '' or file_text[-1] != '\n':
                 self.txt.insert('end', '\n')
             file_text = self.txt.get('1.0', 'end-1c')
@@ -6651,21 +6651,34 @@ class Makdo:
             #
             return True
 
-    def _stamp_time(self, file_text):
+    def _stamp_config(self, file_text):
         if not re.match('^\\s*<!--', file_text):
             return
         file_text = re.sub('-->(.|\n)*$', '', file_text)
         now = datetime.datetime.utcnow() + datetime.timedelta(hours=+9)
         jst = datetime.timezone(datetime.timedelta(hours=+9))
         now = now.replace(tzinfo=jst)
-        res = '^(\\S+:\\s*)(\\S+)(\\s.*)?$'
+        tit_res = '^((?:書題名|document_title):\\s*)(.*)$'
+        cre_res = '^((?:作成時|created_time):\\s*)(\\S+)?(\\s.*)?$'
+        mod_res = '^((?:更新時|modified_time):\\s*)(\\S+)?(\\s.*)?$'
         for i, line in enumerate(file_text.split('\n')):
+            # DOCUMENT TITLE
+            if re.match(tit_res, line):
+                cfg = re.sub(tit_res, '\\1', line)
+                tit = re.sub(tit_res, '\\2', line)
+                if tit == '':
+                    beg = str(i + 1) + '.' + str(len(cfg))
+                    now = datetime.datetime.now()
+                    unix_time = datetime.datetime.timestamp(now)
+                    self.txt.insert(beg, hex(int(unix_time * 1000000)))
+                    if not re.match('^.*\\s$', cfg):
+                        self.txt.insert(beg, ' ')
             # CREATED TIME
-            if re.match('^作成時:', line) or re.match('^created_time:', line):
-                cfg = re.sub(res, '\\1', line)
-                tim = re.sub(res, '\\2', line)
-                usr = re.sub(res, '\\3', line)
-                j, k = len(cfg),  len(tim)
+            if re.match(cre_res, line):
+                cfg = re.sub(cre_res, '\\1', line)
+                tim = re.sub(cre_res, '\\2', line)
+                usr = re.sub(cre_res, '\\3', line)
+                j, k = len(cfg), len(tim)
                 beg = str(i + 1) + '.' + str(j)
                 end = str(i + 1) + '.' + str(j + k)
                 res_jst = '^' + '[0-9]{4}-[0-9]{2}-[0-9]{2}' + \
@@ -6676,16 +6689,23 @@ class Makdo:
                     dt = datetime.datetime.fromisoformat(tim)
                 except BaseException:
                     self.txt.delete(beg, end)
-                    self.txt.insert(beg, now.isoformat(timespec='seconds'))
-            if re.match('^更新時:', line) or re.match('^modified_time:', line):
-                cfg = re.sub(res, '\\1', line)
-                tim = re.sub(res, '\\2', line)
-                usr = re.sub(res, '\\3', line)
-                j, k = len(cfg),  len(tim)
+                    ts = now.isoformat(timespec='seconds')
+                    self.txt.insert(beg, ts)
+                    if not re.match('^.*\\s$', cfg):
+                        self.txt.insert(beg, ' ')
+            # MODIFIED TIME
+            if re.match(mod_res, line):
+                cfg = re.sub(mod_res, '\\1', line)
+                tim = re.sub(mod_res, '\\2', line)
+                usr = re.sub(mod_res, '\\3', line)
+                j, k = len(cfg), len(tim)
                 beg = str(i + 1) + '.' + str(j)
                 end = str(i + 1) + '.' + str(j + k)
                 self.txt.delete(beg, end)
-                self.txt.insert(beg, now.isoformat(timespec='seconds'))
+                ts = now.isoformat(timespec='seconds')
+                self.txt.insert(beg, ts)
+                if not re.match('^.*\\s$', cfg):
+                    self.txt.insert(beg, ' ')
 
     # NAME AND SAVE
 
@@ -9042,7 +9062,7 @@ class Makdo:
 <!--------------------------【設定】-----------------------------
 
 # プロパティに表示される文書のタイトルを指定できます。
-書題名: -
+書題名:
 
 # 3つの書式（普通、契約、条文）を指定できます。
 文書式: ''' + document_style + '''
@@ -9130,6 +9150,8 @@ class Makdo:
                          command=self.set_paragraph_length)
         menu.add_separator()
         #
+        menu.add_command(label='設定を挿入',
+                         command=self.insert_config)
         self._make_submenu_insert_chapter(menu)
         self._make_submenu_insert_section(menu)
         self._make_submenu_insert_list(menu)
@@ -9331,6 +9353,65 @@ class Makdo:
                     leng_revs += '>=' + re.sub('\\.0+$', '', str(leng)) + ' '
                 leng_revs = re.sub(' $', '', leng_revs)
                 self.pane.insert(beg, leng_revs + '\n')
+
+    def insert_config(self):
+        config = '''
+<!--------------------------【設定】-----------------------------
+
+# プロパティに表示される文書のタイトルを指定できます。
+書題名:
+
+# 3つの書式（普通、契約、条文）を指定できます。
+文書式: 普通
+
+# 用紙のサイズ（A3横、A3縦、A4横、A4縦）を指定できます。
+用紙サ: A4縦
+
+# 用紙の上下左右の余白をセンチメートル単位で指定できます。
+上余白: 3.5 cm
+下余白: 2.2 cm
+左余白: 3.0 cm
+右余白: 2.3 cm
+
+# ページのヘッダーに表示する文字列（別紙 :等）を指定できます。
+頭書き:
+
+# ページ番号の書式（無、有、n :、-n-、n/N等）を指定できます。
+頁番号: 有
+
+# 行番号の記載（無、有）を指定できます。
+行番号: 無
+
+# 明朝体とゴシック体と異字体（IVS）のフォントを指定できます。
+明朝体: Times New Roman / ＭＳ 明朝
+ゴシ体: = / ＭＳ ゴシック
+異字体: IPAmj明朝
+
+# 基本の文字の大きさをポイント単位で指定できます。
+文字サ: 12 pt
+
+# 行間隔を基本の文字の高さの何倍にするかを指定できます。
+行間隔: 2.14 倍
+
+# セクションタイトル前後の余白を行間隔の倍数で指定できます。
+前余白: 0.0 倍, 0.0 倍, 0.0 倍, 0.0 倍, 0.0 倍, 0.0 倍
+後余白: 0.0 倍, 0.0 倍, 0.0 倍, 0.0 倍, 0.0 倍, 0.0 倍
+
+# 半角文字と全角文字の間の間隔調整（無、有）を指定できます。
+字間整: 無
+
+# 備考書（コメント）などを消して完成させます。
+完成稿: 偽
+
+# 原稿の作成日時と更新日時が自動で記録されます。
+作成時: - USER
+更新時: - USER
+
+---------------------------------------------------------------->
+
+'''
+        config = re.sub('^\n+', '', config)
+        self.txt.insert('1.0', config)
 
     ################
     # SUBMENU INSERT CHAPTER
@@ -12198,7 +12279,8 @@ class Makdo:
                     (self.key_history[-3] == 'g' and
                      self.key_history[-4] == 'Escape')):
                     if self.key_history[-3] == 'F15':
-                        self.clipboard_list_number = len(self.clipboard_list) - 2
+                        self.clipboard_list_number \
+                            = len(self.clipboard_list) - 2
                     else:
                         self.clipboard_list_number -= 1
                     if self.clipboard_list_number < 0:
@@ -12274,7 +12356,7 @@ class Makdo:
                     if line == sample:
                         pane.delete('insert linestart', 'insert lineend')
                         pane.insert('insert', CONFIGURATION_SAMPLE[i + 1])
-                        pane.mark_set('insert', 'insert linestart')
+                        pane.mark_set('insert', 'insert lineend')
                         return 'break'
             # CALCULATE
             res_open = '^((?:.|\n)*)(<!--(?:.|\n)*)'
@@ -12312,26 +12394,32 @@ class Makdo:
                                 pane.delete(beg, end)
                                 pane.insert(beg, SCRIPT_SAMPLE[i + 1])
                                 return 'break'
-            # INSERT
-            if re.match('^.*\\.0$', posi):
+            # PARAGRAPH
+            if posi == pane.index('insert lineend'):
                 for i, sample in enumerate(PARAGRAPH_SAMPLE):
                     if line == sample:
                         pane.delete('insert linestart', 'insert lineend')
                         pane.insert('insert', PARAGRAPH_SAMPLE[i + 1])
-                        pane.mark_set('insert', 'insert linestart')
+                        pane.mark_set('insert', 'insert lineend')
                         return 'break'
+            # FONT DECORATER
+            for i, sample in enumerate(FONT_DECORATOR_SAMPLE):
+                if i == 0:
+                    continue
+                if i == len(FONT_DECORATOR_SAMPLE) - 1:
+                    break
+                sample_esc = sample
+                sample_esc = sample_esc.replace('*', '\\*')
+                sample_esc = sample_esc.replace('+', '\\+')
+                sample_esc = sample_esc.replace('^', '\\^')
+                beg_to_ins = pane.get('insert linestart', 'insert')
+                if re.match('^.*' + sample_esc + '$', beg_to_ins):
+                    pane.delete(posi + '-' + str(len(sample)) + 'c', posi)
+                    pane.insert('insert', FONT_DECORATOR_SAMPLE[i + 1])
+                    return 'break'
             else:
-                for i, sample in enumerate(FONT_DECORATOR_SAMPLE):
-                    sample_esc = sample
-                    sample_esc = sample_esc.replace('*', '\\*')
-                    sample_esc = sample_esc.replace('+', '\\+')
-                    sample_esc = sample_esc.replace('^', '\\^')
-                    cur_to_end = pane.get('insert', 'insert lineend')
-                    if re.match('^' + sample_esc, cur_to_end):
-                        pane.delete(posi, posi + '+' + str(len(sample)) + 'c')
-                        pane.insert('insert', FONT_DECORATOR_SAMPLE[i + 1])
-                        pane.mark_set('insert', posi)
-                        return 'break'
+                pane.insert('insert', FONT_DECORATOR_SAMPLE[1])
+                return 'break'
         elif key.keysym == 'Escape':
             self.set_message_on_status_bar('"Esc"が押されました．')
 
