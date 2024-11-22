@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.22-09:02:35-JST>
+# Time-stamp:   <2024.11.23-08:54:29-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -114,13 +114,13 @@ LIGHTYELLOW_SPACE = ('#C0C000', '#FFFFE0', '#F7F700')  # (0.7, 60),LY,(0.9, 60)
 
 COLOR_SPACE = (
     # Y=   0.3        0.5        0.7        0.9
-    ('#FF1C1C', '#FF5D5D', '#FF9E9E', '#FFDFDF'),  # 000 : comment
+    ('#FF1C1C', '#FF5D5D', '#FF9E9E', '#FFDFDF'),  # 000 : comment, key0
     ('#DE2900', '#FF603C', '#FFA08A', '#FFDFD8'),  # 010 : fold
     ('#A63A00', '#FF6512', '#FFA271', '#FFE0D0'),  # 020 : del
     ('#864300', '#E07000', '#FFA64D', '#FFE1C4'),  # 030 : sect1, hnumb
     ('#714900', '#BC7A00', '#FFAC10', '#FFE3AF'),  # 040 : sect2
     ('#604E00', '#A08300', '#E0B700', '#FFE882'),  # 050 : sect3
-    ('#525200', '#898900', '#C0C000', '#F7F700'),  # 060 : sect4, 判断者
+    ('#525200', '#898900', '#C0C000', '#F7F700'),  # 060 : sect4, keyX
     ('#465600', '#758F00', '#A4C900', '#D5FF1A'),  # 070 : sect5
     ('#3A5A00', '#619500', '#88D100', '#C2FF50'),  # 080 : sect6
     ('#2F5D00', '#4E9B00', '#6DD900', '#B8FF70'),  # 090 : sect7
@@ -132,7 +132,7 @@ COLOR_SPACE = (
     ('#006633', '#00AA55', '#00EE77', '#98FFCC'),  # 150 : length reviser
     ('#006441', '#00A76D', '#00EA99', '#94FFDA'),  # 160 : (tab), par2
     ('#006351', '#00A586', '#00E7BC', '#8EFFEA'),  # 170 :
-    ('#006161', '#00A2A2', '#00E3E3', '#87FFFF'),  # 180 : algin, 申立人, par3
+    ('#006161', '#00A2A2', '#00E3E3', '#87FFFF'),  # 180 : algin, keyY, par3
     ('#005F75', '#009FC3', '#21D6FF', '#B5F1FF'),  # 190 : table
     ('#005D8E', '#009AED', '#59C5FF', '#C8ECFF'),  # 200 : (fsp), ins, par4
     ('#0059B2', '#1F8FFF', '#79BCFF', '#D2E9FF'),  # 210 : chap1
@@ -144,7 +144,7 @@ COLOR_SPACE = (
     ('#9226FF', '#B164FF', '#D0A2FF', '#EFE0FF'),  # 270 : br, pgbr, hline
     ('#B01DFF', '#C75DFF', '#DD9EFF', '#F4DFFF'),  # 280 : par8
     ('#D312FF', '#E056FF', '#EC9AFF', '#F9DDFF'),  # 290 : par9
-    ('#FF05FF', '#FF4DFF', '#FF94FF', '#FFDBFF'),  # 300 : 相手方
+    ('#FF05FF', '#FF4DFF', '#FF94FF', '#FFDBFF'),  # 300 : keyZ
     ('#FF0AD2', '#FF50DF', '#FF96EC', '#FFDCF9'),  # 310 :
     ('#FF0EAB', '#FF53C3', '#FF98DB', '#FFDDF3'),  # 320 :
     ('#FF1188', '#FF55AA', '#FF99CC', '#FFDDEE'),  # 330 : list, fnumb
@@ -5620,6 +5620,21 @@ class LineDatum:
                 beg = end                                               # 6.beg
                 continue
             # KEYWORD
+            if Makdo.keywords_to_paint is not None:
+                for ktp in Makdo.keywords_to_paint.split('|'):
+                    if re.match('^(.*?)' + ktp + '$', tmp):
+                        key = chars_state.get_key('')                   # 1.key
+                        end = str(i + 1) + '.' + str(j + 1 - len(ktp))  # 2.end
+                        txt.tag_add(key, beg, end)                      # 3.tag
+                        #                                               # 4.set
+                        # tmp = ktp                                     # 5.tmp
+                        beg = end                                       # 6.beg
+                        key = chars_state.get_key('red')                # 1.key
+                        end = str(i + 1) + '.' + str(j + 1)             # 2.end
+                        txt.tag_add(key, beg, end)                      # 3.tag
+                        #                                               # 4.set
+                        tmp = ''                                        # 5.tmp
+                        beg = end                                       # 6.beg
             if self.paint_keywords:
                 for kw in KEYWORDS:
                     if re.match('^(.*?)' + kw[0] + '$', tmp):
@@ -5636,7 +5651,7 @@ class LineDatum:
                         if t2 == '債務者' and re.match('^.*第三$', t1):
                             continue  # 第三/債務者
                         key = chars_state.get_key('')                   # 1.key
-                        end = str(i + 1) + '.' + str(j - len(t2) + 1)   # 2.end
+                        end = str(i + 1) + '.' + str(j + 1 - len(t2))   # 2.end
                         txt.tag_add(key, beg, end)                      # 3.tag
                         #                                               # 4.set
                         # tmp = t2                                      # 5.tmp
@@ -5675,6 +5690,8 @@ class Makdo:
     file_font_size = None
     args_paint_keywords = None     # True|+False
     file_paint_keywords = None
+    args_keywords_to_paint = None  # 'foo|bar|baz'
+    file_keywords_to_paint = None
     args_digit_separator = None    # +0|3|4
     file_digit_separator = None
     args_read_only = None          # True|+False
@@ -11381,6 +11398,13 @@ class Makdo:
         menu.add_checkbutton(label='キーワードに色付け',
                              variable=self.paint_keywords,
                              command=self.show_config_help_message)
+        Makdo.keywords_to_paint = ''
+        if self.args_keywords_to_paint is not None:
+            Makdo.keywords_to_paint = self.args_keywords_to_paint
+        elif self.file_keywords_to_paint is not None:
+            Makdo.keywords_to_paint = self.file_keywords_to_paint
+        menu.add_command(label='色付けするキーワードを設定',
+                         command=self.set_keywords_to_paint)
         menu.add_separator()
         #
         self.make_backup_file = tkinter.BooleanVar(value=False)
@@ -11405,7 +11429,7 @@ class Makdo:
         # menu.add_separator()
 
     ################
-    # SUBMENU BACKGROUND COLOR AND CHARACTER SIZE
+    # SUBMENU BACKGROUND COLOR
 
     def _make_submenu_background_color(self, menu):
         submenu = tkinter.Menu(self.mnb, tearoff=False)
@@ -11421,6 +11445,63 @@ class Makdo:
             submenu.add_radiobutton(label=colors[c],
                                     variable=self.background_color, value=c,
                                     command=self.set_background_color)
+
+    ################
+    # COMMAND
+
+    def set_keywords_to_paint(self):
+        t = '色付けするキーワードを設定'
+        m = '色付けするキーワードを設定してください．'
+        i = Makdo.keywords_to_paint
+        ktp = self.KeywordsToPaintDialog(self.txt, self, t, m, i)
+        Makdo.keywords_to_paint = ktp.get_value()
+
+    class KeywordsToPaintDialog(tkinter.simpledialog.Dialog):
+
+        def __init__(self, pane, mother, title, prompt, init):
+            self.pane = pane
+            self.mother = mother
+            self.prompt = prompt
+            self.init = init
+            self.inits = ['' for i in range(20)]
+            self.value = None
+            self.values = ['' for i in range(20)]
+            super().__init__(pane, title=title)
+
+        def body(self, pane):
+            fon = self.mother.gothic_font
+            prompt \
+                = tkinter.Label(pane, text=self.prompt + '\n', justify='left')
+            prompt.pack(side='top', anchor='w')
+            i = 0
+            for v in self.init.split('|'):
+                if i < 20 and v != '':
+                    self.inits[i] = v
+                    i += 1
+            self.entries = []
+            for i in range(4):
+                frm = tkinter.Frame(pane)
+                frm.pack(side='left')
+                for j in range(5):
+                    self.entry = tkinter.Entry(frm, width=10, font=fon)
+                    self.entry.pack(side='top')
+                    self.entry.insert(0, self.inits[(i * 5) + j])
+                    self.entries.append(self.entry)
+            super().body(pane)
+            return self.entries[0]
+
+        def apply(self):
+            for i in range(20):
+                self.values[i] = self.entries[i].get()
+                self.value = '|'.join(self.values)
+                self.value = re.sub('\\|+', '|', self.value)
+                self.value = re.sub('\\|$', '', self.value)
+
+        def get_value(self):
+            return self.value
+
+    ################
+    # SUBMENU CHARACTER SIZE
 
     def _make_submenu_character_size(self, menu):
         submenu = tkinter.Menu(self.mnb, tearoff=False)
@@ -11613,6 +11694,8 @@ class Makdo:
                     Makdo.file_paint_keywords = True
                 elif valu == 'False':
                     Makdo.file_paint_keywords = False
+            elif item == 'keywords_to_paint':
+                Makdo.file_keywords_to_paint = valu
             elif item == 'digit_separator':
                 if valu == '3' or valu == '4':
                     Makdo.file_digit_separator = valu
@@ -11653,6 +11736,9 @@ class Makdo:
                     + str(self.font_size.get()) + '\n')
             f.write('paint_keywords:         '
                     + str(self.paint_keywords.get()) + '\n')
+            if self.keywords_to_paint != '':
+                f.write('keywords_to_paint:      '
+                        + self.keywords_to_paint + '\n')
             f.write('digit_separator:        '
                     + str(self.digit_separator.get()) + '\n')
             f.write('make_backup_file:       '
@@ -13694,6 +13780,10 @@ if __name__ == '__main__':
         action='store_true',
         help='キーワードに色を付けます')
     parser.add_argument(
+        '-k', '--keywords-to-paint',
+        type=str,
+        help='色付けするキーワードを設定します')
+    parser.add_argument(
         '-d', '--digit-separator',
         type=str,
         choices=['3', '4'],
@@ -13716,6 +13806,7 @@ if __name__ == '__main__':
     Makdo.args_background_color = args.background_color
     Makdo.args_font_size = args.font_size
     Makdo.args_paint_keywords = args.paint_keywords
+    Makdo.args_keywords_to_paint = args.keywords_to_paint
     Makdo.args_digit_separator = args.digit_separator
     Makdo.args_read_only = args.read_only
     Makdo.args_make_backup_file = args.make_backup_file
