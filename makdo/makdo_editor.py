@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.23-08:54:29-JST>
+# Time-stamp:   <2024.11.23-10:42:12-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -102,7 +102,17 @@ HIRAGINO_MINCHO_FONT = ('ヒラギノ明朝 ProN', 'Hiragino Mincho ProN')
 DOCX_MINCHO_FONT = 'ＭＳ 明朝'
 DOCX_ALPHANUMERIC_FONT = 'Times New Roman'
 
-DEFAULT_OPENAI_MODEL = 'gpt-3.5-turbo'
+OPENAI_MODELS = [
+    'o1-preview',     # 15.000 / 60.000
+    'o1-mini',        #  3.000 / 12.000
+    'gpt-4',          # 30.000 / 60.000
+    'gpt-4-turbo',    # 10.000 / 30.000
+    'gpt-4o',         #  2.500 / 10.000
+    'gpt-4o-mini',    #  0.150 /  0.075
+    # 'gpt-3.5-turbo',  #  0.500 /  1.500
+]
+DEFAULT_OPENAI_MODEL = 'gpt-4o-mini'
+# DEFAULT_OPENAI_MODEL = 'gpt-3.5-turbo'
 
 MD_TEXT_WIDTH = 68
 
@@ -4568,6 +4578,69 @@ class TwoWordsDialog(tkinter.simpledialog.Dialog):
             cb = ''
         if cb != '':
             self.entry2.insert('insert', cb)
+
+
+class PasswordDialog(tkinter.simpledialog.Dialog):
+
+    def __init__(self, pane, mother, title, prompt):
+        self.pane = pane
+        self.mother = mother
+        self.prompt = prompt
+        self.value = None
+        super().__init__(pane, title=title)
+
+    def body(self, pane):
+        fon = self.mother.gothic_font
+        prompt = tkinter.Label(pane, text=self.prompt + '\n', justify='left')
+        prompt.pack(side='top', anchor='w')
+        self.entry = tkinter.Entry(pane, width=25, font=fon, show='*')
+        self.entry.pack(side='left')
+        self.entry.bind('<Key>', self.entry_key)
+        self.entry.bind('<Button-1>', self.entry_button0)
+        self.entry.bind('<Button-2>', self.entry_button0)
+        self.entry.bind('<Button-3>', self.entry_button3)
+        super().body(pane)
+        return self.entry
+
+    def apply(self):
+        self.value = self.entry.get()
+
+    def get_value(self):
+        return self.value
+
+    def entry_key(self, key):
+        if key.keysym == 'F15':   # g (paste)
+            self.entry_paste_word()
+            return 'break'
+        elif key.char == '\x16':    # Ctrl+V
+            self.entry_paste_word()
+            return 'break'
+
+    def entry_button0(self, click):
+        try:
+            self.mother.bt3.destroy()
+        except BaseException:
+            pass
+        self.entry.focus_force()
+
+    def entry_button3(self, click):
+        try:
+            self.mother.bt3.destroy()
+        except BaseException:
+            pass
+        self.entry.focus_force()
+        self.mother.bt3 = tkinter.Menu(self, tearoff=False)
+        self.mother.bt3.add_command(label='貼り付け',
+                                    command=self.entry_paste_word)
+        self.mother.bt3.post(click.x_root, click.y_root)
+
+    def entry_paste_word(self):
+        try:
+            cb = self.mother.win.clipboard_get()
+        except BaseException:
+            cb = ''
+        if cb != '':
+            self.entry.insert('insert', cb)
 
 
 ############################################################
@@ -13599,7 +13672,11 @@ class Makdo:
             if 'openai_model' not in vars(self):
                 self.openai_model = DEFAULT_OPENAI_MODEL
             om = self.openai_model
-            om = OneWordDialog(self.txt, self, b, m, h, t, om)
+            ca = []
+            for c in OPENAI_MODELS:
+                if c != om:
+                    ca.append(c) 
+            om = OneWordDialog(self.txt, self, b, m, h, t, om, ca)
             if om is None:
                 return False
             self.openai_model = om
@@ -13609,7 +13686,7 @@ class Makdo:
         def set_openai_key(self) -> bool:
             t = 'OpenAIのキー'
             m = 'OpenAIのキーを入力してください．'
-            ok = tkinter.simpledialog.askstring(t, m, show='*')
+            ok = PasswordDialog(self.txt, self, t, m).get_value()
             if ok is None:
                 return False
             self.openai_key = Witch.enchant(ok)
