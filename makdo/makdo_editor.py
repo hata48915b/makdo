@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.24-11:27:20-JST>
+# Time-stamp:   <2024.11.24-11:29:50-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -12581,7 +12581,11 @@ class Makdo:
                 pane.insert('insert', FONT_DECORATOR_SAMPLE[1])
                 return 'break'
         elif key.keysym == 'Escape':
+            if self.key_history[-2] == 'Escape':
+                self.key_history[-1] = ''
+                return 'break'
             self.set_message_on_status_bar('"Esc"が押されました．')
+            return 'break'
 
     def read_only_process_key(self, pane, key):
         # HISTORY
