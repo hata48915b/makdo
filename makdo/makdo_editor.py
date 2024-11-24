@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.25-08:16:15-JST>
+# Time-stamp:   <2024.11.25-08:24:27-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -7201,10 +7201,9 @@ class Makdo:
     # COMMAND
 
     def edit_modified_undo(self):
+        pane = self.txt
         if self.current_pane == 'sub':
             pane = self.sub
-        else:
-            pane = self.txt
         try:
             pane.edit_undo()
         except BaseException:
@@ -7215,10 +7214,9 @@ class Makdo:
         self.set_message_on_status_bar('元に戻しました（undo）')
 
     def edit_modified_redo(self):
+        pane = self.txt
         if self.current_pane == 'sub':
             pane = self.sub
-        else:
-            pane = self.txt
         try:
             pane.edit_redo()
         except BaseException:
@@ -7235,10 +7233,9 @@ class Makdo:
         self._cut_or_copy_region(False)
 
     def _cut_or_copy_region(self, must_cut=False):
+        pane = self.txt
         if self.current_pane == 'sub':
             pane = self.sub
-        else:
-            pane = self.txt
         if must_cut:
             if self._is_read_only_pane(pane):
                 return False
@@ -7261,10 +7258,9 @@ class Makdo:
         return True
 
     def paste_region(self):
+        pane = self.txt
         if self.current_pane == 'sub':
             pane = self.sub
-        else:
-            pane = self.txt
         if self._is_read_only_pane(pane):
             return False
         if self.current_pane == 'txt':
@@ -7279,17 +7275,15 @@ class Makdo:
         # pane.yview('insert -20 line')
         if self.current_pane == 'txt':
             end_v = self._get_v_position_of_insert(self.txt)
-        if self.current_pane == 'txt':
             for i in range(beg_v - 1, end_v):
                 self.paint_out_line(i)
         self._put_back_cursor_to_pane(pane)
         return True
 
     def paste_region_from_list(self):
+        pane = self.txt
         if self.current_pane == 'sub':
             pane = self.sub
-        else:
-            pane = self.txt
         t = 'リストから貼付け'
         m = '貼り付ける文節を選んでください．'
         cd = self.ClipboardListDialog(pane, self, t, m)
@@ -7345,10 +7339,9 @@ class Makdo:
         self._cut_or_copy_rectangle(False)
 
     def _cut_or_copy_rectangle(self, must_cut=False):
+        pane = self.txt
         if self.current_pane == 'sub':
             pane = self.sub
-        else:
-            pane = self.txt
         if must_cut:
             if self._is_read_only_pane(pane):
                 return False
@@ -7384,10 +7377,9 @@ class Makdo:
         return True
 
     def paste_rectangle(self):
+        pane = self.txt
         if self.current_pane == 'sub':
             pane = self.sub
-        else:
-            pane = self.txt
         if self._is_read_only_pane(pane):
             return False
         if self.rectangle_text_list == []:
@@ -7426,10 +7418,9 @@ class Makdo:
         self.search_or_replace_forward(True)   # must_replace = True
 
     def replace_all(self, focus=None):
+        pane = self.txt
         if self.current_pane == 'sub':
             pane = self.sub
-        else:
-            pane = self.txt
         if self._is_read_only_pane(pane):
             return
         if focus is None:
@@ -7480,10 +7471,9 @@ class Makdo:
         self.replace_half_width_and_full_width(False)
 
     def replace_half_width_and_full_width(self, is_from_half_with_full):
+        pane = self.txt
         if self.current_pane == 'sub':
             pane = self.sub
-        else:
-            pane = self.txt
         if self._is_read_only_pane(pane):
             return False
         if not self._is_region_specified(pane):
@@ -7512,10 +7502,9 @@ class Makdo:
         self._sort_lines(False)
 
     def _sort_lines(self, is_ascending_order=True):
+        pane = self.txt
         if self.current_pane == 'sub':
             pane = self.sub
-        else:
-            pane = self.txt
         if self._is_read_only_pane(pane):
             return
         if pane.tag_ranges('sel'):
@@ -7755,10 +7744,9 @@ class Makdo:
             self.pane.focus_set()
 
     def comment_out_region(self):
+        pane = self.txt
         if self.current_pane == 'sub':
             pane = self.sub
-        else:
-            pane = self.txt
         if self._is_read_only_pane(pane):
             return
         if pane.tag_ranges('sel'):
@@ -7798,10 +7786,9 @@ class Makdo:
             self.paint_out_line(i)
 
     def uncomment_in_region(self):
+        pane = self.txt
         if self.current_pane == 'sub':
             pane = self.sub
-        else:
-            pane = self.txt
         if self._is_read_only_pane(pane):
             return
         #
@@ -11300,10 +11287,9 @@ class Makdo:
             self.unfold_section()
 
     def execute_keyboard_macro(self):
+        pane = self.txt
         if self.current_pane == 'sub':
             pane = self.sub
-        else:
-            pane = self.txt
         self.show_keyboard_macro_help_message()
         reversed_history = list(reversed(self.key_history))
         if reversed_history[1] != 'Ctrl+e':
@@ -13312,10 +13298,9 @@ class Makdo:
             self.search_or_replace_backward(True)
 
     def search_or_replace_backward(self, must_replace=False):
+        pane = self.txt
         if self.current_pane == 'sub':
             pane = self.sub
-        else:
-            pane = self.txt
         word1 = self.stb_sor1.get()
         word2 = self.stb_sor2.get()
         if word1 != '':
@@ -13376,10 +13361,9 @@ class Makdo:
             self.search_or_replace_forward(True)
 
     def search_or_replace_forward(self, must_replace=False):
+        pane = self.txt
         if self.current_pane == 'sub':
             pane = self.sub
-        else:
-            pane = self.txt
         word1 = self.stb_sor1.get()
         word2 = self.stb_sor2.get()
         if word1 != '':
