@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.23-10:42:12-JST>
+# Time-stamp:   <2024.11.24-11:27:20-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5310,6 +5310,7 @@ class LineDatum:
             # TABLE CONFIGURE
             if (c == ':' and (c2 == '|' or c2 == '-' or c2 == ':')) or \
                (c == ':' and c0 == '|') or \
+               (c == '-' and c2 == ':') or \
                ((c == '^' or c == '=') and c2 == '-'):
                 key = chars_state.get_key('')                           # 1.key
                 end = str(i + 1) + '.' + str(j)                         # 2.end
