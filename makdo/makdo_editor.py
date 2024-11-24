@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.24-11:29:50-JST>
+# Time-stamp:   <2024.11.25-08:16:15-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -9261,6 +9261,10 @@ class Makdo:
                          command=self.set_section_number)
         menu.add_command(label='箇条書きの番号を変更',
                          command=self.set_list_number)
+        menu.add_separator()
+        #
+        menu.add_command(label='表を整形',
+                         command=self.tidy_up_table)
         # menu.add_separator()
 
     ################
@@ -9974,6 +9978,235 @@ class Makdo:
                 return '', -1, True
             return strn, intn, False
 
+    def tidy_up_table(self) -> bool:
+        pre_pars, cur_par, pos_pars = self.get_paragraphs()
+        if not self.is_in_table_paragraph(cur_par):
+            n = 'エラー'
+            m = '段落が表ではありません．'
+            tkinter.messagebox.showwarning(n, m)
+            return False
+        self.remove_spaces_from_table_cell()
+        self.insert_spaces_to_table_cell()
+        return True
+
+    def get_paragraphs(self) -> (str):
+        pane = self.txt
+        if self.current_pane == 'sub':
+            pane = self.sub
+        pre = pane.get('1.0', 'insert')
+        res = '^((?:.|\n)*\n\n)((?:.|\n)*)$'
+        if re.match(res, pre):
+            pre_pars = re.sub(res, '\\1', pre)
+            par_head = re.sub(res, '\\2', pre)
+        else:
+            pre_pars = ''
+            par_head = pre
+        pos = pane.get('insert', 'end-1c')
+        res = '^((?:.|\n)*?\n)(\n(?:.|\n)*)$'
+        if re.match(res, pos):
+            par_tail = re.sub(res, '\\1', pos)
+            pos_pars = re.sub(res, '\\2', pos)
+        else:
+            par_tail = pos
+            pos_pars = ''
+        cur_par = par_head + par_tail
+        return pre_pars, cur_par, pos_pars
+
+    def is_in_table_paragraph(self, par=None) -> bool:
+        if par is None:
+            _, par, _ = self.get_paragraphs()
+        par = re.sub('\\\\\n', '', par)
+        par = re.sub('<!--.*?-->', '', par)
+        res_table = '^' \
+            + '((v|V|x|X|<<|<|>)=[\\-\\+]?[0-9]+(\\.[0-9]+)?(\\s)*)*' \
+            + '((: )?\\s*\\|.*\\|(:?-*:?(\n?(\\^+|=+))?)?( :)?\n)+' \
+            + '$'
+        if re.match(res_table, par):
+            return True
+        else:
+            return False
+
+    def get_bare_table(self) -> (str):
+        pre_pars, cur_par, pos_pars = self.get_paragraphs()
+        res = '^((?:.|\n)*?)([ \t\u3000]*\\|(?:.|\n)*)$'
+        head = re.sub(res, '\\1', cur_par)
+        cur_par = re.sub(res, '\\2', cur_par)
+        res = '^((?:.|\n)*\\|)((?:.|\n)*?)$'
+        tail = re.sub(res, '\\2', cur_par)
+        cur_par = re.sub(res, '\\1', cur_par)
+        pre_table = pre_pars + head
+        bare_table = cur_par
+        pos_table = tail + pos_pars
+        return pre_table, bare_table, pos_table
+
+    def remove_spaces_from_table_cell(self) -> bool:
+        pane = self.txt
+        if self.current_pane == 'sub':
+            pane = self.sub
+        pre_table, bare_table, pos_table = self.get_bare_table()
+        res = '^((?:.|\n)*\\|(?::[ \t\u3000])?)' \
+            + '([ \t\u3000]+)' \
+            +'(.*\\|(?:.|\n)*)$'
+        while re.match(res, bare_table):
+            table_head = re.sub(res, '\\1', bare_table)
+            lft_spaces = re.sub(res, '\\2', bare_table)
+            bare_table = re.sub(res, '\\1\\3', bare_table)
+            beg = '1.0+' + str(len(pre_table + table_head)) + 'c'
+            end = '1.0+' + str(len(pre_table + table_head + lft_spaces)) + 'c'
+            pane.delete(beg, end)
+        res = '^((?:.|\n)*\\|.*)' \
+            + '([ \t\u3000]+)' \
+            + '((?:[ \t\u3000]:)?(?:\\^|=)?\\|(?:.|\n)*)$'
+        while re.match(res, bare_table):
+            table_head = re.sub(res, '\\1', bare_table)
+            rgt_spaces = re.sub(res, '\\2', bare_table)
+            bare_table = re.sub(res, '\\1\\3', bare_table)
+            beg = '1.0+' + str(len(pre_table + table_head)) + 'c'
+            end = '1.0+' + str(len(pre_table + table_head + rgt_spaces)) + 'c'
+            pane.delete(beg, end)
+
+    def insert_spaces_to_table_cell(self) -> bool:
+        pane = self.txt
+        if self.current_pane == 'sub':
+            pane = self.sub
+        pre_table, bare_table, pos_table = self.get_bare_table()
+        # GET TABLE DATA
+        table_data = []
+        row = []
+        cell = ''
+        for c in bare_table:
+            if c == '|':
+                if len(row) == 0:
+                    row.append(cell + c)
+                else:
+                    row.append(cell)
+                    row.append(c)
+                cell = ''
+            elif c == '\n':
+                if len(cell) > 0 and cell[-1] == '\\':
+                    cell += c
+                elif len(table_data) > 0 and len(table_data[-1]) > 0 and \
+                     re.match('^(\\^|=)+$', cell):
+                    table_data[-1][-1] += cell + c
+                    cell = ''
+                else:
+                    cell += c
+                    if len(row) > 0:
+                        row[-1] += cell
+                    else:
+                        row.append(cell)
+                    table_data.append(row)
+                    row = []
+                    cell = ''
+            else:
+                cell += c
+        # GET CONF ROW NUMBER
+        conf_row_number = -1
+        for i, row in enumerate(table_data):
+            for j, cell in enumerate(row):
+                if (j % 2) == 1:
+                    if not re.match('^:?-*:?(\\^|=)?$', cell):
+                        break
+            else:
+                conf_row_number = i
+                break
+        # GET CELL WIDTHS
+        cell_widths = []
+        if conf_row_number >= 0:
+            for cell in table_data[conf_row_number]:
+                c = re.sub('\n', '', cell)
+                c = re.sub('^((?::\\s)?)\\s+', '\\1', c)
+                c = re.sub('\\s+((?:\\s:)?(?:\\^|=)?)$', '\\1', c)
+                wc = get_real_width(c)
+                cell_widths.append(wc)
+        else:
+            for i, row in enumerate(table_data):
+                for j, cell in enumerate(row):
+                    c = re.sub('\n', '', cell)
+                    c = re.sub('^((?::\\s)?)\\s+', '\\1', c)
+                    c = re.sub('\\s+((?:\\s:)?(?:\\^|=)?)$', '\\1', c)
+                    wc = get_real_width(c)
+                    if j > len(cell_widths) - 1:
+                        cell_widths.append(wc)
+                    elif wc > cell_widths[j]:
+                        cell_widths[j] = wc
+        # GET DISTANCES
+        d, ideal_dists_from_bol = 0, [0]  # bol = beginning of line
+        for cw in cell_widths:
+            d += cw
+            ideal_dists_from_bol.append(d)
+        #
+        chars_from_bof = len(pre_table)  # bof = beginning of file
+        for i, row in enumerate(table_data):
+            real_dist_from_bol = 0
+            for j, cell in enumerate(row):
+                c = re.sub('\\\\\n\s*', '', cell)
+                cell_width = get_real_width(c)
+                if (j == 0) or ((j % 2) != 0):
+                    # GET ALGINMENT
+                    conf_cell = ''
+                    if conf_row_number >= 0:
+                        conf_cell = table_data[conf_row_number][j]
+                    if j == 0:
+                        align = 'right'
+                    elif re.match('^:\\s+.*\\s+:(\\^|=)?$', c):
+                        align = 'center'
+                    elif re.match('^.*\\s+:(\\^|=)?$', c):
+                        align = 'right'
+                    elif re.match('^:\\s+.*$', c):
+                        align = 'left'
+                    elif conf_row_number < 0:
+                        align = 'left'
+                    elif i < conf_row_number:
+                        align = 'center'
+                    elif re.match('^:-*:(\\^|=)?$', conf_cell):
+                        align = 'center'
+                    elif re.match('^-*:(\\^|=)?$', conf_cell):
+                        align = 'right'
+                    else:
+                        align = 'left'
+                    # GET DIFFERENCE
+                    if j < len(ideal_dists_from_bol) - 1:
+                        idist_of_boc = ideal_dists_from_bol[j]
+                    else:
+                        idist_of_boc = ideal_dists_from_bol[-1]
+                    if j + 1 < len(ideal_dists_from_bol) - 1:
+                        idist_of_eoc = ideal_dists_from_bol[j + 1]
+                    else:
+                        idist_of_eoc = ideal_dists_from_bol[-1]
+                    rdist_of_boc = real_dist_from_bol
+                    rdist_of_eoc = real_dist_from_bol + cell_width
+                    diff_dist = idist_of_eoc - rdist_of_eoc
+                    #
+                    if diff_dist > 0:
+                        if align == 'center':
+                            diff_lft = int(diff_dist / 2)
+                            diff_rgt = diff_dist - diff_lft
+                            # RIGHT
+                            com_r = ''
+                            res = '^.*\\s+(:?(?:\\^|=)?)$'
+                            if re.match(res, cell):
+                                com_r = re.sub(res, '\\1', cell)
+                            c = chars_from_bof + len(cell) - len(com_r)
+                            pane.insert('1.0+' + str(c) + 'c', ' ' * diff_rgt)
+                            # LEFT
+                            com_l = ''
+                            res = '^(:)\\s+.*$'
+                            if re.match(res, cell):
+                                com_l = re.sub(res, '\\1', cell)
+                            c = chars_from_bof
+                            pane.insert('1.0+' + str(c) + 'c', ' ' * diff_lft)
+                        elif align == 'right':
+                            c = chars_from_bof
+                            pane.insert('1.0+' + str(c) + 'c', ' ' * diff_dist)
+                        else:
+                            c = chars_from_bof + len(cell)
+                            pane.insert('1.0+' + str(c) + 'c', ' ' * diff_dist)
+                        real_dist_from_bol += diff_dist
+                        chars_from_bof += diff_dist
+                real_dist_from_bol += cell_width
+                chars_from_bof += len(cell)
+
     ##########################
     # MENU MOVE
 
@@ -10023,10 +10256,9 @@ class Makdo:
     def search_backward(self):
         word1 = self.stb_sor1.get()
         if word1 == '':
+            pane = self.txt
             if self.current_pane == 'sub':
                 pane = self.sub
-            else:
-                pane = self.txt
             self.search_backward_from_dialog(pane)
         else:
             self.search_or_replace_backward(False)  # must_replace = False
@@ -10034,10 +10266,9 @@ class Makdo:
     def search_forward(self):
         word1 = self.stb_sor1.get()
         if word1 == '':
+            pane = self.txt
             if self.current_pane == 'sub':
                 pane = self.sub
-            else:
-                pane = self.txt
             self.search_forward_from_dialog(pane)
         else:
             self.search_or_replace_forward(False)   # must_replace = False
@@ -12562,6 +12793,10 @@ class Makdo:
                         pane.insert('insert', PARAGRAPH_SAMPLE[i + 1])
                         pane.mark_set('insert', 'insert lineend')
                         return 'break'
+            # TABLE
+            if self.is_in_table_paragraph():
+                self.tidy_up_table()
+                return 'break'
             # FONT DECORATER
             for i, sample in enumerate(FONT_DECORATOR_SAMPLE):
                 if i == 0:
