@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.25-17:55:05-JST>
+# Time-stamp:   <2024.11.26-05:42:19-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -10104,7 +10104,6 @@ class Makdo:
                     cell = ''
             else:
                 cell += c
-        print(table_data)
         # GET CONF ROW NUMBER
         conf_row_number = -1
         for i, row in enumerate(table_data):
