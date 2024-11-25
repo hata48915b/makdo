@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.25-08:24:27-JST>
+# Time-stamp:   <2024.11.25-10:18:37-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5695,13 +5695,21 @@ class LineDatum:
                 continue
             # KEYWORD
             if Makdo.keywords_to_paint is not None:
-                for ktp in Makdo.keywords_to_paint.split('|'):
-                    if re.match('^(.*?)' + ktp + '$', tmp):
+                kws = []
+                kw = ''
+                for c in Makdo.keywords_to_paint + '|':
+                    if re.match(NOT_ESCAPED + '\\|$', kw + c):
+                        kws.append(kw)
+                        kw = ''
+                    else:
+                        kw += c
+                for kw in kws:
+                    if re.match('^(.*?)' + kw + '$', tmp):
                         key = chars_state.get_key('')                   # 1.key
-                        end = str(i + 1) + '.' + str(j + 1 - len(ktp))  # 2.end
+                        end = str(i + 1) + '.' + str(j + 1 - len(kw))   # 2.end
                         txt.tag_add(key, beg, end)                      # 3.tag
                         #                                               # 4.set
-                        # tmp = ktp                                     # 5.tmp
+                        # tmp = kw                                      # 5.tmp
                         beg = end                                       # 6.beg
                         key = chars_state.get_key('red')                # 1.key
                         end = str(i + 1) + '.' + str(j + 1)             # 2.end
@@ -11745,7 +11753,9 @@ class Makdo:
         m = '色付けするキーワードを設定してください．'
         i = Makdo.keywords_to_paint
         ktp = self.KeywordsToPaintDialog(self.txt, self, t, m, i)
-        Makdo.keywords_to_paint = ktp.get_value()
+        v = ktp.get_value()
+        if v is not None:
+            Makdo.keywords_to_paint = ktp.get_value()
 
     class KeywordsToPaintDialog(tkinter.simpledialog.Dialog):
 
@@ -11764,17 +11774,25 @@ class Makdo:
             prompt \
                 = tkinter.Label(pane, text=self.prompt + '\n', justify='left')
             prompt.pack(side='top', anchor='w')
-            i = 0
-            for v in self.init.split('|'):
-                if i < 20 and v != '':
-                    self.inits[i] = v
-                    i += 1
+            kws = []
+            kw = ''
+            for c in Makdo.keywords_to_paint + '|':
+                if re.match(NOT_ESCAPED + '\\|$', kw + c):
+                    kw = kw.replace('\\|', '|')
+                    kw = kw.replace('\\\\', '\\')
+                    kws.append(kw)
+                    kw = ''
+                else:
+                    kw += c
+            for i in range(min(20, len(kws))):
+                if kws[i] != '':
+                    self.inits[i] = kws[i]
             self.entries = []
             for i in range(4):
                 frm = tkinter.Frame(pane)
                 frm.pack(side='left')
                 for j in range(5):
-                    self.entry = tkinter.Entry(frm, width=10, font=fon)
+                    self.entry = tkinter.Entry(frm, width=15, font=fon)
                     self.entry.pack(side='top')
                     self.entry.insert(0, self.inits[(i * 5) + j])
                     self.entries.append(self.entry)
@@ -11784,9 +11802,11 @@ class Makdo:
         def apply(self):
             for i in range(20):
                 self.values[i] = self.entries[i].get()
-                self.value = '|'.join(self.values)
-                self.value = re.sub('\\|+', '|', self.value)
-                self.value = re.sub('\\|$', '', self.value)
+                self.values[i] = self.values[i].replace('\\', '\\\\')
+                self.values[i] = self.values[i].replace('|', '\\|')
+            self.value = '|'.join(self.values)
+            self.value = re.sub('\\|+', '|', self.value)
+            self.value = re.sub('\\|$', '', self.value)
 
         def get_value(self):
             return self.value
