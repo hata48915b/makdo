@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.25-21:30:44-JST>
+# Time-stamp:   <2024.11.25-22:54:05-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -2195,7 +2195,8 @@ class XML:
             rest = re.sub(res, '\\1', chars)
             char = re.sub(res, '\\2', chars)
             chars = re.sub(res, '\\3', chars)
-            oe3 = XML.add_tag(oe2, tag, {}, rest)
+            oe3 = XML.add_tag(oe2, tag, {'xml:space': 'preserve'}, rest)
+            # oe3 = XML.add_tag(oe2, tag, {}, rest)
             if char == '\t':
                 oe3 = XML.add_tag(oe2, 'w:tab', {})
             elif char == '\n':
@@ -5335,6 +5336,8 @@ class ParagraphTable(Paragraph):
                 # WORD WRAP (英単語の途中で改行する)
                 ms_ppr = ms_par._p.get_or_add_pPr()
                 XML.add_tag(ms_ppr, 'w:wordWrap', {'w:val': '0'})
+                cell = re.sub('^\\s+\\\\?', '', cell)
+                cell = re.sub('\\\\?\\s+$', '', cell)
                 self.write_text(ms_par, chars_state, cell)
                 ms_fmt = ms_par.paragraph_format
                 ms_fmt.alignment = hori_alig_mtrx[i][j]
