@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.25-10:18:37-JST>
+# Time-stamp:   <2024.11.25-17:55:05-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -103,13 +103,13 @@ DOCX_MINCHO_FONT = 'ＭＳ 明朝'
 DOCX_ALPHANUMERIC_FONT = 'Times New Roman'
 
 OPENAI_MODELS = [
-    'o1-preview',     # 15.000 / 60.000
-    'o1-mini',        #  3.000 / 12.000
-    'gpt-4',          # 30.000 / 60.000
-    'gpt-4-turbo',    # 10.000 / 30.000
-    'gpt-4o',         #  2.500 / 10.000
-    'gpt-4o-mini',    #  0.150 /  0.075
-    # 'gpt-3.5-turbo',  #  0.500 /  1.500
+    'o1-preview',     # $ 15.000 / 60.000
+    'o1-mini',        # $  3.000 / 12.000
+    'gpt-4',          # $ 30.000 / 60.000
+    'gpt-4-turbo',    # $ 10.000 / 30.000
+    'gpt-4o',         # $  2.500 / 10.000
+    'gpt-4o-mini',    # $  0.150 /  0.075
+    # 'gpt-3.5-turbo',  # $  0.500 /  1.500
 ]
 DEFAULT_OPENAI_MODEL = 'gpt-4o-mini'
 # DEFAULT_OPENAI_MODEL = 'gpt-3.5-turbo'
@@ -10039,9 +10039,10 @@ class Makdo:
         if self.current_pane == 'sub':
             pane = self.sub
         pre_table, bare_table, pos_table = self.get_bare_table()
+        # LEFT SPACES
         res = '^((?:.|\n)*\\|(?::[ \t\u3000])?)' \
             + '([ \t\u3000]+)' \
-            +'(.*\\|(?:.|\n)*)$'
+            + '(.*\\|(?:.|\n)*)$'
         while re.match(res, bare_table):
             table_head = re.sub(res, '\\1', bare_table)
             lft_spaces = re.sub(res, '\\2', bare_table)
@@ -10049,6 +10050,7 @@ class Makdo:
             beg = '1.0+' + str(len(pre_table + table_head)) + 'c'
             end = '1.0+' + str(len(pre_table + table_head + lft_spaces)) + 'c'
             pane.delete(beg, end)
+        # RIGHT SPACES
         res = '^((?:.|\n)*\\|.*)' \
             + '([ \t\u3000]+)' \
             + '((?:[ \t\u3000]:)?(?:\\^|=)?\\|(?:.|\n)*)$'
@@ -10072,29 +10074,37 @@ class Makdo:
         for c in bare_table:
             if c == '|':
                 if len(row) == 0:
+                    # "^: |..."
                     row.append(cell + c)
                 else:
+                    # "...|..."
                     row.append(cell)
                     row.append(c)
                 cell = ''
             elif c == '\n':
                 if len(cell) > 0 and cell[-1] == '\\':
+                    # "|...\\n...|"
                     cell += c
-                elif len(table_data) > 0 and len(table_data[-1]) > 0 and \
-                     re.match('^(\\^|=)+$', cell):
+                elif (re.match('^(\\^|=)+$', cell) and
+                      len(row) == 0 and
+                      len(table_data) > 0 and len(table_data[-1]) > 0):
+                    # "|...|\n^^^^^\n" or "|...|\n=====\n"
                     table_data[-1][-1] += cell + c
                     cell = ''
                 else:
                     cell += c
                     if len(row) > 0:
+                        # "|...|\n|...|"
                         row[-1] += cell
                     else:
+                        # ERROR PREVENTION
                         row.append(cell)
                     table_data.append(row)
                     row = []
                     cell = ''
             else:
                 cell += c
+        print(table_data)
         # GET CONF ROW NUMBER
         conf_row_number = -1
         for i, row in enumerate(table_data):
@@ -10125,17 +10135,25 @@ class Makdo:
                         cell_widths.append(wc)
                     elif wc > cell_widths[j]:
                         cell_widths[j] = wc
+
+        # bof = beginning of file
+        # eof = end of file
+        # bol = beginning of line
+        # eol = end of line
+        # boc = beginning of cell
+        # eoc = end of cell
+
         # GET DISTANCES
-        d, ideal_dists_from_bol = 0, [0]  # bol = beginning of line
+        d, ideal_dists_from_bol = 0, [0]
         for cw in cell_widths:
             d += cw
             ideal_dists_from_bol.append(d)
-        #
-        chars_from_bof = len(pre_table)  # bof = beginning of file
+        # INSERT SPACES
+        chars_from_bof = len(pre_table)
         for i, row in enumerate(table_data):
             real_dist_from_bol = 0
             for j, cell in enumerate(row):
-                c = re.sub('\\\\\n\s*', '', cell)
+                c = re.sub('\\\\\n\\s*', '', cell)
                 cell_width = get_real_width(c)
                 if (j == 0) or ((j % 2) != 0):
                     # GET ALGINMENT
@@ -10172,7 +10190,7 @@ class Makdo:
                     rdist_of_boc = real_dist_from_bol
                     rdist_of_eoc = real_dist_from_bol + cell_width
                     diff_dist = idist_of_eoc - rdist_of_eoc
-                    #
+                    # INSERT SPACES
                     if diff_dist > 0:
                         if align == 'center':
                             diff_lft = int(diff_dist / 2)
@@ -13919,7 +13937,7 @@ class Makdo:
             ca = []
             for c in OPENAI_MODELS:
                 if c != om:
-                    ca.append(c) 
+                    ca.append(c)
             om = OneWordDialog(self.txt, self, b, m, h, t, om, ca)
             if om is None:
                 return False
