@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.19-06:58:25-JST>
+# Time-stamp:   <2024.11.25-21:30:44-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5293,7 +5293,15 @@ class ParagraphTable(Paragraph):
         row = len(tab)
         col = len(tab[0])
         ms_tab = ms_doc.add_table(row, col, style='Table Grid')
-        ms_tab.alignment = table_alignment
+        if self.length_docx['left indent'] == 0:
+            ms_tab.alignment = table_alignment
+        else:
+            tblind = int(self.length_docx['left indent'] * Form.font_size * 20)
+            tblpr = ms_tab._element.xpath('w:tblPr')
+            oe = OxmlElement('w:tblInd')
+            oe.set(ns.qn('w:w'), str(tblind))
+            oe.set(ns.qn('w:type'), 'dxa')  # 1 dxa = 1/1440 inch
+            tblpr[0].append(oe)
         # ms_tab.autofit = True
         # SET CELL LENGTH AND ALIGNMENT
         for i in range(len(tab)):
@@ -5392,7 +5400,10 @@ class ParagraphTable(Paragraph):
                not re.match('^\\|+$', tl):
                 conf_line_place = float(len(tab)) - 0.5
                 # TABLE ALIGNMENT
-                if re.match('^:\\s+\\|.*$', tl):
+                if re.match('^:\\s+\\|.*\\|\\s+:$', tl):
+                    tl = re.sub('^:\\s+', '', tl)
+                    tl = re.sub('\\s+:$', '', tl)
+                elif re.match('^:\\s+\\|.*$', tl):
                     tl = re.sub('^:\\s+', '', tl)
                     table_alignment = WD_TABLE_ALIGNMENT.LEFT
                 elif re.match('^.*\\|\\s+:$', tl):
