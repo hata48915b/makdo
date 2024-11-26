@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.19-12:18:16-JST>
+# Time-stamp:   <2024.11.27-07:28:04-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5053,8 +5053,8 @@ class Document:
             p_prev = p_next
         # REMAKE TEXT TO WRITE WITH REVISERS
         for p_next in self.paragraphs:
-                p.text_to_write_with_reviser \
-                    = p._get_text_to_write_with_reviser()
+            p.text_to_write_with_reviser \
+                = p._get_text_to_write_with_reviser()
         return self.paragraphs
 
     # ARTICLE TITLE (MIMI=EAR)
@@ -8398,15 +8398,21 @@ class ParagraphTable(Paragraph):
                 cell = cell.replace('\n', '<br>')
                 # SPACE AT BOTH SIDES
                 if re.match('^\\s+(?:.|\n)*$', cell):
-                    if h_alig_tbl[i][j] == 'R':
-                        cell = re.sub('^\\s+', '', cell)
-                    else:
-                        cell = '\\' + cell
+                    cell = '\\' + cell
+                    # REMOVED 24.11.27 >
+                    # if h_alig_tbl[i][j] == 'R':
+                    #     cell = re.sub('^\\s+', '', cell)
+                    # else:
+                    #     cell = '\\' + cell
+                    # <
                 if re.match('^(?:.|\n)*\\s+$', cell):
-                    if h_alig_tbl[i][j] == 'L':
-                        cell = re.sub('\\s+$', '', cell)
-                    else:
-                        cell = cell + '\\'
+                    cell = cell + '\\ '
+                    # REMOVED 24.11.27 >
+                    # if h_alig_tbl[i][j] == 'L':
+                    #     cell = re.sub('\\s+$', '', cell)
+                    # else:
+                    #     cell = cell + '\\ '
+                    # <
                 # TEXT
                 if h_alig_tbl[i][j] == 'L':
                     if is_in_head or (h_alig_tbl[std_row][j] != 'L'):
