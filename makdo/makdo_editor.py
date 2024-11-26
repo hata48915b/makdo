@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.26-17:22:49-JST>
+# Time-stamp:   <2024.11.26-17:32:48-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -10011,7 +10011,7 @@ class Makdo:
         if par is None:
             _, par, _ = self.get_paragraphs()
         par = re.sub('\\\\\n', '', par)
-        par = re.sub('<!--.*?-->', '', par)
+        par = re.sub('<!--(.|\n)*?-->', '', par)
         res_table = '^' \
             + '(\\s*(' \
             + '((v|V|x|X|<<|<|>)=[\\-\\+]?([0-9]+\\.)?[0-9]+)' \
