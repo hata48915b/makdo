@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.26-17:32:48-JST>
+# Time-stamp:   <2024.11.27-07:13:50-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -10063,7 +10063,7 @@ class Makdo:
             end = '1.0+' + str(len(pre_table + table_head + lft_spaces)) + 'c'
             pane.delete(beg, end)
         # RIGHT SPACES
-        res = '^((?:.|\n)*\\|.*)' \
+        res = '^((?:.|\n)*\\|(?:.*[^\\\\])?)' \
             + '([ \t\u3000]+)' \
             + '((?:[ \t\u3000]:)?(?:\\^|=)?\\|(?:.|\n)*)$'
         while re.match(res, bare_table):
@@ -10085,7 +10085,12 @@ class Makdo:
         cell = ''
         for c in bare_table:
             if c == '|':
-                if len(row) == 0:
+                if (re.match('^.*\\\\$', cell) and
+                    not re.match(NOT_ESCAPED + '\\|$', cell + c)):
+                    # "..\|..."
+                    cell += c
+                    continue
+                elif len(row) == 0:
                     # "^: |..."
                     row.append(cell + c)
                 else:
@@ -10204,8 +10209,8 @@ class Makdo:
                     # INSERT SPACES
                     if diff_dist > 0:
                         if align == 'center':
-                            diff_lft = int(diff_dist / 2)
-                            diff_rgt = diff_dist - diff_lft
+                            diff_rgt = int(diff_dist / 2)
+                            diff_lft = diff_dist - diff_rgt
                             # RIGHT
                             com_r = ''
                             res = '^.*\\s+(:?(?:\\^|=)?)$'
