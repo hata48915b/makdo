@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.29-13:03:59-JST>
+# Time-stamp:   <2024.11.30-08:29:40-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -8843,7 +8843,11 @@ class Makdo:
                       '⑪', '⑫', '⑬', '⑭', '⑮', '⑯', '⑰', '⑱', '⑲', '⑳',
                       '²', '³',
                       '㊞',
-                      ]
+                      '♠', '♡', '♢', '♣', '♤', '♥', '♦', '♧',
+                      '☹', '☺', '☻',
+                      '✊', '✋', '✌',
+                      '✿', '❀',
+                      '☯']
         self.SymbolDialog(self.txt, self, candidates)
 
     class SymbolDialog(tkinter.simpledialog.Dialog):
