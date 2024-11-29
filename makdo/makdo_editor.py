@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.29-10:36:08-JST>
+# Time-stamp:   <2024.11.29-13:03:59-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -7281,7 +7281,6 @@ class Makdo:
         if cb == '':
             return True
         pane.insert('insert', cb)
-        # pane.yview('insert -20 line')
         if self.current_pane == 'txt':
             end_v = self._get_v_position_of_insert(self.txt)
             for i in range(beg_v - 1, end_v):
@@ -7454,16 +7453,21 @@ class Makdo:
             beg, end = self._get_indices_in_order(pane, 'insert', 'akauni')
         else:
             beg, end = '1.0', 'end-1c'
-        m = pane.get(beg, end).count(word1)
+        m = 0
+        res = '^((?:.|\n)*?)(' + word1 + ')((?:.|\n)*)$'
         while True:
             tex = pane.get(beg, end)
-            if word1 not in tex:
+            if not re.match(res, tex):
                 break
-            res = '^((?:.|\n)*?)' + word1 + '(?:.|\n)*$'
-            sub = re.sub(res, '\\1', tex)
-            pane.delete(beg + '+' + str(len(sub)) + 'c',
-                        beg + '+' + str(len(sub + word1)) + 'c')
-            pane.insert(beg + '+' + str(len(sub)) + 'c', word2)
+            s = re.sub(res, '\\1', tex)
+            w = re.sub(res, '\\2', tex)
+            t = re.sub(res, '\\3', tex)
+            if w == '':
+                continue
+            pane.delete(beg + '+' + str(len(s)) + 'c',
+                        beg + '+' + str(len(s + w)) + 'c')
+            pane.insert(beg + '+' + str(len(s)) + 'c', word2)
+            m += 1
         if pane.tag_ranges('sel'):
             pane.tag_remove('sel', "1.0", "end")
         elif 'akauni' in pane.mark_names():
@@ -13405,7 +13409,7 @@ class Makdo:
                 return
             # SEARCH
             pane.mark_set('insert', '1.0 +' + str(len(sub)) + 'c')
-            pane.yview('insert -10line')
+            self._put_back_cursor_to_pane(pane)
             if must_replace:
                 if not self._is_read_only_pane(pane):
                     # REPLACE
@@ -13460,7 +13464,7 @@ class Makdo:
                 return
             # SEARCH
             pane.mark_set('insert', 'insert +' + str(len(sub)) + 'c')
-            pane.yview('insert -10line')
+            self._put_back_cursor_to_pane(pane)
             if must_replace:
                 if not self._is_read_only_pane(pane):
                     # REPLACE
@@ -13471,7 +13475,6 @@ class Makdo:
         n, m = self._count_word(pane, word1)
         self.set_message_on_status_bar(str(m) + '個が見付かりました' +
                                        '（' + str(n) + '/' + str(m) + '）')
-        self.stb.update()
 
     def _count_word(self, pane, word):
         res = '^((?:.|\n)*?' + word + ')((?:.|\n)*)$'
