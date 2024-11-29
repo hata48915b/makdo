@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.27-08:00:02-JST>
+# Time-stamp:   <2024.11.29-10:36:08-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6379,6 +6379,7 @@ class Makdo:
         self.pnd.add(self.pnd2, height=half_height)
         self.pnd.update()
         self._put_back_cursor_to_pane(self.txt)
+        self.txt.focus_force()
         self.pnd.remove(self.pnd1)
         self.pnd.remove(self.pnd2)
         self.pnd.add(self.pnd1, height=half_height, minsize=100)
