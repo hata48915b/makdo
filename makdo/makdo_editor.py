@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.30-08:29:40-JST>
+# Time-stamp:   <2024.12.01-11:44:39-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -7435,16 +7435,18 @@ class Makdo:
             focus = pane
         word1 = self.stb_sor1.get()
         word2 = self.stb_sor2.get()
-        if word1 == '':
-            t = '全置換'
-            m = '検索する言葉と置換する言葉を入力してください．'
-            h1, t1 = '検索', ''
-            h2, t2 = '置換', ''
-            sd = TwoWordsDialog(focus, self, t, m, h1, h2, t1, t2,
-                                word1, word2)
-            word1, word2 = sd.get_value()
-        if word1 == '':
+        t = '全置換'
+        m = '検索する言葉と置換する言葉を入力してください．'
+        h1, t1 = '検索', ''
+        h2, t2 = '置換', ''
+        sd = TwoWordsDialog(focus, self, t, m, h1, h2, t1, t2, word1, word2)
+        word1, word2 = sd.get_value()
+        if (word1 is None) or (word2 is None) or (word1 == ''):
             return
+        self.stb_sor1.delete('0', 'end')
+        self.stb_sor1.insert('0', word1)
+        self.stb_sor2.delete('0', 'end')
+        self.stb_sor2.insert('0', word2)
         if Makdo.search_word != word1:
             Makdo.search_word = word1
         if pane.tag_ranges('sel'):
