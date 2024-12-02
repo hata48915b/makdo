@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.02-13:06:27-JST>
+# Time-stamp:   <2024.12.02-15:56:07-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -3534,8 +3534,10 @@ class Document:
                         p_next.length_docx['space before'] -= 0.1
                     elif p_next.length_docx['space before'] >= 0.0:
                         p_next.length_docx['space before'] /= 2
-            # TABLE OR IMAGE
-            if p.paragraph_class == 'table' or p.paragraph_class == 'image':
+            # TABLE, IMAGE OR MULTICOLUMNS
+            if p.paragraph_class == 'table' or \
+               p.paragraph_class == 'image' or \
+               p.paragraph_class == 'multicolumns':
                 if i > 0:
                     if p.length_docx['space before'] < 0:
                         msg = '※ 警告: ' \
