@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.27-07:28:04-JST>
+# Time-stamp:   <2024.12.02-15:49:21-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5536,8 +5536,23 @@ class Document:
         return None
 
     def get_document(self):
-        dcmt = ''
+        mcols = []
         for p in self.paragraphs:
+            if p.paragraph_class == 'multicolumns':
+                mcols.append(p.md_text)
+        dcmt = ''
+        posi = 0
+        if len(mcols) > 0:
+            if self.paragraphs[0].paragraph_class != 'multicolumns':
+                # IF MULTICOLUMNS AT THE BEGINNIG OF THE DOCUMENT
+                dcmt += mcols[posi] + '\n\n'
+            posi += 1
+        for p in self.paragraphs:
+            if p.paragraph_class == 'multicolumns':
+                if posi < len(mcols):
+                    dcmt += mcols[posi] + '\n\n'
+                    posi += 1
+                continue
             dcmt += p.get_document()
             if p.paragraph_class != 'empty' and p.paragraph_class != 'remarks':
                 dcmt += '\n'
@@ -6577,6 +6592,8 @@ class RawParagraph:
             return 'preformatted'
         elif ParagraphHorizontalLine.is_this_class(self):
             return 'horizontalline'
+        elif ParagraphMultiColumns.is_this_class(self):
+            return 'multicolumns'
         elif ParagraphPagebreak.is_this_class(self):
             return 'pagebreak'
         elif ParagraphBreakdown.is_this_class(self):
@@ -6616,6 +6633,8 @@ class RawParagraph:
             return ParagraphPreformatted(self)
         elif paragraph_class == 'horizontalline':
             return ParagraphHorizontalLine(self)
+        elif paragraph_class == 'multicolumns':
+            return ParagraphMultiColumns(self)
         elif paragraph_class == 'pagebreak':
             return ParagraphPagebreak(self)
         elif paragraph_class == 'breakdown':
@@ -8742,6 +8761,49 @@ class ParagraphHorizontalLine(Paragraph):
         text_to_write_with_reviser = ttwwr
         # self.text_to_write_with_reviser = text_to_write_with_reviser
         return text_to_write_with_reviser
+
+
+class ParagraphMultiColumns(Paragraph):
+
+    """A class to handle multicolumns paragraph"""
+
+    paragraph_class = 'multicolumns'
+
+    @classmethod
+    def is_this_class(cls, raw_paragraph):
+        rp = raw_paragraph
+        rp_text = rp.raw_text
+        rp_xl = rp.xml_lines
+        if rp_text != '':
+            return False
+        for xl in rp_xl:
+            if re.match('^<w:cols( .*)?/?>$', xl):
+                return True
+        return False
+
+    def _get_md_text(self, raw_text):
+        xml_lines = self.xml_lines
+        num = 0
+        wid = []
+        for xl in xml_lines:
+            if re.match('^<w:cols( .*)?>$', xl):
+                num = XML.get_value('w:cols', 'w:num', num, xl)
+                wid = []
+            if re.match('^<w:col( .*)?>$', xl):
+                w = XML.get_value('w:col', 'w:w', -1, xl)
+                wid.append(w)
+        if num == 0:
+            md_text = '|-|'
+        else:
+            m = 1
+            if len(wid) > 0:
+                m = min(wid)
+            while len(wid) < num:
+                wid.append(m)
+            md_text = '|'
+            for w in wid:
+                md_text += ('-' * round(w / m)) + '|'
+        return md_text
 
 
 class ParagraphPagebreak(Paragraph):
