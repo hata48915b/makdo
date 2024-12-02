@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.02-17:30:04-JST>
+# Time-stamp:   <2024.12.02-18:15:24-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6455,6 +6455,18 @@ class Makdo:
         elif h_cur >= h_max:
             pane.yview('insert-' + str(h_max - h_min) + 'l')
 
+    @staticmethod
+    def _get_lines_of_pane(pane):
+        pane.update()
+        p = pane.index('@0,0')
+        h_min = int(re.sub('\\.[0-9]+$', '', p))
+        p = pane.index('@1000000,1000000')
+        h_max = int(re.sub('\\.[0-9]+$', '', p)) - 1
+        lines = h_max - h_min
+        if lines < 25:
+            lines = 25
+        return lines
+
     def _move_vertical(self, pane, ideal_h_position, height_to_move):
         i = self._get_v_position_of_insert(pane) + height_to_move
         j = ideal_h_position
@@ -10150,8 +10162,8 @@ class Makdo:
         cell = ''
         for c in bare_table:
             if c == '|':
-                if (re.match('^.*\\\\$', cell) and
-                    not re.match(NOT_ESCAPED + '\\|$', cell + c)):
+                if re.match('^.*\\\\$', cell) and \
+                   not re.match(NOT_ESCAPED + '\\|$', cell + c):
                     # "..\|..."
                     cell += c
                     continue
@@ -10337,15 +10349,19 @@ class Makdo:
 
     def goto_beg_of_doc(self):
         self.txt.mark_set('insert', '1.0')
+        self._put_back_cursor_to_pane(self.txt)
 
     def goto_end_of_doc(self):
         self.txt.mark_set('insert', 'end-1c')
+        self._put_back_cursor_to_pane(self.txt)
 
     def goto_beg_of_line(self):
         self.txt.mark_set('insert', 'insert linestart')
+        self._put_back_cursor_to_pane(self.txt)
 
     def goto_end_of_line(self):
         self.txt.mark_set('insert', 'insert lineend')
+        self._put_back_cursor_to_pane(self.txt)
 
     def search_backward(self):
         word1 = self.stb_sor1.get()
@@ -10440,6 +10456,7 @@ class Makdo:
             tkinter.messagebox.showerror(n, m)
             return
         self.txt.mark_set('insert', 'flag1')
+        self._put_back_cursor_to_pane(self.txt)
 
     def goto_flag2(self):
         if 'flag2' not in self.txt.mark_names():
@@ -10447,6 +10464,7 @@ class Makdo:
             tkinter.messagebox.showerror(n, m)
             return
         self.txt.mark_set('insert', 'flag2')
+        self._put_back_cursor_to_pane(self.txt)
 
     def goto_flag3(self):
         if 'flag3' not in self.txt.mark_names():
@@ -10454,6 +10472,7 @@ class Makdo:
             tkinter.messagebox.showerror(n, m)
             return
         self.txt.mark_set('insert', 'flag3')
+        self._put_back_cursor_to_pane(self.txt)
 
     def goto_flag4(self):
         if 'flag4' not in self.txt.mark_names():
@@ -10461,6 +10480,7 @@ class Makdo:
             tkinter.messagebox.showerror(n, m)
             return
         self.txt.mark_set('insert', 'flag4')
+        self._put_back_cursor_to_pane(self.txt)
 
     def goto_flag5(self):
         if 'flag5' not in self.txt.mark_names():
@@ -10468,6 +10488,7 @@ class Makdo:
             tkinter.messagebox.showerror(n, m)
             return
         self.txt.mark_set('insert', 'flag5')
+        self._put_back_cursor_to_pane(self.txt)
 
     def goto_by_position(self):
         self.PositionDialog(self.txt, self)
@@ -10502,6 +10523,7 @@ class Makdo:
             char = self.entry2.get()
             if re.match('^[0-9]+$', line) and re.match('^[0-9]+$', char):
                 self.pane.mark_set('insert', line + '.' + char)
+                self._put_back_cursor_to_pane(self.pane)
 
     ##########################
     # MENU TOOL
@@ -10919,8 +10941,8 @@ class Makdo:
         cvs_frm.bind('<Escape>', lambda e: self._quit_diff())
         cvs_frm.bind('<Up>', lambda e: cvs.yview_scroll(-1, 'units'))
         cvs_frm.bind('<Down>', lambda e: cvs.yview_scroll(1, 'units'))
-        cvs_frm.bind('<Prior>', lambda e: cvs.yview_scroll(-100, 'units'))
-        cvs_frm.bind('<Next>', lambda e: cvs.yview_scroll(100, 'units'))
+        cvs_frm.bind('<Prior>', lambda e: cvs.yview_scroll(-10, 'units'))
+        cvs_frm.bind('<Next>', lambda e: cvs.yview_scroll(10, 'units'))
         if sys.platform == 'win32':
             cvs_frm.bind_all(
                 '<MouseWheel>',
@@ -12694,7 +12716,8 @@ class Makdo:
             if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
                 self.ideal_h_position \
                     = self._get_ideal_h_position_of_insert(pane)
-            self._move_vertical(pane, self.ideal_h_position, -100)
+            lines = self._get_lines_of_pane(pane)
+            self._move_vertical(pane, self.ideal_h_position, -lines)
             self._paint_akauni_region(pane, '')
             return 'break'
         elif key.keysym == 'Next':
@@ -12705,7 +12728,8 @@ class Makdo:
             if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
                 self.ideal_h_position \
                     = self._get_ideal_h_position_of_insert(pane)
-            self._move_vertical(pane, self.ideal_h_position, +100)
+            lines = self._get_lines_of_pane(pane)
+            self._move_vertical(pane, self.ideal_h_position, +lines)
             self._paint_akauni_region(pane, '')
             return 'break'
         elif key.keysym == 'Home':
@@ -12977,14 +13001,16 @@ class Makdo:
             if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
                 self.ideal_h_position \
                     = self._get_ideal_h_position_of_insert(pane)
-            self._move_vertical(pane, self.ideal_h_position, -100)
+            lines = self._get_lines_of_pane(pane)
+            self._move_vertical(pane, self.ideal_h_position, -lines)
             self._paint_akauni_region(pane, '')
             return 'break'
         elif key.keysym == 'Next':
             if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
                 self.ideal_h_position \
                     = self._get_ideal_h_position_of_insert(pane)
-            self._move_vertical(pane, self.ideal_h_position, +100)
+            lines = self._get_lines_of_pane(pane)
+            self._move_vertical(pane, self.ideal_h_position, +lines)
             self._paint_akauni_region(pane, '')
             return 'break'
         elif key.keysym == 'Home':
