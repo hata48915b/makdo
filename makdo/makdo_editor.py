@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.02-16:25:07-JST>
+# Time-stamp:   <2024.12.02-17:30:04-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -13470,7 +13470,6 @@ class Makdo:
         n, m = self._count_word(pane, word1)
         self.set_message_on_status_bar(str(m) + '個が見付かりました' +
                                        '（' + str(n) + '/' + str(m) + '）')
-        self.stb.update()
 
     def search_or_replace_forward_on_stb(self):
         word2 = self.stb_sor2.get()
