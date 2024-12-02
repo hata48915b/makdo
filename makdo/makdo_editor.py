@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.01-11:44:39-JST>
+# Time-stamp:   <2024.12.02-15:52:21-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -7921,7 +7921,7 @@ class Makdo:
         image_paths \
             = tkinter.filedialog.askopenfilenames(title=ti, filetypes=ty)
         for i in image_paths:
-            image_md_text = '![代替テキスト:縦x横](' + i + ' "説明")'
+            image_md_text = '![代替テキスト:横x縦](' + i + ' "説明")'
             self.txt.insert('insert', image_md_text)
 
     ################
