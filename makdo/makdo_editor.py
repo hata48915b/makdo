@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.02-15:52:21-JST>
+# Time-stamp:   <2024.12.02-16:25:07-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5310,6 +5310,8 @@ class LineDatum:
             # TABLE CONFIGURE
             if (c == ':' and (c2 == '|' or c2 == '-' or c2 == ':')) or \
                (c == ':' and c0 == '|') or \
+               (c == '-' and c0 == '|') or \
+               (c == '-' and c2 == '|') or \
                (c == '-' and c2 == ':') or \
                ((c == '^' or c == '=') and c2 == '-'):
                 key = chars_state.get_key('')                           # 1.key
@@ -9259,6 +9261,7 @@ class Makdo:
         #
         menu.add_command(label='設定を挿入',
                          command=self.insert_config)
+        self._make_submenu_insert_multicolumns(menu)
         self._make_submenu_insert_chapter(menu)
         self._make_submenu_insert_section(menu)
         self._make_submenu_insert_list(menu)
@@ -9523,6 +9526,47 @@ class Makdo:
 '''
         config = re.sub('^\n+', '', config)
         self.txt.insert('1.0', config)
+
+    ################
+    # SUBMENU INSERT MULTICOLUMNS
+
+    def _make_submenu_insert_multicolumns(self, menu):
+        submenu = tkinter.Menu(menu, tearoff=False)
+        menu.add_cascade(label='段組を挿入', menu=submenu)
+        #
+        submenu.add_command(label='一段組（元に戻す）',
+                            command=self.insert_1_columns)
+        submenu.add_command(label='二段組（同じ大きさ）',
+                            command=self.insert_2_columns_mm)
+        submenu.add_command(label='二段組（左が大きい）',
+                            command=self.insert_2_columns_ls)
+        submenu.add_command(label='二段組（右が大きい）',
+                            command=self.insert_2_columns_sl)
+        submenu.add_command(label='三段組',
+                            command=self.insert_3_columns)
+
+    ######
+    # COMMAND
+
+    def insert_1_columns(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '|-|')
+
+    def insert_2_columns_mm(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '|-|-|')
+
+    def insert_2_columns_ls(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '|--|-|')
+
+    def insert_2_columns_sl(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '|-|--|')
+
+    def insert_3_columns(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '|-|-|-|')
 
     ################
     # SUBMENU INSERT CHAPTER
