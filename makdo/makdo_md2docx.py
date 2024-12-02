@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.11.25-22:54:05-JST>
+# Time-stamp:   <2024.12.02-13:06:27-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1204,7 +1204,9 @@ class IO:
             opts = {}
             opts['w:countBy'] = '5'
             opts['w:restart'] = 'newPage'
-            opts['w:distance'] = '567'  # 567≒20*72/2.54=1cm
+            opts['w:distance'] = '480'  # 2char = 12*2*20 = 480
+            # opts['w:distance'] = '454'  # 8mm = 20*72/2.54*0.8 = 453.54...
+            # opts['w:distance'] = '567'  # 1cm = 20*72/2.54*1.0 = 566.92...
             XML.add_tag(ms_doc.sections[0]._sectPr, 'w:lnNumType', opts)
         self._make_styles(ms_doc)
         return ms_doc
@@ -3975,6 +3977,8 @@ class RawParagraph:
             return 'alignment'
         elif ParagraphPreformatted.is_this_class(ft, hfrs, tfrs):
             return 'preformatted'
+        elif ParagraphMultiColumns.is_this_class(ft, hfrs, tfrs):
+            return 'multicolumns'
         elif ParagraphPagebreak.is_this_class(ft, hfrs, tfrs):
             return 'pagebreak'
         elif ParagraphHorizontalLine.is_this_class(ft, hfrs, tfrs):
@@ -4010,6 +4014,8 @@ class RawParagraph:
             return ParagraphAlignment(self)
         elif paragraph_class == 'preformatted':
             return ParagraphPreformatted(self)
+        elif paragraph_class == 'multicolumns':
+            return ParagraphMultiColumns(self)
         elif paragraph_class == 'pagebreak':
             return ParagraphPagebreak(self)
         elif paragraph_class == 'horizontalline':
@@ -5256,6 +5262,15 @@ class ParagraphTable(Paragraph):
     paragraph_class = 'table'
     res_feature = '^(?::\\s+)?\\|.*\\|(:?-*:?)?(\\^+|=+)?(?:\\s+:)?$'
 
+    @classmethod
+    def is_this_class(cls, full_text,
+                      head_font_revisers=[], tail_font_revisers=[]):
+        if ParagraphMultiColumns.is_this_class(full_text):
+            return False
+        if re.match(cls.res_feature, full_text):
+            return True
+        return False
+
     def write_paragraph(self, ms_doc):
         # CHARS STATE
         self.beg_chars_state = Paragraph.bridge_chars_state.copy()
@@ -5941,9 +5956,33 @@ class ParagraphPreformatted(Paragraph):
         return text_to_write
 
 
+class ParagraphMultiColumns(Paragraph):
+
+    """A class to handle multicolumns paragraph"""
+
+    paragraph_class = 'multicolumns'
+    res_feature = '^\\|(?:-*\\|)*$'
+
+    def write_paragraph(self, ms_doc):
+        full_text = self.full_text
+        while re.match('^.*\\|\\|.*$', full_text):
+            full_text = re.sub('\\|\\|', '|-|', full_text)
+        num = full_text.count('|') - 1
+        ms_sec = ms_doc.add_section(WD_SECTION.CONTINUOUS)
+        cols = XML.add_tag(ms_sec._sectPr, 'w:cols', {'w:num': str(num)})
+        #
+        wid = full_text.split('|')
+        wid.pop(0)
+        wid.pop(-1)
+        for w in wid:
+            # 12*3*20=720
+            wx1024 = str(len(w) * 1024)
+            XML.add_tag(cols, 'w:col', {'w:w': wx1024, 'w:space': '720'})
+
+
 class ParagraphPagebreak(Paragraph):
 
-    """A class to handle preformatted paragraph"""
+    """A class to handle pagebreak paragraph"""
 
     paragraph_class = 'pagebreak'
     res_feature = '^(?:<div style="break-.*: page;"></div>|<pgbr/?>|<Pgbr/?>)$'
@@ -5961,14 +6000,13 @@ class ParagraphPagebreak(Paragraph):
         else:
             ms_doc.add_page_break()
         if re.match('<Pgbr/?>', ttw):
-            ms_doc.add_section(WD_SECTION.NEW_PAGE)
-            XML.add_tag(ms_doc.sections[-1]._sectPr,
-                        'w:pgNumType', {'w:start': '1'})
+            ms_sec = ms_doc.add_section(WD_SECTION.NEW_PAGE)
+            XML.add_tag(ms_sec._sectPr, 'w:pgNumType', {'w:start': '1'})
 
 
 class ParagraphHorizontalLine(Paragraph):
 
-    """A class to handle Horizontalline paragraph"""
+    """A class to handle horizontalline paragraph"""
 
     paragraph_class = 'horizontalline'
     res_feature = '^(?:(?:\\s*\\-\\s*){4,}|(?:\\s*\\*\\s*){4,})$'
