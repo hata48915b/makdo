@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.03-13:45:21-JST>
+# Time-stamp:   <2024.12.03-16:10:30-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -9278,9 +9278,8 @@ class Makdo:
         self._make_submenu_insert_chapter(menu)
         self._make_submenu_insert_section(menu)
         self._make_submenu_insert_list(menu)
-        menu.add_command(label='画像を挿入',
-                         command=self.insert_image_paragraph)
         self._make_submenu_insert_table(menu)
+        self._make_submenu_insert_image(menu)
         menu.add_command(label='改ページを挿入',
                          command=self.insert_page_break)
         menu.add_command(label='数式を挿入',
@@ -9743,28 +9742,6 @@ class Makdo:
         self.txt.insert('insert', '      - ')
 
     ################
-    # COMMAND
-
-    def insert_image_paragraph(self):
-        ti = '画像を挿入'
-        ty = [('画像', '.jpg .jpeg .png .gif .tif .tiff .bmp'),
-              ('全てのファイル', '*')]
-        image_path = tkinter.filedialog.askopenfilename(title=ti, filetypes=ty)
-        if image_path != () and image_path != '':
-            self._insert_line_break_as_necessary()
-            image_md_text = '![代替テキスト:縦x横](' + image_path + ' "説明")'
-            self.txt.insert('insert', image_md_text)
-
-    def insert_page_break(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '<pgbr>')
-
-    def insert_math(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '\\[（ここに"LaTeX"形式の数式を挿入）\\]')
-        self.txt.mark_set('insert', 'insert-2c')
-
-    ################
     # SUBMENU INSERT TABLE
 
     def _make_submenu_insert_table(self, menu):
@@ -9801,6 +9778,91 @@ class Makdo:
         table_md_text += '|左寄せセル|中寄せセル|右寄せセル|\n'
         table_md_text += '|左寄せセル|中寄せセル|右寄せセル|'
         self.txt.insert('insert', table_md_text)
+
+    ################
+    # SUBMENU INSERT IMAGE
+
+    def _make_submenu_insert_image(self, menu):
+        submenu = tkinter.Menu(menu, tearoff=False)
+        menu.add_cascade(label='画像を挿入', menu=submenu)
+        submenu.add_command(label='画像を単独で挿入',
+                            command=self.insert_image_paragraph)
+        submenu.add_command(label='画像と文章の段組を挿入',
+                            command=self.insert_image_and_text_paragraph)
+        submenu.add_command(label='文章と画像の段組を挿入',
+                            command=self.insert_text_and_image_paragraph)
+
+    ######
+    # COMMAND
+
+    def insert_image_paragraph(self):
+        ti = '画像を挿入'
+        ty = [('画像', '.jpg .jpeg .png .gif .tif .tiff .bmp'),
+              ('全てのファイル', '*')]
+        image_path = tkinter.filedialog.askopenfilename(title=ti, filetypes=ty)
+        if image_path != () and image_path != '':
+            self._insert_line_break_as_necessary()
+            image_md_text = '![代替テキスト:横x縦](' + image_path + ' "説明")'
+            self.txt.insert('insert', image_md_text)
+
+    def insert_image_and_text_paragraph(self):
+        ti = '画像を挿入'
+        ty = [('画像', '.jpg .jpeg .png .gif .tif .tiff .bmp'),
+              ('全てのファイル', '*')]
+        image_path = tkinter.filedialog.askopenfilename(title=ti, filetypes=ty)
+        if image_path != () and image_path != '':
+            self._insert_line_break_as_necessary()
+            md_text = ''
+            md_text += '<!--'
+            md_text += '二段組にします．"-"の数で幅を設定してください．'
+            md_text += '-->\n'
+            md_text += '|-|--|\n\n'
+            md_text += '<!--画像の位置の調整のために入れています．-->\n'
+            md_text += '^^-----^^\n\n'
+            md_text += '<!--画像の大きさをセンチメートルで設定してください．-->\n'
+            md_text += '![代替テキスト:横x縦](' + image_path + ' "説明")\n\n'
+            md_text += '<!--ここに文章を書きます．-->\n'
+            md_text += '（ここに文章を書く）\n\n'
+            md_text += '<!--一段組に戻します．-->\n'
+            md_text += '|-|'
+            self.txt.insert('insert', md_text)
+
+    def insert_text_and_image_paragraph(self):
+        ti = '画像を挿入'
+        ty = [('画像', '.jpg .jpeg .png .gif .tif .tiff .bmp'),
+              ('全てのファイル', '*')]
+        image_path = tkinter.filedialog.askopenfilename(title=ti, filetypes=ty)
+        if image_path != () and image_path != '':
+            self._insert_line_break_as_necessary()
+            md_text = ''
+            md_text += '<!--'
+            md_text += '二段組にします．"-"の数で幅を設定してください．'
+            md_text += '-->\n'
+            md_text += '|--|-|\n\n'
+            md_text += '<!--ここに文章を書きます．-->\n'
+            md_text += '（ここに文章を書く）\n\n'
+            md_text += '<!--画像の位置の調整のために入れています．-->\n'
+            md_text += '^^-----^^\n\n'
+            md_text += '<!--画像の大きさをセンチメートルで設定してください．-->\n'
+            md_text += '![代替テキスト:横x縦](' + image_path + ' "説明")\n\n'
+            md_text += '<!--一段組に戻します．-->\n'
+            md_text += '|-|'
+            self.txt.insert('insert', md_text)
+
+    ################
+    # COMMAND
+
+    def insert_page_break(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '<pgbr>')
+
+    def insert_math(self):
+        self._insert_line_break_as_necessary()
+        self.txt.insert('insert', '\\[（ここに"LaTeX"形式の数式を挿入）\\]')
+        self.txt.mark_set('insert', 'insert-2c')
+
+    ################
+    # COMMAND
 
     def set_chapter_number(self):
         self.ChapterNumberDialog(self.txt, self)
