@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.02-15:56:07-JST>
+# Time-stamp:   <2024.12.03-13:36:11-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -2115,7 +2115,6 @@ class CharsState:
         color = re.sub('^\\^(.*)\\^$', '\\1', font_decorator)
         if color == '':
             color = 'FFFFFF'
-            self.font_color = 'FFFFFF'
         elif re.match('^([0-9A-F])([0-9A-F])([0-9A-F])$', color):
             color = re.sub('^([0-9A-F])([0-9A-F])([0-9A-F])$',
                            '\\1\\1\\2\\2\\3\\3', color)
@@ -3665,8 +3664,18 @@ class Document:
         return datetime_cls
 
     def write_document(self, ms_doc):
+        mc_text = None
         for p in self.paragraphs:
+            if p.paragraph_class == 'multicolumns':
+                if mc_text is None:
+                    ParagraphMultiColumns._write_paragraph(ms_doc, '|-|')
+                else:
+                    ParagraphMultiColumns._write_paragraph(ms_doc, mc_text)
+                mc_text = p.full_text
+                continue
             p.write_paragraph(ms_doc)
+        if mc_text is not None:
+            ParagraphMultiColumns._write_paragraph(ms_doc, mc_text)
 
     def print_warning_messages(self):
         for p in self.paragraphs:
@@ -5965,21 +5974,49 @@ class ParagraphMultiColumns(Paragraph):
     paragraph_class = 'multicolumns'
     res_feature = '^\\|(?:-*\\|)*$'
 
-    def write_paragraph(self, ms_doc):
-        full_text = self.full_text
-        while re.match('^.*\\|\\|.*$', full_text):
-            full_text = re.sub('\\|\\|', '|-|', full_text)
-        num = full_text.count('|') - 1
+    # def write_paragraph(self, ms_doc):
+    #     full_text = self.full_text
+    #     self._write_paragraph(ms_doc, full_text)
+
+    @staticmethod
+    def _write_paragraph(ms_doc, md_text):
+        while re.match('^.*\\|\\|.*$', md_text):
+            md_text = re.sub('\\|\\|', '|-|', md_text)
+        num = md_text.count('|') - 1
         ms_sec = ms_doc.add_section(WD_SECTION.CONTINUOUS)
-        cols = XML.add_tag(ms_sec._sectPr, 'w:cols', {'w:num': str(num)})
+        # ms_sec = ms_doc.add_section()
+        e = ms_doc.paragraphs[-1]._element
+        e.getparent().remove(e)
+        ms_par = ms_doc.add_paragraph()
+        ms_ppr = ms_par._p.get_or_add_pPr()
+        ms_spr = XML.add_tag(ms_ppr, 'w:sectPr', {})
+        w_w = str(round(PAPER_WIDTH[Form.paper_size] / 2.54 * 72 * 20))
+        w_h = str(round(PAPER_HEIGHT[Form.paper_size] / 2.54 * 72 * 20))
+        XML.add_tag(ms_spr, 'w:pgSz',
+                    {'w:w': w_w, 'w:h': w_h})
+        w_top = str(int(Form.top_margin / 2.54 * 72 * 20))
+        w_bottom = str(int(Form.bottom_margin / 2.54 * 72 * 20))
+        w_left = str(int(Form.left_margin / 2.54 * 72 * 20))
+        w_right = str(int(Form.right_margin / 2.54 * 72 * 20))
+        XML.add_tag(ms_spr, 'w:pgMar',
+                    {'w:top': w_top, 'w:bottom': w_bottom,
+                     'w:right': w_right,'w:left': w_left})
+        XML.add_tag(ms_spr, 'w:docGrid', {'w:linePitch': '0'})
+        ms_col = XML.add_tag(ms_spr, 'w:type', {'w:val': 'continuous'})
+        w_space = 720  # 3chars = 12*3*20 = 720
+        opt = {'w:num': str(num), 'w:space': '720', 'w:equalWidth': '0'}
+        ms_col = XML.add_tag(ms_spr, 'w:cols', opt)
         #
-        wid = full_text.split('|')
+        wid = md_text.split('|')
         wid.pop(0)
         wid.pop(-1)
-        for w in wid:
-            # 12*3*20=720
-            wx1024 = str(len(w) * 1024)
-            XML.add_tag(cols, 'w:col', {'w:w': wx1024, 'w:space': '720'})
+        m = len(wid)
+        text_width = int(w_w) - int(w_left) - int(w_right) - (720 * (m - 1))
+        unit_width = text_width / len(''.join(wid))
+        for i in range(m):
+            w = str(int(unit_width * len(wid[i])))
+            # 3chars = 12*3*20 = 720
+            XML.add_tag(ms_col, 'w:col', {'w:w': w, 'w:space': '720'})
 
 
 class ParagraphPagebreak(Paragraph):
@@ -6052,16 +6089,30 @@ class ParagraphHorizontalLine(Paragraph):
             #     + '"space after" is too small'
             self.md_lines[0].append_warning_message(msg)
             sa = 0
+        self._apply_head_font_revisers()
         ms_fmt.space_before = Pt(sb)
         ms_fmt.space_after = Pt(sa)
         opts = {}
         opts['w:val'] = 'single'
         opts['w:sz'] = '6'
         # opts['w:space'] = '1'
+        if self.chars_state.font_color is not None:
+            opts['w:color'] = self.chars_state.font_color
         # opts['w:color'] = 'auto'
         ms_ppr = ms_par._p.get_or_add_pPr()
         ms_bdr = XML.add_tag(ms_ppr, 'w:pBdr', {})
         XML.add_tag(ms_bdr, 'w:bottom', opts)
+        self._apply_tail_font_revisers()
+
+    def _apply_head_font_revisers(self):
+        self.beg_chars_state = Paragraph.bridge_chars_state.copy()
+        self.chars_state = self.beg_chars_state.copy()
+        self.chars_state.apply_font_decorators(self.head_font_revisers)
+
+    def _apply_tail_font_revisers(self):
+        self.chars_state.apply_font_decorators(self.tail_font_revisers)
+        self.end_chars_state = self.chars_state.copy()
+        Paragraph.bridge_chars_state = self.end_chars_state.copy()
 
 
 class ParagraphBreakdown(Paragraph):
