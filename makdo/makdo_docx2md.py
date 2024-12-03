@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.03-12:12:10-JST>
+# Time-stamp:   <2024.12.03-15:31:11-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5553,13 +5553,18 @@ class Document:
                     dcmt += mcols[posi] + '\n\n'
                     posi += 1
                 continue
-            dcmt += p.get_document()
+            dcmt += p.get_document()  # main process
             if p.paragraph_class != 'empty' and p.paragraph_class != 'remarks':
                 dcmt += '\n'
         res = '^((?:.|\n)*?\n\n\\|(?:-+\\|)+\n\n)((?:\\|(?:-+\\|)+\n\n)*)$'
         if re.match(res, dcmt):
             dcmt = re.sub(res, '\\1', dcmt)
         dcmt = re.sub('\n+$', '\n', dcmt)
+        # SINGLE COLUMN DOCUMENT
+        if len(mcols) == 1:
+            if self.paragraphs[-1].paragraph_class == 'multicolumns':
+                if re.match('^\\|-\\|\n\n', dcmt):
+                    dcmt = re.sub('^\\|-\\|\n\n', '', dcmt)
         return dcmt
 
     def get_images(self):
