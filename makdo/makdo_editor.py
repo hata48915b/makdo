@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.03-16:10:30-JST>
+# Time-stamp:   <2024.12.04-08:08:53-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5051,14 +5051,40 @@ class LineDatum:
                 self.end_chars_state = chars_state.copy()
                 return
             # HORIZONTAL LINE
-            if re.match('^-{5,}\n$', line_text):
-                beg, end = str(i + 1) + '.0', str(i + 1) + '.end'
+            res_color = '(?:|R|red|Y|yellow|G|green|C|cyan|B|blue|M|magenta)'
+            res = '^' \
+                + '((?:\\^' + res_color + '\\^)?)' \
+                + '(-{5,})' \
+                + '((?:\\^' + res_color + '\\^)?)' \
+                + '\n$'
+            if re.match(res, line_text):
+                hfre = re.sub(res, '\\1', line_text)
+                line = re.sub(res, '\\2', line_text)
+                tfre = re.sub(res, '\\3', line_text)
+                hlen = len(hfre)
+                llen = len(line)
+                hcol = 'gray' if hfre == '^^' else hfre.replace('^', '')
+                tcol = 'gray' if tfre == '^^' else tfre.replace('^', '')
+                beg = str(i + 1) + '.0'
+                if hfre != '':
+                    key = chars_state.get_key(hcol)                     # 1.key
+                    end = str(i + 1) + '.' + str(hlen)                  # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    #                                                   # 5.tmp
+                    beg = end                                           # 6.beg
                 key = chars_state.get_key('hline')                      # 1.key
-                #                                                       # 2.end
+                end = str(i + 1) + '.' + str(hlen + llen)               # 2.end
                 txt.tag_add(key, beg, end)                              # 3.tag
                 #                                                       # 4.set
                 #                                                       # 5.tmp
-                #                                                       # 6.beg
+                beg = end                                               # 6.beg
+                if tfre != '':
+                    key = chars_state.get_key(tcol)                     # 1.key
+                    end = str(i + 1) + '.end'                           # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    #                                                   # 5.tmp
                 self.end_chars_state = chars_state.copy()
                 return
             # LENGTH REVISERS
@@ -5308,12 +5334,14 @@ class LineDatum:
                 beg = end                                               # 6.beg
                 continue
             # TABLE CONFIGURE
-            if (c == ':' and (c2 == '|' or c2 == '-' or c2 == ':')) or \
+            if ((c2 == '|' or c2 == '-' or c2 == ':') and c == ':') or \
                (c == ':' and c0 == '|') or \
                (c == '-' and c0 == '|') or \
-               (c == '-' and c2 == '|') or \
-               (c == '-' and c2 == ':') or \
-               ((c == '^' or c == '=') and c2 == '-'):
+               (c2 == '|' and c == '-') or \
+               (c2 == ':' and c == '-') or \
+               (c2 == ':' and c == '-') or \
+               (c2 == '-' and c == '^' and c0 != '^') or \
+               (c2 == '-' and c == '='):
                 key = chars_state.get_key('')                           # 1.key
                 end = str(i + 1) + '.' + str(j)                         # 2.end
                 txt.tag_add(key, beg, end)                              # 3.tag
