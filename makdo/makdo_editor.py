@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.02-18:15:24-JST>
+# Time-stamp:   <2024.12.03-13:45:21-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5696,7 +5696,8 @@ class LineDatum:
                 beg = end                                               # 6.beg
                 continue
             # KEYWORD
-            if Makdo.keywords_to_paint is not None:
+            if Makdo.keywords_to_paint is not None and \
+               Makdo.keywords_to_paint != '':
                 kws = []
                 kw = ''
                 for c in Makdo.keywords_to_paint + '|':
