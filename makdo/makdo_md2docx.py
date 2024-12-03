@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.03-13:36:11-JST>
+# Time-stamp:   <2024.12.03-16:17:36-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -60,10 +60,19 @@
 # NOTICE
 
 
-# LibreOfficeには、一つのファイルの中で、
-# ○●□■を半角文字と認識したり、全角文字と認識したりする
-# バグがあるので、注意が必要です。
-# （改行の次の行頭は、半角文字と認識するようです。）
+# ● LibreOfficeでは、
+#    一つのファイルの中で、
+#    ○●□■を半角文字と認識したり、全角文字と認識したりする
+#    バグがあるので、注意が必要です。
+#    （改行の次の行頭は、半角文字と認識するようです。）
+#
+# ● LibreOfficeでは、
+#    表のセルにおいて、右側の空白が無視されるので、
+#    注意が必要です。
+#
+# ● LibreOfficeでは、
+#    セクションの総ページ番号を適切に表示できないので、
+#    注意が必要です。
 
 
 ############################################################
@@ -4707,6 +4716,10 @@ class Paragraph:
             alte = re.sub(NOT_ESCAPED + RES_IMAGE, '\\2', chars)
             chars = re.sub(NOT_ESCAPED + RES_IMAGE, '\\1', chars)
             chars = XML.write_chars(ms_par._p, chars_state, chars)
+            capt = ''
+            if re.match('^(.*) "(.*)"$', path):
+                capt = re.sub('^(.*) "(.*)"$', '\\2', path)
+                path = re.sub('^(.*) "(.*)"$', '\\1', path)
             self.__write_image(ms_par, chars_state, alte, path)
         elif re.match(NOT_ESCAPED + '\\*\\*\\*$', chars):
             # "***" (ITALIC AND BOLD)
