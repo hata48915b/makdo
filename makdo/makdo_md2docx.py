@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.04-17:51:32-JST>
+# Time-stamp:   <2024.12.04-17:57:26-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6093,7 +6093,7 @@ class ParagraphHorizontalLine(Paragraph):
             + (length_docx['line spacing'] * 0.5 * line_spacing * f_size) \
             + length_docx['space before'] * line_spacing * f_size
         # ((2.14 - 1) * 0.25 * 12) - (2.14 * 12 * 0.20) = -1.716
-        sa = ((line_spacing - 1) * 0.25 * f_size) + 1.716+ 0.0001 \
+        sa = ((line_spacing - 1) * 0.25 * f_size) + 1.716 + 0.0001 \
             + (length_docx['line spacing'] * 0.5 * line_spacing * f_size) \
             + length_docx['space after'] * line_spacing * f_size
         # sm = min(sb, sa)

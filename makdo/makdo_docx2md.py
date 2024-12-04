@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.03-15:31:11-JST>
+# Time-stamp:   <2024.12.04-18:07:32-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -8735,8 +8735,10 @@ class ParagraphHorizontalLine(Paragraph):
         tmp_ls = 0.0
         tmp_sb = (sb_xml / 20)
         tmp_sa = (sa_xml / 20)
-        tmp_sb = tmp_sb - ((lnsp - 1) * 0.75 + 0.5) * f_size
-        tmp_sa = tmp_sa - ((lnsp - 1) * 0.25 + 0.5) * f_size
+        # ((2.14 - 1) * 0.75 * 12) - (2.14 * 12 * 0.50) = -2.58
+        tmp_sb = tmp_sb - (lnsp - 1) * 0.75 * f_size - 2.580 - 0.0001
+        # ((2.14 - 1) * 0.25 * 12) - (2.14 * 12 * 0.20) = -1.716
+        tmp_sa = tmp_sa - (lnsp - 1) * 0.25 * f_size - 1.716 - 0.0001
         tmp_sb = tmp_sb / lnsp / f_size
         tmp_sa = tmp_sa / lnsp / f_size
         tmp_sb = round(tmp_sb, 2)
