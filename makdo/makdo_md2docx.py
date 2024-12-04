@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.03-16:17:36-JST>
+# Time-stamp:   <2024.12.04-09:07:02-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -3832,8 +3832,8 @@ class RawParagraph:
             if re.match('^.*(  |\t|\u3000)$', ml.spaced_text):
                 ml.text = re.sub('<br>$', '  ', ml.text)
             while True:
-                if False:
-                    pass
+                if re.match('^-{5,}', ml.text):
+                    break  # horizontalline
                 elif re.match(res_cr, ml.text):
                     reviser = re.sub(res_cr, '\\1', ml.text)
                     ml.text = re.sub(res_cr, '\\5', ml.text)
@@ -5995,11 +5995,15 @@ class ParagraphMultiColumns(Paragraph):
     def _write_paragraph(ms_doc, md_text):
         while re.match('^.*\\|\\|.*$', md_text):
             md_text = re.sub('\\|\\|', '|-|', md_text)
-        num = md_text.count('|') - 1
+        wid = md_text.split('|')
+        wid.pop(0)
+        wid.pop(-1)
+        # ADD NEW SECTION
         ms_sec = ms_doc.add_section(WD_SECTION.CONTINUOUS)
-        # ms_sec = ms_doc.add_section()
+        # REMOVE OLD "<w:p>...<w:sectPr>...</w:sectPr>...</w:p>"
         e = ms_doc.paragraphs[-1]._element
         e.getparent().remove(e)
+        # REMAKE NEW "<w:p>...<w:sectPr>...</w:sectPr>...</w:p>"
         ms_par = ms_doc.add_paragraph()
         ms_ppr = ms_par._p.get_or_add_pPr()
         ms_spr = XML.add_tag(ms_ppr, 'w:sectPr', {})
@@ -6016,21 +6020,18 @@ class ParagraphMultiColumns(Paragraph):
                      'w:right': w_right,'w:left': w_left})
         XML.add_tag(ms_spr, 'w:docGrid', {'w:linePitch': '0'})
         ms_col = XML.add_tag(ms_spr, 'w:type', {'w:val': 'continuous'})
-        w_space = 720  # 3chars = 12*3*20 = 720
-        opt = {'w:num': str(num), 'w:space': '720', 'w:equalWidth': '0'}
+        w_num = str(md_text.count('|') - 1)
+        w_space = '720'  # 3chars = 12*3*20 = 720
+        opt = {'w:num': w_num, 'w:space': w_space, 'w:equalWidth': '0'}
         ms_col = XML.add_tag(ms_spr, 'w:cols', opt)
-        #
-        wid = md_text.split('|')
-        wid.pop(0)
-        wid.pop(-1)
+        # ADD "<w:col w:w="xxxx" w:space="720">"
         m = len(wid)
-        text_width = int(w_w) - int(w_left) - int(w_right) - (720 * (m - 1))
+        text_width \
+            = int(w_w) - int(w_left) - int(w_right) - (int(w_space) * (m - 1))
         unit_width = text_width / len(''.join(wid))
-        for i in range(m):
-            w = str(int(unit_width * len(wid[i])))
-            # 3chars = 12*3*20 = 720
-            XML.add_tag(ms_col, 'w:col', {'w:w': w, 'w:space': '720'})
-
+        for column_width in wid:
+            w_w = str(int(unit_width * len(column_width)))
+            XML.add_tag(ms_col, 'w:col', {'w:w': w_w, 'w:space': w_space})
 
 class ParagraphPagebreak(Paragraph):
 
