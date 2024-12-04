@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.04-09:07:02-JST>
+# Time-stamp:   <2024.12.04-17:51:32-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -72,6 +72,10 @@
 #
 # ● LibreOfficeでは、
 #    セクションの総ページ番号を適切に表示できないので、
+#    注意が必要です。
+#
+# ● MS WordとLibreOfficeでは、
+#    水平線の上下の間隔が違うので、
 #    注意が必要です。
 
 
@@ -1260,7 +1264,8 @@ class IO:
         # HORIZONTAL LINE
         ms_doc.styles.add_style('makdo-h', WD_STYLE_TYPE.PARAGRAPH)
         ms_doc.styles['makdo-h'].paragraph_format.line_spacing = 0
-        ms_doc.styles['makdo-h'].font.size = Pt(f_size * 0.5)
+        ms_doc.styles['makdo-h'].font.size = Pt(1)
+        # ms_doc.styles['makdo-h'].font.size = Pt(6)
         # MATH
         ms_doc.styles.add_style('makdo-m', WD_STYLE_TYPE.PARAGRAPH)
         # ms_doc.styles['makdo-m'].font.name = DEFAULT_MATH_FONT
@@ -6083,12 +6088,19 @@ class ParagraphHorizontalLine(Paragraph):
         ms_fmt.first_line_indent = Pt(length_docx['first indent'] * f_size)
         ms_fmt.left_indent = Pt(length_docx['left indent'] * f_size)
         ms_fmt.right_indent = Pt(length_docx['right indent'] * f_size)
-        sb = (((line_spacing - 1) * 0.75 + 0.5) * f_size) \
-            + (0.5 * length_docx['line spacing'] * line_spacing * f_size) \
+        # ((2.14 - 1) * 0.75 * 12) - (2.14 * 12 * 0.50) = -2.58
+        sb = ((line_spacing - 1) * 0.75 * f_size) + 2.580 + 0.0001 \
+            + (length_docx['line spacing'] * 0.5 * line_spacing * f_size) \
             + length_docx['space before'] * line_spacing * f_size
-        sa = (((line_spacing - 1) * 0.25 + 0.5) * f_size) \
-            + (0.5 * length_docx['line spacing'] * line_spacing * f_size) \
+        # ((2.14 - 1) * 0.25 * 12) - (2.14 * 12 * 0.20) = -1.716
+        sa = ((line_spacing - 1) * 0.25 * f_size) + 1.716+ 0.0001 \
+            + (length_docx['line spacing'] * 0.5 * line_spacing * f_size) \
             + length_docx['space after'] * line_spacing * f_size
+        # sm = min(sb, sa)
+        # if sm < 0:
+        #    sb -= sm
+        #    sa -= sm
+        print(str(sb) + '/' + str(sa))
         if sb < 0:
             msg = '※ 警告: ' \
                 + '段落前の余白「v」の値が小さ過ぎます'
@@ -6109,7 +6121,7 @@ class ParagraphHorizontalLine(Paragraph):
         opts = {}
         opts['w:val'] = 'single'
         opts['w:sz'] = '6'
-        # opts['w:space'] = '1'
+        # opts['w:space'] = '0'
         if self.chars_state.font_color is not None:
             opts['w:color'] = self.chars_state.font_color
         # opts['w:color'] = 'auto'
