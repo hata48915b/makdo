@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.04-17:57:26-JST>
+# Time-stamp:   <2024.12.05-09:04:34-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -3554,7 +3554,7 @@ class Document:
                 if i > 0:
                     if p.length_docx['space before'] < 0:
                         msg = '※ 警告: ' \
-                            + '段落前の余白「v」の値が小さ過ぎます'
+                            + '段落前の余白「v」の値が小さすぎます'
                         # msg = 'warning: ' \
                         #     + '"space before" is too small'
                         p.md_lines[0].append_warning_message(msg)
@@ -3574,7 +3574,7 @@ class Document:
                 if i < m:
                     if p.length_docx['space after'] < 0:
                         msg = '※ 警告: ' \
-                            + '段落前の余白「V」の値が小さ過ぎます'
+                            + '段落前の余白「V」の値が小さすぎます'
                         # msg = 'warning: ' \
                         #     + '"space after" is too small'
                         p.md_lines[0].append_warning_message(msg)
@@ -4577,7 +4577,7 @@ class Paragraph:
         else:
             ms_fmt.space_before = Pt(0)
             msg = '※ 警告: ' \
-                + '段落前の余白「v」の値が小さ過ぎます'
+                + '段落前の余白「v」の値が小さすぎます'
             # msg = 'warning: ' \
             #     + '"space before" is too small'
             self.md_lines[0].append_warning_message(msg)
@@ -4587,7 +4587,7 @@ class Paragraph:
         else:
             ms_fmt.space_after = Pt(0)
             msg = '※ 警告: ' \
-                + '段落後の余白「V」の値が小さ過ぎます'
+                + '段落後の余白「V」の値が小さすぎます'
             # msg = 'warning: ' \
             #     + '"space after" is too small'
             self.md_lines[0].append_warning_message(msg)
@@ -4601,7 +4601,7 @@ class Paragraph:
         else:
             ms_fmt.line_spacing = Pt(1.0 * f_size)
             msg = '※ 警告: ' \
-                + '行間隔「X」の値が少な過ぎます'
+                + '行間隔「X」の値が少なすぎます'
             # msg = 'warning: ' \
             #     + 'too small line spacing'
             self.md_lines[0].append_warning_message(msg)
@@ -5391,7 +5391,7 @@ class ParagraphTable(Paragraph):
                 else:
                     ms_fmt.line_spacing = Pt(1.0 * c_size)
                     msg = '※ 警告: ' \
-                        + '行間隔「X」の値が少な過ぎます'
+                        + '行間隔「X」の値が少なすぎます'
                     # msg = 'warning: ' \
                     #     + 'too small line spacing'
                     self.md_lines[0].append_warning_message(msg)
@@ -5785,7 +5785,7 @@ class ParagraphMath(Paragraph):
         else:
             ms_fmt.space_before = Pt(0)
             msg = '※ 警告: ' \
-                + '段落前の余白「v」の値が小さ過ぎます'
+                + '段落前の余白「v」の値が小さすぎます'
             # msg = 'warning: ' \
             #     + '"space before" is too small'
             self.md_lines[0].append_warning_message(msg)
@@ -5795,7 +5795,7 @@ class ParagraphMath(Paragraph):
         else:
             ms_fmt.space_after = Pt(0)
             msg = '※ 警告: ' \
-                + '段落後の余白「V」の値が小さ過ぎます'
+                + '段落後の余白「V」の値が小さすぎます'
             # msg = 'warning: ' \
             #     + '"space after" is too small'
             self.md_lines[0].append_warning_message(msg)
@@ -5809,7 +5809,7 @@ class ParagraphMath(Paragraph):
         else:
             ms_fmt.line_spacing = Pt(1.0 * f_size)
             msg = '※ 警告: ' \
-                + '行間隔「X」の値が少な過ぎます'
+                + '行間隔「X」の値が少なすぎます'
             # msg = 'warning: ' \
             #     + 'too small line spacing'
             self.md_lines[0].append_warning_message(msg)
@@ -6100,17 +6100,22 @@ class ParagraphHorizontalLine(Paragraph):
         # if sm < 0:
         #    sb -= sm
         #    sa -= sm
-        print(str(sb) + '/' + str(sa))
+        min_sb = (((line_spacing - 1) * 0.75 * f_size) + 2.580 + 0.0001) \
+            / line_spacing / f_size
+        min_sa = (((line_spacing - 1) * 0.25 * f_size) + 0.432 + 0.0001) \
+            / line_spacing / f_size
         if sb < 0:
             msg = '※ 警告: ' \
-                + '段落前の余白「v」の値が小さ過ぎます'
+                + '段落前の余白の値が小さすぎます\n' \
+                + '「X」の半分と「v」の合計は"-' + str(round(min_sb, 2)) + '"までです'
             # msg = 'warning: ' \
             #     + '"space before" is too small'
             self.md_lines[0].append_warning_message(msg)
             sb = 0
         if sa < 0:
             msg = '※ 警告: ' \
-                + '段落前の余白「V」の値が小さ過ぎます'
+                + '段落前の余白の値が小さすぎます\n' \
+                + '「X」の半分と「V」の合計は"-' + str(round(min_sa, 2)) + '"までです'
             # msg = 'warning: ' \
             #     + '"space after" is too small'
             self.md_lines[0].append_warning_message(msg)

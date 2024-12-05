@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.04-18:07:32-JST>
+# Time-stamp:   <2024.12.05-09:03:53-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4957,7 +4957,7 @@ class Document:
         self.paragraphs = self._modpar_one_line_paragraph()
         self.paragraphs = self._modpar_cancel_first_indent()
         # CHANGE VERTICAL LENGTH
-        self.paragraphs = self._modpar_vertical_length()
+        # self.paragraphs = self._modpar_vertical_length()
         # ISOLATE FONT REVISERS
         self.paragraphs = self._modpar_isolate_revisers()
         # RETURN
@@ -5409,51 +5409,53 @@ class Document:
             p.text_to_write_with_reviser = p._get_text_to_write_with_reviser()
         return self.paragraphs
 
-    def _modpar_vertical_length(self):
-        # |                  ->  |
-        # |<!--              ->  |<!--
-        # |space_before: ,1  ->  |space_before: ,1
-        # |space_after: ,1   ->  |space_after: ,1
-        # |-->               ->  |-->
-        # |                  ->  |
-        # |V=+1.0            ->  |V=+1.0
-        # |## 前段落1        ->  |## 前段落1
-        # |                  ->  |
-        # |v=-1.0            ->  |## 後段落1
-        # |## 後段落2        ->  |
-        # |                  ->  |## 前段落2
-        # |V=-1.0            ->  |
-        # |## 前段落3        ->  |v=+1.0
-        # |                  ->  |## 後段落2
-        # |v=+1.0            ->  |
-        # |## 後段落4        ->  |
-        # |                  ->  |
-        m = len(self.paragraphs) - 1
-        for i, p in enumerate(self.paragraphs):
-            p_prev = self.__get_prev_paragraph(self.paragraphs, i)
-            p_next = self.__get_next_paragraph(self.paragraphs, i)
-            for lr in p.length_revisers[::-1]:
-                # PREV
-                if p_prev is not None and re.match('^v=-.*', lr):
-                    must_remove = True
-                    for plr in p_prev.length_revisers:
-                        if re.match('^V=-.*', plr):
-                            must_remove = False
-                    if must_remove:
-                        if lr in p.length_revisers:
-                            p.length_revisers.remove(lr)
-                # NEXT
-                if p_next is not None and re.match('^V=-.*', lr):
-                    must_remove = True
-                    for nlr in p_next.length_revisers:
-                        if re.match('^v=-.*', nlr):
-                            must_remove = False
-                    if must_remove:
-                        if lr in p.length_revisers:
-                            p.length_revisers.remove(lr)
-            # RENEW
-            p.text_to_write_with_reviser = p._get_text_to_write_with_reviser()
-        return self.paragraphs
+    # REMOVED 24.12.05 >
+    # def _modpar_vertical_length(self):
+    #     # |                  ->  |
+    #     # |<!--              ->  |<!--
+    #     # |space_before: ,1  ->  |space_before: ,1
+    #     # |space_after: ,1   ->  |space_after: ,1
+    #     # |-->               ->  |-->
+    #     # |                  ->  |
+    #     # |V=+1.0            ->  |V=+1.0
+    #     # |## 前段落1        ->  |## 前段落1
+    #     # |                  ->  |
+    #     # |v=-1.0            ->  |## 後段落1
+    #     # |## 後段落2        ->  |
+    #     # |                  ->  |## 前段落2
+    #     # |V=-1.0            ->  |
+    #     # |## 前段落3        ->  |v=+1.0
+    #     # |                  ->  |## 後段落2
+    #     # |v=+1.0            ->  |
+    #     # |## 後段落4        ->  |
+    #     # |                  ->  |
+    #     m = len(self.paragraphs) - 1
+    #     for i, p in enumerate(self.paragraphs):
+    #         p_prev = self.__get_prev_paragraph(self.paragraphs, i)
+    #         p_next = self.__get_next_paragraph(self.paragraphs, i)
+    #         for lr in p.length_revisers[::-1]:
+    #             # PREV
+    #             if p_prev is not None and re.match('^v=-.*', lr):
+    #                 must_remove = True
+    #                 for plr in p_prev.length_revisers:
+    #                     if re.match('^V=-.*', plr):
+    #                         must_remove = False
+    #                 if must_remove:
+    #                     if lr in p.length_revisers:
+    #                         p.length_revisers.remove(lr)
+    #             # NEXT
+    #             if p_next is not None and re.match('^V=-.*', lr):
+    #                 must_remove = True
+    #                 for nlr in p_next.length_revisers:
+    #                     if re.match('^v=-.*', nlr):
+    #                         must_remove = False
+    #                 if must_remove:
+    #                     if lr in p.length_revisers:
+    #                         p.length_revisers.remove(lr)
+    #         # RENEW
+    #         p.text_to_write_with_reviser = p._get_text_to_write_with_reviser()
+    #     return self.paragraphs
+    # <
 
     def _modpar_isolate_revisers(self):
         # |           ->  |
@@ -8735,10 +8737,10 @@ class ParagraphHorizontalLine(Paragraph):
         tmp_ls = 0.0
         tmp_sb = (sb_xml / 20)
         tmp_sa = (sa_xml / 20)
-        # ((2.14 - 1) * 0.75 * 12) - (2.14 * 12 * 0.50) = -2.58
-        tmp_sb = tmp_sb - (lnsp - 1) * 0.75 * f_size - 2.580 - 0.0001
-        # ((2.14 - 1) * 0.25 * 12) - (2.14 * 12 * 0.20) = -1.716
-        tmp_sa = tmp_sa - (lnsp - 1) * 0.25 * f_size - 1.716 - 0.0001
+        # ((2.14 - 1) * 0.75 * 12) - (2.14 * 12 * 0.5) = -2.58
+        tmp_sb = tmp_sb - ((lnsp - 1) * 0.75 * f_size) - 2.580 - 0.0001
+        # ((2.14 - 1) * 0.25 * 12) - (2.14 * 12 * 0.2) = -1.716
+        tmp_sa = tmp_sa - ((lnsp - 1) * 0.25 * f_size) - 1.716 - 0.0001
         tmp_sb = tmp_sb / lnsp / f_size
         tmp_sa = tmp_sa / lnsp / f_size
         tmp_sb = round(tmp_sb, 2)
