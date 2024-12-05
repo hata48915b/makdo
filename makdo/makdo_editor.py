@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.05-14:00:30-JST>
+# Time-stamp:   <2024.12.05-14:10:47-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6954,11 +6954,11 @@ class Makdo:
                     n = 'エラー'
                     m = '自動保存ファイルの作成に\n' \
                         + '失敗しました．\n\n' \
-                        + 'フォルダの書込み権限の有無を\n' \
-                        + 'ご確認ください．\n\n' \
                         + '異常終了してしまった場合に、\n' \
-                        + '編集中のデータが失われる可能性が\n' \
-                        + 'あります．'
+                        + '編集中のデータが失われてしまう\n' \
+                        + '可能性があります．\n\n' \
+                        + 'フォルダの書込み権限の有無を\n' \
+                        + 'ご確認ください．'
                     tkinter.messagebox.showerror(n, m)
                     self.must_show_auto_file_save_failed_message = False
             self.txt.focus_force()
