@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.04-08:08:53-JST>
+# Time-stamp:   <2024.12.05-14:00:30-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6944,10 +6944,24 @@ class Makdo:
                         old_text = f.read()
                         if new_text == old_text.decode():
                             return
-            with zipfile.ZipFile(auto_path, 'w',
-                                 compression=zipfile.ZIP_DEFLATED,
-                                 compresslevel=9) as new_zip:
-                new_zip.writestr('doc.md', new_text)
+            try:
+                with zipfile.ZipFile(auto_path, 'w',
+                                     compression=zipfile.ZIP_DEFLATED,
+                                     compresslevel=9) as new_zip:
+                    new_zip.writestr('doc.md', new_text)
+            except BaseException:
+                if 'must_show_auto_file_save_failed_message' not in locals():
+                    n = 'エラー'
+                    m = '自動保存ファイルの作成に\n' \
+                        + '失敗しました．\n\n' \
+                        + 'フォルダの書込み権限の有無を\n' \
+                        + 'ご確認ください．\n\n' \
+                        + '異常終了してしまった場合に、\n' \
+                        + '編集中のデータが失われる可能性が\n' \
+                        + 'あります．'
+                    tkinter.messagebox.showerror(n, m)
+                    self.must_show_auto_file_save_failed_message = False
+            self.txt.focus_force()
 
     def remove_auto_file(self, file_path):
         if file_path is not None and file_path != '':
