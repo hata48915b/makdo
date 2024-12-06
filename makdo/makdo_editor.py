@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.06-09:19:15-JST>
+# Time-stamp:   <2024.12.06-09:22:43-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -13919,7 +13919,6 @@ class Makdo:
         self.run_periodically += interval
         if self.run_periodically >= 60_000:  # 1min
             self.run_periodically = 0
-        print(self.run_periodically)
         # EXECUTE
         if focus is not None:
             n = self.run_periodically
