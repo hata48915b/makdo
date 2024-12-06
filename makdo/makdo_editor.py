@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.06-10:55:58-JST>
+# Time-stamp:   <2024.12.06-11:14:32-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6730,7 +6730,11 @@ class Makdo:
             self.set_message_on_status_bar('保存済みです')
             return False
         else:
+            print(file_text)
             file_text = self.txt.get('1.0', 'end-1c')
+            if file_text[-1] != '\n':
+                file_text += '\n'
+                self.txt.insert('end', '\n')
             self._stamp_config(file_text)
             if file_text == '' or file_text[-1] != '\n':
                 self.txt.insert('end', '\n')
@@ -7846,7 +7850,7 @@ class Makdo:
                                 beg + '+' + str(len(sub + t[0])) + 'c')
                     pane.insert(beg + '+' + str(len(sub)) + 'c', t[1])
         pane.insert(beg, '<!--')
-        pane.insert(end + '+4c', '-->')
+        pane.insert(end + '+4c', '-->')  # 4c = "<!--"
         if pane.tag_ranges('sel'):
             pane.tag_remove('sel', "1.0", "end")
         elif 'akauni' in pane.mark_names():
