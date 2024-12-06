@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.05-14:10:47-JST>
+# Time-stamp:   <2024.12.06-09:19:15-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6950,7 +6950,7 @@ class Makdo:
                                      compresslevel=9) as new_zip:
                     new_zip.writestr('doc.md', new_text)
             except BaseException:
-                if 'must_show_auto_file_save_failed_message' not in locals():
+                if 'must_show_auto_file_save_failed_message' not in vars(self):
                     n = 'エラー'
                     m = '自動保存ファイルの作成に\n' \
                         + '失敗しました．\n\n' \
@@ -12720,7 +12720,6 @@ class Makdo:
     def txt_process_key(self, key):
         self.destroy_splash_screen()
         self.current_pane = 'txt'
-        self.set_position_info_on_status_bar()
         is_read_only = self.is_read_only.get()
         if is_read_only:
             return self.read_only_process_key(self.txt, key)
@@ -12738,6 +12737,7 @@ class Makdo:
             return self.read_and_write_process_key(self.sub, key)
 
     def txt_process_key_release(self, key):
+        self.set_position_info_on_status_bar()
         is_read_only = self.is_read_only.get()
         if not is_read_only:
             vp = self._get_v_position_of_insert(self.txt)
@@ -13896,13 +13896,41 @@ class Makdo:
     # RUN PERIODICALLY
 
     def run_periodically(self):
-        self.run_periodically_to_paint_line()
-        self.run_periodically_to_set_position_info()
-        self.run_periodically_to_save_auto_file()
-        self.run_periodically_to_update_memo_pad()
+        self.save_auto_file(self.file_path)  # must execute immediately
+        self.run_periodically = 0
+        self.__run_periodically()
 
     ##########################
     # COMMAND
+
+    def __run_periodically(self):
+        # FOCUS
+        try:
+            focus = self.win.focus_get()
+        except BaseException:
+            focus = None
+        # NEXT
+        if focus is None:
+            interval = 1_000  # 10ms
+        else:
+            interval = 10     # 10ms
+        self.win.after(interval, self.__run_periodically)
+        # NUMBER
+        self.run_periodically += interval
+        if self.run_periodically >= 60_000:  # 1min
+            self.run_periodically = 0
+        print(self.run_periodically)
+        # EXECUTE
+        if focus is not None:
+            n = self.run_periodically
+            if (n % 60_000) == 0:  # 1 / 60,000ms
+                self.save_auto_file(self.file_path)
+            if (n % 1_000) == 0:   # 1 /  1,000ms
+                self.update_memo_pad()
+            if (n % 100) == 0:     # 1 /    100ms
+                self.set_position_info_on_status_bar()
+            if True:               # 1 /      10ms
+                self.run_periodically_to_paint_line()
 
     def run_periodically_to_paint_line(self):
         # GLOBAL PAINTING
@@ -13936,25 +13964,8 @@ class Makdo:
                              'end-1c', 'end')
         self.sub.tag_remove('eof_tag', '1.0', 'end')
         self.sub.tag_add('eof_tag', 'end-1c', 'end')
-        # TO NEXT
-        interval = 10
-        self.win.after(interval, self.run_periodically_to_paint_line)  # NEXT
 
-    def run_periodically_to_set_position_info(self):
-        self.set_position_info_on_status_bar()
-        interval = 100
-        self.win.after(interval, self.run_periodically_to_set_position_info)
-
-    def run_periodically_to_save_auto_file(self):
-        self.save_auto_file(self.file_path)
-        interval = 60_000
-        self.win.after(interval, self.run_periodically_to_save_auto_file)
-
-    def run_periodically_to_update_memo_pad(self):
-        self.update_memo_pad()
-        interval = 1_000
-        self.win.after(interval, self.run_periodically_to_update_memo_pad)
-
+    ####################################
     # NOT PYINSTALLER
     if not getattr(sys, 'frozen', False):
 
