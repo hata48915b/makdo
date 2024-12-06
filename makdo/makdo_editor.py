@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.06-11:14:32-JST>
+# Time-stamp:   <2024.12.06-13:29:38-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6726,15 +6726,15 @@ class Makdo:
         return tkinter.messagebox.askyesnocancel(n, m, default=d)
 
     def save_file(self):
+        file_text = self.txt.get('1.0', 'end-1c')
+        if file_text[-1] != '\n':
+            file_text += '\n'
+            self.txt.insert('end', '\n')
+            self._put_back_cursor_to_pane(self.txt)
         if not self._has_edited():
             self.set_message_on_status_bar('保存済みです')
             return False
         else:
-            print(file_text)
-            file_text = self.txt.get('1.0', 'end-1c')
-            if file_text[-1] != '\n':
-                file_text += '\n'
-                self.txt.insert('end', '\n')
             self._stamp_config(file_text)
             if file_text == '' or file_text[-1] != '\n':
                 self.txt.insert('end', '\n')
@@ -6760,9 +6760,13 @@ class Makdo:
                         os.rename(self.file_path, self.file_path + '~')
                         self.has_made_backup_file = True
                     except BaseException:
-                        n, m = 'エラー', 'バックアップに失敗しました．'
-                        tkinter.messagebox.showerror(n, m)
-                        return False
+                        n = 'エラー'
+                        m = 'バックアップに失敗しました．\n\n' \
+                            + 'ファイルを上書きして保存しますか？'
+                        d = 'no'
+                        r = tkinter.messagebox.askyesnocancel(n, m, default=d)
+                        if (r is None) or (not r):
+                            return False
             # DOCX OR MD
             if re.match('^(?:.|\n)+.docx$', self.file_path):
                 md_path = self.temp_dir.name + '/doc.md'
