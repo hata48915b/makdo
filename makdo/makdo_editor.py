@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.06-13:29:38-JST>
+# Time-stamp:   <2024.12.06-13:44:46-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -155,7 +155,7 @@ COLOR_SPACE = (
     ('#B01DFF', '#C75DFF', '#DD9EFF', '#F4DFFF'),  # 280 : par8
     ('#D312FF', '#E056FF', '#EC9AFF', '#F9DDFF'),  # 290 : par9
     ('#FF05FF', '#FF4DFF', '#FF94FF', '#FFDBFF'),  # 300 : keyZ
-    ('#FF0AD2', '#FF50DF', '#FF96EC', '#FFDCF9'),  # 310 :
+    ('#FF0AD2', '#FF50DF', '#FF96EC', '#FFDCF9'),  # 310 : escape
     ('#FF0EAB', '#FF53C3', '#FF98DB', '#FFDDF3'),  # 320 :
     ('#FF1188', '#FF55AA', '#FF99CC', '#FFDDEE'),  # 330 : list, fnumb
     ('#FF1566', '#FF5892', '#FF9BBE', '#FFDEE9'),  # 340 :
@@ -4951,6 +4951,8 @@ class CharsState:
             key += '-290'
         elif chars == '<br>' or chars == '<pgbr>' or chars == 'hline':
             key += '-270'
+        elif chars == 'escape':
+            key += '-310'
         elif chars == 'R' or chars == 'red':
             key += '-0'
         elif chars == 'Y' or chars == 'yellow':
@@ -4964,7 +4966,7 @@ class CharsState:
         elif chars == 'M' or chars == 'magenta':
             key += '-300'
         elif chars == 'gray':
-            key += '-360'
+            key += '-360'  # gray
         elif chars == 'fold':
             key += '-10'
         elif self.is_length_reviser:
@@ -5119,6 +5121,21 @@ class LineDatum:
             c5 = line_text[j - 4] if j > 3 else ''
             s_lft = line_text[:j + 1]
             s_rgt = line_text[j + 1:]
+            # ESCAPE SYMBOL
+            if c == '\\':
+                key = chars_state.get_key('')                           # 1.key
+                end = str(i + 1) + '.' + str(j)                         # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                # tmp = '\\'                                            # 5.tmp
+                beg = end                                               # 6.beg
+                key = chars_state.get_key('escape')                     # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                tmp = ''                                                # 5.tmp
+                beg = end                                               # 6.beg
+                continue
             # BEGINNING OF COMMENT "<!--"
             if (not chars_state.is_in_comment and s4 == '<!--') and \
                (c5 != '\\' or re.match(NOT_ESCAPED + '<!--$', tmp)):
