@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.06-13:44:46-JST>
+# Time-stamp:   <2024.12.07-06:09:34-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4786,7 +4786,7 @@ class CharsState:
         self.chapter_depth = 0
         self.section_depth = 0
 
-    def set_is_in_comment(self):
+    def toggle_is_in_comment(self):
         self.is_in_comment = not self.is_in_comment
 
     def set_del_or_ins(self, del_or_ins):
@@ -5142,7 +5142,7 @@ class LineDatum:
                 key = chars_state.get_key('')                           # 1.key
                 end = str(i + 1) + '.' + str(j - 3)                     # 2.end
                 txt.tag_add(key, beg, end)                              # 3.tag
-                chars_state.set_is_in_comment()                         # 4.set
+                chars_state.toggle_is_in_comment()                      # 4.set
                 tmp = '<!--'                                            # 5.tmp
                 beg = end                                               # 6.beg
                 continue
@@ -5152,7 +5152,7 @@ class LineDatum:
                 key = chars_state.get_key('')                           # 1.key
                 end = str(i + 1) + '.' + str(j + 1)                     # 2.end
                 txt.tag_add(key, beg, end)                              # 3.tag
-                chars_state.set_is_in_comment()                         # 4.set
+                chars_state.toggle_is_in_comment()                      # 4.set
                 tmp = ''                                                # 5.tmp
                 beg = end                                               # 6.beg
                 continue
