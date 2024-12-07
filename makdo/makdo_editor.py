@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.07-09:10:00-JST>
+# Time-stamp:   <2024.12.07-09:15:27-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -13936,7 +13936,7 @@ class Makdo:
         if focus is None:
             interval = 1_000  # 10ms
         else:
-            interval = 10     # 10ms
+            interval = 20     # 20ms
         self.win.after(interval, self.__run_periodically)
         # NUMBER
         self.run_periodically += interval
@@ -13951,7 +13951,7 @@ class Makdo:
                 self.update_memo_pad()
             if (n % 100) == 0:     # 1 /    100ms
                 self.set_position_info_on_status_bar()
-            if True:               # 1 /      10ms
+            if True:               # 1 /     20ms
                 self.run_periodically_to_paint_line()
 
     def run_periodically_to_paint_line(self):
