@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.07-06:09:34-JST>
+# Time-stamp:   <2024.12.07-08:59:43-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5031,15 +5031,17 @@ class LineDatum:
         line_text = self.line_text
         chars_state = self.beg_chars_state.copy()
         self.paint_keywords = paint_keywords
+        # EMPTY LINE
+        if line_text == '':
+            self.end_chars_state = chars_state.copy()
+            return
         # RESET TAG
         for tag in txt.tag_names():
             if tag == 'IMEmarkedtext':  # macos ime
                 continue
             if tag != 'search_tag':
                 txt.tag_remove(tag, str(i + 1) + '.0', str(i + 1) + '.end')
-        if line_text == '':
-            self.end_chars_state = chars_state.copy()
-            return
+        # LINE
         if not chars_state.is_in_comment:
             # PAGE BREAK
             if line_text == '<pgbr>\n':
@@ -5105,7 +5107,7 @@ class LineDatum:
                 if re.match(res, line_text):
                     dep = len(re.sub(res, '\\1', line_text))
                     chars_state.set_section_depth(dep)
-        # LOOP
+        # PARTS
         beg, tmp = str(i + 1) + '.0', ''
         for j, c in enumerate(line_text):
             tmp += c
@@ -5121,429 +5123,449 @@ class LineDatum:
             c5 = line_text[j - 4] if j > 3 else ''
             s_lft = line_text[:j + 1]
             s_rgt = line_text[j + 1:]
-            # ESCAPE SYMBOL
-            if c == '\\':
-                key = chars_state.get_key('')                           # 1.key
-                end = str(i + 1) + '.' + str(j)                         # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                # tmp = '\\'                                            # 5.tmp
-                beg = end                                               # 6.beg
-                key = chars_state.get_key('escape')                     # 1.key
-                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                tmp = ''                                                # 5.tmp
-                beg = end                                               # 6.beg
-                continue
-            # BEGINNING OF COMMENT "<!--"
-            if (not chars_state.is_in_comment and s4 == '<!--') and \
-               (c5 != '\\' or re.match(NOT_ESCAPED + '<!--$', tmp)):
-                key = chars_state.get_key('')                           # 1.key
-                end = str(i + 1) + '.' + str(j - 3)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                chars_state.toggle_is_in_comment()                      # 4.set
-                tmp = '<!--'                                            # 5.tmp
-                beg = end                                               # 6.beg
-                continue
-            # END OF COMMENT "-->"
-            if (chars_state.is_in_comment and s3 == '-->') and \
-               (c4 != '\\' or re.match(NOT_ESCAPED + '-->$', tmp)):
+            # END OF THE LINE "\n"
+            if c1 == '\n':
                 key = chars_state.get_key('')                           # 1.key
                 end = str(i + 1) + '.' + str(j + 1)                     # 2.end
                 txt.tag_add(key, beg, end)                              # 3.tag
-                chars_state.toggle_is_in_comment()                      # 4.set
-                tmp = ''                                                # 5.tmp
-                beg = end                                               # 6.beg
+                #                                                       # 4.set
+                #                                                       # 5.tmp
+                #                                                       # 6.beg
+                break
+            # COMMENT
+            if c.isascii():
+                if s4 == '<!--' and not chars_state.is_in_comment and \
+                   (c5 != '\\' or re.match(NOT_ESCAPED + '<!--$', tmp)):
+                    key = chars_state.get_key('')                       # 1.key
+                    end = str(i + 1) + '.' + str(j - 3)                 # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    chars_state.toggle_is_in_comment()                  # 4.set
+                    tmp = '<!--'                                        # 5.tmp
+                    beg = end                                           # 6.beg
+                    continue
+                if s3 == '-->' and chars_state.is_in_comment and \
+                   (c4 != '\\' or re.match(NOT_ESCAPED + '-->$', tmp)):
+                    key = chars_state.get_key('')                       # 1.key
+                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    chars_state.toggle_is_in_comment()                  # 4.set
+                    tmp = ''                                            # 5.tmp
+                    beg = end                                           # 6.beg
+                    continue
+            if chars_state.is_in_comment and c1 != '\n':
                 continue
-            # LIST
-            if not chars_state.is_in_comment and j == 0 and \
-               c == '-' and c0 != '\n' and re.match('\\s', c0):
-                key = chars_state.get_key('list')                       # 1.key
-                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                tmp = ''                                                # 5.tmp
-                beg = end                                               # 6.beg
-                continue
-            if not chars_state.is_in_comment and j == 1 and \
-               re.match('^[0-9]$', c2) and c == '.' and re.match('\\s', c0):
-                key = chars_state.get_key('half number')
-                txt.tag_remove(key, str(i + 1) + '.0', str(i + 1) + '.1')
-                beg, end = str(i + 1) + '.0', str(i + 1) + '.' + str(j + 1)
-                key = chars_state.get_key('list')                       # 1.key
-                #                                                       # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                tmp = ''                                                # 5.tmp
-                beg = end                                               # 6.beg
-                continue
-            # ALIGNMENT
-            if not chars_state.is_in_comment and j == 0 and \
-               c == ':' and re.match('\\s', c0):
-                key = chars_state.get_key('alignment')                  # 1.key
-                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                tmp = ''                                                # 5.tmp
-                beg = end                                               # 6.beg
-                continue
-            if not chars_state.is_in_comment and j >= 2 and \
-               re.match('\\s', c3) and c2 == ':' and c == '\n':
-                key = chars_state.get_key('')                           # 1.key
-                end = str(i + 1) + '.' + str(j - 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                # tmp = ':\n'                                           # 5.tmp
-                beg = end                                               # 6.beg
-                key = chars_state.get_key('alignment')                  # 1.key
-                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                tmp = ''                                                # 5.tmp
-                beg = end                                               # 6.beg
-                continue
-            # DEL ("->", "<-")
-            if ((chars_state.del_or_ins == '' and s2 == '->' and
-                 (c3 != '\\' or re.match(NOT_ESCAPED + '\\->$', tmp))) or
-                (chars_state.del_or_ins == 'del' and s2 == '<-' and
-                 (c3 != '\\' or re.match(NOT_ESCAPED + '<\\-$', tmp)))):
-                key = chars_state.get_key('')                           # 1.key
-                end = str(i + 1) + '.' + str(j - 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                chars_state.set_del_or_ins('del')                       # 4.set
-                # tmp = '->' or '<-'                                    # 5.tmp
-                beg = end                                               # 6.beg
-                key = 'c-20-1-g-x'                                      # 1.key
-                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                tmp = ''                                                # 5.tmp
-                beg = end                                               # 6.beg
-                continue
-            # INS ("+>", "<+")
-            if ((chars_state.del_or_ins == '' and s2 == '+>' and
-                 (c3 != '\\' or re.match(NOT_ESCAPED + '\\+>$', tmp))) or
-                (chars_state.del_or_ins == 'ins' and s2 == '<+' and
-                 (c3 != '\\' or re.match(NOT_ESCAPED + '<\\+$', tmp)))):
-                key = chars_state.get_key('')                           # 1.key
-                end = str(i + 1) + '.' + str(j - 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                chars_state.set_del_or_ins('ins')                       # 4.set
-                # tmp = '+>' or '<+'                                    # 5.tmp
-                beg = end                                               # 6.beg
-                key = 'c-200-1-g-x'                                     # 1.key
-                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                tmp = ''                                                # 5.tmp
-                beg = end                                               # 6.beg
-                continue
-            # LINE BREAK
-            if (not chars_state.is_in_comment) and re.match('^.*<br>$', tmp):
-                key = chars_state.get_key('')                           # 1.key
-                end = str(i + 1) + '.' + str(j - 3)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                # tmp = <br>                                            # 5.tmp
-                beg = end                                               # 6.beg
-                key = chars_state.get_key('<br>')                       # 1.key
-                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                tmp = ''                                                # 5.tmp
-                beg = end                                               # 6.beg
-                continue
-            # RELAX
-            if (not chars_state.is_in_comment) and \
-               re.match('^.*<>$', tmp):
-                key = chars_state.get_key('')                           # 1.key
-                end = str(i + 1) + '.' + str(j - 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                # tmp = '<>'                                            # 5.tmp
-                beg = end                                               # 6.beg
-                key = chars_state.get_key('font decorator')             # 1.key
-                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                tmp = ''                                                # 5.tmp
-                beg = end                                               # 6.beg
-                continue
-            # SPACE (<X>)
-            if ((re.match('^.*<\\s*[0-9]+$', s_lft) and
-                 re.match('^[0-9]*\\s*>.*$', s_rgt)) or
-                (re.match('^.*<\\s*[0-9]+$', s_lft) and
-                 re.match('^[0-9]*\\.[0-9]+\\s*>.*$', s_rgt)) or
-                (re.match('^.*<\\s*[0-9]*\\.$', s_lft) and
-                 re.match('^[0-9]+\\s*>.*$', s_rgt)) or
-                (re.match('^.*<\\s*[0-9]*\\.[0-9]+$', s_lft) and
-                 re.match('^[0-9]*\\s*>.*$', s_rgt))):
-                key = chars_state.get_key('')                           # 1.key
-                end = str(i + 1) + '.' + str(j)                         # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                # tmp = '[0-9]'                                         # 5.tmp
-                beg = end                                               # 6.beg
-                key = chars_state.get_key('font decorator')             # 1.key
-                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                tmp = ''                                                # 5.tmp
-                beg = end                                               # 6.beg
-                continue
-            if re.match('^.*<$', s_lft) and \
-               re.match('^\\s*[\\.0-9]+\\s*>.*$', s_rgt):
-                key = chars_state.get_key('')                           # 1.key
-                end = str(i + 1) + '.' + str(j)                         # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                # tmp = '<'                                             # 5.tmp
-                beg = end                                               # 6.beg
-                key = chars_state.get_key('font decorator')             # 1.key
-                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                tmp = ''                                                # 5.tmp
-                beg = end                                               # 6.beg
-                continue
-            if re.match('^.*<\\s*[\\.0-9]+\\s*>$', s_lft):
-                key = chars_state.get_key('font decorator')             # 1.key
-                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                tmp = ''                                                # 5.tmp
-                beg = end                                               # 6.beg
-                continue
-            # COLOR
-            res_color = '(R|red|Y|yellow|G|green|C|cyan|B|blue|M|magenta)'
-            if ((not chars_state.is_in_comment) and
-                (re.match('^.*_' + res_color + '_$', tmp) or
-                 re.match('^.*\\^' + res_color + '\\^$', tmp))):
-                res = '^(.*)[_\\^]' + res_color + '[_\\^]$'
-                mdt = re.sub(res, '\\1', tmp)
-                col = re.sub(res, '\\2', tmp)
-                key = chars_state.get_key('')                           # 1.key
-                end = str(i + 1) + '.' + str(j - len(col) - 1)          # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                # tmp = '_.+_' or '^.+^'                                # 5.tmp
-                beg = end                                               # 6.beg
-                key = chars_state.get_key(col)                          # 1.key
-                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                tmp = ''                                                # 5.tmp
-                beg = end                                               # 6.beg
-                continue
-            if (not chars_state.is_in_comment) and re.match('^.*\\^\\^$', tmp):
-                key = chars_state.get_key('')                           # 1.key
-                end = str(i + 1) + '.' + str(j - 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                # tmp = '^^'                                            # 5.tmp
-                beg = end                                               # 6.beg
-                key = chars_state.get_key('gray')                       # 1.key
-                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                tmp = ''                                                # 5.tmp
-                beg = end                                               # 6.beg
-                continue
-            # TABLE CONFIGURE
-            if ((c2 == '|' or c2 == '-' or c2 == ':') and c == ':') or \
-               (c == ':' and c0 == '|') or \
-               (c == '-' and c0 == '|') or \
-               (c2 == '|' and c == '-') or \
-               (c2 == ':' and c == '-') or \
-               (c2 == ':' and c == '-') or \
-               (c2 == '-' and c == '^' and c0 != '^') or \
-               (c2 == '-' and c == '='):
-                key = chars_state.get_key('')                           # 1.key
-                end = str(i + 1) + '.' + str(j)                         # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                # tmp = ':'                                             # 5.tmp
-                beg = end                                               # 6.beg
-                key = chars_state.get_key('font decorator')             # 1.key
-                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                tmp = ''                                                # 5.tmp
-                beg = end                                               # 6.beg
-                continue
-            # FONT DECORATOR ("---", "+++", ">>>", "<<<")
-            if (not chars_state.is_in_comment) and \
-               (s3 == '---' or s3 == '+++' or s3 == '>>>' or s3 == '<<<') and \
-               (c4 != '\\' or re.match(NOT_ESCAPED + '...$', tmp)):
-                key = chars_state.get_key('')                           # 1.key
-                end = str(i + 1) + '.' + str(j - 2)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                tmp = re.sub('^(.*)(...)$', '\\2', tmp)                 # 5.tmp
-                beg = end                                               # 6.beg
-                key = chars_state.get_key('font decorator')             # 1.key
-                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                res1, res2 = '^.*:-+$', '^-*:.*$'
-                if not re.match(res1, s_lft) and not re.match(res2, s_rgt):
-                    if tmp == '---' or tmp == '+++':
-                        chars_state.set_is_resized(tmp)                 # 4.set
-                    else:
-                        chars_state.set_is_stretched(tmp)               # 4.set
-                tmp = ''                                                # 5.tmp
-                beg = end                                               # 6.beg
-                continue
-            # FONT DECORATOR ("--", "++", ">>", "<<")
-            if (not chars_state.is_in_comment) and \
-               (s2 == '--' or s2 == '++' or s2 == '>>' or s2 == '<<') and \
-               (c0 != c1) and \
-               (c3 != '\\' or re.match(NOT_ESCAPED + '..$', tmp)):
-                key = chars_state.get_key('')                           # 1.key
-                end = str(i + 1) + '.' + str(j - 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                tmp = re.sub('^(.*)(..)$', '\\2', tmp)                  # 5.tmp
-                beg = end                                               # 6.beg
-                key = chars_state.get_key('font decorator')             # 1.key
-                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                res1, res2 = '^.*:-+$', '^-*:.*$'
-                if not re.match(res1, s_lft) and not re.match(res2, s_rgt):
-                    res = '^=[-\\+]?[0-9]*(\\.?[0-9]+)(\\s.*)?$'
-                    if s2 != '<<' or not re.match(res, s_rgt):
-                        if tmp == '--' or tmp == '++':
+            # ASCII
+            if c.isascii():
+                # ESCAPE SYMBOL
+                if c == '\\':
+                    key = chars_state.get_key('')                       # 1.key
+                    end = str(i + 1) + '.' + str(j)                     # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    # tmp = '\\'                                        # 5.tmp
+                    beg = end                                           # 6.beg
+                    key = chars_state.get_key('escape')                 # 1.key
+                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    tmp = ''                                            # 5.tmp
+                    beg = end                                           # 6.beg
+                    continue
+                # LIST
+                if j == 0 and c == '-' and c0 != '\n' and re.match('\\s', c0):
+                    key = chars_state.get_key('list')                   # 1.key
+                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    tmp = ''                                            # 5.tmp
+                    beg = end                                           # 6.beg
+                    continue
+                if j == 1 and re.match('^[0-9]$', c2) and c == '.' and \
+                   re.match('\\s', c0):
+                    key = chars_state.get_key('half number')
+                    txt.tag_remove(key, str(i + 1) + '.0', str(i + 1) + '.1')
+                    beg, end = str(i + 1) + '.0', str(i + 1) + '.' + str(j + 1)
+                    key = chars_state.get_key('list')                   # 1.key
+                    #                                                   # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    tmp = ''                                            # 5.tmp
+                    beg = end                                           # 6.beg
+                    continue
+                # ALIGNMENT
+                if j == 0 and c == ':' and re.match('\\s', c0):
+                    key = chars_state.get_key('alignment')              # 1.key
+                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    tmp = ''                                            # 5.tmp
+                    beg = end                                           # 6.beg
+                    continue
+                if j >= 2 and re.match('\\s', c3) and c2 == ':' and c == '\n':
+                    key = chars_state.get_key('')                       # 1.key
+                    end = str(i + 1) + '.' + str(j - 1)                 # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    # tmp = ':\n'                                       # 5.tmp
+                    beg = end                                           # 6.beg
+                    key = chars_state.get_key('alignment')              # 1.key
+                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    tmp = ''                                            # 5.tmp
+                    beg = end                                           # 6.beg
+                    continue
+                # DEL ("->", "<-")
+                if ((chars_state.del_or_ins == '' and s2 == '->' and
+                     (c3 != '\\' or re.match(NOT_ESCAPED + '\\->$', tmp))) or
+                    (chars_state.del_or_ins == 'del' and s2 == '<-' and
+                     (c3 != '\\' or re.match(NOT_ESCAPED + '<\\-$', tmp)))):
+                    key = chars_state.get_key('')                       # 1.key
+                    end = str(i + 1) + '.' + str(j - 1)                 # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    chars_state.set_del_or_ins('del')                   # 4.set
+                    # tmp = '->' or '<-'                                # 5.tmp
+                    beg = end                                           # 6.beg
+                    key = 'c-20-1-g-x'                                  # 1.key
+                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    tmp = ''                                            # 5.tmp
+                    beg = end                                           # 6.beg
+                    continue
+                # INS ("+>", "<+")
+                if ((chars_state.del_or_ins == '' and s2 == '+>' and
+                     (c3 != '\\' or re.match(NOT_ESCAPED + '\\+>$', tmp))) or
+                    (chars_state.del_or_ins == 'ins' and s2 == '<+' and
+                     (c3 != '\\' or re.match(NOT_ESCAPED + '<\\+$', tmp)))):
+                    key = chars_state.get_key('')                       # 1.key
+                    end = str(i + 1) + '.' + str(j - 1)                 # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    chars_state.set_del_or_ins('ins')                   # 4.set
+                    # tmp = '+>' or '<+'                                # 5.tmp
+                    beg = end                                           # 6.beg
+                    key = 'c-200-1-g-x'                                 # 1.key
+                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    tmp = ''                                            # 5.tmp
+                    beg = end                                           # 6.beg
+                    continue
+                # LINE BREAK
+                if s4 == '<br>':
+                    key = chars_state.get_key('')                       # 1.key
+                    end = str(i + 1) + '.' + str(j - 3)                 # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    # tmp = <br>                                        # 5.tmp
+                    beg = end                                           # 6.beg
+                    key = chars_state.get_key('<br>')                   # 1.key
+                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    tmp = ''                                            # 5.tmp
+                    beg = end                                           # 6.beg
+                    continue
+                # RELAX
+                if s2 == '<>':
+                    key = chars_state.get_key('')                       # 1.key
+                    end = str(i + 1) + '.' + str(j - 1)                 # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    # tmp = '<>'                                        # 5.tmp
+                    beg = end                                           # 6.beg
+                    key = chars_state.get_key('font decorator')         # 1.key
+                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    tmp = ''                                            # 5.tmp
+                    beg = end                                           # 6.beg
+                    continue
+                # SPACE (<X>)
+                if ((re.match('^.*<\\s*[0-9]+$', s_lft) and
+                     re.match('^[0-9]*\\s*>.*$', s_rgt)) or
+                    (re.match('^.*<\\s*[0-9]+$', s_lft) and
+                     re.match('^[0-9]*\\.[0-9]+\\s*>.*$', s_rgt)) or
+                    (re.match('^.*<\\s*[0-9]*\\.$', s_lft) and
+                     re.match('^[0-9]+\\s*>.*$', s_rgt)) or
+                    (re.match('^.*<\\s*[0-9]*\\.[0-9]+$', s_lft) and
+                     re.match('^[0-9]*\\s*>.*$', s_rgt))):
+                    key = chars_state.get_key('')                       # 1.key
+                    end = str(i + 1) + '.' + str(j)                     # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    # tmp = '[0-9]'                                     # 5.tmp
+                    beg = end                                           # 6.beg
+                    key = chars_state.get_key('font decorator')         # 1.key
+                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    tmp = ''                                            # 5.tmp
+                    beg = end                                           # 6.beg
+                    continue
+                if c == '<' and re.match('^\\s*[\\.0-9]+\\s*>.*$', s_rgt):
+                    key = chars_state.get_key('')                       # 1.key
+                    end = str(i + 1) + '.' + str(j)                     # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    # tmp = '<'                                         # 5.tmp
+                    beg = end                                           # 6.beg
+                    key = chars_state.get_key('font decorator')         # 1.key
+                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    tmp = ''                                            # 5.tmp
+                    beg = end                                           # 6.beg
+                    continue
+                if c == '>' and re.match('^.*<\\s*[\\.0-9]+\\s*>$', s_lft):
+                    key = chars_state.get_key('font decorator')         # 1.key
+                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    tmp = ''                                            # 5.tmp
+                    beg = end                                           # 6.beg
+                    continue
+                # COLOR
+                res_col = '(R|red|Y|yellow|G|green|C|cyan|B|blue|M|magenta)'
+                if ((c == '_' and re.match('^.*_' + res_col + '_$', tmp)) or
+                    (c == '^' and re.match('^.*\\^' + res_col + '\\^$', tmp))):
+                    res = '^(.*)[_\\^]' + res_col + '[_\\^]$'
+                    mdt = re.sub(res, '\\1', tmp)
+                    col = re.sub(res, '\\2', tmp)
+                    key = chars_state.get_key('')                       # 1.key
+                    end = str(i + 1) + '.' + str(j - len(col) - 1)      # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    # tmp = '_.+_' or '^.+^'                            # 5.tmp
+                    beg = end                                           # 6.beg
+                    key = chars_state.get_key(col)                      # 1.key
+                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    tmp = ''                                            # 5.tmp
+                    beg = end                                           # 6.beg
+                    continue
+                if s2 == '^^':
+                    key = chars_state.get_key('')                       # 1.key
+                    end = str(i + 1) + '.' + str(j - 1)                 # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    # tmp = '^^'                                        # 5.tmp
+                    beg = end                                           # 6.beg
+                    key = chars_state.get_key('gray')                   # 1.key
+                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    tmp = ''                                            # 5.tmp
+                    beg = end                                           # 6.beg
+                    continue
+                # TABLE CONFIGURE
+                if ((c2 == '|' or c2 == '-' or c2 == ':') and c == ':') or \
+                   (c == ':' and c0 == '|') or \
+                   (c == '-' and c0 == '|') or \
+                   (c2 == '|' and c == '-') or \
+                   (c2 == ':' and c == '-') or \
+                   (c2 == ':' and c == '-') or \
+                   (c2 == '-' and c == '^' and c0 != '^') or \
+                   (c2 == '-' and c == '='):
+                    key = chars_state.get_key('')                       # 1.key
+                    end = str(i + 1) + '.' + str(j)                     # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    # tmp = ':'                                         # 5.tmp
+                    beg = end                                           # 6.beg
+                    key = chars_state.get_key('font decorator')         # 1.key
+                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    tmp = ''                                            # 5.tmp
+                    beg = end                                           # 6.beg
+                    continue
+                # FONT DECORATOR ("---", "+++", ">>>", "<<<")
+                if (s3 == '---' or s3 == '+++' or s3 == '>>>' or s3 == '<<<') \
+                   and (c4 != '\\' or re.match(NOT_ESCAPED + '...$', tmp)):
+                    key = chars_state.get_key('')                       # 1.key
+                    end = str(i + 1) + '.' + str(j - 2)                 # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    tmp = re.sub('^(.*)(...)$', '\\2', tmp)             # 5.tmp
+                    beg = end                                           # 6.beg
+                    key = chars_state.get_key('font decorator')         # 1.key
+                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    res1, res2 = '^.*:-+$', '^-*:.*$'
+                    if not re.match(res1, s_lft) and not re.match(res2, s_rgt):
+                        if tmp == '---' or tmp == '+++':
                             chars_state.set_is_resized(tmp)             # 4.set
                         else:
                             chars_state.set_is_stretched(tmp)           # 4.set
-                tmp = ''                                                # 5.tmp
-                beg = end                                               # 6.beg
-                continue
-            # FONT DECORATOR ("@.+@", "_.*_")
-            if ((re.match('^.*@[0-9]+$', s_lft) and
-                 re.match('^[0-9]*@.*$', s_rgt)) or
-                (re.match('^.*@[0-9]+$', s_lft) and
-                 re.match('^[0-9]*\\.[0-9]+@.*$', s_rgt)) or
-                (re.match('^.*@[0-9]*\\.$', s_lft) and
-                 re.match('^[0-9]+@.*$', s_rgt)) or
-                (re.match('^.*@[0-9]*\\.[0-9]+$', s_lft) and
-                 re.match('^[0-9]*@.*$', s_rgt))):
-                continue  # @n@
-            res = NOT_ESCAPED + '(@[^@]{1,66}@|_.*_)$'
-            if re.match(res, tmp) and not chars_state.is_in_comment:
-                mdt = re.sub(res, '\\2', tmp)
-                if re.match('^_.*_$', mdt):
-                    if not re.match('^_[\\$=\\.#\\-~\\+]{,4}_$', mdt):
-                        continue
-                hul = chars_state.has_underline
-                hsf = chars_state.has_specific_font
-                key = chars_state.get_key('')                           # 1.key
-                end = str(i + 1) + '.' + str(j - len(mdt) + 1)          # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                if re.match('_.*_', mdt) and hul:
-                    chars_state.toggle_has_underline()                  # 4.set
-                elif re.match('@.*@', mdt) and hsf:
-                    chars_state.toggle_has_specific_font()              # 4.set
-                tmp = mdt                                               # 5.tmp
-                beg = end                                               # 6.beg
-                key = chars_state.get_key('font decorator')             # 1.key
-                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                if re.match('_.*_', mdt) and not hul:
-                    chars_state.toggle_has_underline()                  # 4.set
-                elif re.match('@.*@', mdt) and not hsf:
-                    chars_state.toggle_has_specific_font()              # 4.set
-                tmp = ''                                                # 5.tmp
-                beg = end                                               # 6.beg
-                continue
-            # FRAME
-            if (c == '[' and c0 == '|') or (c == '|' and c0 == ']'):
-                continue
-            if (c2 == '[' and c == '|') or (c2 == '|' and c == ']'):
-                key = chars_state.get_key('')                           # 1.key
-                end = str(i + 1) + '.' + str(j - 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                # tmp = '[|' or '|]'                                    # 5.tmp
-                beg = end                                               # 6.beg
-                key = chars_state.get_key('font decorator')             # 1.key
-                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                chars_state.attach_or_remove_frame(c2 + c)              # 4.set
-                tmp = ''                                                # 5.tmp
-                beg = end                                               # 6.beg
-                continue
-            # TABLE
-            if c == '|':
+                    tmp = ''                                            # 5.tmp
+                    beg = end                                           # 6.beg
+                    continue
+                # FONT DECORATOR ("--", "++", ">>", "<<")
+                if (s2 == '--' or s2 == '++' or s2 == '>>' or s2 == '<<') and \
+                   (c0 != c1) and \
+                   (c3 != '\\' or re.match(NOT_ESCAPED + '..$', tmp)):
+                    key = chars_state.get_key('')                       # 1.key
+                    end = str(i + 1) + '.' + str(j - 1)                 # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    tmp = re.sub('^(.*)(..)$', '\\2', tmp)              # 5.tmp
+                    beg = end                                           # 6.beg
+                    key = chars_state.get_key('font decorator')         # 1.key
+                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    res1, res2 = '^.*:-+$', '^-*:.*$'
+                    if not re.match(res1, s_lft) and not re.match(res2, s_rgt):
+                        res = '^=[-\\+]?[0-9]*(\\.?[0-9]+)(\\s.*)?$'
+                        if s2 != '<<' or not re.match(res, s_rgt):
+                            if tmp == '--' or tmp == '++':
+                                chars_state.set_is_resized(tmp)         # 4.set
+                            else:
+                                chars_state.set_is_stretched(tmp)       # 4.set
+                    tmp = ''                                            # 5.tmp
+                    beg = end                                           # 6.beg
+                    continue
+                # FONT DECORATOR ("@.+@", "_.*_")
+                if ((re.match('^.*@[0-9]+$', s_lft) and
+                     re.match('^[0-9]*@.*$', s_rgt)) or
+                    (re.match('^.*@[0-9]+$', s_lft) and
+                     re.match('^[0-9]*\\.[0-9]+@.*$', s_rgt)) or
+                    (re.match('^.*@[0-9]*\\.$', s_lft) and
+                     re.match('^[0-9]+@.*$', s_rgt)) or
+                    (re.match('^.*@[0-9]*\\.[0-9]+$', s_lft) and
+                     re.match('^[0-9]*@.*$', s_rgt))):
+                    continue  # @n@
+                res = NOT_ESCAPED + '(@[^@]{1,66}@|_.*_)$'
+                if re.match(res, tmp):
+                    mdt = re.sub(res, '\\2', tmp)
+                    if re.match('^_.*_$', mdt):
+                        if not re.match('^_[\\$=\\.#\\-~\\+]{,4}_$', mdt):
+                            continue
+                    hul = chars_state.has_underline
+                    hsf = chars_state.has_specific_font
+                    key = chars_state.get_key('')                       # 1.key
+                    end = str(i + 1) + '.' + str(j - len(mdt) + 1)      # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    if re.match('_.*_', mdt) and hul:
+                        chars_state.toggle_has_underline()              # 4.set
+                    elif re.match('@.*@', mdt) and hsf:
+                        chars_state.toggle_has_specific_font()          # 4.set
+                    tmp = mdt                                           # 5.tmp
+                    beg = end                                           # 6.beg
+                    key = chars_state.get_key('font decorator')         # 1.key
+                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    if re.match('_.*_', mdt) and not hul:
+                        chars_state.toggle_has_underline()              # 4.set
+                    elif re.match('@.*@', mdt) and not hsf:
+                        chars_state.toggle_has_specific_font()          # 4.set
+                    tmp = ''                                            # 5.tmp
+                    beg = end                                           # 6.beg
+                    continue
+                # FRAME
+                if (c == '[' and c0 == '|') or (c == '|' and c0 == ']'):
+                    continue
+                if s2 == '[|' or s2 == '|]':
+                    key = chars_state.get_key('')                       # 1.key
+                    end = str(i + 1) + '.' + str(j - 1)                 # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    # tmp = '[|' or '|]'                                # 5.tmp
+                    beg = end                                           # 6.beg
+                    key = chars_state.get_key('font decorator')         # 1.key
+                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    chars_state.attach_or_remove_frame(c2 + c)          # 4.set
+                    tmp = ''                                            # 5.tmp
+                    beg = end                                           # 6.beg
+                    continue
+                # TABLE
+                if c == '|':
+                    key = chars_state.get_key('')                       # 1.key
+                    end = str(i + 1) + '.' + str(j)                     # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    # tmp = '|'                                         # 5.tmp
+                    beg = end                                           # 6.beg
+                    key = chars_state.get_key('table')                  # 1.key
+                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    tmp = ''                                            # 5.tmp
+                    beg = end                                           # 6.beg
+                    continue
+                # IMAGE
+                if c == '!' and re.match('^\\[.*\\]\\(.*\\)', line_text[j+1:]):
+                    key = chars_state.get_key('')                       # 1.key
+                    end = str(i + 1) + '.' + str(j)                     # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    # tmp = '!'                                         # 5.tmp
+                    beg = end                                           # 6.beg
+                    key = chars_state.get_key('image')                  # 1.key
+                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    tmp = ''                                            # 5.tmp
+                    beg = end                                           # 6.beg
+                # FOLDING
+                if re.match('^#+(-#+)*(\\s.*)?\\.\\.\\.\\[$', s_lft) and \
+                   re.match(NOT_ESCAPED + '\\.\\.\\.\\[$', s_lft) and \
+                   re.match('^[0-9]+\\]$', s_rgt):
+                    continue  # # xxx...[ / n]
+                if re.match('^\\.\\.\\.\\[$', s_lft) and \
+                   re.match('^[0-9]+\\]#+(-#+)*(\\s.*)?$', s_rgt):
+                    continue  # ...[ / n]# xxx
+                if re.match('^#+(-#+)*(\\s.*)?\\.\\.\\.\\[[0-9]+$', s_lft) \
+                   and re.match(NOT_ESCAPED + '\\.\\.\\.\\[[0-9]+$', s_lft) \
+                   and re.match('^[0-9]*\\]$', s_rgt):
+                    continue  # # xxx...[n / ]
+                if re.match('^\\.\\.\\.\\[[0-9]+$', s_lft) and \
+                   re.match('^[0-9]*\\]#+(-#+)*(\\s.*)?$', s_rgt):
+                    continue  # ...[n / ]xxx
+                res = '^(#+(?:-#+)*(?:\\s.*)?)(\\.\\.\\.\\[[0-9]+\\])$'
+                if re.match(res, s_lft) and \
+                   re.match(NOT_ESCAPED + '\\.\\.\\.\\[[0-9]+\\]$', s_lft) \
+                   and re.match('^\n$', s_rgt):
+                    fld = re.sub(res, '\\2', s_lft)
+                    key = chars_state.get_key('')                       # 1.key
+                    end = str(i + 1) + '.' + str(j + 1 - len(fld))      # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    # tmp = '...[n]'                                    # 5.tmp
+                    beg = end                                           # 6.beg
+                    key = chars_state.get_key('fold')                   # 1.key
+                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    tmp = ''                                            # 5.tmp
+                    beg = end                                           # 6.beg
+                    continue  # xxx...[n] /
+                if re.match('^\\.\\.\\.\\[[0-9]+\\]$', s_lft) and \
+                   re.match('^#+(-#+)*(\\s.*)?\n$', s_rgt):
+                    key = chars_state.get_key('fold')                   # 1.key
+                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    tmp = ''                                            # 5.tmp
+                    beg = end                                           # 6.beg
+                    continue  # ...[n]# xxx /
+            # SPACE (" ", "\t", "\u3000")
+            if c == ' ' or c == '\t' or c == '\u3000':
                 key = chars_state.get_key('')                           # 1.key
                 end = str(i + 1) + '.' + str(j)                         # 2.end
                 txt.tag_add(key, beg, end)                              # 3.tag
                 #                                                       # 4.set
-                # tmp = '|'                                             # 5.tmp
+                # tmp = ' ' or '\t' or '\u3000'                         # 5.tmp
                 beg = end                                               # 6.beg
-                key = chars_state.get_key('table')                      # 1.key
+                key = chars_state.get_key(c)                            # 1.key
                 end = str(i + 1) + '.' + str(j + 1)                     # 2.end
                 txt.tag_add(key, beg, end)                              # 3.tag
                 #                                                       # 4.set
                 tmp = ''                                                # 5.tmp
                 beg = end                                               # 6.beg
                 continue
-            # IMAGE
-            if c == '!' and re.match('^\\[.*\\]\\(.*\\)', line_text[j+1:]):
-                key = chars_state.get_key('')                           # 1.key
-                end = str(i + 1) + '.' + str(j)                         # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                # tmp = '!'                                             # 5.tmp
-                beg = end                                               # 6.beg
-                key = chars_state.get_key('image')                      # 1.key
-                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                tmp = ''                                                # 5.tmp
-                beg = end                                               # 6.beg
-            # FOLDING
-            if re.match('^#+(-#+)*(\\s.*)?\\.\\.\\.\\[$', s_lft) and \
-               re.match(NOT_ESCAPED + '\\.\\.\\.\\[$', s_lft) and \
-               re.match('^[0-9]+\\]$', s_rgt):
-                continue  # # xxx...[ / n]
-            if re.match('^\\.\\.\\.\\[$', s_lft) and \
-               re.match('^[0-9]+\\]#+(-#+)*(\\s.*)?$', s_rgt):
-                continue  # ...[ / n]# xxx
-            if re.match('^#+(-#+)*(\\s.*)?\\.\\.\\.\\[[0-9]+$', s_lft) and \
-               re.match(NOT_ESCAPED + '\\.\\.\\.\\[[0-9]+$', s_lft) and \
-               re.match('^[0-9]*\\]$', s_rgt):
-                continue  # # xxx...[n / ]
-            if re.match('^\\.\\.\\.\\[[0-9]+$', s_lft) and \
-               re.match('^[0-9]*\\]#+(-#+)*(\\s.*)?$', s_rgt):
-                continue  # ...[n / ]xxx
-            res = '^(#+(?:-#+)*(?:\\s.*)?)(\\.\\.\\.\\[[0-9]+\\])$'
-            if re.match(res, s_lft) and \
-               re.match(NOT_ESCAPED + '\\.\\.\\.\\[[0-9]+\\]$', s_lft) and \
-               re.match('^\n$', s_rgt):
-                fld = re.sub(res, '\\2', s_lft)
-                key = chars_state.get_key('')                           # 1.key
-                end = str(i + 1) + '.' + str(j + 1 - len(fld))          # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                # tmp = '...[n]'                                        # 5.tmp
-                beg = end                                               # 6.beg
-                key = chars_state.get_key('fold')                       # 1.key
-                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                tmp = ''                                                # 5.tmp
-                beg = end                                               # 6.beg
-                continue  # xxx...[n] /
-            if re.match('^\\.\\.\\.\\[[0-9]+\\]$', s_lft) and \
-               re.match('^#+(-#+)*(\\s.*)?\n$', s_rgt):
-                key = chars_state.get_key('fold')                       # 1.key
-                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                tmp = ''                                                # 5.tmp
-                beg = end                                               # 6.beg
-                continue  # ...[n]# xxx /
             # PARENTHESES
             if c == '「' or c == '『' or c == '[' or \
                c == '｛' or c == '{' or \
@@ -5563,6 +5585,21 @@ class LineDatum:
                 txt.tag_add(key, beg, end)                              # 3.tag
                 chars_state.apply_parenthesis(c)                        # 4.set
                 # tmp = ''                                              # 5.tmp
+                beg = end                                               # 6.beg
+                continue
+            # MINCHO
+            if c == '\u30FC':  # 長音記号
+                key = chars_state.get_key('')                           # 1.key
+                end = str(i + 1) + '.' + str(j)                         # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                # tmp = c                                               # 5.tmp
+                beg = end                                               # 6.beg
+                key = chars_state.get_key('mincho')                     # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                tmp = ''                                                # 5.tmp
                 beg = end                                               # 6.beg
                 continue
             # HORIZONTAL LINES
@@ -5595,7 +5632,7 @@ class LineDatum:
                     key = chars_state.get_key('horizontalline040')      # 1.key
                 elif c == '\uFF70':  # 半角カナの長音記号（EUC:8EB0）
                     key = chars_state.get_key('horizontalline050')      # 1.key
-                elif c == '\u00AD':    # 改行時だけに表示されるハイフン
+                elif c == '\u00AD':  # 改行時だけに表示されるハイフン
                     key = chars_state.get_key('horizontalline060')      # 1.key
                 elif c == '\u058A':  # アメリカンハイフン
                     key = chars_state.get_key('horizontalline070')      # 1.key
@@ -5694,36 +5731,6 @@ class LineDatum:
                 tmp = ''                                                # 5.tmp
                 beg = end                                               # 6.beg
                 continue
-            # MINCHO
-            if c == '\u30FC':  # 長音記号
-                key = chars_state.get_key('')                           # 1.key
-                end = str(i + 1) + '.' + str(j)                         # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                # tmp = c                                               # 5.tmp
-                beg = end                                               # 6.beg
-                key = chars_state.get_key('mincho')                     # 1.key
-                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                tmp = ''                                                # 5.tmp
-                beg = end                                               # 6.beg
-                continue
-            # SPACE (" ", "\t", "\u3000")
-            if c == ' ' or c == '\t' or c == '\u3000':
-                key = chars_state.get_key('')                           # 1.key
-                end = str(i + 1) + '.' + str(j)                         # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                # tmp = ' ' or '\t' or '\u3000'                         # 5.tmp
-                beg = end                                               # 6.beg
-                key = chars_state.get_key(c)                            # 1.key
-                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                tmp = ''                                                # 5.tmp
-                beg = end                                               # 6.beg
-                continue
             # SEARCH WORD
             wrd = Makdo.search_word
             if wrd != '' and re.match('^.*' + wrd + '$', tmp):
@@ -5794,15 +5801,6 @@ class LineDatum:
                         beg = end                                       # 6.beg
                 if tmp == '':
                     continue
-            # END OF THE LINE "\n"
-            if c1 == '\n':
-                key = chars_state.get_key('')                           # 1.key
-                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                #                                                       # 5.tmp
-                #                                                       # 6.beg
-                break
         self.end_chars_state = chars_state.copy()
         return
 
