@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.07-09:15:27-JST>
+# Time-stamp:   <2024.12.07-12:44:49-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -13945,21 +13945,43 @@ class Makdo:
         # EXECUTE
         if focus is not None:
             n = self.run_periodically
+            # AUTO FILE
             if (n % 60_000) == 0:  # 1 / 60,000ms
                 self.save_auto_file(self.file_path)
+            # MEMO PAD
             if (n % 1_000) == 0:   # 1 /  1,000ms
                 self.update_memo_pad()
+            # POSITION INFO
             if (n % 100) == 0:     # 1 /    100ms
                 self.set_position_info_on_status_bar()
+            # PAINT LINE LOCALLLY
             if True:               # 1 /     20ms
-                self.run_periodically_to_paint_line()
+                self.run_periodically_to_paint_line_locally()
+            # PAINT LINE GLOBALLY
+            m = len(self.file_lines)
+            if m <= 100:     # 60*2*1000/100  = 1200
+                if (n % 1200) == 0:
+                    self.run_periodically_to_paint_line_globally()
+            elif m <= 200:   # 60*2*1000/200  =  600
+                if (n % 600) == 0:
+                    self.run_periodically_to_paint_line_globally()
+            elif m <= 300:   # 60*2*1000/300  =  400
+                if (n % 400) == 0:
+                    self.run_periodically_to_paint_line_globally()
+            elif m <= 400:   # 60*2*1000/400  =  300
+                if (n % 300) == 0:
+                    self.run_periodically_to_paint_line_globally()
+            elif m <= 600:   # 60*2*1000/600  =  200
+                if (n % 200) == 0:
+                    self.run_periodically_to_paint_line_globally()
+            elif m <= 1200:  # 60*2*1000/1200 =  100
+                if (n % 100) == 0:
+                    self.run_periodically_to_paint_line_globally()
+            else:
+                if True:
+                    self.run_periodically_to_paint_line_globally()
 
-    def run_periodically_to_paint_line(self):
-        # GLOBAL PAINTING
-        self.paint_out_line(self.global_line_to_paint)
-        self.global_line_to_paint += 1
-        if self.global_line_to_paint >= len(self.file_lines) - 1:
-            self.global_line_to_paint = 0
+    def run_periodically_to_paint_line_locally(self):
         # LOCAL PAINTING
         self.paint_out_line(self.standard_line + self.local_line_to_paint - 20)
         self.local_line_to_paint += 1
@@ -13986,6 +14008,13 @@ class Makdo:
                              'end-1c', 'end')
         self.sub.tag_remove('eof_tag', '1.0', 'end')
         self.sub.tag_add('eof_tag', 'end-1c', 'end')
+
+    def run_periodically_to_paint_line_globally(self):
+        # GLOBAL PAINTING
+        self.paint_out_line(self.global_line_to_paint)
+        self.global_line_to_paint += 1
+        if self.global_line_to_paint >= len(self.file_lines) - 1:
+            self.global_line_to_paint = 0
 
     ####################################
     # NOT PYINSTALLER
