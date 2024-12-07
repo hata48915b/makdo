@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.07-12:44:49-JST>
+# Time-stamp:   <2024.12.07-13:05:18-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -13983,9 +13983,9 @@ class Makdo:
 
     def run_periodically_to_paint_line_locally(self):
         # LOCAL PAINTING
-        self.paint_out_line(self.standard_line + self.local_line_to_paint - 20)
+        self.paint_out_line(self.standard_line + self.local_line_to_paint - 10)
         self.local_line_to_paint += 1
-        if self.local_line_to_paint >= 150:
+        if self.local_line_to_paint >= 100:
             i = self.txt.index('insert')
             self.standard_line = int(re.sub('\\..*$', '', i)) - 1
             self.local_line_to_paint = 0
