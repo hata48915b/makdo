@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.07-08:59:43-JST>
+# Time-stamp:   <2024.12.07-09:07:56-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5326,10 +5326,10 @@ class LineDatum:
                     beg = end                                           # 6.beg
                     continue
                 # COLOR
-                res_col = '(R|red|Y|yellow|G|green|C|cyan|B|blue|M|magenta)'
-                if ((c == '_' and re.match('^.*_' + res_col + '_$', tmp)) or
-                    (c == '^' and re.match('^.*\\^' + res_col + '\\^$', tmp))):
-                    res = '^(.*)[_\\^]' + res_col + '[_\\^]$'
+                res_color = '(R|red|Y|yellow|G|green|C|cyan|B|blue|M|magenta)'
+                if (c == '_' and re.match('^.*_' + res_color + '_$', tmp)) or \
+                   (c == '^' and re.match('^.*\\^' + res_color + '\\^$', tmp)):
+                    res = '^(.*)[_\\^]' + res_color + '[_\\^]$'
                     mdt = re.sub(res, '\\1', tmp)
                     col = re.sub(res, '\\2', tmp)
                     key = chars_state.get_key('')                       # 1.key
