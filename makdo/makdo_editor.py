@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.08-03:49:18-JST>
+# Time-stamp:   <2024.12.08-07:10:59-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4738,6 +4738,7 @@ class CharsState:
         self.has_underline = False
         self.has_specific_font = False
         self.has_frame = False
+        self.standard_size = ''
         self.is_resized = ''
         self.is_stretched = ''
         self.is_length_reviser = False
@@ -4756,6 +4757,8 @@ class CharsState:
         if self.has_specific_font != other.has_specific_font:
             return False
         if self.has_frame != other.has_frame:
+            return False
+        if self.standard_resized != other.standard_resized:
             return False
         if self.is_resized != other.is_resized:
             return False
@@ -5003,7 +5006,7 @@ class CharsState:
             key += '-u'  # specific font
         elif not self.is_in_comment and self.has_frame:
             key += '-u'  # frame
-        elif not self.is_in_comment and self.is_resized != '':
+        elif not self.is_in_comment and self.is_resized != self.standard_size:
             key += '-u'  # resized
         elif not self.is_in_comment and self.is_stretched != '':
             key += '-u'  # stretched
@@ -5033,6 +5036,7 @@ class LineDatum:
         self.paint_keywords = paint_keywords
         # EMPTY LINE
         if line_text == '':
+            chars_state.standard_size = ''  # for table
             self.end_chars_state = chars_state.copy()
             return
         # RESET TAG
@@ -5107,6 +5111,39 @@ class LineDatum:
                 if re.match(res, line_text):
                     dep = len(re.sub(res, '\\1', line_text))
                     chars_state.set_section_depth(dep)
+            # TABLE
+            if line_text[0] == '|':
+                chars_state.standard_size = chars_state.is_resized  # for table
+            res = '^(:\\s)?\\s*(\\|:?-*:?[\\^=]?)*(\\|(\\s:)?|\\\\)$'
+            if re.match(res, line_text):
+                beg, tmp = str(i + 1) + '.0', ''
+                for j, c in enumerate(line_text + '\0'):
+                    if not re.match('^[\\s\\|\\\\\0]$', c):
+                        continue
+                    tmp += c
+                    if re.match('^[:\\s\0]$', tmp):
+                        key = chars_state.get_key('alignment')          # 1.key
+                    else:
+                        key = chars_state.get_key('font decorator')     # 1.key
+                    end = str(i + 1) + '.' + str(j)                     # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    # tmp = '.'                                         # 5.tmp
+                    beg = end                                           # 6.beg
+                    if c == '\0':
+                        break
+                    elif c == ' ' or c == '\t' or c == '\u3000':
+                        key = chars_state.get_key(c)                    # 1.key
+                    elif c == '|':
+                        key = chars_state.get_key('table')              # 1.key
+                    elif c == '\\':
+                        key = chars_state.get_key('escape')             # 1.key
+                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    tmp = ''                                            # 5.tmp
+                    beg = end                                           # 6.beg
+                return
         # PARTS
         beg, tmp = str(i + 1) + '.0', ''
         for j, c in enumerate(line_text):
@@ -5171,6 +5208,21 @@ class LineDatum:
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
                     continue
+                # RELAX
+                if s2 == '<>':
+                    key = chars_state.get_key('')                       # 1.key
+                    end = str(i + 1) + '.' + str(j - 1)                 # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    # tmp = '<>'                                        # 5.tmp
+                    beg = end                                           # 6.beg
+                    key = chars_state.get_key('font decorator')         # 1.key
+                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    tmp = ''                                            # 5.tmp
+                    beg = end                                           # 6.beg
+                    continue
                 # LIST
                 if j == 0 and c == '-' and c0 != '\n' and re.match('\\s', c0):
                     key = chars_state.get_key('list')                   # 1.key
@@ -5201,7 +5253,7 @@ class LineDatum:
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
                     continue
-                if j >= 2 and re.match('\\s', c3) and c2 == ':' and c == '\n':
+                if j >= 2 and re.match('\\s', c2) and c == ':' and c0 == '\n':
                     key = chars_state.get_key('')                       # 1.key
                     end = str(i + 1) + '.' + str(j - 1)                 # 2.end
                     txt.tag_add(key, beg, end)                          # 3.tag
@@ -5266,21 +5318,6 @@ class LineDatum:
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
                     continue
-                # RELAX
-                if s2 == '<>':
-                    key = chars_state.get_key('')                       # 1.key
-                    end = str(i + 1) + '.' + str(j - 1)                 # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
-                    #                                                   # 4.set
-                    # tmp = '<>'                                        # 5.tmp
-                    beg = end                                           # 6.beg
-                    key = chars_state.get_key('font decorator')         # 1.key
-                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
-                    #                                                   # 4.set
-                    tmp = ''                                            # 5.tmp
-                    beg = end                                           # 6.beg
-                    continue
                 # COLOR
                 res_color = '(R|red|Y|yellow|G|green|C|cyan|B|blue|M|magenta)'
                 if (c == '_' and re.match('^.*_' + res_color + '_$', tmp)) or \
@@ -5309,28 +5346,6 @@ class LineDatum:
                     # tmp = '^^'                                        # 5.tmp
                     beg = end                                           # 6.beg
                     key = chars_state.get_key('gray')                   # 1.key
-                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
-                    #                                                   # 4.set
-                    tmp = ''                                            # 5.tmp
-                    beg = end                                           # 6.beg
-                    continue
-                # TABLE CONFIGURE
-                if ((c2 == '|' or c2 == '-' or c2 == ':') and c == ':') or \
-                   (c == ':' and c0 == '|') or \
-                   (c == '-' and c0 == '|') or \
-                   (c2 == '|' and c == '-') or \
-                   (c2 == ':' and c == '-') or \
-                   (c2 == ':' and c == '-') or \
-                   (c2 == '-' and c == '^' and c0 != '^') or \
-                   (c2 == '-' and c == '='):
-                    key = chars_state.get_key('')                       # 1.key
-                    end = str(i + 1) + '.' + str(j)                     # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
-                    #                                                   # 4.set
-                    # tmp = ':'                                         # 5.tmp
-                    beg = end                                           # 6.beg
-                    key = chars_state.get_key('font decorator')         # 1.key
                     end = str(i + 1) + '.' + str(j + 1)                 # 2.end
                     txt.tag_add(key, beg, end)                          # 3.tag
                     #                                                   # 4.set
