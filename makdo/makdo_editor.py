@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.07-13:05:18-JST>
+# Time-stamp:   <2024.12.07-13:09:22-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -13973,6 +13973,8 @@ class Makdo:
                     self.run_periodically_to_paint_line_globally()
             elif m <= 600:   # 60*2*1000/600  =  200
                 if (n % 200) == 0:
+            elif m <= 1000:  # 60*2*1000/1000 =  120
+                if (n % 120) == 0:
                     self.run_periodically_to_paint_line_globally()
             elif m <= 1200:  # 60*2*1000/1200 =  100
                 if (n % 100) == 0:
