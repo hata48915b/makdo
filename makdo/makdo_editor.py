@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.07-13:09:22-JST>
+# Time-stamp:   <2024.12.08-03:49:18-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5842,9 +5842,6 @@ class Makdo:
         self.file_lines = []
         self.has_made_backup_file = False
         self.line_data = []
-        self.standard_line = 0
-        self.global_line_to_paint = 0
-        self.local_line_to_paint = 0
         self.clipboard_list = ['']
         self.key_history = ['', '', '', '', '', '', '', '', '', '',
                             '', '', '', '', '', '', '', '', '', '', '']
@@ -13919,6 +13916,10 @@ class Makdo:
     # RUN PERIODICALLY
 
     def run_periodically(self):
+        self.footmarks = []
+        self.goal_line_to_paint = 0
+        self.local_line_to_paint = 0
+        self.global_line_to_paint = 0
         self.save_auto_file(self.file_path)  # must execute immediately
         self.run_periodically = 0
         self.__run_periodically()
@@ -13940,8 +13941,8 @@ class Makdo:
         self.win.after(interval, self.__run_periodically)
         # NUMBER
         self.run_periodically += interval
-        if self.run_periodically >= 60_000:  # 1min
-            self.run_periodically = 0
+        # if self.run_periodically >= 60_000:  # 1min
+        #     self.run_periodically = 0
         # EXECUTE
         if focus is not None:
             n = self.run_periodically
@@ -13958,6 +13959,10 @@ class Makdo:
             if True:               # 1 /     20ms
                 self.run_periodically_to_paint_line_locally()
             # PAINT LINE GLOBALLY
+            #    1,    2,    3,    4,    5,    6,    8,   10,   12,   15,
+            #   16,   20,   24,   25,   30,   40,   48,   50,   60,   75,
+            #   80,  100,  120,  125,  150,  200,  240,  250,  300,  375,
+            #  400,  500,  600,  750, 1000, 1200, 1500, 2000, 3000, 6000
             m = len(self.file_lines)
             if m <= 100:     # 60*2*1000/100  = 1200
                 if (n % 1200) == 0:
@@ -13971,26 +13976,64 @@ class Makdo:
             elif m <= 400:   # 60*2*1000/400  =  300
                 if (n % 300) == 0:
                     self.run_periodically_to_paint_line_globally()
+            elif m <= 500:   # 60*2*1000/500  =  240
+                if (n % 240) == 0:
+                    self.run_periodically_to_paint_line_globally()
             elif m <= 600:   # 60*2*1000/600  =  200
                 if (n % 200) == 0:
+                    self.run_periodically_to_paint_line_globally()
+            elif m <= 750:   # 60*2*1000/750  =  160
+                if (n % 160) == 0:
+                    self.run_periodically_to_paint_line_globally()
             elif m <= 1000:  # 60*2*1000/1000 =  120
                 if (n % 120) == 0:
                     self.run_periodically_to_paint_line_globally()
             elif m <= 1200:  # 60*2*1000/1200 =  100
                 if (n % 100) == 0:
                     self.run_periodically_to_paint_line_globally()
-            else:
+            elif m <= 1500:  # 60*2*1000/1500 =   80
+                if (n % 80) == 0:
+                    self.run_periodically_to_paint_line_globally()
+            elif m <= 2000:  # 60*2*1000/2000 =   60
+                if (n % 60) == 0:
+                    self.run_periodically_to_paint_line_globally()
+            elif m <= 3000:  # 60*2*1000/3000 =   40
+                if (n % 40) == 0:
+                    self.run_periodically_to_paint_line_globally()
+            else:            # 60*2*1000/6000 =   20
                 if True:
                     self.run_periodically_to_paint_line_globally()
 
+    # LOCAL PAINTING
     def run_periodically_to_paint_line_locally(self):
-        # LOCAL PAINTING
-        self.paint_out_line(self.standard_line + self.local_line_to_paint - 10)
+        # FOOTMARKS
+        p_ind = self.txt.index('insert')
+        p_lin = int(re.sub('\\.[0-9]+$', '', p_ind)) - 1
+        self.footmarks.append(p_lin)
+        # PAINT
+        self.paint_out_line(self.local_line_to_paint)
+        # NEXT
         self.local_line_to_paint += 1
-        if self.local_line_to_paint >= 100:
-            i = self.txt.index('insert')
-            self.standard_line = int(re.sub('\\..*$', '', i)) - 1
-            self.local_line_to_paint = 0
+        if self.local_line_to_paint > self.goal_line_to_paint:
+            p_ind = self.txt.index('@1000000,1000000')
+            p_lin = int(re.sub('\\.[0-9]+$', '', p_ind)) - 1
+            self.footmarks.append(p_lin)
+            p_min = min(self.footmarks)
+            p_max = max(self.footmarks)
+            self.footmarks = []
+            m = len(self.file_lines) - 1
+            # MIN
+            self.local_line_to_paint = p_min - 1
+            if self.local_line_to_paint < 0:
+                self.local_line_to_paint = 0
+            if self.local_line_to_paint > m:
+                self.local_line_to_paint = m
+            # MAX
+            self.goal_line_to_paint = p_max + 1
+            if self.goal_line_to_paint < 0:
+                self.goal_line_to_paint = 0
+            if self.goal_line_to_paint > m:
+                self.goal_line_to_paint = m
         # LINE AND EOF PAINTING
         ii = self.txt.index('insert lineend +1c')
         ei = self.txt.index('end lineend')
@@ -14011,8 +14054,8 @@ class Makdo:
         self.sub.tag_remove('eof_tag', '1.0', 'end')
         self.sub.tag_add('eof_tag', 'end-1c', 'end')
 
+    # GLOBAL PAINTING
     def run_periodically_to_paint_line_globally(self):
-        # GLOBAL PAINTING
         self.paint_out_line(self.global_line_to_paint)
         self.global_line_to_paint += 1
         if self.global_line_to_paint >= len(self.file_lines) - 1:
