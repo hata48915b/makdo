@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.08-07:10:59-JST>
+# Time-stamp:   <2024.12.08-10:38:53-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4758,7 +4758,7 @@ class CharsState:
             return False
         if self.has_frame != other.has_frame:
             return False
-        if self.standard_resized != other.standard_resized:
+        if self.standard_size != other.standard_size:
             return False
         if self.is_resized != other.is_resized:
             return False
@@ -5170,29 +5170,28 @@ class LineDatum:
                 #                                                       # 6.beg
                 break
             # COMMENT
-            if c.isascii():
-                if s4 == '<!--' and not chars_state.is_in_comment and \
-                   (c5 != '\\' or re.match(NOT_ESCAPED + '<!--$', tmp)):
-                    key = chars_state.get_key('')                       # 1.key
-                    end = str(i + 1) + '.' + str(j - 3)                 # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
-                    chars_state.toggle_is_in_comment()                  # 4.set
-                    tmp = '<!--'                                        # 5.tmp
-                    beg = end                                           # 6.beg
-                    continue
-                if s3 == '-->' and chars_state.is_in_comment and \
-                   (c4 != '\\' or re.match(NOT_ESCAPED + '-->$', tmp)):
-                    key = chars_state.get_key('')                       # 1.key
-                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
-                    chars_state.toggle_is_in_comment()                  # 4.set
-                    tmp = ''                                            # 5.tmp
-                    beg = end                                           # 6.beg
-                    continue
+            if s4 == '<!--' and not chars_state.is_in_comment and \
+               (c5 != '\\' or re.match(NOT_ESCAPED + '<!--$', tmp)):
+                key = chars_state.get_key('')                       # 1.key
+                end = str(i + 1) + '.' + str(j - 3)                 # 2.end
+                txt.tag_add(key, beg, end)                          # 3.tag
+                chars_state.toggle_is_in_comment()                  # 4.set
+                tmp = '<!--'                                        # 5.tmp
+                beg = end                                           # 6.beg
+                continue
+            if s3 == '-->' and chars_state.is_in_comment and \
+               (c4 != '\\' or re.match(NOT_ESCAPED + '-->$', tmp)):
+                key = chars_state.get_key('')                       # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                 # 2.end
+                txt.tag_add(key, beg, end)                          # 3.tag
+                chars_state.toggle_is_in_comment()                  # 4.set
+                tmp = ''                                            # 5.tmp
+                beg = end                                           # 6.beg
+                continue
             if chars_state.is_in_comment and c1 != '\n':
                 continue
             # ASCII
-            if c.isascii():
+            if c.isascii() and not re.match('^[0-9A-Za-z]$', c):
                 # ESCAPE SYMBOL
                 if c == '\\':
                     key = chars_state.get_key('')                       # 1.key
@@ -6141,12 +6140,11 @@ class Makdo:
             chars_state.reset_partially()
         paint_keywords = self.paint_keywords.get()
         # EXCLUSION
-        # if self.line_data[ln].line_text == line_text and \
-        #    self.line_data[ln].beg_chars_state == chars_state and \
-        #    self.line_data[ln].paint_keywords == paint_keywords:
-        #     return
+        if self.line_data[ln].line_text == line_text and \
+           self.line_data[ln].beg_chars_state == chars_state and \
+           self.line_data[ln].paint_keywords == paint_keywords:
+            return
         # PAINT
-        # self.line_data[ln].line_number = ln
         self.line_data[ln].line_text = line_text
         self.line_data[ln].beg_chars_state = chars_state
         self.line_data[ln].end_chars_state = CharsState()
@@ -6754,7 +6752,7 @@ class Makdo:
 
     def save_file(self):
         file_text = self.txt.get('1.0', 'end-1c')
-        if file_text[-1] != '\n':
+        if file_text != '' and file_text[-1] != '\n':
             file_text += '\n'
             self.txt.insert('end', '\n')
             self._put_back_cursor_to_pane(self.txt)
@@ -6763,8 +6761,6 @@ class Makdo:
             return False
         else:
             self._stamp_config(file_text)
-            if file_text == '' or file_text[-1] != '\n':
-                self.txt.insert('end', '\n')
             file_text = self.txt.get('1.0', 'end-1c')
             file_text = self.get_fully_unfolded_document(file_text)
             if (self.file_path is None) or (self.file_path == ''):
@@ -7350,12 +7346,18 @@ class Makdo:
         if self.clipboard_list[-1] != '':
             self.clipboard_list.append('')
         self.clipboard_list[-1] += c
-        if must_cut:
-            pane.delete(beg, end)
         self._cancel_region(pane)
         if must_cut:
-            i = self._get_v_position_of_insert(pane) - 1
-            self.paint_out_line(i)
+            pane.delete(beg, end)
+            # FOR PAINTING
+            if self.current_pane == 'txt':
+                vp = int(re.sub('\\.[0-9]+$', '', beg))
+                n = c.count('\n')
+                for i in range(n):
+                    self.line_data.pop(vp)
+                for i, ld in enumerate(self.line_data):
+                    ld.line_number = i
+                self.paint_out_line(vp - 1)
         return True
 
     def paste_region(self):
@@ -7373,8 +7375,14 @@ class Makdo:
         if cb == '':
             return True
         pane.insert('insert', cb)
+        # FOR PAINTING
         if self.current_pane == 'txt':
             end_v = self._get_v_position_of_insert(self.txt)
+            n = end_v - beg_v
+            for i in range(n):
+                self.line_data.insert(beg_v, LineDatum())
+            for i, ld in enumerate(self.line_data):
+                ld.line_number = i
             for i in range(beg_v - 1, end_v):
                 self.paint_out_line(i)
         self._put_back_cursor_to_pane(pane)
@@ -12777,10 +12785,10 @@ class Makdo:
         if not is_read_only:
             vp = self._get_v_position_of_insert(self.txt)
             self.paint_out_line(vp - 1)
-            if key.keysym == 'Return':
+            if key.keysym == 'Return' or \
+               (key.state == 8192 and key.keysym == 'm'):
                 self.paint_out_line(vp - 2)
-            elif key.state == 8192 and key.keysym == 'm':  # for akauni
-                self.paint_out_line(vp - 2)
+
         # FOR AKAUNI
         self._paint_akauni_region(self.txt, '')
 
@@ -12910,6 +12918,17 @@ class Makdo:
                 self.win.clipboard_clear()
                 if self.clipboard_list[-1] != '':
                     self.clipboard_list.append('')
+            # FOR PAINTING
+            if pane == self.txt and \
+               not pane.tag_ranges('sel') and \
+               'akauni' not in pane.mark_names():
+                if pane.index('insert') != pane.index('end-1c'):
+                    c = self.txt.get('insert', 'insert+1c')
+                    if c == '\n':
+                        vp = self._get_v_position_of_insert(pane)
+                        self.line_data.pop(vp)
+                        for i, ld in enumerate(self.line_data):
+                            ld.line_number = i
             self._execute_when_delete_is_pressed(pane)
             return 'break'
         elif key.keysym == 'F14':            # v (quit)
@@ -12920,6 +12939,22 @@ class Makdo:
         elif key.keysym == 'BackSpace':      # h (backspace)
             if self.key_history[-2] == 'F19':
                 self.split_window()
+                return 'break'
+            # FOR PAINTING
+            if pane == self.txt:
+                c = pane.get('insert-1c', 'insert')
+                if c == '\n':
+                    vp = self._get_v_position_of_insert(pane)
+                    self.line_data.pop(vp - 1)
+                    for i, ld in enumerate(self.line_data):
+                        ld.line_number = i
+        elif key.keysym == 'Return':         # m (enter)
+            # FOR PAINTING
+            if pane == self.txt:
+                vp = self._get_v_position_of_insert(pane)
+                self.line_data.insert(vp, LineDatum())
+                for i, ld in enumerate(self.line_data):
+                    ld.line_number = i
         elif key.keysym == 'F15':            # g (paste)
             if self.key_history[-2] == 'F13':
                 self.paste_rectangle()
