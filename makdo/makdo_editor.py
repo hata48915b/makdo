@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.08-13:15:48-JST>
+# Time-stamp:   <2024.12.08-13:19:29-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -7808,16 +7808,16 @@ class Makdo:
         v_number = self._get_v_position_of_insert(self.txt)
         beg = str(v_number) + '.' + str(len(line_head + line_math))
         end = str(v_number) + '.' + str(len(line_head + line_math + line_rslt))
-        self.txt.delete(beg, end)
-        self.txt.insert(beg, '=' + r)
+        if r != line_rslt:
+            self.txt.delete(beg, end)
+            self.txt.insert(beg, '=' + r)
+            # FOR PAINTING
+            self.paint_out_line(v_number - 1)
         self.win.clipboard_clear()
         self.win.clipboard_append(r)
         if self.clipboard_list[-1] != '':
             self.clipboard_list.append('')
         self.clipboard_list[-1] += r
-        # FOR PAINTING
-        self.line_data[v_number - 1].line_text += '='
-        self.paint_out_line(v_number - 1)
 
     def change_typeface(self):
         c = self.txt.get('insert', 'insert+1c')
