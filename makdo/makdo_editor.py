@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.08-13:19:29-JST>
+# Time-stamp:   <2024.12.09-05:14:06-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5195,7 +5195,7 @@ class LineDatum:
             if chars_state.is_in_comment and c1 != '\n':
                 continue
             # ASCII
-            if c.isascii() and not re.match('^[0-9A-Za-z]$', c):
+            if c.isascii() and not c.isalnum():
                 # ESCAPE SYMBOL
                 if c == '\\':
                     key = chars_state.get_key('')                       # 1.key
@@ -5235,7 +5235,7 @@ class LineDatum:
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
                     continue
-                if j == 1 and re.match('^[0-9]$', c2) and c == '.' and \
+                if j == 1 and re.match('^[0-9]+$', c2) and c == '.' and \
                    re.match('\\s', c0):
                     key = chars_state.get_key('half number')
                     txt.tag_remove(key, str(i + 1) + '.0', str(i + 1) + '.1')
@@ -5394,26 +5394,13 @@ class LineDatum:
                         res = '^=[-\\+]?[0-9]*(\\.?[0-9]+)(\\s.*)?$'
                         if s2 != '<<' or not re.match(res, s_rgt):
                             if tmp == '--' or tmp == '++':
-                                #print('=======================')
-                                #print('A' + chars_state.standard_size)
-                                #print('B' + chars_state.is_resized)
                                 chars_state.set_is_resized(tmp)         # 4.set
-                                #print('C' + chars_state.is_resized)
                             else:
                                 chars_state.set_is_stretched(tmp)       # 4.set
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
                     continue
                 # FONT DECORATOR ("@.+@", "_.*_")
-                if ((re.match('^.*@[0-9]+$', s_lft) and
-                     re.match('^[0-9]*@.*$', s_rgt)) or
-                    (re.match('^.*@[0-9]+$', s_lft) and
-                     re.match('^[0-9]*\\.[0-9]+@.*$', s_rgt)) or
-                    (re.match('^.*@[0-9]*\\.$', s_lft) and
-                     re.match('^[0-9]+@.*$', s_rgt)) or
-                    (re.match('^.*@[0-9]*\\.[0-9]+$', s_lft) and
-                     re.match('^[0-9]*@.*$', s_rgt))):
-                    continue  # @n@
                 res = NOT_ESCAPED + '(@[^@]{1,66}@|_.*_)$'
                 if re.match(res, tmp):
                     mdt = re.sub(res, '\\2', tmp)
@@ -5573,6 +5560,16 @@ class LineDatum:
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
                     continue  # ...[n]# xxx /
+            # FONT SIZE (@n@)
+            if ((re.match('^.*@[0-9]+$', s_lft) and
+                 re.match('^[0-9]*@.*$', s_rgt)) or
+                (re.match('^.*@[0-9]+$', s_lft) and
+                 re.match('^[0-9]*\\.[0-9]+@.*$', s_rgt)) or
+                (re.match('^.*@[0-9]*\\.$', s_lft) and
+                 re.match('^[0-9]+@.*$', s_rgt)) or
+                (re.match('^.*@[0-9]*\\.[0-9]+$', s_lft) and
+                 re.match('^[0-9]*@.*$', s_rgt))):
+                continue
             # SPACE (" ", "\t", "\u3000")
             if c == ' ' or c == '\t' or c == '\u3000':
                 key = chars_state.get_key('')                           # 1.key
@@ -5625,15 +5622,16 @@ class LineDatum:
                 beg = end                                               # 6.beg
                 continue
             # HORIZONTAL LINES
-            if c == '\u00AD' or c == '\u058A' or c == '\u05BE' or \
-               c == '\u1806' or c == '\u180A' or c == '\u2010' or \
-               c == '\u2011' or c == '\u2012' or c == '\u2013' or \
-               c == '\u2014' or c == '\u2015' or c == '\u2043' or \
-               c == '\u207B' or c == '\u208B' or c == '\u2212' or \
-               c == '\u2500' or c == '\u2501' or c == '\u2796' or \
-               c == '\u2E3A' or c == '\u2E3B' or c == '\u3127' or \
-               c == '\u3161' or c == '\uFE58' or c == '\uFE63' or \
-               c == '\uFF0D' or c == '\uFF70':
+            if not c.isascii() and \
+               (c == '\u00AD' or c == '\u058A' or c == '\u05BE' or \
+                c == '\u1806' or c == '\u180A' or c == '\u2010' or \
+                c == '\u2011' or c == '\u2012' or c == '\u2013' or \
+                c == '\u2014' or c == '\u2015' or c == '\u2043' or \
+                c == '\u207B' or c == '\u208B' or c == '\u2212' or \
+                c == '\u2500' or c == '\u2501' or c == '\u2796' or \
+                c == '\u2E3A' or c == '\u2E3B' or c == '\u3127' or \
+                c == '\u3161' or c == '\uFE58' or c == '\uFE63' or \
+                c == '\uFF0D' or c == '\uFF70'):
                 key = chars_state.get_key('')                           # 1.key
                 end = str(i + 1) + '.' + str(j)                         # 2.end
                 txt.tag_add(key, beg, end)                              # 3.tag
@@ -5753,22 +5751,6 @@ class LineDatum:
                 tmp = ''                                                # 5.tmp
                 beg = end                                               # 6.beg
                 continue
-            # SEARCH WORD
-            wrd = Makdo.search_word
-            if wrd != '' and re.match('^.*' + wrd + '$', tmp):
-                key = chars_state.get_key('')                           # 1.key
-                end = str(i + 1) + '.' + str(j - len(wrd) + 1)          # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                # tmp = wrd                                             # 5.tmp
-                beg = end                                               # 6.beg
-                key = 'rev-gx'                                          # 1.key
-                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                tmp = ''                                                # 5.tmp
-                beg = end                                               # 6.beg
-                continue
             # KEYWORD
             if Makdo.keywords_to_paint is not None and \
                Makdo.keywords_to_paint != '':
@@ -5821,6 +5803,22 @@ class LineDatum:
                         #                                               # 4.set
                         tmp = ''                                        # 5.tmp
                         beg = end                                       # 6.beg
+            # SEARCH WORD
+            wrd = Makdo.search_word
+            if wrd != '' and re.match('^.*' + wrd + '$', tmp):
+                key = chars_state.get_key('')                           # 1.key
+                end = str(i + 1) + '.' + str(j - len(wrd) + 1)          # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                # tmp = wrd                                             # 5.tmp
+                beg = end                                               # 6.beg
+                key = 'rev-gx'                                          # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                tmp = ''                                                # 5.tmp
+                beg = end                                               # 6.beg
+                continue
                 if tmp == '':
                     continue
         self.end_chars_state = chars_state.copy()
