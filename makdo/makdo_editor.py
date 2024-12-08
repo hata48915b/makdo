@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.09-05:14:06-JST>
+# Time-stamp:   <2024.12.09-06:01:18-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -151,7 +151,7 @@ COLOR_SPACE = (
     ('#3F3FFF', '#7676FF', '#ADADFF', '#E4E4FF'),  # 240 : chap4, (hsp), par6
     ('#5B36FF', '#8A70FF', '#B9A9FF', '#E8E2FF'),  # 250 : chap5
     ('#772EFF', '#9E6AFF', '#C5A5FF', '#ECE1FF'),  # 260 : par7
-    ('#9226FF', '#B164FF', '#D0A2FF', '#EFE0FF'),  # 270 : br, pgbr, hline
+    ('#9226FF', '#B164FF', '#D0A2FF', '#EFE0FF'),  # 270 : sp, br, pgbr, hline
     ('#B01DFF', '#C75DFF', '#DD9EFF', '#F4DFFF'),  # 280 : par8
     ('#D312FF', '#E056FF', '#EC9AFF', '#F9DDFF'),  # 290 : par9
     ('#FF05FF', '#FF4DFF', '#FF94FF', '#FFDBFF'),  # 300 : keyZ
@@ -4954,7 +4954,8 @@ class CharsState:
             key += '-280'
         elif len(self.parentheses) >= 9:
             key += '-290'
-        elif chars == '<br>' or chars == '<pgbr>' or chars == 'hline':
+        elif chars == '<sp>' or chars == '<br>' or chars == '<pgbr>' or \
+             chars == 'hline':
             key += '-270'
         elif chars == 'escape':
             key += '-310'
@@ -5474,28 +5475,7 @@ class LineDatum:
                     #                                                   # 4.set
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
-                # SPACE (<X>)
-                if ((re.match('^.*<\\s*[0-9]+$', s_lft) and
-                     re.match('^[0-9]*\\s*>.*$', s_rgt)) or
-                    (re.match('^.*<\\s*[0-9]+$', s_lft) and
-                     re.match('^[0-9]*\\.[0-9]+\\s*>.*$', s_rgt)) or
-                    (re.match('^.*<\\s*[0-9]*\\.$', s_lft) and
-                     re.match('^[0-9]+\\s*>.*$', s_rgt)) or
-                    (re.match('^.*<\\s*[0-9]*\\.[0-9]+$', s_lft) and
-                     re.match('^[0-9]*\\s*>.*$', s_rgt))):
-                    key = chars_state.get_key('')                       # 1.key
-                    end = str(i + 1) + '.' + str(j)                     # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
-                    #                                                   # 4.set
-                    # tmp = '[0-9]'                                     # 5.tmp
-                    beg = end                                           # 6.beg
-                    key = chars_state.get_key('font decorator')         # 1.key
-                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
-                    #                                                   # 4.set
-                    tmp = ''                                            # 5.tmp
-                    beg = end                                           # 6.beg
-                    continue
+                # SPACE (< n >)
                 if c == '<' and re.match('^\\s*[\\.0-9]+\\s*>.*$', s_rgt):
                     key = chars_state.get_key('')                       # 1.key
                     end = str(i + 1) + '.' + str(j)                     # 2.end
@@ -5503,7 +5483,7 @@ class LineDatum:
                     #                                                   # 4.set
                     # tmp = '<'                                         # 5.tmp
                     beg = end                                           # 6.beg
-                    key = chars_state.get_key('font decorator')         # 1.key
+                    key = chars_state.get_key('<sp>')                   # 1.key
                     end = str(i + 1) + '.' + str(j + 1)                 # 2.end
                     txt.tag_add(key, beg, end)                          # 3.tag
                     #                                                   # 4.set
@@ -5511,7 +5491,7 @@ class LineDatum:
                     beg = end                                           # 6.beg
                     continue
                 if c == '>' and re.match('^.*<\\s*[\\.0-9]+\\s*>$', s_lft):
-                    key = chars_state.get_key('font decorator')         # 1.key
+                    key = chars_state.get_key('<sp>')                   # 1.key
                     end = str(i + 1) + '.' + str(j + 1)                 # 2.end
                     txt.tag_add(key, beg, end)                          # 3.tag
                     #                                                   # 4.set
@@ -5560,15 +5540,69 @@ class LineDatum:
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
                     continue  # ...[n]# xxx /
-            # FONT SIZE (@n@)
-            if ((re.match('^.*@[0-9]+$', s_lft) and
-                 re.match('^[0-9]*@.*$', s_rgt)) or
-                (re.match('^.*@[0-9]+$', s_lft) and
-                 re.match('^[0-9]*\\.[0-9]+@.*$', s_rgt)) or
-                (re.match('^.*@[0-9]*\\.$', s_lft) and
-                 re.match('^[0-9]+@.*$', s_rgt)) or
-                (re.match('^.*@[0-9]*\\.[0-9]+$', s_lft) and
-                 re.match('^[0-9]*@.*$', s_rgt))):
+            if re.match('^[0-9]$', c):
+                # SAPCE (< n >)
+                if ((re.match('^.*<\\s*[0-9]+$', s_lft) and
+                     re.match('^[0-9]*\\s*>.*$', s_rgt)) or
+                    (re.match('^.*<\\s*[0-9]+$', s_lft) and
+                     re.match('^[0-9]*\\.[0-9]+\\s*>.*$', s_rgt)) or
+                    (re.match('^.*<\\s*[0-9]*\\.$', s_lft) and
+                     re.match('^[0-9]+\\s*>.*$', s_rgt)) or
+                    (re.match('^.*<\\s*[0-9]*\\.[0-9]+$', s_lft) and
+                     re.match('^[0-9]*\\s*>.*$', s_rgt))):
+                    key = chars_state.get_key('<sp>')                   # 1.key
+                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    #                                                   # 4.set
+                    tmp = ''                                            # 5.tmp
+                    beg = end                                           # 6.beg
+                    continue
+                # FONT SIZE (@n@)
+                if ((re.match('^.*@[0-9]+$', s_lft) and
+                     re.match('^[0-9]*@.*$', s_rgt)) or
+                    (re.match('^.*@[0-9]+$', s_lft) and
+                     re.match('^[0-9]*\\.[0-9]+@.*$', s_rgt)) or
+                    (re.match('^.*@[0-9]*\\.$', s_lft) and
+                     re.match('^[0-9]+@.*$', s_rgt)) or
+                    (re.match('^.*@[0-9]*\\.[0-9]+$', s_lft) and
+                     re.match('^[0-9]*@.*$', s_rgt))):
+                    continue
+            # NUMBER
+            if re.match('^[0-9]$', c):
+                key = chars_state.get_key('')                           # 1.key
+                end = str(i + 1) + '.' + str(j)                         # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                # tmp = '[0-9]'                                         # 5.tmp
+                beg = end                                               # 6.beg
+                key = chars_state.get_key('half number')                # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                tmp = ''                                                # 5.tmp
+                beg = end                                               # 6.beg
+                continue
+            if re.match('[' +
+                        '０-９' +
+                        '零一二三四五六七八九十' +
+                        '⑴⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀⒁⒂⒃⒄⒅⒆⒇' +
+                        '①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳' +
+                        ']', c):
+                if c2 == '第' and c1 == '三':
+                    if re.match('^(?:債務)?者', s_rgt):
+                        continue
+                key = chars_state.get_key('')                           # 1.key
+                end = str(i + 1) + '.' + str(j)                         # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                # tmp = '[０-９...]'                                    # 5.tmp
+                beg = end                                               # 6.beg
+                key = chars_state.get_key('full number')                # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                txt.tag_add(key, beg, end)                              # 3.tag
+                #                                                       # 4.set
+                tmp = ''                                                # 5.tmp
+                beg = end                                               # 6.beg
                 continue
             # SPACE (" ", "\t", "\u3000")
             if c == ' ' or c == '\t' or c == '\u3000':
@@ -5692,43 +5726,6 @@ class LineDatum:
                     key = chars_state.get_key('horizontalline240')      # 1.key
                 elif c == '\uFF0D':  # 全角ハイフンマイナス
                     key = chars_state.get_key('horizontalline250')      # 1.key
-                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                tmp = ''                                                # 5.tmp
-                beg = end                                               # 6.beg
-                continue
-            # NUMBER
-            if re.match('[0-9]', c):
-                key = chars_state.get_key('')                           # 1.key
-                end = str(i + 1) + '.' + str(j)                         # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                # tmp = '[0-9]'                                         # 5.tmp
-                beg = end                                               # 6.beg
-                key = chars_state.get_key('half number')                # 1.key
-                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                tmp = ''                                                # 5.tmp
-                beg = end                                               # 6.beg
-                continue
-            if re.match('[' +
-                        '０-９' +
-                        '零一二三四五六七八九十' +
-                        '⑴⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀⒁⒂⒃⒄⒅⒆⒇' +
-                        '①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳' +
-                        ']', c):
-                if c2 == '第' and c1 == '三':
-                    if re.match('^(?:債務)?者', s_rgt):
-                        continue
-                key = chars_state.get_key('')                           # 1.key
-                end = str(i + 1) + '.' + str(j)                         # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
-                #                                                       # 4.set
-                # tmp = '[０-９...]'                                    # 5.tmp
-                beg = end                                               # 6.beg
-                key = chars_state.get_key('full number')                # 1.key
                 end = str(i + 1) + '.' + str(j + 1)                     # 2.end
                 txt.tag_add(key, beg, end)                              # 3.tag
                 #                                                       # 4.set
