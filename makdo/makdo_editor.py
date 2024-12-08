@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.08-10:38:53-JST>
+# Time-stamp:   <2024.12.08-11:03:24-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4729,6 +4729,7 @@ class Witch:
 ############################################################
 # CHARS STATE
 
+
 class CharsState:
 
     def __init__(self):
@@ -4775,6 +4776,7 @@ class CharsState:
         copy.has_underline = self.has_underline
         copy.has_specific_font = self.has_specific_font
         copy.has_frame = self.has_frame
+        copy.standard_size = self.standard_size
         copy.is_resized = self.is_resized
         copy.is_stretched = self.is_stretched
         copy.is_length_reviser = self.is_length_reviser
@@ -4819,22 +4821,22 @@ class CharsState:
     def set_is_resized(self, fd):
         if fd == '---':
             if self.is_resized == '---':
-                self.is_resized = ''
+                self.is_resized = self.standard_size
             else:
                 self.is_resized = '---'
         elif fd == '--':
             if self.is_resized == '--':
-                self.is_resized = ''
+                self.is_resized = self.standard_size
             else:
                 self.is_resized = '--'
         elif fd == '++':
             if self.is_resized == '++':
-                self.is_resized = ''
+                self.is_resized = self.standard_size
             else:
                 self.is_resized = '++'
         elif fd == '+++':
             if self.is_resized == '+++':
-                self.is_resized = ''
+                self.is_resized = self.standard_size
             else:
                 self.is_resized = '+++'
 
