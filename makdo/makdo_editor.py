@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.08-12:30:55-JST>
+# Time-stamp:   <2024.12.08-13:15:48-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6148,10 +6148,10 @@ class Makdo:
             chars_state.reset_partially()
         paint_keywords = self.paint_keywords.get()
         # EXCLUSION
-        if self.line_data[ln].line_text == line_text and \
-           self.line_data[ln].beg_chars_state == chars_state and \
-           self.line_data[ln].paint_keywords == paint_keywords:
-            return
+        # if self.line_data[ln].line_text == line_text and \
+        #    self.line_data[ln].beg_chars_state == chars_state and \
+        #    self.line_data[ln].paint_keywords == paint_keywords:
+        #     return
         # PAINT
         self.line_data[ln].line_text = line_text
         self.line_data[ln].beg_chars_state = chars_state
