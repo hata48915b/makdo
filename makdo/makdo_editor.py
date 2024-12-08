@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.08-12:24:09-JST>
+# Time-stamp:   <2024.12.08-12:30:55-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5146,6 +5146,7 @@ class LineDatum:
                     #                                                   # 4.set
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
+                self.end_chars_state = chars_state.copy()
                 return
         # PARTS
         beg, tmp = str(i + 1) + '.0', ''
