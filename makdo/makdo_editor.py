@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.08-11:03:24-JST>
+# Time-stamp:   <2024.12.08-12:24:09-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4821,22 +4821,22 @@ class CharsState:
     def set_is_resized(self, fd):
         if fd == '---':
             if self.is_resized == '---':
-                self.is_resized = self.standard_size
+                self.is_resized = ''
             else:
                 self.is_resized = '---'
         elif fd == '--':
             if self.is_resized == '--':
-                self.is_resized = self.standard_size
+                self.is_resized = ''
             else:
                 self.is_resized = '--'
         elif fd == '++':
             if self.is_resized == '++':
-                self.is_resized = self.standard_size
+                self.is_resized = ''
             else:
                 self.is_resized = '++'
         elif fd == '+++':
             if self.is_resized == '+++':
-                self.is_resized = self.standard_size
+                self.is_resized = ''
             else:
                 self.is_resized = '+++'
 
@@ -5037,7 +5037,7 @@ class LineDatum:
         chars_state = self.beg_chars_state.copy()
         self.paint_keywords = paint_keywords
         # EMPTY LINE
-        if line_text == '':
+        if line_text == '\n':
             chars_state.standard_size = ''  # for table
             self.end_chars_state = chars_state.copy()
             return
@@ -5115,7 +5115,8 @@ class LineDatum:
                     chars_state.set_section_depth(dep)
             # TABLE
             if line_text[0] == '|':
-                chars_state.standard_size = chars_state.is_resized  # for table
+                if chars_state.standard_size == '':
+                    chars_state.standard_size = chars_state.is_resized
             res = '^(:\\s)?\\s*(\\|:?-*:?[\\^=]?)*(\\|(\\s:)?|\\\\)$'
             if re.match(res, line_text):
                 beg, tmp = str(i + 1) + '.0', ''
@@ -5392,7 +5393,11 @@ class LineDatum:
                         res = '^=[-\\+]?[0-9]*(\\.?[0-9]+)(\\s.*)?$'
                         if s2 != '<<' or not re.match(res, s_rgt):
                             if tmp == '--' or tmp == '++':
+                                #print('=======================')
+                                #print('A' + chars_state.standard_size)
+                                #print('B' + chars_state.is_resized)
                                 chars_state.set_is_resized(tmp)         # 4.set
+                                #print('C' + chars_state.is_resized)
                             else:
                                 chars_state.set_is_stretched(tmp)       # 4.set
                     tmp = ''                                            # 5.tmp
@@ -7809,6 +7814,9 @@ class Makdo:
         if self.clipboard_list[-1] != '':
             self.clipboard_list.append('')
         self.clipboard_list[-1] += r
+        # FOR PAINTING
+        self.line_data[v_number - 1].line_text += '='
+        self.paint_out_line(v_number - 1)
 
     def change_typeface(self):
         c = self.txt.get('insert', 'insert+1c')
