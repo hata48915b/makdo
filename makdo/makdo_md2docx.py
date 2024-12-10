@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.05-09:04:34-JST>
+# Time-stamp:   <2024.12.10-09:24:30-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4527,14 +4527,14 @@ class Paragraph:
         if text_to_write_with_reviser == '':
             return
         if paragraph_class == 'alignment':
-            ms_par = self.__get_ms_par(ms_doc)
+            ms_par = self._get_ms_par(ms_doc)
             # WORD WRAP (英単語の途中で改行する)
             ms_ppr = ms_par._p.get_or_add_pPr()
             XML.add_tag(ms_ppr, 'w:wordWrap', {'w:val': '0'})
         elif paragraph_class == 'preformatted':
-            ms_par = self.__get_ms_par(ms_doc, 'makdo-g')
+            ms_par = self._get_ms_par(ms_doc, 'makdo-g')
         else:
-            ms_par = self.__get_ms_par(ms_doc)
+            ms_par = self._get_ms_par(ms_doc)
         if alignment == 'left':
             ms_par.alignment = WD_ALIGN_PARAGRAPH.LEFT
         elif alignment == 'center':
@@ -4559,7 +4559,7 @@ class Paragraph:
         self.end_chars_state = self.chars_state.copy()
         Paragraph.bridge_chars_state = self.end_chars_state.copy()
 
-    def __get_ms_par(self, ms_doc, par_style='makdo'):
+    def _get_ms_par(self, ms_doc, par_style='makdo'):
         length_docx = self.length_docx
         f_size = Form.font_size
         ms_par = ms_doc.add_paragraph(style=par_style)
@@ -5665,7 +5665,7 @@ class ParagraphImage(Paragraph):
             except BaseException:
                 e = ms_doc.paragraphs[-1]._element
                 e.getparent().remove(e)
-                ms_par = self.__get_ms_par(ms_doc)
+                ms_par = self._get_ms_par(ms_doc)
                 ms_par.add_run(text)
                 ms_par.alignment = WD_ALIGN_PARAGRAPH.CENTER
                 msg = '※ 警告: ' \
