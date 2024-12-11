@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.11-12:06:59-JST>
+# Time-stamp:   <2024.12.11-18:09:15-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4954,8 +4954,9 @@ class CharsState:
             key += '-280'
         elif len(self.parentheses) >= 9:
             key += '-290'
-        elif chars == '<sp>' or chars == '<br>' or chars == '<pgbr>' or \
-             chars == 'hline':
+        elif chars == '<sp>' or chars == '<br>' or chars == '<pgbr>':
+            key += '-270'
+        elif chars == 'hline':
             key += '-270'
         elif chars == 'escape':
             key += '-310'
@@ -5606,6 +5607,8 @@ class LineDatum:
                 continue
             # SPACE (" ", "\t", "\u3000")
             if c == ' ' or c == '\t' or c == '\u3000':
+                if re.match(NOT_ESCAPED + '@[^@]{1,66}.$', tmp):
+                    continue
                 key = chars_state.get_key('')                           # 1.key
                 end = str(i + 1) + '.' + str(j)                         # 2.end
                 txt.tag_add(key, beg, end)                              # 3.tag
@@ -5657,15 +5660,15 @@ class LineDatum:
                 continue
             # HORIZONTAL LINES
             if not c.isascii() and \
-               (c == '\u00AD' or c == '\u058A' or c == '\u05BE' or \
-                c == '\u1806' or c == '\u180A' or c == '\u2010' or \
-                c == '\u2011' or c == '\u2012' or c == '\u2013' or \
-                c == '\u2014' or c == '\u2015' or c == '\u2043' or \
-                c == '\u207B' or c == '\u208B' or c == '\u2212' or \
-                c == '\u2500' or c == '\u2501' or c == '\u2796' or \
-                c == '\u2E3A' or c == '\u2E3B' or c == '\u3127' or \
-                c == '\u3161' or c == '\uFE58' or c == '\uFE63' or \
-                c == '\uFF0D' or c == '\uFF70'):
+               ((c == '\u00AD' or c == '\u058A' or c == '\u05BE' or
+                 c == '\u1806' or c == '\u180A' or c == '\u2010' or
+                 c == '\u2011' or c == '\u2012' or c == '\u2013' or
+                 c == '\u2014' or c == '\u2015' or c == '\u2043' or
+                 c == '\u207B' or c == '\u208B' or c == '\u2212' or
+                 c == '\u2500' or c == '\u2501' or c == '\u2796' or
+                 c == '\u2E3A' or c == '\u2E3B' or c == '\u3127' or
+                 c == '\u3161' or c == '\uFE58' or c == '\uFE63' or
+                 c == '\uFF0D' or c == '\uFF70')):
                 key = chars_state.get_key('')                           # 1.key
                 end = str(i + 1) + '.' + str(j)                         # 2.end
                 txt.tag_add(key, beg, end)                              # 3.tag
@@ -14184,7 +14187,8 @@ class Makdo:
                 prev_para = re.sub(res, '\\1', upper_text)
             else:
                 prev_para = ''
-            lower_para = re.sub('^((?:.|\n)*?\n)(\n(?:.|\n)*)$', '\\1', lower_text)
+            res = '^((?:.|\n)*?\n)(\n(?:.|\n)*)$'
+            lower_para = re.sub(res, '\\1', lower_text)
             beg = '1.0+' + str(len(prev_para)) + 'c'
             end = '1.0+' + str(len(upper_text + lower_para)) + 'c'
             para = self.txt.get(beg, end)
