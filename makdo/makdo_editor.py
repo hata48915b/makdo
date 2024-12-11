@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.09-06:01:18-JST>
+# Time-stamp:   <2024.12.11-12:06:59-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -12530,6 +12530,12 @@ class Makdo:
         menu = tkinter.Menu(self.mnb, tearoff=False)
         self.mnb.add_cascade(label='裏の技(Z)', menu=menu, underline=3)
         #
+        menu.add_command(label='取引履歴の見本を挿入',
+                         command=self.insert_sample_trading_history)
+        menu.add_command(label='利息・遅延損害金を計算',
+                         command=self.calc_interest_or_charge)
+        menu.add_separator()
+        #
         menu.add_command(label='Epwing形式の辞書で調べる',
                          command=self.look_in_epwing)
         menu.add_command(label='Epwing形式の辞書フォルダを設定',
@@ -12560,6 +12566,12 @@ class Makdo:
             + '起動を早くするため、\n' \
             + '機能の一部を落としています．'
         tkinter.messagebox.showwarning(n, m)
+
+    def insert_sample_trading_history(self) -> None:
+        self._show_message_reducing_functions()
+
+    def calc_interest_or_charge(self) -> None:
+        self._show_message_reducing_functions()
 
     def look_in_epwing(self) -> None:
         self._show_message_reducing_functions()
@@ -14020,13 +14032,14 @@ class Makdo:
             #   80,  100,  120,  125,  150,  200,  240,  250,  300,  375,
             #  400,  500,  600,  750, 1000, 1200, 1500, 2000, 3000, 6000
             m = len(self.file_lines)
-            if m <= 100:     # 60*2*1000/100  = 1200
-                if (n % 1200) == 0:
-                    self.run_periodically_to_paint_line_globally()
-            elif m <= 200:   # 60*2*1000/200  =  600
-                if (n % 600) == 0:
-                    self.run_periodically_to_paint_line_globally()
-            elif m <= 300:   # 60*2*1000/300  =  400
+            # if m <= 100:     # 60*2*1000/100  = 1200
+            #     if (n % 1200) == 0:
+            #         self.run_periodically_to_paint_line_globally()
+            # elif m <= 200:   # 60*2*1000/200  =  600
+            #     if (n % 600) == 0:
+            #         self.run_periodically_to_paint_line_globally()
+            # elif m <= 300:   # 60*2*1000/300  =  400
+            if m <= 300:   # 60*2*1000/300  =  400
                 if (n % 400) == 0:
                     self.run_periodically_to_paint_line_globally()
             elif m <= 400:   # 60*2*1000/400  =  300
@@ -14120,6 +14133,105 @@ class Makdo:
     ####################################
     # NOT PYINSTALLER
     if not getattr(sys, 'frozen', False):
+
+        # CALCULATE INTEREST OR CHARGE
+
+        def insert_sample_trading_history(self) -> None:
+            self._insert_line_break_as_necessary()
+            ins = '<!--\n' \
+                + '日付\n' \
+                + '  69未満は2000年代、70以上は1900年代\n' \
+                + '借入額\n' \
+                + '  先頭の"_"に付けると元金に充当\n' \
+                + '返済額\n' \
+                + '  先頭の"_"に付けると元金に充当\n' \
+                + '年利\n' \
+                + '  "="は利息制限法及び民法所定の金利\n' \
+                + '  "*"は遅延損害金で1.46倍\n' \
+                + '設定\n' \
+                + '  "+"は初日算入（デフォルト）\n' \
+                + '  "-"は初日不算入\n' \
+                + '  "?"は年未満を日歩計算\n' \
+                + '  "!"は全期間を日歩計算\n' \
+                + '  ";"は日付を和暦で出力\n' \
+                + '  "."は日付を西暦2桁で出力\n' \
+                + '  ":"は日付を西暦4桁で出力\n' \
+                + '-->\n\n' \
+                + 'H24-01-01    10,000       - = +\n' \
+                + 'H25-01-01   100,000       -\n' \
+                + 'H26-01-01 1,000,000       -\n' \
+                + 'H27-01-01         - 300,000\n' \
+                + 'H28-01-01         - 300,000\n' \
+                + 'H29-01-01         - 300,000\n' \
+                + 'H30-01-01         - 300,000\n' \
+                + 'H31-01-01         - 300,000\n' \
+                + 'R02-01-01         - 300,000\n'
+            self.txt.insert('insert', ins)
+            vp = self._get_v_position_of_insert(self.txt) - 1
+            n = ins.count('\n')
+            for i in range(n):
+                self.paint_out_line(vp - n + i)
+
+        def calc_interest_or_charge(self):
+            if 'keiji_is_loaded' not in vars(self):
+                import makdo.keiji  # keiji
+                keiji = makdo.keiji
+                self.keiji_is_loaded = True
+            upper_text = self.txt.get('1.0', 'insert')
+            lower_text = self.txt.get('insert', 'end-1c')
+            res = '^((?:.|\n)*\n\n)((?:.|\n)*)$'
+            if re.match(res, upper_text):
+                prev_para = re.sub(res, '\\1', upper_text)
+            else:
+                prev_para = ''
+            lower_para = re.sub('^((?:.|\n)*?\n)(\n(?:.|\n)*)$', '\\1', lower_text)
+            beg = '1.0+' + str(len(prev_para)) + 'c'
+            end = '1.0+' + str(len(upper_text + lower_para)) + 'c'
+            para = self.txt.get(beg, end)
+            # CALCULATE
+            bad_lines = []
+            trades = []
+            for line in para.split('\n'):
+                if(not keiji.is_data_line(line)):
+                    if line != '' and \
+                       ('日付' not in line) and ('合計' not in line) and \
+                       ('---:' not in line) and not re.match('^=+$', line):
+                        bad_lines.append(line)
+                    continue
+                trades.append(keiji.Trade(line))
+            for i, tr in enumerate(trades):
+                if(i == 0):
+                    tr.reset_options()
+                    tr.inherit_prev_data_for_first_trade()
+                else:
+                    prev = trades[i - 1]
+                    tr.inherit_prev_data_for_second_and_subsequent_trade(prev)
+                tr.check_and_set_this_interest_rate_standard()
+                tr.calc_and_set_has_to_include_prev_day()
+                tr.calc_and_set_has_to_include_this_day()
+                if(i == (len(trades) - 1)):
+                    tr.set_has_to_include_this_day(True)  # include last day
+                tr.calc_and_set_years_and_days()
+                tr.calc_and_set_interest()
+                tr.calc_and_set_change_and_remaining()
+                tr.calc_and_set_this_interest_rate()
+                ti = keiji.Decimal(tr.get_this_remaining_interest())
+                tp = keiji.Decimal(tr.get_this_remaining_principal())
+                keiji.Trade.set_total_amount(str(tp + ti))
+            # WRITE
+            if len(trades) > 0:
+                tab = ''
+                keiji.Trade.set_output_style('markdown')
+                tab += keiji.Trade.get_header() + '\n'  # header
+                for i, tr in enumerate(trades):
+                    tab += tr.get_trade(i) + '\n'  # trade
+                tab += keiji.Trade.get_footer() + '\n'  # footer
+                if len(bad_lines) > 0:
+                    tab += '次の行は除外しました\n'
+                    for line in bad_lines:
+                        tab += line
+                self.txt.insert(end, '\n' + tab)
+                # BAD LINES
 
         # EPWING
 
