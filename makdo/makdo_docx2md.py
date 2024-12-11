@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.12-04:11:30-JST>
+# Time-stamp:   <2024.12.12-07:47:44-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1528,6 +1528,7 @@ class Form:
     rels = None
     remarks = None
     auto_numbering_styles = None
+    footnotes = None
 
     def __init__(self):
         # DECLARE
@@ -1900,8 +1901,8 @@ class Form:
     @staticmethod
     def _configure_by_headerX_xml(xml_lines):
         # HEADER STRING
-        chars_data, images \
-            = RawParagraph._get_chars_data_and_images('', xml_lines, 'header')
+        chars_data, images, footnotes \
+            = RawParagraph._get_chars_data_and_etc('', xml_lines, 'header')
         raw_text = RawParagraph.get_raw_text(chars_data)
         alignment = RawParagraph.get_alignment(xml_lines)
         if alignment == 'center':
@@ -1914,8 +1915,8 @@ class Form:
     @staticmethod
     def _configure_by_footerX_xml(xml_lines):
         # PAGE NUMBER
-        chars_data, images \
-            = RawParagraph._get_chars_data_and_images('', xml_lines, 'footer')
+        chars_data, images, footnotes \
+            = RawParagraph._get_chars_data_and_etc('', xml_lines, 'footer')
         raw_text = RawParagraph.get_raw_text(chars_data)
         alignment = RawParagraph.get_alignment(xml_lines)
         if alignment == 'center':
@@ -2566,6 +2567,19 @@ class Form:
                 s2_num = -1
         auto_numbering_styles = s2_styles
         return auto_numbering_styles
+
+    @staticmethod
+    def get_footnotes(xml_lines):
+        footnotes = {}
+        _fnid = None
+        for xl in xml_lines:
+            if re.match('^<w:footnote( .*)>$', xl):
+                _fnid = XML.get_value('w:footnote', 'w:id', '', xl)
+                footnotes[_fnid] = ''
+            if _fnid is not None:
+                if not re.match('^<.*>$', xl):
+                    footnotes[_fnid] += xl
+        return footnotes
 
 
 class AutoNumberingStyle:
@@ -5693,6 +5707,7 @@ class RawParagraph:
         self.attached_pagebreak = ''  # 'pgbr' | 'Pgbr'
         self.chars_data = []
         self.images = {}
+        self.footnotes = {}
         self.raw_text = ''
         self.head_space = ''
         self.tail_space = ''
@@ -5711,8 +5726,8 @@ class RawParagraph:
         self.horizontal_line \
             = self._get_horizontal_line(self.raw_class, self.xml_lines)
         self.attached_pagebreak = self._get_attached_pagebreak(self.xml_lines)
-        self.chars_data, self.images \
-            = self._get_chars_data_and_images(self.raw_class, self.xml_lines)
+        self.chars_data, self.images, self.footnotes \
+            = self._get_chars_data_and_etc(self.raw_class, self.xml_lines)
         self.chars_data = self._reduce_font_name(self.chars_data)
         # self.chars_data.reverse()
         # self.chars_data = self._reduce_font_name(self.chars_data)
@@ -5772,10 +5787,11 @@ class RawParagraph:
         return ''
 
     @classmethod
-    def _get_chars_data_and_images(cls, raw_class, xml_lines, type='normal'):
+    def _get_chars_data_and_etc(cls, raw_class, xml_lines, type='normal'):
         font_size = Form.font_size
         chars_data = []
         images = {}
+        footnotes = {}
         img_rels = Form.rels
         img_file_name = ''
         img_size = ''
@@ -6070,6 +6086,11 @@ class RawParagraph:
                         cd.chars += hs + ' '
                     ans.state += 1
                 continue
+            # FOOTNOTE
+            if re.match('^<w:footnoteReference( .*)>$', xl):
+                _fnid = XML.get_value('w:footnoteReference', 'w:id', '', xl)
+                cd.chars += '[^' + _fnid + ']'
+                footnotes[_fnid] = Form.footnotes[_fnid]
             # TEXT
             if not re.match('^<.*>$', xl):
                 imm = CharsDatum.prepare_imm(fldchar, xl, type)
@@ -6131,7 +6152,7 @@ class RawParagraph:
             rub_cd.bk_fd_cls = FontDecorator([])
         # self.chars_data = chars_data
         # self.images = images
-        return chars_data, images
+        return chars_data, images, footnotes
 
     @staticmethod
     def __get_img_file_names_ms(xl, img_rels):
@@ -6696,6 +6717,7 @@ class Paragraph:
         self.raw_text_ins = raw_paragraph.raw_text_ins
         self.raw_text_doi = raw_paragraph.raw_text_doi
         self.images = raw_paragraph.images
+        self.footnotes = raw_paragraph.footnotes
         self.remarks = raw_paragraph.remarks
         self.style = raw_paragraph.style
         self.alignment = raw_paragraph.alignment
@@ -7294,6 +7316,7 @@ class Paragraph:
         pre_text_to_write = self.pre_text_to_write
         post_text_to_write = self.post_text_to_write
         attached_pagebreak = self.attached_pagebreak
+        footnotes = self.footnotes
         # FONT REVISERS
         head_pair_font_revisers = []
         head_single_font_revisers = []
@@ -7374,6 +7397,11 @@ class Paragraph:
                 ttwwr += '\n\n<pgbr>'
             if attached_pagebreak == 'Pgbr':
                 ttwwr += '\n\n<Pgbr>'
+        # FOOTNOTES
+        if footnotes != {}:
+            ttwwr += '\n'
+            for _fnid in footnotes:
+                ttwwr += '\n[^' + _fnid + ']: ' + footnotes[_fnid]
         text_to_write_with_reviser = ttwwr
         # self.text_to_write_with_reviser = text_to_write_with_reviser
         return text_to_write_with_reviser
@@ -8104,8 +8132,8 @@ class ParagraphTable(Paragraph):
         for row in xml_tbl:
             txt_row = []
             for cell in row:
-                chars_data, images \
-                    = RawParagraph._get_chars_data_and_images('w:tbl', cell)
+                chars_data, images, footnotes \
+                    = RawParagraph._get_chars_data_and_etc('w:tbl', cell)
                 raw_text = RawParagraph.get_raw_text(chars_data)
                 txt_row.append(raw_text)
             txt_tbl.append(txt_row)
@@ -8941,6 +8969,7 @@ class Docx2Md:
         rels_xml_lines = io.read_xml_file('/word/_rels/document.xml.rels')
         comments_xml_lines = io.read_xml_file('/word/comments.xml')
         numbering_xml_lines = io.read_xml_file('/word/numbering.xml')
+        footnotes_xml_lines = io.read_xml_file('/word/footnotes.xml')
         # CONFIGURE
         frm.document_xml_lines = document_xml_lines
         frm.core_xml_lines = core_xml_lines
@@ -8952,6 +8981,7 @@ class Docx2Md:
         frm.rels_xml_lines = rels_xml_lines
         frm.comments_xml_lines = comments_xml_lines
         frm.numbering_xml_lines = numbering_xml_lines
+        frm.footnotes_xml_lines = footnotes_xml_lines
         frm.args = args
         frm.configure()
         # IMAGE LIST
@@ -8963,6 +8993,8 @@ class Docx2Md:
         # AUTO NUMBERING STYLE
         Form.auto_numbering_styles \
             = Form.get_auto_numbering_styles(numbering_xml_lines)
+        # FOOTNOTES
+        Form.footnotes = Form.get_footnotes(footnotes_xml_lines)
         # PRESERVE
         doc.document_xml_lines = document_xml_lines
 
