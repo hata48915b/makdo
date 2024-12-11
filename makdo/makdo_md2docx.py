@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.10-09:24:30-JST>
+# Time-stamp:   <2024.12.11-19:08:24-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1532,9 +1532,15 @@ class Form:
                     continue
             has_two_or_more_sections = True
         if not has_two_or_more_sections:
-            while re.match(NOT_ESCAPED + 'N', Form.page_number):
-                Form.page_number \
-                    = re.sub(NOT_ESCAPED + 'N', '\\1M', Form.page_number)
+            tmp = ''
+            is_in_font_name = False
+            for c in Form.page_number:
+                if c == '@' and re.match(NOT_ESCAPED + '@', tmp + c):
+                    is_in_font_name = not is_in_font_name
+                if c == 'N' and not is_in_font_name:
+                    c = 'M'
+                tmp += c
+            Form.page_number = tmp
         elif re.match(NOT_ESCAPED + '(N|M)', Form.page_number):
             msg = '※ 警告: ' \
                 + '"<Page>"を含む場合、' \
@@ -4950,7 +4956,9 @@ class Paragraph:
                     XML.write_chars(ms_par._p, chars_state, '\u3000')
                 chars_state.font_width = ori_fw
         elif re.match(NOT_ESCAPED + '(n|N|M)$', chars):
-            if type == 'footer':
+            res = NOT_ESCAPED + '@[^@]{1,66}.$'
+            if type == 'footer' and \
+               not re.match(res, chars):  # not in a font name
                 # "n|N|M" (PAGE NUMBER)
                 char = re.sub(NOT_ESCAPED + '(n|N|M)$', '\\2', chars)
                 chars = re.sub(NOT_ESCAPED + '(n|N|M)$', '\\1', chars)
