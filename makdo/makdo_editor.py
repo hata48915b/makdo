@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.11-18:09:15-JST>
+# Time-stamp:   <2024.12.12-02:40:10-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5402,33 +5402,49 @@ class LineDatum:
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
                     continue
-                # FONT DECORATOR ("@.+@", "_.*_")
-                res = NOT_ESCAPED + '(@[^@]{1,66}@|_.*_)$'
-                if re.match(res, tmp):
+                # UNDERLINE ("_.*_")
+                res = NOT_ESCAPED + '(_[\\$=\\.#\\-~\\+]{,4}_)$'
+                if c == '_' and re.match(res, tmp):
                     mdt = re.sub(res, '\\2', tmp)
-                    if re.match('^_.*_$', mdt):
-                        if not re.match('^_[\\$=\\.#\\-~\\+]{,4}_$', mdt):
-                            continue
                     hul = chars_state.has_underline
-                    hsf = chars_state.has_specific_font
                     key = chars_state.get_key('')                       # 1.key
                     end = str(i + 1) + '.' + str(j - len(mdt) + 1)      # 2.end
                     txt.tag_add(key, beg, end)                          # 3.tag
-                    if re.match('_.*_', mdt) and hul:
+                    if hul:
                         chars_state.toggle_has_underline()              # 4.set
-                    elif re.match('@.*@', mdt) and hsf:
-                        chars_state.toggle_has_specific_font()          # 4.set
                     tmp = mdt                                           # 5.tmp
                     beg = end                                           # 6.beg
                     key = chars_state.get_key('font decorator')         # 1.key
                     end = str(i + 1) + '.' + str(j + 1)                 # 2.end
                     txt.tag_add(key, beg, end)                          # 3.tag
-                    if re.match('_.*_', mdt) and not hul:
+                    if not hul:
                         chars_state.toggle_has_underline()              # 4.set
-                    elif re.match('@.*@', mdt) and not hsf:
-                        chars_state.toggle_has_specific_font()          # 4.set
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
+                    continue
+                # FONT DECORATOR ("@.+@")
+                res = NOT_ESCAPED + '(@[^@]{1,66}@)$'
+                if c == '@' and re.match(res, tmp):
+                    mdt = re.sub(res, '\\2', tmp)
+                    hsf = chars_state.has_specific_font
+                    key = chars_state.get_key('')                       # 1.key
+                    end = str(i + 1) + '.' + str(j - len(mdt) + 1)      # 2.end
+                    txt.tag_add(key, beg, end)                          # 3.tag
+                    if hsf:
+                        chars_state.toggle_has_specific_font()          # 4.set
+                    tmp = mdt                                           # 5.tmp
+                    beg = end                                           # 6.beg
+                    for k, tmp_c in enumerate(mdt):
+                        key = chars_state.get_key('font decorator') # 1.key
+                        if tmp_c == ' ' or tmp_c == '\t' or tmp_c == '\u3000':
+                            key = chars_state.get_key(tmp_c)            # 1.key
+                        end = str(i + 1) + '.' \
+                            + str(j - len(mdt) + 1 + (k + 1))           # 2.end
+                        txt.tag_add(key, beg, end)                      # 3.tag
+                        beg = end                                       # 6.beg
+                    if not hsf:
+                        chars_state.toggle_has_specific_font()          # 4.set
+                    tmp = ''                                            # 5.tmp
                     continue
                 # FRAME
                 if (c == '[' and c0 == '|') or (c == '|' and c0 == ']'):
