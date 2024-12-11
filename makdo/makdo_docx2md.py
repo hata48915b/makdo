@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.05-09:03:53-JST>
+# Time-stamp:   <2024.12.12-04:11:30-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4586,18 +4586,18 @@ class LineTruncation:
                         s = old_text[b:e + 1]
                         w = get_ideal_width(s)
                         if closing_point < 0:
+                            phrases.append(t_not)
                             if w <= int(MD_TEXT_WIDTH / 2):
-                                phrases.append(t_not)
                                 tmp1 = t_par
                                 closing_point = e
                             else:
-                                phrases.append(t_not)
                                 k = len(phrases) - 1
                                 while k >= 0:
                                     if phrases[k] != '':
                                         break
                                     k -= 1
-                                if k >= 0 and cls.Paren.are_parens(phrases[k]):
+                                if k >= 0 and \
+                                   cls.Paren.are_left_parens(phrases[k]):
                                     phrases[k] += t_par
                                 else:
                                     phrases.append(t_par)
@@ -4609,7 +4609,8 @@ class LineTruncation:
                             phrases.append(tmp1)
                             tmp1 = ''
                             closing_point = -1
-                        elif closing_point < 0 and not cls.Paren.is_paren(c2):
+                        elif closing_point < 0 and \
+                             not cls.Paren.is_right_paren(c2):
                             phrases.append(t_not)
                             phrases.append(t_par)
                             tmp1 = ''
