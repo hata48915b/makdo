@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.11-19:08:24-JST>
+# Time-stamp:   <2024.12.13-07:49:44-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1285,6 +1285,17 @@ class IO:
         ms_doc.styles['makdo-r'].font.size = Pt(10.5)
         ms_doc.styles['makdo-r'].font.color.rgb = RGBColor(255, 255, 0)
         ms_doc.styles['makdo-r'].font.highlight_color = WD_COLOR_INDEX.BLUE
+        # FOOTNOTES
+        ms_doc.styles.add_style('makdo-f', WD_STYLE_TYPE.PARAGRAPH)
+        XML.set_font(ms_doc.styles['makdo'], Form.mincho_font)
+        ms_doc.styles['makdo-f'].font.size = Pt(f_size * 2 / 3)
+        ms_doc.styles['makdo-f'].paragraph_format.line_spacing \
+            = Pt(f_size * 2 / 3)
+        ms_doc.styles['makdo-f'].paragraph_format.space_before \
+            = Pt(((line_spacing * f_size) - (f_size * 1 / 3)) / 2)
+        ms_doc.styles['makdo-f'].paragraph_format.space_after = Pt(0)
+        ms_doc.styles['makdo-f'].paragraph_format.first_line_indent = Pt(- f_size)
+        ms_doc.styles['makdo-f'].paragraph_format.left_indent = Pt(f_size * 7)
 
 
 class MdFile:
@@ -1984,8 +1995,8 @@ class CharsState:
         self.underline = None
         self.font_color = None
         self.highlight_color = None
-        self.sub_or_sup = ''
-        self.track_changes = ''  # ''|'del'|'ins'
+        self.sub_or_sup = ''  # ""|"sub"|"sup"
+        self.track_changes = ''  # ""|"del"|"ins"
         self.char_spacing = 0.0
 
     def copy(self):
@@ -3389,6 +3400,8 @@ class Document:
 
     """A class to handle document"""
 
+    footnotes = {}
+
     def __init__(self):
         self.docx_file = ''
         self.formal_md_lines = []
@@ -4018,6 +4031,8 @@ class RawParagraph:
             return 'breakdown'
         elif ParagraphRemarks.is_this_class(ft, hfrs, tfrs):
             return 'remarks'
+        elif ParagraphFootnotes.is_this_class(ft, hfrs, tfrs):
+            return 'footnotes'
         else:
             return 'sentence'
 
@@ -4055,6 +4070,8 @@ class RawParagraph:
             return ParagraphBreakdown(self)
         elif paragraph_class == 'remarks':
             return ParagraphRemarks(self)
+        elif paragraph_class == 'footnotes':
+            return ParagraphFootnotes(self)
         else:
             return ParagraphSentence(self)
 
@@ -4964,6 +4981,24 @@ class Paragraph:
                 chars = re.sub(NOT_ESCAPED + '(n|N|M)$', '\\1', chars)
                 chars = XML.write_chars(ms_par._p, chars_state, chars)
                 chars += XML.write_page_number(ms_par._p, chars_state, char)
+        elif re.match(NOT_ESCAPED + '\\[\\^(.{,20})\\]$', chars):
+            # "[^.*]" (FOOTNOTES)
+            res = '\\[\\^(.{,20})\\]$'
+            fnids = re.sub(NOT_ESCAPED + res + '$', '\\2', chars)
+            chars = re.sub(NOT_ESCAPED + res + '$', '\\1', chars)
+            if fnids not in Document.footnotes:
+                idn_max = 0
+                for ids in Document.footnotes:
+                    idn = Document.footnotes[ids]
+                    if idn_max < idn:
+                        idn_max = idn
+                Document.footnotes[fnids] = idn_max + 1
+            chars = XML.write_chars(ms_par._p, chars_state, chars)
+            sub_or_sup = chars_state.sub_or_sup
+            chars_state.sub_or_sup = 'sup'
+            chars = XML.write_chars(ms_par._p, chars_state,
+                                    str(Document.footnotes[fnids]) + '）')
+            chars_state.sub_or_sup = sub_or_sup
         if c == '\0' and chars != '':
             # LAST
             chars = XML.write_chars(ms_par._p, chars_state, chars)
@@ -6181,6 +6216,28 @@ class ParagraphRemarks(Paragraph):
             if i < len(md_lines) - 1:
                 text += '\n'
             ms_run = ms_par.add_run(text)
+
+
+class ParagraphFootnotes(Paragraph):
+
+    """A class to handle footnotes paragraph"""
+
+    paragraph_class = 'footnotes'
+    res_feature = '^\\[\\^.{,20}\\]:\\s.*$'
+
+    def write_paragraph(self, ms_doc):
+        res = '^\\[\\^(.{,20})\\]:\\s(.*)$'
+        fnids = re.sub(res, '\\1', self.full_text)
+        text = re.sub(res, '\\2', self.full_text)
+        if fnids not in Document.footnotes:
+            idn_max = 0
+            for ids in Document.footnotes:
+                idn = Document.footnotes[ids]
+                if idn_max < idn:
+                    idn_max = idn
+            Document.footnotes[fnids] = idn_max + 1
+        ms_par = ms_doc.add_paragraph(style='makdo-f')
+        ms_run = ms_par.add_run(str(Document.footnotes[fnids]) + '）' + text)
 
 
 class ParagraphSentence(Paragraph):
