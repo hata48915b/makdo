@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         eblook.py
 # Version:      v01
-# Time-stamp:   <2024.12.11-12:18:01-JST>
+# Time-stamp:   <2024.12.13-08:50:36-JST>
 
 # eblook.py
 # Copyright (C) 2017-2024  Seiichiro HATA
@@ -89,7 +89,7 @@ GAIJI_KOJIEN = {
     'zb956': '𠆢',  # ひとやね
     'zb95a': '𫝆', 'zb95b': '㠯', 'zb95c': '仡',
     'zb97c': '每',
-    'zba2b': '𠊳', # ⺅㪅
+    'zba2b': '𠊳',  # ⺅㪅
     'zba4e': '【漢字（傷のつくり）】', 'zba4f': '【漢字（修の彡が羽）】',
     'zba58': '僨', 'zba59': '菐',
     'zba72': '【漢字（兼のソが八）】', 'zba73': '【漢字（六の点なし）】',

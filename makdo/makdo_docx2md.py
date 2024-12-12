@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.12-07:47:44-JST>
+# Time-stamp:   <2024.12.13-08:57:01-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4623,8 +4623,8 @@ class LineTruncation:
                             phrases.append(tmp1)
                             tmp1 = ''
                             closing_point = -1
-                        elif closing_point < 0 and \
-                             not cls.Paren.is_right_paren(c2):
+                        elif (closing_point < 0 and
+                              not cls.Paren.is_right_paren(c2)):
                             phrases.append(t_not)
                             phrases.append(t_par)
                             tmp1 = ''
@@ -5468,7 +5468,8 @@ class Document:
     #                     if lr in p.length_revisers:
     #                         p.length_revisers.remove(lr)
     #         # RENEW
-    #         p.text_to_write_with_reviser = p._get_text_to_write_with_reviser()
+    #         p.text_to_write_with_reviser \
+    #             = p._get_text_to_write_with_reviser()
     #     return self.paragraphs
     # <
 
@@ -6633,6 +6634,8 @@ class RawParagraph:
             return 'breakdown'
         elif ParagraphRemarks.is_this_class(self):
             return 'remarks'
+        elif ParagraphFootnotes.is_this_class(self):
+            return 'footnotes'
         elif ParagraphConfiguration.is_this_class(self):
             return 'configuration'
         else:
@@ -6674,6 +6677,8 @@ class RawParagraph:
             return ParagraphBreakdown(self)
         elif paragraph_class == 'remarks':
             return ParagraphRemarks(self)
+        elif paragraph_class == 'footnotes':
+            return ParagraphFootnotes(self)
         else:
             return ParagraphSentence(self)
 
@@ -7302,7 +7307,10 @@ class Paragraph:
                 += ParagraphImage.replace_with_fixed_size(img_text, region_cm)
             md_lines_text = re.sub(res, '\\7', md_lines_text)
         text_to_write += md_lines_text
-        # self.text_to_write = text_to_write
+        # FOOTNOTES
+        res = '^((?:.|\n)*)\\^{([0-9]+)）}'
+        while re.match(res, text_to_write):
+            text_to_write = re.sub(res, '\\1[^\\2]', text_to_write)
         return text_to_write
 
     def _get_text_to_write_with_reviser(self):
@@ -8906,6 +8914,28 @@ class ParagraphRemarks(Paragraph):
         ttwwr = md_lines_text
         ttwwr = re.sub('^●', '"" ', ttwwr)
         ttwwr = re.sub('\n●', '\n"" ', ttwwr)
+        text_to_write_with_reviser = ttwwr
+        return text_to_write_with_reviser
+
+
+class ParagraphFootnotes(Paragraph):
+
+    """A class to handle footnotes paragraph"""
+
+    paragraph_class = 'footnotes'
+
+    @classmethod
+    def is_this_class(cls, raw_paragraph):
+        rp = raw_paragraph
+        rp_sty = rp.style
+        if rp_sty == 'makdo-f':
+            return True
+        return False
+
+    def _get_text_to_write_with_reviser(self):
+        md_lines_text = self.md_lines_text
+        ttwwr = md_lines_text
+        ttwwr = re.sub('^([0-9]+)）', '[^\\1]: ', ttwwr)
         text_to_write_with_reviser = ttwwr
         return text_to_write_with_reviser
 

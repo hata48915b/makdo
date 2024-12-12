@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.13-07:49:44-JST>
+# Time-stamp:   <2024.12.13-08:58:29-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -1294,7 +1294,8 @@ class IO:
         ms_doc.styles['makdo-f'].paragraph_format.space_before \
             = Pt(((line_spacing * f_size) - (f_size * 1 / 3)) / 2)
         ms_doc.styles['makdo-f'].paragraph_format.space_after = Pt(0)
-        ms_doc.styles['makdo-f'].paragraph_format.first_line_indent = Pt(- f_size)
+        ms_doc.styles['makdo-f'].paragraph_format.first_line_indent \
+            = Pt(- f_size)
         ms_doc.styles['makdo-f'].paragraph_format.left_indent = Pt(f_size * 7)
 
 
@@ -4981,7 +4982,7 @@ class Paragraph:
                 chars = re.sub(NOT_ESCAPED + '(n|N|M)$', '\\1', chars)
                 chars = XML.write_chars(ms_par._p, chars_state, chars)
                 chars += XML.write_page_number(ms_par._p, chars_state, char)
-        elif re.match(NOT_ESCAPED + '\\[\\^(.{,20})\\]$', chars):
+        elif re.match(NOT_ESCAPED + '\\[\\^(\\S{,20})\\]$', chars):
             # "[^.*]" (FOOTNOTES)
             res = '\\[\\^(.{,20})\\]$'
             fnids = re.sub(NOT_ESCAPED + res + '$', '\\2', chars)
@@ -6065,7 +6066,7 @@ class ParagraphMultiColumns(Paragraph):
         w_right = str(int(Form.right_margin / 2.54 * 72 * 20))
         XML.add_tag(ms_spr, 'w:pgMar',
                     {'w:top': w_top, 'w:bottom': w_bottom,
-                     'w:right': w_right,'w:left': w_left})
+                     'w:right': w_right, 'w:left': w_left})
         XML.add_tag(ms_spr, 'w:docGrid', {'w:linePitch': '0'})
         ms_col = XML.add_tag(ms_spr, 'w:type', {'w:val': 'continuous'})
         w_num = str(md_text.count('|') - 1)
@@ -6080,6 +6081,7 @@ class ParagraphMultiColumns(Paragraph):
         for column_width in wid:
             w_w = str(int(unit_width * len(column_width)))
             XML.add_tag(ms_col, 'w:col', {'w:w': w_w, 'w:space': w_space})
+
 
 class ParagraphPagebreak(Paragraph):
 
@@ -6223,10 +6225,10 @@ class ParagraphFootnotes(Paragraph):
     """A class to handle footnotes paragraph"""
 
     paragraph_class = 'footnotes'
-    res_feature = '^\\[\\^.{,20}\\]:\\s.*$'
+    res_feature = '^\\[\\^\\S{,20}\\]:\\s.*$'
 
     def write_paragraph(self, ms_doc):
-        res = '^\\[\\^(.{,20})\\]:\\s(.*)$'
+        res = '^\\[\\^(\\S{,20})\\]:\\s(.*)$'
         fnids = re.sub(res, '\\1', self.full_text)
         text = re.sub(res, '\\2', self.full_text)
         if fnids not in Document.footnotes:

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.12-02:40:10-JST>
+# Time-stamp:   <2024.12.13-08:32:59-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -5435,7 +5435,7 @@ class LineDatum:
                     tmp = mdt                                           # 5.tmp
                     beg = end                                           # 6.beg
                     for k, tmp_c in enumerate(mdt):
-                        key = chars_state.get_key('font decorator') # 1.key
+                        key = chars_state.get_key('font decorator')     # 1.key
                         if tmp_c == ' ' or tmp_c == '\t' or tmp_c == '\u3000':
                             key = chars_state.get_key(tmp_c)            # 1.key
                         end = str(i + 1) + '.' \
