@@ -1,4 +1,4 @@
-<!-- Time-stamp:   <2024.12.18-07:36:17-JST> -->
+<!-- Time-stamp:   <2024.12.18-07:54:33-JST> -->
 
 # MAKDO（MS WordのファイルをMarkdownで作成・編集）
 
@@ -483,7 +483,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 [ライブラリのページ（PyPI）](https://pypi.org/project/makdo/)
 
-[簡易実行ファイルのページ](https://hata-o.jp/kian/index?tools#makdo)
+[簡易実行ファイルのページ](https://makdo.jp/)
 
 ## 免責条項
 
