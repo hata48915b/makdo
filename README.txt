@@ -1,4 +1,4 @@
-<!-- Time-stamp:   <2024.12.13-09:07:22-JST> -->
+<!-- Time-stamp:   <2024.12.18-07:36:17-JST> -->
 
 # MAKDO（MS WordのファイルをMarkdownで作成・編集）
 
@@ -436,6 +436,8 @@ Copyright © 2022-2024  Seiichiro HATA
 
 ## ライセンス
 
+GNU General Public Licenseバージョン3 (GPLv3)又はその後継バージョン
+
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
@@ -482,6 +484,14 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 [ライブラリのページ（PyPI）](https://pypi.org/project/makdo/)
 
 [簡易実行ファイルのページ](https://hata-o.jp/kian/index?tools#makdo)
+
+## 免責条項
+
+ライセンスに定められているとおり、本プログラムにより損害が発生したとしても、
+著作権者は何らの損害賠償責任も負いませんので、ご注意ください。
+
+作成した文書は、必ず内容を確認し、
+意図した内容になっていることを確認したうえで、使用してください。
 
 ## 名前の由来
 
