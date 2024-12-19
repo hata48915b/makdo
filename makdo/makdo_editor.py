@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.13-08:32:59-JST>
+# Time-stamp:   <2024.12.20-08:09:40-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -12601,6 +12601,7 @@ class Makdo:
 
     def open_openai(self) -> bool:
         self._show_message_reducing_functions()
+        return False
 
     def set_openai_model(self) -> bool:
         self._show_message_reducing_functions()
@@ -14443,7 +14444,7 @@ class Makdo:
             for c in OPENAI_MODELS:
                 if c != om:
                     ca.append(c)
-            om = OneWordDialog(self.txt, self, b, m, h, t, om, ca)
+            om = OneWordDialog(self.txt, self, b, m, h, t, om, ca).get_value()
             if om is None:
                 return False
             self.openai_model = om
