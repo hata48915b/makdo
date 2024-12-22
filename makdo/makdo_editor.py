@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.20-08:09:40-JST>
+# Time-stamp:   <2024.12.22-12:05:15-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -10383,24 +10383,23 @@ class Makdo:
                 break
         # GET CELL WIDTHS
         cell_widths = []
-        if conf_row_number >= 0:
-            for cell in table_data[conf_row_number]:
+        for i, row in enumerate(table_data):
+            for j, cell in enumerate(row):
                 c = re.sub('\n', '', cell)
                 c = re.sub('^((?::\\s)?)\\s+', '\\1', c)
                 c = re.sub('\\s+((?:\\s:)?(?:\\^|=)?)$', '\\1', c)
                 wc = get_real_width(c)
-                cell_widths.append(wc)
-        else:
-            for i, row in enumerate(table_data):
-                for j, cell in enumerate(row):
-                    c = re.sub('\n', '', cell)
-                    c = re.sub('^((?::\\s)?)\\s+', '\\1', c)
-                    c = re.sub('\\s+((?:\\s:)?(?:\\^|=)?)$', '\\1', c)
-                    wc = get_real_width(c)
-                    if j > len(cell_widths) - 1:
-                        cell_widths.append(wc)
-                    elif wc > cell_widths[j]:
-                        cell_widths[j] = wc
+                if j > len(cell_widths) - 1:
+                    cell_widths.append(wc)
+                elif wc > cell_widths[j]:
+                    cell_widths[j] = wc
+        if conf_row_number >= 0:
+            for j, cell in enumerate(table_data[conf_row_number]):
+                c = re.sub('\n', '', cell)
+                c = re.sub('^((?::\\s)?)\\s+', '\\1', c)
+                c = re.sub('\\s+((?:\\s:)?(?:\\^|=)?)$', '\\1', c)
+                wc = get_real_width(c)
+                cell_widths[j] = wc
 
         # bof = beginning of file
         # eof = end of file
@@ -10424,7 +10423,8 @@ class Makdo:
                 if (j == 0) or ((j % 2) != 0):
                     # GET ALGINMENT
                     conf_cell = ''
-                    if conf_row_number >= 0:
+                    if conf_row_number >= 0 and \
+                       j < len(table_data[conf_row_number]):
                         conf_cell = table_data[conf_row_number][j]
                     if j == 0:
                         align = 'right'
