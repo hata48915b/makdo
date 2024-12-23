@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.23-14:14:02-JST>
+# Time-stamp:   <2024.12.23-17:08:58-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4903,6 +4903,8 @@ class CharsState:
             return 'tab_tag'
         elif self.is_in_comment:
             key += '-0'
+        elif chars == 'escape':
+            key += '-310'
         elif chars == 'font decorator':
             key += '-120'
         elif chars == 'table':
@@ -4958,8 +4960,6 @@ class CharsState:
             key += '-270'
         elif chars == 'hline':
             key += '-270'
-        elif chars == 'escape':
-            key += '-310'
         elif chars == 'R' or chars == 'red':
             key += '-0'
         elif chars == 'Y' or chars == 'yellow':
@@ -10264,28 +10264,31 @@ class Makdo:
     def is_in_table_paragraph(self, par=None) -> bool:
         if par is None:
             _, par, _ = self.get_paragraphs()
-        par = re.sub('\\\\\n', '', par)
         par = re.sub('<!--(.|\n)*?-->', '', par)
-        res_table = '^' \
-            + '(\\s*(' \
-            + '((v|V|x|X|<<|<|>)=[\\-\\+]?([0-9]+\\.)?[0-9]+)' \
-            + '|\\*{1,2}' + '|//' + '|\\^[0-9A-Za-z]{0,11}\\^' \
-            + '|\\-{2,3}' + '|\\+{2,3}' + '|>{2,3} ' + '|<{2,3}' + '|~~' \
-            + '|\\[\\|' + '|\\|\\]' + '|_[\\$=\\.#\\-~\\+]{,4}_' + '|`' \
-            + '|@([0-9]*\\.)?[0-9]+@' + '|@[^@]{1,66}@' \
-            + ')\\s*)*' \
-            + '((: )?\\s*\\|.*\\|(:?-*:?(\n?(\\^+|=+))?)?( :)?\n)+' \
-            + '(\\s*(' \
-            + '|\\*{1,2}' + '|//' + '|\\^[0-9A-Za-z]{0,11}\\^' \
-            + '|\\-{2,3}' + '|\\+{2,3}' + '|>{2,3} ' + '|<{2,3}' + '|~~' \
-            + '|\\[\\|' + '|\\|\\]' + '|_[\\$=\\.#\\-~\\+]{,4}_' + '|`' \
-            + '|@([0-9]*\\.)?[0-9]+@' + '|@[^@]{1,66}@' \
-            + ')\\s*)*' \
-            + '$'
-        if re.match(res_table, par):
-            return True
-        else:
-            return False
+        par = re.sub('\\\\\n\\s*', '', par)
+        par = re.sub('\n=+', '=', par)
+        par = re.sub('\n\\^+', '^', par)
+        par = re.sub('^\\s+', '', par)
+        par = re.sub('\\s+$', '', par)
+        res_ln = '(v|V|x|X|<<|<|>)=[\\-\\+]?([0-9]+\\.)?[0-9]+'
+        res_f1 = '(\\*{1,3}|//|\\-{2,3}|\\+{2,3}|>{2,3}|<{2,3}|~~|`)'
+        res_f2 = '(\\^[0-9A-Za-z]{0,11}\\^|_[\\$=\\.#\\-~\\+]{,4}_)'
+        res_f3 = '(@([0-9]*\\.)?[0-9]+@|@[^@]{1,66}@)'
+        tmp = ''
+        while par != tmp:
+            tmp = par
+            par = re.sub('^' + res_ln + '\\s*', '', par)
+            par = re.sub('^' + res_f1 + '\\s*', '', par)
+            par = re.sub('^' + res_f2 + '\\s*', '', par)
+            par = re.sub('^' + res_f3 + '\\s*', '', par)
+            par = re.sub('\\s*' + res_f1 + '$', '', par)
+            par = re.sub('\\s*' + res_f2 + '$', '', par)
+            par = re.sub('\\s*' + res_f3 + '$', '', par)
+        res_table_line = '^(: )?\\s*\\|.*\\|(:?-*:?(\n?(\\^+|=+))?)?( :)?$'
+        for line in par.split('\n'):
+            if not re.match(res_table_line, line):
+                return False
+        return True
 
     def get_bare_table(self) -> (str):
         pre_pars, cur_par, pos_pars = self.get_paragraphs()
