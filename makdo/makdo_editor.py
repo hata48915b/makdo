@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.22-12:05:15-JST>
+# Time-stamp:   <2024.12.23-14:14:02-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -10232,6 +10232,10 @@ class Makdo:
             return False
         self.remove_spaces_from_table_cell()
         self.insert_spaces_to_table_cell()
+        beg_v = pre_pars.count('\n')
+        end_v = beg_v + cur_par.count('\n')
+        for i in range(beg_v, end_v):
+            self.paint_out_line(i)
         return True
 
     def get_paragraphs(self) -> (str):
