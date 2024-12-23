@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.23-09:54:34-JST>
+# Time-stamp:   <2024.12.23-11:18:18-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -6161,7 +6161,7 @@ class RawParagraph:
         # FORCE TO BE FULL_WIDTH
         for i in range(len(chars_data)):
             cd = chars_data[i]
-            if re.match('^' + RES_FORCED_TO_BE_FULL_WIDTH + '$', cd.chars):
+            if re.match('^' + RES_FORCED_TO_BE_FULL_WIDTH + '+$', cd.chars):
                 pre_f_deco = ''
                 if i > 0:
                     pre_f_deco = chars_data[i - 1].bk_fd_cls.font_name
