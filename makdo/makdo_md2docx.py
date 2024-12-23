@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.13-11:45:46-JST>
+# Time-stamp:   <2024.12.23-10:25:56-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -405,6 +405,13 @@ NOT_ESCAPED = '^((?:(?:.|\n)*?[^\\\\])??(?:\\\\\\\\)*?)??'
 
 RES_NUMBER = '(?:[-\\+]?(?:(?:[0-9]+(?:\\.[0-9]+)?)|(?:\\.[0-9]+)))'
 RES_NUMBER6 = '(?:' + RES_NUMBER + '?,){,5}' + RES_NUMBER + '?,?'
+
+RES_FORCED_TO_BE_FULL_WIDTH = '[' + \
+    '⓪' + \
+    '①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳' + \
+    '㉑㉒㉓㉔㉕㉖㉗㉘㉙㉚㉛㉜㉝㉞㉟㊱㊲㊳㊴㊵' + \
+    '㊶㊷㊸㊹㊺㊻㊼㊽㊾㊿' + \
+    ']'
 
 RES_IMAGE = '! *\\[([^\\[\\]]*)\\] *\\(([^\\(\\)]+)\\)'
 
@@ -4696,11 +4703,23 @@ class Paragraph:
         return False
 
     def __write_chars(self, ms_par, chars_state, chars, c, type='normal'):
+        res_ftf = '^((?:.|\n)*?)(' + RES_FORCED_TO_BE_FULL_WIDTH + '+)$'
         res_ivs = '^((?:.|\n)*?)([^0-9\\\\])([0-9]+);$'
         res_foc = NOT_ESCAPED + '\\^([0-9A-Za-z]{0,11})\\^$'
         res_hlc = NOT_ESCAPED + '_([0-9A-Za-z]{1,11})_$'
         if False:
             pass
+        elif re.match(res_ftf, chars) and \
+             not re.match('^' + RES_FORCED_TO_BE_FULL_WIDTH + '$', c):
+            # "⓪①②..." (FORCE TO BE FULL WIDTH)
+            cnumb = re.sub(res_ftf, '\\2', chars)
+            chars = re.sub(res_ftf, '\\1', chars)
+            chars = XML.write_chars(ms_par._p, chars_state, chars)
+            mf = chars_state.mincho_font
+            tf = re.sub('^.*/\\s*', '', mf)
+            chars_state.mincho_font = tf
+            chars = XML.write_chars(ms_par._p, chars_state, cnumb)
+            chars_state.mincho_font = mf
         elif re.match(NOT_ESCAPED + '<$', chars) and c == '>':
             # '<>' （RELAX） "<<<" (+ ">") = "<<" + "<" (+ ">")
             chars = re.sub('<$', '', chars)

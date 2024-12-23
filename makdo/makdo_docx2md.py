@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.13-08:57:01-JST>
+# Time-stamp:   <2024.12.23-09:54:34-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -309,6 +309,13 @@ RES_NUMBER6 = '(?:' + RES_NUMBER + '?,){,5}' + RES_NUMBER + '?,?'
 RES_KATAKANA = '[' + 'ｦｱ-ﾝ' + \
     'アイウエオカキクケコサシスセソタチツテトナニヌネノ' + \
     'ハヒフヘホマミムメモヤユヨラリルレロワヰヱヲン' + ']'
+
+RES_FORCED_TO_BE_FULL_WIDTH = '[' + \
+    '⓪' + \
+    '①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳' + \
+    '㉑㉒㉓㉔㉕㉖㉗㉘㉙㉚㉛㉜㉝㉞㉟㊱㊲㊳㊴㊵' + \
+    '㊶㊷㊸㊹㊺㊻㊼㊽㊾㊿' + \
+    ']'
 
 RES_IMAGE = '! *\\[([^\\[\\]]*)\\] *\\(([^\\(\\)]+)\\)'
 RES_IMAGE_WITH_SIZE \
@@ -6151,6 +6158,21 @@ class RawParagraph:
             bas_cd.bk_fd_cls = FontDecorator([])
             rub_cd.fr_fd_cls = FontDecorator([])
             rub_cd.bk_fd_cls = FontDecorator([])
+        # FORCE TO BE FULL_WIDTH
+        for i in range(len(chars_data)):
+            cd = chars_data[i]
+            if re.match('^' + RES_FORCED_TO_BE_FULL_WIDTH + '$', cd.chars):
+                pre_f_deco = ''
+                if i > 0:
+                    pre_f_deco = chars_data[i - 1].bk_fd_cls.font_name
+                pre_f_mint = Form.mincho_font
+                if pre_f_deco != '':
+                    pre_f_mint = re.sub('^@(.*)@$', '\\1', pre_f_deco)
+                pre_f_full = re.sub('^.*/\\s+', '', pre_f_mint)
+                if cd.fr_fd_cls.font_name == '@' + pre_f_full + '@' and \
+                   cd.bk_fd_cls.font_name == '@' + pre_f_full + '@':
+                    cd.fr_fd_cls.font_name = pre_f_deco
+                    cd.bk_fd_cls.font_name = pre_f_deco
         # self.chars_data = chars_data
         # self.images = images
         return chars_data, images, footnotes
