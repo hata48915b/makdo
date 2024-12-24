@@ -1,4 +1,4 @@
-<!-- Time-stamp:   <2024.12.18-07:54:33-JST> -->
+<!-- Time-stamp:   <2024.12.25-08:33:47-JST> -->
 
 # MAKDO（MS WordのファイルをMarkdownで作成・編集）
 
@@ -159,6 +159,23 @@ Makdo()
 MS Word形式のファイル（拡張子docx）又はMarkdown形式のファイル（拡張子md）を
 ドラッグ＆ドロップするかして、起動してください。
 
+### 生成AIを利用する方法
+
+メニューバーの「裏の技」の
+「OpenAIに質問（有料）」や「Llamaに質問（無料）」を利用するには、
+追加でモジュールをインストールする必要があります。
+
+```
+pip install openai
+pip install llama_cpp_python
+```
+
+Windowsでllama_cpp_pythonをインストールする場合、
+事前に、`vs_BuildTools.exe`を下記のURLからダウンロードして、
+インストールしておく必要があるかもしれません。
+
+https://aka.ms/vs/17/release/vs_BuildTools.exe
+
 ## ソースファイルから起動する方法
 
 この方法、開発者向けです。
@@ -187,8 +204,6 @@ Python3をインストールしてください。
 - pywin32 / MS Wordやブラウザを起動するために必要です。
 - Levenshtein / 2つの原稿を比較するために必要です。
 - openpyxl / MS Excel形式の表を文書に取り込むために必要です。
-- openai / OpenAIの生成AIを使うために必要です。
-- llama_cpp_python / llamaの生成AIを使うために必要です。
 
 コマンドプロンプト（Windowsの場合）又はターミナル（macOSの場合）で、
 次のコマンドを実行してインストールしてください（python-docxの場合）。
@@ -222,6 +237,10 @@ Epwing形式の辞書を使うためには、`eblook`と辞書データも必要
 `makdo.py`をダブルクリックするか、
 MS Word形式のファイル（拡張子docx）又はMarkdown形式のファイル（拡張子md）を
 ドラッグ＆ドロップするかして、起動してください。
+
+### 生成AIを利用する方法
+
+上記の「生成AIを利用する方法」をご参照ください。
 
 ## MS Word形式とMarkdown形式について
 

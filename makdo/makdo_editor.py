@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.23-17:08:58-JST>
+# Time-stamp:   <2024.12.25-08:17:04-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -14357,7 +14357,17 @@ class Makdo:
         def open_openai(self) -> bool:
             # LOAD MODULE
             if 'openai' not in vars(self):
-                import openai  # Apache Software License
+                try:
+                    import openai  # Apache Software License
+                except ImportError:
+                    n = 'エラー'
+                    m = '"openai"を\n' \
+                        + 'インポートできませんでした．\n\n' \
+                        + '次のコマンドを実行して、\n' \
+                        + 'インストールしてください．\n\n' \
+                        + 'pip install openai'
+                    tkinter.messagebox.showerror(n, m)
+                    return False
                 self.openai = openai
             if 'openai_qanda' not in vars(self):
                 n = MD_TEXT_WIDTH - get_real_width('## 【OpenAIにＸＸ】')
@@ -14480,7 +14490,17 @@ class Makdo:
         def open_llama(self) -> bool:
             # LOAD MODULE
             if 'llama_cpp_is_loaded' not in vars(self):
-                from llama_cpp import Llama  # pip install llama-cpp-python
+                try:
+                    from llama_cpp import Llama  # pip install llama-cpp-python
+                except ImportError:
+                    n = 'エラー'
+                    m = '"Llama"を\n' \
+                        + 'インポートできませんでした．\n\n' \
+                        + '次のコマンドを実行して、\n' \
+                        + 'インストールしてください．\n\n' \
+                        + 'pip install llama_cpp_python'
+                    tkinter.messagebox.showerror(n, m)
+                    return False
                 self.llama_cpp_is_loaded = True
             if 'llama_qanda' not in vars(self):
                 n = MD_TEXT_WIDTH - get_real_width('## 【LlamaにＸＸ】')

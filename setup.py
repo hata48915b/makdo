@@ -3,11 +3,13 @@ from setuptools import setup
 
 VERSION = '07.18'
 
-INSTALL_REQUIRES = ['python-docx', 'chardet', 'Levenshtein', 'openpyxl', 'openai', 'llama_cpp_python']
+INSTALL_REQUIRES = ['python-docx', 'chardet', 'Levenshtein', 'openpyxl']
 if sys.platform == 'win32':
     INSTALL_REQUIRES.append('pywin32')
 if sys.platform != 'darwin':
     INSTALL_REQUIRES.append('tkinterdnd2')
+# INSTALL_REQUIRES.append('openai')
+# INSTALL_REQUIRES.append('llama_cpp_python')
 
 setup(
     name='makdo',
