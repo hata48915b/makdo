@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.23-10:25:56-JST>
+# Time-stamp:   <2024.12.28-07:33:34-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -4709,8 +4709,8 @@ class Paragraph:
         res_hlc = NOT_ESCAPED + '_([0-9A-Za-z]{1,11})_$'
         if False:
             pass
-        elif re.match(res_ftf, chars) and \
-             not re.match('^' + RES_FORCED_TO_BE_FULL_WIDTH + '$', c):
+        elif (re.match(res_ftf, chars) and
+              not re.match('^' + RES_FORCED_TO_BE_FULL_WIDTH + '$', c)):
             # "⓪①②..." (FORCE TO BE FULL WIDTH)
             cnumb = re.sub(res_ftf, '\\2', chars)
             chars = re.sub(res_ftf, '\\1', chars)
@@ -6433,8 +6433,8 @@ class Script:
         scr = re.sub('<br>$', '', scr)
         scr += ';'
         while scr != '':
-            one = re.sub('^(.*?);(.*)$', '\\1', scr)
-            scr = re.sub('^(.*?);(.*)$', '\\2', scr)
+            one = re.sub('^(.*?)\\s*;\\s*(.*)$', '\\1', scr)
+            scr = re.sub('^(.*?)\\s*;\\s*(.*)$', '\\2', scr)
             if re.match('^\\s*(.*?)\\s*(/|\\*|%|-|\\+)=\\s*(.*?)\\s*$', one):
                 # TRANSFORM ("x ?= y" -> "x = x ? y")
                 one = re.sub('^\\s*(.*?)\\s*(/|\\*|%|-|\\+)=\\s*(.*?)\\s*$',
@@ -6523,7 +6523,15 @@ class Script:
             elif dep == 1 and c == ')':
                 cal = self.__calc_value(tmp, md_line)
                 if re.match('(^|[^a-zA-Z0-9])int\\s*$', new):
-                    new = re.sub('int\\s*$', '', new) + str(int(float(cal)))
+                    new = re.sub('int\\s*$', '', new)
+                    if re.match(RES_NUMBER, cal):
+                        new += str(int(float(cal)))
+                    else:
+                        msg = '※ 警告: ' \
+                            + '「' + cal + '」を整数にできません'
+                        # msg = 'warning: ' \
+                        #     + '"' + cal + '" cannot be an integer'
+                        md_line.append_warning_message(msg)
                 else:
                     new += cal
                 tmp = ''

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.25-08:17:04-JST>
+# Time-stamp:   <2024.12.28-05:48:09-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -14111,9 +14111,12 @@ class Makdo:
         # NEXT
         self.local_line_to_paint += 1
         if self.local_line_to_paint > self.goal_line_to_paint:
-            p_ind = self.txt.index('@1000000,1000000')
-            p_lin = int(re.sub('\\.[0-9]+$', '', p_ind)) - 1
-            self.footmarks.append(p_lin)
+            d_min = self.txt.index('@0,0')
+            d_max = self.txt.index('@1000000,1000000')
+            v_min = int(re.sub('\\.[0-9]+$', '', d_min)) - 1
+            v_max = int(re.sub('\\.[0-9]+$', '', d_max)) - 1
+            self.footmarks.append(v_min)
+            self.footmarks.append(v_max)
             p_min = min(self.footmarks)
             p_max = max(self.footmarks)
             self.footmarks = []
