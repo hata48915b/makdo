@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.30-05:21:44-JST>
+# Time-stamp:   <2024.12.30-05:59:43-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -7914,8 +7914,8 @@ class Makdo:
                     pane.delete(beg + '+' + str(len(sub)) + 'c',
                                 beg + '+' + str(len(sub + t[0])) + 'c')
                     pane.insert(beg + '+' + str(len(sub)) + 'c', t[1])
+        pane.insert(end, '-->')
         pane.insert(beg, '<!--')
-        pane.insert(end + '+4c', '-->')  # 4c = "<!--"
         if pane.tag_ranges('sel'):
             pane.tag_remove('sel', "1.0", "end")
         elif 'akauni' in pane.mark_names():
