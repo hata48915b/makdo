@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.30-05:59:43-JST>
+# Time-stamp:   <2024.12.30-08:03:11-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -9023,57 +9023,57 @@ class Makdo:
         #
         submenu.add_command(label='"-"（U+002D）半角ハイフンマイナス',
                             command=self.insert_hline_002d)
-        submenu.add_command(label='"-"（U+00AD）改行時だけに表示されるハイフン',
+        submenu.add_command(label='"­"（U+00AD）改行時だけに表示されるハイフン',
                             command=self.insert_hline_00ad)
-        submenu.add_command(label='"-"（U+058A）アメリカンハイフン',
+        submenu.add_command(label='"֊"（U+058A）アメリカンハイフン',
                             command=self.insert_hline_058a)
-        submenu.add_command(label='"-"（U+05BE）ヘブライ語のマカフ',
+        submenu.add_command(label='"־"（U+05BE）ヘブライ語のマカフ',
                             command=self.insert_hline_05be)
-        submenu.add_command(label='"-"（U+1806）モンゴル語のソフトハイフン',
+        submenu.add_command(label='"᠆"（U+1806）モンゴル語のソフトハイフン',
                             command=self.insert_hline_1806)
-        submenu.add_command(label='"-"（U+180A）モンゴル語のニルグ',
+        submenu.add_command(label='"᠊"（U+180A）モンゴル語のニルグ',
                             command=self.insert_hline_180a)
         submenu.add_command(label='"‐"（U+2010）ハイフン',
                             command=self.insert_hline_2010)
-        submenu.add_command(label='"-"（U+2011）改行を禁止するハイフン',
+        submenu.add_command(label='"‑"（U+2011）改行を禁止するハイフン',
                             command=self.insert_hline_2011)
-        submenu.add_command(label='"-"（U+2012）数字幅のダッシュ',
+        submenu.add_command(label='"‒"（U+2012）数字幅のダッシュ',
                             command=self.insert_hline_2012)
-        submenu.add_command(label='"-"（U+2013）Ｎ幅のダッシュ',
+        submenu.add_command(label='"–"（U+2013）Ｎ幅のダッシュ',
                             command=self.insert_hline_2013)
         submenu.add_command(label='"—"（U+2014）Ｍ幅のダッシュ',
                             command=self.insert_hline_2014)
         submenu.add_command(label='"―"（U+2015）水平線',
                             command=self.insert_hline_2015)
-        submenu.add_command(label='"-"（U+2043）箇条書きの記号',
+        submenu.add_command(label='"⁃"（U+2043）箇条書きの記号',
                             command=self.insert_hline_2043)
-        submenu.add_command(label='"-"（U+207B）上付きマイナス',
+        submenu.add_command(label='"⁻"（U+207B）上付きマイナス',
                             command=self.insert_hline_207b)
-        submenu.add_command(label='"-"（U+208B）下付きマイナス',
+        submenu.add_command(label='"₋"（U+208B）下付きマイナス',
                             command=self.insert_hline_208b)
         submenu.add_command(label='"−"（U+2212）全角マイナスサイン',
                             command=self.insert_hline_2212)
-        submenu.add_command(label='"-"（U+2500）罫線',
+        submenu.add_command(label='"─"（U+2500）罫線',
                             command=self.insert_hline_2500)
-        submenu.add_command(label='"-"（U+2501）太字の罫線',
+        submenu.add_command(label='"━"（U+2501）太字の罫線',
                             command=self.insert_hline_2501)
-        submenu.add_command(label='"-"（U+2796）太字マイナス記号',
+        submenu.add_command(label='"➖"（U+2796）太字マイナス記号',
                             command=self.insert_hline_2796)
-        submenu.add_command(label='"-"（U+2E3A）2倍幅のＭ幅ダッシュ',
+        submenu.add_command(label='"⸺"（U+2E3A）2倍幅のＭ幅ダッシュ',
                             command=self.insert_hline_2e3a)
-        submenu.add_command(label='"-"（U+2E3B）3倍幅のＭ幅ダッシュ',
+        submenu.add_command(label='"⸻"（U+2E3B）3倍幅のＭ幅ダッシュ',
                             command=self.insert_hline_2e3b)
-        submenu.add_command(label='"-"（U+3127）注音符号の「Ｉ」の発音',
+        submenu.add_command(label='"ㄧ"（U+3127）注音符号の「Ｉ」の発音',
                             command=self.insert_hline_3127)
-        submenu.add_command(label='"-"（U+3161）ハングルの「ウ」',
+        submenu.add_command(label='"ㅡ"（U+3161）ハングルの「ウ」',
                             command=self.insert_hline_3161)
-        submenu.add_command(label='"-"（U+FE58）小さいＭ幅ダッシュ',
+        submenu.add_command(label='"﹘"（U+FE58）小さいＭ幅ダッシュ',
                             command=self.insert_hline_fe58)
-        submenu.add_command(label='"-"（U+FE63）小さいハイフンマイナス',
+        submenu.add_command(label='"﹣"（U+FE63）小さいハイフンマイナス',
                             command=self.insert_hline_fe63)
         submenu.add_command(label='"－"（U+FF0D）全角ハイフンマイナス',
                             command=self.insert_hline_ff0d)
-        submenu.add_command(label='"-"（U+FF70）半角カナの長音記号',
+        submenu.add_command(label='"ｰ"（U+FF70）半角カナの長音記号',
                             command=self.insert_hline_ff70)
 
     ######
