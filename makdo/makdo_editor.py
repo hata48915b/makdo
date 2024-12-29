@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.28-05:48:09-JST>
+# Time-stamp:   <2024.12.29-14:48:55-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -7578,9 +7578,10 @@ class Makdo:
         else:
             beg, end = '1.0', 'end-1c'
         m = 0
+        c = 0
         res = '^((?:.|\n)*?)(' + word1 + ')((?:.|\n)*)$'
         while True:
-            tex = pane.get(beg, end)
+            tex = pane.get(beg + '+' + str(c) + 'c', end)
             if not re.match(res, tex):
                 break
             s = re.sub(res, '\\1', tex)
@@ -7588,10 +7589,11 @@ class Makdo:
             t = re.sub(res, '\\3', tex)
             if w == '':
                 continue
-            pane.delete(beg + '+' + str(len(s)) + 'c',
-                        beg + '+' + str(len(s + w)) + 'c')
-            pane.insert(beg + '+' + str(len(s)) + 'c', word2)
+            pane.delete(beg + '+' + str(c + len(s)) + 'c',
+                        beg + '+' + str(c + len(s + w)) + 'c')
+            pane.insert(beg + '+' + str(c + len(s)) + 'c', word2)
             m += 1
+            c += len(s + word2)
         if pane.tag_ranges('sel'):
             pane.tag_remove('sel', "1.0", "end")
         elif 'akauni' in pane.mark_names():
