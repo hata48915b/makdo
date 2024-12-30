@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.23-11:18:18-JST>
+# Time-stamp:   <2024.12.30-12:26:58-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -300,10 +300,9 @@ DEFAULT_HAS_COMPLETED = False
 BASIC_TABLE_CELL_HEIGHT = 1.5
 BASIC_TABLE_CELL_WIDTH = 1.5  # >= 1.1068
 
-NOT_ESCAPED = '^((?:(?:.|\n)*?[^\\\\])??(?:\\\\\\\\)*?)??'
-# NOT_ESCAPED = '^((?:(?:.|\n)*[^\\\\])?(?:\\\\\\\\)*)?'
+NOT_ESCAPED = '^((?:(?:.|\n)*?[^\\\\])??(?:\\\\\\\\)*?)?'
 
-RES_NUMBER = '(?:[-\\+]?(?:(?:[0-9]+(?:\\.[0-9]+)?)|(?:\\.[0-9]+)))'
+RES_NUMBER = '(?:[-\\+]?(?:[0-9]*\\.)?[0-9]+)'
 RES_NUMBER6 = '(?:' + RES_NUMBER + '?,){,5}' + RES_NUMBER + '?,?'
 
 RES_KATAKANA = '[' + 'ｦｱ-ﾝ' + \

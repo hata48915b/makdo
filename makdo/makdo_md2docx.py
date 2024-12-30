@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.28-07:33:34-JST>
+# Time-stamp:   <2024.12.30-12:45:46-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -400,10 +400,9 @@ DEFAULT_HAS_COMPLETED = False
 BASIC_TABLE_CELL_HEIGHT = 1.5
 BASIC_TABLE_CELL_WIDTH = 1.5  # >= 1.1068
 
-NOT_ESCAPED = '^((?:(?:.|\n)*?[^\\\\])??(?:\\\\\\\\)*?)??'
-# NOT_ESCAPED = '^((?:(?:.|\n)*[^\\\\])?(?:\\\\\\\\)*)?'
+NOT_ESCAPED = '^((?:(?:.|\n)*?[^\\\\])??(?:\\\\\\\\)*?)?'
 
-RES_NUMBER = '(?:[-\\+]?(?:(?:[0-9]+(?:\\.[0-9]+)?)|(?:\\.[0-9]+)))'
+RES_NUMBER = '(?:[-\\+]?(?:[0-9]*\\.)?[0-9]+)'
 RES_NUMBER6 = '(?:' + RES_NUMBER + '?,){,5}' + RES_NUMBER + '?,?'
 
 RES_FORCED_TO_BE_FULL_WIDTH = '[' + \
@@ -6524,7 +6523,7 @@ class Script:
                 cal = self.__calc_value(tmp, md_line)
                 if re.match('(^|[^a-zA-Z0-9])int\\s*$', new):
                     new = re.sub('int\\s*$', '', new)
-                    if re.match(RES_NUMBER, cal):
+                    if re.match('^' + RES_NUMBER + '$', cal):
                         new += str(int(float(cal)))
                     else:
                         msg = '※ 警告: ' \
@@ -6596,11 +6595,11 @@ class Script:
         return val
 
     def __binary_operate(self, res_ope, val, md_line):
-        res = '^((?:.*?\\s+)?)' + \
+        res = '^((?:.*?\\s*)?)' + \
             '(-?(?:[0-9,]*\\.)?[0-9,]+|〓)' + \
             '\\s*(' + res_ope + ')\\s*' + \
             '(-?(?:[0-9,]*\\.)?[0-9,]+|〓)' + \
-            '((?:\\s+.*)?)$'
+            '((?:\\s*.*)?)$'
         while re.match(res, val):
             s1 = re.sub(res, '\\2', val)
             s1 = s1.replace(',', '')
