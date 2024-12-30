@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.30-08:03:11-JST>
+# Time-stamp:   <2024.12.30-10:52:27-JST>
 
 # editor.py
 # Copyright (C) 2022-2024  Seiichiro HATA
@@ -8437,6 +8437,8 @@ class Makdo:
                             command=self.insert_ivs_of_7bc4)
         submenu.add_command(label='"花"の人名・地名の字体の候補を全て挿入',
                             command=self.insert_ivs_of_82b1)
+        submenu.add_command(label='"芸"の人名・地名の字体の候補を全て挿入',
+                            command=self.insert_ivs_of_82b8)
         submenu.add_command(label='"菅"の人名・地名の字体の候補を全て挿入',
                             command=self.insert_ivs_of_83c5)
         submenu.add_command(label='"葛"の人名・地名の字体の候補を全て挿入',
@@ -8653,6 +8655,11 @@ class Makdo:
                         'B花3;' +  # E0103 MJ021592
                         'C花4;' +  # E0104 MJ021593
                         'D花6;')   # E0106 MJ021594
+
+    def insert_ivs_of_82b8(self):
+        self.txt.insert('insert',
+                        'A芸1;' +  # E0101 MJ021606
+                        'B芸2;')   # E0102 MJ021607
 
     def insert_ivs_of_83c5(self):
         self.txt.insert('insert',
