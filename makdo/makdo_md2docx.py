@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v07 Furuichibashi
-# Time-stamp:   <2024.12.30-12:45:46-JST>
+# Time-stamp:   <2025.01.04-07:40:32-JST>
 
 # md2docx.py
-# Copyright (C) 2022-2024  Seiichiro HATA
+# Copyright (C) 2022-2025  Seiichiro HATA
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,6 +27,7 @@
 # 2023.03.16 v05 Aki-Nagatsuka
 # 2023.06.07 v06 Shimo-Gion
 # 2024.04.02 v07 Furuichibashi
+# 2025.01.04 v08 Omachi
 
 
 # USAGE
