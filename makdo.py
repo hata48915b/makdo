@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # Name:         makdo.py
-# Version:      v07 Furuichibashi
-# Time-stamp:   <2024.10.10-11:28:30-JST>
+# Version:      v08 Omachi
+# Time-stamp:   <2025.01.04-08:18:46-JST>
 
 # makdo.py
-# Copyright (C) 2022-2024  Seiichiro HATA
+# Copyright (C) 2022-2025  Seiichiro HATA
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,13 +27,14 @@
 # 2023.03.16 v05 Aki-Nagatsuka
 # 2023.06.07 v06 Shimo-Gion
 # 2024.04.02 v07 Furuichibashi
+# 2025.01.04 v08 Omachi
 
 
 import argparse
 from makdo import Makdo
 
 
-__version__ = 'v07 Furuichibashi'
+__version__ = 'v08 Omachi'
 
 
 def get_arguments():

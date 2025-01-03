@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
-# Version:      v07 Furuichibashi
-# Time-stamp:   <2025.01.04-07:40:59-JST>
+# Version:      v08 Omachi
+# Time-stamp:   <2025.01.04-08:16:51-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -82,7 +82,7 @@ import openpyxl     # MIT License
 import webbrowser
 
 
-__version__ = 'v07 Furuichibashi'
+__version__ = 'v08 Omachi'
 
 
 WINDOW_SIZE = '900x600'

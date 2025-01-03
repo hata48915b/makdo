@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 # Name:         keiji.py
 # Version:      v02
-# Time-stamp:   <2024.12.11-12:18:21-JST>
+# Time-stamp:   <2025.01.04-08:19:44-JST>
 
 # keiji.py
-# Copyright (C) 2017-2024  Seiichiro HATA
+# Copyright (C) 2017-2025  Seiichiro HATA
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -34,7 +34,7 @@ from decimal import Decimal
 
 
 # VERSION
-__version__ = 'v03'
+__version__ = 'v02'
 
 
 # GENGO
