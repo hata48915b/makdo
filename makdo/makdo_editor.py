@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.04-08:16:51-JST>
+# Time-stamp:   <2025.01.04-14:21:31-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -7139,9 +7139,15 @@ class Makdo:
 
     # CONVERT TO PDF
 
-    def convert_to_pdf(self):
-        ti = 'PDFに変換'
-        ty = [('PDF', '.pdf')]
+    def convert_to_pdf(self) -> bool:
+        if sys.platform == 'darwin':
+            n = 'お詫び'
+            m = 'mac環境では\n' \
+                + '直接PDFを作成する方法が\n' \
+                + 'ありません．'
+            tkinter.messagebox.showinfo(n, m)
+            return False
+        ti, ty = 'PDFに変換', [('PDF', '.pdf')]
         pdf_path = tkinter.filedialog.asksaveasfilename(title=ti, filetypes=ty)
         if pdf_path == () or pdf_path == '':
             return False
@@ -7156,8 +7162,7 @@ class Makdo:
                                              ReadOnly=True)
             doc.SaveAs(pdf_path, FileFormat=17)  # 17=PDF
         elif sys.platform == 'darwin':
-            n, m = 'お詫び', '準備中です．\n（macの開発環境が手元にない…）'
-            tkinter.messagebox.showinfo(n, m)
+            pass
         elif sys.platform == 'linux':
             dir_path = re.sub('((?:.|\n)*)/(?:.|\n)+$', '\\1', tmp_docx)
             com = '/usr/bin/libreoffice --headless --convert-to pdf --outdir '
@@ -7168,10 +7173,17 @@ class Makdo:
                                  encoding="utf-8")
             tmp_pdf = re.sub('docx$', 'pdf', tmp_docx)
             shutil.move(tmp_pdf, pdf_path)
+        return Trune
 
     # START WRITER
 
-    def start_writer(self):
+    def start_writer(self) -> bool:
+        if sys.platform == 'darwin':
+            n = 'お詫び'
+            m = '"Pages"の起動の方法を\n' \
+                + '模索中です．'
+            tkinter.messagebox.showinfo(n, m)
+            return False
         docx_path = self._get_tmp_docx()
         if sys.platform == 'win32':
             Application = win32com.client.Dispatch("Word.Application")
@@ -7180,14 +7192,14 @@ class Makdo:
                                              ConfirmConversions=False,
                                              ReadOnly=True)
         elif sys.platform == 'darwin':
-            n, m = 'お詫び', '準備中です．\n（macの開発環境が手元にない…）'
-            tkinter.messagebox.showinfo(n, m)
+            pass
         elif sys.platform == 'linux':
             doc = subprocess.run('/usr/bin/libreoffice ' + docx_path,
                                  check=True,
                                  shell=True,
                                  stdout=subprocess.PIPE,
                                  encoding="utf-8")
+        retur True
 
     # UPLOAD TO ONEDRIVE
 
