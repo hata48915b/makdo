@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.05-11:27:27-JST>
+# Time-stamp:   <2025.01.05-12:53:18-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -46,6 +46,7 @@ if sys.platform == 'win32':
     CONFIG_DIR = os.getenv('APPDATA') + '/makdo'
     CONFIG_FILE = CONFIG_DIR + '/init.md'
 elif sys.platform == 'darwin':
+    import subprocess
     CONFIG_DIR = os.getenv('HOME') + '/Library/makdo'
     CONFIG_FILE = CONFIG_DIR + '/init.md'
 elif sys.platform == 'linux':
@@ -6642,7 +6643,7 @@ class Makdo:
         #
         menu.add_command(label='PDFに変換',
                          command=self.convert_to_pdf)
-        menu.add_command(label='MS Word等を起動して確認・印刷(P)', underline=18,
+        menu.add_command(label='見た目の確認・印刷(P)', underline=18,
                          command=self.start_writer, accelerator='Ctrl+P')
         menu.add_separator()
         #
@@ -6660,6 +6661,10 @@ class Makdo:
     # OPEN FILE
 
     def open_file(self):
+        _d, _f = None, None
+        if self.file_path is not None:
+            _d = os.path.dirname(self.file_path)
+            _f = os.path.basename(self.file_path)
         ans = self.close_file()
         if ans is None:
             return False
@@ -6667,7 +6672,8 @@ class Makdo:
         ty = [('可能な形式', '.md .docx'),
               ('Markdown', '.md'), ('MS Word', '.docx'),
               ('全てのファイル', '*')]
-        file_path = tkinter.filedialog.askopenfilename(title=ti, filetypes=ty)
+        file_path = tkinter.filedialog.askopenfilename(
+            title=ti, filetypes=ty, initialdir=_d, initialfile=_f)
         if file_path == () or file_path == '':
             return False
         self.just_open_file(file_path)
@@ -7107,7 +7113,12 @@ class Makdo:
         ty = [('可能な形式', '.md .docx'),
               ('Markdown', '.md'), ('MS Word', '.docx'),
               ('全てのファイル', '*')]
-        file_path = tkinter.filedialog.askopenfilename(title=ti, filetypes=ty)
+        _d, _f = None, None
+        if self.file_path is not None:
+            _d = os.path.dirname(self.file_path)
+            _f = os.path.basename(self.file_path)
+        file_path = tkinter.filedialog.askopenfilename(
+            title=ti, filetypes=ty, initialdir=_d, initialfile=_f)
         if file_path == () or file_path == '':
             return
         stderr = sys.stderr
@@ -7140,15 +7151,17 @@ class Makdo:
     # CONVERT TO PDF
 
     def convert_to_pdf(self) -> bool:
-        if sys.platform == 'darwin':
-            n = 'お詫び'
-            m = 'mac環境では\n' \
-                + '直接PDFを作成する方法が\n' \
-                + 'ありません．'
-            tkinter.messagebox.showinfo(n, m)
+        if self.file_path is None:
             return False
         ti, ty = 'PDFに変換', [('PDF', '.pdf')]
-        pdf_path = tkinter.filedialog.asksaveasfilename(title=ti, filetypes=ty)
+        _d = os.path.dirname(self.file_path)
+        if _d == '':
+            _d = '.'
+        _f = os.path.basename(self.file_path)
+        _f = re.sub('\\.(md|docx)$', '', _f) + '.pdf'
+        pdf_path = tkinter.filedialog.asksaveasfilename(title=ti, filetypes=ty,
+                                                        initialdir=_d,
+                                                        initialfile=_f)
         if pdf_path == () or pdf_path == '':
             return False
         if not re.match('^(?:.|\n)+\\.pdf$', pdf_path):
@@ -7162,7 +7175,21 @@ class Makdo:
                                              ReadOnly=True)
             doc.SaveAs(pdf_path, FileFormat=17)  # 17=PDF
         elif sys.platform == 'darwin':
-            pass
+            if 'has_showed_help_message_of_converting_to_pdf' not in locals():
+                n = 'お知らせ'
+                m = 'mac環境では、標準で、\n' \
+                    + '直接PDFを作成する方法が\n' \
+                    + 'ありません．\n\n' \
+                    + '「Pages」を起動しますので、\n' \
+                    + 'メニューの「書き出す」から\n' \
+                    + 'PDFに変換してください．'
+                tkinter.messagebox.showinfo(n, m)
+                self.has_showed_help_message_of_converting_to_pdf = True
+            doc = subprocess.run('open /Applications/Pages.app ' + tmp_docx,
+                                 check=True,
+                                 shell=True,
+                                 stdout=subprocess.PIPE,
+                                 encoding="utf-8")
         elif sys.platform == 'linux':
             dir_path = re.sub('((?:.|\n)*)/(?:.|\n)+$', '\\1', tmp_docx)
             com = '/usr/bin/libreoffice --headless --convert-to pdf --outdir '
@@ -7173,17 +7200,11 @@ class Makdo:
                                  encoding="utf-8")
             tmp_pdf = re.sub('docx$', 'pdf', tmp_docx)
             shutil.move(tmp_pdf, pdf_path)
-        return Trune
+        return True
 
     # START WRITER
 
     def start_writer(self) -> bool:
-        if sys.platform == 'darwin':
-            n = 'お詫び'
-            m = '"Pages"の起動の方法を\n' \
-                + '模索中です．'
-            tkinter.messagebox.showinfo(n, m)
-            return False
         docx_path = self._get_tmp_docx()
         if sys.platform == 'win32':
             Application = win32com.client.Dispatch("Word.Application")
@@ -7192,7 +7213,11 @@ class Makdo:
                                              ConfirmConversions=False,
                                              ReadOnly=True)
         elif sys.platform == 'darwin':
-            pass
+            doc = subprocess.run('open /Applications/Pages.app ' + docx_path,
+                                 check=True,
+                                 shell=True,
+                                 stdout=subprocess.PIPE,
+                                 encoding="utf-8")
         elif sys.platform == 'linux':
             doc = subprocess.run('/usr/bin/libreoffice ' + docx_path,
                                  check=True,
@@ -8057,8 +8082,11 @@ class Makdo:
         ti = '画像を挿入'
         ty = [('画像', '.jpg .jpeg .png .gif .tif .tiff .bmp'),
               ('全てのファイル', '*')]
-        image_paths \
-            = tkinter.filedialog.askopenfilenames(title=ti, filetypes=ty)
+        _d = None
+        if self.file_path is not None:
+            _d = os.path.dirname(self.file_path)
+        image_paths = tkinter.filedialog.askopenfilenames(
+                title=ti, filetypes=ty, initialdir=_d)
         for i in image_paths:
             image_md_text = '![代替テキスト:横x縦](' + i + ' "説明")'
             self.txt.insert('insert', image_md_text)
@@ -8933,13 +8961,21 @@ class Makdo:
 
     def insert_file_paths(self):
         ti = 'ファイル名をフルパスで挿入'
-        file_paths = tkinter.filedialog.askopenfilenames(title=ti)
+        _d = None
+        if self.file_path is not None:
+            _d = os.path.dirname(self.file_path)
+        file_paths \
+            = tkinter.filedialog.askopenfilenames(title=ti, initialdir=_d)
         for f in file_paths:
             self.txt.insert('insert', f + '\n')
 
     def insert_file_names(self):
         ti = 'ファイル名をファイル名のみで挿入'
-        file_paths = tkinter.filedialog.askopenfilenames(title=ti)
+        _d = None
+        if self.file_path is not None:
+            _d = os.path.dirname(self.file_path)
+        file_paths \
+            = tkinter.filedialog.askopenfilenames(title=ti, initialdir=_d)
         for f in file_paths:
             f = re.sub('^(.|\n)*/', '', f)
             self.txt.insert('insert', f + '\n')
@@ -8964,7 +9000,11 @@ class Makdo:
     def insert_file(self):
         ti = 'ファイルの内容を挿入'
         ty = [('読み込み可能なファイル', '.docx .md .txt .xlsx .csv')]
-        file_path = tkinter.filedialog.askopenfilename(title=ti, filetypes=ty)
+        _d = None
+        if self.file_path is not None:
+            _d = os.path.dirname(self.file_path)
+        file_path = tkinter.filedialog.askopenfilename(
+            title=ti, filetypes=ty, initialdir=_d)
         if file_path == () or file_path == '':
             return
         if re.match('^(?:.|\n)+.xlsx$', file_path):
@@ -9890,8 +9930,11 @@ class Makdo:
         if file_path is None:
             ti = '表をエクセルから挿入'
             ty = [('エクセル', '.xlsx .csv')]
-            file_path \
-                = tkinter.filedialog.askopenfilename(title=ti, filetypes=ty)
+            _d = None
+            if self.file_path is not None:
+                _d = os.path.dirname(self.file_path)
+            file_path = tkinter.filedialog.askopenfilename(
+                    title=ti, filetypes=ty, initialdir=_d)
         if file_path == () or file_path == '':
             return
         if re.match('^(?:.|\n)+.xlsx$', file_path):
@@ -9930,7 +9973,11 @@ class Makdo:
         ti = '画像を挿入'
         ty = [('画像', '.jpg .jpeg .png .gif .tif .tiff .bmp'),
               ('全てのファイル', '*')]
-        image_path = tkinter.filedialog.askopenfilename(title=ti, filetypes=ty)
+        _d = None
+        if self.file_path is not None:
+            _d = os.path.dirname(self.file_path)
+        image_path = tkinter.filedialog.askopenfilename(
+            title=ti, filetypes=ty, initialdir=_d)
         if image_path != () and image_path != '':
             self._insert_line_break_as_necessary()
             image_md_text = '![代替テキスト:横x縦](' + image_path + ' "説明")'
@@ -9940,7 +9987,11 @@ class Makdo:
         ti = '画像を挿入'
         ty = [('画像', '.jpg .jpeg .png .gif .tif .tiff .bmp'),
               ('全てのファイル', '*')]
-        image_path = tkinter.filedialog.askopenfilename(title=ti, filetypes=ty)
+        _d = None
+        if self.file_path is not None:
+            _d = os.path.dirname(self.file_path)
+        image_path = tkinter.filedialog.askopenfilename(
+            title=ti, filetypes=ty, initialdir=_d)
         if image_path != () and image_path != '':
             self._insert_line_break_as_necessary()
             md_text = ''
@@ -9962,7 +10013,11 @@ class Makdo:
         ti = '画像を挿入'
         ty = [('画像', '.jpg .jpeg .png .gif .tif .tiff .bmp'),
               ('全てのファイル', '*')]
-        image_path = tkinter.filedialog.askopenfilename(title=ti, filetypes=ty)
+        _d = None
+        if self.file_path is not None:
+            _d = os.path.dirname(self.file_path)
+        image_path = tkinter.filedialog.askopenfilename(
+            title=ti, filetypes=ty, initialdir=_d)
         if image_path != () and image_path != '':
             self._insert_line_break_as_necessary()
             md_text = ''
@@ -11000,7 +11055,11 @@ class Makdo:
     def show_file(self):
         ti = '別のファイルの内容を見る'
         ty = [('読み込み可能なファイル', '.docx .md .txt .xlsx .csv')]
-        file_path = tkinter.filedialog.askopenfilename(title=ti, filetypes=ty)
+        _d = None
+        if self.file_path is not None:
+            _d = os.path.dirname(self.file_path)
+        file_path = tkinter.filedialog.askopenfilename(
+            title=ti, filetypes=ty, initialdir=_d)
         if file_path == () or file_path == '':
             return
         if re.match('^(?:.|\n)+.xlsx$', file_path):
@@ -11055,7 +11114,11 @@ class Makdo:
         ty = [('可能な形式', '.md .docx'),
               ('Markdown', '.md'), ('MS Word', '.docx'),
               ('全てのファイル', '*')]
-        file_path = tkinter.filedialog.askopenfilename(title=ti, filetypes=ty)
+        _d = None
+        if self.file_path is not None:
+            _d = os.path.dirname(self.file_path)
+        file_path = tkinter.filedialog.askopenfilename(
+            title=ti, filetypes=ty, initialdir=_d)
         if file_path == () or file_path == '':
             return None
         # DOCX OR MD
