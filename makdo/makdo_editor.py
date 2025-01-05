@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.05-12:53:18-JST>
+# Time-stamp:   <2025.01.06-07:39:00-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -7153,19 +7153,19 @@ class Makdo:
     def convert_to_pdf(self) -> bool:
         if self.file_path is None:
             return False
-        ti, ty = 'PDFに変換', [('PDF', '.pdf')]
-        _d = os.path.dirname(self.file_path)
-        if _d == '':
-            _d = '.'
-        _f = os.path.basename(self.file_path)
-        _f = re.sub('\\.(md|docx)$', '', _f) + '.pdf'
-        pdf_path = tkinter.filedialog.asksaveasfilename(title=ti, filetypes=ty,
-                                                        initialdir=_d,
-                                                        initialfile=_f)
-        if pdf_path == () or pdf_path == '':
-            return False
-        if not re.match('^(?:.|\n)+\\.pdf$', pdf_path):
-            pdf_path += '.pdf'
+        if sys.platform != 'darwin':
+            ti, ty = 'PDFに変換', [('PDF', '.pdf')]
+            _d = os.path.dirname(self.file_path)
+            if _d == '':
+                _d = '.'
+            _f = os.path.basename(self.file_path)
+            _f = re.sub('\\.(md|docx)$', '', _f) + '.pdf'
+            pdf_path = tkinter.filedialog.asksaveasfilename(
+                title=ti, filetypes=ty, initialdir=_d, initialfile=_f)
+            if pdf_path == () or pdf_path == '':
+                return False
+            if not re.match('^(?:.|\n)+\\.pdf$', pdf_path):
+                pdf_path += '.pdf'
         tmp_docx = self._get_tmp_docx()
         if sys.platform == 'win32':
             Application = win32com.client.Dispatch("Word.Application")
