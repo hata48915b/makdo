@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.05-08:25:16-JST>
+# Time-stamp:   <2025.01.05-11:27:27-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6642,7 +6642,7 @@ class Makdo:
         #
         menu.add_command(label='PDFに変換',
                          command=self.convert_to_pdf)
-        menu.add_command(label='MS Wordを起動して確認・印刷(P)', underline=18,
+        menu.add_command(label='MS Word等を起動して確認・印刷(P)', underline=18,
                          command=self.start_writer, accelerator='Ctrl+P')
         menu.add_separator()
         #
