@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.04-08:17:13-JST>
+# Time-stamp:   <2025.01.05-11:19:55-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -1183,6 +1183,12 @@ class IO:
             p = rp.get_paragraph()
             Paragraph.paragraph_number = pn
             p.paragraph_number = -2
+            # ADDED 25.01.05 >
+            # FIX A BUG OF PYINSTALLER
+            _dir = re.sub('makdo/makdo_md2docx.pyc$', 'docx/parts', __file__)
+            if not os.path.exists(_dir):
+                os.mkdir(_dir)
+            # <
             # WRITE
             ms_par = ms_doc.sections[0].footer.paragraphs[0]
             if p.alignment == 'right':

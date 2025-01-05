@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.04-14:21:31-JST>
+# Time-stamp:   <2025.01.05-08:25:16-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -7199,7 +7199,7 @@ class Makdo:
                                  shell=True,
                                  stdout=subprocess.PIPE,
                                  encoding="utf-8")
-        retur True
+        return True
 
     # UPLOAD TO ONEDRIVE
 
