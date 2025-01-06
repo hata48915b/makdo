@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 # Name:         eblook.py
 # Version:      v01
-# Time-stamp:   <2024.12.13-08:50:36-JST>
+# Time-stamp:   <2025.01.07-07:23:04-JST>
 
 # eblook.py
-# Copyright (C) 2017-2024  Seiichiro HATA
+# Copyright (C) 2017-2025  Seiichiro HATA
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -69,6 +69,7 @@ GAIJI_KOJIEN = {
     'za444': '【三】',
     'za648': '８',
     # 'za4': '９',
+    'za744': '𩊱',
     'zac49': '𫒒',  # 金丘
     'zac6e': '𑖀',  # 梵字（阿の音訳となった字）
     'zaf57': '㣺',
@@ -92,6 +93,7 @@ GAIJI_KOJIEN = {
     'zba2b': '𠊳',  # ⺅㪅
     'zba4e': '【漢字（傷のつくり）】', 'zba4f': '【漢字（修の彡が羽）】',
     'zba58': '僨', 'zba59': '菐',
+    'zba62': '【漢字（修の⼺が革）】',
     'zba72': '【漢字（兼のソが八）】', 'zba73': '【漢字（六の点なし）】',
     'zbb24': '【漢字（最の異字体（本字））】',
     'zbb2d': '冣',
@@ -110,6 +112,7 @@ GAIJI_KOJIEN = {
     'zbe37': '阫',
     'zbf21': '【漢字（夢の夕が目）】',
     'zbf22': '㝱', 'zbf23': '夣', 'zbf24': '夤',
+    'zbf28': '𡗗',
     'zbf30': '妒',
     'zbf3b': '娀',
     'zbf79': '寘', 'zbf7a': '【漢字（帚の巾が又）】',
@@ -149,9 +152,11 @@ GAIJI_KOJIEN = {
     'zd27b': '⺷',
     'zd358': '𦧟',  # 舌沓
     'zd465': '衕',
+    'zd57c': '諭',  # 言兪
     'zd65d': '【漢字（起の己が巳）】',
     'zd759': '辤',
     'zd873': '雱',
+    'zd92d': '韒',
     'zd94e': '頖',
     'zd970': '【漢字（食の異字体）】', 'zd971': '【漢字（食の異字体）】',
     'zda38': '馱',
