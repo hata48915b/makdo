@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.08-10:23:53-JST>
+# Time-stamp:   <2025.01.09-06:58:07-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -14458,7 +14458,11 @@ class Makdo:
                 self.openai = openai
             if 'openai_qanda' not in vars(self):
                 n = MD_TEXT_WIDTH - get_real_width('## 【OpenAIにＸＸ】')
-                self.openai_qanda = '## 【OpenAIに質問】' + ('-' * n) + '\n\n'
+                self.openai_qanda \
+                    = '## 【OpenAIの設定】' + ('-' * n) + '\n\n' \
+                    + 'あなたは誠実で優秀な日本人のアシスタントです。\n' \
+                    + '特に指示が無い場合は、常に日本語で回答してください。\n\n' \
+                    + '## 【OpenAIに質問】' + ('-' * n) + '\n\n'
             if 'openai_model' not in vars(self):
                 self.set_openai_model()
             if 'openai_model' not in vars(self):
@@ -14482,30 +14486,28 @@ class Makdo:
 
         def ask_openai(self) -> None:
             n = MD_TEXT_WIDTH - get_real_width('## 【OpenAIにＸＸ】')
+            openai_cnf_head = '## 【OpenAIの設定】' + ('-' * n)
             openai_que_head = '## 【OpenAIに質問】' + ('-' * n)
             openai_ans_head = '## 【OpenAIの回答】' + ('-' * n)
             messages = []
-            mc = 'あなたは誠実で優秀な日本人のアシスタントです。' \
-                + '特に指示が無い場合は、常に日本語で回答してください。'
-            messages.append({'role': 'system', 'content': mc})
             mc = ''
-            is_que = False
+            role = 'system'
             doc = self.sub.get('1.0', 'end-1c') + '\n\n' + openai_ans_head
             for line in doc.split('\n'):
-                if line == openai_que_head:
+                if line == openai_cnf_head or \
+                   line == openai_que_head or \
+                   line == openai_ans_head:
                     if mc != '':
                         mc = re.sub('^\n+', '', mc)
                         mc = re.sub('\n+$', '', mc)
-                        messages.append({'role': 'assistant', 'content': mc})
+                        messages.append({'role': role, 'content': mc})
                         mc = ''
-                    is_que = True
+                if line == openai_cnf_head:
+                    role = 'system'
+                elif line == openai_que_head:
+                    role = 'user'
                 elif line == openai_ans_head:
-                    if mc != '':
-                        mc = re.sub('^\n+', '', mc)
-                        mc = re.sub('\n+$', '', mc)
-                        messages.append({'role': 'user', 'content': mc})
-                        mc = ''
-                    is_que = False
+                    role = 'assistant'
                 else:
                     mc += line + '\n'
             self.set_message_on_status_bar('OpenAIに質問しています', True)
@@ -14591,7 +14593,11 @@ class Makdo:
                 self.llama_cpp_is_loaded = True
             if 'llama_qanda' not in vars(self):
                 n = MD_TEXT_WIDTH - get_real_width('## 【LlamaにＸＸ】')
-                self.llama_qanda = '## 【Llamaに質問】' + ('-' * n) + '\n\n'
+                self.llama_qanda \
+                    = '## 【Llamaの設定】' + ('-' * n) + '\n\n' \
+                    + 'あなたは誠実で優秀な日本人のアシスタントです。\n' \
+                    + '特に指示が無い場合は、常に日本語で回答してください。\n\n' \
+                    + '## 【Llamaに質問】' + ('-' * n) + '\n\n'
             if 'llama_model_file' not in vars(self):
                 self.set_llama_model_file()
             if 'llama_model_file' not in vars(self):
@@ -14618,30 +14624,28 @@ class Makdo:
 
         def ask_llama(self) -> None:
             n = MD_TEXT_WIDTH - get_real_width('## 【LlamaにＸＸ】')
+            llama_cnf_head = '## 【Llamaの設定】' + ('-' * n)
             llama_que_head = '## 【Llamaに質問】' + ('-' * n)
             llama_ans_head = '## 【Llamaの回答】' + ('-' * n)
             messages = []
-            mc = 'あなたは誠実で優秀な日本人のアシスタントです。' \
-                + '特に指示が無い場合は、常に日本語で回答してください。'
-            messages.append({'role': 'system', 'content': mc})
             mc = ''
-            is_que = False
+            role = 'system'
             doc = self.sub.get('1.0', 'end-1c') + '\n\n' + llama_ans_head
             for line in doc.split('\n'):
-                if line == llama_que_head:
+                if line == llama_cnf_head or \
+                   line == llama_que_head or \
+                   line == llama_ans_head:
                     if mc != '':
                         mc = re.sub('^\n+', '', mc)
                         mc = re.sub('\n+$', '', mc)
-                        messages.append({'role': 'assistant', 'content': mc})
+                        messages.append({'role': role, 'content': mc})
                         mc = ''
-                    is_que = True
+                if line == llama_cnf_head:
+                    role = 'system'
+                elif line == llama_que_head:
+                    role = 'user'
                 elif line == llama_ans_head:
-                    if mc != '':
-                        mc = re.sub('^\n+', '', mc)
-                        mc = re.sub('\n+$', '', mc)
-                        messages.append({'role': 'user', 'content': mc})
-                        mc = ''
-                    is_que = False
+                    role = 'assistant'
                 else:
                     mc += line + '\n'
             self.set_message_on_status_bar('Llamaに質問しています', True)
