@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.06-07:39:00-JST>
+# Time-stamp:   <2025.01.08-10:23:53-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -14289,7 +14289,7 @@ class Makdo:
         def calc_interest_or_charge(self):
             if 'keiji_is_loaded' not in vars(self):
                 import makdo.keiji  # keiji
-                keiji = makdo.keiji
+                self.keiji = makdo.keiji
                 self.keiji_is_loaded = True
             upper_text = self.txt.get('1.0', 'insert')
             lower_text = self.txt.get('insert', 'end-1c')
@@ -14307,13 +14307,13 @@ class Makdo:
             bad_lines = []
             trades = []
             for line in para.split('\n'):
-                if(not keiji.is_data_line(line)):
+                if(not self.keiji.is_data_line(line)):
                     if line != '' and \
                        ('日付' not in line) and ('合計' not in line) and \
                        ('---:' not in line) and not re.match('^=+$', line):
                         bad_lines.append(line)
                     continue
-                trades.append(keiji.Trade(line))
+                trades.append(self.keiji.Trade(line))
             for i, tr in enumerate(trades):
                 if(i == 0):
                     tr.reset_options()
@@ -14330,17 +14330,17 @@ class Makdo:
                 tr.calc_and_set_interest()
                 tr.calc_and_set_change_and_remaining()
                 tr.calc_and_set_this_interest_rate()
-                ti = keiji.Decimal(tr.get_this_remaining_interest())
-                tp = keiji.Decimal(tr.get_this_remaining_principal())
-                keiji.Trade.set_total_amount(str(tp + ti))
+                ti = self.keiji.Decimal(tr.get_this_remaining_interest())
+                tp = self.keiji.Decimal(tr.get_this_remaining_principal())
+                self.keiji.Trade.set_total_amount(str(tp + ti))
             # WRITE
             if len(trades) > 0:
                 tab = ''
-                keiji.Trade.set_output_style('markdown')
-                tab += keiji.Trade.get_header() + '\n'  # header
+                self.keiji.Trade.set_output_style('markdown')
+                tab += self.keiji.Trade.get_header() + '\n'  # header
                 for i, tr in enumerate(trades):
                     tab += tr.get_trade(i) + '\n'  # trade
-                tab += keiji.Trade.get_footer() + '\n'  # footer
+                tab += self.keiji.Trade.get_footer() + '\n'  # footer
                 if len(bad_lines) > 0:
                     tab += '次の行は除外しました\n'
                     for line in bad_lines:
