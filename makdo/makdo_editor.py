@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.09-12:31:16-JST>
+# Time-stamp:   <2025.01.10-10:03:48-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -10842,7 +10842,9 @@ class Makdo:
         m = '挿入する定型句を選んでください．'
         fd = self.FormulaDialog(self.txt, self, t, m)
         self.formula_number = fd.get_value()
-        self._insert_formula()
+        print(self.formula_number)
+        if self.formula_number > 0:
+            self._insert_formula()
 
     def _insert_formula(self):
         n = self.formula_number
@@ -10853,6 +10855,7 @@ class Makdo:
         except BaseException:
             return
         self.txt.insert('insert', a)
+        self.formula_number = -1
 
     def insert_formula1(self):
         self.formula_number = 1
@@ -10880,13 +10883,10 @@ class Makdo:
         m = '編集する定型句を選んでください．'
         fd = self.FormulaDialog(self.txt, self, t, m)
         self.formula_number = fd.get_value()
-        if self.formula_number == '':
-            self.formula_number = -1
-        self._edit_formula()
+        if self.formula_number > 0:
+            self._edit_formula()
 
     def _edit_formula(self):
-        if self.formula_number <= 0:
-            return False
         n = self.formula_number
         formula_path = CONFIG_DIR + '/formula' + str(n) + '.md'
         if not os.path.exists(formula_path):
@@ -10925,8 +10925,6 @@ class Makdo:
         self._edit_formula()
 
     def quit_editing_formula(self):
-        if self.formula_number <= 0:
-            return False
         n = self.formula_number
         self.formula_number = -1
         formula_path = CONFIG_DIR + '/formula' + str(n) + '.md'
@@ -10988,7 +10986,7 @@ class Makdo:
             if self.has_pressed_ok:
                 return self.value.get()
             else:
-                return ''
+                return -1
 
     # OPEN MEMO PAD
 
