@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.12-06:19:32-JST>
+# Time-stamp:   <2025.01.12-08:40:29-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5906,8 +5906,10 @@ class Makdo:
         self.win.protocol("WM_DELETE_WINDOW", self.quit_makdo)
         # SPLASH SCREEN
         if getattr(sys, 'frozen', False):
-            # mac doesn't support splash screen
             if sys.platform != 'darwin':
+                # mac doesn't support splash screen
+                import _socket
+                _socket.setdefaulttimeout(10)
                 import pyi_splash
                 pyi_splash.close()
         else:
