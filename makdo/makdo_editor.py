@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.12-06:06:33-JST>
+# Time-stamp:   <2025.01.12-06:19:32-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -10959,13 +10959,15 @@ class Makdo:
         self.formula_number = 9
         self._edit_formula()
 
-    def quit_editing_formula(self):
+    def quit_editing_formula(self) -> bool:
         n = self.formula_number
         self.formula_number = -1
-        formula_path = CONFIG_DIR + '/formula' + str(n) + '.md'
-        contents = self.sub.get('1.0', 'end-1c')
-        self._save_config_file(formula_path, contents)
-        return True
+        if n > 0:
+            formula_path = CONFIG_DIR + '/formula' + str(n) + '.md'
+            contents = self.sub.get('1.0', 'end-1c')
+            self._save_config_file(formula_path, contents)
+            return True
+        return False
 
     class FormulaDialog(tkinter.simpledialog.Dialog):
 
