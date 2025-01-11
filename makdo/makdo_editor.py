@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.10-10:03:48-JST>
+# Time-stamp:   <2025.01.12-06:06:33-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -10842,7 +10842,6 @@ class Makdo:
         m = '挿入する定型句を選んでください．'
         fd = self.FormulaDialog(self.txt, self, t, m)
         self.formula_number = fd.get_value()
-        print(self.formula_number)
         if self.formula_number > 0:
             self._insert_formula()
 
@@ -10875,6 +10874,22 @@ class Makdo:
 
     def insert_formula5(self):
         self.formula_number = 5
+        self._insert_formula()
+
+    def insert_formula6(self):
+        self.formula_number = 6
+        self._insert_formula()
+
+    def insert_formula7(self):
+        self.formula_number = 7
+        self._insert_formula()
+
+    def insert_formula8(self):
+        self.formula_number = 8
+        self._insert_formula()
+
+    def insert_formula9(self):
+        self.formula_number = 9
         self._insert_formula()
 
     def edit_formula(self):
@@ -10924,6 +10939,26 @@ class Makdo:
         self.formula_number = 5
         self._edit_formula()
 
+    def edit_formula6(self):
+        self.quit_editing_formula()
+        self.formula_number = 6
+        self._edit_formula()
+
+    def edit_formula7(self):
+        self.quit_editing_formula()
+        self.formula_number = 7
+        self._edit_formula()
+
+    def edit_formula8(self):
+        self.quit_editing_formula()
+        self.formula_number = 8
+        self._edit_formula()
+
+    def edit_formula9(self):
+        self.quit_editing_formula()
+        self.formula_number = 9
+        self._edit_formula()
+
     def quit_editing_formula(self):
         n = self.formula_number
         self.formula_number = -1
@@ -10962,6 +10997,18 @@ class Makdo:
             rb5 = tkinter.Radiobutton(pane, text=self.get_head(5),
                                       variable=self.value, value=5)
             rb5.pack(side='top', anchor='w')
+            rb6 = tkinter.Radiobutton(pane, text=self.get_head(6),
+                                      variable=self.value, value=6)
+            rb6.pack(side='top', anchor='w')
+            rb7 = tkinter.Radiobutton(pane, text=self.get_head(7),
+                                      variable=self.value, value=7)
+            rb7.pack(side='top', anchor='w')
+            rb8 = tkinter.Radiobutton(pane, text=self.get_head(8),
+                                      variable=self.value, value=8)
+            rb8.pack(side='top', anchor='w')
+            rb9 = tkinter.Radiobutton(pane, text=self.get_head(9),
+                                      variable=self.value, value=9)
+            rb9.pack(side='top', anchor='w')
             super().body(pane)
             return rb1
 
@@ -10973,10 +11020,10 @@ class Makdo:
                     if len(h) > 15:
                         h = h[:14] + '…'
                     if h == '':
-                        return '（空）'
+                        return '（空）'  # 空
                     return h
             except BaseException:
-                return '（無）'
+                return '（空）'  # 無
 
         def apply(self):
             self.has_pressed_ok = True
