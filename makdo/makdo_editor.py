@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.12-10:22:08-JST>
+# Time-stamp:   <2025.01.12-11:23:36-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5887,10 +5887,14 @@ class Makdo:
             import pyi_splash
             pyi_splash.close()
         else:
-            self.show_splash_screen(SPLASH_IMG)
+            if sys.platform != 'darwin':
+                # mac doesn't support splash screen
+                self.show_splash_screen(SPLASH_IMG)
         # TITLE BAR ICON
-        icon8_img = tkinter.PhotoImage(data=ICON8_IMG, master=self.win)
-        self.win.iconphoto(False, icon8_img)
+        if sys.platform != 'darwin' or getattr(sys, 'frozen', False):
+            # mac doesn't support iconphoto
+            icon8_img = tkinter.PhotoImage(data=ICON8_IMG, master=self.win)
+            self.win.iconphoto(False, icon8_img)
         # FRAME
         # self.frm = tkinter.Frame()
         # self.frm.pack(expand=True, fill=tkinter.BOTH)
