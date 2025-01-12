@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.12-09:03:31-JST>
+# Time-stamp:   <2025.01.12-10:22:08-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5882,19 +5882,15 @@ class Makdo:
         self.win.protocol("WM_DELETE_WINDOW", self.quit_makdo)
         # SPLASH SCREEN
         if getattr(sys, 'frozen', False):
-            if sys.platform != 'darwin':
-                # mac doesn't support splash screen
-                import _socket
-                _socket.setdefaulttimeout(10)
-                import pyi_splash
-                pyi_splash.close()
+            import _socket
+            _socket.setdefaulttimeout(5)
+            import pyi_splash
+            pyi_splash.close()
         else:
             self.show_splash_screen(SPLASH_IMG)
         # TITLE BAR ICON
-        if sys.platform != 'darwin':
-            # mac doesn't support title bar icon
-            icon8_img = tkinter.PhotoImage(data=ICON8_IMG, master=self.win)
-            self.win.iconphoto(False, icon8_img)
+        icon8_img = tkinter.PhotoImage(data=ICON8_IMG, master=self.win)
+        self.win.iconphoto(False, icon8_img)
         # FRAME
         # self.frm = tkinter.Frame()
         # self.frm.pack(expand=True, fill=tkinter.BOTH)
