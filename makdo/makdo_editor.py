@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.12-11:23:36-JST>
+# Time-stamp:   <2025.01.14-10:46:10-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -41,23 +41,10 @@
 
 import sys
 import os
+import subprocess
 if sys.platform == 'win32':
-    import win32com.client  # pip install pywin32
-    CONFIG_DIR = os.getenv('APPDATA') + '/makdo'
-    CONFIG_FILE = CONFIG_DIR + '/init.md'
-elif sys.platform == 'darwin':
-    import subprocess
-    CONFIG_DIR = os.getenv('HOME') + '/Library/makdo'
-    CONFIG_FILE = CONFIG_DIR + '/init.md'
-elif sys.platform == 'linux':
-    import subprocess
-    CONFIG_DIR = os.getenv('HOME') + '/.config/makdo'
-    CONFIG_FILE = CONFIG_DIR + '/init.md'
-else:
-    CONFIG_DIR = None
-    CONFIG_FILE = None
-
-
+    # To launch MS Word on Windows
+    import win32com.client  # PSF License (pip install pywin32)
 import shutil
 import argparse     # Python Software Foundation License
 import re
@@ -85,6 +72,19 @@ import webbrowser
 
 __version__ = 'v08 Omachi'
 
+
+if sys.platform == 'win32':
+    CONFIG_DIR = os.getenv('APPDATA') + '/makdo'
+    CONFIG_FILE = CONFIG_DIR + '/init.md'
+elif sys.platform == 'darwin':
+    CONFIG_DIR = os.getenv('HOME') + '/Library/makdo'
+    CONFIG_FILE = CONFIG_DIR + '/init.md'
+elif sys.platform == 'linux':
+    CONFIG_DIR = os.getenv('HOME') + '/.config/makdo'
+    CONFIG_FILE = CONFIG_DIR + '/init.md'
+else:
+    CONFIG_DIR = None
+    CONFIG_FILE = None
 
 WINDOW_SIZE = '900x600'
 
@@ -7129,15 +7129,15 @@ class Makdo:
     # CONVERT TO PDF
 
     def convert_to_pdf(self) -> bool:
-        if self.file_path is None:
-            return False
         if sys.platform != 'darwin':
             ti, ty = 'PDFに変換', [('PDF', '.pdf')]
-            _d = os.path.dirname(self.file_path)
-            if _d == '':
-                _d = '.'
-            _f = os.path.basename(self.file_path)
-            _f = re.sub('\\.(md|docx)$', '', _f) + '.pdf'
+            _d = '.'
+            _f = ''
+            if self.file_path is not None:
+                _d = os.path.dirname(self.file_path)
+                _d = '.' if _d == '' else _d
+                _f = os.path.basename(self.file_path)
+                _f = re.sub('\\.(md|docx)$', '', _f) + '.pdf'
             pdf_path = tkinter.filedialog.asksaveasfilename(
                 title=ti, filetypes=ty, initialdir=_d, initialfile=_f)
             if pdf_path == () or pdf_path == '':
@@ -7167,7 +7167,7 @@ class Makdo:
                                  check=True,
                                  shell=True,
                                  stdout=subprocess.PIPE,
-                                 encoding="utf-8")
+                                 encoding='utf-8')
         elif sys.platform == 'linux':
             dir_path = re.sub('((?:.|\n)*)/(?:.|\n)+$', '\\1', tmp_docx)
             com = '/usr/bin/libreoffice --headless --convert-to pdf --outdir '
@@ -7175,7 +7175,7 @@ class Makdo:
                                  check=True,
                                  shell=True,
                                  stdout=subprocess.PIPE,
-                                 encoding="utf-8")
+                                 encoding='utf-8')
             tmp_pdf = re.sub('docx$', 'pdf', tmp_docx)
             shutil.move(tmp_pdf, pdf_path)
         return True
@@ -7184,25 +7184,102 @@ class Makdo:
 
     def start_writer(self) -> bool:
         docx_path = self._get_tmp_docx()
+        self.set_message_on_status_bar('MS Word等を起動します', True)
         if sys.platform == 'win32':
-            Application = win32com.client.Dispatch("Word.Application")
-            Application.Visible = True
-            doc = Application.Documents.Open(FileName=docx_path,
-                                             ConfirmConversions=False,
-                                             ReadOnly=True)
+            # MS Word
+            try:
+                app = win32com.client.Dispatch("Word.Application")
+                app.Visible = True
+                doc = app.Documents.Open(FileName=docx_path,
+                                         ConfirmConversions=False,
+                                         ReadOnly=True)
+                app.Quit()
+                self.set_message_on_status_bar('')
+                return True
+            except BaseException:
+                pass
+            # LibreOffice
+            try:
+                com = 'C:/Program Files/LibreOffice/program/soffice.exe'
+                doc = subprocess.run([com, docx_path],
+                                     check=True, shell=False,
+                                     stdout=subprocess.PIPE,
+                                     encoding='utf-8')
+                if doc.returncode == 0:
+                    self.set_message_on_status_bar('')
+                    return True
+            except BaseException:
+                pass
+            # WordPad
+            try:
+                com = 'C:/Program Files/Windows NT/Accessories/wordpad.exe'
+                doc = subprocess.run([com, docx_path],
+                                     check=True, shell=False,
+                                     stdout=subprocess.PIPE,
+                                     encoding='utf-8')
+                if doc.returncode == 0:
+                    self.set_message_on_status_bar('')
+                    return True
+            except BaseException:
+                pass
         elif sys.platform == 'darwin':
-            doc = subprocess.run('open /Applications/Pages.app ' + docx_path,
-                                 check=True,
-                                 shell=True,
-                                 stdout=subprocess.PIPE,
-                                 encoding="utf-8")
+            # MS Word
+            try:
+                com = '/Applications/Microsoft Word.app'
+                doc = subprocess.run(['open', com, docx_path],
+                                     check=True, shell=False,
+                                     stdout=subprocess.PIPE,
+                                     encoding='utf-8')
+                if doc.returncode == 0:
+                    self.set_message_on_status_bar('')
+                    return True
+            except BaseException:
+                pass
+            # LibreOffice
+            try:
+                com = '/Applications/LibreOffice.app'
+                doc = subprocess.run(['open', com,  docx_path],
+                                     check=True, shell=False,
+                                     stdout=subprocess.PIPE,
+                                     encoding='utf-8')
+                if doc.returncode == 0:
+                    self.set_message_on_status_bar('')
+                    return True
+            except BaseException:
+                pass
+            # Pages
+            try:
+                com = '/Applications/Pages.app'
+                doc = subprocess.run(['open', com, docx_path],
+                                     check=True, shell=False,
+                                     stdout=subprocess.PIPE,
+                                     encoding='utf-8')
+                if doc.returncode == 0:
+                    self.set_message_on_status_bar('')
+                    return True
+            except BaseException:
+                pass
         elif sys.platform == 'linux':
-            doc = subprocess.run('/usr/bin/libreoffice ' + docx_path,
-                                 check=True,
-                                 shell=True,
-                                 stdout=subprocess.PIPE,
-                                 encoding="utf-8")
-        return True
+            # LibreOffice
+            try:
+                com = '/usr/bin/libreoffice'
+                doc = subprocess.run([com, docx_path],
+                                     check=True, shell=False,
+                                     stdout=subprocess.PIPE,
+                                     encoding='utf-8')
+                if doc.returncode == 0:
+                    self.set_message_on_status_bar('')
+                    return True
+            except BaseException:
+                pass
+        self.set_message_on_status_bar('MS Word等の起動に失敗しました')
+        n = '警告'
+        m = 'MS Word等の起動に失敗しました．\n\n' \
+            + '下記をインストールしてください．\n' \
+            + '- MS Word\n' \
+            + '- LibreOffice（無料）'
+        tkinter.messagebox.showwarning(n, m)
+        return False
 
     # UPLOAD TO ONEDRIVE
 
