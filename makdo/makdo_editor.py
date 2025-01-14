@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.14-13:32:07-JST>
+# Time-stamp:   <2025.01.14-13:36:58-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -7170,6 +7170,7 @@ class Makdo:
                                                  ConfirmConversions=False,
                                                  ReadOnly=True)
                 doc.SaveAs(pdf_path, FileFormat=17)  # 17=PDF
+                doc.Quit()
                 self.set_message_on_status_bar('PDFに変換しました')
                 return True
             except BaseException:
