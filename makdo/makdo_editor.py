@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.14-10:46:10-JST>
+# Time-stamp:   <2025.01.14-13:19:59-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6576,6 +6576,22 @@ class Makdo:
             pass
         os.chmod(file_path, 0o600)
 
+    def _execute_external_command(self, command: list) -> bool:
+        self.set_message_on_status_bar('外部アプリを起動します', True)
+        try:
+            ret = subprocess.run(command,
+                                 check=True, shell=False,
+                                 stdout=subprocess.PIPE,
+                                 encoding='utf-8')
+            if ret.returncode == 0:
+                self.set_message_on_status_bar('')
+                return True
+        except BaseException:
+            self.set_message_on_status_bar('外部アプリの起動に失敗しました')
+            return False
+        self.set_message_on_status_bar('外部アプリの起動に失敗しました')
+        return False
+
     ####################################
     # MENU
 
@@ -7129,33 +7145,51 @@ class Makdo:
     # CONVERT TO PDF
 
     def convert_to_pdf(self) -> bool:
-        if sys.platform != 'darwin':
-            ti, ty = 'PDFに変換', [('PDF', '.pdf')]
-            _d = '.'
-            _f = ''
-            if self.file_path is not None:
-                _d = os.path.dirname(self.file_path)
-                _d = '.' if _d == '' else _d
-                _f = os.path.basename(self.file_path)
-                _f = re.sub('\\.(md|docx)$', '', _f) + '.pdf'
-            pdf_path = tkinter.filedialog.asksaveasfilename(
-                title=ti, filetypes=ty, initialdir=_d, initialfile=_f)
-            if pdf_path == () or pdf_path == '':
-                return False
-            if not re.match('^(?:.|\n)+\\.pdf$', pdf_path):
-                pdf_path += '.pdf'
+        ti, ty = 'PDFに変換', [('PDF', '.pdf')]
+        _d = '.'
+        _f = ''
+        if self.file_path is not None:
+            _d = os.path.dirname(self.file_path)
+            _d = '.' if _d == '' else _d
+            _f = os.path.basename(self.file_path)
+            _f = re.sub('\\.(md|docx)$', '', _f) + '.pdf'
+        pdf_path = tkinter.filedialog.asksaveasfilename(
+            title=ti, filetypes=ty, initialdir=_d, initialfile=_f)
+        if pdf_path == () or pdf_path == '':
+            return False
+        if not re.match('^(?:.|\n)+\\.pdf$', pdf_path):
+            pdf_path += '.pdf'
         tmp_docx = self._get_tmp_docx()
         if sys.platform == 'win32':
-            Application = win32com.client.Dispatch("Word.Application")
-            Application.Visible = False
-            doc = Application.Documents.Open(FileName=tmp_docx,
-                                             ConfirmConversions=False,
-                                             ReadOnly=True)
-            doc.SaveAs(pdf_path, FileFormat=17)  # 17=PDF
+            # MS Word
+            try:
+                self.set_message_on_status_bar('PDFに変換します', True)
+                Application = win32com.client.Dispatch("Word.Application")
+                Application.Visible = False
+                doc = Application.Documents.Open(FileName=tmp_docx,
+                                                 ConfirmConversions=False,
+                                                 ReadOnly=True)
+                doc.SaveAs(pdf_path, FileFormat=17)  # 17=PDF
+                self.set_message_on_status_bar('PDFに変換しました')
+                return True
+            except BaseException:
+                pass
+            # LibreOffice
+            libreoffice = 'C:/Program Files/LibreOffice/program/soffice.exe'
+            if self._convert_to_pdf_by_libreoffice(libreoffice,
+                                                   tmp_docx, pdf_path):
+                return True
         elif sys.platform == 'darwin':
+            # LibreOffice
+            libreoffice = '/Applications/LibreOffice.app'
+            if self._convert_to_pdf_by_libreoffice(libreoffice,
+                                                   tmp_docx, pdf_path):
+                return True
+            # Pages
             if 'has_showed_help_message_of_converting_to_pdf' not in locals():
                 n = 'お知らせ'
-                m = 'mac環境では、標準で、\n' \
+                m = 'LibreOfficeの起動に失敗しました．\n\n' \
+                    + 'mac環境では、標準で、\n' \
                     + '直接PDFを作成する方法が\n' \
                     + 'ありません．\n\n' \
                     + '「Pages」を起動しますので、\n' \
@@ -7163,28 +7197,51 @@ class Makdo:
                     + 'PDFに変換してください．'
                 tkinter.messagebox.showinfo(n, m)
                 self.has_showed_help_message_of_converting_to_pdf = True
-            doc = subprocess.run('open /Applications/Pages.app ' + tmp_docx,
-                                 check=True,
-                                 shell=True,
-                                 stdout=subprocess.PIPE,
-                                 encoding='utf-8')
+            com = ['open', '/Applications/Pages.app', docx_path]
+            if self._execute_external_command(com):
+                return True
+            return False
         elif sys.platform == 'linux':
-            dir_path = re.sub('((?:.|\n)*)/(?:.|\n)+$', '\\1', tmp_docx)
-            com = '/usr/bin/libreoffice --headless --convert-to pdf --outdir '
-            doc = subprocess.run(com + dir_path + ' ' + tmp_docx,
-                                 check=True,
-                                 shell=True,
-                                 stdout=subprocess.PIPE,
-                                 encoding='utf-8')
+            # LibreOffice
+            libreoffice = '/usr/bin/libreoffice'
+            if self._convert_to_pdf_by_libreoffice(libreoffice,
+                                                   tmp_docx, pdf_path):
+                return True
+        n = '警告'
+        m = '外部アプリ（MS Word等）の\n' \
+            + '起動に失敗しました．\n\n' \
+            + '下記をインストールしてください．\n' \
+            + '- MS Word\n' \
+            + '- LibreOffice（無料）'
+        tkinter.messagebox.showwarning(n, m)
+        return False
+
+    def _convert_to_pdf_by_libreoffice(self, libreoffice, tmp_docx, pdf_path):
+        dir_path = re.sub('((?:.|\n)*)/(?:.|\n)+$', '\\1', tmp_docx)
+        com = [libreoffice,
+               '--headless',
+               '--convert-to', 'pdf',
+               '--outdir', dir_path,
+               tmp_docx]
+        if sys.platform == 'darwin':
+            com.insert(0, 'open')
+        if self._execute_external_command(com):
             tmp_pdf = re.sub('docx$', 'pdf', tmp_docx)
+            if not os.path.exists(tmp_pdf):
+                self.set_message_on_status_bar('PDFの変換に失敗しました')
+                return True
             shutil.move(tmp_pdf, pdf_path)
-        return True
+            if not os.path.exists(pdf_path):
+                self.set_message_on_status_bar('PDFの変換に失敗しました')
+                return True
+            self.set_message_on_status_bar('PDFに変換しました')
+            return True
+        return False
 
     # START WRITER
 
     def start_writer(self) -> bool:
         docx_path = self._get_tmp_docx()
-        self.set_message_on_status_bar('MS Word等を起動します', True)
         if sys.platform == 'win32':
             # MS Word
             try:
@@ -7193,88 +7250,41 @@ class Makdo:
                 doc = app.Documents.Open(FileName=docx_path,
                                          ConfirmConversions=False,
                                          ReadOnly=True)
-                app.Quit()
                 self.set_message_on_status_bar('')
                 return True
             except BaseException:
                 pass
             # LibreOffice
-            try:
-                com = 'C:/Program Files/LibreOffice/program/soffice.exe'
-                doc = subprocess.run([com, docx_path],
-                                     check=True, shell=False,
-                                     stdout=subprocess.PIPE,
-                                     encoding='utf-8')
-                if doc.returncode == 0:
-                    self.set_message_on_status_bar('')
-                    return True
-            except BaseException:
-                pass
+            com = ['C:/Program Files/LibreOffice/program/soffice.exe',
+                   docx_path]
+            if self._execute_external_command(com):
+                return True
             # WordPad
-            try:
-                com = 'C:/Program Files/Windows NT/Accessories/wordpad.exe'
-                doc = subprocess.run([com, docx_path],
-                                     check=True, shell=False,
-                                     stdout=subprocess.PIPE,
-                                     encoding='utf-8')
-                if doc.returncode == 0:
-                    self.set_message_on_status_bar('')
-                    return True
-            except BaseException:
-                pass
+            com = ['C:/Program Files/Windows NT/Accessories/wordpad.exe',
+                   docx_path]
+            if self._execute_external_command(com):
+                return True
         elif sys.platform == 'darwin':
             # MS Word
-            try:
-                com = '/Applications/Microsoft Word.app'
-                doc = subprocess.run(['open', com, docx_path],
-                                     check=True, shell=False,
-                                     stdout=subprocess.PIPE,
-                                     encoding='utf-8')
-                if doc.returncode == 0:
-                    self.set_message_on_status_bar('')
-                    return True
-            except BaseException:
-                pass
+            com = ['open', '/Applications/Microsoft Word.app', docx_path]
+            if self._execute_external_command(com):
+                return True
             # LibreOffice
-            try:
-                com = '/Applications/LibreOffice.app'
-                doc = subprocess.run(['open', com,  docx_path],
-                                     check=True, shell=False,
-                                     stdout=subprocess.PIPE,
-                                     encoding='utf-8')
-                if doc.returncode == 0:
-                    self.set_message_on_status_bar('')
-                    return True
-            except BaseException:
-                pass
+            com = ['open', '/Applications/LibreOffice.app', docx_path]
+            if self._execute_external_command(com):
+                return True
             # Pages
-            try:
-                com = '/Applications/Pages.app'
-                doc = subprocess.run(['open', com, docx_path],
-                                     check=True, shell=False,
-                                     stdout=subprocess.PIPE,
-                                     encoding='utf-8')
-                if doc.returncode == 0:
-                    self.set_message_on_status_bar('')
-                    return True
-            except BaseException:
-                pass
+            com = ['open', '/Applications/Pages.app', docx_path]
+            if self._execute_external_command(com):
+                return True
         elif sys.platform == 'linux':
             # LibreOffice
-            try:
-                com = '/usr/bin/libreoffice'
-                doc = subprocess.run([com, docx_path],
-                                     check=True, shell=False,
-                                     stdout=subprocess.PIPE,
-                                     encoding='utf-8')
-                if doc.returncode == 0:
-                    self.set_message_on_status_bar('')
-                    return True
-            except BaseException:
-                pass
-        self.set_message_on_status_bar('MS Word等の起動に失敗しました')
+            com = ['/usr/bin/libreoffice', docx_path]
+            if self._execute_external_command(com):
+                return True
         n = '警告'
-        m = 'MS Word等の起動に失敗しました．\n\n' \
+        m = '外部アプリ（MS Word等）の\n' \
+            + '起動に失敗しました．\n\n' \
             + '下記をインストールしてください．\n' \
             + '- MS Word\n' \
             + '- LibreOffice（無料）'
