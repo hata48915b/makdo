@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.14-13:19:59-JST>
+# Time-stamp:   <2025.01.14-13:32:07-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -7245,6 +7245,7 @@ class Makdo:
         if sys.platform == 'win32':
             # MS Word
             try:
+                self.set_message_on_status_bar('MS Wordを起動します')
                 app = win32com.client.Dispatch("Word.Application")
                 app.Visible = True
                 doc = app.Documents.Open(FileName=docx_path,
@@ -7253,6 +7254,7 @@ class Makdo:
                 self.set_message_on_status_bar('')
                 return True
             except BaseException:
+                self.set_message_on_status_bar('MS Wordの起動に失敗しました')
                 pass
             # LibreOffice
             com = ['C:/Program Files/LibreOffice/program/soffice.exe',
