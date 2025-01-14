@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.14-15:28:28-JST>
+# Time-stamp:   <2025.01.14-15:49:41-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -7199,7 +7199,7 @@ class Makdo:
                     + 'PDFに変換してください．'
                 tkinter.messagebox.showinfo(n, m)
                 self.has_showed_help_message_of_converting_to_pdf = True
-            com = ['open', '/Applications/Pages.app', docx_path]
+            com = ['open', '/Applications/Pages.app', tmp_docx]
             if self._execute_external_command(com):
                 return True
             return False
