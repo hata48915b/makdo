@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.04-08:16:23-JST>
+# Time-stamp:   <2025.01.15-10:31:37-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5542,6 +5542,14 @@ class Document:
                             = re.sub('^\n', ' ', p.post_text_to_write)
                         p.post_text_to_write += '\n' + tex_fd
                     base_cd = None
+            # ADDITIONAL
+            if p_next is not None:
+                for tfr in p.tail_font_revisers:
+                    hfr = FontDecorator.get_partner(tfr)
+                    if not re.match(NOT_ESCAPED + hfr, p.text_to_write):
+                        if hfr in p_next.head_font_revisers:
+                            p.tail_font_revisers.remove(tfr)
+                            p_next.head_font_revisers.remove(hfr)
             # RENEW
             p.text_to_write_with_reviser = p._get_text_to_write_with_reviser()
         return self.paragraphs
@@ -7673,7 +7681,7 @@ class ParagraphSection(Paragraph):
     @classmethod
     def _get_section_depths(cls, raw_text, should_record=False):
         # （１）, （ア）, （ａ）
-        raw_text = re.sub('^（([0-9０-９]+|[ｱ-ﾝア-ン]+|[a-zａ-ｚ]+)）',
+        raw_text = re.sub('（([0-9０-９]+|[ｱ-ﾝア-ン]|[a-zａ-ｚ])）',
                           '(\\1) ', raw_text)
         rss = cls.res_symbols
         rfd = RES_FONT_DECORATORS
@@ -7682,7 +7690,7 @@ class ParagraphSection(Paragraph):
         head_section_depth = 0
         tail_section_depth = 0
         for xdepth in range(1, len(rss)):
-            res = '^(?:\\\\\\s+)?' + rfd + rss[xdepth] + rre + '$'
+            res = '^(?:\\\\\\s+)?' + rfd + '\\s*' + rss[xdepth] + rre + '$'
             if re.match(res, raw_text) and not re.match(rnm, raw_text):
                 if head_section_depth == 0:
                     head_section_depth = xdepth + 1
@@ -7698,9 +7706,6 @@ class ParagraphSection(Paragraph):
         return head_section_depth, tail_section_depth
 
     def _get_revisers_and_md_text(self, raw_text):
-        # （１）, （ア）, （ａ）
-        raw_text = re.sub('^（([0-9０-９]+|[ｱ-ﾝア-ン]+|[a-zａ-ｚ]+)）',
-                          '(\\1) ', raw_text)
         xl_size = Form.font_size * 1.4
         xml_lines = self.xml_lines
         rss = self.res_symbols
@@ -7724,6 +7729,11 @@ class ParagraphSection(Paragraph):
             tail_tc = '<+'
             raw_text = re.sub('<\\+$', '', raw_text)
         head_symbol = ''
+        # "　１　…" -> "１　…"
+        raw_text = re.sub('^\\s+', '', raw_text)
+        # （１）, （ア）, （ａ）
+        raw_text = re.sub('^（([0-9０-９]+|[ｱ-ﾝア-ン]|[a-zａ-ｚ])）',
+                          '(\\1) ', raw_text)
         for xdepth in range(1, len(rss)):
             res = '^' + rss[xdepth] + rre + '$'
             if re.match(res, raw_text) and not re.match(rnm, raw_text):
