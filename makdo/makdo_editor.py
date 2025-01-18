@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.19-04:32:22-JST>
+# Time-stamp:   <2025.01.19-04:47:58-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6518,10 +6518,13 @@ class Makdo:
         h_min = int(re.sub('\\.[0-9]+$', '', p))
         p = pane.index('@1000000,1000000')  # "x,y" not "y,x"
         h_max = int(re.sub('\\.[0-9]+$', '', p)) - 1
-        lines = h_max - h_min
-        if lines < 25:
-            lines = 25
+        lines = h_max - h_min + 1
         return lines
+
+    @staticmethod
+    def _get_chars_of_pane(pane):
+        chars = 0
+        return chars
 
     def _move_vertical(self, pane, ideal_h_position, height_to_move):
         i = self._get_v_position_of_insert(pane) + height_to_move
