@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.19-04:47:58-JST>
+# Time-stamp:   <2025.01.19-07:09:11-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6522,18 +6522,40 @@ class Makdo:
         return lines
 
     @staticmethod
-    def _get_chars_of_pane(pane):
-        chars = 0
-        return chars
+    def _get_width_of_pane(pane):
+        pane.update()
+        # INSERT
+        ins = pane.index('insert')
+        ins_v = int(re.sub('\\.[0-9]+$', '', ins))
+        ins_h = int(re.sub('^[0-9]+\\.', '', ins))
+        # MINIMUM AND MAXIMUM
+        i = 0
+        while True:
+            tmp = pane.index('@0,' + str(i))
+            tmp_v = int(re.sub('\\.[0-9]+$', '', tmp))
+            tmp_h = int(re.sub('^[0-9]+\\.', '', tmp))
+            if tmp_v >= ins_v:
+                break
+            i += 1
+        min_h = tmp_h
+        tmp = pane.index('@1000000,' + str(i))
+        max_h = int(re.sub('^[0-9]+\\.', '', tmp))
+        # WIDTH
+        line = pane.get('insert linestart' + '+' + str(min_h) + 'c',
+                        'insert linestart' + '+' + str(max_h + 1) + 'c')
+        line = re.sub('\n$', '', line)
+        width = get_real_width(line)
+        # RETERN
+        return width
 
-    def _move_vertical(self, pane, ideal_h_position, height_to_move):
+    def _move_vertically(self, pane, ideal_h_position, height_to_move):
         i = self._get_v_position_of_insert(pane) + height_to_move
         j = ideal_h_position
         m = self._get_ideal_position_index_in_line(pane, i, j)
         pane.mark_set('insert', m)
         self._put_back_cursor_to_pane(pane)
 
-    def _move_horizontal(self, pane, width_to_move):
+    def _move_horizontally(self, pane, width_to_move):
         i = self._get_v_position_of_insert(pane)
         j = self._get_ideal_h_position_of_insert(pane) + width_to_move
         m = self._get_ideal_position_index_in_line(pane, i, j)
@@ -11853,13 +11875,15 @@ class Makdo:
             elif key == 'Ctrl+p' or key == 'F15':
                 self.paste_region()
             elif key == 'Home':
-                pane.mark_set('insert', 'insetr linestart')
+                width = self._get_width_of_pane(pane)
+                self._move_horizontally(pane, -width)
             elif key == 'End':
-                pane.mark_set('insert', 'insetr lineend')
+                width = self._get_width_of_pane(pane)
+                self._move_horizontally(pane, +width)
             elif key == 'Up':
-                self._move_vertical(pane, self.ideal_h_position, -1)
+                self._move_vertically(pane, self.ideal_h_position, -1)
             elif key == 'Down':
-                self._move_vertical(pane, self.ideal_h_position, +1)
+                self._move_vertically(pane, self.ideal_h_position, +1)
             elif key == 'Left':
                 pane.mark_set('insert', 'insert-1c')
             elif key == 'Right':
@@ -13094,7 +13118,7 @@ class Makdo:
             if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
                 self.ideal_h_position \
                     = self._get_ideal_h_position_of_insert(pane)
-            self._move_vertical(pane, self.ideal_h_position, -1)
+            self._move_vertically(pane, self.ideal_h_position, -1)
             self._paint_akauni_region(pane, '')
             return 'break'
         elif key.keysym == 'Down':
@@ -13104,7 +13128,7 @@ class Makdo:
             if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
                 self.ideal_h_position \
                     = self._get_ideal_h_position_of_insert(pane)
-            self._move_vertical(pane, self.ideal_h_position, +1)
+            self._move_vertically(pane, self.ideal_h_position, +1)
             self._paint_akauni_region(pane, '')
             return 'break'
         elif key.keysym == 'Prior':
@@ -13112,7 +13136,7 @@ class Makdo:
                 self.ideal_h_position \
                     = self._get_ideal_h_position_of_insert(pane)
             lines = self._get_lines_of_pane(pane)
-            self._move_vertical(pane, self.ideal_h_position, -lines)
+            self._move_vertically(pane, self.ideal_h_position, -lines)
             self._paint_akauni_region(pane, '')
             return 'break'
         elif key.keysym == 'Next':
@@ -13124,15 +13148,17 @@ class Makdo:
                 self.ideal_h_position \
                     = self._get_ideal_h_position_of_insert(pane)
             lines = self._get_lines_of_pane(pane)
-            self._move_vertical(pane, self.ideal_h_position, +lines)
+            self._move_vertically(pane, self.ideal_h_position, +lines)
             self._paint_akauni_region(pane, '')
             return 'break'
         elif key.keysym == 'Home':
-            self._move_horizontal(pane, -100)
+            width = self._get_width_of_pane(pane)
+            self._move_horizontally(pane, -width)
             self._paint_akauni_region(pane, '')
             return 'break'
         elif key.keysym == 'End':
-            self._move_horizontal(pane, +100)
+            width = self._get_width_of_pane(pane)
+            self._move_horizontally(pane, +width)
             self._paint_akauni_region(pane, '')
             return 'break'
         elif key.keysym == 'F17':            # } (, calc)
@@ -13406,7 +13432,7 @@ class Makdo:
             if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
                 self.ideal_h_position \
                     = self._get_ideal_h_position_of_insert(pane)
-            self._move_vertical(pane, self.ideal_h_position, -1)
+            self._move_vertically(pane, self.ideal_h_position, -1)
             self._paint_akauni_region(pane, '')
             return 'break'
         elif key.keysym == 'Down':
@@ -13416,7 +13442,7 @@ class Makdo:
             if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
                 self.ideal_h_position \
                     = self._get_ideal_h_position_of_insert(pane)
-            self._move_vertical(pane, self.ideal_h_position, +1)
+            self._move_vertically(pane, self.ideal_h_position, +1)
             self._paint_akauni_region(pane, '')
             return 'break'
         elif key.keysym == 'Prior':
@@ -13424,7 +13450,7 @@ class Makdo:
                 self.ideal_h_position \
                     = self._get_ideal_h_position_of_insert(pane)
             lines = self._get_lines_of_pane(pane)
-            self._move_vertical(pane, self.ideal_h_position, -lines)
+            self._move_vertically(pane, self.ideal_h_position, -lines)
             self._paint_akauni_region(pane, '')
             return 'break'
         elif key.keysym == 'Next':
@@ -13432,15 +13458,17 @@ class Makdo:
                 self.ideal_h_position \
                     = self._get_ideal_h_position_of_insert(pane)
             lines = self._get_lines_of_pane(pane)
-            self._move_vertical(pane, self.ideal_h_position, +lines)
+            self._move_vertically(pane, self.ideal_h_position, +lines)
             self._paint_akauni_region(pane, '')
             return 'break'
         elif key.keysym == 'Home':
-            self._move_horizontal(pane, -100)
+            width = self._get_width_of_pane(pane)
+            self._move_horizontally(pane, -width)
             self._paint_akauni_region(pane, '')
             return 'break'
         elif key.keysym == 'End':
-            self._move_horizontal(pane, +100)
+            width = self._get_width_of_pane(pane)
+            self._move_horizontally(pane, +width)
             self._paint_akauni_region(pane, '')
             return 'break'
         elif key.keysym == 'F22':            # f (mark, save)
