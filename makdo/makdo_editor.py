@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.14-15:49:41-JST>
+# Time-stamp:   <2025.01.19-04:32:22-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6500,9 +6500,9 @@ class Makdo:
     @staticmethod
     def _put_back_cursor_to_pane(pane):
         pane.update()
-        p = pane.index('@0,0')
+        p = pane.index('@0,0')  # "x,y" not "y,x"
         h_min = int(re.sub('\\.[0-9]+$', '', p))
-        p = pane.index('@1000000,1000000')
+        p = pane.index('@1000000,1000000')  # "x,y" not "y,x"
         h_max = int(re.sub('\\.[0-9]+$', '', p)) - 1
         p = pane.index('insert')
         h_cur = int(re.sub('\\.[0-9]+$', '', p))
@@ -6514,9 +6514,9 @@ class Makdo:
     @staticmethod
     def _get_lines_of_pane(pane):
         pane.update()
-        p = pane.index('@0,0')
+        p = pane.index('@0,0')  # "x,y" not "y,x"
         h_min = int(re.sub('\\.[0-9]+$', '', p))
-        p = pane.index('@1000000,1000000')
+        p = pane.index('@1000000,1000000')  # "x,y" not "y,x"
         h_max = int(re.sub('\\.[0-9]+$', '', p)) - 1
         lines = h_max - h_min
         if lines < 25:
@@ -14310,8 +14310,8 @@ class Makdo:
         # NEXT
         self.local_line_to_paint += 1
         if self.local_line_to_paint > self.goal_line_to_paint:
-            d_min = self.txt.index('@0,0')
-            d_max = self.txt.index('@1000000,1000000')
+            d_min = self.txt.index('@0,0')  # "x,y" not "y,x"
+            d_max = self.txt.index('@1000000,1000000')  # "x,y" not "y,x"
             v_min = int(re.sub('\\.[0-9]+$', '', d_min)) - 1
             v_max = int(re.sub('\\.[0-9]+$', '', d_max)) - 1
             self.footmarks.append(v_min)
