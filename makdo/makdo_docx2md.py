@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.15-10:31:37-JST>
+# Time-stamp:   <2025.01.19-13:15:04-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -8075,10 +8075,9 @@ class ParagraphTable(Paragraph):
         numbering_revisers = []
         tbl_alig, xml_tbl, v_rlen_clm, h_rlen_row \
             = self.__get_raw_table_data(xml_lines)
-        txt_tbl = self.__get_txt_table(xml_tbl)
-        h_frs, t_frs = self.__get_font_revisers(txt_tbl)
+        txt_tbl, h_frs, t_frs \
+            = self.__get_txt_table_and_font_revisers(xml_tbl)
         head_font_revisers, tail_font_revisers = h_frs, t_frs
-        txt_tbl = self.__remove_or_settle_font_revisers(h_frs, t_frs, txt_tbl)
         std_row, std_clm = self.__get_standard_row_and_column(txt_tbl)
         num_row, num_clm \
             = self.__get_number_of_row_and_column(txt_tbl, std_row, std_clm)
@@ -8167,17 +8166,100 @@ class ParagraphTable(Paragraph):
         return tbl_alig, xml_tbl, v_rlen_clm, h_rlen_row
 
     @staticmethod
-    def __get_txt_table(xml_tbl):
-        txt_tbl = []
+    def __get_txt_table_and_font_revisers(xml_tbl):
+        cd_tbl = []
         for row in xml_tbl:
-            txt_row = []
+            cd_row = []
             for cell in row:
                 chars_data, images, footnotes \
                     = RawParagraph._get_chars_data_and_etc('w:tbl', cell)
-                raw_text = RawParagraph.get_raw_text(chars_data)
+                cd_row.append(chars_data)
+                # MERGING CELLS
+                gridspan = 1
+                for xml in cell:
+                    gridspan = XML.get_value('w:gridSpan', 'w:val', gridspan, xml)
+                if len(chars_data) > 0 and gridspan > 1:
+                    chars_data[-1].chars += '<gridspan=' + str(gridspan) + '>'
+            cd_tbl.append(cd_row)
+        # CANCEL
+        pre_cd = None
+        for cd_row in cd_tbl:
+            for cd_cel in cd_row:
+                for cur_cd in cd_cel:
+                    if pre_cd is not None:
+                        pre_cd, cur_cd \
+                            = CharsDatum.cancel_fd_cls(pre_cd, cur_cd)
+                    pre_cd = cur_cd
+        # FONT REVISERS
+        fr_fd_cls = cd_tbl[0][0][0].fr_fd_cls
+        bk_fd_cls = cd_tbl[-1][-1][-1].bk_fd_cls
+        h_frs, t_frs = [], []
+        fr, bk = fr_fd_cls.font_name, bk_fd_cls.font_name
+        if fr != '' and bk != '' and FontDecorator.get_partner(fr) == bk:
+            fr_fd_cls.font_name, bk_fd_cls.font_name = '', ''
+            h_frs.append(fr)
+            t_frs.append(bk)
+        fr, bk = fr_fd_cls.font_scale, bk_fd_cls.font_scale
+        if fr != '' and bk != '' and FontDecorator.get_partner(fr) == bk:
+            fr_fd_cls.font_scale, bk_fd_cls.font_scale = '', ''
+            h_frs.append(fr)
+            t_frs.append(bk)
+        fr, bk = fr_fd_cls.font_width, bk_fd_cls.font_width
+        if fr != '' and bk != '' and FontDecorator.get_partner(fr) == bk:
+            fr_fd_cls.font_width, bk_fd_cls.font_width = '', ''
+            h_frs.append(fr)
+            t_frs.append(bk)
+        fr, bk = fr_fd_cls.italic, bk_fd_cls.italic
+        if fr != '' and bk != '' and FontDecorator.get_partner(fr) == bk:
+            fr_fd_cls.italic, bk_fd_cls.italic = '', ''
+            h_frs.append(fr)
+            t_frs.append(bk)
+        fr, bk = fr_fd_cls.bold, bk_fd_cls.bold
+        if fr != '' and bk != '' and FontDecorator.get_partner(fr) == bk:
+            fr_fd_cls.bold, bk_fd_cls.bold = '', ''
+            h_frs.append(fr)
+            t_frs.append(bk)
+        fr, bk = fr_fd_cls.strike, bk_fd_cls.strike
+        if fr != '' and bk != '' and FontDecorator.get_partner(fr) == bk:
+            fr_fd_cls.strike, bk_fd_cls.strike = '', ''
+            h_frs.append(fr)
+            t_frs.append(bk)
+        fr, bk = fr_fd_cls.frame, bk_fd_cls.frame
+        if fr != '' and bk != '' and FontDecorator.get_partner(fr) == bk:
+            fr_fd_cls.frame, bk_fd_cls.frame = '', ''
+            h_frs.append(fr)
+            t_frs.append(bk)
+        fr, bk = fr_fd_cls.underline, bk_fd_cls.underline
+        if fr != '' and bk != '' and FontDecorator.get_partner(fr) == bk:
+            fr_fd_cls.underline, bk_fd_cls.underline = '', ''
+            h_frs.append(fr)
+            t_frs.append(bk)
+        fr, bk = fr_fd_cls.font_color, bk_fd_cls.font_color
+        if fr != '' and bk != '' and FontDecorator.get_partner(fr) == bk:
+            fr_fd_cls.font_color, bk_fd_cls.font_color = '', ''
+            h_frs.append(fr)
+            t_frs.append(bk)
+        fr, bk = fr_fd_cls.highlight_color, bk_fd_cls.highlight_color
+        if fr != '' and bk != '' and FontDecorator.get_partner(fr) == bk:
+            fr_fd_cls.highlight_color, bk_fd_cls.highlight_color = '', ''
+            h_frs.append(fr)
+            t_frs.append(bk)
+        fr, bk = fr_fd_cls.sub_or_sup, bk_fd_cls.sub_or_sup
+        if fr != '' and bk != '' and FontDecorator.get_partner(fr) == bk:
+            fr_fd_cls.sub_or_sup, bk_fd_cls.sub_or_sup = '', ''
+            h_frs.append(fr)
+            t_frs.append(bk)
+        t_frs.reverse()
+        # TEXT
+        txt_tbl = []
+        for cd_row in cd_tbl:
+            txt_row = []
+            for cd_cel in cd_row:
+                raw_text = RawParagraph.get_raw_text(cd_cel)
                 txt_row.append(raw_text)
             txt_tbl.append(txt_row)
-        return txt_tbl
+        # RETURN
+        return txt_tbl, h_frs, t_frs
 
     @staticmethod
     def __get_font_revisers(txt_tab):
@@ -8237,46 +8319,6 @@ class ParagraphTable(Paragraph):
             if h_fr not in head_font_revisers:
                 tail_font_revisers.remove(t_fr)
         return head_font_revisers, tail_font_revisers
-
-    @staticmethod
-    def __remove_or_settle_font_revisers(h_frs, t_frs, txt_tbl):
-        for i, row in enumerate(txt_tbl):
-            for j, cell in enumerate(row):
-                if cell == '':
-                    continue
-                tmp_h_frs, tmp_t_frs = [], []
-                for fr in h_frs:
-                    tmp_h_frs.append(fr)
-                for fr in t_frs:
-                    tmp_t_frs.append(fr)
-                # REMOVE
-                cel_h_frs, cel_t_frs, cel_txt \
-                    = Paragraph.get_font_revisers_and_md_text(cell)
-                for h_fr in tmp_h_frs:
-                    if h_fr in cel_h_frs:
-                        tmp_h_frs.remove(h_fr)
-                        cel_h_frs.remove(h_fr)
-                for t_fr in tmp_t_frs:
-                    if t_fr in cel_t_frs:
-                        tmp_t_frs.remove(t_fr)
-                        cel_t_frs.remove(t_fr)
-                cell_txt \
-                    = ''.join(cel_h_frs) + cel_txt + ''.join(cel_t_frs[::-1])
-                # SETTLE
-                for fr in tmp_h_frs:
-                    fr = fr.replace('>', '\\>')
-                    fr = fr.replace('<', '\\<')
-                    fr = fr.replace('\\>', '<')
-                    fr = fr.replace('\\<', '>')
-                    cell_txt = fr + cell_txt
-                for fr in tmp_t_frs:
-                    fr = fr.replace('>', '\\>')
-                    fr = fr.replace('<', '\\<')
-                    fr = fr.replace('\\>', '<')
-                    fr = fr.replace('\\<', '>')
-                    cell_txt = cell_txt + fr
-                txt_tbl[i][j] = cell_txt
-        return txt_tbl
 
     @staticmethod
     def __get_standard_row_and_column(txt_tbl):
@@ -8493,6 +8535,15 @@ class ParagraphTable(Paragraph):
                     is_in_head = False
             # DATA
             for j, cell in enumerate(row):
+                # MERGING CELLS
+                gridspan = 1
+                res = '^((?:.|\n)*)<gridspan=([0-9]+)>$'
+                if re.match(res, cell):
+                    gridspan = int(re.sub(res, '\\2', cell))
+                    cell = re.sub(res, '\\1', cell)
+                    # if gridspan > 1:
+                    #     cell += '@' + str(gridspan)
+                # REPLACE
                 cell = cell.replace('|', '\\|')
                 cell = cell.replace('\n', '<br>')
                 # SPACE AT BOTH SIDES
@@ -8528,6 +8579,9 @@ class ParagraphTable(Paragraph):
                         md_text += '|' + cell + ' :'
                     else:
                         md_text += '|' + cell
+                # MERGING CELLS
+                if gridspan > 1:
+                    md_text += '|' * (gridspan - 1)
                 # md_text += v_rule_tbl[i][j]
             md_text += '|' + v_conf_clm[i] + '\n'
         # md_text = md_text.replace('&lt;', '<')
