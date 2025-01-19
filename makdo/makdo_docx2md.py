@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.19-13:53:55-JST>
+# Time-stamp:   <2025.01.19-14:28:34-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5491,32 +5491,15 @@ class Document:
         # |           ->  |**
         # |           ->  |
         for i, p in enumerate(self.paragraphs):
-            # CURR
-            p_curr = p
-            if i == 0:
-                curr_head, curr_tail = [], []
-                for fr in p_curr.head_font_revisers:
-                    curr_head.append(fr)
-                for fr in p_curr.tail_font_revisers:
-                    curr_tail.append(fr)
-            else:
-                curr_head, curr_tail = next_head, next_tail
-            # NEXT
-            p_next = self.__get_next_paragraph(self.paragraphs, i)
-            if p_next is None:
-                break
-            next_head, next_tail = [], []
-            for fr in p_next.head_font_revisers:
-                next_head.append(fr)
-            for fr in p_next.tail_font_revisers:
-                next_tail.append(fr)
             # CANCEL
-            for tfr in p_curr.tail_font_revisers:
-                hfr = FontDecorator.get_partner(tfr)
-                if hfr in curr_head and tfr in curr_tail and \
-                   hfr in next_head and tfr in next_tail:
-                    p_curr.tail_font_revisers.remove(tfr)
-                    p_next.head_font_revisers.remove(hfr)
+            p_curr = p
+            p_next = self.__get_next_paragraph(self.paragraphs, i)
+            if p_next is not None:
+                for tfr in p_curr.tail_font_revisers:
+                    hfr = FontDecorator.get_partner(tfr)
+                    if hfr in p_next.head_font_revisers:
+                        p_curr.tail_font_revisers.remove(tfr)
+                        p_next.head_font_revisers.remove(hfr)
             # RENEW
             p.text_to_write_with_reviser = p._get_text_to_write_with_reviser()
         return self.paragraphs
@@ -5524,15 +5507,21 @@ class Document:
     @staticmethod
     def __get_prev_paragraph(paras, base):
         for i in range(base - 1, -1, -1):
-            if not paras[i].has_removed:
-                return paras[i]
+            if paras[i].has_removed:
+                continue
+            if paras[i].paragraph_class == 'empty':
+                continue
+            return paras[i]
         return None
 
     @staticmethod
     def __get_next_paragraph(paras, base):
         for i in range(base + 1, len(paras)):
-            if not paras[i].has_removed:
-                return paras[i]
+            if paras[i].has_removed:
+                continue
+            if paras[i].paragraph_class == 'empty':
+                continue
+            return paras[i]
         return None
 
     def get_document(self):
