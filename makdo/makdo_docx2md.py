@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.19-13:15:04-JST>
+# Time-stamp:   <2025.01.19-13:53:55-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5490,66 +5490,33 @@ class Document:
         # |           ->  |
         # |           ->  |**
         # |           ->  |
-        base_cd = None
         for i, p in enumerate(self.paragraphs):
-            curr_head = p.head_font_revisers
-            curr_tail = p.tail_font_revisers
-            curr_cd = CharsDatum(curr_head, '', curr_tail)
-            next_head = []
-            next_tail = []
-            p_next = self.__get_next_paragraph(self.paragraphs, i)
-            if p_next is not None:
-                next_head = p_next.head_font_revisers
-                next_tail = p_next.tail_font_revisers
-            next_cd = CharsDatum(next_head, '', next_tail)
-            is_cc, is_cn, is_nn = False, False, False
-            if CharsDatum.are_consecutive(curr_cd, curr_cd):
-                is_cc = True
-            if CharsDatum.are_consecutive(curr_cd, next_cd):
-                is_cn = True
-            if CharsDatum.are_consecutive(next_cd, next_cd):
-                is_nn = True
-            # SINGLE LINE
-            if (base_cd is None) and is_cc and (not (is_cn and is_nn)):
-                p.head_font_revisers = []
-                p.tail_font_revisers = []
-                tex_fd = CharsDatum(curr_head, '', []).get_chars_with_fds()
-                if tex_fd != '':
-                    p.text_to_write = tex_fd + '\n' + p.text_to_write
-                tex_fd = CharsDatum([], '', curr_tail).get_chars_with_fds()
-                if tex_fd != '':
-                    p.text_to_write = p.text_to_write + '\n' + tex_fd
-            # MULTI LINES
-            if base_cd is None:
-                if is_cc and is_cn and is_nn:
-                    p.head_font_revisers = []
-                    p.tail_font_revisers = []
-                if is_cc and is_cn and is_nn:
-                    tex_fd = CharsDatum(curr_head, '', []).get_chars_with_fds()
-                    if tex_fd != '':
-                        p.pre_text_to_write \
-                            = re.sub('\\s*\n$', ' ', p.pre_text_to_write)
-                        p.pre_text_to_write += tex_fd + '\n'
-                    base_cd = curr_cd
+            # CURR
+            p_curr = p
+            if i == 0:
+                curr_head, curr_tail = [], []
+                for fr in p_curr.head_font_revisers:
+                    curr_head.append(fr)
+                for fr in p_curr.tail_font_revisers:
+                    curr_tail.append(fr)
             else:
-                if True:
-                    p.head_font_revisers = []
-                    p.tail_font_revisers = []
-                if not (is_cc and is_cn and is_nn):
-                    tex_fd = CharsDatum([], '', curr_tail).get_chars_with_fds()
-                    if tex_fd != '':
-                        p.post_text_to_write \
-                            = re.sub('^\n', ' ', p.post_text_to_write)
-                        p.post_text_to_write += '\n' + tex_fd
-                    base_cd = None
-            # ADDITIONAL
-            if p_next is not None:
-                for tfr in p.tail_font_revisers:
-                    hfr = FontDecorator.get_partner(tfr)
-                    if not re.match(NOT_ESCAPED + hfr, p.text_to_write):
-                        if hfr in p_next.head_font_revisers:
-                            p.tail_font_revisers.remove(tfr)
-                            p_next.head_font_revisers.remove(hfr)
+                curr_head, curr_tail = next_head, next_tail
+            # NEXT
+            p_next = self.__get_next_paragraph(self.paragraphs, i)
+            if p_next is None:
+                break
+            next_head, next_tail = [], []
+            for fr in p_next.head_font_revisers:
+                next_head.append(fr)
+            for fr in p_next.tail_font_revisers:
+                next_tail.append(fr)
+            # CANCEL
+            for tfr in p_curr.tail_font_revisers:
+                hfr = FontDecorator.get_partner(tfr)
+                if hfr in curr_head and tfr in curr_tail and \
+                   hfr in next_head and tfr in next_tail:
+                    p_curr.tail_font_revisers.remove(tfr)
+                    p_next.head_font_revisers.remove(hfr)
             # RENEW
             p.text_to_write_with_reviser = p._get_text_to_write_with_reviser()
         return self.paragraphs
