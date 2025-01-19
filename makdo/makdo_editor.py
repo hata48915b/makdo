@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.19-07:09:11-JST>
+# Time-stamp:   <2025.01.19-09:29:31-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6216,7 +6216,8 @@ class Makdo:
     def _get_tmp_md(self):
         md_path = self.temp_dir.name + '/doc.md'
         file_text = self.txt.get('1.0', 'end-1c')
-        file_text = self.get_fully_unfolded_document(file_text)
+        # No warning here. Warning will be given during conversion.
+        file_text = self.get_fully_unfolded_document(file_text, False)
         with open(md_path, 'w') as f:
             f.write(file_text)
         return md_path
@@ -6238,7 +6239,6 @@ class Makdo:
         if msg != '':
             n = 'エラー'
             tkinter.messagebox.showerror(n, msg)
-            return
         return docx_path
 
     def _read_file(self, file_path):
@@ -6756,14 +6756,14 @@ class Makdo:
 
     def close_file(self):
         # SAVE FILE
-        if self._has_edited():
+        if self._has_edited(True):  # must warn
             ans = self._ask_to_save('保存しますか？')
             if ans is None:
                 return None
             elif ans is True:
                 if not self.save_file():
                     return None
-        if self._has_edited():
+        if self._has_edited(False):  # must not warn
             ans = self._ask_to_save('データが消えますが、保存しますか？')
             if ans is None:
                 return None
@@ -6781,9 +6781,9 @@ class Makdo:
 
     # SAVE FILE
 
-    def _has_edited(self):
+    def _has_edited(self, must_warn=True):
         file_text = self.txt.get('1.0', 'end-1c')
-        file_text = self.get_fully_unfolded_document(file_text)
+        file_text = self.get_fully_unfolded_document(file_text, must_warn)
         # REMOVED 24.11.13 >
         # if file_text != '':
         #     if self.init_text != file_text:
@@ -6798,80 +6798,86 @@ class Makdo:
         n, m, d = '確認', message, 'yes'
         return tkinter.messagebox.askyesnocancel(n, m, default=d)
 
-    def save_file(self):
+    def save_file(self) -> bool:
+        # FILE PATH
+        if (self.file_path is None) or (self.file_path == ''):
+            ti = 'ファイルを保存'
+            ty = [('可能な形式', '.md .docx'),
+                  ('Markdown', '.md'), ('MS Word', '.docx'),
+                  ('全てのファイル', '*')]
+            file_path \
+                = tkinter.filedialog.asksaveasfilename(title=ti, filetypes=ty)
+            if file_path == () or file_path == '':
+                return False
+            # if not re.match('^(?:.|\n)\\.md$', file_path):
+            #     file_path += '.md'
+            self.file_path = file_path
+            self._set_file_name(file_path)
+        # FILE
         file_text = self.txt.get('1.0', 'end-1c')
         if file_text != '' and file_text[-1] != '\n':
             file_text += '\n'
             self.txt.insert('end', '\n')
             self._put_back_cursor_to_pane(self.txt)
-        if not self._has_edited():
+        must_warn = True
+        if re.match('^(.|\n)+.docx$', self.file_path):
+            must_warn = False
+        if not self._has_edited(must_warn):
             self.set_message_on_status_bar('保存済みです')
             return False
-        else:
-            self._stamp_config(file_text)
-            file_text = self.txt.get('1.0', 'end-1c')
-            file_text = self.get_fully_unfolded_document(file_text)
-            if (self.file_path is None) or (self.file_path == ''):
-                ti = 'ファイルを保存'
-                ty = [('可能な形式', '.md .docx'),
-                      ('Markdown', '.md'), ('MS Word', '.docx'),
-                      ('全てのファイル', '*')]
-                file_path = tkinter.filedialog.asksaveasfilename(
-                    title=ti, filetypes=ty)
-                if file_path == () or file_path == '':
-                    return False
-                # if not re.match('^(?:.|\n)\\.md$', file_path):
-                #     file_path += '.md'
-                self.file_path = file_path
-                self._set_file_name(file_path)
-            if self.make_backup_file.get() and not self.has_made_backup_file:
-                if os.path.exists(self.file_path) and \
-                   not os.path.islink(self.file_path):
-                    try:
-                        os.rename(self.file_path, self.file_path + '~')
-                        self.has_made_backup_file = True
-                    except BaseException:
-                        n = 'エラー'
-                        m = 'バックアップに失敗しました．\n\n' \
-                            + 'ファイルを上書きして保存しますか？'
-                        d = 'no'
-                        r = tkinter.messagebox.askyesnocancel(n, m, default=d)
-                        if (r is None) or (not r):
-                            return False
-            # DOCX OR MD
-            if re.match('^(?:.|\n)+.docx$', self.file_path):
-                md_path = self.temp_dir.name + '/doc.md'
-            else:
-                md_path = self.file_path
-            # SAVE MD FILE
-            try:
-                with open(md_path, 'w') as f:
-                    f.write(file_text)
-            except BaseException:
-                n, m = 'エラー', 'ファイルの保存に失敗しました．'
-                tkinter.messagebox.showerror(n, m)
-                return False
-            # SAVE DOCX FILE
-            if re.match('^(?:.|\n)+\\.docx$', self.file_path):
-                stderr = sys.stderr
-                sys.stderr = tempfile.TemporaryFile(mode='w+')
-                importlib.reload(makdo.makdo_md2docx)
+        self._stamp_config(file_text)
+        file_text = self.txt.get('1.0', 'end-1c')
+        file_text = self.get_fully_unfolded_document(file_text,
+                                                     False)  # must not warn
+        # BACKUP FILE
+        if self.make_backup_file.get() and not self.has_made_backup_file:
+            if os.path.exists(self.file_path) and \
+               not os.path.islink(self.file_path):
                 try:
-                    m2d = makdo.makdo_md2docx.Md2Docx(md_path)
-                    m2d.save(self.file_path)
+                    os.rename(self.file_path, self.file_path + '~')
+                    self.has_made_backup_file = True
                 except BaseException:
-                    pass
-                sys.stderr.seek(0)
-                msg = sys.stderr.read()
-                sys.stderr = stderr
-                if msg != '':
-                    n = '警告'
-                    tkinter.messagebox.showwarning(n, msg)
-                    # return
-            self.set_message_on_status_bar('保存しました')
-            self.init_text = self.get_fully_unfolded_document(file_text)
-            #
-            return True
+                    n = 'エラー'
+                    m = 'バックアップに失敗しました．\n\n' \
+                        + 'ファイルを上書きして保存しますか？'
+                    d = 'no'
+                    r = tkinter.messagebox.askyesnocancel(n, m, default=d)
+                    if (r is None) or (not r):
+                        return False
+        # DOCX OR MD
+        if re.match('^(?:.|\n)+.docx$', self.file_path):
+            md_path = self.temp_dir.name + '/doc.md'
+        else:
+            md_path = self.file_path
+        # SAVE MD FILE
+        try:
+            with open(md_path, 'w') as f:
+                f.write(file_text)
+        except BaseException:
+            n, m = 'エラー', 'ファイルの保存に失敗しました．'
+            tkinter.messagebox.showerror(n, m)
+            return False
+        # SAVE DOCX FILE
+        if re.match('^(?:.|\n)+\\.docx$', self.file_path):
+            stderr = sys.stderr
+            sys.stderr = tempfile.TemporaryFile(mode='w+')
+            importlib.reload(makdo.makdo_md2docx)
+            try:
+                m2d = makdo.makdo_md2docx.Md2Docx(md_path)
+                m2d.save(self.file_path)
+            except BaseException:
+                pass
+            sys.stderr.seek(0)
+            msg = sys.stderr.read()
+            sys.stderr = stderr
+            if msg != '':
+                n = '警告'
+                tkinter.messagebox.showwarning(n, msg)
+                # return
+        self.set_message_on_status_bar('保存しました')
+        self.init_text = file_text
+        # RETURN
+        return True
 
     def _stamp_config(self, file_text):
         if not re.match('^\\s*<!--', file_text):
@@ -11713,7 +11719,7 @@ class Makdo:
                 self.line_data[i].beg_chars_state.reset_partially()
             self.line_data[i].paint_line(self.txt, paint_keywords)
 
-    def get_fully_unfolded_document(self, old_document):
+    def get_fully_unfolded_document(self, old_document: str, must_warn=True):
         # |                ->  |
         # |## www...[3]    ->  |## www
         # |                ->  |
@@ -11790,7 +11796,6 @@ class Makdo:
                 new_lines.append(old_lines[i])
                 remain_lines[i] = False
                 line_numbers[-1] += 1
-        must_warn = True
         for i, ml in enumerate(old_lines):
             if remain_lines[i]:
                 if must_warn:
