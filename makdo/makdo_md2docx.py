@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.06-06:46:18-JST>
+# Time-stamp:   <2025.01.20-14:45:13-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -3842,6 +3842,11 @@ class RawParagraph:
         self.full_text = self._get_full_text(self.md_lines)
         self.full_text_del = self._get_full_text_del(self.full_text)
         self.full_text_ins = self._get_full_text_ins(self.full_text)
+        self.md_lines, self.full_text, \
+            self.head_font_revisers, self.tail_font_revisers \
+            = self._isolate_head_and_tail_track_changes(
+                self.md_lines, self.full_text,
+                self.head_font_revisers, self.tail_font_revisers)
         self.section_depth_setters, self.full_text \
             = self._get_section_depth_setters(self.full_text)
         self.paragraph_class = self._get_paragraph_class()
@@ -3994,6 +3999,29 @@ class RawParagraph:
                 full_text_leave = re.sub(beg_leave + '$', '', full_text_leave)
                 full_text_leave = re.sub(end_leave + '$', '', full_text_leave)
         return full_text_leave
+
+    @staticmethod
+    def _isolate_head_and_tail_track_changes(md_lines, full_text,
+                                             head_font_revisers,
+                                             tail_font_revisers):
+        if len(md_lines) > 0:
+            if re.match('^\\->.*$', md_lines[0].text):
+                md_lines[0].text = re.sub('^\\->', '', md_lines[0].text)
+                full_text = re.sub('^\\->', '', full_text)
+                head_font_revisers.append('->')
+            if re.match('^\\+>.*$', md_lines[0].text):
+                md_lines[0].text = re.sub('^\\+>', '', md_lines[0].text)
+                full_text = re.sub('^\\+>', '', full_text)
+                head_font_revisers.append('+>')
+            if re.match('^.*<\\-$', md_lines[0].text):
+                md_lines[0].text = re.sub('<\\-$', '', md_lines[0].text)
+                full_text = re.sub('<\\-$', '', full_text)
+                tail_font_revisers.append('<-')
+            if re.match('^.*<\\+$', md_lines[0].text):
+                md_lines[0].text = re.sub('<\\+$', '', md_lines[0].text)
+                full_text = re.sub('<\\+$', '', full_text)
+                tail_font_revisers.append('<+')
+        return md_lines, full_text, head_font_revisers, tail_font_revisers
 
     @staticmethod
     def _get_section_depth_setters(full_text):
