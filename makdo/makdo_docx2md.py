@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.20-13:46:31-JST>
+# Time-stamp:   <2025.01.21-06:59:51-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5527,9 +5527,10 @@ class Document:
             pttw = ''
             for hfr in curr_hfr:
                 if hfr in p.head_font_revisers:
-                    tfr = FontDecorator.get_partner(hfr)
+                    tfr = self.__get_escaped_partner(hfr)
+                    ttw = self.__erase_font_decorator(tfr, p.text_to_write)
                     if (tfr in curr_tfr) or \
-                       (not re.match(NOT_ESCAPED + tfr, p.text_to_write)):
+                       (not re.match(NOT_ESCAPED + tfr, ttw)):
                         pttw += hfr
                         p.head_font_revisers.remove(hfr)
             if pttw != '':
@@ -5540,9 +5541,10 @@ class Document:
             pttw = ''
             for tfr in curr_tfr:
                 if tfr in p.tail_font_revisers:
-                    hfr = FontDecorator.get_partner(tfr)
+                    hfr = self.__get_escaped_partner(tfr)
+                    ttw = self.__erase_font_decorator(hfr, p.text_to_write)
                     if (hfr in curr_hfr) or \
-                       (not re.match(NOT_ESCAPED + hfr, p.text_to_write)):
+                       (not re.match(NOT_ESCAPED + hfr, ttw)):
                         pttw += tfr
                         p.tail_font_revisers.remove(tfr)
             if pttw != '':
@@ -5557,6 +5559,60 @@ class Document:
                 p_next.text_to_write_with_reviser \
                     = p_next._get_text_to_write_with_reviser()
         return self.paragraphs
+
+    @staticmethod
+    def __get_escaped_partner(i_fd:str) -> str:
+        o_fd = FontDecorator.get_partner(i_fd)
+        o_fd = re.sub('\\*', '\\\\*', o_fd)
+        o_fd = re.sub('\\+', '\\\\+', o_fd)
+        o_fd = re.sub('\\^', '\\\\^', o_fd)
+        o_fd = re.sub('\\|', '\\\\|', o_fd)
+        o_fd = re.sub('\\[', '\\\\[', o_fd)
+        o_fd = re.sub('\\]', '\\\\]', o_fd)
+        return o_fd
+
+    @staticmethod
+    def __erase_font_decorator(fd: str, text: str) -> str:
+        if fd == '*':
+            while re.match(NOT_ESCAPED + '\\*\\*', text):
+                text = re.sub(NOT_ESCAPED + '\\*\\*', '\\1X', text)
+        elif fd == '--':
+            while re.match(NOT_ESCAPED + '<\\-', text):
+                text = re.sub(NOT_ESCAPED + '<\\-', '\\1X', text)
+            while re.match(NOT_ESCAPED + '\\-\\-\\-', text):
+                text = re.sub(NOT_ESCAPED + '\\-\\-\\-', '\\1X', text)
+        elif fd == '++':
+            while re.match(NOT_ESCAPED + '<\\+', text):
+                text = re.sub(NOT_ESCAPED + '<\\+', '\\1X', text)
+            while re.match(NOT_ESCAPED + '\\+\\+\\+', text):
+                text = re.sub(NOT_ESCAPED + '\\+\\+\\+', '\\1X', text)
+        elif fd == '>>':
+            while re.match(NOT_ESCAPED + '>>>', text):
+                text = re.sub(NOT_ESCAPED + '>>>', '\\1X', text)
+        elif fd == '<<':
+            while re.match(NOT_ESCAPED + '<<<', text):
+                text = re.sub(NOT_ESCAPED + '<<<', '\\1X', text)
+        elif fd == '->':
+            while re.match(NOT_ESCAPED + '\\-\\-\\-', text):
+                text = re.sub(NOT_ESCAPED + '\\-\\-\\-', '\\1X', text)
+            while re.match(NOT_ESCAPED + '\\-\\-', text):
+                text = re.sub(NOT_ESCAPED + '\\-\\-', '\\1X', text)
+        elif fd == '<-':
+            while re.match(NOT_ESCAPED + '<<<', text):
+                text = re.sub(NOT_ESCAPED + '<<<', '\\1X', text)
+            while re.match(NOT_ESCAPED + '<<', text):
+                text = re.sub(NOT_ESCAPED + '<<', '\\1X', text)
+        elif fd == '+>':
+            while re.match(NOT_ESCAPED + '\\+\\+\\+', text):
+                text = re.sub(NOT_ESCAPED + '\\+\\+\\+', '\\1X', text)
+            while re.match(NOT_ESCAPED + '\\+\\+', text):
+                text = re.sub(NOT_ESCAPED + '\\+\\+', '\\1X', text)
+        elif fd == '<+':
+            while re.match(NOT_ESCAPED + '<<<', text):
+                text = re.sub(NOT_ESCAPED + '<<<', '\\1X', text)
+            while re.match(NOT_ESCAPED + '<<', text):
+                text = re.sub(NOT_ESCAPED + '<<', '\\1X', text)
+        return text
 
     @staticmethod
     def __get_prev_paragraph(paras, base):
