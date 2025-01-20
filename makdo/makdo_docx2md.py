@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.19-14:28:34-JST>
+# Time-stamp:   <2025.01.20-09:23:06-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5491,17 +5491,71 @@ class Document:
         # |           ->  |**
         # |           ->  |
         for i, p in enumerate(self.paragraphs):
-            # CANCEL
+            # CURRENT
             p_curr = p
-            p_next = self.__get_next_paragraph(self.paragraphs, i)
-            if p_next is not None:
+            if i == 0:
+                curr_hfr, curr_tfr = [], []
+                for hfr in p_curr.head_font_revisers:
+                    curr_hfr.append(hfr)
                 for tfr in p_curr.tail_font_revisers:
+                    curr_tfr.append(tfr)
+            else:
+                curr_hfr, curr_tfr = next_hfr, next_tfr
+            # NEXT
+            p_next = self.__get_next_paragraph(self.paragraphs, i)
+            next_hfr, next_tfr = [], []
+            if p_next is not None:
+                for hfr in p_next.head_font_revisers:
+                    next_hfr.append(hfr)
+                for tfr in p_next.tail_font_revisers:
+                    next_tfr.append(tfr)
+            # CANCEL
+            if p_next is not None:
+                for tfr in curr_tfr:
                     hfr = FontDecorator.get_partner(tfr)
-                    if hfr in p_next.head_font_revisers:
-                        p_curr.tail_font_revisers.remove(tfr)
-                        p_next.head_font_revisers.remove(hfr)
+                    if tfr in p_curr.tail_font_revisers and \
+                       hfr in p_next.head_font_revisers:
+                        curr_ttw = p_curr.text_to_write
+                        if ((hfr in curr_hfr) and (tfr in curr_tfr)) or \
+                           (not re.match(NOT_ESCAPED + hfr, curr_ttw)):
+                            next_ttw = p_next.text_to_write
+                            if ((hfr in next_hfr) and (tfr in next_tfr)) or \
+                               (not re.match(NOT_ESCAPED + tfr, next_ttw)):
+                                p_curr.tail_font_revisers.remove(tfr)
+                                p_next.head_font_revisers.remove(hfr)
+            # ISOLATE HEAD FONT REVISERS
+            pttw = ''
+            for hfr in curr_hfr:
+                if hfr in p.head_font_revisers:
+                    tfr = FontDecorator.get_partner(hfr)
+                    if (tfr in curr_tfr) or \
+                       (not re.match(NOT_ESCAPED + tfr, p.text_to_write)):
+                        pttw += hfr
+                        p.head_font_revisers.remove(hfr)
+            if pttw != '':
+                p.pre_text_to_write \
+                    = re.sub('\\s*\n$', ' ', p.pre_text_to_write)
+                p.pre_text_to_write += pttw + '\n'
+            # ISOLATE TAIL FONT REVISERS
+            pttw = ''
+            for tfr in curr_tfr:
+                if tfr in p.tail_font_revisers:
+                    hfr = FontDecorator.get_partner(tfr)
+                    if (hfr in curr_hfr) or \
+                       (not re.match(NOT_ESCAPED + hfr, p.text_to_write)):
+                        pttw += tfr
+                        p.tail_font_revisers.remove(tfr)
+            if pttw != '':
+                p.post_text_to_write \
+                    = re.sub('^\n', ' ', p.post_text_to_write)
+                p.post_text_to_write += '\n' + pttw
             # RENEW
-            p.text_to_write_with_reviser = p._get_text_to_write_with_reviser()
+            if True:
+                p_curr.text_to_write_with_reviser \
+                    = p_curr._get_text_to_write_with_reviser()
+            if p_next is not None:
+                p_next.text_to_write_with_reviser \
+                    = p_next._get_text_to_write_with_reviser()
         return self.paragraphs
 
     @staticmethod
@@ -8133,7 +8187,8 @@ class ParagraphTable(Paragraph):
                 # MERGING CELLS
                 gridspan = 1
                 for xml in cell:
-                    gridspan = XML.get_value('w:gridSpan', 'w:val', gridspan, xml)
+                    gridspan \
+                        = XML.get_value('w:gridSpan', 'w:val', gridspan, xml)
                 if len(chars_data) > 0 and gridspan > 1:
                     chars_data[-1].chars += '<gridspan=' + str(gridspan) + '>'
             cd_tbl.append(cd_row)
