@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.20-14:45:13-JST>
+# Time-stamp:   <2025.01.21-07:01:53-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -343,7 +343,7 @@ HELP_EPILOG = '''Markdownの記法:
       "{{ print(x) }}{{ x=1 }}"はエラーになりますが、
       "{2{ print(x) }2}{{ x=1 }}"では"1"が印字されます
   エスケープ記号
-    [\\]をコマンドの前に書くとコマンドが文字列になります
+    [\\]をコマンドの前に書くとコマンドが通常の文字列になります
     [\\\\]で"\\"が表示されます
 '''
 
