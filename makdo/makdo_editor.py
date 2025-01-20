@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.19-09:29:31-JST>
+# Time-stamp:   <2025.01.20-15:22:03-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -14032,6 +14032,7 @@ class Makdo:
         self.stb_sor1.delete('0', 'end')
         self.stb_sor2.delete('0', 'end')
         self.txt.tag_remove('search_tag', '1.0', 'end')
+        self.sub.tag_remove('search_tag', '1.0', 'end')
         Makdo.search_word = ''
 
     def _highlight_search_word(self):
