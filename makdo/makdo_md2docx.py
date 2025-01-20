@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.21-07:01:53-JST>
+# Time-stamp:   <2025.01.21-07:27:08-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -4016,11 +4016,11 @@ class RawParagraph:
             if re.match('^.*<\\-$', md_lines[0].text):
                 md_lines[0].text = re.sub('<\\-$', '', md_lines[0].text)
                 full_text = re.sub('<\\-$', '', full_text)
-                tail_font_revisers.append('<-')
+                tail_font_revisers.insert(0, '<-')
             if re.match('^.*<\\+$', md_lines[0].text):
                 md_lines[0].text = re.sub('<\\+$', '', md_lines[0].text)
                 full_text = re.sub('<\\+$', '', full_text)
-                tail_font_revisers.append('<+')
+                tail_font_revisers.insert(0, '<+')
         return md_lines, full_text, head_font_revisers, tail_font_revisers
 
     @staticmethod
