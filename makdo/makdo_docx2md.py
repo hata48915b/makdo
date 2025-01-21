@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.21-09:39:49-JST>
+# Time-stamp:   <2025.01.21-13:21:52-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -337,28 +337,29 @@ RES_XML_IMG_SIZE \
     = '^<wp:extent cx=[\'"]([0-9]+)[\'"] cy=[\'"]([0-9]+)[\'"]/>$'
 
 FONT_DECORATORS_INVISIBLE = [
-    '\\*\\*\\*',                # italic and bold
-    '\\*\\*',                   # bold
-    '\\*',                      # italic
-    '//',                       # italic
-    '\\^[0-9A-Za-z]{0,11}\\^',  # font color
+    '\\*\\*\\*',                     # italic and bold
+    '\\*\\*',                        # bold
+    '\\*',                           # italic
+    '//',                            # italic
+    '\\^[0-9A-Za-z]{0,11}\\^',       # font color
+    '\\->', '<\\-', '\\+>', '<\\+',  # track changes
 ]
 FONT_DECORATORS_VISIBLE = [
-    '\\-\\-\\-',                # xsmall
-    '\\-\\-',                   # small
-    '\\+\\+\\+',                # xlarge
-    '\\+\\+',                   # large
-    '>>>',                      # xnarrow or reset
-    '>>',                       # narrow or reset
-    '<<<',                      # xwide or reset
-    '<<',                       # wide or reset
-    '~~',                       # strikethrough
-    '\\[\\|', '\\|\\]',         # frame
-    '_[\\$=\\.#\\-~\\+]{,4}_',  # underline
-    '_[0-9A-Za-z]{1,11}_',      # higilight color
-    '`',                        # preformatted
-    '@' + RES_NUMBER + '@',     # font scale
-    '@[^@]{1,66}@',             # font
+    '\\-\\-\\-',                     # xsmall
+    '\\-\\-',                        # small
+    '\\+\\+\\+',                     # xlarge
+    '\\+\\+',                        # large
+    '>>>',                           # xnarrow or reset
+    '>>',                            # narrow or reset
+    '<<<',                           # xwide or reset
+    '<<',                            # wide or reset
+    '~~',                            # strikethrough
+    '\\[\\|', '\\|\\]',              # frame
+    '_[\\$=\\.#\\-~\\+]{,4}_',       # underline
+    '_[0-9A-Za-z]{1,11}_',           # higilight color
+    '`',                             # preformatted
+    '@' + RES_NUMBER + '@',          # font scale
+    '@[^@]{1,66}@',                  # font
 ]
 FONT_DECORATORS = FONT_DECORATORS_INVISIBLE + FONT_DECORATORS_VISIBLE
 RES_FONT_DECORATORS = '((?:' + '|'.join(FONT_DECORATORS) + ')*)'
