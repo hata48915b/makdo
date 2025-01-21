@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.21-07:27:08-JST>
+# Time-stamp:   <2025.01.21-13:18:35-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -416,28 +416,29 @@ RES_FORCED_TO_BE_FULL_WIDTH = '[' + \
 RES_IMAGE = '! *\\[([^\\[\\]]*)\\] *\\(([^\\(\\)]+)\\)'
 
 FONT_DECORATORS_INVISIBLE = [
-    '\\*\\*\\*',                # italic and bold
-    '\\*\\*',                   # bold
-    '\\*',                      # italic
-    '//',                       # italic
-    '\\^[0-9A-Za-z]{0,11}\\^',  # font color
+    '\\*\\*\\*',                     # italic and bold
+    '\\*\\*',                        # bold
+    '\\*',                           # italic
+    '//',                            # italic
+    '\\^[0-9A-Za-z]{0,11}\\^',       # font color
+    '\\->', '<\\-', '\\+>', '<\\+',  # track changes
 ]
 FONT_DECORATORS_VISIBLE = [
-    '\\-\\-\\-',                # xsmall
-    '\\-\\-',                   # small
-    '\\+\\+\\+',                # xlarge
-    '\\+\\+',                   # large
-    '>>>',                      # xnarrow or reset
-    '>>',                       # narrow or reset
-    '<<<',                      # xwide or reset
-    '<<',                       # wide or reset
-    '~~',                       # strikethrough
-    '\\[\\|', '\\|\\]',         # frame
-    '_[\\$=\\.#\\-~\\+]{,4}_',  # underline
-    '_[0-9A-Za-z]{1,11}_',      # higilight color
-    '`',                        # preformatted
-    '@' + RES_NUMBER + '@',     # font scale
-    '@[^@]{1,66}@',             # font
+    '\\-\\-\\-',                     # xsmall
+    '\\-\\-',                        # small
+    '\\+\\+\\+',                     # xlarge
+    '\\+\\+',                        # large
+    '>>>',                           # xnarrow or reset
+    '>>',                            # narrow or reset
+    '<<<',                           # xwide or reset
+    '<<',                            # wide or reset
+    '~~',                            # strikethrough
+    '\\[\\|', '\\|\\]',              # frame
+    '_[\\$=\\.#\\-~\\+]{,4}_',       # underline
+    '_[0-9A-Za-z]{1,11}_',           # higilight color
+    '`',                             # preformatted
+    '@' + RES_NUMBER + '@',          # font scale
+    '@[^@]{1,66}@',                  # font
 ]
 FONT_DECORATORS = FONT_DECORATORS_INVISIBLE + FONT_DECORATORS_VISIBLE
 
@@ -3483,8 +3484,68 @@ class Document:
             rp = RawParagraph(block)
             raw_paragraphs.append(rp)
             block = []
+        # TRACK CHANGES
+        raw_paragraphs = self._prepare_track_changes(raw_paragraphs)
         # self.raw_paragraphs = raw_paragraphs
         return raw_paragraphs
+
+    def _prepare_track_changes(self, raw_paragraphs):
+        tc = ''
+        for rp in raw_paragraphs:
+            # HEAD FONT REVISERS
+            if tc == 'del':
+                rp.head_font_revisers.insert(0, '->')
+            elif tc == 'ins':
+                rp.head_font_revisers.insert(0, '+>')
+            for fr in rp.head_font_revisers:
+                tc = self._change_track_change_state(tc, fr)
+            while '->' in rp.head_font_revisers and \
+                  '<-' in rp.head_font_revisers:
+                rp.head_font_revisers.remove('->')
+                rp.head_font_revisers.remove('<-')
+            while '+>' in rp.head_font_revisers and \
+                  '<+' in rp.head_font_revisers:
+                rp.head_font_revisers.remove('+>')
+                rp.head_font_revisers.remove('<+')
+            # BODY
+            for ml in rp.md_lines:
+                tmp = ''
+                for c in ml.text:
+                    tmp += c
+                    if tmp == '->' or tmp == '<-' or \
+                       tmp == '+>' or tmp == '<+':
+                        tc = self._change_track_change_state(tc, tmp)
+                    if c != '-' and c != '+' and c != '>' and c != '<':
+                        tmp = ''
+                    elif (tmp == '---' or tmp == '+++' or
+                          tmp == '>>>' or tmp == '<<<'):
+                        tmp = ''
+            # TAIL FONT REVISERS
+            for fr in rp.tail_font_revisers:
+                tc = self._change_track_change_state(tc, fr)
+            if tc == 'del':
+                rp.tail_font_revisers.append('<-')
+            elif tc == 'ins':
+                rp.tail_font_revisers.append('<+')
+            if '->' in rp.tail_font_revisers and '<-' in rp.tail_font_revisers:
+                rp.tail_font_revisers.remove('->')
+                rp.tail_font_revisers.remove('<-')
+            if '+>' in rp.tail_font_revisers and '<+' in rp.tail_font_revisers:
+                rp.tail_font_revisers.remove('+>')
+                rp.tail_font_revisers.remove('<+')
+        return raw_paragraphs
+
+    @staticmethod
+    def _change_track_change_state(state: str, font_decorator: str) -> str:
+        if state == '' and font_decorator == '->':
+            state = 'del'
+        elif state == 'del' and font_decorator == '<-':
+            state = ''
+        elif state == '' and font_decorator == '+>':
+            state = 'ins'
+        elif state == 'ins' and font_decorator == '<+':
+            state = ''
+        return state
 
     def get_paragraphs(self, raw_paragraphs):
         paragraphs = []
@@ -3520,6 +3581,14 @@ class Document:
                         rp.length_revisers = [rev] + rp.length_revisers
                 rp.head_font_revisers = hr + rp.head_font_revisers
                 rp.section_depth_setters = sd + rp.section_depth_setters
+                while '->' in rp.head_font_revisers and \
+                      '<-' in rp.head_font_revisers:
+                    rp.head_font_revisers.remove('->')
+                    rp.head_font_revisers.remove('<-')
+                while '+>' in rp.head_font_revisers and \
+                      '<+' in rp.head_font_revisers:
+                    rp.head_font_revisers.remove('+>')
+                    rp.head_font_revisers.remove('<+')
                 cr = []
                 sr = []
                 lr = []
@@ -3839,7 +3908,8 @@ class RawParagraph:
             self.tail_font_revisers, \
             self.md_lines \
             = self._get_revisers(self.md_lines)
-        self.full_text = self._get_full_text(self.md_lines)
+        self.full_text \
+            = self._get_full_text(self.head_font_revisers, self.md_lines)
         self.full_text_del = self._get_full_text_del(self.full_text)
         self.full_text_ins = self._get_full_text_ins(self.full_text)
         self.md_lines, self.full_text, \
@@ -3945,8 +4015,11 @@ class RawParagraph:
             length_revisers, head_font_revisers, tail_font_revisers, md_lines
 
     @staticmethod
-    def _get_full_text(md_lines):
+    def _get_full_text(head_font_revisers, md_lines):
         full_text = ''
+        for fr in head_font_revisers:
+            if fr == '->' or fr == '<-' or fr == '+>' or fr == '<+':
+                full_text += fr
         for ml in md_lines:
             if ml.text != '':
                 full_text += ml.text + ' '
@@ -4036,7 +4109,10 @@ class RawParagraph:
         return section_depth_setters, full_text
 
     def _get_paragraph_class(self):
-        ft = self.full_text
+        ft = self.full_text_ins
+        if ft == '':
+            ft = self.full_text_del
+        # ft = self.full_text
         hfrs = self.head_font_revisers
         tfrs = self.tail_font_revisers
         if False:
@@ -4118,7 +4194,7 @@ class RawParagraph:
 
 class Paragraph:
 
-    """A class to handle empty paragraph"""
+    """A class to handle paragraph"""
 
     paragraph_number = 0
 
@@ -4524,7 +4600,8 @@ class Paragraph:
                         ml.append_warning_message(msg)
                     pdepth = xdepth
                     head_strings += self._get_head_string(xdepth, ydepth, ml)
-                    self.__step_state(xdepth, ydepth, ml)
+                    if '->' not in self.head_font_revisers:  # for deleted
+                        self.__step_state(xdepth, ydepth, ml)
                 if mlt != ml.text:
                     title = mlt
                     if re.match('^\\s+', title):
