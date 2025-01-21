@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.21-06:59:51-JST>
+# Time-stamp:   <2025.01.21-09:39:49-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -4848,8 +4848,10 @@ class LineTruncation:
                         # '~' + '~' (STRIKETHROUGH)
                         if re.match('^.*~$', s1) and re.match('^~.*$', s2):
                             continue
-                        # '|' + '|' (FRAME)
-                        if re.match('^.*\\|$', s1) and re.match('^\\|.*$', s2):
+                        # '[|' + '|]' (FRAME)
+                        if re.match('^.*\\[$', s1) and re.match('^\\|.*$', s2):
+                            continue
+                        if re.match('^.*\\|$', s1) and re.match('^\\].*$', s2):
                             continue
                         # '`' + '`' (PREFORMATTED)
                         if re.match('^.*`$', s1) and re.match('^`.*$', s2):
