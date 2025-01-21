@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.21-13:18:35-JST>
+# Time-stamp:   <2025.01.22-07:06:39-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -4017,9 +4017,6 @@ class RawParagraph:
     @staticmethod
     def _get_full_text(head_font_revisers, md_lines):
         full_text = ''
-        for fr in head_font_revisers:
-            if fr == '->' or fr == '<-' or fr == '+>' or fr == '<+':
-                full_text += fr
         for ml in md_lines:
             if ml.text != '':
                 full_text += ml.text + ' '
@@ -4248,6 +4245,8 @@ class Paragraph:
         self._apply_section_depths_setters(self.section_depth_setters)
         self.head_section_depth, self.tail_section_depth \
             = self._get_section_depths(self.full_text)
+        self._save_section_depths(self.head_section_depth,
+                                  self.tail_section_depth)
         self.proper_depth = self._get_proper_depth(self.full_text)
         self.alignment = self._get_alignment()
         # APPLY REVISERS
@@ -4276,7 +4275,7 @@ class Paragraph:
         for sds in section_depth_setters:
             depth = len(sds)
             if depth > 0:
-                Paragraph.previous_head_section_depth = depth
+                Paragraph.bridge_head_section_depth = depth
                 Paragraph.bridge_tail_section_depth = depth
 
     @classmethod
@@ -4286,6 +4285,14 @@ class Paragraph:
         # self.head_section_depth = head_section_depth
         # self.tail_section_depth = tail_section_depth
         return head_section_depth, tail_section_depth
+
+    def _save_section_depths(self, head_section_depth, tail_section_depth):
+        if self.paragraph_class == 'section':
+            if '->' not in self.head_font_revisers:
+                Paragraph.bridge_head_section_depth = head_section_depth
+                Paragraph.bridge_tail_section_depth = tail_section_depth
+                return True
+        return False
 
     @classmethod
     def _get_proper_depth(cls, full_text):
@@ -5299,8 +5306,6 @@ class ParagraphSection(Paragraph):
                 head_section_depth = depth
             tail_section_depth = depth
             ft = re.sub(cls.res_feature, '\\3', ft)
-        Paragraph.previous_head_section_depth = head_section_depth
-        Paragraph.bridge_tail_section_depth = tail_section_depth
         # self.head_section_depth = head_section_depth
         # self.head_section_depth = tail_section_depth
         return head_section_depth, tail_section_depth
