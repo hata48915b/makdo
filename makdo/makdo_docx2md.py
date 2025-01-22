@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.21-13:21:52-JST>
+# Time-stamp:   <2025.01.23-07:22:54-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5564,7 +5564,7 @@ class Document:
         return self.paragraphs
 
     @staticmethod
-    def __get_escaped_partner(i_fd:str) -> str:
+    def __get_escaped_partner(i_fd: str) -> str:
         o_fd = FontDecorator.get_partner(i_fd)
         o_fd = re.sub('\\*', '\\\\*', o_fd)
         o_fd = re.sub('\\+', '\\\\+', o_fd)

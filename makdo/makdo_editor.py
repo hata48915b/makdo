@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.22-07:28:40-JST>
+# Time-stamp:   <2025.01.23-07:22:14-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -99,6 +99,8 @@ BIZUD_MINCHO_FONT = ('BIZ UD明朝', 'BIZ UDMincho')
 # IPA_MINCHO_FONT = ('IPA明朝', 'IPAMincho')
 YU_MINCHO_FONT = ('游明朝', 'Yu Mincho')
 HIRAGINO_MINCHO_FONT = ('ヒラギノ明朝 ProN', 'Hiragino Mincho ProN')
+
+TAB_WIDTH = 4
 
 # DOCX用のフォント
 DOCX_MINCHO_FONT = 'ＭＳ 明朝'
@@ -4042,8 +4044,6 @@ SAMPLE_CRIMINAL_JUDGEMENT = '''
 '''
 
 DONT_EDIT_MESSAGE = '<!--【以下は必要なデータですので編集しないでください】-->'
-
-TAB_WIDTH = 4
 
 
 ######################################################################
@@ -12393,6 +12393,11 @@ class Makdo:
         self.sub.tag_config('error_tag', foreground='#FF0000')
         self.txt.tag_config('search_tag', background='#777777')
         self.sub.tag_config('search_tag', background='#777777')
+        # TAB
+        font = tkinter.font.Font(font=self.txt['font'])
+        tab_width = font.measure(' ' * TAB_WIDTH)
+        self.txt.config(tabs=tab_width)
+        self.sub.config(tabs=tab_width)
         # COLOR FONT
         if background_color == 'W':
             self.txt.config(bg='white', fg='black')
