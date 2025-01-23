@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.23-11:11:38-JST>
+# Time-stamp:   <2025.01.23-11:45:56-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6600,7 +6600,9 @@ class Script:
                     cal = '0' + cal
                 adj = cal
                 # ADJUST
-                if opt != '' and opt != '3' and opt != '4' and opt != '4s':
+                if opt != '' and \
+                   opt != '3' and \
+                   opt != '4' and opt != '4s' and opt != '4-':
                     msg = '※ 警告: ' \
                         + '「' + opt + '」は不正なオプションです'
                     # msg = 'warning: ' \
@@ -6615,7 +6617,7 @@ class Script:
                         dep = re.sub('^([0-9]+)\\.([0-9]+)$', '\\2', cal)
                     if opt == '3':
                         inp = '{:,}'.format(int(inp))
-                    elif opt == '4' or opt == '4s':
+                    elif opt == '4' or opt == '4s' or opt == '4-':
                         if float(cal) >= 10000000000000000:
                             inp = re.sub('^(.*)(.{16})$', '\\1京\\2', inp)
                         if float(cal) >= 1000000000000:
@@ -6624,7 +6626,7 @@ class Script:
                             inp = re.sub('^(.*)(.{8})$', '\\1億\\2', inp)
                         if float(cal) >= 10000:
                             inp = re.sub('^(.*)(.{4})$', '\\1万\\2', inp)
-                    if opt == '4s':
+                    if opt == '4s' or opt == '4-':
                         inp = re.sub('0000$', '', inp)
                         inp = re.sub('0000万$', '', inp)
                         inp = re.sub('0000億$', '', inp)
