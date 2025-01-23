@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.22-07:06:39-JST>
+# Time-stamp:   <2025.01.23-09:30:57-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -3511,15 +3511,7 @@ class Document:
             for ml in rp.md_lines:
                 tmp = ''
                 for c in ml.text:
-                    tmp += c
-                    if tmp == '->' or tmp == '<-' or \
-                       tmp == '+>' or tmp == '<+':
-                        tc = self._change_track_change_state(tc, tmp)
-                    if c != '-' and c != '+' and c != '>' and c != '<':
-                        tmp = ''
-                    elif (tmp == '---' or tmp == '+++' or
-                          tmp == '>>>' or tmp == '<<<'):
-                        tmp = ''
+                    tc, tmp = self._change_track_change_state(tc, tmp + c)
             # TAIL FONT REVISERS
             for fr in rp.tail_font_revisers:
                 tc = self._change_track_change_state(tc, fr)
@@ -3537,15 +3529,23 @@ class Document:
 
     @staticmethod
     def _change_track_change_state(state: str, font_decorator: str) -> str:
-        if state == '' and font_decorator == '->':
-            state = 'del'
-        elif state == 'del' and font_decorator == '<-':
-            state = ''
-        elif state == '' and font_decorator == '+>':
-            state = 'ins'
-        elif state == 'ins' and font_decorator == '<+':
-            state = ''
-        return state
+        if font_decorator == '->' or font_decorator == '<-' or \
+           font_decorator == '+>' or font_decorator == '<+':
+            if state == '' and font_decorator == '->':
+                state = 'del'
+            elif state == 'del' and font_decorator == '<-':
+                state = ''
+            elif state == '' and font_decorator == '+>':
+                state = 'ins'
+            elif state == 'ins' and font_decorator == '<+':
+                state = ''
+        c = font_decorator[-1]
+        if c != '-' and c != '+' and c != '>' and c != '<':
+            font_decorator = ''
+        elif (font_decorator == '---' or font_decorator == '+++' or
+              font_decorator == '>>>' or font_decorator == '<<<'):
+            font_decorator = ''
+        return state, font_decorator
 
     def get_paragraphs(self, raw_paragraphs):
         paragraphs = []
@@ -6488,11 +6488,17 @@ class Script:
     def __execute_at_level(self, md_lines, n):
         is_in_math = False
         is_in_script = False
+        tc_state = ''  # track changes
         tmp_text = ''
         for ml in md_lines:
+            tc_tmp = ''  # track changes
             old_text = ml.text
             new_text = ''
             for c in old_text:
+                # TRACK CHANGES
+                tc_state, tc_tmp \
+                    = Document._change_track_change_state(tc_state, tc_tmp + c)
+                # SCRIPT
                 tmp_text += c
                 if re.match(NOT_ESCAPED + '\\\\\\[', tmp_text):
                     is_in_math = True
@@ -6511,7 +6517,8 @@ class Script:
                         if (not is_in_math) or \
                            (not re.match('^(.|\n)*}}', tmp_text)):
                             tmp_text = re.sub('}.?}$', '', tmp_text)
-                            new_text += self.__execute_script(tmp_text, ml)
+                            new_text += self.__execute_script(tmp_text, ml,
+                                                              tc_state)
                             tmp_text = ''
                             is_in_script = False
             else:
@@ -6520,7 +6527,8 @@ class Script:
                         new_text += tmp_text
                         tmp_text = ''
                     else:
-                        new_text += self.__execute_script(tmp_text, ml)
+                        new_text += self.__execute_script(tmp_text, ml,
+                                                          tc_state)
                         tmp_text = ''
             ml.text = new_text
         return md_lines
@@ -6545,7 +6553,11 @@ class Script:
                 return True
         return False
 
-    def __execute_script(self, script, md_line):
+    def __execute_script(self, script: str, md_line: MdLine, tc_state: str):
+        # CONSTANT
+        orig_constant = {}
+        for var in self.constant:
+            orig_constant[var] = self.constant[var]
         text_to_print = ''
         scr = script
         scr = re.sub('<br>$', '', scr)
@@ -6620,6 +6632,9 @@ class Script:
                 # msg = 'warning: ' \
                 #     + 'bad script'
                 md_line.append_warning_message(msg)
+        # CONSTANT
+        if tc_state == 'del':
+            self.constant = orig_constant
         return text_to_print
 
     def __calc_value(self, value, md_line):
