@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.23-11:45:56-JST>
+# Time-stamp:   <2025.01.23-15:36:05-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -1561,8 +1561,9 @@ class Form:
             for c in Form.page_number:
                 if c == '@' and re.match(NOT_ESCAPED + '@', tmp + c):
                     is_in_font_name = not is_in_font_name
-                if c == 'N' and not is_in_font_name:
-                    c = 'M'
+                if re.match(NOT_ESCAPED + 'N', tmp + c):
+                    if not is_in_font_name:
+                        c = 'M'
                 tmp += c
             Form.page_number = tmp
         elif re.match(NOT_ESCAPED + '(N|M)', Form.page_number):
@@ -3917,8 +3918,10 @@ class RawParagraph:
             = self._isolate_head_and_tail_track_changes(
                 self.md_lines, self.full_text,
                 self.head_font_revisers, self.tail_font_revisers)
-        self.section_depth_setters, self.full_text \
-            = self._get_section_depth_setters(self.full_text)
+        _, self.full_text_del \
+            = self._get_section_depth_setters(self.full_text_del)
+        _, self.full_text_ins \
+            = self._get_section_depth_setters(self.full_text_ins)
         self.paragraph_class = self._get_paragraph_class()
 
     @staticmethod

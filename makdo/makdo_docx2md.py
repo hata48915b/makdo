@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.23-09:51:26-JST>
+# Time-stamp:   <2025.01.23-16:15:07-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -2964,8 +2964,8 @@ class FontDecorator:
 
     def __get_ordered_list(self):
         return [self.font_name,
-                # self.font_size
-                re.sub('\\.0', '', self.font_scale),
+                # self.font_size,
+                self.font_scale,
                 self.font_width,
                 self.italic,
                 self.bold,
@@ -2991,6 +2991,17 @@ class FontDecorator:
                 fd_out = p[0]
                 return fd_out
         fd_out = fd_in
+        return fd_out
+
+    @staticmethod
+    def escape_chars(fd_in: str) -> str:
+        fd_out = fd_in
+        fd_out = re.sub('\\*', '\\\\*', fd_out)
+        fd_out = re.sub('\\+', '\\\\+', fd_out)
+        fd_out = re.sub('\\^', '\\\\^', fd_out)
+        fd_out = re.sub('\\|', '\\\\|', fd_out)
+        fd_out = re.sub('\\[', '\\\\[', fd_out)
+        fd_out = re.sub('\\]', '\\\\]', fd_out)
         return fd_out
 
     @staticmethod
@@ -3041,8 +3052,11 @@ class FontDecorator:
         #     fr.font_size, bk.font_size = '', ''
         if fr.font_scale == bk.font_scale:
             fr.font_scale, bk.font_scale = '', ''
-        if fr.font_width == bk.font_width:
-            fr.font_width, bk.font_width = '', ''
+        if fr.font_width == '<<<' and bk.font_width == '>>>' or \
+           fr.font_width == '<<' and bk.font_width == '>>' or \
+           fr.font_width == '>>' and bk.font_width == '<<' or \
+           fr.font_width == '>>>' and bk.font_width == '<<<':
+             fr.font_width, bk.font_width = '', ''
         if fr.italic == bk.italic:
             fr.italic, bk.italic = '', ''
         if fr.bold == bk.bold:
@@ -4982,7 +4996,7 @@ class Document:
         self.paragraphs = self._modpar_one_line_paragraph()
         self.paragraphs = self._modpar_cancel_first_indent()
         # CHANGE VERTICAL LENGTH
-        # self.paragraphs = self._modpar_vertical_length()
+        self.paragraphs = self._modpar_vertical_length()
         # ISOLATE FONT REVISERS
         self.paragraphs = self._modpar_isolate_revisers()
         # RETURN
@@ -5434,54 +5448,52 @@ class Document:
             p.text_to_write_with_reviser = p._get_text_to_write_with_reviser()
         return self.paragraphs
 
-    # REMOVED 24.12.05 >
-    # def _modpar_vertical_length(self):
-    #     # |                  ->  |
-    #     # |<!--              ->  |<!--
-    #     # |space_before: ,1  ->  |space_before: ,1
-    #     # |space_after: ,1   ->  |space_after: ,1
-    #     # |-->               ->  |-->
-    #     # |                  ->  |
-    #     # |V=+1.0            ->  |V=+1.0
-    #     # |## 前段落1        ->  |## 前段落1
-    #     # |                  ->  |
-    #     # |v=-1.0            ->  |## 後段落1
-    #     # |## 後段落2        ->  |
-    #     # |                  ->  |## 前段落2
-    #     # |V=-1.0            ->  |
-    #     # |## 前段落3        ->  |v=+1.0
-    #     # |                  ->  |## 後段落2
-    #     # |v=+1.0            ->  |
-    #     # |## 後段落4        ->  |
-    #     # |                  ->  |
-    #     m = len(self.paragraphs) - 1
-    #     for i, p in enumerate(self.paragraphs):
-    #         p_prev = self.__get_prev_paragraph(self.paragraphs, i)
-    #         p_next = self.__get_next_paragraph(self.paragraphs, i)
-    #         for lr in p.length_revisers[::-1]:
-    #             # PREV
-    #             if p_prev is not None and re.match('^v=-.*', lr):
-    #                 must_remove = True
-    #                 for plr in p_prev.length_revisers:
-    #                     if re.match('^V=-.*', plr):
-    #                         must_remove = False
-    #                 if must_remove:
-    #                     if lr in p.length_revisers:
-    #                         p.length_revisers.remove(lr)
-    #             # NEXT
-    #             if p_next is not None and re.match('^V=-.*', lr):
-    #                 must_remove = True
-    #                 for nlr in p_next.length_revisers:
-    #                     if re.match('^v=-.*', nlr):
-    #                         must_remove = False
-    #                 if must_remove:
-    #                     if lr in p.length_revisers:
-    #                         p.length_revisers.remove(lr)
-    #         # RENEW
-    #         p.text_to_write_with_reviser \
-    #             = p._get_text_to_write_with_reviser()
-    #     return self.paragraphs
-    # <
+    def _modpar_vertical_length(self):
+        # |                  ->  |
+        # |<!--              ->  |<!--
+        # |space_before: ,1  ->  |space_before: ,1
+        # |space_after: ,1   ->  |space_after: ,1
+        # |-->               ->  |-->
+        # |                  ->  |
+        # |V=+1.0            ->  |V=+1.0
+        # |## 前段落1        ->  |## 前段落1
+        # |                  ->  |
+        # |v=-1.0            ->  |## 後段落1
+        # |## 後段落2        ->  |
+        # |                  ->  |## 前段落2
+        # |V=-1.0            ->  |
+        # |## 前段落3        ->  |v=+1.0
+        # |                  ->  |## 後段落2
+        # |v=+1.0            ->  |
+        # |## 後段落4        ->  |
+        # |                  ->  |
+        m = len(self.paragraphs) - 1
+        for i, p in enumerate(self.paragraphs):
+            p_prev = self.__get_prev_paragraph(self.paragraphs, i)
+            p_next = self.__get_next_paragraph(self.paragraphs, i)
+            for lr in p.length_revisers[::-1]:
+                # PREV
+                if p_prev is not None and re.match('^v=-.*', lr):
+                    must_remove = True
+                    for plr in p_prev.length_revisers:
+                        if re.match('^V=-.*', plr):
+                            must_remove = False
+                    if must_remove:
+                        if lr in p.length_revisers:
+                            p.length_revisers.remove(lr)
+                # NEXT
+                if p_next is not None and re.match('^V=-.*', lr):
+                    must_remove = True
+                    for nlr in p_next.length_revisers:
+                        if re.match('^v=-.*', nlr):
+                            must_remove = False
+                    if must_remove:
+                        if lr in p.length_revisers:
+                            p.length_revisers.remove(lr)
+            # RENEW
+            p.text_to_write_with_reviser \
+                = p._get_text_to_write_with_reviser()
+        return self.paragraphs
 
     def _modpar_isolate_revisers(self):
         # |           ->  |
@@ -5518,24 +5530,28 @@ class Document:
                     hfr = FontDecorator.get_partner(tfr)
                     if tfr in p_curr.tail_font_revisers and \
                        hfr in p_next.head_font_revisers:
+                        efr = FontDecorator.escape_chars(hfr)
                         curr_ttw = p_curr.text_to_write
                         if ((hfr in curr_hfr) and (tfr in curr_tfr)) or \
-                           (not re.match(NOT_ESCAPED + hfr, curr_ttw)):
+                           (not re.match(NOT_ESCAPED + efr, curr_ttw)):
                             next_ttw = p_next.text_to_write
+                            efr = FontDecorator.escape_chars(tfr)
                             if ((hfr in next_hfr) and (tfr in next_tfr)) or \
-                               (not re.match(NOT_ESCAPED + tfr, next_ttw)):
+                               (not re.match(NOT_ESCAPED + efr, next_ttw)):
                                 p_curr.tail_font_revisers.remove(tfr)
                                 p_next.head_font_revisers.remove(hfr)
             # ISOLATE HEAD FONT REVISERS
             pttw = ''
             for hfr in curr_hfr:
                 if hfr in p.head_font_revisers:
-                    tfr = self.__get_escaped_partner(hfr)
+                    tfr = FontDecorator.get_partner(hfr)
+                    efr = FontDecorator.escape_chars(tfr)
                     ttw = self.__erase_font_decorator(tfr, p.text_to_write)
                     if (tfr in curr_tfr) or \
-                       (not re.match(NOT_ESCAPED + tfr, ttw)):
-                        pttw += hfr
-                        p.head_font_revisers.remove(hfr)
+                       (not re.match(NOT_ESCAPED + efr, ttw)):
+                        if tfr not in p.tail_font_revisers:
+                            pttw += hfr
+                            p.head_font_revisers.remove(hfr)
             if pttw != '':
                 p.pre_text_to_write \
                     = re.sub('\\s*\n$', ' ', p.pre_text_to_write)
@@ -5544,12 +5560,14 @@ class Document:
             pttw = ''
             for tfr in curr_tfr:
                 if tfr in p.tail_font_revisers:
-                    hfr = self.__get_escaped_partner(tfr)
+                    hfr = FontDecorator.get_partner(tfr)
+                    efr = FontDecorator.escape_chars(hfr)
                     ttw = self.__erase_font_decorator(hfr, p.text_to_write)
                     if (hfr in curr_hfr) or \
-                       (not re.match(NOT_ESCAPED + hfr, ttw)):
-                        pttw += tfr
-                        p.tail_font_revisers.remove(tfr)
+                       (not re.match(NOT_ESCAPED + efr, ttw)):
+                        if hfr not in p.head_font_revisers:
+                            pttw += tfr
+                            p.tail_font_revisers.remove(tfr)
             if pttw != '':
                 p.post_text_to_write \
                     = re.sub('^\n', ' ', p.post_text_to_write)
@@ -5562,17 +5580,6 @@ class Document:
                 p_next.text_to_write_with_reviser \
                     = p_next._get_text_to_write_with_reviser()
         return self.paragraphs
-
-    @staticmethod
-    def __get_escaped_partner(i_fd: str) -> str:
-        o_fd = FontDecorator.get_partner(i_fd)
-        o_fd = re.sub('\\*', '\\\\*', o_fd)
-        o_fd = re.sub('\\+', '\\\\+', o_fd)
-        o_fd = re.sub('\\^', '\\\\^', o_fd)
-        o_fd = re.sub('\\|', '\\\\|', o_fd)
-        o_fd = re.sub('\\[', '\\\\[', o_fd)
-        o_fd = re.sub('\\]', '\\\\]', o_fd)
-        return o_fd
 
     @staticmethod
     def __erase_font_decorator(fd: str, text: str) -> str:
@@ -6042,6 +6049,8 @@ class RawParagraph:
             if v > 0:
                 s = round(v / 2, 1)
                 if s < Form.font_size * 0.4:     # changed from "0.5" to "0.4"
+                    if s.is_integer():
+                        s = int(s)
                     cd.fr_fd_cls.font_scale = '@' + str(s) + '@'
                     cd.bk_fd_cls.font_scale = '@' + str(s) + '@'
                 elif s < Form.font_size * 0.7:
@@ -6059,6 +6068,8 @@ class RawParagraph:
                     cd.fr_fd_cls.font_scale = '+++'
                     cd.bk_fd_cls.font_scale = '+++'
                 else:
+                    if s.is_integer():
+                        s = int(s)
                     cd.fr_fd_cls.font_scale = '@' + str(s) + '@'
                     cd.bk_fd_cls.font_scale = '@' + str(s) + '@'
                 continue
