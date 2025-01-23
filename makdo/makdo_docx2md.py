@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.23-07:22:54-JST>
+# Time-stamp:   <2025.01.23-09:51:26-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -8668,9 +8668,12 @@ class ParagraphTable(Paragraph):
                 tmp_text = re.sub('\\|', '\\  |', tmp_text)
                 tmp_text = re.sub('(^|\n)\\\\  \\|', '\\1|', tmp_text)
                 tmp_text = re.sub('\\\\  \\|(\n|$)', '|\\1', tmp_text)
-                tmp_text = re.sub('\\\\  \\|', '\\\n  |', tmp_text)
+                tmp_text = re.sub('\\\\  \\|', '\n  |', tmp_text)
+                # tmp_text = re.sub('\\\\  \\|', '\\\n  |', tmp_text)
                 tmp_text = re.sub('<br>(\\s+)', '<br>\\\\\\1', tmp_text)
-                tmp_text = re.sub('<br>([^\\|])', '<br>\\\n    \\1', tmp_text)
+                tmp_text = re.sub('<br>([^\\|])', '<br>\n    \\1', tmp_text)
+                # tmp_text \
+                #     = re.sub('<br>([^\\|])', '<br>\\\n    \\1', tmp_text)
                 break
         md_text = tmp_text
         return md_text

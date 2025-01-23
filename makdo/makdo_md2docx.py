@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.23-09:30:57-JST>
+# Time-stamp:   <2025.01.23-11:11:38-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5600,10 +5600,20 @@ class ParagraphTable(Paragraph):
     def __get_tab_lines(md_lines):
         tab_lines = []
         tab_line = ''
-        for ml in md_lines:
+        m = len(md_lines) - 1
+        for i, ml in enumerate(md_lines):
             tab_line += re.sub('^\\s*', '', ml.text)
+            # ESCAPED (backward compatibility)
             if re.match(NOT_ESCAPED + '\\\\$', tab_line):
                 tab_line = re.sub('\\s*\\\\$', '', tab_line)
+                continue
+            # NOT END BY '|'
+            res = NOT_ESCAPED + '\\|(:?-*:?)?(\\^+|=+)?(?:\\s+:)?$'
+            if not re.match(res, tab_line):
+                continue
+            # NOT BEGIN BY '|'
+            next_text = md_lines[i + 1].text if i < m else '|'
+            if not re.match('^:?\\s*\\|', next_text):
                 continue
             tab_lines.append(tab_line)
             tab_line = ''
