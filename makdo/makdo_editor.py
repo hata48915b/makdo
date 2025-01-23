@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.23-07:22:14-JST>
+# Time-stamp:   <2025.01.23-17:40:07-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -8134,6 +8134,8 @@ class Makdo:
         menu = tkinter.Menu(self.mnb, tearoff=False)
         self.mnb.add_cascade(label='挿入(I)', menu=menu, underline=3)
         #
+        menu.add_command(label='コメントを挿入',
+                         command=self.insert_comment)
         menu.add_command(label='空白を挿入',
                          command=self.insert_space)
         menu.add_command(label='改行を挿入',
@@ -8170,6 +8172,9 @@ class Makdo:
 
     ################
     # COMMAND
+
+    def insert_comment(self):
+        self.txt.insert('insert', '<!--（ここにコメントを書く）-->')
 
     def insert_space(self):
         b = '空白の幅'
@@ -11929,6 +11934,7 @@ class Makdo:
                     'fold-or-unfold-section',
                     'goto-flag1', 'goto-flag2', 'goto-flag3',
                     'goto-flag4', 'goto-flag5',
+                    'insert-comment',
                     'insert-current-date',
                     'insert-current-time',
                     'insert-file',
@@ -11977,6 +11983,8 @@ class Makdo:
             '　フラグXを設置\n' + \
             'goto-flagX(X=1..5)\n' + \
             '　フラグXに移動\n' + \
+            'insert-comment\n' + \
+            '　コメントを挿入\n' + \
             'insert-current-date\n' + \
             '　今日の日付を挿入\n' + \
             'insert-current-time\n' + \
@@ -12085,6 +12093,9 @@ class Makdo:
                 self.mother.goto_flag4()
             elif com == 'goto-flag5':
                 self.mother.goto_flag5()
+            elif com == 'insert-comment':
+                self.mother.txt.insert('insert', '<!--  -->')
+                self.mother.txt.mark_set('insert', 'insert-4c')
             elif com == 'insert-current-date':
                 self.mother.insert_date_Gymd()
             elif com == 'insert-current-time':
