@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.24-14:51:15-JST>
+# Time-stamp:   <2025.01.24-18:14:13-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -4241,13 +4241,35 @@ class LineTruncation:
 
     def __init__(self, md_text):
         self.old_text = md_text
+        indent = self._get_indent(md_text)
         parens = self.Paren._get_parens(md_text)
         phrases = self._split_into_phrases(md_text, parens)
-        new_text = self._concatenate_phrases(phrases)
-        self.new_text = self._indent_text(new_text)
+        new_text = self._concatenate_phrases(phrases, indent)
+        self.new_text = self._indent_text(new_text, indent)
 
     def get_truncated_md_text(self):
         return self.new_text
+
+    @staticmethod
+    def _get_indent(md_text: str) -> int:
+        res_chapter = '^(\\$+(?:-\\$+)*\\s+)((?:.|\n)*)$'
+        res_section = '^(#+(?:-#+)*\\s+)((?:.|\n)*)$'
+        res_list = '^(\\s*(1\\.|-)\\s+)((?:.|\n)*)$'
+        res_alignment = '^(:\\s+)((?:.|\n)*)$'
+        if re.match(res_chapter, md_text):
+            head_string = re.sub(res_chapter, '\\1', md_text)
+        elif re.match(res_section, md_text):
+            head_string = re.sub(res_section, '\\1', md_text)
+            if LineTruncation._is_sentence(md_text):
+                head_string = ''
+        elif re.match(res_list, md_text):
+            head_string = re.sub(res_list, '\\1', md_text)
+        elif re.match(res_alignment, md_text):
+            head_string = re.sub(res_alignment, '\\1', md_text)
+        else:
+            head_string = ''
+        indent = len(head_string)
+        return indent
 
     class Paren:
 
@@ -4685,7 +4707,7 @@ class LineTruncation:
         return phrases
 
     @classmethod
-    def _concatenate_phrases(cls, phrases):
+    def _concatenate_phrases(cls, phrases: list, indent: int) -> str:
         def __extend_tex(extension):
             # JUST TO MAKE SURE
             if extension == '':
@@ -4701,6 +4723,13 @@ class LineTruncation:
         is_in_inserted = False
         is_in_math = False  # not in use now
         for p in phrases:
+            # INDENT
+            if '\n' not in tex:
+                # FIRST LINE
+                md_text_width = MD_TEXT_WIDTH
+            else:
+                # SECOND LINE AND ONWARDS
+                md_text_width = MD_TEXT_WIDTH - indent
             # MATH MODE (MUST BE FIRST)
             if p == '\\[' and not is_in_math:
                 tex = __extend_tex(tmp)
@@ -4790,9 +4819,9 @@ class LineTruncation:
             if tex == '':
                 if re.match('^' + res + '$', tmp):
                     if not re.match('^' + res + '.*$', p):
-                        if re.match('^.*[.．。]$', phrases[-1]):
-                            tex = __extend_tex(re.sub('\\s+$', '', tmp))
-                            # tex = __extend_tex(tmp + '\\')
+                        if LineTruncation._is_sentence(phrases[-1]):
+                            tex = __extend_tex(tmp + '\\')
+                            # tex = __extend_tex(re.sub('\\s+$', '', tmp))
                             tmp = ''
             # IMAGE
             if re.match(RES_IMAGE, p):
@@ -4813,7 +4842,7 @@ class LineTruncation:
                 tmp = ''
             # RIGHT LENGTH
             if tmp != '':
-                if get_ideal_width(tmp + p) > MD_TEXT_WIDTH:
+                if get_ideal_width(tmp + p) > md_text_width:
                     tex = __extend_tex(tmp)
                     tmp = ''
             # FONT SCALE (NOT SIZE)
@@ -4828,11 +4857,11 @@ class LineTruncation:
             # CONCATENATE
             tmp += p
             # TOO LONG
-            while get_ideal_width(tmp) > MD_TEXT_WIDTH:
+            while get_ideal_width(tmp) > md_text_width:
                 for i in range(len(tmp), -1, -1):
                     s1 = tmp[:i]
                     s2 = tmp[i:]
-                    if get_ideal_width(s1) > MD_TEXT_WIDTH:
+                    if get_ideal_width(s1) > md_text_width:
                         continue
                     if re.match('^.*[０-９][，．]$', s1) and \
                        re.match('^[０-９].*$', s2):
@@ -4912,7 +4941,7 @@ class LineTruncation:
                         if re.match('^.*</?[0-9a-z]*$', s1) and \
                            re.match('^/?[0-9a-z]*>.*$', s2):
                             continue
-                        if get_ideal_width(s1) <= MD_TEXT_WIDTH:
+                        if get_ideal_width(s1) <= md_text_width:
                             if s1 != '':
                                 tex += s1 + '\n'
                                 tmp = s2
@@ -4938,28 +4967,16 @@ class LineTruncation:
         return new_text
 
     @staticmethod
-    def _indent_text(text: str) -> str:
-        indent = ''
-        res_chapter = '^(\\$+(?:-\\$+)*\\s+)((?:.|\n)*)$'
-        res_section = '^(#+(?:-#+)*\\s+)((?:.|\n)*)$'
-        res_list = '^(\\s*(1\\.|-)\\s+)((?:.|\n)*)$'
-        res_alignment = '^(:\\s+)((?:.|\n)*)$'
-        if re.match(res_chapter, text):
-            head_string = re.sub(res_chapter, '\\1', text)
-        elif re.match(res_section, text):
-            print(text)
-            head_string = re.sub(res_section, '\\1', text)
-            if re.match('^#+(?:-#+)*\n', text):
-                head_string = ''
-        elif re.match(res_list, text):
-            head_string = re.sub(res_list, '\\1', text)
-        elif re.match(res_alignment, text):
-            head_string = re.sub(res_alignment, '\\1', text)
-        else:
-            head_string = ''
-        indent = len(head_string)
-        text = re.sub('\n', ('\n' + ' ' * indent), text)
-        return text
+    def _indent_text(md_text: str, indent: int) -> str:
+        md_text = re.sub('\n', ('\n' + ' ' * indent), md_text)
+        return md_text
+
+    @staticmethod
+    def _is_sentence(md_text: str) -> bool:
+        if re.match('^(.|\n)*[.．。]$', md_text):
+            return True
+        return False
+
 
 class Document:
 
