@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.23-16:15:07-JST>
+# Time-stamp:   <2025.01.24-14:51:15-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -4243,7 +4243,8 @@ class LineTruncation:
         self.old_text = md_text
         parens = self.Paren._get_parens(md_text)
         phrases = self._split_into_phrases(md_text, parens)
-        self.new_text = self._concatenate_phrases(phrases)
+        new_text = self._concatenate_phrases(phrases)
+        self.new_text = self._indent_text(new_text)
 
     def get_truncated_md_text(self):
         return self.new_text
@@ -4925,7 +4926,8 @@ class LineTruncation:
         tmp = ''
         for t in tex.split('\n'):
             if re.match('^\\s+.*$', t):
-                t = '\\' + t
+                if tmp == '' and (not re.match('^\\s+(1\\.|-)\\s', t)):
+                    t = '\\' + t
             if re.match('^.*\\s+$', t):
                 t = t + '\\'
             tmp += t + '\n'
@@ -4935,6 +4937,29 @@ class LineTruncation:
         new_text = re.sub('\n+', '\n', tex)
         return new_text
 
+    @staticmethod
+    def _indent_text(text: str) -> str:
+        indent = ''
+        res_chapter = '^(\\$+(?:-\\$+)*\\s+)((?:.|\n)*)$'
+        res_section = '^(#+(?:-#+)*\\s+)((?:.|\n)*)$'
+        res_list = '^(\\s*(1\\.|-)\\s+)((?:.|\n)*)$'
+        res_alignment = '^(:\\s+)((?:.|\n)*)$'
+        if re.match(res_chapter, text):
+            head_string = re.sub(res_chapter, '\\1', text)
+        elif re.match(res_section, text):
+            print(text)
+            head_string = re.sub(res_section, '\\1', text)
+            if re.match('^#+(?:-#+)*\n', text):
+                head_string = ''
+        elif re.match(res_list, text):
+            head_string = re.sub(res_list, '\\1', text)
+        elif re.match(res_alignment, text):
+            head_string = re.sub(res_alignment, '\\1', text)
+        else:
+            head_string = ''
+        indent = len(head_string)
+        text = re.sub('\n', ('\n' + ' ' * indent), text)
+        return text
 
 class Document:
 
@@ -7379,12 +7404,14 @@ class Paragraph:
         md_text = re.sub('  \n', '  \\\n', md_text)
         if False:
             pass
-        # elif paragraph_class == 'chapter':
-        #     md_lines_text = LineTruncation(md_text).get_truncated_md_text()
+        elif paragraph_class == 'chapter':
+            md_lines_text = LineTruncation(md_text).get_truncated_md_text()
         elif paragraph_class == 'section':
             md_lines_text = LineTruncation(md_text).get_truncated_md_text()
-        # elif paragraph_class == 'list':
-        #     md_lines_text = LineTruncation(md_text).get_truncated_md_text()
+        elif paragraph_class == 'list':
+            md_lines_text = LineTruncation(md_text).get_truncated_md_text()
+        elif paragraph_class == 'alignment':
+            md_lines_text = LineTruncation(md_text).get_truncated_md_text()
         elif paragraph_class == 'sentence':
             md_lines_text = LineTruncation(md_text).get_truncated_md_text()
         else:
