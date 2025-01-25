@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.23-17:40:07-JST>
+# Time-stamp:   <2025.01.25-10:25:34-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -261,13 +261,14 @@ SCRIPT_SAMPLE = ['',
                  '']
 
 FONT_DECORATOR_SAMPLE = ['', '\t',
+                         '<!--コメント-->',
                          '*<!--斜体-->*',
                          '*<!--太字-->*',
                          '__<!--下線-->__',
-                         '---<!--微-->---',
-                         '--<!--小-->--',
-                         '++<!--大-->++',
-                         '+++<!--巨-->+++',
+                         '---<!--微字-->---',
+                         '--<!--小字-->--',
+                         '++<!--大字-->++',
+                         '+++<!--巨字-->+++',
                          '^R^<!--字赤-->^R^',
                          '^Y^<!--字黄-->^Y^',
                          '^G^<!--字緑-->^G^',
@@ -12042,9 +12043,10 @@ class Makdo:
             self.etr = tkinter.Entry(pane, font=fon, width=50)
             self.etr.pack(side='top')
             self.etr.insert(0, self.init)
-            self.bind('<Key-Tab>', self.key_tab)
-            self.bind('<Key-Up>', self.key_up)
-            self.bind('<Key-Down>', self.key_down)
+            self.bind('<Key>', self.process_key)
+            #self.bind('<Key-Tab>', self.process_key_tab)
+            #self.bind('<Key-Up>', self.process_key_up)
+            #self.bind('<Key-Down>', self.process_key_down)
             super().body(pane)
             return self.etr
 
@@ -12094,8 +12096,8 @@ class Makdo:
             elif com == 'goto-flag5':
                 self.mother.goto_flag5()
             elif com == 'insert-comment':
-                self.mother.txt.insert('insert', '<!--  -->')
-                self.mother.txt.mark_set('insert', 'insert-4c')
+                self.mother.txt.insert('insert', '<!---->')
+                self.mother.txt.mark_set('insert', 'insert-3c')
             elif com == 'insert-current-date':
                 self.mother.insert_date_Gymd()
             elif com == 'insert-current-time':
@@ -12167,7 +12169,16 @@ class Makdo:
             else:
                 Makdo.MiniBuffer(self, self.mother, com)
 
-        def key_tab(self, event):
+        def process_key(self, key):
+            self.prev_key = ''
+            if key.keysym == 'Tab' or key.char == '\x09':
+                self.process_key_tab(key)
+            elif key.keysym == 'Up':
+                self.process_key_up(key)
+            elif key.keysym == 'Down':
+                self.process_key_down(key)
+
+        def process_key_tab(self, key):
             com = self.etr.get()
             if com == '':
                 return  # empty
@@ -12198,7 +12209,7 @@ class Makdo:
                 self.etr.insert(0, x)
             return 'break'
 
-        def key_up(self, event):
+        def process_key_up(self, event):
             if self.history_number == 0:
                 Makdo.MiniBuffer.history[-1] = self.etr.get()
             if self.history_number < len(self.history) - 1:
@@ -12206,7 +12217,7 @@ class Makdo:
                 self.etr.delete(0, 'end')
                 self.etr.insert(0, self.history[-self.history_number - 1])
 
-        def key_down(self, event):
+        def process_key_down(self, event):
             if self.history_number > 0:
                 self.history_number -= 1
                 self.etr.delete(0, 'end')
@@ -14582,7 +14593,7 @@ class Makdo:
             self.set_message_on_status_bar(msg, True)
             for ei in self.eblook.items:
                 dic += '## 【' + ei.dictionary.k_name \
-                    + '\u3000' + ei.title + '】\n'
+                    + '\u3000' + ei.title + '】\n\n'
                 dic += ei.content + '\n\n'
             self._open_sub_pane(dic, True)
             n = 0
