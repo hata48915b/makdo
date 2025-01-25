@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.25-10:25:34-JST>
+# Time-stamp:   <2025.01.25-11:18:27-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -12499,6 +12499,8 @@ class Makdo:
                             col = c[i + 1]
                         self.txt.tag_config(tag, font=fon,
                                             foreground=col, underline=und)
+                        self.sub.tag_config(tag, font=fon,
+                                            foreground=col, underline=und)
 
     ################
     # SUBMENU DIGIT SEPARATOR
@@ -14596,6 +14598,19 @@ class Makdo:
                     + '\u3000' + ei.title + '】\n\n'
                 dic += ei.content + '\n\n'
             self._open_sub_pane(dic, True)
+            # TITLE
+            n = 0
+            pos = dic
+            res = '^((?:.|\n)*?)(## .*)(\n(?:.|\n)*)$'
+            while re.match(res, pos):
+                pre = re.sub(res, '\\1', pos)
+                key = re.sub(res, '\\2', pos)
+                pos = re.sub(res, '\\3', pos)
+                beg = '1.0+' + str(n + len(pre)) + 'c'
+                end = '1.0+' + str(n + len(pre) + len(key)) + 'c'
+                n += len(pre) + len(key)
+                self.sub.tag_add('c-40-1-g-x', beg, end)
+            # ERROR
             n = 0
             pos = dic
             res = '^((?:.|\n)*?)(<gaiji=[^<>]+>)((?:.|\n)*)$'
@@ -14674,6 +14689,7 @@ class Makdo:
             self._close_sub_pane = self.close_openai
             self._open_sub_pane(self.openai_qanda, False, 2)
             self.sub.mark_set('insert', 'end-1c')
+            self._paint_openai_lines()
             return True
 
         def ask_openai(self) -> None:
@@ -14711,6 +14727,8 @@ class Makdo:
             )
             self.set_message_on_status_bar('', True)
             answer = adjust_line(output.choices[0].message.content)
+            answer = re.sub('。\n」', '。」', answer)
+            answer = re.sub('。\n）', '。）', answer)
             if answer != '':
                 if not re.match('^(.|\n)*\n$', doc):
                     self.sub.insert('end', '\n')
@@ -14722,6 +14740,22 @@ class Makdo:
                 self.sub.mark_set('insert', 'end-1c')
                 self._put_back_cursor_to_pane(self.sub)
             self.openai_qanda = self.sub.get('1.0', 'end-1c')
+            self._paint_openai_lines()
+
+        def _paint_openai_lines(self):
+            for tag in self.sub.tag_names():
+                self.sub.tag_remove(tag, '1.0', 'end-1c')
+            n = 0
+            pos = self.openai_qanda
+            res = '^((?:.|\n)*?)(## 【OpenAI...】-+)(\n(?:.|\n)*)$'
+            while re.match(res, pos):
+                pre = re.sub(res, '\\1', pos)
+                key = re.sub(res, '\\2', pos)
+                pos = re.sub(res, '\\3', pos)
+                beg = '1.0+' + str(n + len(pre)) + 'c'
+                end = '1.0+' + str(n + len(pre) + len(key)) + 'c'
+                n += len(pre) + len(key)
+                self.sub.tag_add('c-40-1-g-x', beg, end)
 
         def close_openai(self) -> None:
             del self._execute_sub_pane
@@ -14812,6 +14846,7 @@ class Makdo:
             self._close_sub_pane = self.close_llama
             self._open_sub_pane(self.llama_qanda, False, 2)
             self.sub.mark_set('insert', 'end-1c')
+            self._paint_llama_lines()
             return True
 
         def ask_llama(self) -> None:
@@ -14844,6 +14879,8 @@ class Makdo:
             output = self.llama.create_chat_completion(messages=messages)
             self.set_message_on_status_bar('', True)
             answer = adjust_line(output['choices'][0]['message']['content'])
+            answer = re.sub('。\n」', '。」', answer)
+            answer = re.sub('。\n）', '。）', answer)
             if answer != '':
                 if not re.match('^(.|\n)*\n$', doc):
                     self.sub.insert('end', '\n')
@@ -14855,6 +14892,22 @@ class Makdo:
                 self.sub.mark_set('insert', 'end-1c')
                 self._put_back_cursor_to_pane(self.sub)
             self.llama_qanda = self.sub.get('1.0', 'end-1c')
+            self._paint_llama_lines()
+
+        def _paint_llama_lines(self):
+            for tag in self.sub.tag_names():
+                self.sub.tag_remove(tag, '1.0', 'end-1c')
+            n = 0
+            pos = self.llama_qanda
+            res = '^((?:.|\n)*?)(## 【Llama...】-+)(\n(?:.|\n)*)$'
+            while re.match(res, pos):
+                pre = re.sub(res, '\\1', pos)
+                key = re.sub(res, '\\2', pos)
+                pos = re.sub(res, '\\3', pos)
+                beg = '1.0+' + str(n + len(pre)) + 'c'
+                end = '1.0+' + str(n + len(pre) + len(key)) + 'c'
+                n += len(pre) + len(key)
+                self.sub.tag_add('c-40-1-g-x', beg, end)
 
         def close_llama(self) -> None:
             del self._execute_sub_pane
