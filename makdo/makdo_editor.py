@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.25-11:18:27-JST>
+# Time-stamp:   <2025.01.25-13:10:30-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -12170,26 +12170,54 @@ class Makdo:
                 Makdo.MiniBuffer(self, self.mother, com)
 
         def process_key(self, key):
-            self.prev_key = ''
+            if 'prev_key' not in vars(self):
+                self.prev_key = ''
+            # TAB
             if key.keysym == 'Tab' or key.char == '\x09':
-                self.process_key_tab(key)
-            elif key.keysym == 'Up':
+                com = self.etr.get()
+                if self.prev_key == 'Tab':
+                    if len(self.command_candidates) == 1:
+                        return  # Entry -> OK -> Cancel -> Entry
+                    self.etr.delete(0, 'end')
+                    for i in range(len(self.command_candidates)):
+                        if com != self.command_candidates[i]:
+                            continue
+                        if i < len(self.command_candidates) - 1:
+                            self.etr.insert(0, self.command_candidates[i + 1])
+                        else:
+                            self.etr.insert(0, self.command_candidates[0])
+                        break
+                    else:
+                        self.etr.insert(0, self.command_candidates[0])
+                    return 'break'
+                else:
+                    self.process_key_tab(key)
+                    self.prev_key = 'Tab'
+                    if com == self.etr.get() and \
+                       com in self.command_candidates:
+                        return  # Entry -> OK -> Cancel -> Entry
+                    return 'break'
+            self.prev_key = ''
+            if key.keysym == 'Up':
                 self.process_key_up(key)
-            elif key.keysym == 'Down':
+                return 'break'
+            if key.keysym == 'Down':
                 self.process_key_down(key)
+                return 'break'
 
         def process_key_tab(self, key):
             com = self.etr.get()
             if com == '':
                 return  # empty
-            cnd = []
+            self.command_candidates = []
             for c in self.commands:
                 if com == c:
+                    self.command_candidates.append(c)
                     return  # completed
                 if re.match('^' + com, c):
-                    cnd.append(c)
+                    self.command_candidates.append(c)
             x = ''
-            for y in cnd:
+            for y in self.command_candidates:
                 if x == '':
                     x = y
                 else:
@@ -12207,7 +12235,6 @@ class Makdo:
             if x != '':
                 self.etr.delete(0, 'end')
                 self.etr.insert(0, x)
-            return 'break'
 
         def process_key_up(self, event):
             if self.history_number == 0:
