@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.27-06:39:20-JST>
+# Time-stamp:   <2025.01.27-07:22:35-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -14410,7 +14410,6 @@ class Makdo:
                 c = self.sub.get('insert-1c', 'insert')
                 if c == '\n':
                     self.paint_out_line(vp - 2, self.sub)
-                print('[' + c + ']')
                 # GLOBALLY
                 self.run_periodically_to_paint_line_globally_on_sub_pane()
 
