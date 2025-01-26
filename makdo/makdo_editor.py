@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.25-13:10:30-JST>
+# Time-stamp:   <2025.01.26-10:30:50-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -4241,34 +4241,27 @@ def c2n_n_kanj(s: str) -> int:
     return -1
 
 
-def adjust_line(document: str) -> str:
-    old = document
-    old = re.sub('。', '。\n', old)
-    old = re.sub('\n\n+', '\n\n', old)
-    old = re.sub('^\n+', '', old)
-    old = re.sub('\n+$', '', old)
-    new = ''
-    tmp = ''
-    for sen in old.split('\n'):
-        t = sen
-        t = re.sub('、', '、\n', t)
-        # t = re.sub('を', 'を\n', t)
-        t = re.sub('「', '\n「', t)
-        t = re.sub('」', '」\n', t)
-        t = re.sub('（', '\n（', t)
-        t = re.sub('）', '）\n', t)
-        for phr in t.split('\n'):
-            if get_real_width(tmp + phr) > makdo.makdo_docx2md.MD_TEXT_WIDTH:
-                new += tmp + '\n'
-                tmp = ''
-            tmp += phr
-        if tmp != '':
-            new += tmp
-            tmp = ''
-        new += '\n'
-    new = re.sub('\n+$', '', new)
-    document = new
-    return document
+def adjust_line(old_doc: str) -> str:
+    new_doc = ''
+    for old_lin in old_doc.split('\n'):
+        old_lin = re.sub('([,，、.．。]+)', '\\1\n', old_lin)
+        # old_lin = re.sub('(を)', '\\1\n', old_lin)
+        old_lin = re.sub('([「『（\(]+)', '\n\\1', old_lin)
+        old_lin = re.sub('([\)）』」]+)', '\\1\n', old_lin)
+        old_lin = re.sub('([ \t\u3000]+)\n([「『（\(])', '\\1\\2', old_lin)
+        old_lin = re.sub('([.．。]+)\n([\)）』」])', '\\1\\2', old_lin)
+        old_lin = re.sub('^\n+', '', old_lin)
+        old_lin = re.sub('\n+$', '', old_lin)
+        old_lin = re.sub('\n+', '\n', old_lin)
+        new_lin = ''
+        for phr in old_lin.split('\n'):
+            if get_real_width(new_lin + phr) > MD_TEXT_WIDTH:
+                new_doc += new_lin + '\n'
+                new_lin = ''
+            new_lin += phr
+        new_doc += new_lin + '\n'
+    new_doc = re.sub('\n+$', '', new_doc)
+    return new_doc
 
 
 def count_days(date: str) -> int:
@@ -14754,8 +14747,6 @@ class Makdo:
             )
             self.set_message_on_status_bar('', True)
             answer = adjust_line(output.choices[0].message.content)
-            answer = re.sub('。\n」', '。」', answer)
-            answer = re.sub('。\n）', '。）', answer)
             if answer != '':
                 if not re.match('^(.|\n)*\n$', doc):
                     self.sub.insert('end', '\n')
@@ -14906,8 +14897,6 @@ class Makdo:
             output = self.llama.create_chat_completion(messages=messages)
             self.set_message_on_status_bar('', True)
             answer = adjust_line(output['choices'][0]['message']['content'])
-            answer = re.sub('。\n」', '。」', answer)
-            answer = re.sub('。\n）', '。）', answer)
             if answer != '':
                 if not re.match('^(.|\n)*\n$', doc):
                     self.sub.insert('end', '\n')
