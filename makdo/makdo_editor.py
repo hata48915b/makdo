@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.26-11:58:32-JST>
+# Time-stamp:   <2025.01.26-12:02:45-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -4247,10 +4247,10 @@ def adjust_line(old_doc: str) -> str:
     for old_lin in old_doc.split('\n'):
         old_lin = re.sub('([,，、.．。]+)', '\\1\n', old_lin)
         # old_lin = re.sub('(を)', '\\1\n', old_lin)
-        old_lin = re.sub('([「『（\(]+)', '\n\\1', old_lin)
-        old_lin = re.sub('([\)）』」]+)', '\\1\n', old_lin)
-        old_lin = re.sub('([ \t\u3000]+)\n([「『（\(])', '\\1\\2', old_lin)
-        old_lin = re.sub('([.．。]+)\n([\)）』」])', '\\1\\2', old_lin)
+        old_lin = re.sub('([「『（\\(]+)', '\n\\1', old_lin)
+        old_lin = re.sub('([\\)）』」]+)', '\\1\n', old_lin)
+        old_lin = re.sub('([ \t\u3000]+)\n([「『（\\(])', '\\1\\2', old_lin)
+        old_lin = re.sub('([.．。]+)\n([\\)）』」])', '\\1\\2', old_lin)
         old_lin = re.sub('^\n+', '', old_lin)
         old_lin = re.sub('\n+$', '', old_lin)
         old_lin = re.sub('\n+', '\n', old_lin)
@@ -12042,9 +12042,9 @@ class Makdo:
             self.etr.pack(side='top')
             self.etr.insert(0, self.init)
             self.bind('<Key>', self.process_key)
-            #self.bind('<Key-Tab>', self.process_key_tab)
-            #self.bind('<Key-Up>', self.process_key_up)
-            #self.bind('<Key-Down>', self.process_key_down)
+            # self.bind('<Key-Tab>', self.process_key_tab)
+            # self.bind('<Key-Up>', self.process_key_up)
+            # self.bind('<Key-Down>', self.process_key_down)
             super().body(pane)
             return self.etr
 
