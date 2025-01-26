@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.26-12:02:45-JST>
+# Time-stamp:   <2025.01.26-12:21:49-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6114,15 +6114,17 @@ class Makdo:
                     self.clipboard_list[-1] += c
                     pane.delete(ins, end)
 
-    def paint_out_line(self, line_number):
+    def paint_out_line(self, line_number, pane=None):
+        if pane is None:
+            pane = self.txt
         ln = line_number
         # REGION IS SET
-        if self.txt.tag_ranges('sel'):
+        if pane.tag_ranges('sel'):
             return
-        if 'akauni' in self.txt.mark_names():
+        if 'akauni' in pane.mark_names():
             return
         # UPDATE TEXT
-        file_text = self.txt.get('1.0', 'end-1c')
+        file_text = pane.get('1.0', 'end-1c')
         self.file_lines = file_text.split('\n')
         m = len(self.file_lines) - 1
         while len(self.line_data) < m + 1:
@@ -6153,7 +6155,7 @@ class Makdo:
         self.line_data[ln].line_text = line_text
         self.line_data[ln].beg_chars_state = chars_state
         self.line_data[ln].end_chars_state = CharsState()
-        self.line_data[ln].paint_line(self.txt, paint_keywords)
+        self.line_data[ln].paint_line(pane, paint_keywords)
 
     @staticmethod
     def _get_now():
@@ -14398,9 +14400,15 @@ class Makdo:
                 if True:
                     self.run_periodically_to_paint_line_globally()
         if focus == self.sub:  # if focus is not None:
+            n = self.run_periodically
             if self.formula_number > 0 or \
                self.memo_pad_memory is not None:
-                pass
+                # CURSOR LINE
+                vp = self._get_v_position_of_insert(self.sub)
+                self.paint_out_line(vp - 1, self.sub)
+                # GLOBALLY
+                if (n % 400) == 0:
+                    self.run_periodically_to_paint_line_globally_on_sub_pane()
 
     # LOCAL PAINTING
     def run_periodically_to_paint_line_locally(self):
@@ -14461,6 +14469,19 @@ class Makdo:
         self.global_line_to_paint += 1
         if self.global_line_to_paint >= len(self.file_lines) - 1:
             self.global_line_to_paint = 0
+
+    # GLOBAL PAINTING ON SUB PANE
+    def run_periodically_to_paint_line_globally_on_sub_pane(self):
+        if 'global_line_to_paint_on_sub_pane' not in vars(self):
+            self.global_line_to_paint_on_sub_pane = 0
+            self.file_lines_on_sub_pane \
+                = self.sub.get('1.0', 'end-1c').split('\n')
+        self.paint_out_line(self.global_line_to_paint_on_sub_pane, self.sub)
+        self.global_line_to_paint_on_sub_pane += 1
+
+        if self.global_line_to_paint_on_sub_pane \
+           >= len(self.file_lines_on_sub_pane) - 1:
+            self.global_line_to_paint_on_sub_pane = 0
 
     ####################################
     # NOT PYINSTALLER
