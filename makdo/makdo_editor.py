@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.26-11:39:01-JST>
+# Time-stamp:   <2025.01.26-11:58:32-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5013,7 +5013,7 @@ class LineDatum:
         self.end_chars_state = CharsState()
         self.paint_keywords = False
 
-    def paint_line(self, txt, paint_keywords=False):
+    def paint_line(self, pane, paint_keywords=False):
         # PREPARE
         i = self.line_number
         line_text = self.line_text
@@ -5025,11 +5025,11 @@ class LineDatum:
             self.end_chars_state = chars_state.copy()
             return
         # RESET TAG
-        for tag in txt.tag_names():
+        for tag in pane.tag_names():
             if tag == 'IMEmarkedtext':  # macos ime
                 continue
             if tag != 'search_tag':
-                txt.tag_remove(tag, str(i + 1) + '.0', str(i + 1) + '.end')
+                pane.tag_remove(tag, str(i + 1) + '.0', str(i + 1) + '.end')
         # LINE
         if not chars_state.is_in_comment:
             # PAGE BREAK
@@ -5037,7 +5037,7 @@ class LineDatum:
                 beg, end = str(i + 1) + '.0', str(i + 1) + '.end'
                 key = chars_state.get_key('<pgbr>')                     # 1.key
                 #                                                       # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
+                pane.tag_add(key, beg, end)                             # 3.tag
                 #                                                       # 4.set
                 #                                                       # 5.tmp
                 #                                                       # 6.beg
@@ -5062,20 +5062,20 @@ class LineDatum:
                 if hfre != '':
                     key = chars_state.get_key(hcol)                     # 1.key
                     end = str(i + 1) + '.' + str(hlen)                  # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     #                                                   # 4.set
                     #                                                   # 5.tmp
                     beg = end                                           # 6.beg
                 key = chars_state.get_key('hline')                      # 1.key
                 end = str(i + 1) + '.' + str(hlen + llen)               # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
+                pane.tag_add(key, beg, end)                             # 3.tag
                 #                                                       # 4.set
                 #                                                       # 5.tmp
                 beg = end                                               # 6.beg
                 if tfre != '':
                     key = chars_state.get_key(tcol)                     # 1.key
                     end = str(i + 1) + '.end'                           # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     #                                                   # 4.set
                     #                                                   # 5.tmp
                 self.end_chars_state = chars_state.copy()
@@ -5112,7 +5112,7 @@ class LineDatum:
                     else:
                         key = chars_state.get_key('font decorator')     # 1.key
                     end = str(i + 1) + '.' + str(j)                     # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     #                                                   # 4.set
                     # tmp = '.'                                         # 5.tmp
                     beg = end                                           # 6.beg
@@ -5125,7 +5125,7 @@ class LineDatum:
                     elif c == '\\':
                         key = chars_state.get_key('escape')             # 1.key
                     end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     #                                                   # 4.set
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
@@ -5151,7 +5151,7 @@ class LineDatum:
             if c1 == '\n':
                 key = chars_state.get_key('')                           # 1.key
                 end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
+                pane.tag_add(key, beg, end)                             # 3.tag
                 #                                                       # 4.set
                 #                                                       # 5.tmp
                 #                                                       # 6.beg
@@ -5161,7 +5161,7 @@ class LineDatum:
                (c5 != '\\' or re.match(NOT_ESCAPED + '<!--$', tmp)):
                 key = chars_state.get_key('')                       # 1.key
                 end = str(i + 1) + '.' + str(j - 3)                 # 2.end
-                txt.tag_add(key, beg, end)                          # 3.tag
+                pane.tag_add(key, beg, end)                         # 3.tag
                 chars_state.toggle_is_in_comment()                  # 4.set
                 tmp = '<!--'                                        # 5.tmp
                 beg = end                                           # 6.beg
@@ -5170,7 +5170,7 @@ class LineDatum:
                (c4 != '\\' or re.match(NOT_ESCAPED + '-->$', tmp)):
                 key = chars_state.get_key('')                       # 1.key
                 end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                txt.tag_add(key, beg, end)                          # 3.tag
+                pane.tag_add(key, beg, end)                         # 3.tag
                 chars_state.toggle_is_in_comment()                  # 4.set
                 tmp = ''                                            # 5.tmp
                 beg = end                                           # 6.beg
@@ -5183,13 +5183,13 @@ class LineDatum:
                 if c == '\\':
                     key = chars_state.get_key('')                       # 1.key
                     end = str(i + 1) + '.' + str(j)                     # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     #                                                   # 4.set
                     # tmp = '\\'                                        # 5.tmp
                     beg = end                                           # 6.beg
                     key = chars_state.get_key('escape')                 # 1.key
                     end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     #                                                   # 4.set
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
@@ -5198,13 +5198,13 @@ class LineDatum:
                 if s2 == '<>':
                     key = chars_state.get_key('')                       # 1.key
                     end = str(i + 1) + '.' + str(j - 1)                 # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     #                                                   # 4.set
                     # tmp = '<>'                                        # 5.tmp
                     beg = end                                           # 6.beg
                     key = chars_state.get_key('font decorator')         # 1.key
                     end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     #                                                   # 4.set
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
@@ -5213,7 +5213,7 @@ class LineDatum:
                 if j == 0 and c == '-' and c0 != '\n' and re.match('\\s', c0):
                     key = chars_state.get_key('list')                   # 1.key
                     end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     #                                                   # 4.set
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
@@ -5221,11 +5221,11 @@ class LineDatum:
                 if j == 1 and re.match('^[0-9]+$', c2) and c == '.' and \
                    re.match('\\s', c0):
                     key = chars_state.get_key('half number')
-                    txt.tag_remove(key, str(i + 1) + '.0', str(i + 1) + '.1')
+                    pane.tag_remove(key, str(i + 1) + '.0', str(i + 1) + '.1')
                     beg, end = str(i + 1) + '.0', str(i + 1) + '.' + str(j + 1)
                     key = chars_state.get_key('list')                   # 1.key
                     #                                                   # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     #                                                   # 4.set
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
@@ -5234,7 +5234,7 @@ class LineDatum:
                 if j == 0 and c == ':' and re.match('\\s', c0):
                     key = chars_state.get_key('alignment')              # 1.key
                     end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     #                                                   # 4.set
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
@@ -5242,13 +5242,13 @@ class LineDatum:
                 if j >= 2 and re.match('\\s', c2) and c == ':' and c0 == '\n':
                     key = chars_state.get_key('')                       # 1.key
                     end = str(i + 1) + '.' + str(j - 1)                 # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     #                                                   # 4.set
                     # tmp = ':\n'                                       # 5.tmp
                     beg = end                                           # 6.beg
                     key = chars_state.get_key('alignment')              # 1.key
                     end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     #                                                   # 4.set
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
@@ -5260,13 +5260,13 @@ class LineDatum:
                      (c3 != '\\' or re.match(NOT_ESCAPED + '<\\-$', tmp)))):
                     key = chars_state.get_key('')                       # 1.key
                     end = str(i + 1) + '.' + str(j - 1)                 # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     chars_state.set_del_or_ins('del')                   # 4.set
                     # tmp = '->' or '<-'                                # 5.tmp
                     beg = end                                           # 6.beg
                     key = 'c-20-1-g-x'                                  # 1.key
                     end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     #                                                   # 4.set
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
@@ -5278,13 +5278,13 @@ class LineDatum:
                      (c3 != '\\' or re.match(NOT_ESCAPED + '<\\+$', tmp)))):
                     key = chars_state.get_key('')                       # 1.key
                     end = str(i + 1) + '.' + str(j - 1)                 # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     chars_state.set_del_or_ins('ins')                   # 4.set
                     # tmp = '+>' or '<+'                                # 5.tmp
                     beg = end                                           # 6.beg
                     key = 'c-200-1-g-x'                                 # 1.key
                     end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     #                                                   # 4.set
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
@@ -5293,13 +5293,13 @@ class LineDatum:
                 if s4 == '<br>':
                     key = chars_state.get_key('')                       # 1.key
                     end = str(i + 1) + '.' + str(j - 3)                 # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     #                                                   # 4.set
                     # tmp = <br>                                        # 5.tmp
                     beg = end                                           # 6.beg
                     key = chars_state.get_key('<br>')                   # 1.key
                     end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     #                                                   # 4.set
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
@@ -5313,13 +5313,13 @@ class LineDatum:
                     col = re.sub(res, '\\2', tmp)
                     key = chars_state.get_key('')                       # 1.key
                     end = str(i + 1) + '.' + str(j - len(col) - 1)      # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     #                                                   # 4.set
                     # tmp = '_.+_' or '^.+^'                            # 5.tmp
                     beg = end                                           # 6.beg
                     key = chars_state.get_key(col)                      # 1.key
                     end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     #                                                   # 4.set
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
@@ -5327,13 +5327,13 @@ class LineDatum:
                 if s2 == '^^':
                     key = chars_state.get_key('')                       # 1.key
                     end = str(i + 1) + '.' + str(j - 1)                 # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     #                                                   # 4.set
                     # tmp = '^^'                                        # 5.tmp
                     beg = end                                           # 6.beg
                     key = chars_state.get_key('gray')                   # 1.key
                     end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     #                                                   # 4.set
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
@@ -5343,13 +5343,13 @@ class LineDatum:
                    and (c4 != '\\' or re.match(NOT_ESCAPED + '...$', tmp)):
                     key = chars_state.get_key('')                       # 1.key
                     end = str(i + 1) + '.' + str(j - 2)                 # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     #                                                   # 4.set
                     tmp = re.sub('^(.*)(...)$', '\\2', tmp)             # 5.tmp
                     beg = end                                           # 6.beg
                     key = chars_state.get_key('font decorator')         # 1.key
                     end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     res1, res2 = '^.*:-+$', '^-*:.*$'
                     if not re.match(res1, s_lft) and not re.match(res2, s_rgt):
                         if tmp == '---' or tmp == '+++':
@@ -5365,13 +5365,13 @@ class LineDatum:
                    (c3 != '\\' or re.match(NOT_ESCAPED + '..$', tmp)):
                     key = chars_state.get_key('')                       # 1.key
                     end = str(i + 1) + '.' + str(j - 1)                 # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     #                                                   # 4.set
                     tmp = re.sub('^(.*)(..)$', '\\2', tmp)              # 5.tmp
                     beg = end                                           # 6.beg
                     key = chars_state.get_key('font decorator')         # 1.key
                     end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     res1, res2 = '^.*:-+$', '^-*:.*$'
                     if not re.match(res1, s_lft) and not re.match(res2, s_rgt):
                         res = '^=[-\\+]?[0-9]*(\\.?[0-9]+)(\\s.*)?$'
@@ -5390,14 +5390,14 @@ class LineDatum:
                     hul = chars_state.has_underline
                     key = chars_state.get_key('')                       # 1.key
                     end = str(i + 1) + '.' + str(j - len(mdt) + 1)      # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     if hul:
                         chars_state.toggle_has_underline()              # 4.set
                     tmp = mdt                                           # 5.tmp
                     beg = end                                           # 6.beg
                     key = chars_state.get_key('font decorator')         # 1.key
                     end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     if not hul:
                         chars_state.toggle_has_underline()              # 4.set
                     tmp = ''                                            # 5.tmp
@@ -5410,7 +5410,7 @@ class LineDatum:
                     hsf = chars_state.has_specific_font
                     key = chars_state.get_key('')                       # 1.key
                     end = str(i + 1) + '.' + str(j - len(mdt) + 1)      # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     if hsf:
                         chars_state.toggle_has_specific_font()          # 4.set
                     tmp = mdt                                           # 5.tmp
@@ -5421,7 +5421,7 @@ class LineDatum:
                             key = chars_state.get_key(tmp_c)            # 1.key
                         end = str(i + 1) + '.' \
                             + str(j - len(mdt) + 1 + (k + 1))           # 2.end
-                        txt.tag_add(key, beg, end)                      # 3.tag
+                        pane.tag_add(key, beg, end)                     # 3.tag
                         beg = end                                       # 6.beg
                     if not hsf:
                         chars_state.toggle_has_specific_font()          # 4.set
@@ -5433,13 +5433,13 @@ class LineDatum:
                 if s2 == '[|' or s2 == '|]':
                     key = chars_state.get_key('')                       # 1.key
                     end = str(i + 1) + '.' + str(j - 1)                 # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     #                                                   # 4.set
                     # tmp = '[|' or '|]'                                # 5.tmp
                     beg = end                                           # 6.beg
                     key = chars_state.get_key('font decorator')         # 1.key
                     end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     chars_state.attach_or_remove_frame(c2 + c)          # 4.set
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
@@ -5448,13 +5448,13 @@ class LineDatum:
                 if c == '|':
                     key = chars_state.get_key('')                       # 1.key
                     end = str(i + 1) + '.' + str(j)                     # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     #                                                   # 4.set
                     # tmp = '|'                                         # 5.tmp
                     beg = end                                           # 6.beg
                     key = chars_state.get_key('table')                  # 1.key
                     end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     #                                                   # 4.set
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
@@ -5463,13 +5463,13 @@ class LineDatum:
                 if c == '!' and re.match('^\\[.*\\]\\(.*\\)', line_text[j+1:]):
                     key = chars_state.get_key('')                       # 1.key
                     end = str(i + 1) + '.' + str(j)                     # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     #                                                   # 4.set
                     # tmp = '!'                                         # 5.tmp
                     beg = end                                           # 6.beg
                     key = chars_state.get_key('image')                  # 1.key
                     end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     #                                                   # 4.set
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
@@ -5477,13 +5477,13 @@ class LineDatum:
                 if c == '<' and re.match('^\\s*[\\.0-9]+\\s*>.*$', s_rgt):
                     key = chars_state.get_key('')                       # 1.key
                     end = str(i + 1) + '.' + str(j)                     # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     #                                                   # 4.set
                     # tmp = '<'                                         # 5.tmp
                     beg = end                                           # 6.beg
                     key = chars_state.get_key('<sp>')                   # 1.key
                     end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     #                                                   # 4.set
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
@@ -5491,7 +5491,7 @@ class LineDatum:
                 if c == '>' and re.match('^.*<\\s*[\\.0-9]+\\s*>$', s_lft):
                     key = chars_state.get_key('<sp>')                   # 1.key
                     end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     #                                                   # 4.set
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
@@ -5518,13 +5518,13 @@ class LineDatum:
                     fld = re.sub(res, '\\2', s_lft)
                     key = chars_state.get_key('')                       # 1.key
                     end = str(i + 1) + '.' + str(j + 1 - len(fld))      # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     #                                                   # 4.set
                     # tmp = '...[n]'                                    # 5.tmp
                     beg = end                                           # 6.beg
                     key = chars_state.get_key('fold')                   # 1.key
                     end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     #                                                   # 4.set
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
@@ -5533,7 +5533,7 @@ class LineDatum:
                    re.match('^#+(-#+)*(\\s.*)?\n$', s_rgt):
                     key = chars_state.get_key('fold')                   # 1.key
                     end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     #                                                   # 4.set
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
@@ -5550,7 +5550,7 @@ class LineDatum:
                      re.match('^[0-9]*\\s*>.*$', s_rgt))):
                     key = chars_state.get_key('<sp>')                   # 1.key
                     end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                    txt.tag_add(key, beg, end)                          # 3.tag
+                    pane.tag_add(key, beg, end)                         # 3.tag
                     #                                                   # 4.set
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
@@ -5569,13 +5569,13 @@ class LineDatum:
             if re.match('^[0-9]$', c):
                 key = chars_state.get_key('')                           # 1.key
                 end = str(i + 1) + '.' + str(j)                         # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
+                pane.tag_add(key, beg, end)                             # 3.tag
                 #                                                       # 4.set
                 # tmp = '[0-9]'                                         # 5.tmp
                 beg = end                                               # 6.beg
                 key = chars_state.get_key('half number')                # 1.key
                 end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
+                pane.tag_add(key, beg, end)                             # 3.tag
                 #                                                       # 4.set
                 tmp = ''                                                # 5.tmp
                 beg = end                                               # 6.beg
@@ -5591,13 +5591,13 @@ class LineDatum:
                         continue
                 key = chars_state.get_key('')                           # 1.key
                 end = str(i + 1) + '.' + str(j)                         # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
+                pane.tag_add(key, beg, end)                             # 3.tag
                 #                                                       # 4.set
                 # tmp = '[０-９...]'                                    # 5.tmp
                 beg = end                                               # 6.beg
                 key = chars_state.get_key('full number')                # 1.key
                 end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
+                pane.tag_add(key, beg, end)                             # 3.tag
                 #                                                       # 4.set
                 tmp = ''                                                # 5.tmp
                 beg = end                                               # 6.beg
@@ -5608,13 +5608,13 @@ class LineDatum:
                     continue
                 key = chars_state.get_key('')                           # 1.key
                 end = str(i + 1) + '.' + str(j)                         # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
+                pane.tag_add(key, beg, end)                             # 3.tag
                 #                                                       # 4.set
                 # tmp = ' ' or '\t' or '\u3000'                         # 5.tmp
                 beg = end                                               # 6.beg
                 key = chars_state.get_key(c)                            # 1.key
                 end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
+                pane.tag_add(key, beg, end)                             # 3.tag
                 #                                                       # 4.set
                 tmp = ''                                                # 5.tmp
                 beg = end                                               # 6.beg
@@ -5625,7 +5625,7 @@ class LineDatum:
                c == '（' or c == '(':
                 key = chars_state.get_key('')                           # 1.key
                 end = str(i + 1) + '.' + str(j)                         # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
+                pane.tag_add(key, beg, end)                             # 3.tag
                 chars_state.apply_parenthesis(c)                        # 4.set
                 tmp = c                                                 # 5.tmp
                 beg = end                                               # 6.beg
@@ -5635,7 +5635,7 @@ class LineDatum:
                c == ']' or c == '』' or c == '」':
                 key = chars_state.get_key('')                           # 1.key
                 end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
+                pane.tag_add(key, beg, end)                             # 3.tag
                 chars_state.apply_parenthesis(c)                        # 4.set
                 # tmp = ''                                              # 5.tmp
                 beg = end                                               # 6.beg
@@ -5644,13 +5644,13 @@ class LineDatum:
             if c == '\u30FC':  # 長音記号
                 key = chars_state.get_key('')                           # 1.key
                 end = str(i + 1) + '.' + str(j)                         # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
+                pane.tag_add(key, beg, end)                             # 3.tag
                 #                                                       # 4.set
                 # tmp = c                                               # 5.tmp
                 beg = end                                               # 6.beg
                 key = chars_state.get_key('mincho')                     # 1.key
                 end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
+                pane.tag_add(key, beg, end)                             # 3.tag
                 #                                                       # 4.set
                 tmp = ''                                                # 5.tmp
                 beg = end                                               # 6.beg
@@ -5668,7 +5668,7 @@ class LineDatum:
                  c == '\uFF0D' or c == '\uFF70')):
                 key = chars_state.get_key('')                           # 1.key
                 end = str(i + 1) + '.' + str(j)                         # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
+                pane.tag_add(key, beg, end)                             # 3.tag
                 #                                                       # 4.set
                 # tmp = '-'                                             # 5.tmp
                 beg = end                                               # 6.beg
@@ -5727,7 +5727,7 @@ class LineDatum:
                 elif c == '\uFF0D':  # 全角ハイフンマイナス
                     key = chars_state.get_key('horizontalline250')      # 1.key
                 end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
+                pane.tag_add(key, beg, end)                             # 3.tag
                 #                                                       # 4.set
                 tmp = ''                                                # 5.tmp
                 beg = end                                               # 6.beg
@@ -5737,13 +5737,13 @@ class LineDatum:
                re.match('^[⺟⺠⻁⻄⻑⻘⻝⻤⻨⻩⻫⻭⻯⻲戶黑]$', c):  # bushu
                 key = chars_state.get_key('')                           # 1.key
                 end = str(i + 1) + '.' + str(j)                         # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
+                pane.tag_add(key, beg, end)                             # 3.tag
                 #                                                       # 4.set
                 # tmp = '★'                                            # 5.tmp
                 beg = end                                               # 6.beg
                 key = 'error_tag'                                       # 1.key
                 end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
+                pane.tag_add(key, beg, end)                             # 3.tag
                 #                                                       # 4.set
                 tmp = ''                                                # 5.tmp
                 beg = end                                               # 6.beg
@@ -5763,13 +5763,13 @@ class LineDatum:
                     if re.match('^(.*?)' + kw + '$', tmp):
                         key = chars_state.get_key('')                   # 1.key
                         end = str(i + 1) + '.' + str(j + 1 - len(kw))   # 2.end
-                        txt.tag_add(key, beg, end)                      # 3.tag
+                        pane.tag_add(key, beg, end)                     # 3.tag
                         #                                               # 4.set
                         # tmp = kw                                      # 5.tmp
                         beg = end                                       # 6.beg
                         key = chars_state.get_key('red')                # 1.key
                         end = str(i + 1) + '.' + str(j + 1)             # 2.end
-                        txt.tag_add(key, beg, end)                      # 3.tag
+                        pane.tag_add(key, beg, end)                     # 3.tag
                         #                                               # 4.set
                         tmp = ''                                        # 5.tmp
                         beg = end                                       # 6.beg
@@ -5790,13 +5790,13 @@ class LineDatum:
                             continue  # 第三/債務者
                         key = chars_state.get_key('')                   # 1.key
                         end = str(i + 1) + '.' + str(j + 1 - len(t2))   # 2.end
-                        txt.tag_add(key, beg, end)                      # 3.tag
+                        pane.tag_add(key, beg, end)                     # 3.tag
                         #                                               # 4.set
                         # tmp = t2                                      # 5.tmp
                         beg = end                                       # 6.beg
                         key = chars_state.get_key(kw[1])                # 1.key
                         end = str(i + 1) + '.' + str(j + 1)             # 2.end
-                        txt.tag_add(key, beg, end)                      # 3.tag
+                        pane.tag_add(key, beg, end)                     # 3.tag
                         #                                               # 4.set
                         tmp = ''                                        # 5.tmp
                         beg = end                                       # 6.beg
@@ -5805,13 +5805,13 @@ class LineDatum:
             if wrd != '' and re.match('^.*' + wrd + '$', tmp):
                 key = chars_state.get_key('')                           # 1.key
                 end = str(i + 1) + '.' + str(j - len(wrd) + 1)          # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
+                pane.tag_add(key, beg, end)                             # 3.tag
                 #                                                       # 4.set
                 # tmp = wrd                                             # 5.tmp
                 beg = end                                               # 6.beg
                 key = 'rev-gx'                                          # 1.key
                 end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                txt.tag_add(key, beg, end)                              # 3.tag
+                pane.tag_add(key, beg, end)                             # 3.tag
                 #                                                       # 4.set
                 tmp = ''                                                # 5.tmp
                 beg = end                                               # 6.beg
@@ -14337,7 +14337,7 @@ class Makdo:
         # if self.run_periodically >= 60_000:  # 1min
         #     self.run_periodically = 0
         # EXECUTE
-        if focus is not None:  # if focus == self.txt:
+        if focus == self.txt:  # if focus is not None:
             n = self.run_periodically
             # AUTO FILE
             if (n % 60_000) == 0:  # 1 / 60,000ms
@@ -14397,6 +14397,10 @@ class Makdo:
             else:            # 60*2*1000/6000 =   20
                 if True:
                     self.run_periodically_to_paint_line_globally()
+        if focus == self.sub:  # if focus is not None:
+            if self.formula_number > 0 or \
+               self.memo_pad_memory is not None:
+                pass
 
     # LOCAL PAINTING
     def run_periodically_to_paint_line_locally(self):
