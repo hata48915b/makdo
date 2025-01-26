@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.26-12:21:49-JST>
+# Time-stamp:   <2025.01.27-06:39:20-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -14406,9 +14406,13 @@ class Makdo:
                 # CURSOR LINE
                 vp = self._get_v_position_of_insert(self.sub)
                 self.paint_out_line(vp - 1, self.sub)
+                # PREVIOUS LINE
+                c = self.sub.get('insert-1c', 'insert')
+                if c == '\n':
+                    self.paint_out_line(vp - 2, self.sub)
+                print('[' + c + ']')
                 # GLOBALLY
-                if (n % 400) == 0:
-                    self.run_periodically_to_paint_line_globally_on_sub_pane()
+                self.run_periodically_to_paint_line_globally_on_sub_pane()
 
     # LOCAL PAINTING
     def run_periodically_to_paint_line_locally(self):
@@ -14467,7 +14471,7 @@ class Makdo:
     def run_periodically_to_paint_line_globally(self):
         self.paint_out_line(self.global_line_to_paint)
         self.global_line_to_paint += 1
-        if self.global_line_to_paint >= len(self.file_lines) - 1:
+        if self.global_line_to_paint > len(self.file_lines) - 1:
             self.global_line_to_paint = 0
 
     # GLOBAL PAINTING ON SUB PANE
@@ -14478,9 +14482,8 @@ class Makdo:
                 = self.sub.get('1.0', 'end-1c').split('\n')
         self.paint_out_line(self.global_line_to_paint_on_sub_pane, self.sub)
         self.global_line_to_paint_on_sub_pane += 1
-
         if self.global_line_to_paint_on_sub_pane \
-           >= len(self.file_lines_on_sub_pane) - 1:
+           > len(self.file_lines_on_sub_pane) - 1:
             self.global_line_to_paint_on_sub_pane = 0
 
     ####################################
