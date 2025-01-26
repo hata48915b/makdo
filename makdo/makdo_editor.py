@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.26-10:30:50-JST>
+# Time-stamp:   <2025.01.26-11:39:01-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -4242,6 +4242,7 @@ def c2n_n_kanj(s: str) -> int:
 
 
 def adjust_line(old_doc: str) -> str:
+    old_doc = re.sub('\n\n+', '\n\n', old_doc)
     new_doc = ''
     for old_lin in old_doc.split('\n'):
         old_lin = re.sub('([,，、.．。]+)', '\\1\n', old_lin)
@@ -11203,6 +11204,10 @@ class Makdo:
         self._close_sub_pane()
         document = self.txt.get('1.0', 'end-1c')
         self._open_sub_pane(document, True)
+        for i in range(len(document)):
+            pos = '1.0+' + str(i) + 'c'
+            for tag in self.txt.tag_names(pos):
+                self.sub.tag_add(tag, pos, pos + '+1c')
         return True
 
     def show_file(self):
@@ -14332,7 +14337,7 @@ class Makdo:
         # if self.run_periodically >= 60_000:  # 1min
         #     self.run_periodically = 0
         # EXECUTE
-        if focus is not None:
+        if focus is not None:  # if focus == self.txt:
             n = self.run_periodically
             # AUTO FILE
             if (n % 60_000) == 0:  # 1 / 60,000ms
