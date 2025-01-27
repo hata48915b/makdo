@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.27-07:56:19-JST>
+# Time-stamp:   <2025.01.27-14:18:47-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -7819,7 +7819,7 @@ class Makdo:
             i = beg_line - 1 + j
             self.paint_out_line(i)
 
-    def calculate(self):
+    def calculate(self) -> bool:
         line = self.txt.get('insert linestart', 'insert lineend')
         line_head = ''
         line_math = line
@@ -7931,10 +7931,13 @@ class Makdo:
         math = re.sub('e', '2.718281828459045', math)
         math = re.sub('[^\\(\\)\\|\\*/%\\-\\+0-9\\.]', '', math)
         # EVAL
-        r = str(round(eval(math), 10))
-        r = re.sub('\\.0$', '', r)
-        if not re.match('^-?([0-9]*\\.)?[0-9]+', r):
+        try:
+            r = str(round(eval(math), 10))
+        except BaseException:
+            n, m = 'エラー', '計算できませんでした．'
+            tkinter.messagebox.showerror(n, m)
             return False
+        r = re.sub('\\.0$', '', r)
         # REPLACE
         digit_separator = self.digit_separator.get()
         if '.' in r:
@@ -7979,6 +7982,7 @@ class Makdo:
         if self.clipboard_list[-1] != '':
             self.clipboard_list.append('')
         self.clipboard_list[-1] += r
+        return True
 
     def change_typeface(self):
         c = self.txt.get('insert', 'insert+1c')
