@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.27-16:49:56-JST>
+# Time-stamp:   <2025.01.27-17:33:31-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -11451,10 +11451,10 @@ class Makdo:
             frm3.pack(expand=True, side='top', anchor='w', fill='x')
             diff_lbl.pack(expand=True, side='left', anchor='w')
             frm1.pack(expand=True, side='top', anchor='w', fill='x')
-            btn1.pack(side='left')
-            btn2.pack(side='left')
-            btn3.pack(side='left')
-            btn9.pack(side='left')
+            btn1.pack(side='left', anchor='n')
+            btn2.pack(side='left', anchor='n')
+            btn3.pack(side='left', anchor='n')
+            btn9.pack(side='left', anchor='n')
         self._put_back_cursor_to_pane(self.txt)
         cvs_frm.focus_force()
 
