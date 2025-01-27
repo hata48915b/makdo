@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.27-17:33:31-JST>
+# Time-stamp:   <2025.01.28-06:05:43-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -13141,6 +13141,8 @@ class Makdo:
         if is_read_only:
             return self.read_only_process_key(self.txt, key)
         else:
+            vp = self._get_v_position_of_insert(self.txt)
+            self.paint_out_line(vp - 1)  # for kanji
             return self.read_and_write_process_key(self.txt, key)
 
     def sub_process_key(self, key):
@@ -13158,10 +13160,10 @@ class Makdo:
         is_read_only = self.is_read_only.get()
         if not is_read_only:
             vp = self._get_v_position_of_insert(self.txt)
-            self.paint_out_line(vp - 1)
+            self.paint_out_line(vp - 1)  # for ascii
             if key.keysym == 'Return' or \
                (key.state == 8192 and key.keysym == 'm'):
-                self.paint_out_line(vp - 2)
+                self.paint_out_line(vp - 2)  # for enter
 
         # FOR AKAUNI
         self._paint_akauni_region(self.txt, '')
