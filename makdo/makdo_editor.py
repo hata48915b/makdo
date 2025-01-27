@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.27-07:22:35-JST>
+# Time-stamp:   <2025.01.27-07:56:19-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -4941,17 +4941,17 @@ class CharsState:
             key += '-270'
         elif chars == 'hline':
             key += '-270'
-        elif chars == 'R' or chars == 'red':
+        elif chars == 'R' or chars == 'red' or chars == 'DR':
             key += '-0'
-        elif chars == 'Y' or chars == 'yellow':
+        elif chars == 'Y' or chars == 'yellow' or chars == 'DY':
             key += '-60'
-        elif chars == 'G' or chars == 'green':
+        elif chars == 'G' or chars == 'green' or chars == 'DG':
             key += '-120'
-        elif chars == 'C' or chars == 'cyan':
+        elif chars == 'C' or chars == 'cyan' or chars == 'DC':
             key += '-180'
-        elif chars == 'B' or chars == 'blue':
+        elif chars == 'B' or chars == 'blue' or chars == 'DB':
             key += '-240'
-        elif chars == 'M' or chars == 'magenta':
+        elif chars == 'M' or chars == 'magenta' or chars == 'DM':
             key += '-300'
         elif chars == 'gray':
             key += '-360'  # gray
@@ -5305,7 +5305,11 @@ class LineDatum:
                     beg = end                                           # 6.beg
                     continue
                 # COLOR
-                res_color = '(R|red|Y|yellow|G|green|C|cyan|B|blue|M|magenta)'
+                res_color = '(' \
+                    + 'R|red|Y|yellow|G|green|C|cyan|B|blue|M|magenta' \
+                    + '|' \
+                    + 'DR|DY|DG|DC|DB|DM' \
+                    +')'
                 if (c == '_' and re.match('^.*_' + res_color + '_$', tmp)) or \
                    (c == '^' and re.match('^.*\\^' + res_color + '\\^$', tmp)):
                     res = '^(.*)[_\\^]' + res_color + '[_\\^]$'
