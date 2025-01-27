@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.23-15:36:05-JST>
+# Time-stamp:   <2025.01.27-13:28:32-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6202,6 +6202,24 @@ class ParagraphMultiColumns(Paragraph):
         ms_par = ms_doc.add_paragraph()
         ms_ppr = ms_par._p.get_or_add_pPr()
         ms_spr = XML.add_tag(ms_ppr, 'w:sectPr', {})
+        # ADD HEADER AND FOOTER
+        if Form.header_string != '':
+            n = '9'
+            XML.add_tag(ms_spr, 'w:headerReference',
+                        {'w:type': 'odd', 'r:id': 'rId' + n})
+            XML.add_tag(ms_spr, 'w:headerReference',
+                        {'w:type': 'default', 'r:id': 'rId' + n})
+            XML.add_tag(ms_spr, 'w:headerReference',
+                        {'w:type': 'first', 'r:id': 'rId' + n})
+        if Form.page_number != '':
+            n = '9' if Form.header_string == '' else '10'
+            XML.add_tag(ms_spr, 'w:footerReference',
+                        {'w:type': 'odd', 'r:id': 'rId' + n})
+            XML.add_tag(ms_spr, 'w:footerReference',
+                        {'w:type': 'default', 'r:id': 'rId' + n})
+            XML.add_tag(ms_spr, 'w:footerReference',
+                        {'w:type': 'first', 'r:id': 'rId' + n})
+        # CALCULATE COLUMN WIDTH
         w_w = str(round(PAPER_WIDTH[Form.paper_size] / 2.54 * 72 * 20))
         w_h = str(round(PAPER_HEIGHT[Form.paper_size] / 2.54 * 72 * 20))
         XML.add_tag(ms_spr, 'w:pgSz',
@@ -6219,7 +6237,7 @@ class ParagraphMultiColumns(Paragraph):
         w_space = '720'  # 3chars = 12*3*20 = 720
         opt = {'w:num': w_num, 'w:space': w_space, 'w:equalWidth': '0'}
         ms_col = XML.add_tag(ms_spr, 'w:cols', opt)
-        # ADD "<w:col w:w="xxxx" w:space="720">"
+        # ADD COLUMNS "<w:col w:w="xxxx" w:space="720">"
         m = len(wid)
         text_width \
             = int(w_w) - int(w_left) - int(w_right) - (int(w_space) * (m - 1))
