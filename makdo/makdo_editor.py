@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.27-14:18:47-JST>
+# Time-stamp:   <2025.01.27-16:49:56-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -11395,6 +11395,7 @@ class Makdo:
             frm0 = tkinter.Frame(cvs_frm)
             frm1 = tkinter.Frame(frm0)
             frm2 = tkinter.Frame(frm0)
+            frm3 = tkinter.Frame(frm0)
             btn1 = tkinter.Button(frm1, text='適用',
                                   command=self._apply_diff(frm0,
                                                            p.diff_id, comp))
@@ -11405,30 +11406,55 @@ class Makdo:
             btn3 = tkinter.Button(frm1, text='移動',
                                   command=self._goto_diff(p.diff_id, comp))
             self.btns.append(btn3)
-            lbl = tkinter.Label(frm2, text=p.diff_text,
-                                font=self.gothic_font, justify='left')
+            btn9 = tkinter.Label(frm1, font=self.gothic_font, text='\n')
+            res = '^(.*)\n((?:.|\n)*?)\n*$'
+            head_text = re.sub(res, '\\1', p.diff_text)
+            diff_text = re.sub(res, '\\2', p.diff_text)
+            head_font = self.gothic_font.copy()
+            head_font['weight'] = 'bold'
+            diff_font = self.gothic_font.copy()
+            head_lbl = tkinter.Label(frm2, text=('## ' + head_text),
+                                     font=head_font, justify='left')
+            diff_lbl = tkinter.Label(frm3, text=diff_text,
+                                     font=diff_font, justify='left')
             if background_color == 'W':
                 frm0.configure(bg='white')
                 frm1.configure(bg='white')
                 frm2.configure(bg='white')
-                lbl.configure(bg='white', fg='black')
+                frm3.configure(bg='white')
+                btn9.configure(bg='white')
+                head_lbl.configure(bg='white', fg='#BC7A00')  # 0.5/040
+                diff_lbl.configure(bg='white', fg='black')
             elif background_color == 'B':
                 frm0.configure(bg='black')
                 frm1.configure(bg='black')
                 frm2.configure(bg='black')
-                lbl.configure(bg='black', fg='white')
+                frm3.configure(bg='black')
+                btn9.configure(bg='black')
+                head_lbl.configure(bg='black', fg='#FFAC10')  # 0.7/040
+                diff_lbl.configure(bg='black', fg='white')
             elif background_color == 'G':
                 frm0.configure(bg='darkgreen')
                 frm1.configure(bg='darkgreen')
                 frm2.configure(bg='darkgreen')
-                lbl.configure(bg='darkgreen', fg='lightyellow')
+                frm3.configure(bg='darkgreen')
+                btn9.configure(bg='darkgreen')
+                head_lbl.configure(bg='darkgreen', fg='#FFAC10')  # 0.7/040
+                diff_lbl.configure(bg='darkgreen', fg='lightyellow')
             frm0.pack(expand=True, side='top', anchor='w', fill='x')
+            # frm1.pack(expand=True, side='top', anchor='w', fill='x')
+            # btn1.pack(side='left')
+            # btn2.pack(side='left')
+            # btn3.pack(side='left')
+            frm2.pack(expand=True, side='top', anchor='w', fill='x')
+            head_lbl.pack(expand=True, side='left', anchor='w')
+            frm3.pack(expand=True, side='top', anchor='w', fill='x')
+            diff_lbl.pack(expand=True, side='left', anchor='w')
             frm1.pack(expand=True, side='top', anchor='w', fill='x')
             btn1.pack(side='left')
             btn2.pack(side='left')
             btn3.pack(side='left')
-            frm2.pack(expand=True, side='top', anchor='w', fill='x')
-            lbl.pack(expand=True, side='left', anchor='w')
+            btn9.pack(side='left')
         self._put_back_cursor_to_pane(self.txt)
         cvs_frm.focus_force()
 
