@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.28-06:05:43-JST>
+# Time-stamp:   <2025.01.28-09:21:02-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -7870,47 +7870,71 @@ class Makdo:
         # {, }, [, ]
         math = math.replace('{', '(').replace('}', ')')
         math = math.replace('[', '(').replace(']', ')')
-        # 千, 百, 十
-        temp = ''
+        # 千 -> 1千
         unit = ['千', '百', '十']
-        for i in range(len(unit)):
-            res = '^([^' + unit[i] + ']*' + unit[i] + ')(.*)$'
-            while re.match(res, math):
-                t1 = re.sub(res, '\\1', math)  # [^千]*千
-                t2 = re.sub(res, '\\2', math)  # .*
-                if not re.match('^.*[0-9]' + unit[i] + '$', t1):
-                    t1 = re.sub(unit[i] + '$', '1' + unit[i], t1)  # 千 -> 1千
-                temp += t1
-                math = t2
-        math = temp + math
-        temp = ''
-        unit = ['千', '百', '十', '']
-        for i in range(len(unit) - 1):
-            res = '^([^' + unit[i] + ']*' + unit[i] + ')(.*)$'
-            while re.match(res, math):
-                t1 = re.sub(res, '\\1', math)  # [^千]*千
-                t2 = re.sub(res, '\\2', math)  # .*
-                temp += t1
-                if not re.match('^[0-9]' + unit[i + 1], t2):
-                    t2 = '0' + unit[i + 1] + t2
-                math = t2
-        math = temp + math
+        new_math = ''
+        res1 = '^(.*?)([京兆億万千百十0-9]+)(.*)$'
+        while re.match(res1, math):
+            head = re.sub(res1, '\\1', math)
+            numb = re.sub(res1, '\\2', math)
+            math = re.sub(res1, '\\3', math)
+            tmp = ''
+            for i, u in enumerate(unit):
+                res2 = '^([^' + u + ']*' + u + ')(.*)$'
+                if re.match(res2, numb):
+                    t1 = re.sub(res2, '\\1', numb)  # [^千]*千
+                    t2 = re.sub(res2, '\\2', numb)  # .*
+                    if not re.match('^.*[0-9]' + u + '$', t1):
+                        t1 = re.sub(u + '$', '1' + u, t1)  # 千 -> 1千
+                    tmp += t1
+                    numb = t2
+            new_math += head + tmp + numb
+        math = new_math + math
+        # 1千 -> 1千0百0十0
+        unit, vnit = ['千', '百', '十'], ['百', '十', '']
+        new_math = ''
+        res1 = '^(.*?)([京兆億万千百十0-9]+)(.*)$'
+        while re.match(res1, math):
+            head = re.sub(res1, '\\1', math)
+            numb = re.sub(res1, '\\2', math)
+            math = re.sub(res1, '\\3', math)
+            tmp = ''
+            for i, u in enumerate(unit):
+                v = vnit[i]
+                res2 = '^([^' + u + ']*' + u + ')(.*)$'
+                if re.match(res2, numb):
+                    t1 = re.sub(res2, '\\1', numb)  # [^千]*千
+                    t2 = re.sub(res2, '\\2', numb)  # .*
+                    tmp += t1
+                    if not re.match('^[0-9]' + v, t2):
+                        t2 = '0' + v + t2
+                    numb = t2
+            new_math += head + tmp + numb
+        math = new_math + math
         math = math.replace('千', '').replace('百', '').replace('十', '')
-        # 京, 兆, 億, 万
-        temp = ''
-        unit = ['京', '兆', '億', '万', '']
-        for i in range(len(unit) - 1):
-            res = '^([^' + unit[i] + ']*' + unit[i] + ')(.*)$'
-            while re.match(res, math):
-                t1 = re.sub(res, '\\1', math)  # [^京]*京
-                t2 = re.sub(res, '\\2', math)  # .*
-                temp += t1
-                if re.match('[0-9]{,4}' + unit[i + 1], t2):
-                    t2 = '0000' + t2
-                    math = re.sub('^[0-9]*([0-9]{4})', '\\1', t2)
-                else:
-                    math = '0000' + unit[i + 1] + t2  # 0000兆
-        math = temp + math
+        # 1兆2万 -> 1兆0000億0002万0000
+        new_math = ''
+        unit, vnit = ['京', '兆', '億', '万'], ['兆', '億', '万', '']
+        res1 = '^(.*?)([京兆億万千百十0-9]+)(.*)$'
+        while re.match(res1, math):
+            head = re.sub(res1, '\\1', math)
+            numb = re.sub(res1, '\\2', math)
+            math = re.sub(res1, '\\3', math)
+            tmp = ''
+            for i, u in enumerate(unit):
+                v = vnit[i]
+                res2 = '^([^' + u + ']*' + u + ')(.*)$'
+                if re.match(res2, numb):
+                    t1 = re.sub(res2, '\\1', numb)  # [^京]*京
+                    t2 = re.sub(res2, '\\2', numb)  # .*
+                    tmp += t1
+                    if re.match('[0-9]{,4}' + v, t2):
+                        t2 = '0000' + t2
+                        numb = re.sub('^[0-9]*([0-9]{4})', '\\1', t2)  # 0012兆
+                    else:
+                        numb = '0000' + v + t2  # 0000兆
+            new_math += head + tmp + numb
+        math = new_math + math
         math = math.replace('京', '').replace('兆', '')
         math = math.replace('億', '').replace('万', '')
         # %, 割, 分, 厘
@@ -13141,9 +13165,21 @@ class Makdo:
         if is_read_only:
             return self.read_only_process_key(self.txt, key)
         else:
-            vp = self._get_v_position_of_insert(self.txt)
-            self.paint_out_line(vp - 1)  # for kanji
+            if (key.keysym != 'Return') and \
+               (key.state != 8192 or key.keysym != 'm'):
+                self.win.after(5, self._paint_one_line_after_key_pressed)
+            else:
+                self.win.after(5, self._paint_two_lines_after_key_pressed)
             return self.read_and_write_process_key(self.txt, key)
+
+    def _paint_one_line_after_key_pressed(self):
+        vp = self._get_v_position_of_insert(self.txt)
+        self.paint_out_line(vp - 1)
+
+    def _paint_two_lines_after_key_pressed(self):
+        vp = self._get_v_position_of_insert(self.txt)
+        self.paint_out_line(vp - 2)
+        self.paint_out_line(vp - 1)
 
     def sub_process_key(self, key):
         self.current_pane = 'sub'
@@ -13157,13 +13193,6 @@ class Makdo:
 
     def txt_process_key_release(self, key):
         self.set_position_info_on_status_bar()
-        is_read_only = self.is_read_only.get()
-        if not is_read_only:
-            vp = self._get_v_position_of_insert(self.txt)
-            self.paint_out_line(vp - 1)  # for ascii
-            if key.keysym == 'Return' or \
-               (key.state == 8192 and key.keysym == 'm'):
-                self.paint_out_line(vp - 2)  # for enter
 
         # FOR AKAUNI
         self._paint_akauni_region(self.txt, '')
