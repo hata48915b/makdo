@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.28-09:21:02-JST>
+# Time-stamp:   <2025.01.28-10:52:22-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -11975,6 +11975,7 @@ class Makdo:
             if key != 'Up' and key != 'Down':
                 self.keyborad_macro_h_position \
                     = self._get_ideal_h_position_of_insert(pane)
+        self._put_back_cursor_to_pane(pane)
 
     # MINIBUFFER
 
