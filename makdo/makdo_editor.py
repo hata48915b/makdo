@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.28-13:10:06-JST>
+# Time-stamp:   <2025.01.28-13:31:35-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -7556,15 +7556,19 @@ class Makdo:
         self._put_back_cursor_to_pane(pane)
         return True
 
-    def paste_region_from_list(self):
-        pane = self.txt
-        if self.current_pane == 'sub':
-            pane = self.sub
+    def paste_region_from_list(self, mother=None):
+        if mother is None:
+            mother = self.txt
+            if self.current_pane == 'sub':
+                mother = self.sub
         t = 'リストから貼付け'
         m = '貼り付ける文節を選んでください．'
-        cd = self.ClipboardListDialog(pane, self, t, m)
+        cd = self.ClipboardListDialog(mother, self, t, m)
         n = cd.get_value()
         if n >= 0:
+            pane = self.txt
+            if self.current_pane == 'sub':
+                pane = self.sub
             pane.insert('insert', self.clipboard_list[n])
 
     class ClipboardListDialog(tkinter.simpledialog.Dialog):
@@ -12003,6 +12007,7 @@ class Makdo:
                     'insert-formula4', 'insert-formula5',
                     'insert-symbol',
                     'open-memo-pad',
+                    'paste-region-from-list',
                     'place-flag1', 'place-flag2', 'place-flag3',
                     'place-flag4', 'place-flag5',
                     'replace-all',
@@ -12015,6 +12020,7 @@ class Makdo:
                     'split-window',
                     'toggle-read-only',
                     'uncomment-in-region',
+                    'undo', 'redo',
                     'unfold-section-fully',
                     'quit-makdo']
 
@@ -12057,6 +12063,8 @@ class Makdo:
             '記号を挿入                      \n' + \
             'open-memo-pad                     ' + \
             'メモ帳を開く                    \n' + \
+            'paste-region-from-list            ' + \
+            'リストから選んで貼り付け        \n' + \
             'replace-all                       ' + \
             '文章全体又は指定範囲を全置換    \n' + \
             'replace-X(X=backward,forward)     ' + \
@@ -12075,6 +12083,10 @@ class Makdo:
             '画面を分割又は統合              \n' + \
             'toggle-read-only                  ' + \
             '読取専用を指定又は解除          \n' + \
+            'undo                              ' + \
+            '元に戻す                        \n' + \
+            'redo                              ' + \
+            'やり直す                        \n' + \
             'quit-makdo                        ' + \
             'Makdoを終了                     '
 
@@ -12182,6 +12194,8 @@ class Makdo:
                 self.mother.look_in_epwing(self)
             elif com == 'open-memo-pad':
                 self.mother.open_memo_pad()
+            elif com == 'paste-region-from-list':
+                self.mother.paste_region_from_list(self)
             elif com == 'place-flag1' or com == 'place-flag':
                 self.mother.place_flag1()
             elif com == 'place-flag2':
@@ -12221,6 +12235,12 @@ class Makdo:
                 # self.mother.toggle_read_only()
             elif com == 'uncomment-in-region':
                 self.mother.uncomment_in_region()
+            elif com == 'undo':
+                self.mother.edit_modified_undo()
+            elif com == 'redo':
+                self.mother.edit_modified_redo()
+
+
             elif com == 'unfold-section-fully':
                 self.mother.unfold_section_fully()
             elif com == 'quit-makdo':
@@ -14711,7 +14731,7 @@ class Makdo:
 
         def look_in_epwing(self, pane=None) -> bool:
             if pane is None:
-                self.txt
+                pane = self.txt
             # LOAD MODULE
             if 'eblook_is_loaded' not in vars(self):
                 import makdo.eblook  # epwing
