@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.28-13:31:35-JST>
+# Time-stamp:   <2025.01.28-17:12:07-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -12259,6 +12259,7 @@ class Makdo:
 
             def body(self, minibuffer):
                 fon = self.mother.gothic_font.copy()
+                fon['size'] -= 6
                 fon['weight'] = 'bold'
                 frm = tkinter.Frame(minibuffer)
                 frm.pack()
