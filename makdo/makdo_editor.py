@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.28-10:52:22-JST>
+# Time-stamp:   <2025.01.28-13:10:06-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5309,7 +5309,7 @@ class LineDatum:
                     + 'R|red|Y|yellow|G|green|C|cyan|B|blue|M|magenta' \
                     + '|' \
                     + 'DR|DY|DG|DC|DB|DM' \
-                    +')'
+                    + ')'
                 if (c == '_' and re.match('^.*_' + res_color + '_$', tmp)) or \
                    (c == '^' and re.match('^.*\\^' + res_color + '\\^$', tmp)):
                     res = '^(.*)[_\\^]' + res_color + '[_\\^]$'
@@ -12009,74 +12009,74 @@ class Makdo:
                     'replace', 'replace-backward', 'replace-forward',
                     'save-file',
                     'search', 'search-backward', 'search-forward',
+                    'show-character-information',
                     'sort-lines',
                     'sort-lines-in-reverse-order',
                     'split-window',
                     'toggle-read-only',
                     'uncomment-in-region',
                     'unfold-section-fully',
-                    'quit-makdo',
-                    'show-character-information']
+                    'quit-makdo']
 
         help_message = \
-            'help\n' + \
-            '　このメッセージを表示\n' + \
-            'change-typeface\n' + \
-            '　字体を変える\n' + \
-            'close-sub-window\n' + \
-            '　サブウィンドウを閉じる\n' + \
-            'comment-out-region\n' + \
-            '　指定範囲をコメントアウト\n' + \
-            'compare-with-previous-draft\n' + \
-            '　編集前の原稿と比較\n' + \
-            'edit-formulaX(X=1..5)\n' + \
-            '　定型句Xを編集\n' + \
-            'insert-formulaX(X=1..5)\n' + \
-            '　定型句Xを挿入\n' + \
-            'uncomment-in-region\n' + \
-            '　指定範囲のコメントアウトを解除\n' + \
-            'fold-or-unfold-section\n' + \
-            '　セクションの折畳又は展開\n' + \
-            'unfold-section-fully\n' + \
-            '　セクションを全て展開\n' + \
-            'place-flagX(X=1..5)\n' + \
-            '　フラグXを設置\n' + \
-            'goto-flagX(X=1..5)\n' + \
-            '　フラグXに移動\n' + \
-            'insert-comment\n' + \
-            '　コメントを挿入\n' + \
-            'insert-current-date\n' + \
-            '　今日の日付を挿入\n' + \
-            'insert-current-time\n' + \
-            '　現在の日時を挿入\n' + \
-            'insert-file\n' + \
-            '　テキストファイルの内容を挿入\n' + \
-            'insert-file-names-in-same-folder\n' + \
-            '　ファイル名のみを一括挿入\n' + \
-            'insert-symbol\n' + \
-            '　記号を挿入\n' + \
-            'open-memo-pad\n' + \
-            '　メモ帳を開く\n' + \
-            'replace-all\n' + \
-            '　文章全体又は指定範囲を全置換\n' + \
-            'replace-X(X=backward,forward)\n' + \
-            '　X（前,後）を置換\n' + \
-            'save-file\n' + \
-            '　ファイルを保存\n' + \
-            'search-X(backward,forward)\n' + \
-            '　X（前,後）を検索\n' + \
-            'sort-lines\n' + \
-            '　選択範囲の行を正順にソート\n' + \
-            'sort-lines-in-reverse-order\n' + \
-            '　選択範囲の行を逆順にソート\n' + \
-            'split-window\n' + \
-            '　画面を分割又は統合\n' + \
-            'toggle-read-only\n' + \
-            '　読取専用を指定又は解除\n' + \
-            'quit-makdo\n' + \
-            '　Makdoを終了\n' + \
-            'show-character-information\n' + \
-            '　文字情報を表示'
+            'help                              ' + \
+            'このメッセージを表示            \n' + \
+            'change-typeface                   ' + \
+            '字体を変える                    \n' + \
+            'close-sub-window                  ' + \
+            'サブウィンドウを閉じる          \n' + \
+            'comment-out-region                ' + \
+            '指定範囲をコメントアウト        \n' + \
+            'compare-with-previous-draft       ' + \
+            '編集前の原稿と比較              \n' + \
+            'edit-formulaX(X=1..5)             ' + \
+            '定型句Xを編集                   \n' + \
+            'insert-formulaX(X=1..5)           ' + \
+            '定型句Xを挿入                   \n' + \
+            'uncomment-in-region               ' + \
+            '指定範囲のコメントアウトを解除  \n' + \
+            'fold-or-unfold-section            ' + \
+            'セクションの折畳又は展開        \n' + \
+            'unfold-section-fully              ' + \
+            'セクションを全て展開            \n' + \
+            'place-flagX(X=1..5)               ' + \
+            'フラグXを設置                   \n' + \
+            'goto-flagX(X=1..5)                ' + \
+            'フラグXに移動                   \n' + \
+            'insert-comment                    ' + \
+            'コメントを挿入                  \n' + \
+            'insert-current-date               ' + \
+            '今日の日付を挿入                \n' + \
+            'insert-current-time               ' + \
+            '現在の日時を挿入                \n' + \
+            'insert-file                       ' + \
+            'テキストファイルの内容を挿入    \n' + \
+            'insert-file-names-in-same-folder  ' + \
+            'ファイル名のみを一括挿入        \n' + \
+            'insert-symbol                     ' + \
+            '記号を挿入                      \n' + \
+            'open-memo-pad                     ' + \
+            'メモ帳を開く                    \n' + \
+            'replace-all                       ' + \
+            '文章全体又は指定範囲を全置換    \n' + \
+            'replace-X(X=backward,forward)     ' + \
+            'X（前,後）を置換                \n' + \
+            'save-file                         ' + \
+            'ファイルを保存                  \n' + \
+            'search-X(backward,forward)        ' + \
+            'X（前,後）を検索                \n' + \
+            'show-character-information        ' + \
+            '文字情報を表示                  \n' + \
+            'sort-lines                        ' + \
+            '選択範囲の行を正順にソート      \n' + \
+            'sort-lines-in-reverse-order       ' + \
+            '選択範囲の行を逆順にソート      \n' + \
+            'split-window                      ' + \
+            '画面を分割又は統合              \n' + \
+            'toggle-read-only                  ' + \
+            '読取専用を指定又は解除          \n' + \
+            'quit-makdo                        ' + \
+            'Makdoを終了                     '
 
         history = []
 
@@ -12118,7 +12118,8 @@ class Makdo:
             if com == '':
                 return
             elif com == 'help':
-                tkinter.messagebox.showinfo('ヘルプ', self.help_message)
+                self.Help(self, self.mother, self.help_message)
+                # tkinter.messagebox.showinfo('ヘルプ', self.help_message)
                 Makdo.MiniBuffer(self, self.mother)
             elif com == 'ask-llama':
                 self.mother.open_llama()
@@ -12203,6 +12204,8 @@ class Makdo:
                 self.mother.search_backward_from_dialog(self)
             elif com == 'search-forward' or com == 'search':
                 self.mother.search_forward_from_dialog(self)
+            elif com == 'show-character-information':
+                self.mother.show_char_info()
             elif com == 'sort-lines':
                 self.mother.sort_lines()
             elif com == 'sort-lines-in-reverse-order':
@@ -12223,10 +12226,47 @@ class Makdo:
             elif com == 'quit-makdo':
                 # 2 ERRORS OCCUR
                 self.mother.quit_makdo()
-            elif com == 'show-character-information':
-                self.mother.show_char_info()
             else:
                 Makdo.MiniBuffer(self, self.mother, com)
+
+        class Help(tkinter.simpledialog.Dialog):
+
+            def __init__(self, minibuffer, mother, message):
+                self.minibuffer = minibuffer
+                self.mother = mother
+                self.message = message
+                super().__init__(minibuffer, title='ヘルプ')
+
+            def body(self, minibuffer):
+                fon = self.mother.gothic_font.copy()
+                fon['weight'] = 'bold'
+                frm = tkinter.Frame(minibuffer)
+                frm.pack()
+                self.frm_u = tkinter.Frame(frm)
+                self.frm_d = tkinter.Frame(frm)
+                self.frm_u.pack(side='top', anchor='n')
+                self.frm_d.pack(side='bottom', anchor='s')
+                frm1 = tkinter.Frame(self.frm_u)
+                # frm2 = tkinter.Frame(self.frm_u)
+                # frm3 = tkinter.Frame(self.frm_u)
+                frm1.pack(side='left', anchor='n')
+                # frm2.pack(side='left', anchor='n')
+                # frm3.pack(side='left', anchor='n')
+                lbl1 = tkinter.Label(frm1, font=fon,
+                                     text=self.message, justify='left')
+                # lbl2 = tkinter.Label(frm2, font=fon, text='　')
+                # lbl3 = tkinter.Label(frm3, font=fon,
+                #                      text=self.message, justify='left')
+                lbl1.pack(side='left', anchor='n')
+                # lbl2.pack(side='left', anchor='n')
+                # lbl3.pack(side='left', anchor='n')
+                self.bind('<Key-Return>', self.ok)
+                self.bind('<Key-Escape>', self.ok)
+
+            def buttonbox(self):
+                btn = tkinter.Button(self.frm_d, text='OK',
+                                     width=10, command=self.ok)
+                btn.pack(side='bottom', anchor='s')
 
         def process_key(self, key):
             if 'prev_key' not in vars(self):
@@ -14666,8 +14706,8 @@ class Makdo:
 
         MiniBuffer.help_message += \
             '\n' + \
-            'look-in-epwing\n' + \
-            '　Epwing形式の辞書で調べる'
+            'look-in-epwing                    ' + \
+            'Epwing形式の辞書で調べる        '
 
         def look_in_epwing(self, pane=None) -> bool:
             if pane is None:
@@ -14763,8 +14803,8 @@ class Makdo:
 
         MiniBuffer.help_message += \
             '\n' + \
-            'ask-openai\n' + \
-            '　OpenAIに質問する'
+            'ask-openai                        ' + \
+            'OpenAIに質問する                '
 
         def open_openai(self) -> bool:
             # LOAD MODULE
@@ -14915,8 +14955,8 @@ class Makdo:
 
         MiniBuffer.help_message += \
             '\n' + \
-            'ask-llama\n' + \
-            '　Llamaに質問する'
+            'ask-llama                         ' + \
+            'Llamaに質問する                 '
 
         def open_llama(self) -> bool:
             # LOAD MODULE
