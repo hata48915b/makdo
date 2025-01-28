@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.28-17:12:07-JST>
+# Time-stamp:   <2025.01.29-07:46:22-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -12024,6 +12024,8 @@ class Makdo:
                     'unfold-section-fully',
                     'quit-makdo']
 
+        commands.sort()
+
         help_message = \
             'help                              ' + \
             'このメッセージを表示            \n' + \
@@ -12119,6 +12121,7 @@ class Makdo:
             # self.bind('<Key-Up>', self.process_key_up)
             # self.bind('<Key-Down>', self.process_key_down)
             super().body(pane)
+            self.grab_set()
             return self.etr
 
         def apply(self):
@@ -12132,7 +12135,7 @@ class Makdo:
             elif com == 'help':
                 self.Help(self, self.mother, self.help_message)
                 # tkinter.messagebox.showinfo('ヘルプ', self.help_message)
-                Makdo.MiniBuffer(self, self.mother)
+                Makdo.MiniBuffer(self.pane, self.mother)
             elif com == 'ask-llama':
                 self.mother.open_llama()
             elif com == 'ask-openai':
@@ -12239,8 +12242,6 @@ class Makdo:
                 self.mother.edit_modified_undo()
             elif com == 'redo':
                 self.mother.edit_modified_redo()
-
-
             elif com == 'unfold-section-fully':
                 self.mother.unfold_section_fully()
             elif com == 'quit-makdo':
@@ -12283,11 +12284,17 @@ class Makdo:
                 # lbl3.pack(side='left', anchor='n')
                 self.bind('<Key-Return>', self.ok)
                 self.bind('<Key-Escape>', self.ok)
-
-            def buttonbox(self):
                 btn = tkinter.Button(self.frm_d, text='OK',
                                      width=10, command=self.ok)
                 btn.pack(side='bottom', anchor='s')
+                self.grab_set()
+                return btn
+
+            def buttonbox(self):
+                # btn = tkinter.Button(self.frm_d, text='OK',
+                #                           width=10, command=self.ok)
+                # btn.pack(side='bottom', anchor='s')
+                return
 
         def process_key(self, key):
             if 'prev_key' not in vars(self):
