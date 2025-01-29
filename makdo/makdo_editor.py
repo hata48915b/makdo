@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.29-07:46:22-JST>
+# Time-stamp:   <2025.01.29-15:25:04-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5195,7 +5195,7 @@ class LineDatum:
                     beg = end                                           # 6.beg
                     continue
                 # RELAX
-                if s2 == '<>':
+                if len(tmp) >= 2 and s2 == '<>':
                     key = chars_state.get_key('')                       # 1.key
                     end = str(i + 1) + '.' + str(j - 1)                 # 2.end
                     pane.tag_add(key, beg, end)                         # 3.tag
@@ -5254,7 +5254,8 @@ class LineDatum:
                     beg = end                                           # 6.beg
                     continue
                 # DEL ("->", "<-")
-                if ((chars_state.del_or_ins == '' and s2 == '->' and
+                if len(tmp) >= 2 and \
+                   ((chars_state.del_or_ins == '' and s2 == '->' and
                      (c3 != '\\' or re.match(NOT_ESCAPED + '\\->$', tmp))) or
                     (chars_state.del_or_ins == 'del' and s2 == '<-' and
                      (c3 != '\\' or re.match(NOT_ESCAPED + '<\\-$', tmp)))):
@@ -5272,7 +5273,8 @@ class LineDatum:
                     beg = end                                           # 6.beg
                     continue
                 # INS ("+>", "<+")
-                if ((chars_state.del_or_ins == '' and s2 == '+>' and
+                if len(tmp) >= 2 and \
+                   ((chars_state.del_or_ins == '' and s2 == '+>' and
                      (c3 != '\\' or re.match(NOT_ESCAPED + '\\+>$', tmp))) or
                     (chars_state.del_or_ins == 'ins' and s2 == '<+' and
                      (c3 != '\\' or re.match(NOT_ESCAPED + '<\\+$', tmp)))):
@@ -5290,7 +5292,7 @@ class LineDatum:
                     beg = end                                           # 6.beg
                     continue
                 # LINE BREAK
-                if s4 == '<br>':
+                if len(tmp) >= 4 and s4 == '<br>':
                     key = chars_state.get_key('')                       # 1.key
                     end = str(i + 1) + '.' + str(j - 3)                 # 2.end
                     pane.tag_add(key, beg, end)                         # 3.tag
@@ -5328,7 +5330,7 @@ class LineDatum:
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
                     continue
-                if s2 == '^^':
+                if len(tmp) >= 2 and s2 == '^^':
                     key = chars_state.get_key('')                       # 1.key
                     end = str(i + 1) + '.' + str(j - 1)                 # 2.end
                     pane.tag_add(key, beg, end)                         # 3.tag
@@ -5343,7 +5345,8 @@ class LineDatum:
                     beg = end                                           # 6.beg
                     continue
                 # FONT DECORATOR ("---", "+++", ">>>", "<<<")
-                if (s3 == '---' or s3 == '+++' or s3 == '>>>' or s3 == '<<<') \
+                if len(tmp) >= 3 and \
+                   (s3 == '---' or s3 == '+++' or s3 == '>>>' or s3 == '<<<') \
                    and (c4 != '\\' or re.match(NOT_ESCAPED + '...$', tmp)):
                     key = chars_state.get_key('')                       # 1.key
                     end = str(i + 1) + '.' + str(j - 2)                 # 2.end
@@ -5364,7 +5367,8 @@ class LineDatum:
                     beg = end                                           # 6.beg
                     continue
                 # FONT DECORATOR ("--", "++", ">>", "<<")
-                if (s2 == '--' or s2 == '++' or s2 == '>>' or s2 == '<<') and \
+                if len(tmp) >= 2 and \
+                   (s2 == '--' or s2 == '++' or s2 == '>>' or s2 == '<<') and \
                    (c0 != c1) and \
                    (c3 != '\\' or re.match(NOT_ESCAPED + '..$', tmp)):
                     key = chars_state.get_key('')                       # 1.key
@@ -5434,7 +5438,7 @@ class LineDatum:
                 # FRAME
                 if (c == '[' and c0 == '|') or (c == '|' and c0 == ']'):
                     continue
-                if s2 == '[|' or s2 == '|]':
+                if len(tmp) >= 2 and (s2 == '[|' or s2 == '|]'):
                     key = chars_state.get_key('')                       # 1.key
                     end = str(i + 1) + '.' + str(j - 1)                 # 2.end
                     pane.tag_add(key, beg, end)                         # 3.tag
