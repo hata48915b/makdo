@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.29-18:07:31-JST>
+# Time-stamp:   <2025.01.30-07:43:29-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5921,16 +5921,16 @@ class Makdo:
         self.stb_r.pack(side='right', anchor='e')
         self._make_status_bar()
         # PANED WINDOW
-        self.pnd = tkinter.PanedWindow(self.win, bd=0, sashwidth=3,
-                                       orient='vertical')
-        self.pnd.pack(expand=True, fill='both', side='left', anchor='n')
-        self.pnd1 = tkinter.PanedWindow(self.pnd, bd=0, bg='#FF5D5D')  # 000
-        self.pnd2 = tkinter.PanedWindow(self.pnd, bd=0, bg='#BC7A00')  # 040
-        self.pnd3 = tkinter.PanedWindow(self.pnd, bd=0, bg='#758F00')  # 070
-        self.pnd4 = tkinter.PanedWindow(self.pnd, bd=0, bg='#00A586')  # 170
-        self.pnd5 = tkinter.PanedWindow(self.pnd, bd=0, bg='#7676FF')  # 240
-        self.pnd6 = tkinter.PanedWindow(self.pnd, bd=0, bg='#C75DFF')  # 280
-        self.pnd.add(self.pnd1)
+        self.pnd_r = tkinter.PanedWindow(self.win, bd=0, sashwidth=3,
+                                         orient='vertical')
+        self.pnd_r.pack(expand=True, fill='both', side='left', anchor='n')
+        self.pnd1 = tkinter.PanedWindow(self.pnd_r, bd=0, bg='#FF5D5D')  # 000
+        self.pnd2 = tkinter.PanedWindow(self.pnd_r, bd=0, bg='#BC7A00')  # 040
+        self.pnd3 = tkinter.PanedWindow(self.pnd_r, bd=0, bg='#758F00')  # 070
+        self.pnd4 = tkinter.PanedWindow(self.pnd_r, bd=0, bg='#00A586')  # 170
+        self.pnd5 = tkinter.PanedWindow(self.pnd_r, bd=0, bg='#7676FF')  # 240
+        self.pnd6 = tkinter.PanedWindow(self.pnd_r, bd=0, bg='#C75DFF')  # 280
+        self.pnd_r.add(self.pnd1)
         # MAIN TEXT
         self.txt = tkinter.Text(self.pnd1, undo=True)
         scb = tkinter.Scrollbar(self.pnd1, orient='vertical',
@@ -6435,26 +6435,26 @@ class Makdo:
 
     def _open_sub_pane(self, document, is_read_only, button_number=1) -> bool:
         self.sub_pane_is_read_only = is_read_only
-        if len(self.pnd.panes()) > 1:
+        if len(self.pnd_r.panes()) > 1:
             return False
         # self.quit_editing_formula()
         # self.close_memo_pad()
-        half_height = int(self.pnd.winfo_height() / 2) - 5
-        self.pnd.remove(self.pnd1)
-        self.pnd.remove(self.pnd2)
-        self.pnd.remove(self.pnd3)
-        self.pnd.remove(self.pnd4)
-        self.pnd.remove(self.pnd5)
-        self.pnd.remove(self.pnd6)
-        self.pnd.add(self.pnd1, height=half_height, minsize=100)
-        self.pnd.add(self.pnd2, height=half_height)
-        self.pnd.update()
+        half_height = int(self.pnd_r.winfo_height() / 2) - 5
+        self.pnd_r.remove(self.pnd1)
+        self.pnd_r.remove(self.pnd2)
+        self.pnd_r.remove(self.pnd3)
+        self.pnd_r.remove(self.pnd4)
+        self.pnd_r.remove(self.pnd5)
+        self.pnd_r.remove(self.pnd6)
+        self.pnd_r.add(self.pnd1, height=half_height, minsize=100)
+        self.pnd_r.add(self.pnd2, height=half_height)
+        self.pnd_r.update()
         self._put_back_cursor_to_pane(self.txt)
         self.txt.focus_force()
-        self.pnd.remove(self.pnd1)
-        self.pnd.remove(self.pnd2)
-        self.pnd.add(self.pnd1, height=half_height, minsize=100)
-        self.pnd.add(self.pnd2, height=half_height)
+        self.pnd_r.remove(self.pnd1)
+        self.pnd_r.remove(self.pnd2)
+        self.pnd_r.add(self.pnd1, height=half_height, minsize=100)
+        self.pnd_r.add(self.pnd2, height=half_height)
         self.sub_frm.pack(side='bottom')
         try:
             self.sub_btn1.destroy()
@@ -6494,7 +6494,7 @@ class Makdo:
         return True
 
     def _close_sub_pane(self) -> bool:
-        if len(self.pnd.panes()) == 1:
+        if len(self.pnd_r.panes()) == 1:
             return False
         self.quit_editing_formula()
         self.update_memo_pad()
@@ -6503,7 +6503,7 @@ class Makdo:
             self.bt3.destroy()
         except BaseException:
             pass
-        self.pnd.remove(self.pnd2)
+        self.pnd_r.remove(self.pnd2)
         #
         self.txt.focus_force()
         self.current_pane = 'txt'
@@ -7078,21 +7078,21 @@ class Makdo:
             self.convert_directly_on_mac()
 
     def convert_directly_on_non_mac(self):
-        if len(self.pnd.panes()) > 1:
+        if len(self.pnd_r.panes()) > 1:
             return False
         # self.quit_editing_formula()
         # self.close_memo_pad()
-        self.pnd.update()
-        half_height = int(self.pnd.winfo_height() / 2) - 5
-        self.pnd.remove(self.pnd1)
-        self.pnd.remove(self.pnd2)
-        self.pnd.remove(self.pnd3)
-        self.pnd.remove(self.pnd4)
-        self.pnd.remove(self.pnd5)
-        self.pnd.remove(self.pnd6)
-        self.pnd.add(self.pnd1, height=half_height, minsize=100)
-        self.pnd.add(self.pnd4, height=half_height)
-        # self.pnd.update()
+        self.pnd_r.update()
+        half_height = int(self.pnd_r.winfo_height() / 2) - 5
+        self.pnd_r.remove(self.pnd1)
+        self.pnd_r.remove(self.pnd2)
+        self.pnd_r.remove(self.pnd3)
+        self.pnd_r.remove(self.pnd4)
+        self.pnd_r.remove(self.pnd5)
+        self.pnd_r.remove(self.pnd6)
+        self.pnd_r.add(self.pnd1, height=half_height, minsize=100)
+        self.pnd_r.add(self.pnd4, height=half_height)
+        # self.pnd_r.update()
         #
         btn = tkinter.Button(self.pnd4, text='終了',
                              command=self._quit_converting_directly)
@@ -7142,7 +7142,7 @@ class Makdo:
         self.pool.insert('end', '\nここにmdファイル又はdocxファイルをドロップしてください\n')
 
     def _quit_converting_directly(self):
-        self.pnd.remove(self.pnd4)
+        self.pnd_r.remove(self.pnd4)
         self.txt.focus_set()
         self.current_pane = 'txt'
 
@@ -11241,7 +11241,7 @@ class Makdo:
     # SPLIT OR UNIFY WINDOW
 
     def split_window(self) -> bool:
-        if len(self.pnd.panes()) > 1:
+        if len(self.pnd_r.panes()) > 1:
             return False
         self._close_sub_pane()
         document = self.txt.get('1.0', 'end-1c')
@@ -11282,7 +11282,7 @@ class Makdo:
     # MDDIFF>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
     def compare_with_previous_draft(self) -> bool:
-        if len(self.pnd.panes()) > 1:
+        if len(self.pnd_r.panes()) > 1:
             return False
         importlib.reload(makdo.makdo_mddiff)
         text2 = self.init_text
@@ -11295,7 +11295,7 @@ class Makdo:
         return True
 
     def compare_files(self) -> bool:
-        if len(self.pnd.panes()) > 1:
+        if len(self.pnd_r.panes()) > 1:
             return False
         importlib.reload(makdo.makdo_mddiff)
         text2 = self._get_text_to_compare()
@@ -11370,19 +11370,19 @@ class Makdo:
         #
         # self.quit_editing_formula()
         # self.close_memo_pad()
-        self.pnd.update()
-        half_height = int(self.pnd.winfo_height() / 2) - 5
-        self.pnd.remove(self.pnd1)
-        self.pnd.remove(self.pnd2)
-        self.pnd.remove(self.pnd3)
-        self.pnd.remove(self.pnd4)
-        self.pnd.remove(self.pnd5)
-        self.pnd.remove(self.pnd6)
-        self.pnd.forget(self.pnd3)
-        self.pnd3 = tkinter.PanedWindow(self.pnd, bd=0, bg='#758F00')  # 070
-        self.pnd.add(self.pnd1, height=half_height, minsize=100)
-        self.pnd.add(self.pnd3, height=half_height)
-        # self.pnd.update()
+        self.pnd_r.update()
+        half_height = int(self.pnd_r.winfo_height() / 2) - 5
+        self.pnd_r.remove(self.pnd1)
+        self.pnd_r.remove(self.pnd2)
+        self.pnd_r.remove(self.pnd3)
+        self.pnd_r.remove(self.pnd4)
+        self.pnd_r.remove(self.pnd5)
+        self.pnd_r.remove(self.pnd6)
+        self.pnd_r.forget(self.pnd3)
+        self.pnd3 = tkinter.PanedWindow(self.pnd_r, bd=0, bg='#758F00')  # 070
+        self.pnd_r.add(self.pnd1, height=half_height, minsize=100)
+        self.pnd_r.add(self.pnd3, height=half_height)
+        # self.pnd_r.update()
         #
         background_color = self.background_color.get()
         if background_color == 'W':
@@ -11594,7 +11594,7 @@ class Makdo:
         return beg, end
 
     def _quit_diff(self):
-        self.pnd.remove(self.pnd3)
+        self.pnd_r.remove(self.pnd3)
         self.txt.focus_set()
         self.current_pane = 'txt'
 
