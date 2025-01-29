@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.29-16:31:07-JST>
+# Time-stamp:   <2025.01.29-17:11:26-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -12581,12 +12581,12 @@ class Makdo:
         # COLOR FONT
         if background_color == 'W':
             self.txt.config(bg='white', fg='black')
-            self.txt.tag_config('eol_tag', background='#CCCCCC')
-            self.txt.tag_config('eof_tag', background='#CCCCCC')
-            self.txt.tag_config('eol_and_eof_tag', background='#999999')
-            # self.sub.tag_config('eol_tag', background='#CCCCCC')
-            self.sub.tag_config('eof_tag', background='#CCCCCC')
-            # self.sub.tag_config('eol_and_eof_tag', background='#999999')
+            self.txt.tag_config('eol_tag', background='#EEEEEE')
+            self.txt.tag_config('eof_tag', background='#EEEEEE')
+            self.txt.tag_config('eol_and_eof_tag', background='#CCCCCC')
+            # self.sub.tag_config('eol_tag', background='#EEEEEE')
+            self.sub.tag_config('eof_tag', background='#EEEEEE')
+            # self.sub.tag_config('eol_and_eof_tag', background='#CCCCCC')
             self.txt.tag_config('akauni_tag', background='#CCCCCC')
             self.sub.tag_config('akauni_tag', background='#CCCCCC')
             self.txt.tag_config('hsp_tag', foreground='#C8C8FF',
@@ -12596,12 +12596,12 @@ class Makdo:
             self.txt.tag_config('tab_tag', background='#C9FFEC')  # (0.95, 160)
         elif background_color == 'B':
             self.txt.config(bg='black', fg='white')
-            self.txt.tag_config('eol_tag', background='#666666')
-            self.txt.tag_config('eof_tag', background='#666666')
-            self.txt.tag_config('eol_and_eof_tag', background='#CCCCCC')
-            # self.sub.tag_config('eol_tag', background='#666666')
-            self.sub.tag_config('eof_tag', background='#666666')
-            # self.sub.tag_config('eol_and_eof_tag', background='#CCCCCC')
+            self.txt.tag_config('eol_tag', background='#333333')
+            self.txt.tag_config('eof_tag', background='#333333')
+            self.txt.tag_config('eol_and_eof_tag', background='#666666')
+            # self.sub.tag_config('eol_tag', background='#333333')
+            self.sub.tag_config('eof_tag', background='#333333')
+            # self.sub.tag_config('eol_and_eof_tag', background='#666666')
             self.txt.tag_config('akauni_tag', background='#666666')
             self.sub.tag_config('akauni_tag', background='#666666')
             self.txt.tag_config('hsp_tag', foreground='#7676FF',
@@ -12611,12 +12611,12 @@ class Makdo:
             self.txt.tag_config('tab_tag', background='#005437')  # (0.25, 160)
         elif background_color == 'G':
             self.txt.config(bg='darkgreen', fg='lightyellow')  # 006400/FFFFE0
-            self.txt.tag_config('eol_tag', background='#339733')
-            self.txt.tag_config('eof_tag', background='#339733')
-            self.txt.tag_config('eol_and_eof_tag', background='#66CA66')
-            # self.sub.tag_config('eol_tag', background='#339733')
-            self.sub.tag_config('eof_tag', background='#339733')
-            # self.sub.tag_config('eol_and_eof_tag', background='#66CA66')
+            self.txt.tag_config('eol_tag', background='#117511')
+            self.txt.tag_config('eof_tag', background='#117511')
+            self.txt.tag_config('eol_and_eof_tag', background='#339733')
+            # self.sub.tag_config('eol_tag', background='#117511')
+            self.sub.tag_config('eof_tag', background='#117511')
+            # self.sub.tag_config('eol_and_eof_tag', background='#339733')
             self.txt.tag_config('akauni_tag', background='#888888')
             self.sub.tag_config('akauni_tag', background='#888888')
             self.txt.tag_config('hsp_tag', foreground='#7676FF',
