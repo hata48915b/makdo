@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.29-17:11:26-JST>
+# Time-stamp:   <2025.01.29-18:07:31-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -13858,20 +13858,42 @@ class Makdo:
             self.bt3.destroy()
         except BaseException:
             pass
+        # CLIPBOARD
+        try:
+            cb = self.win.clipboard_get()
+        except BaseException:
+            cb = ''
+        # SEPARATER
+        needs_separater = False
+        if pane.tag_ranges('sel') or 'akauni' in pane.mark_names():
+            needs_separater = True
+        if not self._is_read_only_pane(pane):
+            if cb != '' and self.rectangle_text_list != []:
+                needs_separater = True
+        # BUTTON
         self.bt3 = tkinter.Menu(self.win, tearoff=False)
+        if pane.tag_ranges('sel') or 'akauni' in pane.mark_names():
+            if not self._is_read_only_pane(pane):
+                self.bt3.add_command(label='切り取り',
+                                     command=self.cut_region)
+            self.bt3.add_command(label='コピー',
+                                 command=self.copy_region)
         if not self._is_read_only_pane(pane):
-            self.bt3.add_command(label='切り取り',
-                                 command=self.cut_region)
-        self.bt3.add_command(label='コピー',
-                             command=self.copy_region)
-        if not self._is_read_only_pane(pane):
-            try:
-                cb = self.win.clipboard_get()
-            except BaseException:
-                cb = ''
             if cb != '':
                 self.bt3.add_command(label='貼り付け',
                                      command=self.paste_region)
+        if needs_separater:
+            self.bt3.add_separator()
+        if pane.tag_ranges('sel') or 'akauni' in pane.mark_names():
+            if not self._is_read_only_pane(pane):
+                self.bt3.add_command(label='矩形の切り取り',
+                                     command=self.cut_rectangle)
+            self.bt3.add_command(label='矩形のコピー',
+                                 command=self.copy_rectangle)
+        if not self._is_read_only_pane(pane):
+            if self.rectangle_text_list != []:
+                self.bt3.add_command(label='矩形の貼り付け',
+                                     command=self.paste_rectangle)
         self.bt3.post(click.x_root, click.y_root)
 
     ####################################
