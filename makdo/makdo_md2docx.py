@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.27-13:28:32-JST>
+# Time-stamp:   <2025.01.29-15:10:34-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -3911,16 +3911,23 @@ class RawParagraph:
             = self._get_revisers(self.md_lines)
         self.full_text \
             = self._get_full_text(self.head_font_revisers, self.md_lines)
-        self.full_text_del = self._get_full_text_del(self.full_text)
-        self.full_text_ins = self._get_full_text_ins(self.full_text)
+        tmp_text = self.full_text
+        if '->' in self.head_font_revisers and '<-' in self.tail_font_revisers:
+            tmp_text = '->' + tmp_text + '<-'
+        if '+>' in self.head_font_revisers and '<+' in self.tail_font_revisers:
+            tmp_text = '+>' + tmp_text + '<+'
+        self.full_text_del = self._get_full_text_del(tmp_text)
+        self.full_text_ins = self._get_full_text_ins(tmp_text)
         self.md_lines, self.full_text, \
             self.head_font_revisers, self.tail_font_revisers \
             = self._isolate_head_and_tail_track_changes(
                 self.md_lines, self.full_text,
                 self.head_font_revisers, self.tail_font_revisers)
+        _, self.full_text \
+            = self._get_section_depth_setters(self.full_text)
         _, self.full_text_del \
             = self._get_section_depth_setters(self.full_text_del)
-        _, self.full_text_ins \
+        self.section_depth_setters, self.full_text_ins \
             = self._get_section_depth_setters(self.full_text_ins)
         self.paragraph_class = self._get_paragraph_class()
 
