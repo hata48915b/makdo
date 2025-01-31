@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.31-11:42:18-JST>
+# Time-stamp:   <2025.01.31-16:30:56-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -7428,7 +7428,11 @@ class Paragraph:
         elif paragraph_class == 'list':
             md_lines_text = LineTruncation(md_text).get_truncated_md_text()
         elif paragraph_class == 'alignment':
-            md_lines_text = LineTruncation(md_text).get_truncated_md_text()
+            md_lines_text = ''
+            for mt in md_text.split('\n'):
+                md_lines_text \
+                    += LineTruncation(mt).get_truncated_md_text() + '\n'
+            md_lines_text = re.sub('\n+$', '', md_lines_text)
         elif paragraph_class == 'sentence':
             md_lines_text = LineTruncation(md_text).get_truncated_md_text()
         else:
