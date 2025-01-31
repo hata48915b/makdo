@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.31-11:50:04-JST>
+# Time-stamp:   <2025.01.31-13:12:59-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -4367,17 +4367,11 @@ class OneWordDialog(tkinter.simpledialog.Dialog):
             return 'break'
 
     def entry_button0(self, click):
-        try:
-            self.mother.bt3.destroy()
-        except BaseException:
-            pass
+        self.close_mouse_menu()  # close mouse menu
         self.entry.focus_force()
 
     def entry_button3(self, click):
-        try:
-            self.mother.bt3.destroy()
-        except BaseException:
-            pass
+        self.close_mouse_menu()  # close mouse menu
         self.entry.focus_force()
         self.mother.bt3 = tkinter.Menu(self, tearoff=False)
         self.mother.bt3.add_command(label='貼り付け',
@@ -4509,24 +4503,15 @@ class TwoWordsDialog(tkinter.simpledialog.Dialog):
             return 'break'
 
     def entry1_button0(self, click):
-        try:
-            self.mother.bt3.destroy()
-        except BaseException:
-            pass
+        self.close_mouse_menu()  # close mouse menu
         self.entry1.focus_force()
 
     def entry2_button0(self, click):
-        try:
-            self.mother.bt3.destroy()
-        except BaseException:
-            pass
+        self.close_mouse_menu()  # close mouse menu
         self.entry2.focus_force()
 
     def entry1_button3(self, click):
-        try:
-            self.mother.bt3.destroy()
-        except BaseException:
-            pass
+        self.close_mouse_menu()  # close mouse menu
         self.entry1.focus_force()
         self.mother.bt3 = tkinter.Menu(self, tearoff=False)
         self.mother.bt3.add_command(label='貼り付け',
@@ -4534,10 +4519,7 @@ class TwoWordsDialog(tkinter.simpledialog.Dialog):
         self.mother.bt3.post(click.x_root, click.y_root)
 
     def entry2_button3(self, click):
-        try:
-            self.mother.bt3.destroy()
-        except BaseException:
-            pass
+        self.close_mouse_menu()  # close mouse menu
         self.entry2.focus_force()
         self.mother.bt3 = tkinter.Menu(self, tearoff=False)
         self.mother.bt3.add_command(label='貼り付け',
@@ -4598,17 +4580,11 @@ class PasswordDialog(tkinter.simpledialog.Dialog):
             return 'break'
 
     def entry_button0(self, click):
-        try:
-            self.mother.bt3.destroy()
-        except BaseException:
-            pass
+        self.close_mouse_menu()  # close mouse menu
         self.entry.focus_force()
 
     def entry_button3(self, click):
-        try:
-            self.mother.bt3.destroy()
-        except BaseException:
-            pass
+        self.close_mouse_menu()  # close mouse menu
         self.entry.focus_force()
         self.mother.bt3 = tkinter.Menu(self, tearoff=False)
         self.mother.bt3.add_command(label='貼り付け',
@@ -6509,10 +6485,7 @@ class Makdo:
         self.quit_editing_formula()
         self.update_memo_pad()
         self.memo_pad_memory = None
-        try:
-            self.bt3.destroy()
-        except BaseException:
-            pass
+        self.close_mouse_menu()  # close mouse menu
         self.pnd_r.remove(self.pnd2)
         #
         self.txt.focus_force()
@@ -13988,10 +13961,9 @@ class Makdo:
         return
 
     def txt_process_button1_release(self, click):
-        try:
-            self.bt3.destroy()
-        except BaseException:
-            pass
+        # CLOSE MOUSE MENU
+        self.close_mouse_menu()
+        # POSITION INFO
         self.set_position_info_on_status_bar()
         return 'break'
 
@@ -14001,10 +13973,8 @@ class Makdo:
         return
 
     def sub_process_button1_release(self, click):
-        try:
-            self.bt3.destroy()
-        except BaseException:
-            pass
+        # CLOSE MOUSE MENU
+        self.close_mouse_menu()
         return 'break'
 
     # MOUSE BUTTON CENTER
@@ -14013,10 +13983,8 @@ class Makdo:
         return 'break'
 
     def txt_process_button2_release(self, click):
-        try:
-            self.bt3.destroy()
-        except BaseException:
-            pass
+        # CLOSE MOUSE MENU
+        self.close_mouse_menu()
         # self.paste_region()
         return 'break'
 
@@ -14024,10 +13992,8 @@ class Makdo:
         return 'break'
 
     def sub_process_button2_release(self, click):
-        try:
-            self.bt3.destroy()
-        except BaseException:
-            pass
+        # CLOSE MOUSE MENU
+        self.close_mouse_menu()
         # self.paste_region()
         return 'break'
 
@@ -14048,10 +14014,8 @@ class Makdo:
         return 'break'
 
     def any_process_button3(self, pane, click):
-        try:
-            self.bt3.destroy()
-        except BaseException:
-            pass
+        # CLOSE MOUSE MENU
+        self.close_mouse_menu()
         # CLIPBOARD
         try:
             cb = self.win.clipboard_get()
@@ -14089,6 +14053,12 @@ class Makdo:
                 self.bt3.add_command(label='矩形の貼り付け',
                                      command=self.paste_rectangle)
         self.bt3.post(click.x_root, click.y_root)
+
+    def close_mouse_menu(self):
+        try:
+            self.bt3.destroy()
+        except BaseException:
+            pass
 
     ####################################
     # STATUS BAR
