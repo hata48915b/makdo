@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.31-14:12:24-JST>
+# Time-stamp:   <2025.01.31-14:37:54-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -12560,7 +12560,7 @@ class Makdo:
         if 'toc_lines' not in vars(self):
             self.toc_lines = []
         if self.toc_lines != lines:
-            fon = self.gothic_font
+            fon = self.gothic_font.copy()
             fon['weight'] = 'bold'
             if 'toc_frm' in vars(self):
                 self.toc_frm.destroy()
