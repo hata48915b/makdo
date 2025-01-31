@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.31-14:37:54-JST>
+# Time-stamp:   <2025.01.31-17:34:22-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -12548,6 +12548,12 @@ class Makdo:
         n = 1
         lines = []
         file_text = self.txt.get('1.0', 'end-1c')
+        if re.match('^<!--', file_text):
+            res = '^(<!--(?:.|\n)*?-->)((.|\n)*)$'
+            config = re.sub(res, '\\1', file_text)
+            conten = re.sub(res, '\\2', file_text)
+            config = re.sub('[^\n]', '', config)
+            file_text = config + conten
         for t in file_text.split('\n'):
             if re.match(res_chapter, t):
                 if not re.match(res_section + '\\\\?$', t):
@@ -14685,7 +14691,7 @@ class Makdo:
             if (n % 60_000) == 0:  # 1 / 60,000ms
                 self.save_auto_file(self.file_path)
             # TABLE OF CONTENTS
-            if (n % 1_000) == 0:  # 1 / 1,000ms
+            if (n % 500) == 0:     # 1 /    500ms
                 self.update_toc()
             # MEMO PAD
             if (n % 1_000) == 0:   # 1 /  1,000ms
