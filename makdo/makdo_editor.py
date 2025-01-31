@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.31-14:07:37-JST>
+# Time-stamp:   <2025.01.31-14:12:24-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -12576,11 +12576,11 @@ class Makdo:
                 if re.match(res_chapter, t):
                     h = re.sub(res_chapter + '.*$', '\\1', t)
                     if len(h) <= 5:
-                        fc = ccol[len(h)]
+                        fc = ccol[len(h) - 1]
                 elif re.match(res_section, t):
                     h = re.sub(res_section + '.*$', '\\1', t)
                     if len(h) <= 8:
-                        fc = scol[len(h)]
+                        fc = scol[len(h) - 1]
                 lbl = tkinter.Label(frm, text=' ', font=fon, bg=bc, fg=fcol)
                 lbl.pack(side='left')
                 btn = tkinter.Label(frm, text=(t + ' (' + str(n) + ')'),
