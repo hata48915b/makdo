@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.24-18:14:13-JST>
+# Time-stamp:   <2025.01.31-11:42:18-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -3056,7 +3056,7 @@ class FontDecorator:
            fr.font_width == '<<' and bk.font_width == '>>' or \
            fr.font_width == '>>' and bk.font_width == '<<' or \
            fr.font_width == '>>>' and bk.font_width == '<<<':
-             fr.font_width, bk.font_width = '', ''
+            fr.font_width, bk.font_width = '', ''
         if fr.italic == bk.italic:
             fr.italic, bk.italic = '', ''
         if fr.bold == bk.bold:
