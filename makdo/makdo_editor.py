@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.31-13:12:59-JST>
+# Time-stamp:   <2025.01.31-14:07:37-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6633,7 +6633,8 @@ class Makdo:
     # MENU FILE
 
     def _make_menu_file(self):
-        menu = tkinter.Menu(self.mnb, tearoff=False)
+        menu = tkinter.Menu(self.mnb, tearoff=False,
+                            postcommand=self.close_mouse_menu)
         self.mnb.add_cascade(label='ファイル(F)', menu=menu, underline=5)
         #
         menu.add_command(label='ファイルを開く(O)', underline=8,
@@ -7389,7 +7390,8 @@ class Makdo:
     # MENU EDIT
 
     def _make_menu_edit(self):
-        menu = tkinter.Menu(self.mnb, tearoff=False)
+        menu = tkinter.Menu(self.mnb, tearoff=False,
+                            postcommand=self.close_mouse_menu)
         self.mnb.add_cascade(label='編集(E)', menu=menu, underline=3)
         #
         menu.add_command(label='元に戻す(U)', underline=5,
@@ -8156,7 +8158,8 @@ class Makdo:
     # MENU INSERT
 
     def _make_menu_insert(self):
-        menu = tkinter.Menu(self.mnb, tearoff=False)
+        menu = tkinter.Menu(self.mnb, tearoff=False,
+                            postcommand=self.close_mouse_menu)
         self.mnb.add_cascade(label='挿入(I)', menu=menu, underline=3)
         #
         menu.add_command(label='コメントを挿入',
@@ -9573,7 +9576,8 @@ class Makdo:
     # MENU PARAGRAPH
 
     def _make_menu_paragraph(self):
-        menu = tkinter.Menu(self.mnb, tearoff=False)
+        menu = tkinter.Menu(self.mnb, tearoff=False,
+                            postcommand=self.close_mouse_menu)
         self.mnb.add_cascade(label='段落(P)', menu=menu, underline=3)
         #
         menu.add_command(label='段落の余白の長さを設定',
@@ -10710,7 +10714,8 @@ class Makdo:
     # MENU MOVE
 
     def _make_menu_move(self):
-        menu = tkinter.Menu(self.mnb, tearoff=False)
+        menu = tkinter.Menu(self.mnb, tearoff=False,
+                            postcommand=self.close_mouse_menu)
         self.mnb.add_cascade(label='移動(M)', menu=menu, underline=3)
         #
         menu.add_command(label='文頭に移動',
@@ -10894,6 +10899,9 @@ class Makdo:
             super().__init__(pane, title='行数・文字数を指定して移動')
 
         def body(self, pane):
+            i = self.pane.index('insert')
+            v = int(re.sub('\\.[0-9]+$', '', i))
+            h = int(re.sub('^[0-9]+\\.', '', i)) + 1
             fon = self.mother.gothic_font
             t = '行数・文字数を入力してください．\n'
             self.text1 = tkinter.Label(pane, text=t)
@@ -10902,9 +10910,11 @@ class Makdo:
             self.frame.pack(side='top')
             self.entry1 = tkinter.Entry(self.frame, width=7, font=fon)
             self.entry1.pack(side='left')
+            self.entry1.insert(0, str(v))
             tkinter.Label(self.frame, text='行目').pack(side='left')
             self.entry2 = tkinter.Entry(self.frame, width=7, font=fon)
             self.entry2.pack(side='left')
+            self.entry2.insert(0, str(h))
             tkinter.Label(self.frame, text='文字目').pack(side='left')
             # self.bind('<Key-Return>', self.ok)
             # self.bind('<Key-Escape>', self.cancel)
@@ -10922,13 +10932,15 @@ class Makdo:
                     ic = 1
                 ic -= 1
                 self.pane.mark_set('insert', str(il) + '.' + str(ic))
-                self._put_back_cursor_to_pane(self.pane)
+                self.mother._put_back_cursor_to_pane(self.pane)
+                self.pane.focus_force()
 
     ##########################
     # MENU TOOL
 
     def _make_menu_tool(self):
-        menu = tkinter.Menu(self.mnb, tearoff=False)
+        menu = tkinter.Menu(self.mnb, tearoff=False,
+                            postcommand=self.close_mouse_menu)
         self.mnb.add_cascade(label='ツール(T)', menu=menu, underline=4)
         #
         menu.add_command(label='定型句を挿入',
@@ -12379,7 +12391,8 @@ class Makdo:
     # MENU CONFIGURATION
 
     def _make_menu_configuration(self):
-        menu = tkinter.Menu(self.mnb, tearoff=False)
+        menu = tkinter.Menu(self.mnb, tearoff=False,
+                            postcommand=self.close_mouse_menu)
         self.mnb.add_cascade(label='設定(S)', menu=menu, underline=3)
         #
         self.is_toc_display_mode = tkinter.BooleanVar(value=False)
@@ -12497,6 +12510,9 @@ class Makdo:
                     '<5>', lambda e: cvs.yview_scroll(1, 'units'))
             self.toc_cvs = cvs
             self.toc_cvs_frm = cvs_frm
+            self.toc_cvs.bind('<Button-1>', self.close_mouse_menu)
+            self.toc_cvs.bind('<Button-2>', self.close_mouse_menu)
+            self.toc_cvs.bind('<Button-3>', self.close_mouse_menu)
             self.update_toc()
         else:
             self.toc_cvs.destroy()
@@ -12595,6 +12611,7 @@ class Makdo:
                 # self.toc_btns[i]['bg'] = bcol
 
     def _goto_toc_line(self, event):
+        self.close_mouse_menu()
         text = event.widget['text']
         line = re.sub('^.*\\(([0-9]+)\\)$', '\\1', text)
         self.txt.mark_set('insert', line + '.0')
@@ -12979,7 +12996,8 @@ class Makdo:
     # MENU INTERNET
 
     def _make_menu_internet(self):
-        menu = tkinter.Menu(self.mnb, tearoff=False)
+        menu = tkinter.Menu(self.mnb, tearoff=False,
+                            postcommand=self.close_mouse_menu)
         self.mnb.add_cascade(label='ネット(N)', menu=menu, underline=4)
         #
         menu.add_command(label='最新のMakdoを確認',
@@ -13152,7 +13170,8 @@ class Makdo:
     ##########################
 
     def _make_menu_special(self):
-        menu = tkinter.Menu(self.mnb, tearoff=False)
+        menu = tkinter.Menu(self.mnb, tearoff=False,
+                            postcommand=self.close_mouse_menu)
         self.mnb.add_cascade(label='裏の技(Z)', menu=menu, underline=3)
         #
         menu.add_command(label='取引履歴の見本を挿入',
@@ -13232,7 +13251,8 @@ class Makdo:
     # MENU HELP
 
     def _make_menu_help(self):
-        menu = tkinter.Menu(self.mnb, tearoff=False)
+        menu = tkinter.Menu(self.mnb, tearoff=False,
+                            postcommand=self.close_mouse_menu)
         self.mnb.add_cascade(label='ヘルプ(H)', menu=menu, underline=4)
         #
         menu.add_command(label='文字情報',
@@ -14054,7 +14074,7 @@ class Makdo:
                                      command=self.paste_rectangle)
         self.bt3.post(click.x_root, click.y_root)
 
-    def close_mouse_menu(self):
+    def close_mouse_menu(self, event=None):
         try:
             self.bt3.destroy()
         except BaseException:
@@ -14154,6 +14174,8 @@ class Makdo:
         self.stb_sor2 = tkinter.Entry(self.stb_r, width=20)
         self.stb_sor2.pack(side='left')
         self.stb_sor2.bind('<Key>', self.sor2_key)
+        self.stb_sor2.bind('<Button-1>', self.sor2_button0)
+        self.stb_sor2.bind('<Button-2>', self.sor2_button0)
         self.stb_sor2.bind('<Button-3>', self.sor2_button3)
         self.stb_sor3 \
             = tkinter.Button(self.stb_r, text='前',
@@ -14233,17 +14255,11 @@ class Makdo:
             return 'break'
 
     def sor1_button0(self, click):
-        try:
-            self.bt3.destroy()
-        except BaseException:
-            pass
+        self.close_mouse_menu()  # close mouse menu
         self.stb_sor1.focus_force()
 
     def sor1_button3(self, click):
-        try:
-            self.bt3.destroy()
-        except BaseException:
-            pass
+        self.close_mouse_menu()  # close mouse menu
         self.stb_sor1.focus_force()
         self.bt3 = tkinter.Menu(self.win, tearoff=False)
         self.bt3.add_command(label='貼り付け',
@@ -14251,17 +14267,11 @@ class Makdo:
         self.bt3.post(click.x_root, click.y_root)
 
     def sor2_button0(self, click):
-        try:
-            self.bt3.destroy()
-        except BaseException:
-            pass
+        self.close_mouse_menu()  # close mouse menu
         self.stb_sor2.focus_force()
 
     def sor2_button3(self, click):
-        try:
-            self.bt3.destroy()
-        except BaseException:
-            pass
+        self.close_mouse_menu()  # close mouse menu
         self.stb_sor2.focus_force()
         self.bt3 = tkinter.Menu(self.win, tearoff=False)
         self.bt3.add_command(label='貼り付け',
