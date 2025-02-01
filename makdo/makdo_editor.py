@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.01-09:43:57-JST>
+# Time-stamp:   <2025.02.01-10:14:30-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5842,6 +5842,7 @@ class Makdo:
         self.temp_dir = tempfile.TemporaryDirectory()
         self.file_path = self.args_input_file
         self.init_text = ''
+        self.saved_text = ''
         self.file_lines = []
         self.has_made_backup_file = False
         self.line_data = []
@@ -6699,6 +6700,7 @@ class Makdo:
         if self.exists_auto_file(file_path):
             self.file_path = ''
             self.init_text = ''
+            self.saved_text = ''
             self.file_lines = []
             return
         if re.match('^(?:.|\n)+.docx$', file_path):
@@ -6708,12 +6710,12 @@ class Makdo:
         if document is None:
             self.file_path = None
             return
-        init_text = document
         self.file_path = file_path
-        self.init_text = init_text
-        self.file_lines = init_text.split('\n')
+        self.init_text = document
+        self.saved_text = document
+        self.file_lines = document.split('\n')
         # self.txt.delete('1.0', 'end')
-        self.txt.insert('1.0', init_text)
+        self.txt.insert('1.0', document)
         self.txt.focus_set()
         self.current_pane = 'txt'
         self.txt.mark_set('insert', '1.0')
@@ -6773,6 +6775,7 @@ class Makdo:
         self.remove_auto_file(self.file_path)
         self.file_path = None
         self.init_text = ''
+        self.saved_text = ''
         self.txt.delete('1.0', 'end')
         self.win.title('MAKDO')
         self.set_file_name_on_status_bar('')
@@ -6788,10 +6791,10 @@ class Makdo:
         file_text = self.get_fully_unfolded_document(file_text, must_warn)
         # REMOVED 24.11.13 >
         # if file_text != '':
-        #     if self.init_text != file_text:
+        #     if self.saved_text != file_text:
         #         return True
         # <
-        if file_text == self.init_text:
+        if file_text == self.saved_text:
             return False
         return True
 
@@ -6877,7 +6880,7 @@ class Makdo:
                 tkinter.messagebox.showwarning(n, msg)
                 # return
         self.set_message_on_status_bar('保存しました')
-        self.init_text = file_text
+        self.saved_text = file_text
         # RETURN
         return True
 
@@ -6898,7 +6901,6 @@ class Makdo:
                 tit = re.sub(tit_res, '\\2', line)
                 if tit == '':
                     beg = str(i + 1) + '.' + str(len(cfg))
-                    now = datetime.datetime.now()
                     unix_time = datetime.datetime.timestamp(now)
                     self.txt.insert(beg, hex(int(unix_time * 1000000)))
                     if not re.match('^.*\\s$', cfg):
@@ -6950,7 +6952,7 @@ class Makdo:
             file_path += '.md'
         self.remove_auto_file(self.file_path)
         self.file_path = file_path
-        self.init_text = ''
+        self.saved_text = ''
         self._set_file_name(file_path)
         self.save_file()
         return True
@@ -6966,7 +6968,7 @@ class Makdo:
             file_path += '.docx'
         self.remove_auto_file(self.file_path)
         self.file_path = file_path
-        self.init_text = ''
+        self.saved_text = ''
         self._set_file_name(file_path)
         self.save_file()
         return True
