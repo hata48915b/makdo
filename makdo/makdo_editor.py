@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.01-10:14:30-JST>
+# Time-stamp:   <2025.02.01-17:05:01-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6614,6 +6614,31 @@ class Makdo:
         self.set_message_on_status_bar('外部アプリの起動に失敗しました')
         return False
 
+    # It is unclear why this process is necessary.
+    def scroll_by_mouse_wheel(self, event):
+        ex, ey = event.x_root, event.y_root
+        if ('cmp_cvs' in vars(self)) and self.cmp_cvs.winfo_exists():
+            ox, oy = self.cmp_cvs.winfo_rootx(), self.cmp_cvs.winfo_rooty()
+            sx, sy = self.cmp_cvs.winfo_width(), self.cmp_cvs.winfo_height()
+            if (ox <= ex and ex <= ox + sx) and (oy <= ey and ey <= oy + sy):
+                self._scroll_by_mouse_wheel(self.cmp_cvs, event)
+        if ('toc_cvs' in vars(self)) and self.toc_cvs.winfo_exists():
+            ox, oy = self.toc_cvs.winfo_rootx(), self.toc_cvs.winfo_rooty()
+            sx, sy = self.toc_cvs.winfo_width(), self.toc_cvs.winfo_height()
+            if (ox <= ex and ex <= ox + sx) and (oy <= ey and ey <= oy + sy):
+                self._scroll_by_mouse_wheel(self.toc_cvs, event)
+
+    def _scroll_by_mouse_wheel(self, canvas, event):
+        if sys.platform == 'win32':
+            canvas.yview_scroll(- int(event.delta / 120), 'units')
+        elif sys.platform == 'darwin':
+            canvas.yview_scroll(- int(event.delta / 120), 'units')
+        elif sys.platform == 'linux':
+            if event.num == 4:
+                canvas.yview_scroll(-1, 'units')
+            elif event.num == 5:
+                canvas.yview_scroll(+1, 'units')
+
     ####################################
     # MENU
 
@@ -11403,22 +11428,32 @@ class Makdo:
         cvs_frm.bind(
             '<Configure>',
             lambda e: cvs.configure(scrollregion=cvs.bbox('all')))
+        cvs.bind('<Button-1>', self.cmp_process_button1)
+        cvs.bind('<Button-2>', self.close_mouse_menu)
+        cvs.bind('<Button-3>', self.close_mouse_menu)
         cvs_frm.bind('<Escape>', lambda e: self._quit_diff())
         cvs_frm.bind('<Up>', lambda e: cvs.yview_scroll(-1, 'units'))
         cvs_frm.bind('<Down>', lambda e: cvs.yview_scroll(1, 'units'))
         cvs_frm.bind('<Prior>', lambda e: cvs.yview_scroll(-10, 'units'))
         cvs_frm.bind('<Next>', lambda e: cvs.yview_scroll(10, 'units'))
         if sys.platform == 'win32':
-            cvs_frm.bind_all(
-                '<MouseWheel>',
-                lambda e: cvs.yview_scroll(- int(e.delta / 100), 'units'))
+            cvs_frm.bind_all('<MouseWheel>', self.scroll_by_mouse_wheel)
         elif sys.platform == 'darwin':
-            cvs_frm.bind_all(
-                '<MouseWheel>',
-                lambda e: cvs.yview_scroll(- int(e.delta / 120), 'units'))
+            cvs_frm.bind_all('<MouseWheel>', self.scroll_by_mouse_wheel)
         elif sys.platform == 'linux':
-            cvs_frm.bind_all('<4>', lambda e: cvs.yview_scroll(-1, 'units'))
-            cvs_frm.bind_all('<5>', lambda e: cvs.yview_scroll(1, 'units'))
+            cvs_frm.bind_all('<Button-4>', self.scroll_by_mouse_wheel)
+            cvs_frm.bind_all('<Button-5>', self.scroll_by_mouse_wheel)
+        # if sys.platform == 'win32':
+        #     cvs_frm.bind_all(
+        #         '<MouseWheel>',
+        #         lambda e: cvs.yview_scroll(- int(e.delta / 100), 'units'))
+        # elif sys.platform == 'darwin':
+        #     cvs_frm.bind_all(
+        #         '<MouseWheel>',
+        #         lambda e: cvs.yview_scroll(- int(e.delta / 120), 'units'))
+        # elif sys.platform == 'linux':
+        #     cvs_frm.bind_all('<4>', lambda e: cvs.yview_scroll(-1, 'units'))
+        #     cvs_frm.bind_all('<5>', lambda e: cvs.yview_scroll(+1, 'units'))
         btn = tkinter.Button(self.pnd3, text='終了', command=self._quit_diff)
         btn.pack(side='bottom')
         self.btns = []
@@ -11471,8 +11506,32 @@ class Makdo:
             btn2.pack(side='left', anchor='n')
             btn3.pack(side='left', anchor='n')
             btn9.pack(side='left', anchor='n')
+            frm0.bind('<Button-1>', self.cmp_process_button1)
+            frm0.bind('<Button-2>', self.close_mouse_menu)
+            frm0.bind('<Button-3>', self.close_mouse_menu)
+            frm1.bind('<Button-1>', self.cmp_process_button1)
+            frm1.bind('<Button-2>', self.close_mouse_menu)
+            frm1.bind('<Button-3>', self.close_mouse_menu)
+            frm2.bind('<Button-1>', self.cmp_process_button1)
+            frm2.bind('<Button-2>', self.close_mouse_menu)
+            frm2.bind('<Button-3>', self.close_mouse_menu)
+            frm3.bind('<Button-1>', self.cmp_process_button1)
+            frm3.bind('<Button-2>', self.close_mouse_menu)
+            frm3.bind('<Button-3>', self.close_mouse_menu)
+            head_lbl.bind('<Button-1>', self.cmp_process_button1)
+            head_lbl.bind('<Button-2>', self.close_mouse_menu)
+            head_lbl.bind('<Button-3>', self.close_mouse_menu)
+            diff_lbl.bind('<Button-1>', self.cmp_process_button1)
+            diff_lbl.bind('<Button-2>', self.close_mouse_menu)
+            diff_lbl.bind('<Button-3>', self.close_mouse_menu)
         self._put_back_cursor_to_pane(self.txt)
         cvs_frm.focus_force()
+        self.cmp_cvs = cvs
+        self.cmp_cvs_frm = cvs_frm
+
+    def cmp_process_button1(self, event):
+        self.close_mouse_menu()
+        self.cmp_cvs.focus_force()
 
     def _apply_diff(self, frame, diff_id, comp):
         def x():
@@ -12472,30 +12531,40 @@ class Makdo:
         cvs_frm.bind(
             '<Configure>',
             lambda e: cvs.configure(scrollregion=cvs.bbox('all')))
+        cvs_frm.bind('<Tab>', self._jump_to_another_pane)
+        cvs.bind('<Button-1>', self.toc_process_button1)
+        cvs.bind('<Button-2>', self.close_mouse_menu)
+        cvs.bind('<Button-3>', self.close_mouse_menu)
         cvs_frm.bind('<Up>', lambda e: cvs.yview_scroll(-1, 'units'))
         cvs_frm.bind('<Down>', lambda e: cvs.yview_scroll(1, 'units'))
         cvs_frm.bind('<Prior>', lambda e: cvs.yview_scroll(-10, 'units'))
         cvs_frm.bind('<Next>', lambda e: cvs.yview_scroll(10, 'units'))
         if sys.platform == 'win32':
-            cvs_frm.bind_all(
-                '<MouseWheel>',
-                lambda e: cvs.yview_scroll(- int(e.delta / 100), 'units'))
+            cvs_frm.bind_all('<MouseWheel>', self.scroll_by_mouse_wheel)
         elif sys.platform == 'darwin':
-            cvs_frm.bind_all(
-                '<MouseWheel>',
-                lambda e: cvs.yview_scroll(- int(e.delta / 120), 'units'))
+            cvs_frm.bind_all('<MouseWheel>', self.scroll_by_mouse_wheel)
         elif sys.platform == 'linux':
-            cvs_frm.bind_all(
-                '<4>', lambda e: cvs.yview_scroll(-1, 'units'))
-            cvs_frm.bind_all(
-                '<5>', lambda e: cvs.yview_scroll(1, 'units'))
+            cvs_frm.bind_all('<Button-4>', self.scroll_by_mouse_wheel)
+            cvs_frm.bind_all('<Button-5>', self.scroll_by_mouse_wheel)
+        # if sys.platform == 'win32':
+        #     cvs_frm.bind_all(
+        #         '<MouseWheel>',
+        #         lambda e: cvs.yview_scroll(- int(e.delta / 100), 'units'))
+        # elif sys.platform == 'darwin':
+        #     cvs_frm.bind_all(
+        #         '<MouseWheel>',
+        #         lambda e: cvs.yview_scroll(- int(e.delta / 120), 'units'))
+        # elif sys.platform == 'linux':
+        #     cvs_frm.bind_all('<4>', lambda e: cvs.yview_scroll(-1, 'units'))
+        #     cvs_frm.bind_all('<5>', lambda e: cvs.yview_scroll(+1, 'units'))
         self.toc_cvs = cvs
         self.toc_cvs_frm = cvs_frm
-        self.toc_cvs.bind('<Button-1>', self.close_mouse_menu)
-        self.toc_cvs.bind('<Button-2>', self.close_mouse_menu)
-        self.toc_cvs.bind('<Button-3>', self.close_mouse_menu)
         self.update_toc()
         self.pnd.add(self.pnd_r, minsize=100)
+
+    def toc_process_button1(self, event):
+        self.close_mouse_menu()
+        self.toc_cvs_frm.focus_force()
 
     def remove_toc(self):
         if 'toc_cvs' not in vars(self):
@@ -12611,6 +12680,7 @@ class Makdo:
         self.txt.mark_set('insert', line + '.0')
         self.update_toc()
         self.txt.focus_force()
+        self._put_back_cursor_to_pane(self.txt)
 
     ################
     # SUBMENU BACKGROUND COLOR
