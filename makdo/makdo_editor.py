@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.01-09:25:03-JST>
+# Time-stamp:   <2025.02.01-09:43:57-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5935,8 +5935,6 @@ class Makdo:
         self.sub_scb = tkinter.Scrollbar(self.pnd2, orient='vertical',
                                          command=self.sub.yview)
         self.sub_frm = tkinter.Frame(self.pnd2)
-        # TABLE OF CONTENTS
-        self.settle_or_remove_toc()
         # FONT
         families = tkinter.font.families()
         self.gothic_font = None
@@ -5993,6 +5991,8 @@ class Makdo:
             self.show_first_help_message()
         self.txt.focus_set()
         self.current_pane = 'txt'
+        # TABLE OF CONTENTS
+        self.settle_or_remove_toc()
         # RUN PERIODICALLY
         self.run_periodically()
         # LOOP
@@ -12449,22 +12449,19 @@ class Makdo:
             self.remove_toc()
 
     def settle_toc(self):
-        #cols = self.colors
+        if 'toc_cvs' in vars(self):
+            return
+        if 'colors' not in vars(self):
+            return
+        cols = self.colors
         self.pnd.remove(self.pnd_l)
         self.pnd.remove(self.pnd_r)
         self.pnd.update()
         width = int(self.pnd.winfo_width() / 5)
         self.pnd.add(self.pnd_l, minsize=100, width=width)
         background_color = self.background_color.get()
-        if background_color == 'W':
-            cvs = tkinter.Canvas(self.pnd_l, bg='white')
-            cvs_frm = tkinter.Frame(cvs, bg='white')
-        elif background_color == 'B':
-            cvs = tkinter.Canvas(self.pnd_l, bg='black')
-            cvs_frm = tkinter.Frame(cvs, bg='black')
-        elif background_color == 'G':
-            cvs = tkinter.Canvas(self.pnd_l, bg='darkgreen')
-            cvs_frm = tkinter.Frame(cvs, bg='darkgreen')
+        cvs = tkinter.Canvas(self.pnd_l, bg=cols['bg'])
+        cvs_frm = tkinter.Frame(cvs, bg=cols['bg'])
         cvs.pack(expand=True, fill='both', anchor='w')
         scb = tkinter.Scrollbar(cvs, orient='vertical', command=cvs.yview)
         scb.pack(side='right', fill='y')
@@ -12499,11 +12496,12 @@ class Makdo:
         self.pnd.add(self.pnd_r, minsize=100)
 
     def remove_toc(self):
+        if 'toc_cvs' not in vars(self):
+            return
         self.pnd.remove(self.pnd_l)
         self.pnd.remove(self.pnd_r)
-        if 'toc_cvs' in vars(self):
-            self.toc_cvs.destroy()
-            del self.toc_cvs
+        self.toc_cvs.destroy()
+        del self.toc_cvs
         self.toc_lines = []
         self.pnd.add(self.pnd_r, minsize=100)
 
@@ -12851,8 +12849,10 @@ class Makdo:
                                             foreground=col, underline=und)
         is_toc_display_mode = self.is_toc_display_mode.get()
         if is_toc_display_mode:
-            self.remove_toc()
-            self.settle_toc()
+            if 'toc_cvs' in vars(self):
+                self.remove_toc()
+            if 'toc_cvs' not in vars(self):
+                self.settle_toc()
 
     ################
     # SUBMENU DIGIT SEPARATOR
