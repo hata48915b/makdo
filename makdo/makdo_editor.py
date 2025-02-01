@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.31-17:34:22-JST>
+# Time-stamp:   <2025.02.01-09:25:03-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5936,7 +5936,7 @@ class Makdo:
                                          command=self.sub.yview)
         self.sub_frm = tkinter.Frame(self.pnd2)
         # TABLE OF CONTENTS
-        self.display_or_remove_toc()
+        self.settle_or_remove_toc()
         # FONT
         families = tkinter.font.families()
         self.gothic_font = None
@@ -11356,6 +11356,7 @@ class Makdo:
         return document
 
     def _compare_files_loop(self, para2):
+        cols = self.colors
         text1 = self.txt.get('1.0', 'end-1c')
         file1 = makdo.makdo_mddiff.File()
         file1.set_up_from_text(text1)
@@ -11390,16 +11391,8 @@ class Makdo:
         self.pnd_r.add(self.pnd3, height=half_height, minsize=100)
         # self.pnd_r.update()
         #
-        background_color = self.background_color.get()
-        if background_color == 'W':
-            cvs = tkinter.Canvas(self.pnd3, bg='white')
-            cvs_frm = tkinter.Frame(cvs, bg='white')
-        elif background_color == 'B':
-            cvs = tkinter.Canvas(self.pnd3, bg='black')
-            cvs_frm = tkinter.Frame(cvs, bg='black')
-        elif background_color == 'G':
-            cvs = tkinter.Canvas(self.pnd3, bg='darkgreen')
-            cvs_frm = tkinter.Frame(cvs, bg='darkgreen')
+        cvs = tkinter.Canvas(self.pnd3, bg=cols['bg'])
+        cvs_frm = tkinter.Frame(cvs, bg=cols['bg'])
         cvs.pack(expand=True, fill='both', anchor='w')
         scb = tkinter.Scrollbar(cvs, orient='vertical', command=cvs.yview)
         scb.pack(side='right', fill='y')
@@ -11455,30 +11448,13 @@ class Makdo:
                                      font=head_font, justify='left')
             diff_lbl = tkinter.Label(frm3, text=diff_text,
                                      font=diff_font, justify='left')
-            if background_color == 'W':
-                frm0.configure(bg='white')
-                frm1.configure(bg='white')
-                frm2.configure(bg='white')
-                frm3.configure(bg='white')
-                btn9.configure(bg='white')
-                head_lbl.configure(bg='white', fg='#BC7A00')  # 0.5/040
-                diff_lbl.configure(bg='white', fg='black')
-            elif background_color == 'B':
-                frm0.configure(bg='black')
-                frm1.configure(bg='black')
-                frm2.configure(bg='black')
-                frm3.configure(bg='black')
-                btn9.configure(bg='black')
-                head_lbl.configure(bg='black', fg='#FFAC10')  # 0.7/040
-                diff_lbl.configure(bg='black', fg='white')
-            elif background_color == 'G':
-                frm0.configure(bg='darkgreen')
-                frm1.configure(bg='darkgreen')
-                frm2.configure(bg='darkgreen')
-                frm3.configure(bg='darkgreen')
-                btn9.configure(bg='darkgreen')
-                head_lbl.configure(bg='darkgreen', fg='#FFAC10')  # 0.7/040
-                diff_lbl.configure(bg='darkgreen', fg='lightyellow')
+            frm0.configure(bg=cols['bg'])
+            frm1.configure(bg=cols['bg'])
+            frm2.configure(bg=cols['bg'])
+            frm3.configure(bg=cols['bg'])
+            btn9.configure(bg=cols['bg'])
+            head_lbl.configure(bg=cols['bg'], fg=cols['sc'][1])
+            diff_lbl.configure(bg=cols['bg'], fg=cols['fg'])
             frm0.pack(expand=True, side='top', anchor='w', fill='x')
             # frm1.pack(expand=True, side='top', anchor='w', fill='x')
             # btn1.pack(side='left')
@@ -12400,7 +12376,7 @@ class Makdo:
             self.is_toc_display_mode = tkinter.BooleanVar(value=True)
         menu.add_checkbutton(label='目次を表示',
                              variable=self.is_toc_display_mode,
-                             command=self.display_or_remove_toc)
+                             command=self.settle_or_remove_toc)
         menu.add_separator()
         #
         self.is_read_only = tkinter.BooleanVar(value=False)
@@ -12465,129 +12441,141 @@ class Makdo:
     ################
     # COMMAND
 
-    def display_or_remove_toc(self):
+    def settle_or_remove_toc(self):
         is_toc_display_mode = self.is_toc_display_mode.get()
+        if is_toc_display_mode:
+            self.settle_toc()
+        else:
+            self.remove_toc()
+
+    def settle_toc(self):
+        #cols = self.colors
         self.pnd.remove(self.pnd_l)
         self.pnd.remove(self.pnd_r)
-        if is_toc_display_mode:
-            self.pnd.update()
-            width = int(self.pnd.winfo_width() / 4)
-            self.pnd.add(self.pnd_l, minsize=100, width=width)
-            background_color = self.background_color.get()
-            if background_color == 'W':
-                cvs = tkinter.Canvas(self.pnd_l, bg='white')
-                cvs_frm = tkinter.Frame(cvs, bg='white')
-            elif background_color == 'B':
-                cvs = tkinter.Canvas(self.pnd_l, bg='black')
-                cvs_frm = tkinter.Frame(cvs, bg='black')
-            elif background_color == 'G':
-                cvs = tkinter.Canvas(self.pnd_l, bg='darkgreen')
-                cvs_frm = tkinter.Frame(cvs, bg='darkgreen')
-            cvs.pack(expand=True, fill='both', anchor='w')
-            scb = tkinter.Scrollbar(cvs, orient='vertical', command=cvs.yview)
-            scb.pack(side='right', fill='y')
-            cvs['yscrollcommand'] = scb.set
-            cvs.create_window((0, 0), window=cvs_frm, anchor='nw')
-            cvs_frm.bind(
-                '<Configure>',
-                lambda e: cvs.configure(scrollregion=cvs.bbox('all')))
-            cvs_frm.bind('<Up>', lambda e: cvs.yview_scroll(-1, 'units'))
-            cvs_frm.bind('<Down>', lambda e: cvs.yview_scroll(1, 'units'))
-            cvs_frm.bind('<Prior>', lambda e: cvs.yview_scroll(-10, 'units'))
-            cvs_frm.bind('<Next>', lambda e: cvs.yview_scroll(10, 'units'))
-            if sys.platform == 'win32':
-                cvs_frm.bind_all(
-                    '<MouseWheel>',
-                    lambda e: cvs.yview_scroll(- int(e.delta / 100), 'units'))
-            elif sys.platform == 'darwin':
-                cvs_frm.bind_all(
-                    '<MouseWheel>',
-                    lambda e: cvs.yview_scroll(- int(e.delta / 120), 'units'))
-            elif sys.platform == 'linux':
-                cvs_frm.bind_all(
-                    '<4>', lambda e: cvs.yview_scroll(-1, 'units'))
-                cvs_frm.bind_all(
-                    '<5>', lambda e: cvs.yview_scroll(1, 'units'))
-            self.toc_cvs = cvs
-            self.toc_cvs_frm = cvs_frm
-            self.toc_cvs.bind('<Button-1>', self.close_mouse_menu)
-            self.toc_cvs.bind('<Button-2>', self.close_mouse_menu)
-            self.toc_cvs.bind('<Button-3>', self.close_mouse_menu)
-            self.update_toc()
-        else:
+        self.pnd.update()
+        width = int(self.pnd.winfo_width() / 5)
+        self.pnd.add(self.pnd_l, minsize=100, width=width)
+        background_color = self.background_color.get()
+        if background_color == 'W':
+            cvs = tkinter.Canvas(self.pnd_l, bg='white')
+            cvs_frm = tkinter.Frame(cvs, bg='white')
+        elif background_color == 'B':
+            cvs = tkinter.Canvas(self.pnd_l, bg='black')
+            cvs_frm = tkinter.Frame(cvs, bg='black')
+        elif background_color == 'G':
+            cvs = tkinter.Canvas(self.pnd_l, bg='darkgreen')
+            cvs_frm = tkinter.Frame(cvs, bg='darkgreen')
+        cvs.pack(expand=True, fill='both', anchor='w')
+        scb = tkinter.Scrollbar(cvs, orient='vertical', command=cvs.yview)
+        scb.pack(side='right', fill='y')
+        cvs['yscrollcommand'] = scb.set
+        cvs.create_window((0, 0), window=cvs_frm, anchor='nw')
+        cvs_frm.bind(
+            '<Configure>',
+            lambda e: cvs.configure(scrollregion=cvs.bbox('all')))
+        cvs_frm.bind('<Up>', lambda e: cvs.yview_scroll(-1, 'units'))
+        cvs_frm.bind('<Down>', lambda e: cvs.yview_scroll(1, 'units'))
+        cvs_frm.bind('<Prior>', lambda e: cvs.yview_scroll(-10, 'units'))
+        cvs_frm.bind('<Next>', lambda e: cvs.yview_scroll(10, 'units'))
+        if sys.platform == 'win32':
+            cvs_frm.bind_all(
+                '<MouseWheel>',
+                lambda e: cvs.yview_scroll(- int(e.delta / 100), 'units'))
+        elif sys.platform == 'darwin':
+            cvs_frm.bind_all(
+                '<MouseWheel>',
+                lambda e: cvs.yview_scroll(- int(e.delta / 120), 'units'))
+        elif sys.platform == 'linux':
+            cvs_frm.bind_all(
+                '<4>', lambda e: cvs.yview_scroll(-1, 'units'))
+            cvs_frm.bind_all(
+                '<5>', lambda e: cvs.yview_scroll(1, 'units'))
+        self.toc_cvs = cvs
+        self.toc_cvs_frm = cvs_frm
+        self.toc_cvs.bind('<Button-1>', self.close_mouse_menu)
+        self.toc_cvs.bind('<Button-2>', self.close_mouse_menu)
+        self.toc_cvs.bind('<Button-3>', self.close_mouse_menu)
+        self.update_toc()
+        self.pnd.add(self.pnd_r, minsize=100)
+
+    def remove_toc(self):
+        self.pnd.remove(self.pnd_l)
+        self.pnd.remove(self.pnd_r)
+        if 'toc_cvs' in vars(self):
             self.toc_cvs.destroy()
-            self.toc_lines = []
+            del self.toc_cvs
+        self.toc_lines = []
         self.pnd.add(self.pnd_r, minsize=100)
 
     def update_toc(self):
+        res_chapter = '^(\\$+)(-\\$+)*'
+        res_section = '^(#+)(-#+)*'
         # CONFIRM
         is_toc_display_mode = self.is_toc_display_mode.get()
         if not is_toc_display_mode:
             return
         # COLOR
-        background_color = self.background_color.get()
-        cp = COLOR_SPACE
-        if background_color == 'W':
-            bcol, icol, fcol = 'white', '#CCCCCC', 'black'
-            ccol = [cp[21][1], cp[22][1], cp[23][1], cp[24][1], cp[25][1]]
-            scol = [cp[3][1], cp[4][1], cp[5][1], cp[6][1],
-                    cp[7][1], cp[8][1], cp[9][1], cp[10][1]]
-        elif background_color == 'B':
-            bcol, icol, fcol = 'black', '#666666', 'white'
-            ccol = [cp[21][2], cp[22][2], cp[23][2], cp[24][2], cp[25][2]]
-            scol = [cp[3][2], cp[4][2], cp[5][2], cp[6][2],
-                    cp[7][2], cp[8][2], cp[9][2], cp[10][2]]
-        elif background_color == 'G':
-            bcol, icol, fcol = 'darkgreen', '#339733', 'lightyellow'
-            ccol = [cp[21][2], cp[22][2], cp[23][2], cp[24][2], cp[25][2]]
-            scol = [cp[3][2], cp[4][2], cp[5][2], cp[6][2],
-                    cp[7][2], cp[8][2], cp[9][2], cp[10][2]]
+        if 'colors' not in vars(self):
+            return
+        cols = self.colors
         # TOC LINES
-        res_chapter = '^(\\$+)(-\\$+)*\\s+'
-        res_section = '^(#+)(-#+)*\\s+'
-        n = 1
-        lines = []
-        file_text = self.txt.get('1.0', 'end-1c')
-        if re.match('^<!--', file_text):
-            res = '^(<!--(?:.|\n)*?-->)((.|\n)*)$'
-            config = re.sub(res, '\\1', file_text)
-            conten = re.sub(res, '\\2', file_text)
-            config = re.sub('[^\n]', '', config)
-            file_text = config + conten
-        for t in file_text.split('\n'):
-            if re.match(res_chapter, t):
-                if not re.match(res_section + '\\\\?$', t):
-                    lines.append([n, t])
-            elif re.match(res_section, t):
-                if not re.match(res_section + '\\\\?$', t):
-                    lines.append([n, t])
-            n += 1
-        # REWRITE
         if 'toc_lines' not in vars(self):
             self.toc_lines = []
-        if self.toc_lines != lines:
+        file_text = self.txt.get('1.0', 'end-1c')
+        new_text = ''
+        res = '^(<!--(?:.|\n)*?-->)((.|\n)*)$'
+        while re.match(res, file_text):
+            conf_text = re.sub(res, '\\1', file_text)
+            file_text = re.sub(res, '\\2', file_text)
+            new_text += conf_text.replace('\n$', '\nX').replace('\n#', '\nX')
+        file_text = new_text + file_text
+        file_lines = file_text.split('\n')
+        m = len(file_lines) - 1
+        toc_lines = []
+        for n, t in enumerate(file_lines):
+            if t == '':
+                pass
+            elif t[0] == '$':
+                if re.match(res_chapter + '\\s+([^\\\\\\s]|\\\\\\S)', t):
+                    toc_lines.append([n + 1, t])
+                elif re.match(res_chapter + '\\s*\\\\?$', t) and n < m:
+                    tex = re.sub('\\s*\\\\?$', '', t)
+                    nex = re.sub('^\\s+', '', file_lines[n + 1])
+                    if nex != '':
+                        toc_lines.append([n + 1, tex + ' /' + nex])
+            elif t[0] == '#':
+                if re.match(res_section + '\\s+([^\\\\\\s]|\\\\\\S)', t):
+                    toc_lines.append([n + 1, t])
+                elif re.match(res_section + '\\s*\\\\?$', t) and n < m:
+                    tex = re.sub('\\s*\\\\?$', '', t)
+                    nex = re.sub('^\\s+', '', file_lines[n + 1])
+                    if nex != '':
+                        toc_lines.append([n + 1, tex + ' /' + nex])
+        # REWRITE
+        if self.toc_lines != toc_lines:
             fon = self.gothic_font.copy()
             fon['weight'] = 'bold'
             if 'toc_frm' in vars(self):
                 self.toc_frm.destroy()
-            self.toc_frm = tkinter.Frame(self.toc_cvs_frm, bg=bcol)
+            self.toc_frm = tkinter.Frame(self.toc_cvs_frm, bg=cols['bg'])
             self.toc_frm.pack()
             self.toc_lbls = []
             # self.toc_btns = []
-            for i, line in enumerate(lines):
+            for i, line in enumerate(toc_lines):
                 n, t = line[0], line[1]
                 frm = tkinter.Frame(self.toc_frm)
                 frm.pack(side='top', anchor='w')
-                bc, fc = bcol, fcol
+                bc, fc = cols['bg'], cols['fg']
                 if re.match(res_chapter, t):
-                    h = re.sub(res_chapter + '.*$', '\\1', t)
+                    h = re.sub(res_chapter + '\\s+.*$', '\\1', t)
                     if len(h) <= 5:
-                        fc = ccol[len(h) - 1]
+                        fc = cols['cp'][len(h) - 1]
                 elif re.match(res_section, t):
-                    h = re.sub(res_section + '.*$', '\\1', t)
+                    h = re.sub(res_section + '\\s+.*$', '\\1', t)
                     if len(h) <= 8:
-                        fc = scol[len(h) - 1]
-                lbl = tkinter.Label(frm, text=' ', font=fon, bg=bc, fg=fcol)
+                        fc = cols['sc'][len(h) - 1]
+                lbl = tkinter.Label(frm, text=' ',
+                                    font=fon, bg=bc, fg=cols['fg'])
                 lbl.pack(side='left')
                 btn = tkinter.Label(frm, text=(t + ' (' + str(n) + ')'),
                                     font=fon, bg=bc, fg=fc)
@@ -12595,17 +12583,17 @@ class Makdo:
                 btn.bind('<Button-1>', self._goto_toc_line)
                 self.toc_lbls.append(lbl)
                 # self.toc_btns.append(btn)
-            self.toc_lines = lines
+            self.toc_lines = toc_lines
         # CURRENT LINE
         v_pos = self._get_v_position_of_insert(self.txt)
-        if len(lines) > 0:
-            n = lines[0][0]
+        if len(toc_lines) > 0:
+            n = toc_lines[0][0]
             if v_pos < n:
                 v_pos = -1
-        for i, line in enumerate(lines):
+        for i, line in enumerate(toc_lines):
             n, t = line[0], line[1]
-            if i < len(lines) - 1:
-                m = lines[i + 1][0]
+            if i < len(toc_lines) - 1:
+                m = toc_lines[i + 1][0]
             else:
                 m = v_pos + 1
             if v_pos > 0 and v_pos < m:
@@ -12636,9 +12624,9 @@ class Makdo:
             self.background_color.set(self.args_background_color)
         elif self.file_background_color is not None:
             self.background_color.set(self.file_background_color)
-        colors = {'W': '白色', 'B': '黒色', 'G': '緑色'}
-        for c in colors:
-            submenu.add_radiobutton(label=colors[c],
+        color_themes = {'W': '白色', 'B': '黒色', 'G': '緑色'}
+        for c in color_themes:
+            submenu.add_radiobutton(label=color_themes[c],
                                     variable=self.background_color, value=c,
                                     command=self.set_background_color)
 
@@ -12738,6 +12726,7 @@ class Makdo:
         self.set_font()
 
     def set_font(self):
+        cs = COLOR_SPACE
         background_color = self.background_color.get()
         size = self.font_size.get()
         self.gothic_font['size'] = size
@@ -12771,6 +12760,12 @@ class Makdo:
             self.txt.tag_config('fsp_tag', foreground='#90D9FF',
                                 underline=True)                   # (0.80, 200)
             self.txt.tag_config('tab_tag', background='#C9FFEC')  # (0.95, 160)
+            self.colors = {
+                'bg': 'white', 'cg': '#CCCCCC', 'fg': 'black',
+                'cp': [cs[21][1], cs[22][1], cs[23][1], cs[24][1], cs[25][1]],
+                'sc': [cs[3][1], cs[4][1], cs[5][1], cs[6][1],
+                       cs[7][1], cs[8][1], cs[9][1], cs[10][1]]
+            }
         elif background_color == 'B':
             self.txt.config(bg='black', fg='white')
             self.txt.tag_config('eol_tag', background='#333333')
@@ -12786,6 +12781,12 @@ class Makdo:
             self.txt.tag_config('fsp_tag', foreground='#009AED',
                                 underline=True)                   # (0.50, 200)
             self.txt.tag_config('tab_tag', background='#005437')  # (0.25, 160)
+            self.colors = {
+                'bg': 'black', 'cg': '#666666', 'fg': 'white',
+                'cp': [cs[21][2], cs[22][2], cs[23][2], cs[24][2], cs[25][2]],
+                'sc': [cs[3][2], cs[4][2], cs[5][2], cs[6][2],
+                       cs[7][2], cs[8][2], cs[9][2], cs[10][2]]
+            }
         elif background_color == 'G':
             self.txt.config(bg='darkgreen', fg='lightyellow')  # 006400/FFFFE0
             self.txt.tag_config('eol_tag', background='#117511')
@@ -12801,6 +12802,12 @@ class Makdo:
             self.txt.tag_config('fsp_tag', foreground='#009AED',
                                 underline=True)                   # (0.50, 200)
             self.txt.tag_config('tab_tag', background='#00754C')  # (0.35, 160)
+            self.colors = {
+                'bg': 'darkgreen', 'cg': '#339733', 'fg': 'lightyellow',
+                'cs': [cs[21][2], cs[22][2], cs[23][2], cs[24][2], cs[25][2]],
+                'sc': [cs[3][2], cs[4][2], cs[5][2], cs[6][2],
+                       cs[7][2], cs[8][2], cs[9][2], cs[10][2]]
+            }
         for u in ['-x', '-u']:
             und = False if u == '-x' else True
             for f in ['-g', '-m']:
@@ -12844,10 +12851,8 @@ class Makdo:
                                             foreground=col, underline=und)
         is_toc_display_mode = self.is_toc_display_mode.get()
         if is_toc_display_mode:
-            self.is_toc_display_mode.set(False)
-            self.display_or_remove_toc()
-            self.is_toc_display_mode.set(True)
-            self.display_or_remove_toc()
+            self.remove_toc()
+            self.settle_toc()
 
     ################
     # SUBMENU DIGIT SEPARATOR
@@ -14691,7 +14696,7 @@ class Makdo:
             if (n % 60_000) == 0:  # 1 / 60,000ms
                 self.save_auto_file(self.file_path)
             # TABLE OF CONTENTS
-            if (n % 500) == 0:     # 1 /    500ms
+            if (n % 200) == 0:     # 1 /    200ms
                 self.update_toc()
             # MEMO PAD
             if (n % 1_000) == 0:   # 1 /  1,000ms
