@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.03-07:22:26-JST>
+# Time-stamp:   <2025.02.03-07:33:31-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -12675,7 +12675,7 @@ class Makdo:
         # TOC LINES
         file_text = self.txt.get('1.0', 'end-1c')
         new_text = ''
-        res = '^((?:.|\n)*)(<!--(?:.|\n)*?-->)((?:.|\n)*)$'
+        res = '^((?:.|\n)*?)(<!--(?:.|\n)*?-->)((?:.|\n)*)$'
         while re.match(res, file_text):
             prev_text = re.sub(res, '\\1', file_text)
             comm_text = re.sub(res, '\\2', file_text)
