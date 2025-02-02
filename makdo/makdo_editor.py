@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.02-08:56:55-JST>
+# Time-stamp:   <2025.02.02-12:48:38-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -12036,113 +12036,257 @@ class Makdo:
     # MINIBUFFER
 
     def start_minibuffer(self):
-        self.MiniBuffer(self.txt, self)
+        self.Minibuffer(self.txt, self)
 
-    class MiniBuffer(tkinter.simpledialog.Dialog):
+    class Minibuffer(tkinter.simpledialog.Dialog):
 
-        commands = ['help',
-                    'change-typeface',
-                    'close-sub-window',
-                    'comment-out-region',
-                    'compare-with-previous-draft',
-                    'edit-formula1', 'edit-formula2', 'edit-formula3',
-                    'edit-formula4', 'edit-formula5',
-                    'fold-or-unfold-section',
-                    'goto-flag1', 'goto-flag2', 'goto-flag3',
-                    'goto-flag4', 'goto-flag5',
-                    'insert-comment',
-                    'insert-current-date',
-                    'insert-current-time',
-                    'insert-file',
-                    'insert-file-names-in-same-folder',
-                    'insert-formula1', 'insert-formula2', 'insert-formula3',
-                    'insert-formula4', 'insert-formula5',
-                    'insert-symbol',
-                    'open-memo-pad',
-                    'paste-region-from-list',
-                    'place-flag1', 'place-flag2', 'place-flag3',
-                    'place-flag4', 'place-flag5',
-                    'replace-all',
-                    'replace', 'replace-backward', 'replace-forward',
-                    'save-file',
-                    'search', 'search-backward', 'search-forward',
-                    'show-character-information',
-                    'sort-lines',
-                    'sort-lines-in-reverse-order',
-                    'split-window',
-                    'toggle-read-only',
-                    'uncomment-in-region',
-                    'undo', 'redo',
-                    'unfold-section-fully',
-                    'quit-makdo']
+        class MinibufferCommand:
 
-        commands.sort()
+            def __init__(self, command_text, help_texts, method_texts):
+                self.command_text = command_text
+                self.help_texts = help_texts
+                self.method_texts = method_texts
 
-        help_message = \
-            'help                              ' + \
-            'このメッセージを表示            \n' + \
-            'change-typeface                   ' + \
-            '字体を変える                    \n' + \
-            'close-sub-window                  ' + \
-            'サブウィンドウを閉じる          \n' + \
-            'comment-out-region                ' + \
-            '指定範囲をコメントアウト        \n' + \
-            'compare-with-previous-draft       ' + \
-            '編集前の原稿と比較              \n' + \
-            'edit-formulaX(X=1..5)             ' + \
-            '定型句Xを編集                   \n' + \
-            'insert-formulaX(X=1..5)           ' + \
-            '定型句Xを挿入                   \n' + \
-            'uncomment-in-region               ' + \
-            '指定範囲のコメントアウトを解除  \n' + \
-            'fold-or-unfold-section            ' + \
-            'セクションの折畳又は展開        \n' + \
-            'unfold-section-fully              ' + \
-            'セクションを全て展開            \n' + \
-            'place-flagX(X=1..5)               ' + \
-            'フラグXを設置                   \n' + \
-            'goto-flagX(X=1..5)                ' + \
-            'フラグXに移動                   \n' + \
-            'insert-comment                    ' + \
-            'コメントを挿入                  \n' + \
-            'insert-current-date               ' + \
-            '今日の日付を挿入                \n' + \
-            'insert-current-time               ' + \
-            '現在の日時を挿入                \n' + \
-            'insert-file                       ' + \
-            'テキストファイルの内容を挿入    \n' + \
-            'insert-file-names-in-same-folder  ' + \
-            'ファイル名のみを一括挿入        \n' + \
-            'insert-symbol                     ' + \
-            '記号を挿入                      \n' + \
-            'open-memo-pad                     ' + \
-            'メモ帳を開く                    \n' + \
-            'paste-region-from-list            ' + \
-            'リストから選んで貼り付け        \n' + \
-            'replace-all                       ' + \
-            '文章全体又は指定範囲を全置換    \n' + \
-            'replace-X(X=backward,forward)     ' + \
-            'X（前,後）を置換                \n' + \
-            'save-file                         ' + \
-            'ファイルを保存                  \n' + \
-            'search-X(backward,forward)        ' + \
-            'X（前,後）を検索                \n' + \
-            'show-character-information        ' + \
-            '文字情報を表示                  \n' + \
-            'sort-lines                        ' + \
-            '選択範囲の行を正順にソート      \n' + \
-            'sort-lines-in-reverse-order       ' + \
-            '選択範囲の行を逆順にソート      \n' + \
-            'split-window                      ' + \
-            '画面を分割又は統合              \n' + \
-            'toggle-read-only                  ' + \
-            '読取専用を指定又は解除          \n' + \
-            'undo                              ' + \
-            '元に戻す                        \n' + \
-            'redo                              ' + \
-            'やり直す                        \n' + \
-            'quit-makdo                        ' + \
-            'Makdoを終了                     '
+        minibuffer_commands = []
+
+        mc = MinibufferCommand(
+            'help',
+            [None, 'このメッセージを表示'],
+            ['self.Help(self, self.mother, self.help_message)',
+             'Makdo.Minibuffer(self.pane, self.mother)'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'toggle-read-only',
+            [None, '読取専用を指定又は解除'],
+            ['self.toggle_read_only()'])
+        minibuffer_commands.append(mc)
+
+        def toggle_read_only(self):
+            is_read_only = self.mother.is_read_only.get()
+            if is_read_only:
+                self.mother.is_read_only.set(False)
+            else:
+                self.mother.is_read_only.set(True)
+
+        mc = MinibufferCommand(
+            'place-flag',
+            ['place-flagX(X=1..5)', 'フラグXを設置'],
+            ['self.mother.place_flag1()'])
+        minibuffer_commands.append(mc)
+        for i in range(1, 10):
+            mc = MinibufferCommand(
+                'place-flag' + str(i),
+                None,
+                ['self.mother.place_flag' + str(i) + '()'])
+            minibuffer_commands.append(mc)
+        mc = MinibufferCommand(
+            'goto-flag',
+            ['goto-flagX(X=1..5)', 'フラグXに移動'],
+            ['self.mother.goto_flag1()'])
+        minibuffer_commands.append(mc)
+        for i in range(1, 10):
+            mc = MinibufferCommand(
+                'goto-flag' + str(i),
+                None,
+                ['self.mother.goto_flag' + str(i) + '()'])
+            minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'search-backward-regexp',
+            [None, '上方を正規表現で検索'],
+            ['self.mother.search_backward_from_dialog(self)'])
+        minibuffer_commands.append(mc)
+        mc = MinibufferCommand(
+            'search-forward-regexp',
+            [None, '下方を正規表現で検索'],
+            ['self.mother.search_forward_from_dialog(self)'])
+        minibuffer_commands.append(mc)
+        mc = MinibufferCommand(
+            'search-regexp',
+            None,
+            ['self.mother.search_forward_from_dialog(self)'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'replace-all',
+            [None, '文章全体又は指定範囲を全置換'],
+            ['self.mother.replace_all(self)'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'replace-backward-regexp',
+            [None, '上方を正規表現で置換'],
+            ['self.mother.replace_forward_from_dialog(self)'])
+        minibuffer_commands.append(mc)
+        mc = MinibufferCommand(
+            'replace-forward-regexp',
+            [None, '下方を正規表現で置換'],
+            ['self.mother.replace_backward_from_dialog(self)'])
+        minibuffer_commands.append(mc)
+        mc = MinibufferCommand(
+            'replace-regexp',
+            None,
+            ['self.mother.replace_backward_from_dialog(self)'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'sort-lines',
+            [None, '選択範囲の行を正順にソート'],
+            ['self.mother.sort_lines()'])
+        minibuffer_commands.append(mc)
+        mc = MinibufferCommand(
+            'sort-lines-in-reverse-order',
+            [None, '選択範囲の行を逆順にソート'],
+            ['self.mother.sort_lines_in_reverse_order()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'comment-out-region',
+            [None, '指定範囲をコメントアウト'],
+            ['self.mother.comment_out_region()'])
+        minibuffer_commands.append(mc)
+        mc = MinibufferCommand(
+            'uncomment-in-region',
+            [None, '指定範囲のコメントアウトを解除'],
+            ['self.mother.uncomment_in_region()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'fold-or-unfold-section',
+            [None, 'セクションの折畳又は展開'],
+            ['self.mother.fold_or_unfold_section()'])
+        minibuffer_commands.append(mc)
+        mc = MinibufferCommand(
+            'unfold-section-fully',
+            [None, 'セクションの折畳を全て展開'],
+            ['self.mother.unfold_section_fully()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'what-cursor-position',
+            [None, '入力位置の文字情報を表示'],
+            ['self.mother.show_char_info()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'change-typeface',
+            [None, '字形を変える'],
+            ['self.mother.change_typeface()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'paste-region-from-list',
+            [None, 'リストから選んで貼り付け'],
+            ['self.mother.paste_region_from_list(self)'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'insert-file',
+            [None, 'ファイルの内容を挿入'],
+            ['self.mother.insert_file()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'insert-file-names',
+            [None, 'ファイル名のみを一括挿入'],
+            ['self.mother.insert_file_names_in_same_folder()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'insert-current-time',
+            [None, '現在の日時を挿入'],
+            ['self.mother.insert_datetime_simple()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'insert-current-date',
+            [None, '今日の日付を挿入'],
+            ['self.mother.insert_date_Gymd()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'insert-symbol',
+            [None, '記号を挿入'],
+            ['self.mother.insert_symbol()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'insert-comment',
+            [None, 'コメントを挿入'],
+            ['self.mother.txt.insert("insert", "<!---->")',
+             'self.mother.txt.mark_set("insert", "insert-3c")'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'edit-formula',
+            ['edit-formulaX(X=1..9)', '定型句Xを編集'],
+            ['self.mother.edit_formula1()'])
+        minibuffer_commands.append(mc)
+        for i in range(1, 10):
+            mc = MinibufferCommand(
+                'edit-formula' + str(i),
+                None,
+                ['self.mother.edit_formula' + str(i) + '()'])
+            minibuffer_commands.append(mc)
+        mc = MinibufferCommand(
+            'insert-formula',
+            ['insert-formulaX(X=1..9)', '定型句Xを挿入'],
+            ['self.mother.insert_formula1()'])
+        minibuffer_commands.append(mc)
+        for i in range(1, 10):
+            mc = MinibufferCommand(
+                'insert-formula' + str(i),
+                None,
+                ['self.mother.insert_formula' + str(i) + '()'])
+            minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'split-window',
+            [None, '画面を分割'],
+            ['self.mother.split_window()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'open-memo-pad',
+            [None, 'メモ帳を開く'],
+            ['self.mother.open_memo_pad()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'compare-with-previous-draft',
+            [None, '編集前の原稿と比較'],
+            ['self.mother.compare_with_previous_draft()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'close-sub-window',
+            [None, 'サブウィンドウを閉じる'],
+            ['self.mother._close_sub_pane()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'undo',
+            [None, '元に戻す'],
+            ['self.mother.edit_modified_undo()'])
+        minibuffer_commands.append(mc)
+        mc = MinibufferCommand(
+            'redo',
+            [None, 'やり直す'],
+            ['self.mother.edit_modified_redo()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'save-buffer',
+            [None, 'ファイルを保存'],
+            ['self.mother.save_file()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'kill-makdo',
+            [None, 'Makdoを終了'],
+            ['self.mother.quit_makdo()'])  # 2 ERRORS OCCUR
+        minibuffer_commands.append(mc)
 
         history = []
 
@@ -12152,12 +12296,36 @@ class Makdo:
             self.init = init
             self.history_number = 0
             if len(self.history) == 0:
-                Makdo.MiniBuffer.history.append('')
+                Makdo.Minibuffer.history.append('')
             elif self.history[-1] in self.commands:
-                Makdo.MiniBuffer.history.append('')
+                Makdo.Minibuffer.history.append('')
             else:
-                Makdo.MiniBuffer.history[-1] = ''
+                Makdo.Minibuffer.history[-1] = ''
+            self.commands = self.get_commands()
+            self.help_message = self.get_help_message()
             super().__init__(pane, title='ミニバッファ')
+
+        def get_commands(self):
+            commands = []
+            for mc in Makdo.Minibuffer.minibuffer_commands:
+                commands.append(mc.command_text)
+                commands.sort()
+            return commands
+
+        def get_help_message(self):
+            help_message = ''
+            for mc in Makdo.Minibuffer.minibuffer_commands:
+                if mc.help_texts is None:
+                    continue
+                help_command = mc.help_texts[0]
+                help_explanation = mc.help_texts[1]
+                if help_command is None:
+                    help_command = mc.command_text
+                help_message += \
+                    help_command + (' ' * (32 - len(help_command)))
+                help_message += \
+                    help_explanation + '\n'
+            return help_message
 
         def body(self, pane):
             fon = self.mother.gothic_font
@@ -12178,129 +12346,18 @@ class Makdo:
 
         def apply(self):
             com = self.etr.get()
-            Makdo.MiniBuffer.history[-1] = com
+            Makdo.Minibuffer.history[-1] = com
             if len(self.history) > 1:
-                if Makdo.MiniBuffer.history[-2] == com:
-                    Makdo.MiniBuffer.history.pop(-1)
+                if Makdo.Minibuffer.history[-2] == com:
+                    Makdo.Minibuffer.history.pop(-1)
             if com == '':
-                return
-            elif com == 'help':
-                self.Help(self, self.mother, self.help_message)
-                # tkinter.messagebox.showinfo('ヘルプ', self.help_message)
-                Makdo.MiniBuffer(self.pane, self.mother)
-            elif com == 'ask-llama':
-                self.mother.open_llama()
-            elif com == 'ask-openai':
-                self.mother.open_openai()
-            elif com == 'change-typeface':
-                self.mother.change_typeface()
-            elif com == 'close-sub-window':
-                self.mother._close_sub_pane()
-            elif com == 'comment-out-region':
-                self.mother.comment_out_region()
-            elif com == 'compare-with-previous-draft':
-                self.mother.compare_with_previous_draft()
-            elif com == 'edit-formula1' or com == 'edit-formula':
-                self.mother.edit_formula1()
-            elif com == 'edit-formula2':
-                self.mother.edit_formula2()
-            elif com == 'edit-formula3':
-                self.mother.edit_formula3()
-            elif com == 'edit-formula4':
-                self.mother.edit_formula4()
-            elif com == 'edit-formula5':
-                self.mother.edit_formula5()
-            elif com == 'fold-or-unfold-section':
-                self.mother.fold_or_unfold_section()
-            elif com == 'goto-flag1' or com == 'goto-flag':
-                self.mother.goto_flag1()
-            elif com == 'goto-flag2':
-                self.mother.goto_flag2()
-            elif com == 'goto-flag3':
-                self.mother.goto_flag3()
-            elif com == 'goto-flag4':
-                self.mother.goto_flag4()
-            elif com == 'goto-flag5':
-                self.mother.goto_flag5()
-            elif com == 'insert-comment':
-                self.mother.txt.insert('insert', '<!---->')
-                self.mother.txt.mark_set('insert', 'insert-3c')
-            elif com == 'insert-current-date':
-                self.mother.insert_date_Gymd()
-            elif com == 'insert-current-time':
-                self.mother.insert_datetime_simple()
-            elif com == 'insert-file':
-                self.mother.insert_file()
-            elif com == 'insert-file-names-in-same-folder':
-                self.mother.insert_file_names_in_same_folder()
-            elif com == 'insert-formula1' or com == 'insert-formula':
-                self.mother.insert_formula1()
-            elif com == 'insert-formula2':
-                self.mother.insert_formula2()
-            elif com == 'insert-formula3':
-                self.mother.insert_formula3()
-            elif com == 'insert-formula4':
-                self.mother.insert_formula4()
-            elif com == 'insert-formula5':
-                self.mother.insert_formula5()
-            elif com == 'insert-symbol':
-                self.mother.insert_symbol()
-            elif com == 'look-in-epwing':
-                self.mother.look_in_epwing(self)
-            elif com == 'open-memo-pad':
-                self.mother.open_memo_pad()
-            elif com == 'paste-region-from-list':
-                self.mother.paste_region_from_list(self)
-            elif com == 'place-flag1' or com == 'place-flag':
-                self.mother.place_flag1()
-            elif com == 'place-flag2':
-                self.mother.place_flag2()
-            elif com == 'place-flag3':
-                self.mother.place_flag3()
-            elif com == 'place-flag4':
-                self.mother.place_flag4()
-            elif com == 'place-flag5':
-                self.mother.place_flag5()
-            elif com == 'replace-all':
-                self.mother.replace_all(self)
-            elif com == 'replace-backward':
-                self.mother.replace_backward_from_dialog(self)
-            elif com == 'replace-forward' or com == 'replace':
-                self.mother.replace_forward_from_dialog(self)
-            elif com == 'save-file':
-                self.mother.save_file()
-            elif com == 'search-backward':
-                self.mother.search_backward_from_dialog(self)
-            elif com == 'search-forward' or com == 'search':
-                self.mother.search_forward_from_dialog(self)
-            elif com == 'show-character-information':
-                self.mother.show_char_info()
-            elif com == 'sort-lines':
-                self.mother.sort_lines()
-            elif com == 'sort-lines-in-reverse-order':
-                self.mother.sort_lines_in_reverse_order()
-            elif com == 'split-window':
-                self.mother.split_window()
-            elif com == 'toggle-read-only':
-                is_read_only = self.mother.is_read_only.get()
-                if is_read_only:
-                    self.mother.is_read_only.set(False)
-                else:
-                    self.mother.is_read_only.set(True)
-                # self.mother.toggle_read_only()
-            elif com == 'uncomment-in-region':
-                self.mother.uncomment_in_region()
-            elif com == 'undo':
-                self.mother.edit_modified_undo()
-            elif com == 'redo':
-                self.mother.edit_modified_redo()
-            elif com == 'unfold-section-fully':
-                self.mother.unfold_section_fully()
-            elif com == 'quit-makdo':
-                # 2 ERRORS OCCUR
-                self.mother.quit_makdo()
-            else:
-                Makdo.MiniBuffer(self, self.mother, com)
+                return False
+            for mc in self.minibuffer_commands:
+                if mc.command_text == com:
+                    for mt in mc.method_texts:
+                        eval(mt)
+                    return True
+            Makdo.Minibuffer(self, self.mother, com)
 
         class Help(tkinter.simpledialog.Dialog):
 
@@ -12417,7 +12474,7 @@ class Makdo:
 
         def process_key_up(self, event):
             if self.history_number == 0:
-                Makdo.MiniBuffer.history[-1] = self.etr.get()
+                Makdo.Minibuffer.history[-1] = self.etr.get()
             if self.history_number < len(self.history) - 1:
                 self.history_number += 1
                 self.etr.delete(0, 'end')
@@ -13777,7 +13834,7 @@ class Makdo:
                     return 'break'
         elif key.keysym == 'x':
             if self.key_history[-2] == 'Escape':
-                self.MiniBuffer(pane, self)
+                self.Minibuffer(pane, self)
                 return 'break'
         # Ctrl+A '\x01' select all          # Ctrl+N '\x0e' new document
         # Ctrl+B '\x02' bold                # Ctrl+O '\x0f' open document
@@ -14029,6 +14086,10 @@ class Makdo:
         elif key.keysym == 'cent':           # cent (search backward)
             self.search_or_replace_backward()
             return 'break'
+        elif key.keysym == 'x':
+            if self.key_history[-2] == 'Escape':
+                self.Minibuffer(pane, self)
+                return 'break'
         # Ctrl+A '\x01' select all          # Ctrl+N '\x0e' new document
         # Ctrl+B '\x02' bold                # Ctrl+O '\x0f' open document
         # Ctrl+C '\x03' copy                # Ctrl+P '\x10' print
@@ -15055,12 +15116,11 @@ class Makdo:
 
         # EPWING
 
-        MiniBuffer.commands.append('look-in-epwing')
-
-        MiniBuffer.help_message += \
-            '\n' + \
-            'look-in-epwing                    ' + \
-            'Epwing形式の辞書で調べる        '
+        mc = Minibuffer.MinibufferCommand(
+            'lookup',
+            [None, 'Epwing形式の辞書で調べる'],
+            ['self.mother.look_in_epwing(self)'])
+        Minibuffer.minibuffer_commands.append(mc)
 
         def look_in_epwing(self, pane=None) -> bool:
             if pane is None:
@@ -15152,12 +15212,11 @@ class Makdo:
 
         # OPENAI
 
-        MiniBuffer.commands.append('ask-openai')
-
-        MiniBuffer.help_message += \
-            '\n' + \
-            'ask-openai                        ' + \
-            'OpenAIに質問する                '
+        mc = Minibuffer.MinibufferCommand(
+            'ask-openai',
+            [None, 'OpenAIに質問する'],
+            ['self.mother.open_openai()'])
+        Minibuffer.minibuffer_commands.append(mc)
 
         def open_openai(self) -> bool:
             # LOAD MODULE
@@ -15304,12 +15363,11 @@ class Makdo:
 
         # LLAMA
 
-        MiniBuffer.commands.append('ask-llama')
-
-        MiniBuffer.help_message += \
-            '\n' + \
-            'ask-llama                         ' + \
-            'Llamaに質問する                 '
+        mc = Minibuffer.MinibufferCommand(
+            'ask-llama',
+            [None, 'Llamaに質問する'],
+            ['self.mother.open_llama()'])
+        Minibuffer.minibuffer_commands.append(mc)
 
         def open_llama(self) -> bool:
             # LOAD MODULE
