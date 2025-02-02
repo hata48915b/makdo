@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.02-13:26:58-JST>
+# Time-stamp:   <2025.02.03-07:22:26-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -7543,8 +7543,8 @@ class Makdo:
         self._cancel_region(pane)
         if must_cut:
             pane.delete(beg, end)
-            # FOR PAINTING
             if self.current_pane == 'txt':
+                # PAINT LINES
                 vp = int(re.sub('\\.[0-9]+$', '', beg))
                 n = c.count('\n')
                 for i in range(n):
@@ -7552,6 +7552,8 @@ class Makdo:
                 for i, ld in enumerate(self.line_data):
                     ld.line_number = i
                 self.paint_out_line(vp - 1)
+                # UPDATE TOC
+                self.update_toc()
         return True
 
     def paste_region(self):
@@ -7569,8 +7571,8 @@ class Makdo:
         if cb == '':
             return True
         pane.insert('insert', cb)
-        # FOR PAINTING
         if self.current_pane == 'txt':
+            # PAINT LINES
             end_v = self._get_v_position_of_insert(self.txt)
             n = end_v - beg_v
             for i in range(n):
@@ -7579,6 +7581,8 @@ class Makdo:
                 ld.line_number = i
             for i in range(beg_v - 1, end_v):
                 self.paint_out_line(i)
+            # UPDATE TOC
+            self.update_toc()
         self._put_back_cursor_to_pane(pane)
         return True
 
@@ -7680,6 +7684,7 @@ class Makdo:
                 pane.delete(str(i + 1) + '.' + str(len(line_pre)),
                             str(i + 1) + '.' + str(len(line_pre + line_mid)))
                 self.paint_out_line(i)
+                self.update_toc()
         return True
 
     def paste_rectangle(self):
@@ -7711,6 +7716,7 @@ class Makdo:
             pane.insert(ins_h, line_md)
             pane.mark_set('insert', ins_h)
             self.paint_out_line(i)
+            self.update_toc()
         self._put_back_cursor_to_pane(pane)
         return True
 
@@ -7807,6 +7813,7 @@ class Makdo:
         if self.current_pane == 'txt':
             for i in range(beg_v - 1, end_v):
                 self.paint_out_line(i)
+            self.update_toc()
         return True
 
     def sort_lines(self):
@@ -7848,6 +7855,7 @@ class Makdo:
         for j, line in enumerate(sorted_lst):
             i = beg_line - 1 + j
             self.paint_out_line(i)
+        self.update_toc()
 
     def calculate(self) -> bool:
         line = self.txt.get('insert linestart', 'insert lineend')
@@ -8129,6 +8137,7 @@ class Makdo:
         end_v = int(re.sub('\\.[0-9]+$', '', end))
         for i in range(beg_v - 1, end_v):
             self.paint_out_line(i)
+        self.update_toc()
 
     def uncomment_in_region(self):
         pane = self.txt
@@ -8185,6 +8194,7 @@ class Makdo:
         end_v = int(re.sub('\\.[0-9]+$', '', end))
         for i in range(beg_v - 1, end_v):
             self.paint_out_line(i)
+        self.update_toc()
 
     ##########################
     # MENU INSERT
@@ -11558,6 +11568,7 @@ class Makdo:
                         end_line = beg_line + insert_text.count('\n')
                         for i in range(beg_line, end_line):
                             self.paint_out_line(i)
+                        self.update_toc()
                 elif cp.ses_symbol == '-':
                     self.txt.delete('1.0+' + str(beg) + 'c',
                                     '1.0+' + str(end) + 'c')
@@ -11579,6 +11590,7 @@ class Makdo:
                         end_line = beg_line + insert_text.count('\n')
                         for i in range(beg_line, end_line + 1):
                             self.paint_out_line(i)
+                        self.update_toc()
                 cp.has_applied = True
                 frame.destroy()
                 return True
@@ -11798,11 +11810,13 @@ class Makdo:
             number_of_line_break_to_insert += 1
         # INSERT TEXT TO UNFOLD
         self.txt.insert('insert lineend +1c', text_d)
-        # PAINT
+        # PAINT LINES
         beg = self._get_v_position_of_insert(self.txt)
         end = beg + text_d.count('\n')
         for i in range(beg - 1, end):
             self.paint_out_line(i)
+        # UPDATE TOC
+        self.update_toc()
         # REMOVE TEXT TO UNFOLD
         text_e = text_a + text_b + text_c + text_d
         beg = 'insert linestart +' + str(len(text_d + text_a)) + 'c'
@@ -11992,6 +12006,7 @@ class Makdo:
             if key == 'BackSpace':
                 pane.delete('insert-1c', 'insert')
                 self.paint_out_line(self._get_v_position_of_insert(pane) - 1)
+                self.update_toc()
             elif key == 'Delete':
                 if i > 0 and self.keyboard_macro[i - 1] != 'Delete':
                     self.win.clipboard_clear()
@@ -11999,12 +12014,14 @@ class Makdo:
                         self.clipboard_list.append('')
                 self._execute_when_delete_is_pressed(pane)
                 self.paint_out_line(self._get_v_position_of_insert(pane) - 1)
+                self.update_toc()
             elif key == 'Return':
                 pane.insert('insert', '\n')
                 if pane == self.txt:
                     vp = self._get_v_position_of_insert(pane)
                     self.paint_out_line(vp - 2)
                     self.paint_out_line(vp - 1)
+                    self.update_toc()
             elif key == 'Ctrl+p' or key == 'F15':
                 self.paste_region()
             elif key == 'Home':
@@ -12028,6 +12045,7 @@ class Makdo:
             else:
                 pane.insert('insert', key)
                 self.paint_out_line(self._get_v_position_of_insert(pane) - 1)
+                self.update_toc()
             if key != 'Up' and key != 'Down':
                 self.keyborad_macro_h_position \
                     = self._get_ideal_h_position_of_insert(pane)
@@ -12657,11 +12675,14 @@ class Makdo:
         # TOC LINES
         file_text = self.txt.get('1.0', 'end-1c')
         new_text = ''
-        res = '^(<!--(?:.|\n)*?-->)((.|\n)*)$'
+        res = '^((?:.|\n)*)(<!--(?:.|\n)*?-->)((?:.|\n)*)$'
         while re.match(res, file_text):
-            conf_text = re.sub(res, '\\1', file_text)
-            file_text = re.sub(res, '\\2', file_text)
-            new_text += conf_text.replace('\n$', '\nX').replace('\n#', '\nX')
+            prev_text = re.sub(res, '\\1', file_text)
+            comm_text = re.sub(res, '\\2', file_text)
+            file_text = re.sub(res, '\\3', file_text)
+            comm_text = comm_text.replace('\n$', '\nX')
+            comm_text = comm_text.replace('\n#', '\nX')
+            new_text += prev_text + comm_text
         file_text = new_text + file_text
         file_lines = file_text.split('\n')
         m = len(file_lines) - 1
@@ -12676,7 +12697,7 @@ class Makdo:
                     tex = re.sub('\\s*\\\\?$', '', t)
                     nex = re.sub('^\\s+', '', file_lines[n + 1])
                     if nex != '':
-                        toc_lines.append([n + 1, tex + ' /' + nex])
+                        toc_lines.append([n + 1, tex + ' / ' + nex])
             elif t[0] == '#':
                 if re.match(res_section + '\\s+([^\\\\\\s]|\\\\\\S)', t):
                     toc_lines.append([n + 1, t])
@@ -12684,7 +12705,7 @@ class Makdo:
                     tex = re.sub('\\s*\\\\?$', '', t)
                     nex = re.sub('^\\s+', '', file_lines[n + 1])
                     if nex != '':
-                        toc_lines.append([n + 1, tex + ' /' + nex])
+                        toc_lines.append([n + 1, tex + ' / ' + nex])
         # REWRITE
         if self.toc_lines != toc_lines:
             fon = self.gothic_font.copy()
@@ -13617,11 +13638,13 @@ class Makdo:
     def _paint_one_line_after_key_pressed(self):
         vp = self._get_v_position_of_insert(self.txt)
         self.paint_out_line(vp - 1)
+        self.update_toc()
 
     def _paint_two_lines_after_key_pressed(self):
         vp = self._get_v_position_of_insert(self.txt)
         self.paint_out_line(vp - 2)
         self.paint_out_line(vp - 1)
+        self.update_toc()
 
     def sub_process_key(self, key):
         self.current_pane = 'sub'
@@ -13635,7 +13658,6 @@ class Makdo:
 
     def txt_process_key_release(self, key):
         self.set_position_info_on_status_bar()
-
         # FOR AKAUNI
         self._paint_akauni_region(self.txt, '')
 
@@ -14158,12 +14180,11 @@ class Makdo:
     def txt_process_button1(self, click):
         self.txt.focus_set()
         self.current_pane = 'txt'
+        self.win.after(5, self.update_toc)
         return
 
     def txt_process_button1_release(self, click):
-        # CLOSE MOUSE MENU
         self.close_mouse_menu()
-        # POSITION INFO
         self.set_position_info_on_status_bar()
         return 'break'
 
@@ -14173,7 +14194,6 @@ class Makdo:
         return
 
     def sub_process_button1_release(self, click):
-        # CLOSE MOUSE MENU
         self.close_mouse_menu()
         return 'break'
 
@@ -14183,7 +14203,6 @@ class Makdo:
         return 'break'
 
     def txt_process_button2_release(self, click):
-        # CLOSE MOUSE MENU
         self.close_mouse_menu()
         # self.paste_region()
         return 'break'
@@ -14192,7 +14211,6 @@ class Makdo:
         return 'break'
 
     def sub_process_button2_release(self, click):
-        # CLOSE MOUSE MENU
         self.close_mouse_menu()
         # self.paste_region()
         return 'break'
@@ -14228,7 +14246,7 @@ class Makdo:
         if not self._is_read_only_pane(pane):
             if cb != '' and self.rectangle_text_list != []:
                 needs_separater = True
-        # BUTTON
+        # BUTTON MENU
         self.bt3 = tkinter.Menu(self.win, tearoff=False)
         if pane.tag_ranges('sel') or 'akauni' in pane.mark_names():
             if not self._is_read_only_pane(pane):
@@ -14865,7 +14883,7 @@ class Makdo:
             if (n % 60_000) == 0:  # 1 / 60,000ms
                 self.save_auto_file(self.file_path)
             # TABLE OF CONTENTS
-            if (n % 200) == 0:     # 1 /    200ms
+            if (n % 5_000) == 0:   # 1 /  5,000ms
                 self.update_toc()
             # MEMO PAD
             if (n % 1_000) == 0:   # 1 /  1,000ms
