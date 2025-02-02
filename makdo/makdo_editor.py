@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.02-13:19:02-JST>
+# Time-stamp:   <2025.02.02-13:26:58-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -12581,6 +12581,8 @@ class Makdo:
         self.pnd.remove(self.pnd_r)
         self.pnd.update()
         width = int(self.pnd.winfo_width() / 5)
+        if width > 256:
+            width = 256
         self.pnd.add(self.pnd_l, minsize=100, width=width)
         background_color = self.background_color.get()
         cvs = tkinter.Canvas(self.pnd_l, bg=cols['bg'])
@@ -12686,6 +12688,7 @@ class Makdo:
         # REWRITE
         if self.toc_lines != toc_lines:
             fon = self.gothic_font.copy()
+            fon['size'] -= 3
             fon['weight'] = 'bold'
             bc, lfc = cols['bg'], cols['fg']
             for i, line in enumerate(toc_lines):
