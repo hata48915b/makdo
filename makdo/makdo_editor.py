@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.02-12:52:12-JST>
+# Time-stamp:   <2025.02.02-13:19:02-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -12294,6 +12294,8 @@ class Makdo:
             self.pane = pane
             self.mother = mother
             self.init = init
+            self.commands = self.get_commands()
+            self.help_message = self.get_help_message()
             self.history_number = 0
             if len(self.history) == 0:
                 Makdo.Minibuffer.history.append('')
@@ -12301,8 +12303,6 @@ class Makdo:
                 Makdo.Minibuffer.history.append('')
             else:
                 Makdo.Minibuffer.history[-1] = ''
-            self.commands = self.get_commands()
-            self.help_message = self.get_help_message()
             super().__init__(pane, title='ミニバッファ')
 
         def get_commands(self):
