@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.01-17:05:01-JST>
+# Time-stamp:   <2025.02.02-08:56:55-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6805,7 +6805,12 @@ class Makdo:
         self.win.title('MAKDO')
         self.set_file_name_on_status_bar('')
         # TABLE OF CONTENTS
-        self.update_toc()
+        is_toc_display_mode = self.is_toc_display_mode.get()
+        if is_toc_display_mode:
+            if 'toc_cvs' in vars(self):
+                self.remove_toc()
+            if 'toc_cvs' not in vars(self):
+                self.settle_toc()
         # RETURN
         return True
 
@@ -12559,6 +12564,8 @@ class Makdo:
         #     cvs_frm.bind_all('<5>', lambda e: cvs.yview_scroll(+1, 'units'))
         self.toc_cvs = cvs
         self.toc_cvs_frm = cvs_frm
+        self.toc_lines = []
+        self.toc_screen_data = []
         self.update_toc()
         self.pnd.add(self.pnd_r, minsize=100)
 
@@ -12574,6 +12581,7 @@ class Makdo:
         self.toc_cvs.destroy()
         del self.toc_cvs
         self.toc_lines = []
+        self.toc_screen_data = []
         self.pnd.add(self.pnd_r, minsize=100)
 
     def update_toc(self):
@@ -12588,8 +12596,6 @@ class Makdo:
             return
         cols = self.colors
         # TOC LINES
-        if 'toc_lines' not in vars(self):
-            self.toc_lines = []
         file_text = self.txt.get('1.0', 'end-1c')
         new_text = ''
         res = '^(<!--(?:.|\n)*?-->)((.|\n)*)$'
@@ -12624,63 +12630,90 @@ class Makdo:
         if self.toc_lines != toc_lines:
             fon = self.gothic_font.copy()
             fon['weight'] = 'bold'
-            if 'toc_frm' in vars(self):
-                self.toc_frm.destroy()
-            self.toc_frm = tkinter.Frame(self.toc_cvs_frm, bg=cols['bg'])
-            self.toc_frm.pack()
-            self.toc_lbls = []
-            # self.toc_btns = []
+            bc, lfc = cols['bg'], cols['fg']
             for i, line in enumerate(toc_lines):
                 n, t = line[0], line[1]
-                frm = tkinter.Frame(self.toc_frm)
-                frm.pack(side='top', anchor='w')
-                bc, fc = cols['bg'], cols['fg']
+                if i < len(self.toc_lines):
+                    if self.toc_lines[i][0] == n and self.toc_lines[i][1] == t:
+                        continue
                 if re.match(res_chapter, t):
                     h = re.sub(res_chapter + '\\s+.*$', '\\1', t)
                     if len(h) <= 5:
-                        fc = cols['cp'][len(h) - 1]
+                        bfc = cols['cp'][len(h) - 1]
                 elif re.match(res_section, t):
                     h = re.sub(res_section + '\\s+.*$', '\\1', t)
                     if len(h) <= 8:
-                        fc = cols['sc'][len(h) - 1]
-                lbl = tkinter.Label(frm, text=' ',
-                                    font=fon, bg=bc, fg=cols['fg'])
-                lbl.pack(side='left')
-                btn = tkinter.Label(frm, text=(t + ' (' + str(n) + ')'),
-                                    font=fon, bg=bc, fg=fc)
-                btn.pack(side='left')
-                btn.bind('<Button-1>', self._goto_toc_line)
-                self.toc_lbls.append(lbl)
-                # self.toc_btns.append(btn)
+                        bfc = cols['sc'][len(h) - 1]
+                if i > len(self.toc_screen_data) - 1:
+                    tsd = self.TocScreenDatum(self, self.toc_cvs_frm,
+                                              fon, bc, lfc)
+                    self.toc_screen_data.append(tsd)
+                self.toc_screen_data[i].settle(n, t, bfc)
+            while len(toc_lines) < len(self.toc_screen_data):
+                self.toc_screen_data[-1].remove()
+                self.toc_screen_data.pop(-1)
             self.toc_lines = toc_lines
         # CURRENT LINE
-        v_pos = self._get_v_position_of_insert(self.txt)
-        if len(toc_lines) > 0:
-            n = toc_lines[0][0]
-            if v_pos < n:
+        m = len(self.toc_screen_data) - 1
+        if m >= 0:
+            v_pos = self._get_v_position_of_insert(self.txt)
+            if v_pos < self.toc_screen_data[0].number:
                 v_pos = -1
-        for i, line in enumerate(toc_lines):
-            n, t = line[0], line[1]
-            if i < len(toc_lines) - 1:
-                m = toc_lines[i + 1][0]
-            else:
-                m = v_pos + 1
-            if v_pos > 0 and v_pos < m:
-                self.toc_lbls[i]['text'] = '*'
-                # self.toc_btns[i]['bg'] = icol
-                v_pos = -1
-            elif self.toc_lbls[i]['text'] != ' ':
-                self.toc_lbls[i]['text'] = ' '
-                # self.toc_btns[i]['bg'] = bcol
+            for i, curr_tsd in enumerate(self.toc_screen_data):
+                if i < m:
+                    next_tsd = self.toc_screen_data[i + 1]
+                is_here = False
+                if v_pos > 0:
+                    if i < m:
+                        if v_pos < next_tsd.number:
+                            is_here, v_pos = True, -1
+                    else:
+                        if True:
+                            is_here, v_pos = True, -1
+                if is_here:
+                    curr_tsd.set_mark()
+                else:
+                    curr_tsd.unset_mark()
 
-    def _goto_toc_line(self, event):
-        self.close_mouse_menu()
-        text = event.widget['text']
-        line = re.sub('^.*\\(([0-9]+)\\)$', '\\1', text)
-        self.txt.mark_set('insert', line + '.0')
-        self.update_toc()
-        self.txt.focus_force()
-        self._put_back_cursor_to_pane(self.txt)
+    class TocScreenDatum:
+
+        def __init__(self, makdo, frame, font, bg, lfg):
+            self.makdo = makdo
+            self.mother = frame
+            self.frame = tkinter.Frame(frame)
+            self.frame.pack(side='top', anchor='w')
+            self.checkbox = tkinter.Label(self.frame, font=font, bg=bg, fg=lfg)
+            self.checkbox.pack(side='left')
+            self.button = tkinter.Label(self.frame, font=font, bg=bg)
+            self.button.pack(side='left')
+            self.button.bind('<Button-1>', self.goto_toc_line)
+
+        def settle(self, number, text, bfg):
+            self.number = number
+            # self.text = text
+            self.checkbox['text'] = ' '
+            self.button['text'] = text + ' (' + str(number) + ')'
+            self.button['fg'] = bfg
+
+        def remove(self):
+            self.checkbox.destroy()
+            self.button.destroy()
+            self.frame.destroy()
+
+        def set_mark(self):
+            if self.checkbox['text'] != '*':
+                self.checkbox['text'] = '*'
+
+        def unset_mark(self):
+            if self.checkbox['text'] != ' ':
+                self.checkbox['text'] = ' '
+
+        def goto_toc_line(self, event):
+            self.makdo.close_mouse_menu()
+            self.makdo.txt.mark_set('insert', str(self.number) + '.0')
+            self.makdo.update_toc()
+            self.makdo.txt.focus_force()
+            self.makdo._put_back_cursor_to_pane(self.makdo.txt)
 
     ################
     # SUBMENU BACKGROUND COLOR
@@ -12874,7 +12907,7 @@ class Makdo:
             self.txt.tag_config('tab_tag', background='#00754C')  # (0.35, 160)
             self.colors = {
                 'bg': 'darkgreen', 'cg': '#339733', 'fg': 'lightyellow',
-                'cs': [cs[21][2], cs[22][2], cs[23][2], cs[24][2], cs[25][2]],
+                'cp': [cs[21][2], cs[22][2], cs[23][2], cs[24][2], cs[25][2]],
                 'sc': [cs[3][2], cs[4][2], cs[5][2], cs[6][2],
                        cs[7][2], cs[8][2], cs[9][2], cs[10][2]]
             }
