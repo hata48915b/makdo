@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.03-07:33:31-JST>
+# Time-stamp:   <2025.02.03-07:37:05-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -12680,8 +12680,8 @@ class Makdo:
             prev_text = re.sub(res, '\\1', file_text)
             comm_text = re.sub(res, '\\2', file_text)
             file_text = re.sub(res, '\\3', file_text)
-            comm_text = comm_text.replace('\n$', '\nX')
-            comm_text = comm_text.replace('\n#', '\nX')
+            comm_text = comm_text.replace('\n$', '\n=')
+            comm_text = comm_text.replace('\n#', '\n=')
             new_text += prev_text + comm_text
         file_text = new_text + file_text
         file_lines = file_text.split('\n')
