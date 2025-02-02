@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.02-12:48:38-JST>
+# Time-stamp:   <2025.02.02-12:52:12-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5827,8 +5827,8 @@ class Makdo:
     # file_read_only = None
     args_make_backup_file = False     # True|+False
     file_make_backup_file = False
-    # args_is_toc_display_mode = False  # True|+False
-    file_is_toc_display_mode = False
+    # args_is_toc_display_mode = True   # True|+False
+    file_is_toc_display_mode = True
 
     args_input_file = None
 
