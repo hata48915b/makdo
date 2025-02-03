@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.29-15:10:34-JST>
+# Time-stamp:   <2025.02.03-16:44:31-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5636,8 +5636,9 @@ class ParagraphTable(Paragraph):
         table_alignment = WD_TABLE_ALIGNMENT.CENTER
         col_alig_list, col_widt_list, col_rule_list = [], [], []
         row_alig_list, row_heig_list, row_rule_list = [], [], []
-        res_config_row \
-            = '^(?::\\s+)?(\\|\\s*(:?-*:?)?(\\^+|=+)?\\s*)+\\|(?:\\s+:)?$'
+        res_config_row = '^' + '(?::\\s+)?' \
+            + '(\\|\\s*(:?-*:?)?(\\^+|=+)?\\s*)+\\|' \
+            + '(\\^+|=+)?' + '(?:\\s+:)?' + '$'
         for tl in tab_lines:
             if conf_line_place == -1 and \
                re.match(res_config_row, tl) and \
@@ -5653,6 +5654,13 @@ class ParagraphTable(Paragraph):
                 elif re.match('^.*\\|\\s+:$', tl):
                     tl = re.sub('\\s+:$', '', tl)
                     table_alignment = WD_TABLE_ALIGNMENT.RIGHT
+                # ROW RULE
+                if re.match('^.*\\^+$', tl):
+                    tl = re.sub('\\^+$', '', tl)
+                    row_rule_list[-1] = '^'
+                elif re.match('^.*=+$', tl):
+                    tl = re.sub('=+$', '', tl)
+                    row_rule_list[-1] = '='
                 tl = re.sub('^\\|(.*)\\|$', '\\1', tl)
                 for c in tl.split('|'):
                     # COL RULE
