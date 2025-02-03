@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.03-07:37:05-JST>
+# Time-stamp:   <2025.02.03-10:39:38-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6423,6 +6423,9 @@ class Makdo:
     def _open_sub_pane(self, document, is_read_only, button_number=1) -> bool:
         self.sub_pane_is_read_only = is_read_only
         if len(self.pnd_r.panes()) > 1:
+            n = 'エラー'
+            m = '別のサブウィンドウが開いています．'
+            tkinter.messagebox.showerror(n, m)
             return False
         # self.quit_editing_formula()
         # self.close_memo_pad()
@@ -6576,14 +6579,43 @@ class Makdo:
         j = len(line_pre)
         return str(i) + '.' + str(j)
 
-    def _jump_to_another_pane(self):
-        if self.current_pane == 'sub':
+    def _jump_to_prev_pane(self):
+        if self.current_pane == 'txt':
+            if 'toc_cvs_frm' in vars(self):
+                self.toc_cvs_frm.focus_set()
+                self.current_pane = 'toc'
+            elif len(self.pnd_r.panes()) > 1:
+                self.sub.focus_set()
+                self.current_pane = 'sub'
+        elif self.current_pane == 'sub':
             self.txt.focus_set()
             self.current_pane = 'txt'
         else:
-            self.sub.focus_set()
-            self.current_pane = 'sub'
-        self.key_history[-1] = ''
+            if len(self.pnd_r.panes()) > 1:
+                self.sub.focus_set()
+                self.current_pane = 'sub'
+            else:
+                self.txt.focus_set()
+                self.current_pane = 'txt'
+
+    def _jump_to_next_pane(self):
+        if self.current_pane == 'txt':
+            if len(self.pnd_r.panes()) > 1:
+                self.sub.focus_set()
+                self.current_pane = 'sub'
+            elif 'toc_cvs_frm' in vars(self):
+                self.toc_cvs_frm.focus_set()
+                self.current_pane = 'toc'
+        elif self.current_pane == 'sub':
+            if 'toc_cvs_frm' in vars(self):
+                self.toc_cvs_frm.focus_set()
+                self.current_pane = 'toc'
+            else:
+                self.txt.focus_set()
+                self.current_pane = 'txt'
+        else:
+            self.txt.focus_set()
+            self.current_pane = 'txt'
 
     @staticmethod
     def _save_config_file(file_path, contents):
@@ -12613,12 +12645,11 @@ class Makdo:
         cvs_frm.bind(
             '<Configure>',
             lambda e: cvs.configure(scrollregion=cvs.bbox('all')))
-        cvs_frm.bind('<Tab>', self._jump_to_another_pane)
         cvs.bind('<Button-1>', self.toc_process_button1)
         cvs.bind('<Button-2>', self.close_mouse_menu)
         cvs.bind('<Button-3>', self.close_mouse_menu)
-        cvs_frm.bind('<Up>', lambda e: cvs.yview_scroll(-1, 'units'))
-        cvs_frm.bind('<Down>', lambda e: cvs.yview_scroll(1, 'units'))
+        # cvs_frm.bind('<Up>', lambda e: cvs.yview_scroll(-1, 'units'))
+        # cvs_frm.bind('<Down>', lambda e: cvs.yview_scroll(1, 'units'))
         cvs_frm.bind('<Prior>', lambda e: cvs.yview_scroll(-10, 'units'))
         cvs_frm.bind('<Next>', lambda e: cvs.yview_scroll(10, 'units'))
         if sys.platform == 'win32':
@@ -12639,12 +12670,35 @@ class Makdo:
         # elif sys.platform == 'linux':
         #     cvs_frm.bind_all('<4>', lambda e: cvs.yview_scroll(-1, 'units'))
         #     cvs_frm.bind_all('<5>', lambda e: cvs.yview_scroll(+1, 'units'))
+        cvs_frm.bind('<Key>', self.toc_process_key)
         self.toc_cvs = cvs
         self.toc_cvs_frm = cvs_frm
         self.toc_lines = []
         self.toc_screen_data = []
         self.update_toc()
         self.pnd.add(self.pnd_r, minsize=100)
+
+    def toc_process_key(self, event):
+        self.key_history.append(event.keysym)
+        if event.keysym == 'F19':  # x (ctrl)
+            if self.key_history[-2] == 'F19':
+                self.key_history[-1] = ''
+                self._jump_to_next_pane()
+        if event.keysym == 'Up':
+            if self.key_history[-2] == 'F19':
+                self._jump_to_prev_pane()
+                return 'break'
+            else:
+                self.toc_cvs.yview_scroll(-1, 'units')
+        if event.keysym == 'Down':
+            if self.key_history[-2] == 'F19':
+                self._jump_to_next_pane()
+                return 'break'
+            else:
+                self.toc_cvs.yview_scroll(1, 'units')
+        if event.keysym == 'Tab':
+            self._jump_to_next_pane()
+            return 'break'
 
     def toc_process_button1(self, event):
         self.close_mouse_menu()
@@ -12660,6 +12714,8 @@ class Makdo:
         self.toc_lines = []
         self.toc_screen_data = []
         self.pnd.add(self.pnd_r, minsize=100)
+        self.txt.focus_set()
+        self.current_pane = 'txt'
 
     def update_toc(self):
         res_chapter = '^(\\$+)(-\\$+)*'
@@ -13685,7 +13741,8 @@ class Makdo:
         #
         if key.keysym == 'F19':              # x (ctrl)
             if self.key_history[-2] == 'F19':
-                self._jump_to_another_pane()
+                self.key_history[-1] = '', ''
+                self._jump_to_next_pane()
             return 'break'
         elif key.keysym == 'F16':            # c (search forward)
             if self.key_history[-2] == 'F13':
@@ -13711,7 +13768,7 @@ class Makdo:
             return
         elif key.keysym == 'Up':
             if self.key_history[-2] == 'F19':
-                self._jump_to_another_pane()
+                self._jump_to_prev_pane()
                 return 'break'
             if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
                 self.ideal_h_position \
@@ -13721,7 +13778,7 @@ class Makdo:
             return 'break'
         elif key.keysym == 'Down':
             if self.key_history[-2] == 'F19':
-                self._jump_to_another_pane()
+                self._jump_to_next_pane()
                 return 'break'
             if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
                 self.ideal_h_position \
@@ -13739,8 +13796,8 @@ class Makdo:
             return 'break'
         elif key.keysym == 'Next':
             if self.key_history[-2] == 'F13' and self.current_pane == 'sub':
-                self._execute_sub_pane()
                 self.key_history[-1] = ''
+                self._execute_sub_pane()
                 return 'break'
             if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
                 self.ideal_h_position \
@@ -14015,7 +14072,8 @@ class Makdo:
         #
         if key.keysym == 'F19':              # x (ctrl)
             if self.key_history[-2] == 'F19':
-                self._jump_to_another_pane()
+                self.key_history[-1] = ''
+                self._jump_to_next_pane()
                 return 'break'
         elif key.keysym == 'Left':
             self._paint_akauni_region(pane, '-1c')
@@ -14025,7 +14083,7 @@ class Makdo:
             return
         elif key.keysym == 'Up':
             if self.key_history[-2] == 'F19':
-                self._jump_to_another_pane()
+                self._jump_to_prev_pane()
                 return 'break'
             if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
                 self.ideal_h_position \
@@ -14035,7 +14093,7 @@ class Makdo:
             return 'break'
         elif key.keysym == 'Down':
             if self.key_history[-2] == 'F19':
-                self._jump_to_another_pane()
+                self._jump_to_next_pane()
                 return 'break'
             if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
                 self.ideal_h_position \
