@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.03-12:15:06-JST>
+# Time-stamp:   <2025.02.03-14:08:29-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -12720,8 +12720,8 @@ class Makdo:
         self.current_pane = 'txt'
 
     def update_toc(self):
-        res_chapter = '^(\\$+)(-\\$+)*'
-        res_section = '^(#+)(-#+)*'
+        res_chapter = '^(\\${1,5})(-\\$+)*'
+        res_section = '^(#{1,8})(-#+)*'
         # CONFIRM
         is_toc_display_mode = self.is_toc_display_mode.get()
         if not is_toc_display_mode:
@@ -12769,7 +12769,7 @@ class Makdo:
             fon = self.gothic_font.copy()
             fon['size'] -= 3
             fon['weight'] = 'bold'
-            bc, lfc = cols['bg'], cols['fg']
+            bc, lfc, bfc = cols['bg'], cols['fg'], cols['fg']
             for i, line in enumerate(toc_lines):
                 n, t = line[0], line[1]
                 if i < len(self.toc_lines):
