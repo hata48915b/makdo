@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.03-14:08:29-JST>
+# Time-stamp:   <2025.02.04-07:53:21-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6788,6 +6788,10 @@ class Makdo:
                     = self.line_data[i - 1].end_chars_state.copy()
                 self.line_data[i].beg_chars_state.reset_partially()
             self.line_data[i].paint_line(self.txt, paint_keywords)
+            n = i + 1
+            if (n % 1000) == 0:
+                t = str(n) + '行目を色付けしました'
+                self.set_message_on_status_bar(t, True)
         # TABLE OF CONTENTS
         self.update_toc()
         # CLEAR THE UNDO STACK
@@ -12720,8 +12724,8 @@ class Makdo:
         self.current_pane = 'txt'
 
     def update_toc(self):
-        res_chapter = '^(\\${1,5})(-\\$+)*'
-        res_section = '^(#{1,8})(-#+)*'
+        res_chapter = '^(\\${1,5})(-\\$+)*\\s.*$'
+        res_section = '^(#{1,8})(-#+)*\\s.*$'
         # CONFIRM
         is_toc_display_mode = self.is_toc_display_mode.get()
         if not is_toc_display_mode:
@@ -12732,38 +12736,39 @@ class Makdo:
         cols = self.colors
         # TOC LINES
         file_text = self.txt.get('1.0', 'end-1c')
-        new_text = ''
-        res = '^((?:.|\n)*?)(<!--(?:.|\n)*?-->)((?:.|\n)*)$'
-        while re.match(res, file_text):
-            prev_text = re.sub(res, '\\1', file_text)
-            comm_text = re.sub(res, '\\2', file_text)
-            file_text = re.sub(res, '\\3', file_text)
-            comm_text = comm_text.replace('\n$', '\n=')
-            comm_text = comm_text.replace('\n#', '\n=')
-            new_text += prev_text + comm_text
-        file_text = new_text + file_text
-        file_lines = file_text.split('\n')
-        m = len(file_lines) - 1
         toc_lines = []
-        for n, t in enumerate(file_lines):
-            if t == '':
-                pass
-            elif t[0] == '$':
-                if re.match(res_chapter + '\\s+([^\\\\\\s]|\\\\\\S)', t):
-                    toc_lines.append([n + 1, t])
-                elif re.match(res_chapter + '\\s*\\\\?$', t) and n < m:
-                    tex = re.sub('\\s*\\\\?$', '', t)
-                    nex = re.sub('^\\s+', '', file_lines[n + 1])
-                    if nex != '':
-                        toc_lines.append([n + 1, tex + ' / ' + nex])
-            elif t[0] == '#':
-                if re.match(res_section + '\\s+([^\\\\\\s]|\\\\\\S)', t):
-                    toc_lines.append([n + 1, t])
-                elif re.match(res_section + '\\s*\\\\?$', t) and n < m:
-                    tex = re.sub('\\s*\\\\?$', '', t)
-                    nex = re.sub('^\\s+', '', file_lines[n + 1])
-                    if nex != '':
-                        toc_lines.append([n + 1, tex + ' / ' + nex])
+        c4, c3, c2, n, line, is_in_comment = '', '', '', 1, '', False
+        for c1 in file_text:
+            if is_in_comment:
+                if c3 == '-' and c2 == '-' and c1 == '>':
+                    is_in_comment = False
+                    continue
+            else:
+                if c4 == '<' and c3 == '!' and c2 == '-' and c1 == '-':
+                    is_in_comment = True
+                    line = line[:-3]
+                    continue
+            if c1 == '\n':
+                if line != '':
+                    if line[0] == '$':
+                        if re.match(res_chapter, line):
+                            toc_lines.append([n, line])
+                    elif line[0] == '#':
+                        if re.match(res_section, line):
+                            toc_lines.append([n, line])
+                    else:
+                        if len(toc_lines) > 0:
+                            t = toc_lines[-1]
+                            if n == t[0] + 1:
+                                if re.match('^\\S+\\s+\\\\?$', t[1]):
+                                    t[1] = re.sub('\\s+\\\\?$', '', t[1]) \
+                                        + ' / ' + line
+                line = ''
+                n += 1
+            else:
+                if not is_in_comment:
+                    line += c1
+            c4, c3, c2 = c3, c2, c1
         # REWRITE
         if self.toc_lines != toc_lines:
             fon = self.gothic_font.copy()
@@ -12776,11 +12781,11 @@ class Makdo:
                     if self.toc_lines[i][0] == n and self.toc_lines[i][1] == t:
                         continue
                 if re.match(res_chapter, t):
-                    h = re.sub(res_chapter + '\\s+.*$', '\\1', t)
+                    h = re.sub(res_chapter, '\\1', t)
                     if len(h) <= 5:
                         bfc = cols['cp'][len(h) - 1]
                 elif re.match(res_section, t):
-                    h = re.sub(res_section + '\\s+.*$', '\\1', t)
+                    h = re.sub(res_section, '\\1', t)
                     if len(h) <= 8:
                         bfc = cols['sc'][len(h) - 1]
                 if i > len(self.toc_screen_data) - 1:
