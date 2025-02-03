@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.03-10:39:38-JST>
+# Time-stamp:   <2025.02.03-12:15:06-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -12462,6 +12462,8 @@ class Makdo:
             if key.keysym == 'Tab' or key.char == '\x09':
                 com = self.etr.get()
                 if self.prev_key == 'Tab':
+                    if len(self.command_candidates) == 0:
+                        return 'break'
                     if len(self.command_candidates) == 1:
                         return  # Entry -> OK -> Cancel -> Entry
                     self.etr.delete(0, 'end')
