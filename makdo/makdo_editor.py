@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.05-07:22:54-JST>
+# Time-stamp:   <2025.02.05-07:44:49-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5498,8 +5498,15 @@ class LineDatum:
                         continue  # #+ xxx...[n / ]
                     res_l = '^(#+(?:-#+)*(?:\\s.*)?)(\\.{3}\\[[0-9]+\\])$'
                     res_r = '^\n$'
-                    if re.match('^\\.{3}\\[[0-9]+\\]$', tmp) and \
+                    if re.match('^(.*)(\\.{3}\\[[0-9]+\\])$', tmp) and \
                        re.match(res_l, s_lft) and re.match(res_r, s_rgt):
+                        sym = re.sub('^(.*)(\\.{3}\\[[0-9]+\\])$', '\\2', tmp)
+                        key = chars_state.get_key('')                   # 1.key
+                        end = str(i + 1) + '.' + str(j + 1 - len(sym))  # 2.end
+                        pane.tag_add(key, beg, end)                     # 3.tag
+                        #                                               # 4.set
+                        # tmp = '...[n]'                                # 5.tmp
+                        beg = end                                       # 6.beg
                         key = chars_state.get_key('fold')               # 1.key
                         end = str(i + 1) + '.' + str(j + 1)             # 2.end
                         pane.tag_add(key, beg, end)                     # 3.tag
