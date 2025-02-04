@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.05-07:44:49-JST>
+# Time-stamp:   <2025.02.05-08:16:51-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5026,7 +5026,8 @@ class LineDatum:
                 + '(-{5,})' \
                 + '((?:\\^' + res_color + '\\^)?)' \
                 + '\n$'
-            if re.match(res, line_text):
+            if (line_text[0] == '^' or line_text[0] == '-') and \
+               re.match(res, line_text):
                 hfre = re.sub(res, '\\1', line_text)
                 line = re.sub(res, '\\2', line_text)
                 tfre = re.sub(res, '\\3', line_text)
@@ -5057,9 +5058,12 @@ class LineDatum:
                 self.end_chars_state = chars_state.copy()
                 return
             # LENGTH REVISERS
-            res = '^((<<|<|>|v|V|X)=(\\+|\\-)?[\\.0-9]+\\s+)+$'
-            if re.match(res, line_text):
-                chars_state.is_length_reviser = True
+            res = '^((<<|<|>|v|V|x|X)=(\\+|\\-)?[\\.0-9]+\\s+)+$'
+            if line_text[0] == '<' or line_text[0] == '>' or \
+               line_text[0] == 'v' or line_text[0] == 'V' or \
+               line_text[0] == 'x' or line_text[0] == 'X':
+                if re.match(res, line_text):
+                    chars_state.is_length_reviser = True
             # CHAPTER
             if line_text[0] == '$':
                 res = '^(\\${,5})(?:-\\$+)*(=[\\.0-9]+)?(?:\\s.*)?\n?$'
@@ -5177,7 +5181,7 @@ class LineDatum:
                     beg = end                                           # 6.beg
                     continue
                 # RELAX
-                if len(tmp) >= 2 and s2 == '<>':
+                if c2 == '<' and c1 == '>':
                     key = chars_state.get_key('')                       # 1.key
                     end = str(i + 1) + '.' + str(j - 1)                 # 2.end
                     pane.tag_add(key, beg, end)                         # 3.tag
@@ -5200,7 +5204,7 @@ class LineDatum:
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
                     continue
-                if j == 1 and re.match('^[0-9]+$', c2) and c == '.' and \
+                if c == '.' and re.match('^[0-9]+\\.$', s_lft) and \
                    re.match('\\s', c0):
                     key = chars_state.get_key('half number')
                     pane.tag_remove(key, str(i + 1) + '.0', str(i + 1) + '.1')
