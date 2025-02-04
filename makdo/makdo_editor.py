@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.04-09:51:48-JST>
+# Time-stamp:   <2025.02.04-14:17:32-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -129,7 +129,7 @@ LIGHTYELLOW_SPACE = ('#C0C000', '#FFFFE0', '#F7F700')  # (0.7, 60),LY,(0.9, 60)
 COLOR_SPACE = (
     # Y=   0.3        0.5        0.7        0.9
     ('#FF1C1C', '#FF5D5D', '#FF9E9E', '#FFDFDF'),  # 000 : comment, key0
-    ('#DE2900', '#FF603C', '#FFA08A', '#FFDFD8'),  # 010 : fold
+    ('#DE2900', '#FF603C', '#FFA08A', '#FFDFD8'),  # 010 :
     ('#A63A00', '#FF6512', '#FFA271', '#FFE0D0'),  # 020 : del
     ('#864300', '#E07000', '#FFA64D', '#FFE1C4'),  # 030 : sect1, hnumb
     ('#714900', '#BC7A00', '#FFAC10', '#FFE3AF'),  # 040 : sect2
@@ -145,7 +145,7 @@ COLOR_SPACE = (
     ('#006724', '#00AC3C', '#00F154', '#9DFFBF'),  # 140 :
     ('#006633', '#00AA55', '#00EE77', '#98FFCC'),  # 150 : length reviser
     ('#006441', '#00A76D', '#00EA99', '#94FFDA'),  # 160 : (tab), par2
-    ('#006351', '#00A586', '#00E7BC', '#8EFFEA'),  # 170 :
+    ('#006351', '#00A586', '#00E7BC', '#8EFFEA'),  # 170 : fold
     ('#006161', '#00A2A2', '#00E3E3', '#87FFFF'),  # 180 : algin, keyY, par3
     ('#005F75', '#009FC3', '#21D6FF', '#B5F1FF'),  # 190 : table
     ('#005D8E', '#009AED', '#59C5FF', '#C8ECFF'),  # 200 : (fsp), ins, par4
@@ -4932,7 +4932,7 @@ class CharsState:
         elif chars == 'gray':
             key += '-360'  # gray
         elif chars == 'fold':
-            key += '-10'
+            key += '-170'
         elif self.is_length_reviser:
             key += '-150'
         elif self.chapter_depth > 0:
@@ -5069,6 +5069,12 @@ class LineDatum:
             # SECTION
             if line_text[0] == '#':
                 res = '^(#{,8})(?:-#+)*(=[\\.0-9]+)?(?:\\s.*)?\n?$'
+                if re.match(res, line_text):
+                    dep = len(re.sub(res, '\\1', line_text))
+                    chars_state.set_section_depth(dep)
+            if line_text[0] == '.':
+                res = '^(?:\\.\\.\\.\\[[0-9]+\\])' \
+                    + '(#{,8})(?:-#+)*(=[\\.0-9]+)?(?:\\s.*)?\n?$'
                 if re.match(res, line_text):
                     dep = len(re.sub(res, '\\1', line_text))
                     chars_state.set_section_depth(dep)
@@ -5481,47 +5487,44 @@ class LineDatum:
                     beg = end                                           # 6.beg
                     continue
                 # FOLDING
-                if re.match('^#+(-#+)*(\\s.*)?\\.\\.\\.\\[$', s_lft) and \
-                   re.match(NOT_ESCAPED + '\\.\\.\\.\\[$', s_lft) and \
-                   re.match('^[0-9]+\\]$', s_rgt):
-                    continue  # # xxx...[ / n]
-                if re.match('^\\.\\.\\.\\[$', s_lft) and \
-                   re.match('^[0-9]+\\]#+(-#+)*(\\s.*)?$', s_rgt):
-                    continue  # ...[ / n]# xxx
-                if re.match('^#+(-#+)*(\\s.*)?\\.\\.\\.\\[[0-9]+$', s_lft) \
-                   and re.match(NOT_ESCAPED + '\\.\\.\\.\\[[0-9]+$', s_lft) \
-                   and re.match('^[0-9]*\\]$', s_rgt):
-                    continue  # # xxx...[n / ]
-                if re.match('^\\.\\.\\.\\[[0-9]+$', s_lft) and \
-                   re.match('^[0-9]*\\]#+(-#+)*(\\s.*)?$', s_rgt):
-                    continue  # ...[n / ]xxx
-                res = '^(#+(?:-#+)*(?:\\s.*)?)(\\.\\.\\.\\[[0-9]+\\])$'
-                if re.match(res, s_lft) and \
-                   re.match(NOT_ESCAPED + '\\.\\.\\.\\[[0-9]+\\]$', s_lft) \
-                   and re.match('^\n$', s_rgt):
-                    fld = re.sub(res, '\\2', s_lft)
-                    key = chars_state.get_key('')                       # 1.key
-                    end = str(i + 1) + '.' + str(j + 1 - len(fld))      # 2.end
-                    pane.tag_add(key, beg, end)                         # 3.tag
-                    #                                                   # 4.set
-                    # tmp = '...[n]'                                    # 5.tmp
-                    beg = end                                           # 6.beg
-                    key = chars_state.get_key('fold')                   # 1.key
-                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                    pane.tag_add(key, beg, end)                         # 3.tag
-                    #                                                   # 4.set
-                    tmp = ''                                            # 5.tmp
-                    beg = end                                           # 6.beg
-                    continue  # xxx...[n] /
-                if re.match('^\\.\\.\\.\\[[0-9]+\\]$', s_lft) and \
-                   re.match('^#+(-#+)*(\\s.*)?\n$', s_rgt):
-                    key = chars_state.get_key('fold')                   # 1.key
-                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                    pane.tag_add(key, beg, end)                         # 3.tag
-                    #                                                   # 4.set
-                    tmp = ''                                            # 5.tmp
-                    beg = end                                           # 6.beg
-                    continue  # ...[n]# xxx /
+                if line_text[0] == '#':
+                    if re.match('^#+(-#+)*(\\s.*)?\\.\\.\\.\\[$', s_lft) and \
+                       re.match(NOT_ESCAPED + '\\.\\.\\.\\[$', s_lft) and \
+                       re.match('^[0-9]+\\]$', s_rgt):
+                        continue  # #+ xxx...[ / n]
+                    if re.match('^#+(-#+)*(\\s.*)?\\.\\.\\.\\[[0-9]+$', s_lft) \
+                       and re.match(NOT_ESCAPED + '\\.\\.\\.\\[[0-9]+$', s_lft) \
+                       and re.match('^[0-9]*\\]$', s_rgt):
+                        continue  # #+ xxx...[n / ]
+                    res_l = '^(#+(?:-#+)*(?:\\s.*)?)(\\.\\.\\.\\[[0-9]+\\])$'
+                    res_r = '^\n$'
+                    if re.match('^\\.\\.\\.\\[[0-9]+\\]$', tmp) and \
+                       re.match(res_l, s_lft) and re.match(res_r, s_rgt):
+                        key = chars_state.get_key('fold')               # 1.key
+                        end = str(i + 1) + '.' + str(j + 1)             # 2.end
+                        pane.tag_add(key, beg, end)                     # 3.tag
+                        #                                               # 4.set
+                        tmp = ''                                        # 5.tmp
+                        beg = end                                       # 6.beg
+                        continue  # #+ xxx...[n] /
+                if line_text[0] == '.':
+                    if re.match('^\\.\\.\\.\\[$', s_lft) and \
+                       re.match('^[0-9]+\\]#+(-#+)*(\\s.*)?$', s_rgt):
+                        continue  # ...[ / n]#+ xxx
+                    if re.match('^\\.\\.\\.\\[[0-9]+$', s_lft) and \
+                       re.match('^[0-9]*\\]#+(-#+)*(\\s.*)?$', s_rgt):
+                        continue  # ...[n / ]#+ xxx
+                    res_l = '^\\.\\.\\.\\[[0-9]+\\]$'
+                    res_r = '^(#+(?:-#+)*(?:\\s.*)?)$'
+                    if re.match('^\\.\\.\\.\\[[0-9]+\\]$', tmp) and \
+                       re.match(res_l, s_lft) and re.match(res_r, s_rgt):
+                        key = chars_state.get_key('fold')               # 1.key
+                        end = str(i + 1) + '.' + str(j + 1)             # 2.end
+                        pane.tag_add(key, beg, end)                     # 3.tag
+                        #                                               # 4.set
+                        tmp = ''                                        # 5.tmp
+                        beg = end                                       # 6.beg
+                        continue  # ...[n] / #+
             if re.match('^[0-9]$', c):
                 # SAPCE (< n >)
                 if ((re.match('^.*<\\s*[0-9]+$', s_lft) and
@@ -5551,6 +5554,13 @@ class LineDatum:
                     continue
             # NUMBER
             if re.match('^[0-9]$', c):
+                if re.match('^#+(-#+)*(\\s.*)?\\.\\.\\.\\[[0-9]+$', s_lft) \
+                   and re.match(NOT_ESCAPED + '\\.\\.\\.\\[[0-9]+$', s_lft) \
+                   and re.match('^[0-9]*\\]$', s_rgt):
+                    continue  # folded section (#+ xxx...[n / ])
+                if re.match('^\\.\\.\\.\\[[0-9]+$', s_lft) and \
+                   re.match('^[0-9]*\\]#+(-#+)*(\\s.*)?$', s_rgt):
+                    continue  # folded section (...[n / ]#+ xxx)
                 key = chars_state.get_key('')                           # 1.key
                 end = str(i + 1) + '.' + str(j)                         # 2.end
                 pane.tag_add(key, beg, end)                             # 3.tag
@@ -12001,6 +12011,8 @@ class Makdo:
             self.fold_section()
         else:
             self.unfold_section()
+        # TABLE OF CONTENTS
+        self.update_toc()
 
     def execute_keyboard_macro(self):
         pane = self.txt
@@ -12750,7 +12762,11 @@ class Makdo:
                     continue
             if c1 == '\n':
                 if line != '':
-                    if line[0] == '$':
+                    if line[0] == '.':
+                        res = '^\\.\\.\\.\\[[0-9]+\\]#+(-#+)*\\s+.*$'
+                        if re.match(res, line):
+                            break
+                    elif line[0] == '$':
                         if re.match(res_chapter, line):
                             toc_lines.append([n, line])
                     elif line[0] == '#':
