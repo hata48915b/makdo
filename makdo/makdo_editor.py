@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.04-07:53:21-JST>
+# Time-stamp:   <2025.02.04-09:34:25-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -12738,7 +12738,7 @@ class Makdo:
         file_text = self.txt.get('1.0', 'end-1c')
         toc_lines = []
         c4, c3, c2, n, line, is_in_comment = '', '', '', 1, '', False
-        for c1 in file_text:
+        for c1 in file_text + '\n':
             if is_in_comment:
                 if c3 == '-' and c2 == '-' and c1 == '>':
                     is_in_comment = False
