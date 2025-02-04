@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.04-09:34:25-JST>
+# Time-stamp:   <2025.02.04-09:51:48-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6787,11 +6787,11 @@ class Makdo:
                 self.line_data[i].beg_chars_state \
                     = self.line_data[i - 1].end_chars_state.copy()
                 self.line_data[i].beg_chars_state.reset_partially()
-            self.line_data[i].paint_line(self.txt, paint_keywords)
             n = i + 1
             if (n % 1000) == 0:
-                t = str(n) + '行目を色付けしました'
+                t = '行を色付けしています（' + str(n) + '行目）'
                 self.set_message_on_status_bar(t, True)
+            self.line_data[i].paint_line(self.txt, paint_keywords)
         # TABLE OF CONTENTS
         self.update_toc()
         # CLEAR THE UNDO STACK
@@ -12724,8 +12724,8 @@ class Makdo:
         self.current_pane = 'txt'
 
     def update_toc(self):
-        res_chapter = '^(\\${1,5})(-\\$+)*\\s.*$'
-        res_section = '^(#{1,8})(-#+)*\\s.*$'
+        res_chapter = '^(\\${1,5})(-\\$+)*(\\s.*)?$'
+        res_section = '^(#{1,8})(-#+)*(\\s.*)?$'
         # CONFIRM
         is_toc_display_mode = self.is_toc_display_mode.get()
         if not is_toc_display_mode:
@@ -12760,9 +12760,9 @@ class Makdo:
                         if len(toc_lines) > 0:
                             t = toc_lines[-1]
                             if n == t[0] + 1:
-                                if re.match('^\\S+\\s+\\\\?$', t[1]):
+                                if re.match('^\\S+(\\s+\\\\?)?$', t[1]):
                                     t[1] = re.sub('\\s+\\\\?$', '', t[1]) \
-                                        + ' / ' + line
+                                        + ' / ' + re.sub('^\\s+', '', line)
                 line = ''
                 n += 1
             else:
