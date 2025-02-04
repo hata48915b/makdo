@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.05-06:53:09-JST>
+# Time-stamp:   <2025.02.05-07:22:54-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5488,17 +5488,17 @@ class LineDatum:
                     continue
                 # FOLDING
                 if line_text[0] == '#':
-                    if re.match('^#+(-#+)*(\\s.*)?\\.\\.\\.\\[$', s_lft) and \
-                       re.match(NOT_ESCAPED + '\\.\\.\\.\\[$', s_lft) and \
+                    if re.match('^#+(-#+)*(\\s.*)?\\.{3}\\[$', s_lft) and \
+                       re.match(NOT_ESCAPED + '\\.{3}\\[$', s_lft) and \
                        re.match('^[0-9]+\\]$', s_rgt):
                         continue  # #+ xxx...[ / n]
-                    if re.match('^#+(-#+)*(\\s.*)?\\.\\.\\.\\[[0-9]+$', s_lft) \
-                       and re.match(NOT_ESCAPED + '\\.\\.\\.\\[[0-9]+$', s_lft) \
+                    if re.match('^#+(-#+)*(\\s.*)?\\.{3}\\[[0-9]+$', s_lft) \
+                       and re.match(NOT_ESCAPED + '\\.{3}\\[[0-9]+$', s_lft) \
                        and re.match('^[0-9]*\\]$', s_rgt):
                         continue  # #+ xxx...[n / ]
-                    res_l = '^(#+(?:-#+)*(?:\\s.*)?)(\\.\\.\\.\\[[0-9]+\\])$'
+                    res_l = '^(#+(?:-#+)*(?:\\s.*)?)(\\.{3}\\[[0-9]+\\])$'
                     res_r = '^\n$'
-                    if re.match('^\\.\\.\\.\\[[0-9]+\\]$', tmp) and \
+                    if re.match('^\\.{3}\\[[0-9]+\\]$', tmp) and \
                        re.match(res_l, s_lft) and re.match(res_r, s_rgt):
                         key = chars_state.get_key('fold')               # 1.key
                         end = str(i + 1) + '.' + str(j + 1)             # 2.end
@@ -5508,15 +5508,15 @@ class LineDatum:
                         beg = end                                       # 6.beg
                         continue  # #+ xxx...[n] /
                 if line_text[0] == '.':
-                    if re.match('^\\.\\.\\.\\[$', s_lft) and \
+                    if re.match('^\\.{3}\\[$', s_lft) and \
                        re.match('^[0-9]+\\]#+(-#+)*(\\s.*)?$', s_rgt):
                         continue  # ...[ / n]#+ xxx
-                    if re.match('^\\.\\.\\.\\[[0-9]+$', s_lft) and \
+                    if re.match('^\\.{3}\\[[0-9]+$', s_lft) and \
                        re.match('^[0-9]*\\]#+(-#+)*(\\s.*)?$', s_rgt):
                         continue  # ...[n / ]#+ xxx
-                    res_l = '^\\.\\.\\.\\[[0-9]+\\]$'
+                    res_l = '^\\.{3}\\[[0-9]+\\]$'
                     res_r = '^(#+(?:-#+)*(?:\\s.*)?)$'
-                    if re.match('^\\.\\.\\.\\[[0-9]+\\]$', tmp) and \
+                    if re.match('^\\.{3}\\[[0-9]+\\]$', tmp) and \
                        re.match(res_l, s_lft) and re.match(res_r, s_rgt):
                         key = chars_state.get_key('fold')               # 1.key
                         end = str(i + 1) + '.' + str(j + 1)             # 2.end
