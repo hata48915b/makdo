@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.05-09:20:21-JST>
+# Time-stamp:   <2025.02.05-12:14:19-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -12776,17 +12776,18 @@ class Makdo:
             if c1 == '\n':
                 if line != '':
                     if line[0] == '.':
-                        res = '^\\.\\.\\.\\[[0-9]+\\]#+(-#+)*\\s+.*$'
+                        res = '^\\.{3}\\[[0-9]+\\]#+(-#+)*\\s+.*$'
                         if re.match(res, line):
                             break
                     elif line[0] == '$':
                         if re.match(res_chapter, line):
                             toc_lines.append([n, line])
                     elif line[0] == '#':
-                        if re.match('^.*\\.\\.\\.\\[[0-9]\\]+', line):
-                            res = '^(\\S+)\\s+(.*)\\.\\.\\.\\[[0-9]\\]+'
-                            line = re.sub(res, '\\1 > \\2', line)
-                        toc_lines.append([n, line])
+                        if re.match(res_section, line):
+                            if re.match('^.*\\.{3}\\[[0-9]\\]+', line):
+                                res = '^(\\S+)\\s+(.*)\\.{3}\\[[0-9]\\]+'
+                                line = re.sub(res, '\\1 > \\2', line)
+                            toc_lines.append([n, line])
                     else:
                         if len(toc_lines) > 0:
                             t = toc_lines[-1]
