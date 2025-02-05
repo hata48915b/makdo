@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.05-17:13:34-JST>
+# Time-stamp:   <2025.02.06-07:31:45-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -160,7 +160,7 @@ COLOR_SPACE = (
     ('#D312FF', '#E056FF', '#EC9AFF', '#F9DDFF'),  # 290 : par9
     ('#FF05FF', '#FF4DFF', '#FF94FF', '#FFDBFF'),  # 300 : keyZ
     ('#FF0AD2', '#FF50DF', '#FF96EC', '#FFDCF9'),  # 310 : escape
-    ('#FF0EAB', '#FF53C3', '#FF98DB', '#FFDDF3'),  # 320 : ruby
+    ('#FF0EAB', '#FF53C3', '#FF98DB', '#FFDDF3'),  # 320 :
     ('#FF1188', '#FF55AA', '#FF99CC', '#FFDDEE'),  # 330 : list, fnumb
     ('#FF1566', '#FF5892', '#FF9BBE', '#FFDEE9'),  # 340 :
     ('#FF1843', '#FF5A79', '#FF9CAE', '#FFDEE4'),  # 350 :
@@ -4696,6 +4696,7 @@ class CharsState:
         self.has_underline = False
         self.has_specific_font = False
         self.has_frame = False
+        self.has_ruby = False
         self.standard_size = ''
         self.is_resized = ''
         self.is_stretched = ''
@@ -4716,6 +4717,8 @@ class CharsState:
             return False
         if self.has_frame != other.has_frame:
             return False
+        if self.has_ruby != other.has_ruby:
+            return False
         if self.standard_size != other.standard_size:
             return False
         if self.is_resized != other.is_resized:
@@ -4733,6 +4736,7 @@ class CharsState:
         copy.has_underline = self.has_underline
         copy.has_specific_font = self.has_specific_font
         copy.has_frame = self.has_frame
+        copy.has_ruby = self.has_ruby
         copy.standard_size = self.standard_size
         copy.is_resized = self.is_resized
         copy.is_stretched = self.is_stretched
@@ -4774,6 +4778,9 @@ class CharsState:
             self.has_frame = True
         elif fd == '|]':
             self.has_frame = False
+
+    def set_or_unset_has_ruby(self, has_ruby):
+        self.has_ruby = has_ruby
 
     def set_is_resized(self, fd):
         if fd == '---':
@@ -4971,6 +4978,8 @@ class CharsState:
             key += '-u'  # specific font
         elif not self.is_in_comment and self.has_frame:
             key += '-u'  # frame
+        elif not self.is_in_comment and self.has_ruby:
+            key += '-u'  # ruby
         elif not self.is_in_comment and self.is_resized != self.standard_size:
             key += '-u'  # resized
         elif not self.is_in_comment and self.is_stretched != '':
@@ -5062,10 +5071,10 @@ class LineDatum:
                 self.end_chars_state = chars_state.copy()
                 return
             # LENGTH REVISERS
-            res = '^((<<|<|>|v|V|x|X)=(\\+|\\-)?[\\.0-9]+\\s+)+$'
             if line_text[0] == '<' or line_text[0] == '>' or \
                line_text[0] == 'v' or line_text[0] == 'V' or \
                line_text[0] == 'x' or line_text[0] == 'X':
+                res = '^((<<|<|>|v|V|x|X)=(\\+|\\-)?[\\.0-9]+\\s+)+'
                 if re.match(res, line_text):
                     chars_state.is_length_reviser = True
             # CHAPTER
@@ -5149,24 +5158,36 @@ class LineDatum:
             # COMMENT
             if s4 == '<!--' and not chars_state.is_in_comment and \
                (c5 != '\\' or re.match(NOT_ESCAPED + '<!--$', tmp)):
-                key = chars_state.get_key('')                       # 1.key
-                end = str(i + 1) + '.' + str(j - 3)                 # 2.end
-                pane.tag_add(key, beg, end)                         # 3.tag
-                chars_state.toggle_is_in_comment()                  # 4.set
-                tmp = '<!--'                                        # 5.tmp
-                beg = end                                           # 6.beg
+                key = chars_state.get_key('')                           # 1.key
+                end = str(i + 1) + '.' + str(j - 3)                     # 2.end
+                pane.tag_add(key, beg, end)                             # 3.tag
+                chars_state.toggle_is_in_comment()                      # 4.set
+                tmp = '<!--'                                            # 5.tmp
+                beg = end                                               # 6.beg
                 continue
             if s3 == '-->' and chars_state.is_in_comment and \
                (c4 != '\\' or re.match(NOT_ESCAPED + '-->$', tmp)):
-                key = chars_state.get_key('')                       # 1.key
-                end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                pane.tag_add(key, beg, end)                         # 3.tag
-                chars_state.toggle_is_in_comment()                  # 4.set
-                tmp = ''                                            # 5.tmp
-                beg = end                                           # 6.beg
+                key = chars_state.get_key('')                           # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                pane.tag_add(key, beg, end)                             # 3.tag
+                chars_state.toggle_is_in_comment()                      # 4.set
+                tmp = ''                                                # 5.tmp
+                beg = end                                               # 6.beg
                 continue
             if chars_state.is_in_comment and c1 != '\n':
                 continue
+            # LENGTH REVISERS
+            if chars_state.is_length_reviser:
+                res_c = '^[<>vVxX=\\-\\+0-9\\.\\s]$'
+                res_s = '^' \
+                    + '((<<|<|>|v|V|x|X)=(\\+|\\-)?[\\.0-9]+\\s+)*' \
+                    + '(((((<<|<|>|v|V|x|X)=?)(\\+|\\-)?)[\\.0-9]*)\\s*)' \
+                    + '$'
+                if not re.match(res_c, c):
+                    chars_state.is_length_reviser = False
+                elif not re.match(res_s, s_lft + ' '):
+                    print(s_lft)
+                    chars_state.is_length_reviser = False
             # ASCII
             if c.isascii() and not c.isalnum():
                 # ESCAPE SYMBOL
@@ -5419,10 +5440,10 @@ class LineDatum:
                         chars_state.toggle_has_specific_font()          # 4.set
                     tmp = ''                                            # 5.tmp
                     continue
-                # FRAME
-                if (c == '[' and c0 == '|') or (c == '|' and c0 == ']'):
+                # FRAME (Should be processed before TABLE and IMAGE)
+                if (c1 == '[' and c0 == '|') or (c1 == '|' and c0 == ']'):
                     continue
-                if len(tmp) >= 2 and (s2 == '[|' or s2 == '|]'):
+                if (c2 == '[' and c1 == '|') or (c2 == '|' and c1 == ']'):
                     key = chars_state.get_key('')                       # 1.key
                     end = str(i + 1) + '.' + str(j - 1)                 # 2.end
                     pane.tag_add(key, beg, end)                         # 3.tag
@@ -5432,7 +5453,7 @@ class LineDatum:
                     key = chars_state.get_key('font decorator')         # 1.key
                     end = str(i + 1) + '.' + str(j + 1)                 # 2.end
                     pane.tag_add(key, beg, end)                         # 3.tag
-                    chars_state.attach_or_remove_frame(c2 + c)          # 4.set
+                    chars_state.attach_or_remove_frame(c2 + c1)         # 4.set
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
                     continue
@@ -5489,7 +5510,7 @@ class LineDatum:
                     beg = end                                           # 6.beg
                     continue
                 # RUBY (<xxx/yyy>)
-                if c == '<' and re.match('^[^</>]+/[^</>]+>.*$', s_rgt):
+                if c == '<' and re.match('^[^</>]*/[^</>]*>.*$', s_rgt):
                     key = chars_state.get_key('')                       # 1.key
                     end = str(i + 1) + '.' + str(j)                     # 2.end
                     pane.tag_add(key, beg, end)                         # 3.tag
@@ -5499,35 +5520,35 @@ class LineDatum:
                     key = chars_state.get_key('ruby')                   # 1.key
                     end = str(i + 1) + '.' + str(j + 1)                 # 2.end
                     pane.tag_add(key, beg, end)                         # 3.tag
-                    #                                                   # 4.set
+                    chars_state.set_or_unset_has_ruby(True)             # 4.set
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
                 if c == '/' and \
-                   re.match('^.*<[^</>]+/$', s_lft) and \
-                   re.match('^[^</>]+>.*$', s_rgt):
+                   re.match('^.*<[^</>]*/$', s_lft) and \
+                   re.match('^[^</>]*>.*$', s_rgt):
                     key = chars_state.get_key('')                       # 1.key
                     end = str(i + 1) + '.' + str(j)                     # 2.end
                     pane.tag_add(key, beg, end)                         # 3.tag
-                    #                                                   # 4.set
-                    # tmp = '<'                                         # 5.tmp
+                    chars_state.set_or_unset_has_ruby(False)            # 4.set
+                    # tmp = '/'                                         # 5.tmp
                     beg = end                                           # 6.beg
                     key = chars_state.get_key('ruby')                   # 1.key
                     end = str(i + 1) + '.' + str(j + 1)                 # 2.end
                     pane.tag_add(key, beg, end)                         # 3.tag
-                    #                                                   # 4.set
+                    chars_state.set_or_unset_has_ruby(True)             # 4.set
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
-                if c == '>' and re.match('^.*<[^</>]+/[^</>]+>$', s_lft):
+                if c == '>' and re.match('^.*<[^</>]*/[^</>]*>$', s_lft):
                     key = chars_state.get_key('')                       # 1.key
                     end = str(i + 1) + '.' + str(j)                     # 2.end
                     pane.tag_add(key, beg, end)                         # 3.tag
-                    #                                                   # 4.set
-                    # tmp = '<'                                         # 5.tmp
+                    chars_state.set_or_unset_has_ruby(False)            # 4.set
+                    # tmp = '>'                                         # 5.tmp
                     beg = end                                           # 6.beg
                     key = chars_state.get_key('ruby')                   # 1.key
                     end = str(i + 1) + '.' + str(j + 1)                 # 2.end
                     pane.tag_add(key, beg, end)                         # 3.tag
-                    #                                                   # 4.set
+                    tmp = ''                                            # 4.set
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
                     continue
