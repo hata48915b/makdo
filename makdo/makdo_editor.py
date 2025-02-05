@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.06-07:31:45-JST>
+# Time-stamp:   <2025.02.06-08:06:18-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -12925,7 +12925,7 @@ class Makdo:
         def __init__(self, makdo, frame, font, bg, lfg):
             self.makdo = makdo
             self.mother = frame
-            self.frame = tkinter.Frame(frame)
+            self.frame = tkinter.Frame(frame, bg=bg)
             self.frame.pack(side='top', anchor='w')
             self.checkbox = tkinter.Label(self.frame, font=font, bg=bg, fg=lfg)
             self.checkbox.pack(side='left')
