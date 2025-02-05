@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.05-12:14:19-JST>
+# Time-stamp:   <2025.02.05-17:13:34-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -139,7 +139,7 @@ COLOR_SPACE = (
     ('#3A5A00', '#619500', '#88D100', '#C2FF50'),  # 080 : sect6
     ('#2F5D00', '#4E9B00', '#6DD900', '#B8FF70'),  # 090 : sect7
     ('#226100', '#38A200', '#4FE200', '#B0FF86'),  # 100 : sect8
-    ('#136500', '#1FA900', '#2CED00', '#AAFF97'),  # 110 :
+    ('#136500', '#1FA900', '#2CED00', '#AAFF97'),  # 110 : ruby
     ('#006B00', '#00B200', '#00FA00', '#A5FFA5'),  # 120 : fontdeco, par1
     ('#006913', '#00AF20', '#00F52D', '#A1FFB2'),  # 130 :
     ('#006724', '#00AC3C', '#00F154', '#9DFFBF'),  # 140 : sp
@@ -160,7 +160,7 @@ COLOR_SPACE = (
     ('#D312FF', '#E056FF', '#EC9AFF', '#F9DDFF'),  # 290 : par9
     ('#FF05FF', '#FF4DFF', '#FF94FF', '#FFDBFF'),  # 300 : keyZ
     ('#FF0AD2', '#FF50DF', '#FF96EC', '#FFDCF9'),  # 310 : escape
-    ('#FF0EAB', '#FF53C3', '#FF98DB', '#FFDDF3'),  # 320 :
+    ('#FF0EAB', '#FF53C3', '#FF98DB', '#FFDDF3'),  # 320 : ruby
     ('#FF1188', '#FF55AA', '#FF99CC', '#FFDDEE'),  # 330 : list, fnumb
     ('#FF1566', '#FF5892', '#FF9BBE', '#FFDEE9'),  # 340 :
     ('#FF1843', '#FF5A79', '#FF9CAE', '#FFDEE4'),  # 350 :
@@ -4919,6 +4919,8 @@ class CharsState:
             key += '-270'
         elif chars == 'hline':
             key += '-270'
+        elif chars == 'ruby':
+            key += '-110'
         elif chars == 'R' or chars == 'red' or chars == 'DR':
             key += '-0'
         elif chars == 'Y' or chars == 'yellow' or chars == 'DY':
@@ -5228,12 +5230,6 @@ class LineDatum:
                     beg = end                                           # 6.beg
                     continue
                 if j >= 2 and re.match('\\s', c2) and c == ':' and c0 == '\n':
-                    key = chars_state.get_key('')                       # 1.key
-                    end = str(i + 1) + '.' + str(j - 1)                 # 2.end
-                    pane.tag_add(key, beg, end)                         # 3.tag
-                    #                                                   # 4.set
-                    # tmp = ':\n'                                       # 5.tmp
-                    beg = end                                           # 6.beg
                     key = chars_state.get_key('alignment')              # 1.key
                     end = str(i + 1) + '.' + str(j + 1)                 # 2.end
                     pane.tag_add(key, beg, end)                         # 3.tag
@@ -5486,6 +5482,49 @@ class LineDatum:
                     continue
                 if c == '>' and re.match('^.*<\\s*[\\.0-9]+\\s*>$', s_lft):
                     key = chars_state.get_key('<sp>')                   # 1.key
+                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
+                    pane.tag_add(key, beg, end)                         # 3.tag
+                    #                                                   # 4.set
+                    tmp = ''                                            # 5.tmp
+                    beg = end                                           # 6.beg
+                    continue
+                # RUBY (<xxx/yyy>)
+                if c == '<' and re.match('^[^</>]+/[^</>]+>.*$', s_rgt):
+                    key = chars_state.get_key('')                       # 1.key
+                    end = str(i + 1) + '.' + str(j)                     # 2.end
+                    pane.tag_add(key, beg, end)                         # 3.tag
+                    #                                                   # 4.set
+                    # tmp = '<'                                         # 5.tmp
+                    beg = end                                           # 6.beg
+                    key = chars_state.get_key('ruby')                   # 1.key
+                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
+                    pane.tag_add(key, beg, end)                         # 3.tag
+                    #                                                   # 4.set
+                    tmp = ''                                            # 5.tmp
+                    beg = end                                           # 6.beg
+                if c == '/' and \
+                   re.match('^.*<[^</>]+/$', s_lft) and \
+                   re.match('^[^</>]+>.*$', s_rgt):
+                    key = chars_state.get_key('')                       # 1.key
+                    end = str(i + 1) + '.' + str(j)                     # 2.end
+                    pane.tag_add(key, beg, end)                         # 3.tag
+                    #                                                   # 4.set
+                    # tmp = '<'                                         # 5.tmp
+                    beg = end                                           # 6.beg
+                    key = chars_state.get_key('ruby')                   # 1.key
+                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
+                    pane.tag_add(key, beg, end)                         # 3.tag
+                    #                                                   # 4.set
+                    tmp = ''                                            # 5.tmp
+                    beg = end                                           # 6.beg
+                if c == '>' and re.match('^.*<[^</>]+/[^</>]+>$', s_lft):
+                    key = chars_state.get_key('')                       # 1.key
+                    end = str(i + 1) + '.' + str(j)                     # 2.end
+                    pane.tag_add(key, beg, end)                         # 3.tag
+                    #                                                   # 4.set
+                    # tmp = '<'                                         # 5.tmp
+                    beg = end                                           # 6.beg
+                    key = chars_state.get_key('ruby')                   # 1.key
                     end = str(i + 1) + '.' + str(j + 1)                 # 2.end
                     pane.tag_add(key, beg, end)                         # 3.tag
                     #                                                   # 4.set
@@ -6009,6 +6048,7 @@ class Makdo:
             if os.path.exists(self.args_input_file):
                 self.just_open_file(self.args_input_file)
             else:
+                self.set_message_on_status_bar('新しいファイルです')
                 self.file_path = self.args_input_file
                 self._set_file_name(self.file_path)
         else:
@@ -6016,7 +6056,11 @@ class Makdo:
         self.txt.focus_set()
         self.current_pane = 'txt'
         # TABLE OF CONTENTS
-        self.settle_or_remove_toc()
+        is_toc_display_mode = self.is_toc_display_mode.get()
+        if self.init_text != '' and is_toc_display_mode:
+            self.set_message_on_status_bar('目次を作成しています', True)
+            self.settle_or_remove_toc()
+            self.set_message_on_status_bar('', True)
         # RUN PERIODICALLY
         self.run_periodically()
         # LOOP
@@ -6800,21 +6844,25 @@ class Makdo:
         self.current_pane = 'txt'
         self.txt.mark_set('insert', '1.0')
         self._set_file_name(file_path)
+        if document == '':
+            self.set_message_on_status_bar('空のファイルを開きました')
         # PAINT
-        paint_keywords = self.paint_keywords.get()
-        self.line_data = [LineDatum() for line in self.file_lines]
-        for i, line in enumerate(self.file_lines):
-            self.line_data[i].line_number = i
-            self.line_data[i].line_text = line + '\n'
-            if i > 0:
-                self.line_data[i].beg_chars_state \
-                    = self.line_data[i - 1].end_chars_state.copy()
-                self.line_data[i].beg_chars_state.reset_partially()
-            n = i + 1
-            if (n % 1000) == 0:
-                t = '行を色付けしています（' + str(n) + '行目）'
-                self.set_message_on_status_bar(t, True)
-            self.line_data[i].paint_line(self.txt, paint_keywords)
+        if document != '':
+            paint_keywords = self.paint_keywords.get()
+            self.line_data = [LineDatum() for line in self.file_lines]
+            for i, line in enumerate(self.file_lines):
+                self.line_data[i].line_number = i
+                self.line_data[i].line_text = line + '\n'
+                if i > 0:
+                    self.line_data[i].beg_chars_state \
+                        = self.line_data[i - 1].end_chars_state.copy()
+                    self.line_data[i].beg_chars_state.reset_partially()
+                n = i + 1
+                if (n % 1000) == 0:
+                    t = '行を色付けしています（' + str(n) + '行目）'
+                    self.set_message_on_status_bar(t, True)
+                self.line_data[i].paint_line(self.txt, paint_keywords)
+            self.set_message_on_status_bar('', True)
         # TABLE OF CONTENTS
         self.update_toc()
         # CLEAR THE UNDO STACK
