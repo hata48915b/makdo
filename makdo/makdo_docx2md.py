@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.31-16:30:56-JST>
+# Time-stamp:   <2025.02.07-06:14:30-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -4258,8 +4258,10 @@ class LineTruncation:
         res_alignment = '^(:\\s+)((?:.|\n)*)$'
         if re.match(res_chapter, md_text):
             head_string = re.sub(res_chapter, '\\1', md_text)
+            head_string = re.sub('-.*$', '-', head_string)
         elif re.match(res_section, md_text):
             head_string = re.sub(res_section, '\\1', md_text)
+            head_string = re.sub('-.*$', '-', head_string)
             if LineTruncation._is_sentence(md_text):
                 head_string = ''
         elif re.match(res_list, md_text):
