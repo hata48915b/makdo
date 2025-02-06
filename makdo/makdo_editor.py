@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.06-14:58:54-JST>
+# Time-stamp:   <2025.02.06-15:03:19-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -11845,7 +11845,6 @@ class Makdo:
                 self.return_to = self.mother.sub
             elif self.mother.current_pane == 'toc':
                 self.return_to = self.mother.toc_cvs_frm
-            print(self.return_to)
 
         def get_return_to(self):
             return self.return_to
