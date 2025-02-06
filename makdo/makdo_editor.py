@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.06-12:12:27-JST>
+# Time-stamp:   <2025.02.06-13:29:43-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -10330,25 +10330,31 @@ class Makdo:
         self.txt.mark_set('insert', 'flag5')
         self._put_back_cursor_to_pane(self.txt)
 
-    def goto_by_position(self):
-        self.PositionDialog(self.txt, self)
+    def goto_by_position(self, father=None):
+        pane = self.txt
+        if self.current_pane == 'sub':
+            pane = self.sub
+        if father is None:
+            father = pane
+        self.PositionDialog(pane, father, self)
 
     class PositionDialog(tkinter.simpledialog.Dialog):
 
-        def __init__(self, pane, mother):
-            self.pane = pane
-            self.mother = mother
-            super().__init__(pane, title='行数・文字数を指定して移動')
+        def __init__(self, pane, father, mother):
+            self.pane = pane      # "self.txt" or "self.sub"
+            self.father = father  # parent object
+            self.mother = mother  # Makdo()
+            super().__init__(father, title='行数・文字数を指定して移動')
 
-        def body(self, pane):
+        def body(self, father):
             i = self.pane.index('insert')
             v = int(re.sub('\\.[0-9]+$', '', i))
             h = int(re.sub('^[0-9]+\\.', '', i)) + 1
             fon = self.mother.gothic_font
             t = '行数・文字数を入力してください．\n'
-            self.text1 = tkinter.Label(pane, text=t)
+            self.text1 = tkinter.Label(father, text=t)
             self.text1.pack(side='top', anchor='w')
-            self.frame = tkinter.Frame(pane)
+            self.frame = tkinter.Frame(father)
             self.frame.pack(side='top')
             self.entry1 = tkinter.Entry(self.frame, width=7, font=fon)
             self.entry1.pack(side='left')
@@ -10360,7 +10366,7 @@ class Makdo:
             tkinter.Label(self.frame, text='文字目').pack(side='left')
             # self.bind('<Key-Return>', self.ok)
             # self.bind('<Key-Escape>', self.cancel)
-            # super().body(pane)
+            # super().body(father)
             return self.entry1
 
         def apply(self):
@@ -11508,6 +11514,12 @@ class Makdo:
                 self.mother.is_read_only.set(False)
             else:
                 self.mother.is_read_only.set(True)
+
+        mc = MinibufferCommand(
+            'goto-by-position',
+            [None, '行数・文字数を指定して移動'],
+            ['self.mother.goto_by_position(self)'])
+        minibuffer_commands.append(mc)
 
         mc = MinibufferCommand(
             'place-flag',
