@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.06-09:44:04-JST>
+# Time-stamp:   <2025.02.06-12:12:27-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -10694,10 +10694,30 @@ class Makdo:
         self._close_sub_pane()
         document = self.txt.get('1.0', 'end-1c')
         self._open_sub_pane(document, True)
-        for i in range(len(document)):
-            pos = '1.0+' + str(i) + 'c'
-            for tag in self.txt.tag_names(pos):
-                self.sub.tag_add(tag, pos, pos + '+1c')
+        # INSERT
+        insert = self.txt.index('insert')
+        self.sub.mark_set('insert', insert)
+        self._put_back_cursor_to_pane(self.sub)
+        # PAINT
+        self.file_lines = document.split('\n')
+        if document != '':
+            paint_keywords = self.paint_keywords.get()
+            self.line_data = [LineDatum() for line in self.file_lines]
+            for i, line in enumerate(self.file_lines):
+                self.line_data[i].line_number = i
+                self.line_data[i].line_text = line + '\n'
+                if i > 0:
+                    self.line_data[i].beg_chars_state \
+                        = self.line_data[i - 1].end_chars_state.copy()
+                    self.line_data[i].beg_chars_state.reset_partially()
+                n = i + 1
+                if (n % 1000) == 0:
+                    t = '行を色付けしています（' + str(n) + '行目）'
+                    self.set_message_on_status_bar(t, True)
+                self.line_data[i].paint_line(self.sub, paint_keywords)
+            self.set_message_on_status_bar('', True)
+        # RETURN
+        self.sub.focus_force()
         return True
 
     def show_file(self):
