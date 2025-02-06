@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.06-13:29:43-JST>
+# Time-stamp:   <2025.02.06-14:58:54-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -4458,7 +4458,6 @@ class LineDatum:
                 if not re.match(res_c, c):
                     chars_state.is_length_reviser = False
                 elif not re.match(res_s, s_lft + ' '):
-                    print(s_lft)
                     chars_state.is_length_reviser = False
             # ASCII
             if c.isascii() and not c.isalnum():
@@ -5346,14 +5345,19 @@ class Makdo:
                 self._set_file_name(self.file_path)
         else:
             self.show_first_help_message()
-        self.txt.focus_set()
-        self.current_pane = 'txt'
         # TABLE OF CONTENTS
         is_toc_display_mode = self.is_toc_display_mode.get()
         if self.init_text != '' and is_toc_display_mode:
             self.set_message_on_status_bar('目次を作成しています', True)
             self.settle_or_remove_toc()
             self.set_message_on_status_bar('', True)
+        # CURRENT PANE
+        if self.current_pane == 'sub':
+            self.sub.focus_set()
+        elif self.current_pane == 'toc':
+            self.toc_cvs_frm.focus_set()
+        else:
+            self.txt.focus_set()
         # RUN PERIODICALLY
         self.run_periodically()
         # LOOP
@@ -6480,7 +6484,6 @@ class Makdo:
                         + 'ご確認ください．'
                     tkinter.messagebox.showerror(n, m)
                     self.must_show_auto_file_save_failed_message = False
-            self.txt.focus_force()
 
     def remove_auto_file(self, file_path):
         if file_path is not None and file_path != '':
@@ -11482,7 +11485,17 @@ class Makdo:
     # MINIBUFFER
 
     def start_minibuffer(self):
-        self.Minibuffer(self.txt, self)
+        mb = self.Minibuffer(self.txt, self)
+        rt = mb.get_return_to()
+        if rt == self.sub:
+            self.sub.focus_force()
+            self.current_pane = 'sub'
+        elif 'toc_cvs_frm' in vars(self) and rt == self.toc_cvs_frm:
+            self.toc_cvs_frm.focus_force()
+            self.current_pane = 'toc'
+        else:
+            self.txt.focus_force()
+            self.current_pane = 'txt'
 
     class Minibuffer(tkinter.simpledialog.Dialog):
 
@@ -11696,7 +11709,8 @@ class Makdo:
         mc = MinibufferCommand(
             'split-window',
             [None, '画面を分割'],
-            ['self.mother.split_window()'])
+            ['self.mother.split_window()',
+             'self.set_return_to()'])
         minibuffer_commands.append(mc)
 
         mc = MinibufferCommand(
@@ -11709,6 +11723,19 @@ class Makdo:
             'compare-with-previous-draft',
             [None, '編集前の原稿と比較'],
             ['self.mother.compare_with_previous_draft()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'previous_window',
+            [None, '前のウィンドウに移動'],
+            ['self.mother._jump_to_prev_pane()',
+             'self.set_return_to()'])
+        minibuffer_commands.append(mc)
+        mc = MinibufferCommand(
+            'next_window',
+            [None, '次のウィンドウに移動'],
+            ['self.mother._jump_to_next_pane()',
+             'self.set_return_to()'])
         minibuffer_commands.append(mc)
 
         mc = MinibufferCommand(
@@ -11748,6 +11775,7 @@ class Makdo:
             self.init = init
             self.commands = self.get_commands()
             self.help_message = self.get_help_message()
+            self.return_to = pane
             self.history_number = 0
             if len(self.history) == 0:
                 Makdo.Minibuffer.history.append('')
@@ -11810,6 +11838,17 @@ class Makdo:
                         eval(mt)
                     return True
             Makdo.Minibuffer(self, self.mother, com)
+
+        def set_return_to(self):
+            self.return_to = self.mother.txt
+            if self.mother.current_pane == 'sub':
+                self.return_to = self.mother.sub
+            elif self.mother.current_pane == 'toc':
+                self.return_to = self.mother.toc_cvs_frm
+            print(self.return_to)
+
+        def get_return_to(self):
+            return self.return_to
 
         class Help(tkinter.simpledialog.Dialog):
 
@@ -13328,7 +13367,7 @@ class Makdo:
                     return 'break'
         elif key.keysym == 'x':
             if self.key_history[-2] == 'Escape':
-                self.Minibuffer(pane, self)
+                self.start_minibuffer()
                 return 'break'
         # Ctrl+A '\x01' select all          # Ctrl+N '\x0e' new document
         # Ctrl+B '\x02' bold                # Ctrl+O '\x0f' open document
@@ -13583,7 +13622,7 @@ class Makdo:
             return 'break'
         elif key.keysym == 'x':
             if self.key_history[-2] == 'Escape':
-                self.Minibuffer(pane, self)
+                self.start_minibuffer()
                 return 'break'
         # Ctrl+A '\x01' select all          # Ctrl+N '\x0e' new document
         # Ctrl+B '\x02' bold                # Ctrl+O '\x0f' open document
