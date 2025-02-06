@@ -25,6 +25,11 @@ convert -quality 100 -resize  256x256!  -depth 8 -colors 512 xB.xpm makdo8.png; 
 # convert -quality 100 -resize   16x16!   -depth 8 -colors 512 xB.xpm makdo4.png; chmod 444 makdo4.png
 convert -quality 100 -resize  512x256!  -depth 8 -colors 512 xB.xpm makdoL.png; chmod 444 makdoL.png
 
+# MAKE THE ICON IMAGE
+
+convert -quality 100 -resize  256x256!  -depth 8 -colors 512 xB.xpm makdo_icon.png; chmod 444 makdo_icon.png
+convert -quality 100 -resize  256x256!  -depth 5 -colors 512 xB.xpm makdo_icon-.png; chmod 444 makdo_icon-.png
+
 # MAKE THE SPLASH IMAGE
 
 cat x0.xpm \
@@ -40,6 +45,16 @@ convert -quality 100 \
 	-font IPAゴシック -pointsize 22 -fill '#FFFF00' -stroke '#FFFF00' -strokewidth 0 -annotate +220+313 'Powered by Seiichiro HATA.' \
 	makdo_splash.png
 chmod 444 makdo_splash.png
+
+convert -quality 100 \
+	'(' -size 512x320 xc:#7F7F7F ')' \
+	'(' -resize  256x256! -depth 8 xB.xpm ')' \
+	-geometry +128+32 -composite \
+	-font IPAゴシック -pointsize 22 -fill '#FFFF00' -stroke '#FFFF00' -strokewidth 0 -annotate +12+25   'MAKDO is starting.' \
+	-font IPAゴシック -pointsize 22 -fill '#FFFF00' -stroke '#FFFF00' -strokewidth 0 -annotate +220+313 'Powered by Seiichiro HATA.' \
+	-depth 5 -colors 512 \
+	makdo_splash-.png
+chmod 444 makdo_splash-.png
 
 # MAKE THE ICONS
 
