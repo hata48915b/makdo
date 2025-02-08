@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.08-12:32:07-JST>
+# Time-stamp:   <2025.02.09-07:56:53-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -10077,9 +10077,9 @@ class Makdo:
         table = self._prepare_table(pane, pre_text, table, pos_text)
         cr_number = self._get_conf_row_number(table)
         alignment = self._get_alignment_of_cell(cr_number, table)
-        width = self._get_cell_width(cr_number, table)
+        widths = self._get_cell_widths(cr_number, table)
         self._tidy_up_table(pane, pre_text, bare_par, pos_text,
-                            alignment, width, table)
+                            alignment, widths, table)
 
     @staticmethod
     def _get_table(bare_par: str) -> [[str]]:
@@ -10176,7 +10176,7 @@ class Makdo:
             for j, cell in enumerate(row):
                 if (j % 2) == 0:
                     pass
-                elif re.match('^:?-*:?(\\^|=)?$', cell):
+                elif re.match('^:?-*:?(\\^|=)?(\\s*\n\\s*)?$', cell):
                     pass
                 else:
                     break
@@ -10218,26 +10218,26 @@ class Makdo:
         return alignment
 
     @staticmethod
-    def _get_cell_width(conf_row_number, table):
-        cell_width = []
+    def _get_cell_widths(conf_row_number, table):
+        cell_widths = []
         for row in table:
             for j, cell in enumerate(row):
-                if (j + 1) > len(cell_width):
-                    cell_width.append(0)
+                if (j + 1) > len(cell_widths):
+                    cell_widths.append(0)
                 c = re.sub('\\s*\n\\s*', '', cell)
                 w = get_real_width(c)
-                if cell_width[j] < w:
-                    cell_width[j] = w
+                if cell_widths[j] < w:
+                    cell_widths[j] = w
         if conf_row_number >= 0:
             for j, cell in enumerate(table[conf_row_number]):
                 if cell != '':
                     c = re.sub('\\s*\n\\s*', '', cell)
                     w = get_real_width(c)
-                    cell_width[j] = w
-        return cell_width
+                    cell_widths[j] = w
+        return cell_widths
 
     def _tidy_up_table(self, pane, pre_text, bare_par, pos_text,
-                       alignment, width, table):
+                       alignment, widths, table):
         text = pre_text
         res = '^(\\s*)(.*?)(\\s*)$'
         for i, row in enumerate(table):
@@ -10245,7 +10245,7 @@ class Makdo:
             r_width = 0
             for j, cell in enumerate(row):
                 c = cell
-                r_width += width[j]
+                r_width += widths[j]
                 k = int(j / 2)
                 if j == 0:
                     # BEGINNING OF A ROW
