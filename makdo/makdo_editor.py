@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.08-09:29:45-JST>
+# Time-stamp:   <2025.02.08-12:32:07-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -4341,6 +4341,7 @@ class LineDatum:
                     pane.tag_add(key, beg, end)                         # 3.tag
                     #                                                   # 4.set
                     #                                                   # 5.tmp
+                    beg = end                                           # 6.beg
                 self.end_chars_state = chars_state.copy()
                 return
             # LENGTH REVISERS
