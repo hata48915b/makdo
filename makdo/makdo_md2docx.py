@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.03-16:44:31-JST>
+# Time-stamp:   <2025.02.09-07:16:11-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5617,6 +5617,40 @@ class ParagraphTable(Paragraph):
             if re.match(NOT_ESCAPED + '\\\\$', tab_line):
                 tab_line = re.sub('\\s*\\\\$', '', tab_line)
                 continue
+            # CONFIGURATIONS
+            res = '\\s*(\\|(:?-*:?)?(\\^+|=+)?)+$'
+            if re.match(res, tab_line):
+                if i < m:
+                    j = i + 1
+                    if re.match(res, md_lines[j].text):
+                        continue
+            # ONLY '|'
+            if ml.text == '|':
+                conf_cells = []
+                res = '\\s*(\\|(:?-*:?)?(\\^+|=+)?)+(?:\\s+:)?$'
+                for tl in tab_lines:
+                    if not re.match(res, tl):
+                        continue
+                    tl = re.sub('^(:\\s+)?\\|', '', tl)
+                    tl = re.sub('\\|(\\^+|=+)?(\\s+:)?$', '', tl)
+                    for c in tl.split('|'):
+                        if len(conf_cells) > 0 and \
+                           re.match(NOT_ESCAPED + '\\\\$', conf_cells[-1]):
+                            conf_cells[-1] += c
+                        else:
+                            conf_cells.append(c)
+                curr_cells = []
+                tl = tab_line
+                tl = re.sub('^\\|', '', tl)
+                tl = re.sub('\\|(:?-*:?)?(\\^+|=+)?$', '', tl)
+                for c in tl.split('|'):
+                    if len(curr_cells) > 0 and \
+                       re.match(NOT_ESCAPED + '\\\\$', curr_cells[-1]):
+                        curr_cells[-1] += c
+                    else:
+                        curr_cells.append(c)
+                if len(curr_cells) < len(conf_cells):
+                    continue
             # NOT END BY '|'
             res = NOT_ESCAPED + '\\|(:?-*:?)?(\\^+|=+)?(?:\\s+:)?$'
             if not re.match(res, tab_line):
