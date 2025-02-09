@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.07-06:14:30-JST>
+# Time-stamp:   <2025.02.09-12:03:21-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -8322,65 +8322,74 @@ class ParagraphTable(Paragraph):
                             = CharsDatum.cancel_fd_cls(pre_cd, cur_cd)
                     pre_cd = cur_cd
         # FONT REVISERS
-        fr_fd_cls = cd_tbl[0][0][0].fr_fd_cls
-        bk_fd_cls = cd_tbl[-1][-1][-1].bk_fd_cls
-        h_frs, t_frs = [], []
-        fr, bk = fr_fd_cls.font_name, bk_fd_cls.font_name
-        if fr != '' and bk != '' and FontDecorator.get_partner(fr) == bk:
-            fr_fd_cls.font_name, bk_fd_cls.font_name = '', ''
-            h_frs.append(fr)
-            t_frs.append(bk)
-        fr, bk = fr_fd_cls.font_scale, bk_fd_cls.font_scale
-        if fr != '' and bk != '' and FontDecorator.get_partner(fr) == bk:
-            fr_fd_cls.font_scale, bk_fd_cls.font_scale = '', ''
-            h_frs.append(fr)
-            t_frs.append(bk)
-        fr, bk = fr_fd_cls.font_width, bk_fd_cls.font_width
-        if fr != '' and bk != '' and FontDecorator.get_partner(fr) == bk:
-            fr_fd_cls.font_width, bk_fd_cls.font_width = '', ''
-            h_frs.append(fr)
-            t_frs.append(bk)
-        fr, bk = fr_fd_cls.italic, bk_fd_cls.italic
-        if fr != '' and bk != '' and FontDecorator.get_partner(fr) == bk:
-            fr_fd_cls.italic, bk_fd_cls.italic = '', ''
-            h_frs.append(fr)
-            t_frs.append(bk)
-        fr, bk = fr_fd_cls.bold, bk_fd_cls.bold
-        if fr != '' and bk != '' and FontDecorator.get_partner(fr) == bk:
-            fr_fd_cls.bold, bk_fd_cls.bold = '', ''
-            h_frs.append(fr)
-            t_frs.append(bk)
-        fr, bk = fr_fd_cls.strike, bk_fd_cls.strike
-        if fr != '' and bk != '' and FontDecorator.get_partner(fr) == bk:
-            fr_fd_cls.strike, bk_fd_cls.strike = '', ''
-            h_frs.append(fr)
-            t_frs.append(bk)
-        fr, bk = fr_fd_cls.frame, bk_fd_cls.frame
-        if fr != '' and bk != '' and FontDecorator.get_partner(fr) == bk:
-            fr_fd_cls.frame, bk_fd_cls.frame = '', ''
-            h_frs.append(fr)
-            t_frs.append(bk)
-        fr, bk = fr_fd_cls.underline, bk_fd_cls.underline
-        if fr != '' and bk != '' and FontDecorator.get_partner(fr) == bk:
-            fr_fd_cls.underline, bk_fd_cls.underline = '', ''
-            h_frs.append(fr)
-            t_frs.append(bk)
-        fr, bk = fr_fd_cls.font_color, bk_fd_cls.font_color
-        if fr != '' and bk != '' and FontDecorator.get_partner(fr) == bk:
-            fr_fd_cls.font_color, bk_fd_cls.font_color = '', ''
-            h_frs.append(fr)
-            t_frs.append(bk)
-        fr, bk = fr_fd_cls.highlight_color, bk_fd_cls.highlight_color
-        if fr != '' and bk != '' and FontDecorator.get_partner(fr) == bk:
-            fr_fd_cls.highlight_color, bk_fd_cls.highlight_color = '', ''
-            h_frs.append(fr)
-            t_frs.append(bk)
-        fr, bk = fr_fd_cls.sub_or_sup, bk_fd_cls.sub_or_sup
-        if fr != '' and bk != '' and FontDecorator.get_partner(fr) == bk:
-            fr_fd_cls.sub_or_sup, bk_fd_cls.sub_or_sup = '', ''
-            h_frs.append(fr)
-            t_frs.append(bk)
-        t_frs.reverse()
+        fr_fd_cls = None
+        bk_fd_cls = None
+        for cd_row in cd_tbl:
+            for cd_cell in cd_row:
+                if len(cd_cell) > 0:
+                    if fr_fd_cls is None:
+                        fr_fd_cls = cd_cell[0].fr_fd_cls
+                    bk_fd_cls = cd_cell[-1].bk_fd_cls
+        # fr_fd_cls = cd_tbl[0][0][0].fr_fd_cls
+        # bk_fd_cls = cd_tbl[-1][-1][-1].bk_fd_cls
+        if (fr_fd_cls is not None) and (bk_fd_cls is not None):
+            h_frs, t_frs = [], []
+            fr, bk = fr_fd_cls.font_name, bk_fd_cls.font_name
+            if fr != '' and bk != '' and FontDecorator.get_partner(fr) == bk:
+                fr_fd_cls.font_name, bk_fd_cls.font_name = '', ''
+                h_frs.append(fr)
+                t_frs.append(bk)
+            fr, bk = fr_fd_cls.font_scale, bk_fd_cls.font_scale
+            if fr != '' and bk != '' and FontDecorator.get_partner(fr) == bk:
+                fr_fd_cls.font_scale, bk_fd_cls.font_scale = '', ''
+                h_frs.append(fr)
+                t_frs.append(bk)
+            fr, bk = fr_fd_cls.font_width, bk_fd_cls.font_width
+            if fr != '' and bk != '' and FontDecorator.get_partner(fr) == bk:
+                fr_fd_cls.font_width, bk_fd_cls.font_width = '', ''
+                h_frs.append(fr)
+                t_frs.append(bk)
+            fr, bk = fr_fd_cls.italic, bk_fd_cls.italic
+            if fr != '' and bk != '' and FontDecorator.get_partner(fr) == bk:
+                fr_fd_cls.italic, bk_fd_cls.italic = '', ''
+                h_frs.append(fr)
+                t_frs.append(bk)
+            fr, bk = fr_fd_cls.bold, bk_fd_cls.bold
+            if fr != '' and bk != '' and FontDecorator.get_partner(fr) == bk:
+                fr_fd_cls.bold, bk_fd_cls.bold = '', ''
+                h_frs.append(fr)
+                t_frs.append(bk)
+            fr, bk = fr_fd_cls.strike, bk_fd_cls.strike
+            if fr != '' and bk != '' and FontDecorator.get_partner(fr) == bk:
+                fr_fd_cls.strike, bk_fd_cls.strike = '', ''
+                h_frs.append(fr)
+                t_frs.append(bk)
+            fr, bk = fr_fd_cls.frame, bk_fd_cls.frame
+            if fr != '' and bk != '' and FontDecorator.get_partner(fr) == bk:
+                fr_fd_cls.frame, bk_fd_cls.frame = '', ''
+                h_frs.append(fr)
+                t_frs.append(bk)
+            fr, bk = fr_fd_cls.underline, bk_fd_cls.underline
+            if fr != '' and bk != '' and FontDecorator.get_partner(fr) == bk:
+                fr_fd_cls.underline, bk_fd_cls.underline = '', ''
+                h_frs.append(fr)
+                t_frs.append(bk)
+            fr, bk = fr_fd_cls.font_color, bk_fd_cls.font_color
+            if fr != '' and bk != '' and FontDecorator.get_partner(fr) == bk:
+                fr_fd_cls.font_color, bk_fd_cls.font_color = '', ''
+                h_frs.append(fr)
+                t_frs.append(bk)
+            fr, bk = fr_fd_cls.highlight_color, bk_fd_cls.highlight_color
+            if fr != '' and bk != '' and FontDecorator.get_partner(fr) == bk:
+                fr_fd_cls.highlight_color, bk_fd_cls.highlight_color = '', ''
+                h_frs.append(fr)
+                t_frs.append(bk)
+            fr, bk = fr_fd_cls.sub_or_sup, bk_fd_cls.sub_or_sup
+            if fr != '' and bk != '' and FontDecorator.get_partner(fr) == bk:
+                fr_fd_cls.sub_or_sup, bk_fd_cls.sub_or_sup = '', ''
+                h_frs.append(fr)
+                t_frs.append(bk)
+                t_frs.reverse()
         # TEXT
         txt_tbl = []
         for cd_row in cd_tbl:
