@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.09-10:25:19-JST>
+# Time-stamp:   <2025.02.10-07:52:43-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -7181,11 +7181,16 @@ class Makdo:
         res = '^((?:.|\n)*)(' + word1 + ')((?:.|\n)*)$'
         while True:
             tex = pane.get(beg, end)
-            if not re.match(res, tex):
-                break
-            s = re.sub(res, '\\1', tex)
-            w = re.sub(res, '\\2', tex)
-            t = re.sub(res, '\\3', tex)
+            try:
+                if not re.match(res, tex):
+                    break
+                s = re.sub(res, '\\1', tex)
+                w = re.sub(res, '\\2', tex)
+                t = re.sub(res, '\\3', tex)
+            except BaseException:
+                pane.focus_set()
+                self.set_message_on_status_bar('正規表現が間違っています')
+                return
             if w == '':
                 continue
             pane.delete(beg + '+' + str(len(s)) + 'c',
@@ -10090,12 +10095,20 @@ class Makdo:
         table = self._prepare_table(pane, pre_text, table, pos_text)
         cr_number = self._get_conf_row_number(table)
         alignment = self._get_alignment_of_cell(cr_number, table)
-        widths, spaces = self._get_cell_widths_and_spaces(cr_number, table)
+        widths, borders = self._get_cell_widths_and_borders(cr_number, table)
         self._tidy_up_table(pane, pre_text, bare_par, pos_text,
-                            alignment, widths, spaces, table)
+                            alignment, widths, borders, table)
 
     @staticmethod
     def _get_table(bare_par: str) -> [[str]]:
+        indent = ''
+        res = '^(\\s*:)(\\s.*)$'
+        for line in bare_par.split('\n'):
+            if re.match(res, line):
+                s = re.sub(res, '\\1', line)
+                s = s.replace('\t', (' ' * 4))
+                s = s.replace('\u3000', (' ' * 2))
+                indent = '\\s{,' + str(len(s)) + '}'
         table = []
         row = []
         cell = ''
@@ -10122,7 +10135,14 @@ class Makdo:
                     table[-1][-1] += cell + c
                     cell = ''
                 elif (i < len(bare_par) - 1 and
-                      not re.match('^(\\s*:\\s+)?\\|', bare_par[i + 1:])):
+                      re.match('^\\s*(\\|[:-]-*:?(\\^|=)?)+(\\|(\\s*:)?)?\\s*',
+                               bare_par[i + 1:]) and
+                      len(table) > 0 and len(table[-1]) > 0):
+                    # "|:--\n|:--"
+                    cell += c
+                elif (i < len(bare_par) - 1 and
+                      not re.match('^' + indent + '\\|', bare_par[i + 1:]) and
+                      not re.match('^\\s*:\\s+\\|', bare_par[i + 1:])):
                     # "|...\n...|"
                     cell += c
                 else:
@@ -10138,7 +10158,6 @@ class Makdo:
                     cell = ''
             else:
                 cell += c
-        print(table)
         return table
 
     def _prepare_table(self, pane, pre_text, table, pos_text):
@@ -10190,7 +10209,7 @@ class Makdo:
             for j, cell in enumerate(row):
                 if (j % 2) == 0:
                     pass
-                elif re.match('^:?-*:?(\\^|=)?(\\s*\n\\s*)?$', cell):
+                elif re.match('^:?-*:?(\\^|=)?(\\s*\\\\?\n\\s*)?$', cell):
                     pass
                 else:
                     break
@@ -10232,34 +10251,39 @@ class Makdo:
         return alignment
 
     @staticmethod
-    def _get_cell_widths_and_spaces(conf_row_number, table):
+    def _get_cell_widths_and_borders(conf_row_number, table):
         cell_widths = []
-        next_spaces = []
         for row in table:
             for j, cell in enumerate(row):
                 if (j + 1) > len(cell_widths):
                     cell_widths.append(0)
-                c = re.sub('\\s*\n\\s*', '', cell)
+                c = re.sub('\\s*\\\\?\n\\s*', '', cell)
                 w = get_real_width(c)
                 if cell_widths[j] < w:
                     cell_widths[j] = w
         if conf_row_number >= 0:
             for j, cell in enumerate(table[conf_row_number]):
                 if cell != '':
-                    c = re.sub('\\s*\n\\s*', '', cell)
+                    c = re.sub('\\s*\\\\?\n\\s*', '', cell)
                     w = get_real_width(c)
                     cell_widths[j] = w
+        right_borders = []
         for i in range(len(cell_widths)):
-            next_spaces.append('')
-            if i < len(table[conf_row_number]):
-                cell = table[conf_row_number][i]
-                res = '^.*\n'
-                if re.match(res, cell):
-                    next_spaces[i] = '\n' + re.sub(res, '', cell)
-        return cell_widths, next_spaces
+            if i == 0:
+                b = 0
+            else:
+                b = right_borders[-1]
+            if i < len(table[conf_row_number]) and \
+               '\n' in table[conf_row_number][i]:
+                s = re.sub('^((.|\n)*\n)', '', table[conf_row_number][i])
+                b = len(s)
+            else:
+                b += cell_widths[i]
+            right_borders.append(b)
+        return cell_widths, right_borders
 
     def _tidy_up_table(self, pane, pre_text, bare_par, pos_text,
-                       alignment, widths, spaces, table):
+                       alignment, widths, borders, table):
         text = pre_text
         res = '^(\\s*)(.*?)(\\s*)$'
         for i, row in enumerate(table):
@@ -10282,8 +10306,11 @@ class Makdo:
                     if (j % 2) == 0:
                         pass  # cell = '|'
                     else:
+                        b1 = borders[j - 1] if j > 0 else 0
+                        b2 = borders[j]
+                        bdrs = (b1, b2)
                         if '\n' in c:
-                            c = self._tupt_break_lines(pane, text, c, r_width)
+                            c = self._tupt_linebreaks(pane, text, c, bdrs)
                         elif alignment[i][k] == 'c':
                             c = self._tupt_center(pane, text, c, r_width)
                         elif alignment[i][k] == 'r':
@@ -10304,20 +10331,47 @@ class Makdo:
                     r_width = 0
                 text += c
 
-    def _tupt_break_lines(self, pane, text, cell, width):
-        bdy = cell
-        new_brl = '\n  '
-        new_cell = ''
-        res = '^(.*)(\\s*\n\\s*)(.*)$'
-        if '\n' in bdy:
+    def _tupt_linebreaks(self, pane, text, cell, borders):
+        # RIGHT SPACES
+        res_nl = '^((?:.|\n)*)(\\s*\n\\s*)$'
+        res_nn = '^((?:.|\n)*)(\\s+)(:?)$'
+        rgt_spc = ''
+        if re.match(res_nl, cell):
+            bdy = re.sub(res_nl, '\\1', cell)
+            spc = re.sub(res_nl, '\\2', cell)
+            new_spc = '\n' + (' ' * borders[1])
+            spc = self._replace_spaces(pane, text + bdy, spc, new_spc)
+            cell, rgt_spc = bdy, spc
+        elif re.match(res_nn, cell):
+            bdy = re.sub(res_nn, '\\1', cell)
+            spc = re.sub(res_nn, '\\2', cell)
+            sym = re.sub(res_nn, '\\3', cell)
+            new_spc = ' ' if sym == ':' else ''
+            spc = self._replace_spaces(pane, text + bdy, spc, new_spc)
+            cell = bdy + spc + sym
+        # CENTER SPACES
+        if '\n' in cell:
+            bdy = cell
+            new_bdy = ''
+            res = '^((?:.|\n)*)(\\s*\n\\s*)(.*\\S.*)$'
             while '\n' in bdy:
                 pos = re.sub(res, '\\3', bdy)
-                brl = re.sub(res, '\\2', bdy)
+                spc = re.sub(res, '\\2', bdy)
                 bdy = re.sub(res, '\\1', bdy)
-                if brl != new_brl:
-                    brl = self._replace_spaces(pane, text + bdy, brl, new_brl)
-                new_cell = brl + pos + new_cell
-            cell = bdy + new_cell
+                new_spc = '\n' + (' ' * borders[0])
+                spc = self._replace_spaces(pane, text + bdy, spc, new_spc)
+                new_bdy = new_spc + pos + new_bdy
+            cell = bdy + new_bdy
+        # LEFT SPACE
+        res = '^(:?)(\\s+)((?:.|\n)*)$'
+        if re.match(res, cell):
+            sym = re.sub(res, '\\1', cell)
+            spc = re.sub(res, '\\2', cell)
+            bdy = re.sub(res, '\\3', cell)
+            new_spc = ' ' if sym == ':' else ''
+            spc = self._replace_spaces(pane, text + sym, spc, new_spc)
+            cell = sym + spc + bdy
+        cell += rgt_spc
         return cell
 
     def _tupt_left(self, pane, text, cell, width):
