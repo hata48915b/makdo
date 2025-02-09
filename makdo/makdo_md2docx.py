@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.09-07:16:11-JST>
+# Time-stamp:   <2025.02.09-18:40:57-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5619,10 +5619,10 @@ class ParagraphTable(Paragraph):
                 continue
             # CONFIGURATIONS
             res = '\\s*(\\|(:?-*:?)?(\\^+|=+)?)+$'
-            if re.match(res, tab_line):
+            if re.match('^\\s*(:\\s+)?' + res, tab_line):
                 if i < m:
                     j = i + 1
-                    if re.match(res, md_lines[j].text):
+                    if re.match('^' + res, md_lines[j].text):
                         continue
             # ONLY '|'
             if ml.text == '|':
