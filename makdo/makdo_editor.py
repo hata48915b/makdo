@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.09-07:56:53-JST>
+# Time-stamp:   <2025.02.09-10:25:19-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -155,14 +155,14 @@ COLOR_SPACE = (
     ('#3F3FFF', '#7676FF', '#ADADFF', '#E4E4FF'),  # 240 : chap4, (hsp), par6
     ('#5B36FF', '#8A70FF', '#B9A9FF', '#E8E2FF'),  # 250 : chap5
     ('#772EFF', '#9E6AFF', '#C5A5FF', '#ECE1FF'),  # 260 : par7
-    ('#9226FF', '#B164FF', '#D0A2FF', '#EFE0FF'),  # 270 : br, pgbr, hline
+    ('#9226FF', '#B164FF', '#D0A2FF', '#EFE0FF'),  # 270 :
     ('#B01DFF', '#C75DFF', '#DD9EFF', '#F4DFFF'),  # 280 : par8
     ('#D312FF', '#E056FF', '#EC9AFF', '#F9DDFF'),  # 290 : par9
     ('#FF05FF', '#FF4DFF', '#FF94FF', '#FFDBFF'),  # 300 : keyZ
-    ('#FF0AD2', '#FF50DF', '#FF96EC', '#FFDCF9'),  # 310 : escape
+    ('#FF0AD2', '#FF50DF', '#FF96EC', '#FFDCF9'),  # 310 : br, pgbr, hline
     ('#FF0EAB', '#FF53C3', '#FF98DB', '#FFDDF3'),  # 320 :
     ('#FF1188', '#FF55AA', '#FF99CC', '#FFDDEE'),  # 330 : list, fnumb
-    ('#FF1566', '#FF5892', '#FF9BBE', '#FFDEE9'),  # 340 :
+    ('#FF1566', '#FF5892', '#FF9BBE', '#FFDEE9'),  # 340 : escape
     ('#FF1843', '#FF5A79', '#FF9CAE', '#FFDEE4'),  # 350 :
     ('#4C4C4C', '#808080', '#B2B2B2', '#E6E6E6'),  # gray
 )
@@ -4141,7 +4141,7 @@ class CharsState:
         elif self.is_in_comment:
             key += '-0'
         elif chars == 'escape':
-            key += '-310'
+            key += '-340'
         elif chars == 'font decorator':
             key += '-120'
         elif chars == 'table':
@@ -4196,9 +4196,9 @@ class CharsState:
         elif chars == '<sp>':
             key += '-140'
         elif chars == '<br>' or chars == '<pgbr>':
-            key += '-270'
+            key += '-310'
         elif chars == 'hline':
-            key += '-270'
+            key += '-310'
         elif chars == 'ruby':
             key += '-110'
         elif chars == 'R' or chars == 'red' or chars == 'DR':
@@ -4373,36 +4373,35 @@ class LineDatum:
             if line_text[0] == '|':
                 if chars_state.standard_size == '':
                     chars_state.standard_size = chars_state.is_resized
-            res = '^(:\\s)?\\s*(\\|:?-*:?[\\^=]?)*(\\|(\\s:)?|\\\\)$'
+            res = '^(:\\s+)?\\s*(\\|:?-*:?[\\^=]?)+(\\|(\\s+:)?|\\\\)?$'
             if re.match(res, line_text):
-                beg, tmp = str(i + 1) + '.0', ''
                 for j, c in enumerate(line_text + '\0'):
-                    if not re.match('^[\\s\\|\\\\\0]$', c):
-                        continue
-                    tmp += c
-                    if re.match('^[:\\s\0]$', tmp):
+                    if c == '|':
+                        key = chars_state.get_key('table')              # 1.key
+                    elif c == ':':
                         key = chars_state.get_key('alignment')          # 1.key
-                    else:
+                    elif c == '-':
                         key = chars_state.get_key('font decorator')     # 1.key
-                    end = str(i + 1) + '.' + str(j)                     # 2.end
-                    pane.tag_add(key, beg, end)                         # 3.tag
-                    #                                                   # 4.set
-                    # tmp = '.'                                         # 5.tmp
-                    beg = end                                           # 6.beg
-                    if c == '\0':
-                        break
+                    elif c == '^' or c == '=':
+                        key = chars_state.get_key('hline')              # 1.key
                     elif c == ' ' or c == '\t' or c == '\u3000':
                         key = chars_state.get_key(c)                    # 1.key
-                    elif c == '|':
-                        key = chars_state.get_key('table')              # 1.key
                     elif c == '\\':
                         key = chars_state.get_key('escape')             # 1.key
+                    elif c != '\0':
+                        key = chars_state.get_key('')                   # 1.key
+                    else:  # c == '\0'
+                        break
+                    beg = str(i + 1) + '.' + str(j)                     # 2.beg
                     end = str(i + 1) + '.' + str(j + 1)                 # 2.end
                     pane.tag_add(key, beg, end)                         # 3.tag
-                    #                                                   # 4.set
-                    tmp = ''                                            # 5.tmp
-                    beg = end                                           # 6.beg
                 self.end_chars_state = chars_state.copy()
+                return
+            if re.match('^\\^+$', line_text) or re.match('^=+$', line_text):
+                key = chars_state.get_key('hline')                      # 1.key
+                beg = str(i + 1) + '.0'                                 # 2.end
+                end = str(i + 1) + '.end'                               # 2.end
+                pane.tag_add(key, beg, end)                             # 3.tag
                 return
         # PARTS
         beg, tmp = str(i + 1) + '.0', ''
@@ -4745,6 +4744,38 @@ class LineDatum:
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
                     continue
+                if c == ':':
+                    res1, res2 = '^.*\\|', '^-*:?[\\^|=]?$'
+                    res3, res4 = '^.*\\|:?-*:$', '^[\\^|=]?$'
+                    if (re.match(res1, s_lft) and re.match(res2, s_rgt)) or \
+                       (re.match(res3, s_lft) and re.match(res4, s_rgt)):
+                        key = chars_state.get_key('alignment')          # 1.key
+                        end = str(i + 1) + '.' + str(j + 1)             # 2.end
+                        pane.tag_add(key, beg, end)                     # 3.tag
+                        #                                               # 4.set
+                        tmp = ''                                        # 5.tmp
+                        beg = end                                       # 6.beg
+                        continue
+                if c == '-' and tmp == '-':
+                    res1, res2 = '^.*\\|:?-{4,}$', '^-*:?[\\^|=]?$'
+                    if re.match(res1, s_lft) and re.match(res2, s_rgt):
+                        key = chars_state.get_key('font decorator')     # 1.key
+                        end = str(i + 1) + '.' + str(j + 1)             # 2.end
+                        pane.tag_add(key, beg, end)                     # 3.tag
+                        #                                               # 4.set
+                        tmp = ''                                        # 5.tmp
+                        beg = end                                       # 6.beg
+                        continue
+                if c == '^' or c == '=':
+                    res1, res2 = '^.*\\|:?-*:?.$', '^$'
+                    if re.match(res1, s_lft) and re.match(res2, s_rgt):
+                        key = chars_state.get_key('hline')              # 1.key
+                        end = str(i + 1) + '.' + str(j + 1)             # 2.end
+                        pane.tag_add(key, beg, end)                     # 3.tag
+                        #                                               # 4.set
+                        tmp = ''                                        # 5.tmp
+                        beg = end                                       # 6.beg
+                        continue
                 # IMAGE
                 if c == '!' and re.match('^\\[.*\\]\\(.*\\)', line_text[j+1:]):
                     key = chars_state.get_key('')                       # 1.key
@@ -5140,24 +5171,6 @@ class LineDatum:
                         #                                               # 4.set
                         tmp = ''                                        # 5.tmp
                         beg = end                                       # 6.beg
-            # SEARCH WORD
-            wrd = Makdo.search_word
-            if wrd != '' and re.match('^.*' + wrd + '$', tmp):
-                key = chars_state.get_key('')                           # 1.key
-                end = str(i + 1) + '.' + str(j - len(wrd) + 1)          # 2.end
-                pane.tag_add(key, beg, end)                             # 3.tag
-                #                                                       # 4.set
-                # tmp = wrd                                             # 5.tmp
-                beg = end                                               # 6.beg
-                key = 'rev-gx'                                          # 1.key
-                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                pane.tag_add(key, beg, end)                             # 3.tag
-                #                                                       # 4.set
-                tmp = ''                                                # 5.tmp
-                beg = end                                               # 6.beg
-                continue
-                if tmp == '':
-                    continue
         self.end_chars_state = chars_state.copy()
         return
 
@@ -10077,9 +10090,9 @@ class Makdo:
         table = self._prepare_table(pane, pre_text, table, pos_text)
         cr_number = self._get_conf_row_number(table)
         alignment = self._get_alignment_of_cell(cr_number, table)
-        widths = self._get_cell_widths(cr_number, table)
+        widths, spaces = self._get_cell_widths_and_spaces(cr_number, table)
         self._tidy_up_table(pane, pre_text, bare_par, pos_text,
-                            alignment, widths, table)
+                            alignment, widths, spaces, table)
 
     @staticmethod
     def _get_table(bare_par: str) -> [[str]]:
@@ -10125,6 +10138,7 @@ class Makdo:
                     cell = ''
             else:
                 cell += c
+        print(table)
         return table
 
     def _prepare_table(self, pane, pre_text, table, pos_text):
@@ -10218,8 +10232,9 @@ class Makdo:
         return alignment
 
     @staticmethod
-    def _get_cell_widths(conf_row_number, table):
+    def _get_cell_widths_and_spaces(conf_row_number, table):
         cell_widths = []
+        next_spaces = []
         for row in table:
             for j, cell in enumerate(row):
                 if (j + 1) > len(cell_widths):
@@ -10234,10 +10249,17 @@ class Makdo:
                     c = re.sub('\\s*\n\\s*', '', cell)
                     w = get_real_width(c)
                     cell_widths[j] = w
-        return cell_widths
+        for i in range(len(cell_widths)):
+            next_spaces.append('')
+            if i < len(table[conf_row_number]):
+                cell = table[conf_row_number][i]
+                res = '^.*\n'
+                if re.match(res, cell):
+                    next_spaces[i] = '\n' + re.sub(res, '', cell)
+        return cell_widths, next_spaces
 
     def _tidy_up_table(self, pane, pre_text, bare_par, pos_text,
-                       alignment, widths, table):
+                       alignment, widths, spaces, table):
         text = pre_text
         res = '^(\\s*)(.*?)(\\s*)$'
         for i, row in enumerate(table):
