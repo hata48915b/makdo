@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.10-09:51:26-JST>
+# Time-stamp:   <2025.02.10-14:38:15-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6054,7 +6054,6 @@ class Makdo:
 
     @staticmethod
     def _escape_search_word(search_word):
-        print(search_word)
         search_word = search_word.replace('\\', '\\\\')
         search_word = search_word.replace('.', '\\.')
         search_word = search_word.replace('(', '\\(').replace(')', '\\)')
@@ -6064,7 +6063,6 @@ class Makdo:
         search_word = search_word.replace('*', '\\*').replace('?', '\\?')
         search_word = search_word.replace('^', '\\^').replace('$', '\\$')
         search_word = search_word.replace('|', '\\|')
-        print(search_word)
         return search_word
 
     ####################################
@@ -9957,12 +9955,13 @@ class Makdo:
         pre, par, pos = pre_pars, cur_par, pos_pars
         res_sp = '(\\s+)'
         res_cm = '(<!--(?:.|\n)*?-->)'
+        res_ln = '((?:v|V|x|X|<<|<|>)=[\\-\\+]?(?:[0-9]+\\.)?[0-9]+)'
         res_f1 = '(\\*{1,3}|~~|`|//|\\-{2,3}|\\+{2,3}|>{2,3}|<{2,3})'
         res_f2 = '(\\^[0-9A-Za-z]{0,11}\\^|_[0-9A-Za-z]{0,11}_)'
         res_f3 = '(_[\\$=\\.#\\-~\\+]{,4}_)'
         res_f4 = '(@(?:[0-9]*\\.)?[0-9]+@|@[^@]{1,66}@)'
-        res_ln = '((?:v|V|x|X|<<|<|>)=[\\-\\+]?(?:[0-9]+\\.)?[0-9]+)'
-        res_head = [res_sp, res_cm, res_f1, res_f2, res_f3, res_f4, res_ln]
+        # "res_ln(<<=n)" should be processed before "res_f1(<<)"
+        res_head = [res_sp, res_cm, res_ln, res_f1, res_f2, res_f3, res_f4]
         res_tail = [res_sp, res_cm, res_f1, res_f2, res_f3, res_f4]
         tmp = ''
         while par != tmp:
@@ -14999,7 +14998,8 @@ class Makdo:
         mc = Minibuffer.MinibufferCommand(
             'lookup',
             [None, 'Epwing形式の辞書で調べる'],
-            ['self.mother.look_in_epwing(self)'])
+            ['self.mother.look_in_epwing(self)',
+             'self.set_return_to()'])
         Minibuffer.minibuffer_commands.append(mc)
 
         def look_in_epwing(self, pane=None) -> bool:
@@ -15095,7 +15095,8 @@ class Makdo:
         mc = Minibuffer.MinibufferCommand(
             'ask-openai',
             [None, 'OpenAIに質問する'],
-            ['self.mother.open_openai()'])
+            ['self.mother.open_openai()',
+             'self.set_return_to()'])
         Minibuffer.minibuffer_commands.append(mc)
 
         def open_openai(self) -> bool:
@@ -15246,7 +15247,8 @@ class Makdo:
         mc = Minibuffer.MinibufferCommand(
             'ask-llama',
             [None, 'Llamaに質問する'],
-            ['self.mother.open_llama()'])
+            ['self.mother.open_llama()',
+             'self.set_return_to()'])
         Minibuffer.minibuffer_commands.append(mc)
 
         def open_llama(self) -> bool:
