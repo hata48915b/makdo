@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.09-18:40:57-JST>
+# Time-stamp:   <2025.02.10-09:12:03-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5613,7 +5613,7 @@ class ParagraphTable(Paragraph):
         m = len(md_lines) - 1
         for i, ml in enumerate(md_lines):
             tab_line += re.sub('^\\s*', '', ml.text)
-            # ESCAPED (backward compatibility)
+            # ESCAPED
             if re.match(NOT_ESCAPED + '\\\\$', tab_line):
                 tab_line = re.sub('\\s*\\\\$', '', tab_line)
                 continue

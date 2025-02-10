@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.10-07:52:43-JST>
+# Time-stamp:   <2025.02.10-09:06:00-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5180,23 +5180,25 @@ class LineDatum:
 
 class Makdo:
 
-    args_dont_show_help = None        # True|+False
+    args_dont_show_help = None         # True|+False
     file_dont_show_help = None
-    args_background_color = None      # +W|B|G
+    args_background_color = None       # +W|B|G
     file_background_color = None
-    args_font_size = None             # 3|6|9|12|15|+18|21|24|27|30|33|36|...
+    args_font_size = None              # 3|6|9|12|15|+18|21|24|27|30|33|36|...
     file_font_size = None
-    args_paint_keywords = None        # True|+False
+    args_use_regexps = None            # True|+False
+    file_use_regexps = None
+    args_paint_keywords = None         # True|+False
     file_paint_keywords = None
-    args_keywords_to_paint = None     # 'foo|bar|baz'
+    args_keywords_to_paint = None      # 'foo|bar|baz'
     file_keywords_to_paint = None
-    args_digit_separator = None       # +0|3|4
+    args_digit_separator = None        # +0|3|4
     file_digit_separator = None
-    args_read_only = None             # True|+False
+    args_read_only = None              # True|+False
     # file_read_only = None
-    args_make_backup_file = False     # True|+False
+    args_make_backup_file = False      # True|+False
     file_make_backup_file = False
-    # args_is_toc_display_mode = True   # True|+False
+    # args_is_toc_display_mode = True  # True|+False
     file_is_toc_display_mode = True
 
     args_input_file = None
@@ -6049,6 +6051,21 @@ class Makdo:
                 canvas.yview_scroll(-1, 'units')
             elif event.num == 5:
                 canvas.yview_scroll(+1, 'units')
+
+    @staticmethod
+    def _escape_search_word(search_word):
+        print(search_word)
+        search_word = search_word.replace('\\', '\\\\')
+        search_word = search_word.replace('.', '\\.')
+        search_word = search_word.replace('(', '\\(').replace(')', '\\)')
+        search_word = search_word.replace('{', '\\{').replace('}', '\\}')
+        search_word = search_word.replace('[', '\\[').replace(']', '\\]')
+        search_word = search_word.replace('-', '\\-').replace('+', '\\+')
+        search_word = search_word.replace('*', '\\*').replace('?', '\\?')
+        search_word = search_word.replace('^', '\\^').replace('$', '\\$')
+        search_word = search_word.replace('|', '\\|')
+        print(search_word)
+        return search_word
 
     ####################################
     # MENU
@@ -7178,19 +7195,22 @@ class Makdo:
         else:
             beg, end = '1.0', 'end-1c'
         m = 0
-        res = '^((?:.|\n)*)(' + word1 + ')((?:.|\n)*)$'
+        res_word1 = word1
+        if not self.use_regexps.get():
+            res_word1 = self._escape_search_word(word1)
+        res = '^((?:.|\n)*)(' + res_word1 + ')((?:.|\n)*)$'
         while True:
             tex = pane.get(beg, end)
             try:
                 if not re.match(res, tex):
                     break
-                s = re.sub(res, '\\1', tex)
-                w = re.sub(res, '\\2', tex)
-                t = re.sub(res, '\\3', tex)
             except BaseException:
                 pane.focus_set()
-                self.set_message_on_status_bar('正規表現が間違っています')
+                self.set_message_on_status_bar('置換に失敗しました')
                 return
+            s = re.sub(res, '\\1', tex)
+            w = re.sub(res, '\\2', tex)
+            t = re.sub(res, '\\3', tex)
             if w == '':
                 continue
             pane.delete(beg + '+' + str(len(s)) + 'c',
@@ -11853,40 +11873,30 @@ class Makdo:
             minibuffer_commands.append(mc)
 
         mc = MinibufferCommand(
-            'search-backward-regexp',
-            [None, '上方を正規表現で検索'],
+            'search-backward',
+            [None, '上方を検索'],
             ['self.mother.search_backward_from_dialog(self)'])
         minibuffer_commands.append(mc)
         mc = MinibufferCommand(
-            'search-forward-regexp',
-            [None, '下方を正規表現で検索'],
-            ['self.mother.search_forward_from_dialog(self)'])
-        minibuffer_commands.append(mc)
-        mc = MinibufferCommand(
-            'search-regexp',
-            None,
+            'search-forward',
+            [None, '下方を検索'],
             ['self.mother.search_forward_from_dialog(self)'])
         minibuffer_commands.append(mc)
 
         mc = MinibufferCommand(
-            'replace-all',
+            'replace-string',
             [None, '文章全体又は指定範囲を全置換'],
             ['self.mother.replace_all(self)'])
         minibuffer_commands.append(mc)
 
         mc = MinibufferCommand(
-            'replace-backward-regexp',
-            [None, '上方を正規表現で置換'],
+            'replace-backward',
+            [None, '上方を置換'],
             ['self.mother.replace_forward_from_dialog(self)'])
         minibuffer_commands.append(mc)
         mc = MinibufferCommand(
-            'replace-forward-regexp',
-            [None, '下方を正規表現で置換'],
-            ['self.mother.replace_backward_from_dialog(self)'])
-        minibuffer_commands.append(mc)
-        mc = MinibufferCommand(
-            'replace-regexp',
-            None,
+            'replace-forward',
+            [None, '下方を置換'],
             ['self.mother.replace_backward_from_dialog(self)'])
         minibuffer_commands.append(mc)
 
@@ -12308,6 +12318,16 @@ class Makdo:
         #
         self._make_submenu_background_color(menu)
         self._make_submenu_character_size(menu)
+        menu.add_separator()
+        #
+        self.use_regexps = tkinter.BooleanVar(value=False)
+        if self.args_use_regexps:
+            self.use_regexps.set(True)
+        elif self.file_use_regexps:
+            self.use_regexps.set(True)
+        menu.add_checkbutton(label='検索・置換に正規表現を使う',
+                             variable=self.use_regexps,
+                             command=self.args_use_regexps)
         menu.add_separator()
         #
         self.paint_keywords = tkinter.BooleanVar(value=False)
@@ -12918,6 +12938,11 @@ class Makdo:
                     Makdo.file_paint_keywords = True
                 elif valu == 'False':
                     Makdo.file_paint_keywords = False
+            elif item == 'use_regexps':
+                if valu == 'True':
+                    Makdo.file_use_regexps = True
+                elif valu == 'False':
+                    Makdo.file_use_regexps = False
             elif item == 'keywords_to_paint':
                 Makdo.file_keywords_to_paint = valu
             elif item == 'digit_separator':
@@ -12960,6 +12985,8 @@ class Makdo:
                     + self.background_color.get() + '\n')
             f.write('font_size:              '
                     + str(self.font_size.get()) + '\n')
+            f.write('use_regexps:            '
+                    + str(self.use_regexps.get()) + '\n')
             f.write('paint_keywords:         '
                     + str(self.paint_keywords.get()) + '\n')
             if self.keywords_to_paint != '':
@@ -14330,7 +14357,18 @@ class Makdo:
                 self._highlight_search_word()
         tex = pane.get('1.0', 'insert')
         tex = re.sub(word1 + '$', '', tex)
-        res = '^((?:.|\n)*?)(' + word1 + ')((?:.|\n)*)$'
+        res_word1 = word1
+        if not self.use_regexps.get():
+            res_word1 = self._escape_search_word(word1)
+        res = '^((?:.|\n)*?)(' + res_word1 + ')((?:.|\n)*)$'
+        # TEST
+        try:
+            re.match(res, tex)
+        except BaseException:
+            pane.focus_set()
+            self.set_message_on_status_bar('検索・置換に失敗しました')
+            return
+        # SEARCH AND REPLACE
         if re.match(res, tex):
             sub = ''
             while re.match(res, tex):
@@ -14391,7 +14429,18 @@ class Makdo:
             if word1 != '':
                 self._highlight_search_word()
         tex = pane.get('insert', 'end-1c')
-        res = '^((?:.|\n)*?)(' + word1 + ')(?:.|\n)*$'
+        res_word1 = word1
+        if not self.use_regexps.get():
+            res_word1 = self._escape_search_word(word1)
+        res = '^((?:.|\n)*?)(' + res_word1 + ')(?:.|\n)*$'
+        # TEST
+        try:
+            re.match(res, tex)
+        except BaseException:
+            pane.focus_set()
+            self.set_message_on_status_bar('検索・置換に失敗しました')
+            return
+        # SEARCH AND REPLACE
         if re.match(res, tex):
             sub = re.sub(res, '\\1\\2', tex)
             wrd = re.sub(res, '\\2', tex)
@@ -14446,7 +14495,14 @@ class Makdo:
             pane.tag_remove('search_tag', '1.0', 'end')
             tex = pane.get('1.0', 'end-1c')
             beg = 0
-            res = '^((?:.|\n)*?)(' + word + ')((?:.|\n)*)$'
+            res_word = word
+            if not self.use_regexps.get():
+                res_word = self._escape_search_word(word)
+            res = '^((?:.|\n)*?)(' + res_word + ')((?:.|\n)*)$'
+            try:
+                re.match(res, tex)
+            except BaseException:
+                return
             while re.match(res, tex):
                 pre = re.sub(res, '\\1', tex)
                 wrd = re.sub(res, '\\2', tex)
@@ -15372,6 +15428,10 @@ if __name__ == '__main__':
         type=int,
         choices=[12, 15, 18, 21, 24, 27, 30, 33, 36, 42, 48],
         help='文字の大きさをピクセル単位で設定します')
+    parser.add_argument(
+        '-R', '--use-regexps',
+        action='store_true',
+        help='検索・置換に正規表現を使う')
     parser.add_argument(
         '-p', '--paint-keywords',
         action='store_true',
