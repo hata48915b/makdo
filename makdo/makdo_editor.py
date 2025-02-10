@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.10-09:06:00-JST>
+# Time-stamp:   <2025.02.10-09:51:26-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5186,12 +5186,12 @@ class Makdo:
     file_background_color = None
     args_font_size = None              # 3|6|9|12|15|+18|21|24|27|30|33|36|...
     file_font_size = None
-    args_use_regexps = None            # True|+False
-    file_use_regexps = None
     args_paint_keywords = None         # True|+False
     file_paint_keywords = None
     args_keywords_to_paint = None      # 'foo|bar|baz'
     file_keywords_to_paint = None
+    args_use_regexps = None            # True|+False
+    file_use_regexps = None
     args_digit_separator = None        # +0|3|4
     file_digit_separator = None
     args_read_only = None              # True|+False
@@ -12320,16 +12320,6 @@ class Makdo:
         self._make_submenu_character_size(menu)
         menu.add_separator()
         #
-        self.use_regexps = tkinter.BooleanVar(value=False)
-        if self.args_use_regexps:
-            self.use_regexps.set(True)
-        elif self.file_use_regexps:
-            self.use_regexps.set(True)
-        menu.add_checkbutton(label='検索・置換に正規表現を使う',
-                             variable=self.use_regexps,
-                             command=self.args_use_regexps)
-        menu.add_separator()
-        #
         self.paint_keywords = tkinter.BooleanVar(value=False)
         if self.args_paint_keywords:
             self.paint_keywords.set(True)
@@ -12345,6 +12335,16 @@ class Makdo:
             Makdo.keywords_to_paint = self.file_keywords_to_paint
         menu.add_command(label='色付けするキーワードを設定',
                          command=self.set_keywords_to_paint)
+        menu.add_separator()
+        #
+        self.use_regexps = tkinter.BooleanVar(value=False)
+        if self.args_use_regexps:
+            self.use_regexps.set(True)
+        elif self.file_use_regexps:
+            self.use_regexps.set(True)
+        menu.add_checkbutton(label='検索・置換に正規表現を使う',
+                             variable=self.use_regexps,
+                             command=self.args_use_regexps)
         menu.add_separator()
         #
         self.make_backup_file = tkinter.BooleanVar(value=False)
@@ -12938,13 +12938,13 @@ class Makdo:
                     Makdo.file_paint_keywords = True
                 elif valu == 'False':
                     Makdo.file_paint_keywords = False
+            elif item == 'keywords_to_paint':
+                Makdo.file_keywords_to_paint = valu
             elif item == 'use_regexps':
                 if valu == 'True':
                     Makdo.file_use_regexps = True
                 elif valu == 'False':
                     Makdo.file_use_regexps = False
-            elif item == 'keywords_to_paint':
-                Makdo.file_keywords_to_paint = valu
             elif item == 'digit_separator':
                 if valu == '3' or valu == '4':
                     Makdo.file_digit_separator = valu
@@ -12985,13 +12985,13 @@ class Makdo:
                     + self.background_color.get() + '\n')
             f.write('font_size:              '
                     + str(self.font_size.get()) + '\n')
-            f.write('use_regexps:            '
-                    + str(self.use_regexps.get()) + '\n')
             f.write('paint_keywords:         '
                     + str(self.paint_keywords.get()) + '\n')
             if self.keywords_to_paint != '':
                 f.write('keywords_to_paint:      '
                         + self.keywords_to_paint + '\n')
+            f.write('use_regexps:            '
+                    + str(self.use_regexps.get()) + '\n')
             f.write('digit_separator:        '
                     + str(self.digit_separator.get()) + '\n')
             f.write('make_backup_file:       '
