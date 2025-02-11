@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.10-14:38:15-JST>
+# Time-stamp:   <2025.02.12-08:14:24-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -3324,7 +3324,7 @@ DONT_EDIT_MESSAGE = '<!--【以下は必要なデータですので編集しな�
 # FUNCTION
 
 
-def get_real_width(s: str) -> float:
+def get_real_width(s: str) -> int:
     wid = 0
     for c in s:
         if (c == '\t'):
@@ -10325,9 +10325,9 @@ class Makdo:
                     if (j % 2) == 0:
                         pass  # cell = '|'
                     else:
-                        b1 = borders[j - 1] if j > 0 else 0
-                        b2 = borders[j]
-                        bdrs = (b1, b2)
+                        b0 = borders[j - 1] if j > 0 else 0
+                        b1 = borders[j]
+                        bdrs = (b0, b1)
                         if '\n' in c:
                             c = self._tupt_linebreaks(pane, text, c, bdrs)
                         elif alignment[i][k] == 'c':
@@ -10352,8 +10352,8 @@ class Makdo:
 
     def _tupt_linebreaks(self, pane, text, cell, borders):
         # RIGHT SPACES
-        res_nl = '^((?:.|\n)*)(\\s*\n\\s*)$'
-        res_nn = '^((?:.|\n)*)(\\s+)(:?)$'
+        res_nl = '^((?:.|\n)*?)(\\s*\n\\s*)$'
+        res_nn = '^((?:.|\n)*\n\\s*)(.*?)(\\s*)(:?)$'
         rgt_spc = ''
         if re.match(res_nl, cell):
             bdy = re.sub(res_nl, '\\1', cell)
@@ -10363,11 +10363,18 @@ class Makdo:
             cell, rgt_spc = bdy, spc
         elif re.match(res_nn, cell):
             bdy = re.sub(res_nn, '\\1', cell)
-            spc = re.sub(res_nn, '\\2', cell)
-            sym = re.sub(res_nn, '\\3', cell)
-            new_spc = ' ' if sym == ':' else ''
-            spc = self._replace_spaces(pane, text + bdy, spc, new_spc)
-            cell = bdy + spc + sym
+            lin = re.sub(res_nn, '\\2', cell)
+            spc = re.sub(res_nn, '\\3', cell)
+            sym = re.sub(res_nn, '\\4', cell)
+            if sym != ':':
+                new_spc \
+                    =  ' ' * (borders[1] - borders[0] - get_real_width(lin))
+            else:
+                new_spc \
+                    =  ' ' * (borders[1] - borders[0] - get_real_width(lin) - 2)
+                new_spc += ' '
+            spc = self._replace_spaces(pane, text + bdy + lin, spc, new_spc)
+            cell = bdy + lin + spc + sym
         # CENTER SPACES
         if '\n' in cell:
             bdy = cell
