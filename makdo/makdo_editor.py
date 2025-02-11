@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.12-08:14:24-JST>
+# Time-stamp:   <2025.02.12-08:25:09-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -3127,12 +3127,19 @@ v=+0.5
 
 v=+1.0
 --
-|号証 |標目|原写|作成日|作成者|立証趣旨|備考|
+| 号証|   標目   |原写| 作成日 |   作成者   |        立証趣旨        |   備考   |
 =
 |:----|:---------|:--:|:-------|:-----------|:-----------------------|:---------|
-|★1|★書|原本|R★.★.★|★|①★であったこと<br>②★であったこと||
-|★2|★書|原本|R★.★.★|★|①★であったこと<br>②★であったこと||
-|★3|★書|原本|R★.★.★|★|①★であったこと<br>②★であったこと||
+<!-- ↓ 改行しない書き方 -->
+|★1  |★書      |原本|R★.★.★|★         |①★であったこと<br>②★であったこと||
+|★2  |★書      |原本|R★.★.★|★         |①★であったこと<br>②★であったこと||
+<!-- ↓ 改行する書き方 -->
+|★3  |★書      |原本|R★.★.★
+                               |★          |①★であったこと<br>
+                                             ②★であったこと        |          |
+|★4  |★書      |原本|R★.★.★
+                               |★          |①★であったこと<br>
+                                             ②★であったこと        |          |
 --
 '''
 
@@ -10368,10 +10375,10 @@ class Makdo:
             sym = re.sub(res_nn, '\\4', cell)
             if sym != ':':
                 new_spc \
-                    =  ' ' * (borders[1] - borders[0] - get_real_width(lin))
+                    = ' ' * (borders[1] - borders[0] - get_real_width(lin))
             else:
                 new_spc \
-                    =  ' ' * (borders[1] - borders[0] - get_real_width(lin) - 2)
+                    = ' ' * (borders[1] - borders[0] - get_real_width(lin) - 2)
                 new_spc += ' '
             spc = self._replace_spaces(pane, text + bdy + lin, spc, new_spc)
             cell = bdy + lin + spc + sym
