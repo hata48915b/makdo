@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.12-09:21:18-JST>
+# Time-stamp:   <2025.02.13-07:51:14-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -9946,7 +9946,9 @@ class Makdo:
         elif par_class == 'alignment':
             self.tidy_up_alignment(pane, pre_text, bare_par, pos_text)
         elif par_class == 'table':
-            self.tidy_up_table(pane, pre_text, bare_par, pos_text)
+            good_table = self.tidy_up_table(pane, pre_text, bare_par, pos_text)
+            if not good_table:
+                return True
         _, tidied_par, _ = self.get_bare_paragraph(pane)
         if bare_par != tidied_par:
             pre, par, pos = self.get_paragraph(pane)
@@ -10118,12 +10120,16 @@ class Makdo:
 
     def tidy_up_table(self, pane, pre_text, bare_par, pos_text):
         table = self._get_table(bare_par)
+        should_tidy_up = self.should_tidy_up(table)
+        if not should_tidy_up:
+            return False
         table = self._prepare_table(pane, pre_text, table, pos_text)
         cr_number = self._get_conf_row_number(table)
         alignment = self._get_alignment_of_cell(cr_number, table)
         widths, borders = self._get_cell_widths_and_borders(cr_number, table)
         self._tidy_up_table(pane, pre_text, bare_par, pos_text,
                             alignment, widths, borders, table)
+        return True
 
     @staticmethod
     def _get_table(bare_par: str) -> [[str]]:
@@ -10138,7 +10144,7 @@ class Makdo:
         table = []
         row = []
         cell = ''
-        for i, c in enumerate(bare_par):
+        for i, c in enumerate(bare_par + '\0'):
             if c == '|':
                 if re.match('^.*\\\\$', cell) and \
                    not re.match(NOT_ESCAPED + '\\|$', cell + c):
@@ -10182,9 +10188,27 @@ class Makdo:
                     table.append(row)
                     row = []
                     cell = ''
+            elif c == '\0':
+                if row != []:
+                    table.append(row)
+                    row = []
             else:
                 cell += c
         return table
+
+    @staticmethod
+    def should_tidy_up(table):
+        m = len(table[0])
+        for row in table:
+            if len(row) != m:
+                n = '警告'
+                m = '各行のセルの数が不均一です．\n' \
+                    + '本当に表を整形しますか？'
+                if tkinter.messagebox.askyesno(n, m, default='no'):
+                    break
+                else:
+                    return False
+        return True
 
     def _prepare_table(self, pane, pre_text, table, pos_text):
         m = 0
