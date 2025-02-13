@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.13-07:51:14-JST>
+# Time-stamp:   <2025.02.14-08:13:43-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -3647,11 +3647,11 @@ class OneWordDialog(tkinter.simpledialog.Dialog):
             return 'break'
 
     def entry_button0(self, click):
-        self.close_mouse_menu()  # close mouse menu
+        self.mother.close_mouse_menu()  # close mouse menu
         self.entry.focus_force()
 
     def entry_button3(self, click):
-        self.close_mouse_menu()  # close mouse menu
+        self.mother.close_mouse_menu()  # close mouse menu
         self.entry.focus_force()
         self.mother.bt3 = tkinter.Menu(self, tearoff=False)
         self.mother.bt3.add_command(label='貼り付け',
@@ -3783,15 +3783,15 @@ class TwoWordsDialog(tkinter.simpledialog.Dialog):
             return 'break'
 
     def entry1_button0(self, click):
-        self.close_mouse_menu()  # close mouse menu
+        self.mother.close_mouse_menu()  # close mouse menu
         self.entry1.focus_force()
 
     def entry2_button0(self, click):
-        self.close_mouse_menu()  # close mouse menu
+        self.mother.close_mouse_menu()  # close mouse menu
         self.entry2.focus_force()
 
     def entry1_button3(self, click):
-        self.close_mouse_menu()  # close mouse menu
+        self.mother.close_mouse_menu()  # close mouse menu
         self.entry1.focus_force()
         self.mother.bt3 = tkinter.Menu(self, tearoff=False)
         self.mother.bt3.add_command(label='貼り付け',
@@ -3799,7 +3799,7 @@ class TwoWordsDialog(tkinter.simpledialog.Dialog):
         self.mother.bt3.post(click.x_root, click.y_root)
 
     def entry2_button3(self, click):
-        self.close_mouse_menu()  # close mouse menu
+        self.mother.close_mouse_menu()  # close mouse menu
         self.entry2.focus_force()
         self.mother.bt3 = tkinter.Menu(self, tearoff=False)
         self.mother.bt3.add_command(label='貼り付け',
@@ -3860,11 +3860,11 @@ class PasswordDialog(tkinter.simpledialog.Dialog):
             return 'break'
 
     def entry_button0(self, click):
-        self.close_mouse_menu()  # close mouse menu
+        self.mother.close_mouse_menu()  # close mouse menu
         self.entry.focus_force()
 
     def entry_button3(self, click):
-        self.close_mouse_menu()  # close mouse menu
+        self.mother.close_mouse_menu()  # close mouse menu
         self.entry.focus_force()
         self.mother.bt3 = tkinter.Menu(self, tearoff=False)
         self.mother.bt3.add_command(label='貼り付け',
