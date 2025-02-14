@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.14-08:13:43-JST>
+# Time-stamp:   <2025.02.14-11:02:05-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -10120,7 +10120,7 @@ class Makdo:
 
     def tidy_up_table(self, pane, pre_text, bare_par, pos_text):
         table = self._get_table(bare_par)
-        should_tidy_up = self.should_tidy_up(table)
+        should_tidy_up = self.get_should_tidy_up(table)
         if not should_tidy_up:
             return False
         table = self._prepare_table(pane, pre_text, table, pos_text)
@@ -10197,7 +10197,7 @@ class Makdo:
         return table
 
     @staticmethod
-    def should_tidy_up(table):
+    def get_should_tidy_up(table):
         m = len(table[0])
         for row in table:
             if len(row) != m:
