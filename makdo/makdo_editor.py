@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.14-11:02:05-JST>
+# Time-stamp:   <2025.02.14-12:50:23-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -4653,28 +4653,31 @@ class LineDatum:
                 # FONT DECORATOR ("--", "++", ">>", "<<")
                 if len(tmp) >= 2 and \
                    (s2 == '--' or s2 == '++' or s2 == '>>' or s2 == '<<') and \
-                   (c0 != c1) and \
                    (c3 != '\\' or re.match(NOT_ESCAPED + '..$', tmp)):
-                    key = chars_state.get_key('')                       # 1.key
-                    end = str(i + 1) + '.' + str(j - 1)                 # 2.end
-                    pane.tag_add(key, beg, end)                         # 3.tag
-                    #                                                   # 4.set
-                    tmp = re.sub('^(.*)(..)$', '\\2', tmp)              # 5.tmp
-                    beg = end                                           # 6.beg
-                    key = chars_state.get_key('font decorator')         # 1.key
-                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                    pane.tag_add(key, beg, end)                         # 3.tag
-                    res1, res2 = '^.*:-+$', '^-*:.*$'
-                    if not re.match(res1, s_lft) and not re.match(res2, s_rgt):
-                        res = '^=[-\\+]?[0-9]*(\\.?[0-9]+)(\\s.*)?$'
-                        if s2 != '<<' or not re.match(res, s_rgt):
-                            if tmp == '--' or tmp == '++':
-                                chars_state.set_is_resized(tmp)         # 4.set
-                            else:
-                                chars_state.set_is_stretched(tmp)       # 4.set
-                    tmp = ''                                            # 5.tmp
-                    beg = end                                           # 6.beg
-                    continue
+                    if (c1 != c0) or \
+                       (chars_state.is_stretched == '<<' and s2 == '>>') or \
+                       (chars_state.is_stretched == '>>' and s2 == '<<'):
+                        key = chars_state.get_key('')                   # 1.key
+                        end = str(i + 1) + '.' + str(j - 1)             # 2.end
+                        pane.tag_add(key, beg, end)                     # 3.tag
+                        #                                               # 4.set
+                        tmp = re.sub('^(.*)(..)$', '\\2', tmp)          # 5.tmp
+                        beg = end                                       # 6.beg
+                        key = chars_state.get_key('font decorator')     # 1.key
+                        end = str(i + 1) + '.' + str(j + 1)             # 2.end
+                        pane.tag_add(key, beg, end)                     # 3.tag
+                        res1, res2 = '^.*:-+$', '^-*:.*$'
+                        if not re.match(res1, s_lft) and \
+                           not re.match(res2, s_rgt):
+                            res = '^=[-\\+]?[0-9]*(\\.?[0-9]+)(\\s.*)?$'
+                            if s2 != '<<' or not re.match(res, s_rgt):
+                                if tmp == '--' or tmp == '++':
+                                    chars_state.set_is_resized(tmp)     # 4.set
+                                else:
+                                    chars_state.set_is_stretched(tmp)   # 4.set
+                        tmp = ''                                        # 5.tmp
+                        beg = end                                       # 6.beg
+                        continue
                 # UNDERLINE ("_.*_")
                 res = NOT_ESCAPED + '(_[\\$=\\.#\\-~\\+]{,4}_)$'
                 if c == '_' and re.match(res, tmp):
