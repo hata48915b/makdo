@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.16-05:40:44-JST>
+# Time-stamp:   <2025.02.16-06:44:54-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -12032,6 +12032,12 @@ class Makdo:
             'insert-symbol',
             [None, '記号を挿入'],
             ['self.mother.insert_symbol()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'insert-fullwidth-hyphen_minus',
+            [None, '全角ハイフンマイナスを挿入'],
+            ['self.mother.insert_hline_ff0d()'])
         minibuffer_commands.append(mc)
 
         mc = MinibufferCommand(
