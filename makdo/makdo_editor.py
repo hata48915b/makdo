@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.14-12:50:23-JST>
+# Time-stamp:   <2025.02.16-05:40:44-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -2676,7 +2676,7 @@ TYPEFACES = (
     'ンﾝ', '、､', '。｡',
     'ァｧ', 'ィｨ', 'ゥｩ', 'ェｪ', 'ォｫ', 'ッｯ',
     'ャｬ', 'ュｭ', 'ョｮ',
-    '1⑴①', '2⑵②', '3⑶③', '4⑷④', '5⑸⑤', '6⑹⑥', '7⑺⑦', '8⑻⑧', '9⑼⑨',
+    '1⑴①', '2⑵②²', '3⑶③³', '4⑷④', '5⑸⑤', '6⑹⑥', '7⑺⑦', '8⑻⑧', '9⑼⑨',
     '印㊞', '有㈲', '株㈱', '社㈳', '財㈶', '学㈻',
     '吉𠮷', '崎﨑嵜', '高髙',
     '頬頰', '侠俠', '巌巖', '桑桒', '桧檜', '槙槇', '祐祐', '祷禱', '禄祿',
@@ -5542,6 +5542,10 @@ class Makdo:
         self.line_data[ln].beg_chars_state = chars_state
         self.line_data[ln].end_chars_state = CharsState()
         self.line_data[ln].paint_line(pane, paint_keywords)
+
+    def paint_out_insert_line(self, pane=None):
+        line_number = self._get_v_position_of_insert(pane) - 1
+        self.paint_out_line(line_number, pane)
 
     @staticmethod
     def _get_now():
@@ -8805,85 +8809,94 @@ class Makdo:
     #                                        （半角カナの長音記号）（EUC:8EB0）
 
     def insert_hline_002d(self):
-        self.txt.insert('insert', '\u002D')  # 半角ハイフンマイナス
+        self._insert_hline('\u002D')  # 半角ハイフンマイナス
 
     def insert_hline_00ad(self):
-        self.txt.insert('insert', '\u00AD')  # 改行時だけに表示されるハイフン',
+        self._insert_hline('\u00AD')  # 改行時だけに表示されるハイフン',
 
     def insert_hline_058a(self):
-        self.txt.insert('insert', '\u058A')  # アメリカンハイフン
+        self._insert_hline('\u058A')  # アメリカンハイフン
 
     def insert_hline_05be(self):
-        self.txt.insert('insert', '\u05BE')  # ヘブライ語のマカフ
+        self._insert_hline('\u05BE')  # ヘブライ語のマカフ
 
     def insert_hline_1806(self):
-        self.txt.insert('insert', '\u1806')  # モンゴル語のソフトハイフン
+        self._insert_hline('\u1806')  # モンゴル語のソフトハイフン
 
     def insert_hline_180a(self):
-        self.txt.insert('insert', '\u180A')  # モンゴル語のニルグ
+        self._insert_hline('\u180A')  # モンゴル語のニルグ
 
     def insert_hline_2010(self):
-        self.txt.insert('insert', '\u2010')  # ハイフン
+        self._insert_hline('\u2010')  # ハイフン
 
     def insert_hline_2011(self):
-        self.txt.insert('insert', '\u2011')  # 改行しないハイフン
+        self._insert_hline('\u2011')  # 改行しないハイフン
 
     def insert_hline_2012(self):
-        self.txt.insert('insert', '\u2012')  # 数字幅のダッシュ
+        self._insert_hline('\u2012')  # 数字幅のダッシュ
 
     def insert_hline_2013(self):
-        self.txt.insert('insert', '\u2013')  # Ｎ幅ダッシュ
+        self._insert_hline('\u2013')  # Ｎ幅ダッシュ
 
     def insert_hline_2014(self):
-        self.txt.insert('insert', '\u2014')  # Ｍ幅ダッシュ
+        self._insert_hline('\u2014')  # Ｍ幅ダッシュ
 
     def insert_hline_2015(self):
-        self.txt.insert('insert', '\u2015')  # 水平線
+        self._insert_hline('\u2015')  # 水平線
 
     def insert_hline_2043(self):
-        self.txt.insert('insert', '\u2043')  # 箇条書きの記号
+        self._insert_hline('\u2043')  # 箇条書きの記号
 
     def insert_hline_207b(self):
-        self.txt.insert('insert', '\u207B')  # 上付きマイナス
+        self._insert_hline('\u207B')  # 上付きマイナス
 
     def insert_hline_208b(self):
-        self.txt.insert('insert', '\u208B')  # 下付きマイナス
+        self._insert_hline('\u208B')  # 下付きマイナス
 
     def insert_hline_2212(self):
-        self.txt.insert('insert', '\u2212')  # マイナス記号
+        self._insert_hline('\u2212')  # マイナス記号
 
     def insert_hline_2500(self):
-        self.txt.insert('insert', '\u2500')  # 罫線
+        self._insert_hline('\u2500')  # 罫線
 
     def insert_hline_2501(self):
-        self.txt.insert('insert', '\u2501')  # 太字罫線
+        self._insert_hline('\u2501')  # 太字罫線
 
     def insert_hline_2796(self):
-        self.txt.insert('insert', '\u2796')  # 太字マイナス記号
+        self._insert_hline('\u2796')  # 太字マイナス記号
 
     def insert_hline_2e3a(self):
-        self.txt.insert('insert', '\u2E3A')  # 2倍幅のＭ幅ダッシュ
+        self._insert_hline('\u2E3A')  # 2倍幅のＭ幅ダッシュ
 
     def insert_hline_2e3b(self):
-        self.txt.insert('insert', '\u2E3B')  # 3倍幅のＭ幅ダッシュ
+        self._insert_hline('\u2E3B')  # 3倍幅のＭ幅ダッシュ
 
     def insert_hline_3127(self):
-        self.txt.insert('insert', '\u3127')  # 注音符号のIの発音
+        self._insert_hline('\u3127')  # 注音符号のIの発音
 
     def insert_hline_3161(self):
-        self.txt.insert('insert', '\u3161')  # ハングルの「ウ」
+        self._insert_hline('\u3161')  # ハングルの「ウ」
 
     def insert_hline_fe58(self):
-        self.txt.insert('insert', '\uFE58')  # 小さいＭ幅ダッシュ
+        self._insert_hline('\uFE58')  # 小さいＭ幅ダッシュ
 
     def insert_hline_fe63(self):
-        self.txt.insert('insert', '\uFE63')  # 小さいハイフンマイナス
+        self._insert_hline('\uFE63')  # 小さいハイフンマイナス
 
     def insert_hline_ff0d(self):
-        self.txt.insert('insert', '\uFF0D')  # 全角ハイフンマイナス
+        self._insert_hline('\uFF0D')  # 全角ハイフンマイナス
 
     def insert_hline_ff70(self):
-        self.txt.insert('insert', '\u2FF70')  # 半角カナの長音記号
+        self._insert_hline('\u2FF70')  # 半角カナの長音記号
+
+    def _insert_hline(self, char):
+        pane = self.txt
+        if self.current_pane == 'sub':
+            pane = self.sub
+        if self._is_read_only_pane(pane):
+            return
+        pane.insert('insert', char)
+        self.paint_out_insert_line(pane)
 
     ################
     # SUBMENU INSERT SCRIPT
