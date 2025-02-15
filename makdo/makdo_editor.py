@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.16-08:09:53-JST>
+# Time-stamp:   <2025.02.16-08:42:29-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5543,10 +5543,6 @@ class Makdo:
         self.line_data[ln].end_chars_state = CharsState()
         self.line_data[ln].paint_line(pane, paint_keywords)
 
-    def paint_out_insert_line(self, pane=None):
-        line_number = self._get_v_position_of_insert(pane) - 1
-        self.paint_out_line(line_number, pane)
-
     @staticmethod
     def _get_now():
         now = datetime.datetime.utcnow() + datetime.timedelta(hours=+9)
@@ -8896,7 +8892,7 @@ class Makdo:
         if self._is_read_only_pane(pane):
             return
         pane.insert('insert', char)
-        self.paint_out_insert_line(pane)
+        self.paint_out_line(self._get_v_position_of_insert(pane) - 1)
 
     ################
     # SUBMENU INSERT SCRIPT
