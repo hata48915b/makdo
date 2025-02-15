@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.16-06:44:54-JST>
+# Time-stamp:   <2025.02.16-08:09:53-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -8749,7 +8749,7 @@ class Makdo:
                             command=self.insert_hline_207b)
         submenu.add_command(label='"₋"（U+208B）下付きマイナス',
                             command=self.insert_hline_208b)
-        submenu.add_command(label='"−"（U+2212）全角マイナスサイン',
+        submenu.add_command(label='"−"（U+2212）マイナスサイン',
                             command=self.insert_hline_2212)
         submenu.add_command(label='"─"（U+2500）罫線',
                             command=self.insert_hline_2500)
@@ -12035,7 +12035,25 @@ class Makdo:
         minibuffer_commands.append(mc)
 
         mc = MinibufferCommand(
-            'insert-fullwidth-hyphen_minus',
+            'insert-hyphen',
+            [None, 'ハイフンを挿入'],
+            ['self.mother.insert_hline_2010()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'insert-minus-sign',
+            [None, 'マイナスサインを挿入'],
+            ['self.mother.insert_hline_2212()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'insert-small-hyphen-minus',
+            [None, '小さいハイフンマイナスを挿入'],
+            ['self.mother.insert_hline_fe63()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'insert-fullwidth-hyphen-minus',
             [None, '全角ハイフンマイナスを挿入'],
             ['self.mother.insert_hline_ff0d()'])
         minibuffer_commands.append(mc)
