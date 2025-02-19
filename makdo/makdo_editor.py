@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.19-09:34:22-JST>
+# Time-stamp:   <2025.02.20-07:11:26-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6205,22 +6205,25 @@ class Makdo:
         # CLEAR THE UNDO STACK
         self.txt.edit_reset()
 
-    def open_dropped_file(self, event):                         # drag and drop
-        res_doc = '^(.|\n)+\\.(md|docx)$'                       # drag and drop
-        res_xls = '^(.|\n)+\\.(xlsx)$'                          # drag and drop
+    def open_dropped_file(self, event):
+        res_doc = '^(.|\n)+\\.(md|docx)$'
+        res_xls = '^(.|\n)+\\.(xlsx)$'
         res_img = '^(.|\n)+\\.(jpg|jpeg|png|gif|tif|tiff|bmp)$'
-        file_path = event.data                                  # drag and drop
-        file_path = re.sub('^{(.*)}$', '\\1', file_path)        # drag and drop
-        if re.match(res_doc, file_path, re.I):                  # drag and drop
-            ans = self.close_file()                             # drag and drop
-            if ans is None:                                     # drag and drop
-                return None                                     # drag and drop
-            self.just_open_file(file_path)                      # drag and drop
-        elif re.match(res_xls, file_path, re.I):                # drag and drop
-            self.insert_table_from_excel(file_path)             # drag and drop
-        elif re.match(res_img, file_path, re.I):                # drag and drop
+        file_path = event.data
+        file_path = re.sub('^{(.*)}$', '\\1', file_path)
+        if re.match(res_doc, file_path, re.I):
+            ans = self.close_file()
+            if ans is None:
+                return None
+            self.just_open_file(file_path)
+        elif re.match(res_xls, file_path, re.I):
+            self.insert_table_from_excel(file_path)
+        elif re.match(res_img, file_path, re.I):
             image_md_text = '![代替テキスト:縦x横](' + file_path + ' "説明")'
-            self.txt.insert('insert', image_md_text)            # drag and drop
+            self.txt.edit_separator()
+            self.txt.insert('insert', image_md_text)
+            self.paint_out_line(self._get_v_position_of_insert(pane) - 1)
+            self.txt.edit_separator()
 
     # CLOSE FILE
 
@@ -6353,6 +6356,7 @@ class Makdo:
                 n = '警告'
                 tkinter.messagebox.showwarning(n, msg)
                 # return
+        self.txt.edit_separator()
         self.set_message_on_status_bar('保存しました')
         self.saved_text = file_text
         # RETURN
@@ -6998,6 +7002,7 @@ class Makdo:
                 self.paint_out_line(vp - 1)
                 # UPDATE TOC
                 self.update_toc()
+            pane.edit_separator()
         return True
 
     def paste_region(self):
@@ -7029,6 +7034,7 @@ class Makdo:
             # UPDATE TOC
             self.update_toc()
         self._put_back_cursor_to_pane(pane)
+        pane.edit_separator()
         return True
 
     def paste_region_from_list(self, mother=None):
@@ -7045,7 +7051,12 @@ class Makdo:
             if self.current_pane == 'sub':
                 pane = self.sub
             pane.edit_separator()
-            pane.insert('insert', self.clipboard_list[n])
+            p = self._get_v_position_of_insert(pane) - 1
+            c = self.clipboard_list[n]
+            pane.insert('insert', c)
+            for i in range(c.count('\n')):
+                self.paint_out_line(p + i)
+            pane.edit_separator()
 
     class ClipboardListDialog(tkinter.simpledialog.Dialog):
 
@@ -7106,6 +7117,7 @@ class Makdo:
             self._show_no_region_error()
             return False
         if must_cut:
+            pane['autoseparators'] = False
             pane.edit_separator()
         beg_v = int(re.sub('\\.[0-9]+$', '', beg))
         s = pane.get(beg + ' linestart', beg)
@@ -7133,6 +7145,9 @@ class Makdo:
                             str(i + 1) + '.' + str(len(line_pre + line_mid)))
                 self.paint_out_line(i)
                 self.update_toc()
+        if must_cut:
+            pane['autoseparators'] = True
+            pane.edit_separator()
         return True
 
     def paste_rectangle(self):
@@ -7143,6 +7158,7 @@ class Makdo:
             return False
         if self.rectangle_text_list == []:
             return True
+        pane['autoseparators'] = False
         pane.edit_separator()
         ins_v = self._get_v_position_of_insert(pane)
         max_v = self._get_max_v_position(pane)
@@ -7166,6 +7182,8 @@ class Makdo:
             pane.mark_set('insert', ins_h)
             self.paint_out_line(i)
             self.update_toc()
+        pane['autoseparators'] = True
+        pane.edit_separator()
         self._put_back_cursor_to_pane(pane)
         return True
 
@@ -9953,6 +9971,7 @@ class Makdo:
         pane = self.txt
         if self.current_pane == 'sub':
             pane = self.sub
+        pane['autoseparators'] = False
         pane.edit_separator()
         pre_text, bare_par, pos_text = self.get_bare_paragraph(pane)
         par_class = self.get_par_class(bare_par)
@@ -9969,14 +9988,16 @@ class Makdo:
             if not good_table:
                 return True
         _, tidied_par, _ = self.get_bare_paragraph(pane)
-        if bare_par != tidied_par:
-            pre, par, pos = self.get_paragraph(pane)
-            pre_n, par_n = pre.count('\n'), par.count('\n')
-            for i in range(pre_n, (pre_n + par_n)):
-                if self.current_pane == 'txt':
-                    self.paint_out_line(i)
-            return True
-        return False
+        if bare_par == tidied_par:
+            return False
+        pre, par, pos = self.get_paragraph(pane)
+        pre_n, par_n = pre.count('\n'), par.count('\n')
+        for i in range(pre_n, (pre_n + par_n)):
+            if self.current_pane == 'txt':
+                self.paint_out_line(i)
+        pane['autoseparators'] = True
+        pane.edit_separator()
+        return True
 
     def get_bare_paragraph(self, pane) -> (str):
         pre_pars, cur_par, pos_pars = self.get_paragraph(pane)
@@ -10830,7 +10851,9 @@ class Makdo:
                 a = f.read()
         except BaseException:
             return
+        self.txt.edit_separator()
         self.txt.insert('insert', a)
+        self.txt.edit_separator()
         self.formula_number = -1
 
     def insert_formula1(self):
@@ -11794,6 +11817,7 @@ class Makdo:
             else:
                 self.keyboard_macro = []
                 return False
+        pane['autoseparators'] = False
         pane.edit_separator()
         ascii = {'space': ' ', 'exclam': '!', 'quotedbl': '"',
                  'numbersign': '#', 'dollar': '$', 'percent': '%',
@@ -11854,6 +11878,8 @@ class Makdo:
             if key != 'Up' and key != 'Down':
                 self.ideal_h_position \
                     = self._get_ideal_h_position_of_insert(pane)
+        pane['autoseparators'] = True
+        pane.edit_separator()
         self._put_back_cursor_to_pane(pane)
         return True
 
