@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.16-08:42:29-JST>
+# Time-stamp:   <2025.02.19-09:34:22-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6985,6 +6985,7 @@ class Makdo:
         self.clipboard_list[-1] += c
         self._cancel_region(pane)
         if must_cut:
+            pane.edit_separator()
             pane.delete(beg, end)
             if self.current_pane == 'txt':
                 # PAINT LINES
@@ -7013,6 +7014,7 @@ class Makdo:
             cb = ''
         if cb == '':
             return True
+        pane.edit_separator()
         pane.insert('insert', cb)
         if self.current_pane == 'txt':
             # PAINT LINES
@@ -7042,6 +7044,7 @@ class Makdo:
             pane = self.txt
             if self.current_pane == 'sub':
                 pane = self.sub
+            pane.edit_separator()
             pane.insert('insert', self.clipboard_list[n])
 
     class ClipboardListDialog(tkinter.simpledialog.Dialog):
@@ -7102,6 +7105,8 @@ class Makdo:
         if beg == '' or end == '':
             self._show_no_region_error()
             return False
+        if must_cut:
+            pane.edit_separator()
         beg_v = int(re.sub('\\.[0-9]+$', '', beg))
         s = pane.get(beg + ' linestart', beg)
         beg_ih = get_real_width(s)
@@ -7138,6 +7143,7 @@ class Makdo:
             return False
         if self.rectangle_text_list == []:
             return True
+        pane.edit_separator()
         ins_v = self._get_v_position_of_insert(pane)
         max_v = self._get_max_v_position(pane)
         s = pane.get(str(ins_v) + '.0', 'insert')
@@ -9947,6 +9953,7 @@ class Makdo:
         pane = self.txt
         if self.current_pane == 'sub':
             pane = self.sub
+        pane.edit_separator()
         pre_text, bare_par, pos_text = self.get_bare_paragraph(pane)
         par_class = self.get_par_class(bare_par)
         if par_class == 'chapter':
@@ -11777,14 +11784,17 @@ class Makdo:
                 kh2 = []
                 for j in range(i, i * 2):
                     kh2.append(reversed_history[j])
+                if 'Ctrl+e' in kh1 or 'Ctrl+e' in kh2:
+                    continue
                 if kh1 == kh2:
+                    self.keyboard_macro = list(reversed(kh1))
+                    self.ideal_h_position \
+                        = self._get_ideal_h_position_of_insert(pane)
                     break
-            if kh1 == kh2:
-                self.keyboard_macro = list(reversed(kh1))
-                self.ideal_h_position \
-                    = self._get_ideal_h_position_of_insert(pane)
             else:
                 self.keyboard_macro = []
+                return False
+        pane.edit_separator()
         ascii = {'space': ' ', 'exclam': '!', 'quotedbl': '"',
                  'numbersign': '#', 'dollar': '$', 'percent': '%',
                  'ampersand': '&', 'apostrophe': "'", 'parenleft': '(',
@@ -11842,9 +11852,10 @@ class Makdo:
                 self.paint_out_line(self._get_v_position_of_insert(pane) - 1)
                 self.update_toc()
             if key != 'Up' and key != 'Down':
-                self.keyborad_macro_h_position \
+                self.ideal_h_position \
                     = self._get_ideal_h_position_of_insert(pane)
         self._put_back_cursor_to_pane(pane)
+        return True
 
     # MINIBUFFER
 
