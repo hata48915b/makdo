@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.20-13:51:44-JST>
+# Time-stamp:   <2025.02.20-17:26:19-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -4409,6 +4409,7 @@ class LineDatum:
                 beg = str(i + 1) + '.0'                                 # 2.end
                 end = str(i + 1) + '.end'                               # 2.end
                 pane.tag_add(key, beg, end)                             # 3.tag
+                self.end_chars_state = chars_state.copy()
                 return
         # PARTS
         beg, tmp = str(i + 1) + '.0', ''
