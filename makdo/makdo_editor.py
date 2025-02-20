@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.20-07:11:26-JST>
+# Time-stamp:   <2025.02.20-09:31:36-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -15101,8 +15101,9 @@ class Makdo:
                     tab += '次の行は除外しました\n'
                     for line in bad_lines:
                         tab += line
+                self.txt.edit_separator()
                 self.txt.insert(end, '\n' + tab)
-                # BAD LINES
+                self.txt.edit_separator()
 
         # EPWING
 
@@ -15252,6 +15253,7 @@ class Makdo:
             self._open_sub_pane(self.openai_qanda, False, 2)
             self.sub.mark_set('insert', 'end-1c')
             self._paint_openai_lines()
+            self.sub.edit_separator()
             return True
 
         def ask_openai(self) -> None:
@@ -15290,17 +15292,22 @@ class Makdo:
             self.set_message_on_status_bar('', True)
             answer = adjust_line(output.choices[0].message.content)
             if answer != '':
+                self.sub['autoseparators'] = False
+                self.sub.edit_separator()
                 if not re.match('^(.|\n)*\n$', doc):
                     self.sub.insert('end', '\n')
                 if not re.match('^(.|\n)*\n\n$', doc):
                     self.sub.insert('end', '\n')
                 self.sub.insert('end', openai_ans_head + '\n\n')
                 self.sub.insert('end', answer + '\n\n')
+                self.sub.edit_separator()
                 self.sub.insert('end', openai_que_head + '\n\n')
                 self.sub.mark_set('insert', 'end-1c')
                 self._put_back_cursor_to_pane(self.sub)
-            self.openai_qanda = self.sub.get('1.0', 'end-1c')
-            self._paint_openai_lines()
+                self.openai_qanda = self.sub.get('1.0', 'end-1c')
+                self._paint_openai_lines()
+                self.sub['autoseparators'] = True
+                self.sub.edit_separator()
 
         def _paint_openai_lines(self):
             for tag in self.sub.tag_names():
@@ -15407,6 +15414,7 @@ class Makdo:
             self._open_sub_pane(self.llama_qanda, False, 2)
             self.sub.mark_set('insert', 'end-1c')
             self._paint_llama_lines()
+            self.sub.edit_separator()
             return True
 
         def ask_llama(self) -> None:
@@ -15440,17 +15448,22 @@ class Makdo:
             self.set_message_on_status_bar('', True)
             answer = adjust_line(output['choices'][0]['message']['content'])
             if answer != '':
+                self.sub['autoseparators'] = False
+                self.sub.edit_separator()
                 if not re.match('^(.|\n)*\n$', doc):
                     self.sub.insert('end', '\n')
                 if not re.match('^(.|\n)*\n\n$', doc):
                     self.sub.insert('end', '\n')
                 self.sub.insert('end', llama_ans_head + '\n\n')
                 self.sub.insert('end', answer + '\n\n')
+                self.sub.edit_separator()
                 self.sub.insert('end', llama_que_head + '\n\n')
                 self.sub.mark_set('insert', 'end-1c')
                 self._put_back_cursor_to_pane(self.sub)
-            self.llama_qanda = self.sub.get('1.0', 'end-1c')
-            self._paint_llama_lines()
+                self.llama_qanda = self.sub.get('1.0', 'end-1c')
+                self._paint_llama_lines()
+                self.sub['autoseparators'] = True
+                self.sub.edit_separator()
 
         def _paint_llama_lines(self):
             for tag in self.sub.tag_names():
