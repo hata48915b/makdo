@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.20-09:31:36-JST>
+# Time-stamp:   <2025.02.20-13:51:44-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -13937,6 +13937,7 @@ class Makdo:
             return 'break'
 
     def read_only_process_key(self, pane, key):
+        self.set_message_on_status_bar('')
         # HISTORY
         if key.keysym == 'Shift_L' or key.keysym == 'Shift_R':
             return
@@ -14104,6 +14105,7 @@ class Makdo:
         # elif key.char == '\x1a':  # Ctrl+Z
         #     self.edit_modified_undo()
         #     return 'break'
+        self.set_message_on_status_bar('読取専用です')
         return 'break'
 
     @staticmethod
