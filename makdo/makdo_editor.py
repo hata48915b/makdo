@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.21-09:59:35-JST>
+# Time-stamp:   <2025.02.21-10:19:55-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -11996,6 +11996,12 @@ class Makdo:
         minibuffer_commands.append(mc)
 
         mc = MinibufferCommand(
+            'clear-search-and-replacement-words',
+            [None, '検索語と置換語をリセットする'],
+            ['self.mother.clear_search_and_replace()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
             'sort-lines',
             [None, '選択範囲の行を正順にソート'],
             ['self.mother.sort_lines()'])
@@ -14336,7 +14342,7 @@ class Makdo:
         self.stb_sor4.pack(side='left')
         self.stb_sor5 \
             = tkinter.Button(self.stb_r, text='消',
-                             command=self.clear_search_or_replace)
+                             command=self.clear_search_and_replace)
         self.stb_sor5.pack(side='left')
         #
         self.search_word_history, self.search_word_history_number = [''], 0
@@ -14603,7 +14609,7 @@ class Makdo:
                 break
         return x, x + y
 
-    def clear_search_or_replace(self):
+    def clear_search_and_replace(self):
         self.stb_sor1.delete('0', 'end')
         self.stb_sor2.delete('0', 'end')
         self.txt.tag_remove('search_tag', '1.0', 'end')
@@ -14651,7 +14657,7 @@ class Makdo:
         word1, word2 = sd.get_value()
         if word1 is not None:
             if word1 == '':
-                self.clear_search_or_replace()
+                self.clear_search_and_replace()
             else:
                 Makdo.search_word = word1
                 self._highlight_search_word()
@@ -14675,7 +14681,7 @@ class Makdo:
         word1, word2 = sd.get_value()
         if word1 is not None:
             if word1 == '':
-                self.clear_search_or_replace()
+                self.clear_search_and_replace()
             else:
                 Makdo.search_word = word1
                 self._highlight_search_word()
@@ -14698,7 +14704,7 @@ class Makdo:
         self.stb_sor2.insert(0, '')
         if word1 is not None:
             if word1 == '':
-                self.clear_search_or_replace()
+                self.clear_search_and_replace()
             else:
                 Makdo.search_word = word1
                 self._highlight_search_word()
@@ -14719,7 +14725,7 @@ class Makdo:
         self.stb_sor2.insert(0, '')
         if word1 is not None:
             if word1 == '':
-                self.clear_search_or_replace()
+                self.clear_search_and_replace()
             else:
                 Makdo.search_word = word1
                 self._highlight_search_word()
