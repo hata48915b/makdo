@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.09-12:03:21-JST>
+# Time-stamp:   <2025.02.21-09:10:16-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -28,6 +28,8 @@
 # 2023.06.07 v06 Shimo-Gion
 # 2024.04.02 v07 Furuichibashi
 # 2025.01.04 v08 Omachi
+
+__version__ = 'v08 Omachi'
 
 
 # USAGE
@@ -75,9 +77,6 @@ import re
 import unicodedata
 import datetime     # Zope Public License
 import tempfile
-
-
-__version__ = 'v08 Omachi'
 
 
 def get_arguments():

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.21-08:57:54-JST>
+# Time-stamp:   <2025.02.21-09:10:12-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -28,6 +28,8 @@
 # 2023.06.07 v06 Shimo-Gion
 # 2024.04.02 v07 Furuichibashi
 # 2025.01.04 v08 Omachi
+
+__version__ = 'v08 Omachi'
 
 
 # USAGE
@@ -68,9 +70,6 @@ import makdo.makdo_docx2md
 import makdo.makdo_mddiff  # MDDIFF
 import openpyxl     # MIT License
 import webbrowser
-
-
-__version__ = 'v08 Omachi'
 
 
 if sys.platform == 'win32':

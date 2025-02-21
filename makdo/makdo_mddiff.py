@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         mddiff.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.01.04-08:17:43-JST>
+# Time-stamp:   <2025.02.21-09:11:22-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -29,6 +29,8 @@
 # 2024.04.02 v07 Furuichibashi
 # 2025.01.04 v08 Omachi
 
+__version__ = 'v08 Omachi'
+
 
 import sys
 import argparse     # Python Software Foundation License
@@ -36,9 +38,6 @@ import re
 import chardet      # GNU Lesser General Public License v2 or later (LGPLv2+)
 import Levenshtein  # GNU General Public License v2 or later (GPLv2+)
 import hashlib
-
-
-__version__ = 'v08 Omachi'
 
 
 def get_arguments():

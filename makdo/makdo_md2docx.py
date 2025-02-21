@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.10-09:12:03-JST>
+# Time-stamp:   <2025.02.21-09:10:45-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -28,6 +28,8 @@
 # 2023.06.07 v06 Shimo-Gion
 # 2024.04.02 v07 Furuichibashi
 # 2025.01.04 v08 Omachi
+
+__version__ = 'v08 Omachi'
 
 
 # USAGE
@@ -110,9 +112,6 @@ from docx.enum.text import WD_COLOR_INDEX
 from docx.enum.section import WD_SECTION
 import socket   # host
 import getpass  # user
-
-
-__version__ = 'v08 Omachi'
 
 
 def get_arguments():
