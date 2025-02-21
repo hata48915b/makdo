@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.22-08:08:22-JST>
+# Time-stamp:   <2025.02.22-08:32:16-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6909,13 +6909,13 @@ class Makdo:
                          command=self.replace_all)
         menu.add_separator()
         #
-        menu.add_command(label='選択範囲の小文字を大文字に変換',
+        menu.add_command(label='選択範囲を大文字に変換',
                          command=self.replace_lower_case_with_upper_case)
-        menu.add_command(label='選択範囲の大文字を小文字に変換',
+        menu.add_command(label='選択範囲を小文字に変換',
                          command=self.replace_upper_case_with_lower_case)
-        menu.add_command(label='選択範囲の半角文字を全角文字に変換',
+        menu.add_command(label='選択範囲を全角文字に変換',
                          command=self.replace_half_width_with_full_width)
-        menu.add_command(label='選択範囲の全角文字を半角文字に変換',
+        menu.add_command(label='選択範囲を半角文字に変換',
                          command=self.replace_full_width_with_half_width)
         menu.add_separator()
         #
@@ -12005,9 +12005,30 @@ class Makdo:
         minibuffer_commands.append(mc)
 
         mc = MinibufferCommand(
-            'clear-search-and-replacement-words',
+            'clear-search-and-replace-words',
             [None, '検索語と置換語をリセットする'],
             ['self.mother.clear_search_and_replace()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'upcase-region',
+            [None, '選択範囲を大文字に変換'],
+            ['self.mother.replace_lower_case_with_upper_case()'])
+        minibuffer_commands.append(mc)
+        mc = MinibufferCommand(
+            'downcase-region',
+            [None, '選択範囲を小文字に変換'],
+            ['self.mother.replace_upper_case_with_lower_case()'])
+        minibuffer_commands.append(mc)
+        mc = MinibufferCommand(
+            'japanese-zenkaku-region',
+            [None, '選択範囲を全角文字に変換'],
+            ['self.mother.replace_half_width_with_full_width()'])
+        minibuffer_commands.append(mc)
+        mc = MinibufferCommand(
+            'japanese-hankaku-region',
+            [None, '選択範囲を半角文字に変換'],
+            ['self.mother.replace_full_width_with_half_width()'])
         minibuffer_commands.append(mc)
 
         mc = MinibufferCommand(
@@ -12241,9 +12262,11 @@ class Makdo:
                 if help_command is None:
                     help_command = mc.command_text
                 help_message += \
-                    help_command + (' ' * (32 - len(help_command)))
+                    help_command \
+                    + (' ' * (32 - len(help_command)))
                 help_message += \
-                    help_explanation + '\n'
+                    help_explanation \
+                    + (' ' * (32 - get_real_width(help_explanation))) + '\n'
             return help_message
 
         def body(self, pane):
@@ -12297,6 +12320,9 @@ class Makdo:
                 super().__init__(minibuffer, title='ヘルプ')
 
             def body(self, minibuffer):
+                res = '^((?:.*\n){40})((?:.|\n)*)$'
+                mes1 = re.sub(res, '\\1', self.message)
+                mes2 = re.sub(res, '\\2', self.message)
                 fon = self.mother.gothic_font.copy()
                 fon['size'] -= 6
                 fon['weight'] = 'bold'
@@ -12308,18 +12334,16 @@ class Makdo:
                 self.frm_d.pack(side='bottom', anchor='s')
                 frm1 = tkinter.Frame(self.frm_u)
                 # frm2 = tkinter.Frame(self.frm_u)
-                # frm3 = tkinter.Frame(self.frm_u)
+                frm3 = tkinter.Frame(self.frm_u)
                 frm1.pack(side='left', anchor='n')
                 # frm2.pack(side='left', anchor='n')
-                # frm3.pack(side='left', anchor='n')
-                lbl1 = tkinter.Label(frm1, font=fon,
-                                     text=self.message, justify='left')
+                frm3.pack(side='left', anchor='n')
+                lbl1 = tkinter.Label(frm1, font=fon, text=mes1, justify='left')
                 # lbl2 = tkinter.Label(frm2, font=fon, text='　')
-                # lbl3 = tkinter.Label(frm3, font=fon,
-                #                      text=self.message, justify='left')
+                lbl3 = tkinter.Label(frm3, font=fon, text=mes2, justify='left')
                 lbl1.pack(side='left', anchor='n')
                 # lbl2.pack(side='left', anchor='n')
-                # lbl3.pack(side='left', anchor='n')
+                lbl3.pack(side='left', anchor='n')
                 self.bind('<Key-Return>', self.ok)
                 self.bind('<Key-Escape>', self.ok)
                 btn = tkinter.Button(self.frm_d, text='OK',
