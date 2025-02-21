@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.21-10:19:55-JST>
+# Time-stamp:   <2025.02.21-16:55:12-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -7252,11 +7252,7 @@ class Makdo:
             pane.insert(beg + '+' + str(len(s)) + 'c', word2)
             end = beg + '+' + str(len(s)) + 'c'
             m += 1
-        if pane.tag_ranges('sel'):
-            pane.tag_remove('sel', "1.0", "end")
-        elif 'akauni' in pane.mark_names():
-            pane.tag_remove('akauni_tag', '1.0', 'end')
-            pane.mark_unset('akauni')
+        self._cancel_region(pane)
         pane['autoseparators'] = True
         pane.edit_separator()
         pane.focus_set()
@@ -7276,6 +7272,7 @@ class Makdo:
         if self._is_read_only_pane(pane):
             return False
         if not self._is_region_specified(pane):
+            self._show_no_region_error()
             return False
         beg_c, end_c = self._get_region(pane)
         beg_v = int(re.sub('\\.[0-9]+$', '', beg_c))
@@ -7287,12 +7284,19 @@ class Makdo:
                 new = new.replace(hf[0], hf[1])
             else:
                 new = new.replace(hf[1], hf[0])
+        if old == new:
+            return True
+        pane['autoseparators'] = False
+        pane.edit_separator()
         pane.delete(beg_c, end_c)
         pane.insert(beg_c, new)
+        self._cancel_region(pane)
         if self.current_pane == 'txt':
             for i in range(beg_v - 1, end_v):
                 self.paint_out_line(i)
             self.update_toc()
+        pane['autoseparators'] = True
+        pane.edit_separator()
         return True
 
     def sort_lines(self):
@@ -7306,35 +7310,37 @@ class Makdo:
         if self.current_pane == 'sub':
             pane = self.sub
         if self._is_read_only_pane(pane):
-            return
-        if pane.tag_ranges('sel'):
-            beg, end = pane.index('sel.first'), pane.index('sel.last')
-        elif 'akauni' in pane.mark_names():
-            beg, end = self._get_indices_in_order(pane, 'insert', 'akauni')
-        else:
-            return
-        beg_line = int(re.sub('\\.[0-9]+', '', beg))
-        end_line = int(re.sub('\\.[0-9]+', '', end))
-        if not re.match('^[0-9]+\\.0$', beg):
-            beg_line += 1
-        end_line -= 1
-        lines_str = pane.get(str(beg_line) + '.0', str(end_line) + '.end')
-        lines_lst = lines_str.split('\n')
-        pane.delete(str(beg_line) + '.0', str(end_line) + '.end')
-        if pane.tag_ranges('sel'):
-            pane.tag_remove('sel', "1.0", "end")
-        elif 'akauni' in pane.mark_names():
-            pane.tag_remove('akauni_tag', '1.0', 'end')
-            pane.mark_unset('akauni')
-        sorted_lst = sorted(lines_lst)
+            return False
+        if not self._is_region_specified(pane):
+            self._show_no_region_error()
+            return False
+        beg_c, end_c = self._get_region(pane)
+        beg_v = int(re.sub('\\.[0-9]+$', '', beg_c))
+        end_v = int(re.sub('\\.[0-9]+$', '', end_c))
+        if not re.match('^[0-9]+\\.0$', beg_c):
+            beg_v += 1
+        end_v -= 1
+        beg_c, end_c = str(beg_v) + '.0', str(end_v) + '.end'
+        old_str = pane.get(beg_c, end_c)
+        old_lst = old_str.split('\n')
+        new_lst = sorted(old_lst)
         if not is_ascending_order:
-            sorted_lst.reverse()
-        sorted_str = '\n'.join(sorted_lst)
-        pane.insert(str(beg_line) + '.0', sorted_str)
-        for j, line in enumerate(sorted_lst):
-            i = beg_line - 1 + j
-            self.paint_out_line(i)
-        self.update_toc()
+            new_lst.reverse()
+        new_str = '\n'.join(new_lst)
+        if old_str == new_str:
+            return True
+        pane['autoseparators'] = False
+        pane.edit_separator()
+        pane.delete(beg_c, end_c)
+        pane.insert(beg_c, new_str)
+        self._cancel_region(pane)
+        if self.current_pane == 'txt':
+            for i in range(beg_v - 1, end_v):
+                self.paint_out_line(i)
+            self.update_toc()
+        pane['autoseparators'] = True
+        pane.edit_separator()
+        return True
 
     def calculate(self, must_show_message=True) -> bool:
         line = self.txt.get('insert linestart', 'insert lineend')
@@ -7515,10 +7521,13 @@ class Makdo:
         beg = str(v_number) + '.' + str(len(line_head + line_math))
         end = str(v_number) + '.' + str(len(line_head + line_math + line_rslt))
         if r != line_rslt:
+            self.txt['autoseparators'] = False
+            self.txt.edit_separator()
             self.txt.delete(beg, end)
             self.txt.insert(beg, '=' + r)
-            # FOR PAINTING
             self.paint_out_line(v_number - 1)
+            self.txt['autoseparators'] = True
+            self.txt.edit_separator()
         self.win.clipboard_clear()
         self.win.clipboard_append(r)
         if self.clipboard_list[-1] != '':
@@ -7591,6 +7600,8 @@ class Makdo:
             m = 'コメントアウトする範囲が指定されていません．'
             tkinter.messagebox.showerror(n, m)
             return
+        pane['autoseparators'] = False
+        pane.edit_separator()
         tex = pane.get(beg, end)
         for i in ['8', '7', '6', '5', '4', '3', '2', '1', '-']:
             if i == '-':
@@ -7608,15 +7619,13 @@ class Makdo:
                     pane.insert(beg + '+' + str(len(sub)) + 'c', t[1])
         pane.insert(end, '-->')
         pane.insert(beg, '<!--')
-        if pane.tag_ranges('sel'):
-            pane.tag_remove('sel', "1.0", "end")
-        elif 'akauni' in pane.mark_names():
-            pane.tag_remove('akauni_tag', '1.0', 'end')
-            pane.mark_unset('akauni')
+        self._cancel_region(pane)
         beg_v = int(re.sub('\\.[0-9]+$', '', beg))
         end_v = int(re.sub('\\.[0-9]+$', '', end))
         for i in range(beg_v - 1, end_v):
             self.paint_out_line(i)
+        pane['autoseparators'] = True
+        pane.edit_separator()
         self.update_toc()
 
     def uncomment_in_region(self):
@@ -7635,6 +7644,8 @@ class Makdo:
             m = 'コメントアウトを解除する範囲が指定されていません．'
             tkinter.messagebox.showerror(n, m)
             return
+        pane['autoseparators'] = False
+        pane.edit_separator()
         tex = pane.get(beg, end)
         is_in_comment = False
         tmp = ''
@@ -7665,15 +7676,13 @@ class Makdo:
                     pane.delete(beg + '+' + str(len(sub)) + 'c',
                                 beg + '+' + str(len(sub + t[1])) + 'c')
                     pane.insert(beg + '+' + str(len(sub)) + 'c', t[0])
-        if pane.tag_ranges('sel'):
-            pane.tag_remove('sel', "1.0", "end")
-        elif 'akauni' in pane.mark_names():
-            pane.tag_remove('akauni_tag', '1.0', 'end')
-            pane.mark_unset('akauni')
+        self._cancel_region(pane)
         beg_v = int(re.sub('\\.[0-9]+$', '', beg))
         end_v = int(re.sub('\\.[0-9]+$', '', end))
         for i in range(beg_v - 1, end_v):
             self.paint_out_line(i)
+        pane['autoseparators'] = True
+        pane.edit_separator()
         self.update_toc()
 
     ##########################
@@ -11389,6 +11398,8 @@ class Makdo:
             for cp in comp.paragraphs:
                 if cp.diff_id != diff_id:
                     continue
+                self.txt['autoseparators'] = False
+                self.txt.edit_separator()
                 if cp.ses_symbol == '&':
                     self.txt.delete('1.0+' + str(beg) + 'c',
                                     '1.0+' + str(end) + 'c')
@@ -11425,6 +11436,8 @@ class Makdo:
                         self.update_toc()
                 cp.has_applied = True
                 frame.destroy()
+                self.txt['autoseparators'] = True
+                self.txt.edit_separator()
                 return True
         return x
 
