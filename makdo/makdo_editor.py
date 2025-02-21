@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.21-16:55:12-JST>
+# Time-stamp:   <2025.02.22-08:08:22-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6909,6 +6909,10 @@ class Makdo:
                          command=self.replace_all)
         menu.add_separator()
         #
+        menu.add_command(label='選択範囲の小文字を大文字に変換',
+                         command=self.replace_lower_case_with_upper_case)
+        menu.add_command(label='選択範囲の大文字を小文字に変換',
+                         command=self.replace_upper_case_with_lower_case)
         menu.add_command(label='選択範囲の半角文字を全角文字に変換',
                          command=self.replace_half_width_with_full_width)
         menu.add_command(label='選択範囲の全角文字を半角文字に変換',
@@ -7259,53 +7263,25 @@ class Makdo:
         # MESSAGE
         self.set_message_on_status_bar(str(m) + '個を置換しました')
 
+    def replace_lower_case_with_upper_case(self) -> bool:
+        self._replace_x_with_y('lower_case_with_upper_case')
+
+    def replace_upper_case_with_lower_case(self) -> bool:
+        self._replace_x_with_y('upper_case_with_lower_case')
+
     def replace_half_width_with_full_width(self) -> bool:
-        self.replace_half_width_and_full_width(True)
+        self._replace_x_with_y('half_width_with_full_width')
 
     def replace_full_width_with_half_width(self) -> bool:
-        self.replace_half_width_and_full_width(False)
-
-    def replace_half_width_and_full_width(self, is_from_half_with_full):
-        pane = self.txt
-        if self.current_pane == 'sub':
-            pane = self.sub
-        if self._is_read_only_pane(pane):
-            return False
-        if not self._is_region_specified(pane):
-            self._show_no_region_error()
-            return False
-        beg_c, end_c = self._get_region(pane)
-        beg_v = int(re.sub('\\.[0-9]+$', '', beg_c))
-        end_v = int(re.sub('\\.[0-9]+$', '', end_c))
-        old = pane.get(beg_c, end_c)
-        new = old
-        for hf in HALF_FULL_TABLE:
-            if is_from_half_with_full:
-                new = new.replace(hf[0], hf[1])
-            else:
-                new = new.replace(hf[1], hf[0])
-        if old == new:
-            return True
-        pane['autoseparators'] = False
-        pane.edit_separator()
-        pane.delete(beg_c, end_c)
-        pane.insert(beg_c, new)
-        self._cancel_region(pane)
-        if self.current_pane == 'txt':
-            for i in range(beg_v - 1, end_v):
-                self.paint_out_line(i)
-            self.update_toc()
-        pane['autoseparators'] = True
-        pane.edit_separator()
-        return True
+        self._replace_x_with_y('full_width_with_half_width')
 
     def sort_lines(self):
-        self._sort_lines(True)
+        self._replace_x_with_y('sort_in_forward_order')
 
     def sort_lines_in_reverse_order(self):
-        self._sort_lines(False)
+        self._replace_x_with_y('sort_in_reverse_order')
 
-    def _sort_lines(self, is_ascending_order=True):
+    def _replace_x_with_y(self, mode: str) -> bool:
         pane = self.txt
         if self.current_pane == 'sub':
             pane = self.sub
@@ -7314,21 +7290,41 @@ class Makdo:
         if not self._is_region_specified(pane):
             self._show_no_region_error()
             return False
+        # GET SCOPE
         beg_c, end_c = self._get_region(pane)
         beg_v = int(re.sub('\\.[0-9]+$', '', beg_c))
         end_v = int(re.sub('\\.[0-9]+$', '', end_c))
-        if not re.match('^[0-9]+\\.0$', beg_c):
-            beg_v += 1
-        end_v -= 1
-        beg_c, end_c = str(beg_v) + '.0', str(end_v) + '.end'
+        if mode == 'sort_in_forward_order' or mode == 'sort_in_reverse_order':
+            if not re.match('^[0-9]+\\.0$', beg_c):
+                beg_v += 1
+            end_v -= 1
+            beg_c, end_c = str(beg_v) + '.0', str(end_v) + '.end'
+        # GET OLD AND NEW STRING
         old_str = pane.get(beg_c, end_c)
-        old_lst = old_str.split('\n')
-        new_lst = sorted(old_lst)
-        if not is_ascending_order:
-            new_lst.reverse()
-        new_str = '\n'.join(new_lst)
+        if mode == 'lower_case_with_upper_case':
+            new_str = old_str.upper()
+        elif mode == 'upper_case_with_lower_case':
+            new_str = old_str.lower()
+        elif mode == 'half_width_with_full_width':
+            new_str = old_str
+            for hf in HALF_FULL_TABLE:
+                new_str = new_str.replace(hf[0], hf[1])
+        elif mode == 'full_width_with_half_width':
+            new_str = old_str
+            for hf in HALF_FULL_TABLE:
+                new_str = new_str.replace(hf[1], hf[0])
+        elif mode == 'sort_in_forward_order':
+            old_lst = old_str.split('\n')
+            new_lst = sorted(old_lst)
+            new_str = '\n'.join(new_lst)
+        elif mode == 'sort_in_reverse_order':
+            old_lst = old_str.split('\n')
+            new_lst = sorted(old_lst)
+            new_lst = list(reversed(sorted(old_lst)))
+            new_str = '\n'.join(new_lst)
         if old_str == new_str:
             return True
+        # APPLY
         pane['autoseparators'] = False
         pane.edit_separator()
         pane.delete(beg_c, end_c)
