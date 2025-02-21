@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.20-17:26:19-JST>
+# Time-stamp:   <2025.02.21-08:57:54-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -7681,6 +7681,9 @@ class Makdo:
                             postcommand=self.close_mouse_menu)
         self.mnb.add_cascade(label='挿入(I)', menu=menu, underline=3)
         #
+        self._make_submenu_insert_sample(menu)
+        menu.add_separator()
+        #
         menu.add_command(label='コメントを挿入',
                          command=self.insert_comment)
         menu.add_command(label='空白を挿入',
@@ -7695,27 +7698,175 @@ class Makdo:
         self._make_submenu_insert_underline(menu)
         self._make_submenu_insert_font_color_change(menu)
         self._make_submenu_insert_highlight_color_change(menu)
-        menu.add_command(label='コード番号から文字を挿入',
-                         command=self.insert_character_by_code)
-        self._make_submenu_insert_ivs_character(menu)
         menu.add_separator()
         #
-        self._make_submenu_insert_time(menu)
-        self._make_submenu_insert_file_name(menu)
-        menu.add_command(label='ファイルの内容を挿入',
+        menu.add_command(label='別のファイルの内容を挿入',
                          command=self.insert_file)
-        menu.add_separator()
-        #
-        menu.add_command(label='記号を挿入',
-                         command=self.insert_symbol)
-        self._make_submenu_insert_horizontal_line(menu)
         menu.add_separator()
         #
         self._make_submenu_insert_script(menu)
         menu.add_separator()
         #
-        self._make_submenu_insert_sample(menu)
+        self._make_submenu_insert_file_name(menu)
+        self._make_submenu_insert_time(menu)
+        menu.add_separator()
+        #
+        menu.add_command(label='コード番号から文字を挿入',
+                         command=self.insert_character_by_code)
+        self._make_submenu_insert_ivs_character(menu)
+        self._make_submenu_insert_horizontal_line(menu)
+        menu.add_command(label='記号を挿入',
+                         command=self.insert_symbol)
         # menu.add_separator()
+
+    ################
+    # SUBMENU INSERT SAMPLE
+
+    def _make_submenu_insert_sample(self, menu):
+        submenu = tkinter.Menu(menu, tearoff=False)
+        menu.add_cascade(label='文書のサンプルを挿入', menu=submenu)
+        #
+        submenu.add_command(label='基本',
+                            command=self.insert_basis_sample)
+        submenu.add_command(label='民法',
+                            command=self.insert_law_sample)
+        submenu.add_command(label='和解契約書',
+                            command=self.insert_settlement_sample)
+        submenu.add_command(label='訴状',
+                            command=self.insert_petition_sample)
+        submenu.add_command(label='証拠説明書',
+                            command=self.insert_evidence_sample)
+        submenu.add_command(label='判決（民事事件）',
+                            command=self.insert_civil_judgement_sample)
+        submenu.add_command(label='起訴状',
+                            command=self.insert_indictment_sample)
+        submenu.add_command(label='判決（刑事事件）',
+                            command=self.insert_criminal_judgement_sample)
+
+    ######
+    # COMMAND
+
+    def insert_basis_sample(self):               # 基本
+        document = self.insert_configuration_sample('普通', '0.0') + \
+            SAMPLE_BASIS
+        self.insert_sample(document)
+
+    def insert_law_sample(self):                 # 民法
+        document = self.insert_configuration_sample('条文', '0.0') + \
+            SAMPLE_LAW
+        self.insert_sample(document)
+
+    def insert_settlement_sample(self):          # 和解契約書
+        document = self.insert_configuration_sample('契約', '1.0') + \
+            SAMPLE_SETTLEMENT
+        self.insert_sample(document)
+
+    def insert_petition_sample(self):            # 訴状
+        document = self.insert_configuration_sample('普通', '1.0') + \
+            SAMPLE_PETITION
+        self.insert_sample(document)
+
+    def insert_evidence_sample(self):            # 証拠説明書
+        document = self.insert_configuration_sample('普通', '0.0') + \
+            SAMPLE_EVIDENCE
+        self.insert_sample(document)
+
+    def insert_civil_judgement_sample(self):     # 判決（民事事件）
+        document = self.insert_configuration_sample('普通', '0.0') + \
+            SAMPLE_CIVIL_JUDGEMENT
+        self.insert_sample(document)
+
+    def insert_indictment_sample(self):          # 起訴状
+        document = self.insert_configuration_sample('普通', '0.0') + \
+            SAMPLE_INDICTMENT
+        self.insert_sample(document)
+
+    def insert_criminal_judgement_sample(self):  # 判決（刑事事件）
+        document = self.insert_configuration_sample('普通', '0.0') + \
+            SAMPLE_CRIMINAL_JUDGEMENT
+        self.insert_sample(document)
+
+    def insert_configuration_sample(self, document_style, space_before):
+        document = '''\
+<!--------------------------【設定】-----------------------------
+
+# プロパティに表示される文書のタイトルを指定できます。
+書題名:
+
+# 3つの書式（普通、契約、条文）を指定できます。
+文書式: ''' + document_style + '''
+
+# 用紙のサイズ（A3横、A3縦、A4横、A4縦）を指定できます。
+用紙サ: A4縦
+
+# 用紙の上下左右の余白をセンチメートル単位で指定できます。
+上余白: 3.5 cm
+下余白: 2.2 cm
+左余白: 3.0 cm
+右余白: 2.0 cm
+
+# ページのヘッダーに表示する文字列（別紙 :等）を指定できます。
+頭書き:
+
+# ページ番号の書式（無、有、n :、-n-、n/N等）を指定できます。
+頁番号: 有
+
+# 行番号の記載（無、有）を指定できます。
+行番号: 無
+
+# 明朝体とゴシック体と異字体（IVS）のフォントを指定できます。
+明朝体: Times New Roman / ＭＳ 明朝
+ゴシ体: = / ＭＳ ゴシック
+異字体: IPAmj明朝
+
+# 基本の文字の大きさをポイント単位で指定できます。
+文字サ: 12 pt
+
+# 行間隔を基本の文字の高さの何倍にするかを指定できます。
+行間隔: 2.14 倍
+
+# セクションタイトル前後の余白を行間隔の倍数で指定できます。
+前余白: 0.0 倍, ''' + space_before + ''' 倍, 0.0 倍, 0.0 倍, 0.0 倍, 0.0 倍
+後余白: 0.0 倍, 0.0 倍, 0.0 倍, 0.0 倍, 0.0 倍, 0.0 倍
+
+# 半角文字と全角文字の間の間隔調整（無、有）を指定できます。
+字間整: 無
+
+# 備考書（コメント）などを消して完成させます。
+完成稿: 偽
+
+# 原稿の作成日時と更新日時が自動で記録されます。
+作成時: - USER
+更新時: - USER
+
+---------------------------------------------------------------->
+'''
+        return document
+
+    def insert_sample(self, sample_document):
+        txt_text = self.txt.get('1.0', 'end-1c')
+        if txt_text != '':
+            n, m = 'エラー', 'テキストが空ではありません．'
+            tkinter.messagebox.showerror(n, m)
+            return
+        self.file_lines = sample_document.split('\n')
+        self.txt.insert('1.0', sample_document)
+        self.txt.focus_set()
+        self.current_pane = 'txt'
+        self.txt.mark_set('insert', '1.0')
+        # PAINT
+        paint_keywords = self.paint_keywords.get()
+        self.line_data = [LineDatum() for line in self.file_lines]
+        for i, line in enumerate(self.file_lines):
+            self.line_data[i].line_number = i
+            self.line_data[i].line_text = line + '\n'
+            if i > 0:
+                self.line_data[i].beg_chars_state \
+                    = self.line_data[i - 1].end_chars_state.copy()
+                self.line_data[i].beg_chars_state.reset_partially()
+            self.line_data[i].paint_line(self.txt, paint_keywords)
+        # CLEAR THE UNDO STACK
+        self.txt.edit_reset()
 
     ################
     # COMMAND
@@ -8080,10 +8231,273 @@ class Makdo:
     ################
     # COMMAND
 
+    def insert_file(self):
+        ti = 'ファイルの内容を挿入'
+        ty = [('読み込み可能なファイル', '.docx .md .txt .xlsx .csv')]
+        _d = None
+        if self.file_path is not None:
+            _d = os.path.dirname(self.file_path)
+        file_path = tkinter.filedialog.askopenfilename(
+            title=ti, filetypes=ty, initialdir=_d)
+        if file_path == () or file_path == '':
+            return
+        if re.match('^(?:.|\n)+.xlsx$', file_path):
+            document = self._read_xlsx_file(file_path)
+        elif re.match('^(?:.|\n)+.csv$', file_path):
+            document = self._read_csv_file(file_path)
+        elif re.match('^(?:.|\n)+.docx$', file_path):
+            document = self._read_docx_file(file_path)
+            if re.match('^<!--', document):
+                document = re.sub('^<!--(.|\n)*?-->\n*', '', document)
+        elif re.match('^(?:.|\n)+.md$', file_path):
+            document = self._read_md_file(file_path)
+        else:
+            document = self._read_txt_file(file_path)
+        if document is None:
+            return
+        self.txt.insert('insert', document)
+
+    ################
+    # SUBMENU INSERT SCRIPT
+
+    def _make_submenu_insert_script(self, menu):
+        submenu = tkinter.Menu(menu, tearoff=False)
+        menu.add_cascade(label='スクリプトを挿入', menu=submenu)
+        #
+        submenu.add_command(label='1回目に実行するスクリプトを挿入',
+                            command=self.insert_script_to_exec_1st_time)
+        submenu.add_command(label='2回目に実行するスクリプトを挿入',
+                            command=self.insert_script_to_exec_2nd_time)
+        submenu.add_command(label='3回目に実行するスクリプトを挿入',
+                            command=self.insert_script_to_exec_3rd_time)
+
+    ######
+    # COMMAND
+
+    def insert_script_to_exec_1st_time(self):
+        msg = '（ここにスクリプトを挿入（サンプルはTabを押す））'
+        self.txt.insert('insert', '{{' + msg + '}}')
+        self.txt.mark_set('insert', 'insert-2c')
+
+    def insert_script_to_exec_2nd_time(self):
+        msg = '（ここにスクリプトを挿入（サンプルはTabを押す））'
+        self.txt.insert('insert', '{2{' + msg + '}2}')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    def insert_script_to_exec_3rd_time(self):
+        msg = '（ここにスクリプトを挿入（サンプルはTabを押す））'
+        self.txt.insert('insert', '{3{' + msg + '}3}')
+        self.txt.mark_set('insert', 'insert-3c')
+
+    ################
+    # SUBMENU INSERT FILE
+
+    def _make_submenu_insert_file_name(self, menu):
+        submenu = tkinter.Menu(menu, tearoff=False)
+        menu.add_cascade(label='ファイル名を挿入', menu=submenu)
+        #
+        submenu.add_command(label='ファイル名をフルパスで挿入',
+                            command=self.insert_file_paths)
+        submenu.add_command(label='ファイル名をファイル名のみで挿入',
+                            command=self.insert_file_names)
+        submenu.add_command(label='編集中のファイルと同じフォルダにある全ファイルのファイル名のみを挿入',
+                            command=self.insert_file_names_in_same_folder)
+
+    ######
+    # COMMAND
+
+    def insert_file_paths(self):
+        ti = 'ファイル名をフルパスで挿入'
+        _d = None
+        if self.file_path is not None:
+            _d = os.path.dirname(self.file_path)
+        file_paths \
+            = tkinter.filedialog.askopenfilenames(title=ti, initialdir=_d)
+        for f in file_paths:
+            self.txt.insert('insert', f + '\n')
+
+    def insert_file_names(self):
+        ti = 'ファイル名をファイル名のみで挿入'
+        _d = None
+        if self.file_path is not None:
+            _d = os.path.dirname(self.file_path)
+        file_paths \
+            = tkinter.filedialog.askopenfilenames(title=ti, initialdir=_d)
+        for f in file_paths:
+            f = re.sub('^(.|\n)*/', '', f)
+            self.txt.insert('insert', f + '\n')
+
+    def insert_file_names_in_same_folder(self):
+        file_path = self.file_path
+        if file_path is None:
+            return
+        elif re.match('^(.*)[/\\\\](.*)$', file_path):
+            dir_path = re.sub('^(.*)[/\\\\](.*)$', '\\1', file_path)
+        else:
+            dir_path = os.getcwd()
+        files = os.listdir(dir_path)
+        for f in sorted(files):
+            if not re.match('^\\.', f) and os.path.isfile(f):
+                if not re.match('^~\\$.*\\.zip$', f):
+                    self.txt.insert('insert', f + '\n')
+
+    ################
+    # SUBMENU INSERT TIME
+
+    def _make_submenu_insert_time(self, menu):
+        submenu = tkinter.Menu(menu, tearoff=False)
+        menu.add_cascade(label='日時を挿入', menu=submenu)
+        #
+        submenu.add_command(label='YY年M月D日',
+                            command=self.insert_date_YYMD)
+        submenu.add_command(label='令和Y年M月D日',
+                            command=self.insert_date_GYMD)
+        submenu.add_command(label='yy年m月d日',
+                            command=self.insert_date_yymd)
+        submenu.add_command(label='令和y年m月d日',
+                            command=self.insert_date_Gymd)
+        submenu.add_command(label='yyyy-mm-dd',
+                            command=self.insert_date_iso)
+        submenu.add_command(label='gyy-mm-dd',
+                            command=self.insert_date_giso)
+        submenu.add_separator()
+        #
+        submenu.add_command(label='H時M分S秒',
+                            command=self.insert_time_HHMS)
+        submenu.add_command(label='午前H時M分S秒',
+                            command=self.insert_time_GHMS)
+        submenu.add_command(label='h時m分s秒',
+                            command=self.insert_time_hhms)
+        submenu.add_command(label='午前h時m分s秒',
+                            command=self.insert_time_Ghms)
+        submenu.add_command(label='hh:mm:ss',
+                            command=self.insert_time_iso)
+        submenu.add_command(label='AMhh:mm:ss',
+                            command=self.insert_time_giso)
+        submenu.add_separator()
+        #
+        submenu.add_command(label='yyyy-mm-ddThh:mm:ss+09:00',
+                            command=self.insert_datetime)
+        submenu.add_command(label='yy-mm-ddThh:mm:ss',
+                            command=self.insert_datetime_simple)
+
+    ######
+    # COMMAND
+
+    def insert_date_YYMD(self):
+        now = self._get_now()
+        date = now.strftime('%Y年%m月%d日')
+        date = self._remove_zero(date)
+        date = self._convert_half_to_full(date)
+        self.txt.insert('insert', date)
+
+    def insert_date_GYMD(self):
+        now = self._get_now()
+        year = int(now.strftime('%Y')) - 2018
+        date = '令和' + str(year) + '年' + now.strftime('%m月%d日')
+        date = self._remove_zero(date)
+        date = self._convert_half_to_full(date)
+        self.txt.insert('insert', date)
+
+    def insert_date_yymd(self):
+        now = self._get_now()
+        date = now.strftime('%Y年%m月%d日')
+        date = self._remove_zero(date)
+        self.txt.insert('insert', date)
+
+    def insert_date_Gymd(self):
+        now = self._get_now()
+        year = int(now.strftime('%Y')) - 2018
+        date = '令和' + str(year) + '年' + now.strftime('%m月%d日')
+        date = self._remove_zero(date)
+        self.txt.insert('insert', date)
+
+    def insert_date_iso(self):
+        now = self._get_now()
+        date = now.strftime('%Y-%m-%d')
+        self.txt.insert('insert', date)
+
+    def insert_date_giso(self):
+        now = self._get_now()
+        year = int(now.strftime('%Y')) - 2018
+        if year < 10:
+            date = 'R0' + str(year) + '-' + now.strftime('%m-%d')
+        else:
+            date = 'R' + str(year) + '-' + now.strftime('%m-%d')
+        self.txt.insert('insert', date)
+
+    def insert_time_HHMS(self):
+        now = self._get_now()
+        time = now.strftime('%H時%M分%S秒')
+        time = self._remove_zero(time)
+        time = self._convert_half_to_full(time)
+        self.txt.insert('insert', time)
+
+    def insert_time_GHMS(self):
+        now = self._get_now()
+        hour = int(now.strftime('%H'))
+        if hour < 12:
+            time = '午前' + str(hour) + '時' + now.strftime('%M分%S秒')
+        else:
+            time = '午後' + str(hour - 12) + '時' + now.strftime('%M分%S秒')
+        time = self._remove_zero(time)
+        time = self._convert_half_to_full(time)
+        self.txt.insert('insert', time)
+
+    def insert_time_hhms(self):
+        now = self._get_now()
+        time = now.strftime('%H時%M分%S秒')
+        time = self._remove_zero(time)
+        self.txt.insert('insert', time)
+
+    def insert_time_Ghms(self):
+        now = self._get_now()
+        hour = int(now.strftime('%H'))
+        if hour < 12:
+            time = '午前' + str(hour) + '時' + now.strftime('%M分%S秒')
+        else:
+            time = '午後' + str(hour - 12) + '時' + now.strftime('%M分%S秒')
+        time = self._remove_zero(time)
+        self.txt.insert('insert', time)
+
+    def insert_time_iso(self):
+        now = self._get_now()
+        time = now.strftime('%H:%M:%S')
+        self.txt.insert('insert', time)
+
+    def insert_time_giso(self):
+        now = self._get_now()
+        hour = int(now.strftime('%H'))
+        if hour < 12:
+            time = 'AM' + str(hour) + ':' + now.strftime('%M:%S')
+        else:
+            time = 'PM' + str(hour - 12) + ':' + now.strftime('%M:%S')
+        self.txt.insert('insert', time)
+
+    def insert_datetime(self):
+        now = self._get_now()
+        self.txt.insert('insert', now.isoformat(timespec='seconds'))
+
+    def insert_datetime_simple(self):
+        now = self._get_now()
+        self.txt.insert('insert', now.strftime('%y-%m-%dT%H:%M:%S'))
+
+    @staticmethod
+    def _remove_zero(text):
+        text = re.sub('^0', '', text)
+        text = re.sub('年0', '年', text)
+        text = re.sub('月0', '月', text)
+        text = re.sub('時0', '時', text)
+        text = re.sub('分0', '分', text)
+        return text
+
+    ################
+    # COMMAND
+
     def insert_character_by_code(self):
         b = 'コード番号'
         p = 'コード番号を入力してください．'
-        h, s = '', ''
+        h, t = '', ''
         s = ''
         while not re.match('^[0-9a-fA-F]{4}$', s):
             s = OneWordDialog(self.txt, self, b, p, h, t, s).get_value()
@@ -8452,288 +8866,6 @@ class Makdo:
                         'B餅3;')   # E0103 MJ028398
 
     ################
-    # SUBMENU INSERT TIME
-
-    def _make_submenu_insert_time(self, menu):
-        submenu = tkinter.Menu(menu, tearoff=False)
-        menu.add_cascade(label='日時を挿入', menu=submenu)
-        #
-        submenu.add_command(label='YY年M月D日',
-                            command=self.insert_date_YYMD)
-        submenu.add_command(label='令和Y年M月D日',
-                            command=self.insert_date_GYMD)
-        submenu.add_command(label='yy年m月d日',
-                            command=self.insert_date_yymd)
-        submenu.add_command(label='令和y年m月d日',
-                            command=self.insert_date_Gymd)
-        submenu.add_command(label='yyyy-mm-dd',
-                            command=self.insert_date_iso)
-        submenu.add_command(label='gyy-mm-dd',
-                            command=self.insert_date_giso)
-        submenu.add_separator()
-        #
-        submenu.add_command(label='H時M分S秒',
-                            command=self.insert_time_HHMS)
-        submenu.add_command(label='午前H時M分S秒',
-                            command=self.insert_time_GHMS)
-        submenu.add_command(label='h時m分s秒',
-                            command=self.insert_time_hhms)
-        submenu.add_command(label='午前h時m分s秒',
-                            command=self.insert_time_Ghms)
-        submenu.add_command(label='hh:mm:ss',
-                            command=self.insert_time_iso)
-        submenu.add_command(label='AMhh:mm:ss',
-                            command=self.insert_time_giso)
-        submenu.add_separator()
-        #
-        submenu.add_command(label='yyyy-mm-ddThh:mm:ss+09:00',
-                            command=self.insert_datetime)
-        submenu.add_command(label='yy-mm-ddThh:mm:ss',
-                            command=self.insert_datetime_simple)
-
-    ######
-    # COMMAND
-
-    def insert_date_YYMD(self):
-        now = self._get_now()
-        date = now.strftime('%Y年%m月%d日')
-        date = self._remove_zero(date)
-        date = self._convert_half_to_full(date)
-        self.txt.insert('insert', date)
-
-    def insert_date_GYMD(self):
-        now = self._get_now()
-        year = int(now.strftime('%Y')) - 2018
-        date = '令和' + str(year) + '年' + now.strftime('%m月%d日')
-        date = self._remove_zero(date)
-        date = self._convert_half_to_full(date)
-        self.txt.insert('insert', date)
-
-    def insert_date_yymd(self):
-        now = self._get_now()
-        date = now.strftime('%Y年%m月%d日')
-        date = self._remove_zero(date)
-        self.txt.insert('insert', date)
-
-    def insert_date_Gymd(self):
-        now = self._get_now()
-        year = int(now.strftime('%Y')) - 2018
-        date = '令和' + str(year) + '年' + now.strftime('%m月%d日')
-        date = self._remove_zero(date)
-        self.txt.insert('insert', date)
-
-    def insert_date_iso(self):
-        now = self._get_now()
-        date = now.strftime('%Y-%m-%d')
-        self.txt.insert('insert', date)
-
-    def insert_date_giso(self):
-        now = self._get_now()
-        year = int(now.strftime('%Y')) - 2018
-        if year < 10:
-            date = 'R0' + str(year) + '-' + now.strftime('%m-%d')
-        else:
-            date = 'R' + str(year) + '-' + now.strftime('%m-%d')
-        self.txt.insert('insert', date)
-
-    def insert_time_HHMS(self):
-        now = self._get_now()
-        time = now.strftime('%H時%M分%S秒')
-        time = self._remove_zero(time)
-        time = self._convert_half_to_full(time)
-        self.txt.insert('insert', time)
-
-    def insert_time_GHMS(self):
-        now = self._get_now()
-        hour = int(now.strftime('%H'))
-        if hour < 12:
-            time = '午前' + str(hour) + '時' + now.strftime('%M分%S秒')
-        else:
-            time = '午後' + str(hour - 12) + '時' + now.strftime('%M分%S秒')
-        time = self._remove_zero(time)
-        time = self._convert_half_to_full(time)
-        self.txt.insert('insert', time)
-
-    def insert_time_hhms(self):
-        now = self._get_now()
-        time = now.strftime('%H時%M分%S秒')
-        time = self._remove_zero(time)
-        self.txt.insert('insert', time)
-
-    def insert_time_Ghms(self):
-        now = self._get_now()
-        hour = int(now.strftime('%H'))
-        if hour < 12:
-            time = '午前' + str(hour) + '時' + now.strftime('%M分%S秒')
-        else:
-            time = '午後' + str(hour - 12) + '時' + now.strftime('%M分%S秒')
-        time = self._remove_zero(time)
-        self.txt.insert('insert', time)
-
-    def insert_time_iso(self):
-        now = self._get_now()
-        time = now.strftime('%H:%M:%S')
-        self.txt.insert('insert', time)
-
-    def insert_time_giso(self):
-        now = self._get_now()
-        hour = int(now.strftime('%H'))
-        if hour < 12:
-            time = 'AM' + str(hour) + ':' + now.strftime('%M:%S')
-        else:
-            time = 'PM' + str(hour - 12) + ':' + now.strftime('%M:%S')
-        self.txt.insert('insert', time)
-
-    def insert_datetime(self):
-        now = self._get_now()
-        self.txt.insert('insert', now.isoformat(timespec='seconds'))
-
-    def insert_datetime_simple(self):
-        now = self._get_now()
-        self.txt.insert('insert', now.strftime('%y-%m-%dT%H:%M:%S'))
-
-    @staticmethod
-    def _remove_zero(text):
-        text = re.sub('^0', '', text)
-        text = re.sub('年0', '年', text)
-        text = re.sub('月0', '月', text)
-        text = re.sub('時0', '時', text)
-        text = re.sub('分0', '分', text)
-        return text
-
-    ################
-    # SUBMENU INSERT FILE
-
-    def _make_submenu_insert_file_name(self, menu):
-        submenu = tkinter.Menu(menu, tearoff=False)
-        menu.add_cascade(label='ファイル名を挿入', menu=submenu)
-        #
-        submenu.add_command(label='ファイル名をフルパスで挿入',
-                            command=self.insert_file_paths)
-        submenu.add_command(label='ファイル名をファイル名のみで挿入',
-                            command=self.insert_file_names)
-        submenu.add_command(label='編集中のファイルと同じフォルダにある全ファイルのファイル名のみを挿入',
-                            command=self.insert_file_names_in_same_folder)
-
-    ######
-    # COMMAND
-
-    def insert_file_paths(self):
-        ti = 'ファイル名をフルパスで挿入'
-        _d = None
-        if self.file_path is not None:
-            _d = os.path.dirname(self.file_path)
-        file_paths \
-            = tkinter.filedialog.askopenfilenames(title=ti, initialdir=_d)
-        for f in file_paths:
-            self.txt.insert('insert', f + '\n')
-
-    def insert_file_names(self):
-        ti = 'ファイル名をファイル名のみで挿入'
-        _d = None
-        if self.file_path is not None:
-            _d = os.path.dirname(self.file_path)
-        file_paths \
-            = tkinter.filedialog.askopenfilenames(title=ti, initialdir=_d)
-        for f in file_paths:
-            f = re.sub('^(.|\n)*/', '', f)
-            self.txt.insert('insert', f + '\n')
-
-    def insert_file_names_in_same_folder(self):
-        file_path = self.file_path
-        if file_path is None:
-            return
-        elif re.match('^(.*)[/\\\\](.*)$', file_path):
-            dir_path = re.sub('^(.*)[/\\\\](.*)$', '\\1', file_path)
-        else:
-            dir_path = os.getcwd()
-        files = os.listdir(dir_path)
-        for f in sorted(files):
-            if not re.match('^\\.', f) and os.path.isfile(f):
-                if not re.match('^~\\$.*\\.zip$', f):
-                    self.txt.insert('insert', f + '\n')
-
-    ################
-    # COMMAND
-
-    def insert_file(self):
-        ti = 'ファイルの内容を挿入'
-        ty = [('読み込み可能なファイル', '.docx .md .txt .xlsx .csv')]
-        _d = None
-        if self.file_path is not None:
-            _d = os.path.dirname(self.file_path)
-        file_path = tkinter.filedialog.askopenfilename(
-            title=ti, filetypes=ty, initialdir=_d)
-        if file_path == () or file_path == '':
-            return
-        if re.match('^(?:.|\n)+.xlsx$', file_path):
-            document = self._read_xlsx_file(file_path)
-        elif re.match('^(?:.|\n)+.csv$', file_path):
-            document = self._read_csv_file(file_path)
-        elif re.match('^(?:.|\n)+.docx$', file_path):
-            document = self._read_docx_file(file_path)
-            if re.match('^<!--', document):
-                document = re.sub('^<!--(.|\n)*?-->\n*', '', document)
-        elif re.match('^(?:.|\n)+.md$', file_path):
-            document = self._read_md_file(file_path)
-        else:
-            document = self._read_txt_file(file_path)
-        if document is None:
-            return
-        self.txt.insert('insert', document)
-
-    def insert_symbol(self):
-        candidates = ['⑴', '⑵', '⑶', '⑷', '⑸', '⑹', '⑺', '⑻', '⑼', '⑽',
-                      '⑾', '⑿', '⒀', '⒁', '⒂', '⒃', '⒄', '⒅', '⒆', '⒇',
-                      '⓪',
-                      '①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩',
-                      '⑪', '⑫', '⑬', '⑭', '⑮', '⑯', '⑰', '⑱', '⑲', '⑳',
-                      '²', '³',
-                      '㊞',
-                      '♠', '♡', '♢', '♣', '♤', '♥', '♦', '♧',
-                      '☹', '☺', '☻',
-                      '✊', '✋', '✌',
-                      '✿', '❀',
-                      '☯']
-        self.SymbolDialog(self.txt, self, candidates)
-
-    class SymbolDialog(tkinter.simpledialog.Dialog):
-
-        def __init__(self, pane, mother, candidates):
-            self.pane = pane
-            self.mother = mother
-            self.candidates = candidates
-            super().__init__(pane, title='記号を挿入')
-
-        def body(self, pane):
-            fon = self.mother.gothic_font
-            self.symbol = tkinter.StringVar()
-            for i, cnd in enumerate(self.candidates):
-                rd = tkinter.Radiobutton(pane, text=cnd, font=fon,
-                                         variable=self.symbol, value=cnd)
-                y, x = int(i / 10), (i % 10)
-                rd.grid(row=y, column=x, columnspan=1, padx=3, pady=3)
-            # self.bind('<Key-Return>', self.ok)
-            # self.bind('<Key-Escape>', self.cancel)
-            # super().body(pane)
-
-        # def buttonbox(self):
-        #     btn = tkinter.Frame(self)
-        #     self.btn1 = tkinter.Button(btn, text='OK', width=6,
-        #                                command=self.ok)
-        #     self.btn1.pack(side=tkinter.LEFT, padx=3, pady=3)
-        #     self.btn2 = tkinter.Button(btn, text='Cancel', width=6,
-        #                                command=self.cancel)
-        #     self.btn2.pack(side=tkinter.LEFT, padx=3, pady=3)
-        #     btn.pack()
-
-        def apply(self):
-            symbol = self.symbol.get()
-            self.pane.insert('insert', symbol)
-            # self.pane.mark_set('insert', 'insert-1c')
-            self.pane.focus_set()
-
-    ################
     # SUBMENU INSERT HORIZONTAL LINE
 
     def _make_submenu_insert_horizontal_line(self, menu):
@@ -8920,185 +9052,58 @@ class Makdo:
         self.paint_out_line(self._get_v_position_of_insert(pane) - 1)
 
     ################
-    # SUBMENU INSERT SCRIPT
-
-    def _make_submenu_insert_script(self, menu):
-        submenu = tkinter.Menu(menu, tearoff=False)
-        menu.add_cascade(label='スクリプトを挿入', menu=submenu)
-        #
-        submenu.add_command(label='1回目に実行するスクリプトを挿入',
-                            command=self.insert_script_to_exec_1st_time)
-        submenu.add_command(label='2回目に実行するスクリプトを挿入',
-                            command=self.insert_script_to_exec_2nd_time)
-        submenu.add_command(label='3回目に実行するスクリプトを挿入',
-                            command=self.insert_script_to_exec_3rd_time)
-
-    ######
     # COMMAND
 
-    def insert_script_to_exec_1st_time(self):
-        msg = '（ここにスクリプトを挿入（サンプルはTabを押す））'
-        self.txt.insert('insert', '{{' + msg + '}}')
-        self.txt.mark_set('insert', 'insert-2c')
+    def insert_symbol(self):
+        candidates = ['⑴', '⑵', '⑶', '⑷', '⑸', '⑹', '⑺', '⑻', '⑼', '⑽',
+                      '⑾', '⑿', '⒀', '⒁', '⒂', '⒃', '⒄', '⒅', '⒆', '⒇',
+                      '⓪',
+                      '①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩',
+                      '⑪', '⑫', '⑬', '⑭', '⑮', '⑯', '⑰', '⑱', '⑲', '⑳',
+                      '²', '³',
+                      '㊞',
+                      '♠', '♡', '♢', '♣', '♤', '♥', '♦', '♧',
+                      '☹', '☺', '☻',
+                      '✊', '✋', '✌',
+                      '✿', '❀',
+                      '☯']
+        self.SymbolDialog(self.txt, self, candidates)
 
-    def insert_script_to_exec_2nd_time(self):
-        msg = '（ここにスクリプトを挿入（サンプルはTabを押す））'
-        self.txt.insert('insert', '{2{' + msg + '}2}')
-        self.txt.mark_set('insert', 'insert-3c')
+    class SymbolDialog(tkinter.simpledialog.Dialog):
 
-    def insert_script_to_exec_3rd_time(self):
-        msg = '（ここにスクリプトを挿入（サンプルはTabを押す））'
-        self.txt.insert('insert', '{3{' + msg + '}3}')
-        self.txt.mark_set('insert', 'insert-3c')
+        def __init__(self, pane, mother, candidates):
+            self.pane = pane
+            self.mother = mother
+            self.candidates = candidates
+            super().__init__(pane, title='記号を挿入')
 
-    ################
-    # SUBMENU INSERT SAMPLE
+        def body(self, pane):
+            fon = self.mother.gothic_font
+            self.symbol = tkinter.StringVar()
+            for i, cnd in enumerate(self.candidates):
+                rd = tkinter.Radiobutton(pane, text=cnd, font=fon,
+                                         variable=self.symbol, value=cnd)
+                y, x = int(i / 10), (i % 10)
+                rd.grid(row=y, column=x, columnspan=1, padx=3, pady=3)
+            # self.bind('<Key-Return>', self.ok)
+            # self.bind('<Key-Escape>', self.cancel)
+            # super().body(pane)
 
-    def _make_submenu_insert_sample(self, menu):
-        submenu = tkinter.Menu(menu, tearoff=False)
-        menu.add_cascade(label='サンプルを挿入', menu=submenu)
-        #
-        submenu.add_command(label='基本',
-                            command=self.insert_basis_sample)
-        submenu.add_command(label='民法',
-                            command=self.insert_law_sample)
-        submenu.add_command(label='和解契約書',
-                            command=self.insert_settlement_sample)
-        submenu.add_command(label='訴状',
-                            command=self.insert_petition_sample)
-        submenu.add_command(label='証拠説明書',
-                            command=self.insert_evidence_sample)
-        submenu.add_command(label='判決（民事事件）',
-                            command=self.insert_civil_judgement_sample)
-        submenu.add_command(label='起訴状',
-                            command=self.insert_indictment_sample)
-        submenu.add_command(label='判決（刑事事件）',
-                            command=self.insert_criminal_judgement_sample)
+        # def buttonbox(self):
+        #     btn = tkinter.Frame(self)
+        #     self.btn1 = tkinter.Button(btn, text='OK', width=6,
+        #                                command=self.ok)
+        #     self.btn1.pack(side=tkinter.LEFT, padx=3, pady=3)
+        #     self.btn2 = tkinter.Button(btn, text='Cancel', width=6,
+        #                                command=self.cancel)
+        #     self.btn2.pack(side=tkinter.LEFT, padx=3, pady=3)
+        #     btn.pack()
 
-    ######
-    # COMMAND
-
-    def insert_basis_sample(self):               # 基本
-        document = self.insert_configuration_sample('普通', '0.0') + \
-            SAMPLE_BASIS
-        self.insert_sample(document)
-
-    def insert_law_sample(self):                 # 民法
-        document = self.insert_configuration_sample('条文', '0.0') + \
-            SAMPLE_LAW
-        self.insert_sample(document)
-
-    def insert_settlement_sample(self):          # 和解契約書
-        document = self.insert_configuration_sample('契約', '1.0') + \
-            SAMPLE_SETTLEMENT
-        self.insert_sample(document)
-
-    def insert_petition_sample(self):            # 訴状
-        document = self.insert_configuration_sample('普通', '1.0') + \
-            SAMPLE_PETITION
-        self.insert_sample(document)
-
-    def insert_evidence_sample(self):            # 証拠説明書
-        document = self.insert_configuration_sample('普通', '0.0') + \
-            SAMPLE_EVIDENCE
-        self.insert_sample(document)
-
-    def insert_civil_judgement_sample(self):     # 判決（民事事件）
-        document = self.insert_configuration_sample('普通', '0.0') + \
-            SAMPLE_CIVIL_JUDGEMENT
-        self.insert_sample(document)
-
-    def insert_indictment_sample(self):          # 起訴状
-        document = self.insert_configuration_sample('普通', '0.0') + \
-            SAMPLE_INDICTMENT
-        self.insert_sample(document)
-
-    def insert_criminal_judgement_sample(self):  # 判決（刑事事件）
-        document = self.insert_configuration_sample('普通', '0.0') + \
-            SAMPLE_CRIMINAL_JUDGEMENT
-        self.insert_sample(document)
-
-    def insert_configuration_sample(self, document_style, space_before):
-        document = '''\
-<!--------------------------【設定】-----------------------------
-
-# プロパティに表示される文書のタイトルを指定できます。
-書題名:
-
-# 3つの書式（普通、契約、条文）を指定できます。
-文書式: ''' + document_style + '''
-
-# 用紙のサイズ（A3横、A3縦、A4横、A4縦）を指定できます。
-用紙サ: A4縦
-
-# 用紙の上下左右の余白をセンチメートル単位で指定できます。
-上余白: 3.5 cm
-下余白: 2.2 cm
-左余白: 3.0 cm
-右余白: 2.0 cm
-
-# ページのヘッダーに表示する文字列（別紙 :等）を指定できます。
-頭書き:
-
-# ページ番号の書式（無、有、n :、-n-、n/N等）を指定できます。
-頁番号: 有
-
-# 行番号の記載（無、有）を指定できます。
-行番号: 無
-
-# 明朝体とゴシック体と異字体（IVS）のフォントを指定できます。
-明朝体: Times New Roman / ＭＳ 明朝
-ゴシ体: = / ＭＳ ゴシック
-異字体: IPAmj明朝
-
-# 基本の文字の大きさをポイント単位で指定できます。
-文字サ: 12 pt
-
-# 行間隔を基本の文字の高さの何倍にするかを指定できます。
-行間隔: 2.14 倍
-
-# セクションタイトル前後の余白を行間隔の倍数で指定できます。
-前余白: 0.0 倍, ''' + space_before + ''' 倍, 0.0 倍, 0.0 倍, 0.0 倍, 0.0 倍
-後余白: 0.0 倍, 0.0 倍, 0.0 倍, 0.0 倍, 0.0 倍, 0.0 倍
-
-# 半角文字と全角文字の間の間隔調整（無、有）を指定できます。
-字間整: 無
-
-# 備考書（コメント）などを消して完成させます。
-完成稿: 偽
-
-# 原稿の作成日時と更新日時が自動で記録されます。
-作成時: - USER
-更新時: - USER
-
----------------------------------------------------------------->
-'''
-        return document
-
-    def insert_sample(self, sample_document):
-        txt_text = self.txt.get('1.0', 'end-1c')
-        if txt_text != '':
-            n, m = 'エラー', 'テキストが空ではありません．'
-            tkinter.messagebox.showerror(n, m)
-            return
-        self.file_lines = sample_document.split('\n')
-        self.txt.insert('1.0', sample_document)
-        self.txt.focus_set()
-        self.current_pane = 'txt'
-        self.txt.mark_set('insert', '1.0')
-        # PAINT
-        paint_keywords = self.paint_keywords.get()
-        self.line_data = [LineDatum() for line in self.file_lines]
-        for i, line in enumerate(self.file_lines):
-            self.line_data[i].line_number = i
-            self.line_data[i].line_text = line + '\n'
-            if i > 0:
-                self.line_data[i].beg_chars_state \
-                    = self.line_data[i - 1].end_chars_state.copy()
-                self.line_data[i].beg_chars_state.reset_partially()
-            self.line_data[i].paint_line(self.txt, paint_keywords)
-        # CLEAR THE UNDO STACK
-        self.txt.edit_reset()
+        def apply(self):
+            symbol = self.symbol.get()
+            self.pane.insert('insert', symbol)
+            # self.pane.mark_set('insert', 'insert-1c')
+            self.pane.focus_set()
 
     ##########################
     # MENU PARAGRAPH
