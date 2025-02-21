@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.21-09:10:12-JST>
+# Time-stamp:   <2025.02.21-09:59:35-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -7226,6 +7226,8 @@ class Makdo:
             beg, end = self._get_indices_in_order(pane, 'insert', 'akauni')
         else:
             beg, end = '1.0', 'end-1c'
+        pane['autoseparators'] = False
+        pane.edit_separator()
         m = 0
         res_word1 = word1
         if not self.use_regexps.get():
@@ -7255,6 +7257,8 @@ class Makdo:
         elif 'akauni' in pane.mark_names():
             pane.tag_remove('akauni_tag', '1.0', 'end')
             pane.mark_unset('akauni')
+        pane['autoseparators'] = True
+        pane.edit_separator()
         pane.focus_set()
         # MESSAGE
         self.set_message_on_status_bar(str(m) + '個を置換しました')
