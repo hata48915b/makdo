@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.22-08:32:16-JST>
+# Time-stamp:   <2025.02.22-10:47:56-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -4152,6 +4152,8 @@ class CharsState:
             key += '-120'
         elif chars == 'table':
             key += '-190'
+        elif self.is_length_reviser:  # Should be before "half number"
+            key += '-150'
         elif chars == 'half number':
             key += '-30'
         elif chars == 'full number':
@@ -4223,8 +4225,6 @@ class CharsState:
             key += '-360'  # gray
         elif chars == 'fold':
             key += '-170'
-        elif self.is_length_reviser:
-            key += '-150'
         elif self.chapter_depth > 0:
             key += '-' + str(210 + ((self.chapter_depth - 1) * 10))
         elif self.section_depth > 0:
@@ -4722,7 +4722,7 @@ class LineDatum:
                         chars_state.toggle_has_specific_font()          # 4.set
                     tmp = ''                                            # 5.tmp
                     continue
-                # FRAME (Should be processed before TABLE and IMAGE)
+                # FRAME (Should be before TABLE and IMAGE)
                 if (c1 == '[' and c0 == '|') or (c1 == '|' and c0 == ']'):
                     continue
                 if (c2 == '[' and c1 == '|') or (c2 == '|' and c1 == ']'):
@@ -10023,7 +10023,7 @@ class Makdo:
         res_f2 = '(\\^[0-9A-Za-z]{0,11}\\^|_[0-9A-Za-z]{0,11}_)'
         res_f3 = '(_[\\$=\\.#\\-~\\+]{,4}_)'
         res_f4 = '(@(?:[0-9]*\\.)?[0-9]+@|@[^@]{1,66}@)'
-        # "res_ln(<<=n)" should be processed before "res_f1(<<)"
+        # "res_ln(<<=n)" should be before "res_f1(<<)".
         res_head = [res_sp, res_cm, res_ln, res_f1, res_f2, res_f3, res_f4]
         res_tail = [res_sp, res_cm, res_f1, res_f2, res_f3, res_f4]
         tmp = ''
@@ -10090,7 +10090,7 @@ class Makdo:
         # LIST
         if re.match('^([0-9]+\\.|-)\\s.*$', full_text):
             return 'list'
-        # TABLE (Should be processed before ALIGNMENT)
+        # TABLE (Should be before ALIGNMENT)
         if re.match('^(: )?\\s*\\|.*\\|(:?-*:?(\n?(\\^+|=+))?)?( :)?$',
                     full_text):
             return 'table'
