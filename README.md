@@ -1,4 +1,4 @@
-<!-- Time-stamp:   <2025.02.23-09:47:04-JST> -->
+<!-- Time-stamp:   <2025.02.23-10:14:05-JST> -->
 
 # Makdo（MS Word形式のファイルをMarkdownで作成・編集するエディタアプリ）
 
@@ -12,7 +12,7 @@
 
 - [［実行ファイル（Linux）のダウンロード］](https://makdo.jp/makdo_lin.zip)
 
-![MakdoのLOGO](https://raw.githubusercontent.com/hata48915b/makdo/main/image/makdoL.png "MakdoのLOGO")
+![MakdoのLOGO (circle)](https://raw.githubusercontent.com/hata48915b/makdo/main/image/makdo9.png "MakdoのLOGO (circle)")
 
 〜〜 LaTeXの論理性とEmacsの機能性を、MS Word形式のファイルの作成・編集に！ 〜〜
 
@@ -566,3 +566,5 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 - 大幅な修正を加えたリリースです。
 
 - Markdownエディタが追加されました。
+
+![MakdoのLOGO (oval)](https://raw.githubusercontent.com/hata48915b/makdo/main/image/makdoL.png "MakdoのLOGO (oval)")
