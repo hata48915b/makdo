@@ -1,6 +1,6 @@
-<!-- Time-stamp:   <2025.02.23-08:55:47-JST> -->
+<!-- Time-stamp:   <2025.02.23-09:47:04-JST> -->
 
-# MAKDO（MS Word形式のファイルをMarkdownで作成・編集するエディタアプリ）
+# Makdo（MS Word形式のファイルをMarkdownで作成・編集するエディタアプリ）
 
 [公式ウェブページ](https://makdo.jp/)
 
@@ -12,7 +12,7 @@
 
 - [［実行ファイル（Linux）のダウンロード］](https://makdo.jp/makdo_lin.zip)
 
-![MAKDOのLOGO](https://raw.githubusercontent.com/hata48915b/makdo/main/image/makdoL.png "MAKDOのLOGO")
+![MakdoのLOGO](https://raw.githubusercontent.com/hata48915b/makdo/main/image/makdoL.png "MakdoのLOGO")
 
 〜〜 LaTeXの論理性とEmacsの機能性を、MS Word形式のファイルの作成・編集に！ 〜〜
 
@@ -34,13 +34,13 @@ MS Word形式（拡張子"docx"）のファイルを読んだり編集したり�
 ⑤ 編集した原稿をそのままMarkdown形式のファイルに保存したり、
 簡単にできます。
 
-↓↓↓ MAKDOで原稿を編集する様子
+↓↓↓ Makdoで原稿を編集する様子
 
-![MAKDOで原稿を編集する様子](https://raw.githubusercontent.com/hata48915b/makdo/main/image/sojo-makdo.png "MAKDOで原稿を編集する様子")
+![Makdoで原稿を編集する様子](https://raw.githubusercontent.com/hata48915b/makdo/main/image/sojo-makdo.png "Makdoで原稿を編集する様子")
 
-↓↓↓ MAKDOで編集した原稿をMS Wordで開いた様子
+↓↓↓ Makdoで編集した原稿をMS Wordで開いた様子
 
-![MAKDOで編集した原稿をMS Wordで開いた様子](https://raw.githubusercontent.com/hata48915b/makdo/main/image/sojo-msword.png "MAKDOで編集した原稿をMS Wordで開いた様子")
+![Makdoで編集した原稿をMS Wordで開いた様子](https://raw.githubusercontent.com/hata48915b/makdo/main/image/sojo-msword.png "Makdoで編集した原稿をMS Wordで開いた様子")
 
 ## このアプリのメリット
 
@@ -507,11 +507,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 ## ウェブページ
 
+[公式ページ](https://makdo.jp/)
+
 [ソースコードのページ（github）](https://github.com/hata48915b/makdo)
 
 [ライブラリのページ（PyPI）](https://pypi.org/project/makdo/)
-
-[簡易実行ファイルのページ](https://makdo.jp/)
 
 ## 免責条項
 
