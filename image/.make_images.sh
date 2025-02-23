@@ -20,8 +20,8 @@ cat x0.xpm \
 
 #convert -quality 100 -resize 2048x2048! -depth $DEPTH -colors 512 xB.xpm makdoB.png; chmod 444 makdoB.png
 #convert -quality 100 -resize 1024x1024! -depth $DEPTH -colors 512 xB.xpm makdoA.png; chmod 444 makdoA.png
-#convert -quality 100 -resize  512x512!  -depth $DEPTH -colors 512 xB.xpm makdo9.png; chmod 444 makdo9.png
-convert -quality 100 -resize  256x256!  -depth $DEPTH -colors 512 xB.xpm makdo8.png; chmod 444 makdo8.png
+convert -quality 100 -resize  512x512!  -depth $DEPTH -colors 512 xB.xpm makdo9.png; chmod 444 makdo9.png
+#convert -quality 100 -resize  256x256!  -depth $DEPTH -colors 512 xB.xpm makdo8.png; chmod 444 makdo8.png
 #convert -quality 100 -resize  128x128!  -depth $DEPTH -colors 512 xB.xpm makdo7.png; chmod 444 makdo7.png
 #convert -quality 100 -resize   64x64!   -depth $DEPTH -colors 512 xB.xpm makdo6.png; chmod 444 makdo6.png
 #convert -quality 100 -resize   32x32!   -depth $DEPTH -colors 512 xB.xpm makdo5.png; chmod 444 makdo5.png
