@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.22-10:47:56-JST>
+# Time-stamp:   <2025.03.01-07:09:25-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -7090,8 +7090,18 @@ class Makdo:
                                          variable=self.value, value=n)
                 rb.pack(side='top', anchor='w')
                 rbs.append(rb)
+            self.bind('<Key-Up>', self.process_Up)
+            self.bind('<Key-Down>', self.process_Down)
             super().body(pane)
             return rbs[0]
+
+        def process_Up(self, event):
+            event.widget.tk_focusPrev().focus()
+            return 'break'
+
+        def process_Down(self, event):
+            event.widget.tk_focusNext().focus()
+            return 'break'
 
         def apply(self):
             self.has_pressed_ok = True
