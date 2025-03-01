@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.03.01-07:09:25-JST>
+# Time-stamp:   <2025.03.02-07:55:49-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -3822,6 +3822,59 @@ class TwoWordsDialog(tkinter.simpledialog.Dialog):
             self.entry2.insert('insert', cb)
 
 
+class RadiobuttonDialog(tkinter.simpledialog.Dialog):
+
+    def __init__(self, pane, mother, title, prompt, cand, init=None):
+        self.pane = pane
+        self.mother = mother
+        self.prompt = prompt
+        self.cand = cand
+        self.init = init
+        self.value = None
+        self.has_pressed_ok = False
+        super().__init__(pane, title=title)
+
+    def body(self, pane):
+        prompt = tkinter.Label(pane, text=self.prompt + '\n', justify='left')
+        prompt.pack(side='top', anchor='w')
+        m = len(self.cand) - 1
+        self.value = tkinter.StringVar()
+        self.value.set(self.init)
+        focused_radiobutton = None
+        for c in self.cand:
+            head = re.sub('\n', ' ', c)
+            if len(head) > 15:
+                head = head[:14] + '…'
+            if head == '':
+                return '（空）'
+            rb = tkinter.Radiobutton(pane, text=head,
+                                     variable=self.value, value=c)
+            rb.pack(side='top', anchor='w')
+            if c == self.init:
+                focused_radiobutton = rb
+        self.bind('<Key-Up>', self.process_Up)
+        self.bind('<Key-Down>', self.process_Down)
+        super().body(pane)
+        return focused_radiobutton
+
+    def process_Up(self, event):
+        event.widget.tk_focusPrev().focus()
+        return 'break'
+
+    def process_Down(self, event):
+        event.widget.tk_focusNext().focus()
+        return 'break'
+
+    def apply(self):
+        self.has_pressed_ok = True
+
+    def get_value(self):
+        if self.has_pressed_ok:
+            return self.value.get()
+        else:
+            return None
+
+
 class PasswordDialog(tkinter.simpledialog.Dialog):
 
     def __init__(self, pane, mother, title, prompt):
@@ -7042,76 +7095,23 @@ class Makdo:
         return True
 
     def paste_region_from_list(self, mother=None):
+        pane = self.txt
+        if self.current_pane == 'sub':
+            pane = self.sub
         if mother is None:
-            mother = self.txt
-            if self.current_pane == 'sub':
-                mother = self.sub
+            mother = pane
         t = 'リストから貼付け'
         m = '貼り付ける文節を選んでください．'
-        cd = self.ClipboardListDialog(mother, self, t, m)
-        n = cd.get_value()
-        if n >= 0:
-            pane = self.txt
-            if self.current_pane == 'sub':
-                pane = self.sub
+        c = list(reversed(self.clipboard_list))
+        rd = RadiobuttonDialog(mother, self, t, m, c, c[0])
+        v = rd.get_value()
+        if v is not None:
             pane.edit_separator()
+            pane.insert('insert', v)
             p = self._get_v_position_of_insert(pane) - 1
-            c = self.clipboard_list[n]
-            pane.insert('insert', c)
-            for i in range(c.count('\n')):
+            for i in range(v.count('\n')):
                 self.paint_out_line(p + i)
             pane.edit_separator()
-
-    class ClipboardListDialog(tkinter.simpledialog.Dialog):
-
-        def __init__(self, pane, mother, title, prompt):
-            self.pane = pane
-            self.mother = mother
-            self.prompt = prompt
-            self.value = None
-            self.has_pressed_ok = False
-            super().__init__(pane, title=title)
-
-        def body(self, pane):
-            prompt = tkinter.Label(pane, text=self.prompt)
-            prompt.pack(side='top', anchor='w')
-            m = len(self.mother.clipboard_list) - 1
-            self.value = tkinter.IntVar()
-            self.value.set(m)
-            rbs = []
-            for n in range(m, -1, -1):
-                head = self.mother.clipboard_list[n]
-                head = re.sub('\n', ' ', head)
-                if len(head) > 15:
-                    head = head[:14] + '…'
-                if head == '':
-                    return '（空）'
-                rb = tkinter.Radiobutton(pane, text=head,
-                                         variable=self.value, value=n)
-                rb.pack(side='top', anchor='w')
-                rbs.append(rb)
-            self.bind('<Key-Up>', self.process_Up)
-            self.bind('<Key-Down>', self.process_Down)
-            super().body(pane)
-            return rbs[0]
-
-        def process_Up(self, event):
-            event.widget.tk_focusPrev().focus()
-            return 'break'
-
-        def process_Down(self, event):
-            event.widget.tk_focusNext().focus()
-            return 'break'
-
-        def apply(self):
-            self.has_pressed_ok = True
-            self.or_or_cancel = 'ok'
-
-        def get_value(self):
-            if self.has_pressed_ok:
-                return self.value.get()
-            else:
-                return -1
 
     def cut_rectangle(self):
         self._cut_or_copy_rectangle(True)
@@ -7541,55 +7541,33 @@ class Makdo:
         self.clipboard_list[-1] += r
         return True
 
-    def change_typeface(self):
+    def change_typeface(self, mother=None):
+        pane = self.txt
+        if self.current_pane == 'sub':
+            pane = self.sub
+        if mother is None:
+            mother = pane
         c = self.txt.get('insert', 'insert+1c')
         for tf in TYPEFACES:
             if c in tf:
-                self.TypefaceDialog(self.txt, self, c, list(tf))
-                break
+                t = '字体を変える'
+                m = '字体を選んでください．'
+                rd = RadiobuttonDialog(mother, self, t, m, list(tf), c)
+                v = rd.get_value()
+                if v is not None:
+                    pane.edit_separator()
+                    pane.delete('insert', 'insert+1c')
+                    pane.insert('insert', v)
+                    pane.mark_set('insert', 'insert-1c')
+                    p = self._get_v_position_of_insert(pane) - 1
+                    self.paint_out_line(p)
+                    pane.edit_separator()
+                return True
         else:
             n = '警告'
             m = '"' + c + '"に異字体は登録されていません．'
             tkinter.messagebox.showwarning(n, m)
-
-    class TypefaceDialog(tkinter.simpledialog.Dialog):
-
-        def __init__(self, pane, mother, old_typeface, candidates):
-            self.pane = pane
-            self.mother = mother
-            self.old_typeface = old_typeface
-            self.candidates = candidates
-            super().__init__(pane, title='字体を変える')
-
-        def body(self, pane):
-            fon = self.mother.gothic_font
-            self.typeface = tkinter.StringVar()
-            for cnd in self.candidates:
-                rd = tkinter.Radiobutton(pane, text=cnd, font=fon,
-                                         variable=self.typeface, value=cnd)
-                rd.pack(side='left', padx=3, pady=3)
-                if cnd == self.old_typeface:
-                    rd.select()
-            # self.bind('<Key-Return>', self.ok)
-            # self.bind('<Key-Escape>', self.cancel)
-            super().body(pane)
-
-        # def buttonbox(self):
-        #     btn = tkinter.Frame(self)
-        #     self.btn1 = tkinter.Button(btn, text='OK', width=6,
-        #                                command=self.ok)
-        #     self.btn1.pack(side=tkinter.LEFT, padx=3, pady=3)
-        #     self.btn2 = tkinter.Button(btn, text='Cancel', width=6,
-        #                                command=self.cancel)
-        #     self.btn2.pack(side=tkinter.LEFT, padx=3, pady=3)
-        #     btn.pack()
-
-        def apply(self):
-            new_typeface = self.typeface.get()
-            self.pane.delete('insert', 'insert+1c')
-            self.pane.insert('insert', new_typeface)
-            self.pane.mark_set('insert', 'insert-1c')
-            self.pane.focus_set()
+            return False
 
     def comment_out_region(self):
         pane = self.txt
@@ -7953,7 +7931,12 @@ class Makdo:
                               mincho_font_list,
                               DOCX_MINCHO_FONT)
 
-    def insert_selected_alphanumeric_font(self):
+    def insert_selected_alphanumeric_font(self, mother=None):
+        pane = self.txt
+        if self.current_pane == 'sub':
+            pane = self.sub
+        if mother is None:
+            mother = pane
         alphanumeric_font_list_candidates = [
             'Times New Roman',
             'Cambria',
@@ -7969,39 +7952,19 @@ class Makdo:
                 if re.match('^' + fc, f) and (f not in alphanumeric_font_list):
                     alphanumeric_font_list.append(f)
         alphanumeric_font_list.sort()
-        self.ChangeFontDialog(self.txt, self, '欧文フォントを変える',
-                              alphanumeric_font_list,
-                              DOCX_ALPHANUMERIC_FONT)
-
-    class ChangeFontDialog(tkinter.simpledialog.Dialog):
-
-        def __init__(self, pane, mother, title, candidates, default=None):
-            self.pane = pane
-            self.mother = mother
-            self.candidates = candidates
-            self.default = default
-            super().__init__(pane, title=title)
-
-        def body(self, pane):
-            fon = self.mother.gothic_font
-            self.new_font = tkinter.StringVar()
-            if self.default is not None:
-                self.new_font.set(self.default)
-            for cnd in self.candidates:
-                rd = tkinter.Radiobutton(pane, text=cnd, font=fon,
-                                         variable=self.new_font,
-                                         value=cnd)
-                rd.pack(side='top', padx=3, pady=3, anchor='nw')
-            super().body(pane)
-
-        def apply(self):
-            m = self.new_font.get()
-            if m == '':
-                return
-            d = '@' + m + '@（ここはフォントが変わる）@' + m + '@'
-            self.pane.insert('insert', d)
-            self.pane.mark_set('insert', 'insert-' + str(len(m) + 2) + 'c')
-            self.pane.focus_set()
+        t = '欧文フォントを変える'
+        m = 'フォントを選んでください．'
+        rd = RadiobuttonDialog(mother, self, t, m,
+                               alphanumeric_font_list, DOCX_ALPHANUMERIC_FONT)
+        v = rd.get_value()
+        if v is not None:
+            pane.edit_separator()
+            d = '@' + v + '@（ここはフォントが変わる）@' + v + '@'
+            pane.insert('insert', d)
+            pane.mark_set('insert', 'insert-' + str(len(v) + 2) + 'c')
+            p = self._get_v_position_of_insert(pane) - 1
+            self.paint_out_line(p)
+            pane.edit_separator()
 
     def insert_gothic_font(self):
         self.txt.insert('insert', '`（ここはゴシック体）`')
@@ -12083,7 +12046,7 @@ class Makdo:
         mc = MinibufferCommand(
             'change-typeface',
             [None, '字形を変える'],
-            ['self.mother.change_typeface()'])
+            ['self.mother.change_typeface(self)'])
         minibuffer_commands.append(mc)
 
         mc = MinibufferCommand(
