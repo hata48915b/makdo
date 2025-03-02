@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.03.02-07:55:49-JST>
+# Time-stamp:   <2025.03.02-13:17:03-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -3824,7 +3824,7 @@ class TwoWordsDialog(tkinter.simpledialog.Dialog):
 
 class RadiobuttonDialog(tkinter.simpledialog.Dialog):
 
-    def __init__(self, pane, mother, title, prompt, cand, init=None):
+    def __init__(self, pane, mother, title, prompt, cand, init=-1):
         self.pane = pane
         self.mother = mother
         self.prompt = prompt
@@ -3838,24 +3838,24 @@ class RadiobuttonDialog(tkinter.simpledialog.Dialog):
         prompt = tkinter.Label(pane, text=self.prompt + '\n', justify='left')
         prompt.pack(side='top', anchor='w')
         m = len(self.cand) - 1
-        self.value = tkinter.StringVar()
+        self.value = tkinter.IntVar()
         self.value.set(self.init)
-        focused_radiobutton = None
-        for c in self.cand:
-            head = re.sub('\n', ' ', c)
+        focused = None
+        for i in range(len(self.cand)):
+            head = re.sub('\n', ' ', self.cand[i])
+            if head == '':
+                head = '（空）'
             if len(head) > 15:
                 head = head[:14] + '…'
-            if head == '':
-                return '（空）'
             rb = tkinter.Radiobutton(pane, text=head,
-                                     variable=self.value, value=c)
+                                     variable=self.value, value=i)
             rb.pack(side='top', anchor='w')
-            if c == self.init:
-                focused_radiobutton = rb
+            if i == self.init:
+                focused = rb
         self.bind('<Key-Up>', self.process_Up)
         self.bind('<Key-Down>', self.process_Down)
         super().body(pane)
-        return focused_radiobutton
+        return focused
 
     def process_Up(self, event):
         event.widget.tk_focusPrev().focus()
@@ -3870,9 +3870,56 @@ class RadiobuttonDialog(tkinter.simpledialog.Dialog):
 
     def get_value(self):
         if self.has_pressed_ok:
-            return self.value.get()
+            return self.cand[self.value.get()]
         else:
             return None
+
+
+class NumberRevisersDialog(tkinter.simpledialog.Dialog):
+
+    def __init__(self, pane, mother, title, prompt, confs):
+        self.pane = pane
+        self.mother = mother
+        self.prompt = prompt
+        self.confs = confs
+        self.values = []
+        self.entries = []
+        super().__init__(pane, title=title)
+
+    def body(self, pane):
+        frm1 = tkinter.Frame(pane)
+        frm1.pack()
+        prompt = tkinter.Label(frm1, text=self.prompt + '\n', justify='left')
+        prompt.pack(side='top', anchor='w')
+        frm2 = tkinter.Frame(pane)
+        frm2.pack()
+        for n, conf in enumerate(self.confs):
+            entry = self._body(frm2, n, conf)
+            self.entries.append(entry)
+        return self.entries[0]
+
+    def _body(self, frm, n, conf):
+        fon = self.mother.gothic_font
+        txt = tkinter.Label(frm, text=conf[0] + conf[1] + conf[2])
+        txt.grid(row=n, column=0)
+        txt = tkinter.Label(frm, text='　→　')
+        txt.grid(row=n, column=1)
+        txt = tkinter.Label(frm, text=conf[3])
+        txt.grid(row=n, column=2)
+        entry = tkinter.Entry(frm, width=3, justify='center', font=fon)
+        entry.grid(row=n, column=3)
+        entry.insert(0, conf[4])
+        txt = tkinter.Label(frm, text=conf[5])
+        txt.grid(row=n, column=4)
+        return entry
+
+    def apply(self):
+        for e in self.entries:
+            v = e.get()
+            self.values.append(v)
+
+    def get_values(self):
+        return self.values
 
 
 class PasswordDialog(tkinter.simpledialog.Dialog):
@@ -7103,7 +7150,7 @@ class Makdo:
         t = 'リストから貼付け'
         m = '貼り付ける文節を選んでください．'
         c = list(reversed(self.clipboard_list))
-        rd = RadiobuttonDialog(mother, self, t, m, c, c[0])
+        rd = RadiobuttonDialog(mother, self, t, m, c, 0)
         v = rd.get_value()
         if v is not None:
             pane.edit_separator()
@@ -7552,7 +7599,7 @@ class Makdo:
             if c in tf:
                 t = '字体を変える'
                 m = '字体を選んでください．'
-                rd = RadiobuttonDialog(mother, self, t, m, list(tf), c)
+                rd = RadiobuttonDialog(mother, self, t, m, tf, tf.index(c))
                 v = rd.get_value()
                 if v is not None:
                     pane.edit_separator()
@@ -7919,7 +7966,38 @@ class Makdo:
     ######
     # COMMAND
 
-    def insert_selected_mincho_font(self):
+    def insert_selected_mincho_font(self, mother=None):
+        pane = self.txt
+        if self.current_pane == 'sub':
+            pane = self.sub
+        if mother is None:
+            mother = pane
+        mincho_font_list = []
+        for f in tkinter.font.families():
+            if f not in mincho_font_list:
+                if not re.match('^@', f):  # ROTATED FONT
+                    if ('明朝' in f) or (f == 'Noto Serif CJK JP'):
+                        mincho_font_list.append(f)
+                    if ('ゴシック' in f) or (f == 'Noto Sans CJK JP'):
+                        mincho_font_list.append(f)
+        mincho_font_list.sort()
+        t = '明朝フォントを変える'
+        m = 'フォントを選んでください．'
+        n = -1
+        if DOCX_MINCHO_FONT in mincho_font_list:
+            n = mincho_font_list.index(DOCX_MINCHO_FONT)
+        rd = RadiobuttonDialog(mother, self, t, m, mincho_font_list, n)
+        v = rd.get_value()
+        if v is not None:
+            pane.edit_separator()
+            d = '@' + v + '@（ここはフォントが変わる）@' + v + '@'
+            pane.insert('insert', d)
+            pane.mark_set('insert', 'insert-' + str(len(v) + 2) + 'c')
+            p = self._get_v_position_of_insert(pane) - 1
+            self.paint_out_line(p)
+            pane.edit_separator()
+
+    def insert_selected_mincho_font(self, mother=None):
         mincho_font_list = []
         for f in tkinter.font.families():
             if f not in mincho_font_list:
@@ -7927,16 +8005,13 @@ class Makdo:
                     if ('明朝' in f) or (f == 'Noto Serif CJK JP'):
                         mincho_font_list.append(f)
         mincho_font_list.sort()
-        self.ChangeFontDialog(self.txt, self, '明朝体を変える',
-                              mincho_font_list,
-                              DOCX_MINCHO_FONT)
+        self._insert_selected_x_font(mother,
+                                     '明朝フォントを変える',
+                                     'フォントを選んでください．',
+                                     mincho_font_list,
+                                     DOCX_MINCHO_FONT)
 
     def insert_selected_alphanumeric_font(self, mother=None):
-        pane = self.txt
-        if self.current_pane == 'sub':
-            pane = self.sub
-        if mother is None:
-            mother = pane
         alphanumeric_font_list_candidates = [
             'Times New Roman',
             'Cambria',
@@ -7952,10 +8027,24 @@ class Makdo:
                 if re.match('^' + fc, f) and (f not in alphanumeric_font_list):
                     alphanumeric_font_list.append(f)
         alphanumeric_font_list.sort()
-        t = '欧文フォントを変える'
-        m = 'フォントを選んでください．'
-        rd = RadiobuttonDialog(mother, self, t, m,
-                               alphanumeric_font_list, DOCX_ALPHANUMERIC_FONT)
+        self._insert_selected_x_font(mother,
+                                     '欧文フォントを変える',
+                                     'フォントを選んでください．',
+                                     alphanumeric_font_list,
+                                     DOCX_ALPHANUMERIC_FONT)
+
+    def _insert_selected_x_font(self, mother, title, prompt,
+                                candidates, default):
+        pane = self.txt
+        if self.current_pane == 'sub':
+            pane = self.sub
+        if mother is None:
+            mother = pane
+        candidates.sort()
+        n = -1
+        if default in candidates:
+            n = candidates.index(default)
+        rd = RadiobuttonDialog(mother, self, title, prompt, candidates, n)
         v = rd.get_value()
         if v is not None:
             pane.edit_separator()
@@ -9705,254 +9794,159 @@ class Makdo:
     ################
     # COMMAND
 
-    def set_chapter_number(self):
-        self.ChapterNumberDialog(self.txt, self)
+    def set_chapter_number(self, mother=None):
+        pane = self.txt
+        if self.current_pane == 'sub':
+            pane = self.sub
+        if mother is None:
+            mother = pane
+        t = 'チャプター番号を変更'
+        m = '変更後のチャプター番号を入力してください．'
+        confs = [['第', '１', '編', '第', '', '編'],
+                 ['第', '１', '章', '第', '', '章'],
+                 ['第', '１', '節', '第', '', '節'],
+                 ['第', '１', '款', '第', '', '款'],
+                 ['第', '１', '目', '第', '', '目']]
+        while True:
+            must_break = True
+            rd = NumberRevisersDialog(mother, self, t, m, confs)
+            val = rd.get_values()
+            if val == []:
+                return False
+            for i in range(5):
+                if val[i] == '' or c2n_n_arab(val[i]) >= 0:
+                    confs[i][3] = val[i]
+                else:
+                    must_break = False
+            if must_break:
+                break
+        revs = ''
+        for i in range(5):
+            if val[i] != '':
+                n = c2n_n_arab(val[i])
+                if n > 0:
+                    revs += ' ' + ('$' * (i + 1)) + '=' + str(n)
+        revs = re.sub('^\\s+', '', revs)
+        if revs != '':
+            self._insert_number_revisers(pane, revs)
+        return True
 
-    class ChapterNumberDialog(tkinter.simpledialog.Dialog):
+    def set_section_number(self, mother=None):
+        pane = self.txt
+        if self.current_pane == 'sub':
+            pane = self.sub
+        if mother is None:
+            mother = pane
+        t = 'セクション番号を変更'
+        m = '変更後のセクション番号を入力してください．'
+        confs = [['第', '１', '',   '第', '', ''],
+                 ['',   '１', '',   '',   '', ''],
+                 ['（', '１', '）', '（', '', '）'],
+                 ['',   'ア', '',   '',   '', ''],
+                 ['（', 'ア', '）', '（', '', '）'],
+                 ['',   'ａ', '',   '',   '', ''],
+                 ['（', 'ａ', '）', '（', '', '）']]
+        while True:
+            must_break = True
+            rd = NumberRevisersDialog(mother, self, t, m, confs)
+            val = rd.get_values()
+            if val == []:
+                return False
+            for i in range(3):
+                if val[i] == '' or c2n_n_arab(val[i]) >= 0:
+                    confs[i][3] = val[i]
+                else:
+                    must_break = False
+            for i in range(2):
+                if val[i + 3] == '' or c2n_n_kata(val[i + 3]) >= 0:
+                    confs[i + 3][3] = val[i + 3]
+                else:
+                    must_break = False
+            for i in range(2):
+                if val[i + 5] == '' or c2n_n_alph(val[i + 5]) >= 0:
+                    confs[i + 5][3] = val[i + 5]
+                else:
+                    must_break = False
+            if must_break:
+                break
+        revs = ''
+        for i in range(7):
+            if val[i] != '':
+                if i <= 2:
+                    n = c2n_n_arab(val[i])
+                elif i <= 4:
+                    n = c2n_n_kata(val[i])
+                else:
+                    n = c2n_n_alph(val[i])
+                if n > 0:
+                    revs += ' ' + ('#' * (i + 1)) + '=' + str(n)
+        revs = re.sub('^\\s+', '', revs)
+        if revs != '':
+            self._insert_number_revisers(pane, revs)
 
-        def __init__(self, pane, mother, cnd=[-1, -1, -1, -1, -1]):
-            self.pane = pane
-            self.mother = mother
-            self.cnd = cnd
-            super().__init__(pane, title='チャプターの番号を変更')
-
-        def body(self, pane):
-            self.entry1 = self._body(pane, 0, '編', self.cnd[0])
-            self.entry2 = self._body(pane, 1, '章', self.cnd[1])
-            self.entry3 = self._body(pane, 2, '節', self.cnd[2])
-            self.entry4 = self._body(pane, 3, '款', self.cnd[3])
-            self.entry5 = self._body(pane, 4, '目', self.cnd[4])
-            return self.entry1
-
-        def _body(self, pane, row, unit, cnd):
-            fon = self.mother.gothic_font
-            head = tkinter.Label(pane, text='第１' + unit + '　→　第')
-            head.grid(row=row, column=0)
-            entry = tkinter.Entry(pane, width=3, justify='center', font=fon)
-            entry.grid(row=row, column=1)
-            if cnd >= 0:
-                entry.insert(0, str(cnd))
-            tail = tkinter.Label(pane, text=unit)
-            tail.grid(row=row, column=2)
-            return entry
-
-        def apply(self):
-            str1 = self.entry1.get()
-            int1, err1 = self._apply(str1)
-            str2 = self.entry2.get()
-            int2, err2 = self._apply(str2)
-            str3 = self.entry3.get()
-            int3, err3 = self._apply(str3)
-            str4 = self.entry4.get()
-            int4, err4 = self._apply(str4)
-            str5 = self.entry5.get()
-            int5, err5 = self._apply(str5)
-            if err1 or err2 or err3 or err4 or err5:
-                Makdo.ChapterNumberDialog(self.pane, self.mother,
-                                          [int1, int2, int3, int4, int5])
+    def set_list_number(self, mother=None):
+        pane = self.txt
+        if self.current_pane == 'sub':
+            pane = self.sub
+        if mother is None:
+            mother = pane
+        t = 'リスト番号を変更'
+        m = '変更後のリスト番号を入力してください．\n' + \
+            '丸囲みは不要ですので、"ア"や"ａ"をそのまま入力してください．'
+        confs = [['', '①', '', '（', '', '）'],
+                 ['', '㋐', '', '（', '', '）'],
+                 ['', 'ⓐ', '', '（', '', '）'],
+                 ['', '㊀', '', '（', '', '）']]
+        while True:
+            must_break = True
+            rd = NumberRevisersDialog(mother, self, t, m, confs)
+            val = rd.get_values()
+            if val == []:
+                return False
+            if val[0] == '' or c2n_n_arab(val[0]) >= 0:
+                confs[0][3] = val[0]
             else:
-                doc = self.pane.get('1.0', 'insert')
-                res = '^(' \
-                    + '((.|\n)*\n\n)?' \
-                    + '(((v|V|X|<<|<|>)=[-\\+]?[0-9]+\\s*)*\n)?' \
-                    + ')(.|\n)*$'
-                doc = re.sub(res, '\\1', doc)
-                ins = ''
-                if int1 >= 0:
-                    ins += '$=' + str(int1) + ' '
-                if int2 >= 0:
-                    ins += '$$=' + str(int2) + ' '
-                if int3 >= 0:
-                    ins += '$$$=' + str(int3) + ' '
-                if int4 >= 0:
-                    ins += '$$$$=' + str(int4) + ' '
-                if int5 >= 0:
-                    ins += '$$$$$=' + str(int5) + ' '
-                if ins != '':
-                    ins = re.sub('\\s+$', '\n', ins)
-                    self.pane.insert('1.0+' + str(len(doc)) + 'c', ins)
-
-        def _apply(self, strn):
-            if strn == '':
-                return -1, False
-            intn = c2n_n_arab(strn)
-            if intn == -1:
-                return -1, True
-            return intn, False
-
-    def set_section_number(self):
-        self.SectionNumberDialog(self.txt, self)
-
-    class SectionNumberDialog(tkinter.simpledialog.Dialog):
-
-        def __init__(self, pane, mother, cnd=['', '', '', '', '', '', '']):
-            self.pane = pane
-            self.mother = mother
-            self.cnd = cnd
-            super().__init__(pane, title='セクションの番号を変更')
-
-        def body(self, pane):
-            self.entry1 = self._body(pane, 0, '第', '１', '', self.cnd[0])
-            self.entry2 = self._body(pane, 1, '', '１', '', self.cnd[1])
-            self.entry3 = self._body(pane, 2, '（', '1', '）', self.cnd[2])
-            self.entry4 = self._body(pane, 3, '', 'ア', '', self.cnd[3])
-            self.entry5 = self._body(pane, 4, '（', 'ｱ', '）', self.cnd[4])
-            self.entry6 = self._body(pane, 5, '', 'ａ', '', self.cnd[5])
-            self.entry7 = self._body(pane, 6, '（', 'a', '）', self.cnd[6])
-            return self.entry1
-
-        def _body(self, pane, row, pre, num, pos, cnd):
-            fon = self.mother.gothic_font
-            txt = tkinter.Label(pane, text=pre + num + pos)
-            txt.grid(row=row, column=0)
-            txt = tkinter.Label(pane, text='　→　')
-            txt.grid(row=row, column=1)
-            txt = tkinter.Label(pane, text=pre)
-            txt.grid(row=row, column=2)
-            entry = tkinter.Entry(pane, width=3, justify='center', font=fon)
-            entry.grid(row=row, column=3)
-            if cnd is not None:
-                entry.insert(0, str(cnd))
-            txt = tkinter.Label(pane, text=pos)
-            txt.grid(row=row, column=4)
-            return entry
-
-        def apply(self):
-            str1 = self.entry1.get()
-            str1, int1, err1 = self._apply(str1, 'arab')
-            str2 = self.entry2.get()
-            str2, int2, err2 = self._apply(str2, 'arab')
-            str3 = self.entry3.get()
-            str3, int3, err3 = self._apply(str3, 'arab')
-            str4 = self.entry4.get()
-            str4, int4, err4 = self._apply(str4, 'kata')
-            str5 = self.entry5.get()
-            str5, int5, err5 = self._apply(str5, 'kata')
-            str6 = self.entry6.get()
-            str6, int6, err6 = self._apply(str6, 'alph')
-            str7 = self.entry7.get()
-            str7, int7, err7 = self._apply(str7, 'alph')
-            if err1 or err2 or err3 or err4 or err5 or err6 or err7:
-                lst = [str1, str2, str3, str4, str5, str6, str7]
-                Makdo.SectionNumberDialog(self.pane, self.mother, lst)
+                must_break = False
+            if val[1] == '' or c2n_n_kata(val[1]) >= 0:
+                confs[1][3] = val[1]
             else:
-                doc = self.pane.get('1.0', 'insert')
-                res = '^(' \
-                    + '((.|\n)*\n\n)?' \
-                    + '(((v|V|X|<<|<|>)=[-\\+]?[0-9]+\\s*)*\n)?' \
-                    + ')(.|\n)*$'
-                doc = re.sub(res, '\\1', doc)
-                ins = ''
-                if int1 >= 0:
-                    ins += '#=' + str(int1) + ' '
-                if int2 >= 0:
-                    ins += '##=' + str(int2) + ' '
-                if int3 >= 0:
-                    ins += '###=' + str(int3) + ' '
-                if int4 >= 0:
-                    ins += '####=' + str(int4) + ' '
-                if int5 >= 0:
-                    ins += '#####=' + str(int5) + ' '
-                if int6 >= 0:
-                    ins += '######=' + str(int6) + ' '
-                if int7 >= 0:
-                    ins += '#######=' + str(int7) + ' '
-                if ins != '':
-                    ins = re.sub('\\s+$', '\n', ins)
-                    self.pane.insert('1.0+' + str(len(doc)) + 'c', ins)
-
-        def _apply(self, strn, kind):
-            if strn == '':
-                return '', -1, False
-            if kind == 'arab':
-                intn = c2n_n_arab(strn)
-            elif kind == 'kata':
-                intn = c2n_n_kata(strn)
-            elif kind == 'alph':
-                intn = c2n_n_alph(strn)
-            if intn == -1:
-                return '', -1, True
-            return strn, intn, False
-
-    def set_list_number(self):
-        self.ListNumberDialog(self.txt, self)
-
-    class ListNumberDialog(tkinter.simpledialog.Dialog):
-
-        def __init__(self, pane, mother, cnd=['', '', '', '']):
-            self.pane = pane
-            self.mother = mother
-            self.cnd = cnd
-            super().__init__(pane, title='箇条書きの番号を変更')
-
-        def body(self, pane):
-            self.entry1 = self._body(pane, 0, '①', self.cnd[0])
-            self.entry2 = self._body(pane, 1, '㋐', self.cnd[1])
-            self.entry3 = self._body(pane, 2, 'ⓐ', self.cnd[2])
-            self.entry4 = self._body(pane, 3, '㊀', self.cnd[3])
-            return self.entry1
-
-        def _body(self, pane, row, num, cnd):
-            fon = self.mother.gothic_font
-            txt = tkinter.Label(pane, text=num)
-            txt.grid(row=row, column=0)
-            txt = tkinter.Label(pane, text='　→　')
-            txt.grid(row=row, column=1)
-            txt = tkinter.Label(pane, text='（')
-            txt.grid(row=row, column=2)
-            entry = tkinter.Entry(pane, width=4, justify='center', font=fon)
-            entry.grid(row=row, column=3)
-            if cnd is not None:
-                entry.insert(0, str(cnd))
-            txt = tkinter.Label(pane, text='）')
-            txt.grid(row=row, column=4)
-            return entry
-
-        def apply(self):
-            str1 = self.entry1.get()
-            str1, int1, err1 = self._apply(str1, 'arab')
-            str2 = self.entry2.get()
-            str2, int2, err2 = self._apply(str2, 'kata')
-            str3 = self.entry3.get()
-            str3, int3, err3 = self._apply(str3, 'alph')
-            str4 = self.entry4.get()
-            str4, int4, err4 = self._apply(str4, 'kanj')
-            if err1 or err2 or err3 or err4:
-                Makdo.ListNumberDialog(self.pane, self.mother,
-                                       [str1, str2, str3, str4])
+                must_break = False
+            if val[2] == '' or c2n_n_alph(val[2]) >= 0:
+                confs[2][3] = val[2]
             else:
-                doc = self.pane.get('1.0', 'insert')
-                res = '^(' \
-                    + '((.|\n)*\n\n)?' \
-                    + '(((v|V|X|<<|<|>)=[-\\+]?[0-9]+\\s*)*\n)?' \
-                    + ')(.|\n)*$'
-                doc = re.sub(res, '\\1', doc)
-                ins = ''
-                if int1 >= 0:
-                    ins += '1.=' + str(int1) + '\n'
-                if int2 >= 0:
-                    ins += '  1.=' + str(int2) + '\n'
-                if int3 >= 0:
-                    ins += '    1.=' + str(int3) + '\n'
-                if int4 >= 0:
-                    ins += '      1.=' + str(int4) + '\n'
-                if ins != '':
-                    self.pane.insert('1.0+' + str(len(doc)) + 'c', ins)
+                must_break = False
+            if val[3] == '' or c2n_n_kanj(val[3]) >= 0:
+                confs[3][3] = val[3]
+            else:
+                must_break = False
+            if must_break:
+                break
+        revs = ''
+        for i in range(4):
+            if val[i] != '':
+                if i == 0:
+                    n = c2n_n_arab(val[0])
+                elif i == 1:
+                    n = c2n_n_kata(val[0])
+                elif i == 2:
+                    n = c2n_n_alph(val[0])
+                elif i == 3:
+                    n = c2n_n_kanj(val[0])
+                if n > 0:
+                    revs += (' ' * 2 * i) + '1.=' + str(n) + '\n'
+        revs = re.sub('^\\s+', '', revs)
+        if revs != '':
+            self._insert_number_revisers(pane, revs)
+        return True
 
-        def _apply(self, strn, kind):
-            if strn == '':
-                return '', -1, False
-            if kind == 'arab':
-                intn = c2n_n_arab(strn)
-            elif kind == 'kata':
-                intn = c2n_n_kata(strn)
-            elif kind == 'alph':
-                intn = c2n_n_alph(strn)
-            elif kind == 'kanj':
-                intn = c2n_n_kanj(strn)
-            if intn == -1:
-                return '', -1, True
-            return strn, intn, False
+    def _insert_number_revisers(self, pane, revisers):
+        doc = pane.get('1.0', 'insert')
+        res = '^(' \
+            + '((.|\n)*\n\n)?' \
+            + '(((v|V|X|<<|<|>)=[-\\+]?[0-9]+\\s*)*\n)?' \
+            + ')(.|\n)*$'
+        doc = re.sub(res, '\\1', doc)
+        pane.insert('1.0+' + str(len(doc)) + 'c', revisers + '\n')
 
     def tidy_up_paragraph(self) -> bool:
         pane = self.txt
@@ -10822,25 +10816,46 @@ class Makdo:
 
     # INSERT AND EDIT FORMULA
 
-    def insert_formula(self):
+    def insert_formula(self, mother=None):
+        pane = self.txt
+        if self.current_pane == 'sub':
+            pane = self.sub
+        if mother is None:
+            mother = pane
         t = '定型句を挿入'
         m = '挿入する定型句を選んでください．'
-        fd = self.FormulaDialog(self.txt, self, t, m)
-        self.formula_number = fd.get_value()
-        if self.formula_number > 0:
+        formulas = self._get_formulas()
+        rd = RadiobuttonDialog(mother, self, t, m, formulas, formulas[0])
+        v = rd.get_value()
+        if v is not None:
+            self.formula_number = formulas.index(v) + 1
             self._insert_formula()
 
+    @staticmethod
+    def _get_formulas():
+        formulas = ['' for i in range(9)]
+        for i in range(9):
+            try:
+                path = CONFIG_DIR + '/formula' + str(i + 1) + '.md'
+                with open(path, 'r') as f:
+                    formulas[i] = f.read()
+            except BaseException:
+                pass
+        return formulas
+
     def _insert_formula(self):
-        n = self.formula_number
-        formula_path = CONFIG_DIR + '/formula' + str(n) + '.md'
-        try:
-            with open(formula_path, 'r') as f:
-                a = f.read()
-        except BaseException:
-            return
-        self.txt.edit_separator()
-        self.txt.insert('insert', a)
-        self.txt.edit_separator()
+        pane = self.txt
+        if self.current_pane == 'sub':
+            pane = self.sub
+        formulas = self._get_formulas()
+        n = self.formula_number - 1
+        v = formulas[n]
+        pane.edit_separator()
+        pane.insert('insert', v)
+        p = self._get_v_position_of_insert(pane) - 1
+        for i in range(v.count('\n')):
+            self.paint_out_line(p + i)
+        pane.edit_separator()
         self.formula_number = -1
 
     def insert_formula1(self):
@@ -10883,6 +10898,8 @@ class Makdo:
         self.quit_editing_formula()
         t = '定型句を編集'
         m = '編集する定型句を選んでください．'
+        formulas = self._get_formulas()
+        rd = RadiobuttonDialog(mother, self, t, m, formulas, formulas[0])
         fd = self.FormulaDialog(self.txt, self, t, m)
         self.formula_number = fd.get_value()
         if self.formula_number > 0:
@@ -10955,74 +10972,6 @@ class Makdo:
             self._save_config_file(formula_path, contents)
             return True
         return False
-
-    class FormulaDialog(tkinter.simpledialog.Dialog):
-
-        def __init__(self, pane, mother, title, prompt):
-            self.pane = pane
-            self.mother = mother
-            self.prompt = prompt
-            self.value = None
-            self.has_pressed_ok = False
-            super().__init__(pane, title=title)
-
-        def body(self, pane):
-            prompt = tkinter.Label(pane, text=self.prompt)
-            prompt.pack(side='top', anchor='w')
-            self.value = tkinter.IntVar()
-            self.value.set(1)
-            rb1 = tkinter.Radiobutton(pane, text=self.get_head(1),
-                                      variable=self.value, value=1)
-            rb1.pack(side='top', anchor='w')
-            rb2 = tkinter.Radiobutton(pane, text=self.get_head(2),
-                                      variable=self.value, value=2)
-            rb2.pack(side='top', anchor='w')
-            rb3 = tkinter.Radiobutton(pane, text=self.get_head(3),
-                                      variable=self.value, value=3)
-            rb3.pack(side='top', anchor='w')
-            rb4 = tkinter.Radiobutton(pane, text=self.get_head(4),
-                                      variable=self.value, value=4)
-            rb4.pack(side='top', anchor='w')
-            rb5 = tkinter.Radiobutton(pane, text=self.get_head(5),
-                                      variable=self.value, value=5)
-            rb5.pack(side='top', anchor='w')
-            rb6 = tkinter.Radiobutton(pane, text=self.get_head(6),
-                                      variable=self.value, value=6)
-            rb6.pack(side='top', anchor='w')
-            rb7 = tkinter.Radiobutton(pane, text=self.get_head(7),
-                                      variable=self.value, value=7)
-            rb7.pack(side='top', anchor='w')
-            rb8 = tkinter.Radiobutton(pane, text=self.get_head(8),
-                                      variable=self.value, value=8)
-            rb8.pack(side='top', anchor='w')
-            rb9 = tkinter.Radiobutton(pane, text=self.get_head(9),
-                                      variable=self.value, value=9)
-            rb9.pack(side='top', anchor='w')
-            super().body(pane)
-            return rb1
-
-        def get_head(self, n):
-            try:
-                with open(CONFIG_DIR + '/formula' + str(n) + '.md', 'r') as f:
-                    a = f.read()
-                    h = re.sub('\n', ' ', a)
-                    if len(h) > 15:
-                        h = h[:14] + '…'
-                    if h == '':
-                        return '（空）'  # 空
-                    return h
-            except BaseException:
-                return '（空）'  # 無
-
-        def apply(self):
-            self.has_pressed_ok = True
-            self.or_or_cancel = 'ok'
-
-        def get_value(self):
-            if self.has_pressed_ok:
-                return self.value.get()
-            else:
-                return -1
 
     # OPEN MEMO PAD
 
