@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.03.03-14:16:04-JST>
+# Time-stamp:   <2025.03.03-15:19:43-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5601,7 +5601,7 @@ class Makdo:
                 self.clipboard_list[-1] += c
                 if not self._is_read_only_pane(pane):
                     pane.delete(beg, akn)
-                self._cancel_region(pane)
+                self.cancel_region(pane)
             else:
                 if self._is_read_only_pane(pane):
                     self.copy_region()
@@ -5913,7 +5913,7 @@ class Makdo:
             beg, end = '', ''
         return beg, end
 
-    def _cancel_region(self, pane):
+    def cancel_region(self, pane):
         if pane.tag_ranges('sel'):
             pane.tag_remove('sel', "1.0", "end")
         if 'akauni' in pane.mark_names():
@@ -5922,7 +5922,7 @@ class Makdo:
 
     def _show_no_region_error(self):
         n = 'エラー'
-        m = '範囲が指定されていません．'
+        m = '範囲が選択されていません．'
         tkinter.messagebox.showerror(n, m)
 
     def _get_indices_in_order(self, pane, index1, index2):
@@ -7128,7 +7128,7 @@ class Makdo:
         if self.clipboard_list[-1] != '':
             self.clipboard_list.append('')
         self.clipboard_list[-1] += c
-        self._cancel_region(pane)
+        self.cancel_region(pane)
         if must_cut:
             pane.edit_separator()
             pane.delete(beg, end)
@@ -7225,7 +7225,7 @@ class Makdo:
         end_ih = get_real_width(s)
         min_ih = min(beg_ih, end_ih)
         max_ih = max(beg_ih, end_ih)
-        self._cancel_region(pane)
+        self.cancel_region(pane)
         self.rectangle_text_list = []
         for i in range(beg_v - 1, end_v):
             line = pane.get(str(i + 1) + '.0', str(i + 1) + '.end')
@@ -7350,7 +7350,7 @@ class Makdo:
             pane.insert(beg + '+' + str(len(s)) + 'c', word2)
             end = beg + '+' + str(len(s)) + 'c'
             m += 1
-        self._cancel_region(pane)
+        self.cancel_region(pane)
         pane['autoseparators'] = True
         pane.edit_separator()
         pane.focus_set()
@@ -7423,7 +7423,7 @@ class Makdo:
         pane.edit_separator()
         pane.delete(beg_c, end_c)
         pane.insert(beg_c, new_str)
-        self._cancel_region(pane)
+        self.cancel_region(pane)
         if self.current_pane == 'txt':
             for i in range(beg_v - 1, end_v):
                 self.paint_out_line(i)
@@ -7665,7 +7665,7 @@ class Makdo:
             beg, end = self._get_indices_in_order(pane, 'insert', 'akauni')
         else:
             n = 'エラー'
-            m = 'コメントアウトする範囲が指定されていません．'
+            m = 'コメントアウトする範囲が選択されていません．'
             tkinter.messagebox.showerror(n, m)
             return
         pane['autoseparators'] = False
@@ -7687,7 +7687,7 @@ class Makdo:
                     pane.insert(beg + '+' + str(len(sub)) + 'c', t[1])
         pane.insert(end, '-->')
         pane.insert(beg, '<!--')
-        self._cancel_region(pane)
+        self.cancel_region(pane)
         beg_v = int(re.sub('\\.[0-9]+$', '', beg))
         end_v = int(re.sub('\\.[0-9]+$', '', end))
         for i in range(beg_v - 1, end_v):
@@ -7709,7 +7709,7 @@ class Makdo:
             beg, end = self._get_indices_in_order(pane, 'insert', 'akauni')
         else:
             n = 'エラー'
-            m = 'コメントアウトを解除する範囲が指定されていません．'
+            m = 'コメントアウトを解除する範囲が選択されていません．'
             tkinter.messagebox.showerror(n, m)
             return
         pane['autoseparators'] = False
@@ -7744,7 +7744,7 @@ class Makdo:
                     pane.delete(beg + '+' + str(len(sub)) + 'c',
                                 beg + '+' + str(len(sub + t[1])) + 'c')
                     pane.insert(beg + '+' + str(len(sub)) + 'c', t[0])
-        self._cancel_region(pane)
+        self.cancel_region(pane)
         beg_v = int(re.sub('\\.[0-9]+$', '', beg))
         end_v = int(re.sub('\\.[0-9]+$', '', end))
         for i in range(beg_v - 1, end_v):
@@ -10593,7 +10593,7 @@ class Makdo:
         self._make_submenu_goto_flag(menu)
         menu.add_separator()
         #
-        menu.add_command(label='行数・文字数を指定して移動',
+        menu.add_command(label='行数と文字数を指定して移動',
                          command=self.goto_by_position)
         # menu.add_separator()
 
@@ -10757,23 +10757,25 @@ class Makdo:
             self.pane = pane      # "self.txt" or "self.sub"
             self.father = father  # parent object
             self.mother = mother  # Makdo()
-            super().__init__(father, title='行数・文字数を指定して移動')
+            super().__init__(father, title='行数と文字数を指定して移動')
 
         def body(self, father):
             i = self.pane.index('insert')
             v = int(re.sub('\\.[0-9]+$', '', i))
             h = int(re.sub('^[0-9]+\\.', '', i)) + 1
             fon = self.mother.gothic_font
-            t = '行数・文字数を入力してください．\n'
+            t = '移動先の行数と文字数を入力してください．\n'
             self.text1 = tkinter.Label(father, text=t)
             self.text1.pack(side='top', anchor='w')
             self.frame = tkinter.Frame(father)
             self.frame.pack(side='top')
-            self.entry1 = tkinter.Entry(self.frame, width=7, font=fon)
+            self.entry1 = tkinter.Entry(self.frame, width=5, justify='center',
+                                        font=fon)
             self.entry1.pack(side='left')
             self.entry1.insert(0, str(v))
-            tkinter.Label(self.frame, text='行目').pack(side='left')
-            self.entry2 = tkinter.Entry(self.frame, width=7, font=fon)
+            tkinter.Label(self.frame, text='行目の').pack(side='left')
+            self.entry2 = tkinter.Entry(self.frame, width=5, justify='center',
+                                        font=fon)
             self.entry2.pack(side='left')
             self.entry2.insert(0, str(h))
             tkinter.Label(self.frame, text='文字目').pack(side='left')
@@ -11908,7 +11910,7 @@ class Makdo:
 
         mc = MinibufferCommand(
             'goto-by-position',
-            [None, '行数・文字数を指定して移動'],
+            [None, '行数と文字数を指定して移動'],
             ['self.mother.goto_by_position(self)'])
         minibuffer_commands.append(mc)
 
@@ -11948,7 +11950,7 @@ class Makdo:
 
         mc = MinibufferCommand(
             'replace-string',
-            [None, '文章全体又は指定範囲を全置換'],
+            [None, '文章全体又は選択範囲を全置換'],
             ['self.mother.replace_all(self)'])
         minibuffer_commands.append(mc)
 
@@ -12003,12 +12005,12 @@ class Makdo:
 
         mc = MinibufferCommand(
             'comment-out-region',
-            [None, '指定範囲をコメントアウト'],
+            [None, '選択範囲をコメントアウト'],
             ['self.mother.comment_out_region()'])
         minibuffer_commands.append(mc)
         mc = MinibufferCommand(
             'uncomment-in-region',
-            [None, '指定範囲のコメントアウトを解除'],
+            [None, '選択範囲のコメントアウトを解除'],
             ['self.mother.uncomment_in_region()'])
         minibuffer_commands.append(mc)
 
@@ -14129,6 +14131,7 @@ class Makdo:
 
     def txt_process_button1(self, click):
         self.txt.focus_set()
+        self.cancel_region(self.txt)
         self.current_pane = 'txt'
         self.win.after(5, self.update_toc)
         return
@@ -14140,6 +14143,7 @@ class Makdo:
 
     def sub_process_button1(self, click):
         self.sub.focus_set()
+        self.cancel_region(self.sub)
         self.current_pane = 'sub'
         return
 
