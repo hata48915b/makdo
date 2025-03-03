@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.03.03-13:44:07-JST>
+# Time-stamp:   <2025.03.03-14:16:04-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6102,38 +6102,48 @@ class Makdo:
             if 'toc_cvs_frm' in vars(self):
                 self.toc_cvs_frm.focus_set()
                 self.current_pane = 'toc'
+                self.set_message_on_status_bar('目次ウィンドウです')
             elif len(self.pnd_r.panes()) > 1:
                 self.sub.focus_set()
                 self.current_pane = 'sub'
+                self.set_message_on_status_bar('サブウィンドウです')
         elif self.current_pane == 'sub':
             self.txt.focus_set()
             self.current_pane = 'txt'
+            self.set_message_on_status_bar('メインウィンドウです')
         else:
             if len(self.pnd_r.panes()) > 1:
                 self.sub.focus_set()
                 self.current_pane = 'sub'
+                self.set_message_on_status_bar('サブウィンドウです')
             else:
                 self.txt.focus_set()
                 self.current_pane = 'txt'
+                self.set_message_on_status_bar('メインウィンドウです')
 
     def _jump_to_next_pane(self):
         if self.current_pane == 'txt':
             if len(self.pnd_r.panes()) > 1:
                 self.sub.focus_set()
                 self.current_pane = 'sub'
+                self.set_message_on_status_bar('サブウィンドウです')
             elif 'toc_cvs_frm' in vars(self):
                 self.toc_cvs_frm.focus_set()
                 self.current_pane = 'toc'
+                self.set_message_on_status_bar('目次ウィンドウです')
         elif self.current_pane == 'sub':
             if 'toc_cvs_frm' in vars(self):
                 self.toc_cvs_frm.focus_set()
                 self.current_pane = 'toc'
+                self.set_message_on_status_bar('目次ウィンドウです')
             else:
                 self.txt.focus_set()
                 self.current_pane = 'txt'
+                self.set_message_on_status_bar('メインウィンドウです')
         else:
             self.txt.focus_set()
             self.current_pane = 'txt'
+            self.set_message_on_status_bar('メインウィンドウです')
 
     @staticmethod
     def _save_config_file(file_path, contents):
@@ -12563,6 +12573,7 @@ class Makdo:
         if event.keysym == 'Tab':
             self._jump_to_next_pane()
             return 'break'
+        self.set_message_on_status_bar('目次ウィンドウです')
 
     def toc_process_button1(self, event):
         self.close_mouse_menu()
