@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.03.02-13:17:03-JST>
+# Time-stamp:   <2025.03.03-10:52:19-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -4079,6 +4079,7 @@ class CharsState:
         self.standard_size = ''
         self.is_resized = ''
         self.is_stretched = ''
+        self.is_in_preformatted = False
         self.is_length_reviser = False
         self.chapter_depth = 0
         self.section_depth = 0
@@ -4104,6 +4105,8 @@ class CharsState:
             return False
         if self.is_stretched != other.is_stretched:
             return False
+        if self.is_in_preformatted != other.is_in_preformatted:
+            return False
         return True
 
     def copy(self):
@@ -4119,6 +4122,7 @@ class CharsState:
         copy.standard_size = self.standard_size
         copy.is_resized = self.is_resized
         copy.is_stretched = self.is_stretched
+        copy.is_in_preformatted = self.is_in_preformatted
         copy.is_length_reviser = self.is_length_reviser
         copy.chapter_depth = self.chapter_depth
         copy.section_depth = self.section_depth
@@ -4204,6 +4208,9 @@ class CharsState:
                 self.is_stretched = ''
             else:
                 self.is_stretched = '<<<'
+
+    def toggle_is_in_preformatted(self):
+        self.is_in_preformatted = not self.is_in_preformatted
 
     def apply_parenthesis(self, parenthesis):
         ps = self.parentheses
@@ -4352,7 +4359,7 @@ class CharsState:
             # if not self.is_in_comment:
             key += '-u'  # underline
         elif not self.is_in_comment and self.has_underline:
-            key += '-u'  # underline
+            key += '-u'  # comment
         elif not self.is_in_comment and self.has_specific_font:
             key += '-u'  # specific font
         elif not self.is_in_comment and self.has_frame:
@@ -4363,6 +4370,8 @@ class CharsState:
             key += '-u'  # resized
         elif not self.is_in_comment and self.is_stretched != '':
             key += '-u'  # stretched
+        elif not self.is_in_comment and self.is_in_preformatted:
+            key += '-u'  # preformatted
         else:
             key += '-x'  # no underline
         # RETURN
@@ -4962,7 +4971,25 @@ class LineDatum:
                     key = chars_state.get_key('ruby')                   # 1.key
                     end = str(i + 1) + '.' + str(j + 1)                 # 2.end
                     pane.tag_add(key, beg, end)                         # 3.tag
-                    tmp = ''                                            # 4.set
+                    #                                                   # 4.set
+                    tmp = ''                                            # 5.tmp
+                    beg = end                                           # 6.beg
+                    continue
+                # PREFORMATTED
+                if c == '`' and re.match(NOT_ESCAPED + c + '$', s_lft):
+                    iip = chars_state.is_in_preformatted
+                    key = chars_state.get_key('')                       # 1.key
+                    end = str(i + 1) + '.' + str(j)                     # 2.end
+                    pane.tag_add(key, beg, end)                         # 3.tag
+                    if iip and not re.match(NOT_ESCAPED + '```$', s_lft):
+                        chars_state.toggle_is_in_preformatted()         # 4.set
+                    # tmp = '`'                                         # 5.tmp
+                    beg = end                                           # 6.beg
+                    key = chars_state.get_key('font decorator')         # 1.key
+                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
+                    pane.tag_add(key, beg, end)                         # 3.tag
+                    if not iip and not re.match(NOT_ESCAPED + '```$', s_lft):
+                        chars_state.toggle_is_in_preformatted()         # 4.set
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
                     continue
