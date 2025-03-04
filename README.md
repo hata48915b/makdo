@@ -1,4 +1,4 @@
-<!-- Time-stamp:   <2025.03.05-08:25:14-JST> -->
+<!-- Time-stamp:   <2025.03.05-08:34:58-JST> -->
 
 # Makdo（MS Word形式のファイルをMarkdownで作成・編集するエディタアプリ）
 
@@ -10,7 +10,7 @@
 
 - [［実行ファイル（macOS arm（最近のmac））のダウンロード］](https://makdo.jp/makdo_mac_arm.zip)
 
-- [［実行ファイル（macOS intel(古めのmac)）のダウンロード］](https://makdo.jp/makdo_mac_intel.zip)
+- [［実行ファイル（macOS intel（古めのmac））のダウンロード］](https://makdo.jp/makdo_mac_intel.zip)
 
 - [［実行ファイル（Linux）のダウンロード］](https://makdo.jp/makdo_lin.zip)
 
