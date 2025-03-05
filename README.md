@@ -1,4 +1,4 @@
-<!-- Time-stamp:   <2025.03.05-08:34:58-JST> -->
+<!-- Time-stamp:   <2025.03.05-09:24:17-JST> -->
 
 # Makdo（MS Word形式のファイルをMarkdownで作成・編集するエディタアプリ）
 
@@ -105,7 +105,7 @@ ZIPファイルをダウンロード後、適当なフォルダに展開して�
 
 [［実行ファイル（macOS arm（最近のmac））のダウンロード］](https://makdo.jp/makdo_mac_arm.zip)
 
-[［実行ファイル（macOS intel(古めのmac)）のダウンロード］](https://makdo.jp/makdo_mac_intel.zip)
+[［実行ファイル（macOS intel（古めのmac））のダウンロード］](https://makdo.jp/makdo_mac_intel.zip)
 
 ZIPファイルをダウンロード後、適当なフォルダに展開して、
 トップフォルダにある`makdo_mac`をダブルクリックして、起動してください。
