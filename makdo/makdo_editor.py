@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.03.03-15:19:43-JST>
+# Time-stamp:   <2025.03.06-12:21:34-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6826,37 +6826,34 @@ class Makdo:
             except BaseException:
                 pass
             # LibreOffice
-            libreoffice = 'C:/Program Files/LibreOffice/program/soffice.exe'
-            if self._convert_to_pdf_by_libreoffice(libreoffice,
-                                                   tmp_docx, pdf_path):
+            lo = 'C:/Program Files/LibreOffice/program/soffice.exe'
+            if self._convert_to_pdf_by_libreoffice(lo, tmp_docx, pdf_path):
                 return True
         elif sys.platform == 'darwin':
             # LibreOffice
-            libreoffice = '/Applications/LibreOffice.app'
-            if self._convert_to_pdf_by_libreoffice(libreoffice,
-                                                   tmp_docx, pdf_path):
+            lo = '/Applications/LibreOffice.app/Contents/MacOS/soffice'
+            if self._convert_to_pdf_by_libreoffice(lo, tmp_docx, pdf_path):
                 return True
-            # Pages
+            # TextEdit / Pages
             if 'has_showed_help_message_of_converting_to_pdf' not in locals():
                 n = 'お知らせ'
                 m = 'LibreOfficeの起動に失敗しました．\n\n' \
                     + 'mac環境では、標準で、\n' \
                     + '直接PDFを作成する方法が\n' \
                     + 'ありません．\n\n' \
-                    + '「Pages」を起動しますので、\n' \
-                    + 'メニューの「書き出す」から\n' \
+                    + 'ワープロアプリを起動しますので、\n' \
+                    + '印刷メニュー等から\n' \
                     + 'PDFに変換してください．'
                 tkinter.messagebox.showinfo(n, m)
                 self.has_showed_help_message_of_converting_to_pdf = True
-            com = ['open', '/Applications/Pages.app', tmp_docx]
+            com = ['open', tmp_docx]
             if self._execute_external_command(com):
                 return True
             return False
         elif sys.platform == 'linux':
             # LibreOffice
-            libreoffice = '/usr/bin/libreoffice'
-            if self._convert_to_pdf_by_libreoffice(libreoffice,
-                                                   tmp_docx, pdf_path):
+            lo = '/usr/bin/libreoffice'
+            if self._convert_to_pdf_by_libreoffice(lo, tmp_docx, pdf_path):
                 return True
         n = '警告'
         m = '外部アプリ（MS Word等）の\n' \
@@ -6874,8 +6871,6 @@ class Makdo:
                '--convert-to', 'pdf',
                '--outdir', dir_path,
                tmp_docx]
-        if sys.platform == 'darwin':
-            com.insert(0, 'open')
         if self._execute_external_command(com):
             tmp_pdf = re.sub('docx$', 'pdf', tmp_docx)
             if not os.path.exists(tmp_pdf):
@@ -6918,15 +6913,17 @@ class Makdo:
                 return True
         elif sys.platform == 'darwin':
             # MS Word
-            com = ['open', '/Applications/Microsoft Word.app', docx_path]
+            com = ['/Applications/Microsoft Word.app'
+                   + '/Contents/MacOS/Microsoft Word', docx_path]
             if self._execute_external_command(com):
                 return True
             # LibreOffice
-            com = ['open', '/Applications/LibreOffice.app', docx_path]
+            com = ['/Applications/LibreOffice.app/Contents/MacOS/soffice',
+                   docx_path]
             if self._execute_external_command(com):
                 return True
-            # Pages
-            com = ['open', '/Applications/Pages.app', docx_path]
+            # TextEdit / Pages
+            com = ['open', docx_path]
             if self._execute_external_command(com):
                 return True
         elif sys.platform == 'linux':
