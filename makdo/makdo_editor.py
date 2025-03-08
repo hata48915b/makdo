@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.03.06-12:21:34-JST>
+# Time-stamp:   <2025.03.08-09:47:40-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -3525,6 +3525,8 @@ def adjust_line(old_doc: str) -> str:
     new_doc = ''
     for old_lin in old_doc.split('\n'):
         old_lin = re.sub('([,，、.．。]+)', '\\1\n', old_lin)
+        old_lin = re.sub('([0-9][,.])\n([0-9])', '\\1\\2', old_lin)
+        old_lin = re.sub('([０-９][，．])\n([０-９])', '\\1\\2', old_lin)
         # old_lin = re.sub('(を)', '\\1\n', old_lin)
         old_lin = re.sub('([「『（\\(]+)', '\n\\1', old_lin)
         old_lin = re.sub('([\\)）』」]+)', '\\1\n', old_lin)
@@ -13328,7 +13330,7 @@ class Makdo:
                          command=self.set_epwing_directory)
         menu.add_separator()
         #
-        menu.add_command(label='OpenAIに質問（有料）',
+        menu.add_command(label='OpenAIに質問（外部処理、有料）',
                          command=self.open_openai)
         menu.add_command(label='OpenAIのモデルを設定',
                          command=self.set_openai_model)
@@ -13336,7 +13338,7 @@ class Makdo:
                          command=self.set_openai_key)
         menu.add_separator()
         #
-        menu.add_command(label='Llamaに質問（無料）',
+        menu.add_command(label='Llamaに質問（内部処理、無料）',
                          command=self.open_llama)
         menu.add_command(label='Llamaのモデルファイルを設定',
                          command=self.set_llama_model_file)
@@ -15240,7 +15242,9 @@ class Makdo:
             if 'openai_qanda' not in vars(self):
                 n = MD_TEXT_WIDTH - get_real_width('## 【OpenAIにＸＸ】')
                 self.openai_qanda \
-                    = '## 【OpenAIの設定】' + ('-' * n) + '\n\n' \
+                    = '**外部処理ですので、個人情報の流出に注意してください。**\n' \
+                    + '**有料ですので、料金に注意してください。**\n\n' \
+                    + '## 【OpenAIの設定】' + ('-' * n) + '\n\n' \
                     + 'あなたは誠実で優秀な日本人のアシスタントです。\n' \
                     + '特に指示が無い場合は、常に日本語で回答してください。\n\n' \
                     + '## 【OpenAIに質問】' + ('-' * n) + '\n\n'
@@ -15274,17 +15278,17 @@ class Makdo:
             openai_ans_head = '## 【OpenAIの回答】' + ('-' * n)
             messages = []
             mc = ''
-            role = 'system'
+            role = ''
             doc = self.sub.get('1.0', 'end-1c') + '\n\n' + openai_ans_head
             for line in doc.split('\n'):
                 if line == openai_cnf_head or \
                    line == openai_que_head or \
                    line == openai_ans_head:
-                    if mc != '':
+                    if role != '' and mc != '':
                         mc = re.sub('^\n+', '', mc)
                         mc = re.sub('\n+$', '', mc)
                         messages.append({'role': role, 'content': mc})
-                        mc = ''
+                    mc = ''
                 if line == openai_cnf_head:
                     role = 'system'
                 elif line == openai_que_head:
@@ -15398,7 +15402,8 @@ class Makdo:
             if 'llama_qanda' not in vars(self):
                 n = MD_TEXT_WIDTH - get_real_width('## 【LlamaにＸＸ】')
                 self.llama_qanda \
-                    = '## 【Llamaの設定】' + ('-' * n) + '\n\n' \
+                    = '**内部処理かつ無料です。**\n\n' \
+                    + '## 【Llamaの設定】' + ('-' * n) + '\n\n' \
                     + 'あなたは誠実で優秀な日本人のアシスタントです。\n' \
                     + '特に指示が無い場合は、常に日本語で回答してください。\n\n' \
                     + '## 【Llamaに質問】' + ('-' * n) + '\n\n'
@@ -15435,17 +15440,17 @@ class Makdo:
             llama_ans_head = '## 【Llamaの回答】' + ('-' * n)
             messages = []
             mc = ''
-            role = 'system'
+            role = ''
             doc = self.sub.get('1.0', 'end-1c') + '\n\n' + llama_ans_head
             for line in doc.split('\n'):
                 if line == llama_cnf_head or \
                    line == llama_que_head or \
                    line == llama_ans_head:
-                    if mc != '':
+                    if role != '' and mc != '':
                         mc = re.sub('^\n+', '', mc)
                         mc = re.sub('\n+$', '', mc)
                         messages.append({'role': role, 'content': mc})
-                        mc = ''
+                    mc = ''
                 if line == llama_cnf_head:
                     role = 'system'
                 elif line == llama_que_head:
