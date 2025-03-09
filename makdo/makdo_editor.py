@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.03.08-09:47:40-JST>
+# Time-stamp:   <2025.03.09-11:50:04-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -15226,7 +15226,7 @@ class Makdo:
 
         def open_openai(self) -> bool:
             # LOAD MODULE
-            if 'openai' not in vars(self):
+            if 'openai_is_loaded' not in vars(self):
                 try:
                     import openai  # Apache Software License
                 except ImportError:
@@ -15238,16 +15238,7 @@ class Makdo:
                         + 'pip install openai'
                     tkinter.messagebox.showerror(n, m)
                     return False
-                self.openai = openai
-            if 'openai_qanda' not in vars(self):
-                n = MD_TEXT_WIDTH - get_real_width('## 【OpenAIにＸＸ】')
-                self.openai_qanda \
-                    = '**外部処理ですので、個人情報の流出に注意してください。**\n' \
-                    + '**有料ですので、料金に注意してください。**\n\n' \
-                    + '## 【OpenAIの設定】' + ('-' * n) + '\n\n' \
-                    + 'あなたは誠実で優秀な日本人のアシスタントです。\n' \
-                    + '特に指示が無い場合は、常に日本語で回答してください。\n\n' \
-                    + '## 【OpenAIに質問】' + ('-' * n) + '\n\n'
+                self.openai_iso_loaded = True
             if 'openai_model' not in vars(self):
                 self.set_openai_model()
             if 'openai_model' not in vars(self):
@@ -15262,6 +15253,19 @@ class Makdo:
                 m = 'OpenAIのキーが設定されていません．'
                 tkinter.messagebox.showerror(n, m)
                 return False
+            if 'openai' not in vars(self):
+                self.openai = openai
+            if 'openai_qanda' not in vars(self):
+                n = MD_TEXT_WIDTH - get_real_width('## 【OpenAIにＸＸ】')
+                om = self.openai_model
+                self.openai_qanda \
+                    = '- モデルは"' + om + '"が設定されています。\n'\
+                    + '- 外部処理ですので、個人情報の流出に注意してください。\n' \
+                    + '- 有料ですので、料金に注意してください。\n\n' \
+                    + '## 【OpenAIの設定】' + ('-' * n) + '\n\n' \
+                    + 'あなたは誠実で優秀な日本人のアシスタントです。\n' \
+                    + '特に指示が無い場合は、常に日本語で回答してください。\n\n' \
+                    + '## 【OpenAIに質問】' + ('-' * n) + '\n\n'
             self.txt.focus_force()
             self._execute_sub_pane = self.ask_openai
             self._close_sub_pane = self.close_openai
@@ -15399,14 +15403,6 @@ class Makdo:
                     tkinter.messagebox.showerror(n, m)
                     return False
                 self.llama_cpp_is_loaded = True
-            if 'llama_qanda' not in vars(self):
-                n = MD_TEXT_WIDTH - get_real_width('## 【LlamaにＸＸ】')
-                self.llama_qanda \
-                    = '**内部処理かつ無料です。**\n\n' \
-                    + '## 【Llamaの設定】' + ('-' * n) + '\n\n' \
-                    + 'あなたは誠実で優秀な日本人のアシスタントです。\n' \
-                    + '特に指示が無い場合は、常に日本語で回答してください。\n\n' \
-                    + '## 【Llamaに質問】' + ('-' * n) + '\n\n'
             if 'llama_model_file' not in vars(self):
                 self.set_llama_model_file()
             if 'llama_model_file' not in vars(self):
@@ -15424,6 +15420,17 @@ class Makdo:
                     n_ctx=self.llama_context_size,
                 )
                 self.set_message_on_status_bar('', True)
+            if 'llama_qanda' not in vars(self):
+                n = MD_TEXT_WIDTH - get_real_width('## 【LlamaにＸＸ】')
+                mf = os.path.basename(self.llama_model_file)
+                self.llama_qanda \
+                    = '- モデルファイルは"' + mf + '"が設定されています。\n'\
+                    + '- 内部処理ですので、情報を外部に送信しません。\n' \
+                    + '- 無料ですので、料金は発生しません。\n\n' \
+                    + '## 【Llamaの設定】' + ('-' * n) + '\n\n' \
+                    + 'あなたは誠実で優秀な日本人のアシスタントです。\n' \
+                    + '特に指示が無い場合は、常に日本語で回答してください。\n\n' \
+                    + '## 【Llamaに質問】' + ('-' * n) + '\n\n'
             self.txt.focus_force()
             self._execute_sub_pane = self.ask_llama
             self._close_sub_pane = self.close_llama
