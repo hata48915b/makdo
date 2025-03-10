@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.03.09-11:50:04-JST>
+# Time-stamp:   <2025.03.10-12:18:41-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5114,7 +5114,8 @@ class LineDatum:
                 continue
             # SPACE (" ", "\t", "\u3000")
             if c == ' ' or c == '\t' or c == '\u3000':
-                if re.match(NOT_ESCAPED + '@[^@]{1,66}.$', tmp):
+                if re.match(NOT_ESCAPED + '@[^@]{1,66}.$', tmp) and \
+                   re.match('[^@]{1,66}@.*$', s_rgt):
                     continue
                 key = chars_state.get_key('')                           # 1.key
                 end = str(i + 1) + '.' + str(j)                         # 2.end
