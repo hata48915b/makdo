@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.03.10-12:18:41-JST>
+# Time-stamp:   <2025.03.11-08:58:18-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -13086,6 +13086,9 @@ class Makdo:
             elif item == 'llama_model_file':
                 if os.path.exists(valu) and os.path.isfile(valu):
                     self.llama_model_file = valu
+            elif item == 'llama_gpu_layers':
+                if re.match('^(-1|[0-9]+)$', valu):
+                    self.llama_gpu_layers = int(valu)
             elif item == 'llama_context_size':
                 if re.match('^[0-9]+$', valu):
                     self.llama_context_size = int(valu)
@@ -13131,6 +13134,9 @@ class Makdo:
             if 'llama_model_file' in vars(self):
                 f.write('llama_model_file:       '
                         + self.llama_model_file + '\n')
+            if 'llama_gpu_layers' in vars(self):
+                f.write('llama_gpu_layers:       '
+                        + str(self.llama_gpu_layers) + '\n')
             if 'llama_context_size' in vars(self):
                 f.write('llama_context_size:     '
                         + str(self.llama_context_size) + '\n')
@@ -13343,6 +13349,8 @@ class Makdo:
                          command=self.open_llama)
         menu.add_command(label='Llamaのモデルファイルを設定',
                          command=self.set_llama_model_file)
+        menu.add_command(label='LlamaのGPUで処理するレイヤーの数を設定',
+                         command=self.set_llama_gpu_layers)
         menu.add_command(label='Llamaのコンテクストサイズを設定',
                          command=self.set_llama_context_size)
         # menu.add_separator()
@@ -13385,6 +13393,10 @@ class Makdo:
         self._show_message_reducing_functions()
 
     def set_llama_model_file(self) -> bool:
+        self._show_message_reducing_functions()
+        return False
+
+    def set_llama_gpu_layers(self) -> bool:
         self._show_message_reducing_functions()
         return False
 
@@ -15226,20 +15238,7 @@ class Makdo:
         Minibuffer.minibuffer_commands.append(mc)
 
         def open_openai(self) -> bool:
-            # LOAD MODULE
-            if 'openai_is_loaded' not in vars(self):
-                try:
-                    import openai  # Apache Software License
-                except ImportError:
-                    n = 'エラー'
-                    m = '"openai"を\n' \
-                        + 'インポートできませんでした．\n\n' \
-                        + '次のコマンドを実行して、\n' \
-                        + 'インストールしてください．\n\n' \
-                        + 'pip install openai'
-                    tkinter.messagebox.showerror(n, m)
-                    return False
-                self.openai_iso_loaded = True
+            # CONFIGURATION
             if 'openai_model' not in vars(self):
                 self.set_openai_model()
             if 'openai_model' not in vars(self):
@@ -15254,8 +15253,23 @@ class Makdo:
                 m = 'OpenAIのキーが設定されていません．'
                 tkinter.messagebox.showerror(n, m)
                 return False
+            # LOAD MODULE
             if 'openai' not in vars(self):
+                self.set_message_on_status_bar('openaiを起動しています', True)
+                try:
+                    import openai  # Apache Software License
+                except ImportError:
+                    n = 'エラー'
+                    m = '"openai"を\n' \
+                        + 'インポートできませんでした．\n\n' \
+                        + '次のコマンドを実行して、\n' \
+                        + 'インストールしてください．\n\n' \
+                        + 'pip install openai'
+                    tkinter.messagebox.showerror(n, m)
+                    return False
                 self.openai = openai
+                self.set_message_on_status_bar('', True)
+            # PROMPT
             if 'openai_qanda' not in vars(self):
                 n = MD_TEXT_WIDTH - get_real_width('## 【OpenAIにＸＸ】')
                 om = self.openai_model
@@ -15390,8 +15404,21 @@ class Makdo:
         Minibuffer.minibuffer_commands.append(mc)
 
         def open_llama(self) -> bool:
+            # CONFIGURATION
+            if 'llama_model_file' not in vars(self):
+                self.set_llama_model_file()
+            if 'llama_model_file' not in vars(self):
+                n = 'エラー'
+                m = 'Llamaのモデルファイルが設定されていません．'
+                tkinter.messagebox.showerror(n, m)
+                return False
+            if 'llama_gpu_layers' not in vars(self):
+                self.llama_gpu_layers = 0
+            if 'llama_context_size' not in vars(self):
+                self.llama_context_size = 512
             # LOAD MODULE
-            if 'llama_cpp_is_loaded' not in vars(self):
+            if 'llama' not in vars(self):
+                self.set_message_on_status_bar('Llamaを起動しています', True)
                 try:
                     from llama_cpp import Llama  # pip install llama-cpp-python
                 except ImportError:
@@ -15403,24 +15430,13 @@ class Makdo:
                         + 'pip install llama_cpp_python'
                     tkinter.messagebox.showerror(n, m)
                     return False
-                self.llama_cpp_is_loaded = True
-            if 'llama_model_file' not in vars(self):
-                self.set_llama_model_file()
-            if 'llama_model_file' not in vars(self):
-                n = 'エラー'
-                m = 'Llamaのモデルファイルが設定されていません．'
-                tkinter.messagebox.showerror(n, m)
-                return False
-            if 'llama_context_size' not in vars(self):
-                self.llama_context_size = 512
-            if 'llama' not in vars(self):
-                self.set_message_on_status_bar('Llamaを起動しています', True)
                 self.llama = Llama(
                     model_path=self.llama_model_file,
-                    n_gpu_layers=0,
+                    n_gpu_layers=self.llama_gpu_layers,
                     n_ctx=self.llama_context_size,
                 )
                 self.set_message_on_status_bar('', True)
+            # PROMPT
             if 'llama_qanda' not in vars(self):
                 n = MD_TEXT_WIDTH - get_real_width('## 【LlamaにＸＸ】')
                 mf = os.path.basename(self.llama_model_file)
@@ -15524,6 +15540,24 @@ class Makdo:
                 return False
             self.llama_model_file = lmf
             self.show_config_help_message()
+            return True
+
+        def set_llama_gpu_layers(self) -> bool:
+            default_size: int = 0
+            b = 'GPUで処理するレイヤーの数'
+            p = 'GPUで処理するレイヤーの数を整数で入力してください．\n' \
+                + '（GPUなし:0、全て:-1）'
+            h, t = '', ''
+            if 'llama_gpu_layers' not in vars(self):
+                self.llama_gpu_layers = default_size
+            gl = str(self.llama_gpu_layers)
+            while True:
+                gl = OneWordDialog(self.txt, self, b, p, h, t, gl).get_value()
+                if gl is None:
+                    return False
+                if re.match('^(-1|[0-9]+)$', gl):
+                    break
+            self.llama_gpu_layers = int(gl)
             return True
 
         def set_llama_context_size(self) -> bool:
