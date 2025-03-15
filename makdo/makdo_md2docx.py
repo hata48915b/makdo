@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.21-09:10:45-JST>
+# Time-stamp:   <2025.03.15-11:07:15-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6725,6 +6725,51 @@ class Script:
         # NUMBER
         if re.match('^-?(?:[0-9,]*\\.)?[0-9,]+$', val):
             val = val.replace(',', '')
+        new = ''
+        tmp = ''
+        par = ''
+        for c in val + '\0':
+            res = '^(.*?)([京兆億万0-9]*)$'
+            if par == '':
+                if re.match(res, tmp) and re.match('^[^京兆億万0-9]$', c):
+                    new += re.sub(res, '\\1', tmp)
+                    val = re.sub(res, '\\2', tmp)
+                    for u in [['京', '兆'], ['兆', '億'],
+                              ['億', '万'], ['万', '']]:
+                        # "1京" -> "1京0000兆"
+                        if re.match('^.*' + u[0] + '$', val):
+                            val += '0000' + u[1]
+                        res = '(.*' + u[0] + ')([0-9]+)(' + u[1] + '.*)$'
+                        # '1京23兆' -> '1京0023兆'
+                        if re.match(res, val):
+                            v1 = re.sub(res, '\\1', val)
+                            v2 = re.sub(res, '\\2', val)
+                            v3 = re.sub(res, '\\3', val)
+                            val = v1 + '0 ' * (4 - len(v2)) + v2 + v3
+                        # '1京23456兆' -> warning
+                        res = '(.*' + u[0] + ')([0-9]{5,})(' + u[1] + '.*)$'
+                        if re.match(res, val):
+                            msg = '※ 警告: ' \
+                                + '「' + val + '」は異常な数字です'
+                            # msg = 'warning: ' \
+                                #     + '"' + v + '" is a wrong number'
+                            md_line.append_warning_message(msg)
+                    val = re.sub('[京兆億万]', '', val)
+                    new += val
+                    tmp = ''
+            if re.match(NOT_ESCAPED + "'$", tmp + c):
+                if par == '':
+                    par = "'"
+                elif par == "'":
+                    par = ''
+            if re.match(NOT_ESCAPED + '"$', tmp + c):
+                if par == '':
+                    par = '"'
+                elif par == '"':
+                    par = ''
+            if c != '\0':
+                tmp += c
+        val = new + tmp
         # FUNCTIONS AND PARENTHESES
         new = ''
         tmp = ''
