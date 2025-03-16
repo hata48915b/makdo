@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.03.16-14:54:06-JST>
+# Time-stamp:   <2025.03.16-14:59:45-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -15270,7 +15270,7 @@ class Makdo:
                 self.openai = openai
             om = self.openai_model
             m = 'モデルは"' + om + '"が設定されています'
-            self.set_message_on_status_bar(m, True)
+            self.set_message_on_status_bar(m)
             # PROMPT
             if 'openai_qanda' not in vars(self):
                 n = MD_TEXT_WIDTH - get_real_width('## 【OpenAIにＸＸ】')
@@ -15364,6 +15364,7 @@ class Makdo:
             # file_path = CONFIG_DIR + '/' + 'openai.md'
             # contents = self.sub.get('1.0', 'end-1c')
             # self._save_config_file(file_path, contents)
+            self.set_message_on_status_bar('')
             self._close_sub_pane()
 
         def set_openai_model(self) -> bool:
@@ -15437,7 +15438,7 @@ class Makdo:
                 )
             mf = os.path.basename(self.llama_model_file)
             m = 'モデルファイルは"' + mf + '"が設定されています'
-            self.set_message_on_status_bar(m, True)
+            self.set_message_on_status_bar(m)
             # PROMPT
             if 'llama_qanda' not in vars(self):
                 n = MD_TEXT_WIDTH - get_real_width('## 【LlamaにＸＸ】')
@@ -15526,6 +15527,7 @@ class Makdo:
             # file_path = CONFIG_DIR + '/' + 'llama.md'
             # contents = self.sub.get('1.0', 'end-1c')
             # self._save_config_file(file_path, contents)
+            self.set_message_on_status_bar('')
             self._close_sub_pane()
 
         def set_llama_model_file(self) -> bool:
