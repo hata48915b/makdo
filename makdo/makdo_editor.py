@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.03.11-08:58:18-JST>
+# Time-stamp:   <2025.03.16-14:54:06-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -15268,14 +15268,14 @@ class Makdo:
                     tkinter.messagebox.showerror(n, m)
                     return False
                 self.openai = openai
-                self.set_message_on_status_bar('', True)
+            om = self.openai_model
+            m = 'モデルは"' + om + '"が設定されています'
+            self.set_message_on_status_bar(m, True)
             # PROMPT
             if 'openai_qanda' not in vars(self):
                 n = MD_TEXT_WIDTH - get_real_width('## 【OpenAIにＸＸ】')
-                om = self.openai_model
                 self.openai_qanda \
-                    = '- モデルは"' + om + '"が設定されています。\n'\
-                    + '- 外部処理ですので、個人情報の流出に注意してください。\n' \
+                    = '- 外部処理ですので、個人情報の流出に注意してください。\n' \
                     + '- 有料ですので、料金に注意してください。\n\n' \
                     + '## 【OpenAIの設定】' + ('-' * n) + '\n\n' \
                     + 'あなたは誠実で優秀な日本人のアシスタントです。\n' \
@@ -15435,14 +15435,14 @@ class Makdo:
                     n_gpu_layers=self.llama_gpu_layers,
                     n_ctx=self.llama_context_size,
                 )
-                self.set_message_on_status_bar('', True)
+            mf = os.path.basename(self.llama_model_file)
+            m = 'モデルファイルは"' + mf + '"が設定されています'
+            self.set_message_on_status_bar(m, True)
             # PROMPT
             if 'llama_qanda' not in vars(self):
                 n = MD_TEXT_WIDTH - get_real_width('## 【LlamaにＸＸ】')
-                mf = os.path.basename(self.llama_model_file)
                 self.llama_qanda \
-                    = '- モデルファイルは"' + mf + '"が設定されています。\n'\
-                    + '- 内部処理ですので、情報を外部に送信しません。\n' \
+                    = '- 内部処理ですので、情報を外部に送信しません。\n' \
                     + '- 無料ですので、料金は発生しません。\n\n' \
                     + '## 【Llamaの設定】' + ('-' * n) + '\n\n' \
                     + 'あなたは誠実で優秀な日本人のアシスタントです。\n' \
@@ -15539,6 +15539,9 @@ class Makdo:
             if lmf == () or lmf == '':
                 return False
             self.llama_model_file = lmf
+            # CLEAR
+            if 'llama' in vars(self):
+                del self.llama
             self.show_config_help_message()
             return True
 
@@ -15558,6 +15561,10 @@ class Makdo:
                 if re.match('^(-1|[0-9]+)$', gl):
                     break
             self.llama_gpu_layers = int(gl)
+            # CLEAR
+            if 'llama' in vars(self):
+                del self.llama
+            self.show_config_help_message()
             return True
 
         def set_llama_context_size(self) -> bool:
@@ -15576,6 +15583,10 @@ class Makdo:
                 if re.match('^[0-9]+$', cs):
                     break
             self.llama_context_size = int(cs)
+            # CLEAR
+            if 'llama' in vars(self):
+                del self.llama
+            self.show_config_help_message()
             return True
 
 
