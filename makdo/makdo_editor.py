@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.03.16-14:59:45-JST>
+# Time-stamp:   <2025.03.19-11:06:39-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6009,6 +6009,10 @@ class Makdo:
             return False
         self.quit_editing_formula()
         self.update_memo_pad()
+        # RAG (Retrieval-Augmented Generation)
+        if hasattr(self, 'quit_editing_rag_data'):
+            if self.is_editing_rag_data:
+                self.quit_editing_rag_data()
         self.memo_pad_memory = None
         self.close_mouse_menu()  # close mouse menu
         self.pnd_r.remove(self.pnd2)
@@ -15590,6 +15594,163 @@ class Makdo:
                 del self.llama
             self.show_config_help_message()
             return True
+
+        # RAG (Retrieval-Augmented Generation)
+
+        rag_file = CONFIG_DIR + '/rag.md'
+        is_editing_rag_data = False
+        if os.path.exists(rag_file):
+
+            def edit_rag_data(self) -> bool:
+                try:
+                    with open(self.rag_file, 'r') as f:
+                        self.rag_data = f.read()
+                except BaseException:
+                    return False
+                self._open_sub_pane(self.rag_data, False)
+                self.is_editing_rag_data = True
+                return True
+
+            def quit_editing_rag_data(self) -> bool:
+                self.is_editing_rag_data = False
+                rag_data = self.sub.get('1.0', 'end-1c')
+                self._save_config_file(self.rag_file, rag_data)
+                return True
+
+            mc = Minibuffer.MinibufferCommand(
+                'edit-rag-data',
+                [None, 'RAG用のデータを編集する'],
+                ['self.mother.edit_rag_data()',
+                 'self.set_return_to()'])
+            Minibuffer.minibuffer_commands.append(mc)
+
+            def open_llama(self) -> bool:
+                # CONFIGURATION
+                if 'llama_model_file' not in vars(self):
+                    self.set_llama_model_file()
+                if 'llama_model_file' not in vars(self):
+                    n = 'エラー'
+                    m = 'Llamaのモデルファイルが設定されていません．'
+                    tkinter.messagebox.showerror(n, m)
+                    return False
+                # LOAD MODULE
+                if 'llama' not in vars(self):
+                    self.set_message_on_status_bar('Llamaを起動しています', True)
+                    try:
+                        # pip install numpy
+                        # pip install llama-index-llms-llama-cpp
+                        from llama_index.llms.llama_cpp import LlamaCPP
+                        from llama_index.core \
+                            import SimpleDirectoryReader, VectorStoreIndex
+                        # pip install llama-index-embeddings-huggingface
+                        from llama_index.embeddings.huggingface \
+                            import HuggingFaceEmbedding
+                    except ImportError:
+                        n = 'エラー'
+                        m = '"Llama"を\n' \
+                            + 'インポートできませんでした．\n\n' \
+                            + '次のコマンドを実行して、\n' \
+                            + 'インストールしてください．\n\n' \
+                            + 'pip install llama_cpp_python'
+                        tkinter.messagebox.showerror(n, m)
+                        return False
+                    if 'llama_cpp' not in vars(self):
+                        self.llama_cpp = LlamaCPP(
+                            model_path=self.llama_model_file,
+                        )
+                    if 'llama_embed_model' not in vars(self):
+                        self.llama_embed_model = HuggingFaceEmbedding(
+                            model_name="all-MiniLM-L6-v2")
+                    if 'llama_reader' not in vars(self):
+                        self.llama_reader = SimpleDirectoryReader(
+                            input_files=[self.rag_file])
+                    rag_data = self.llama_reader.load_data()
+                    index = VectorStoreIndex.from_documents(
+                            rag_data, embed_model=self.llama_embed_model)
+                    self.llama = index.as_query_engine(llm=self.llama_cpp,
+                                                       streaming=False,
+                                                       similarity_top_k=3)
+                mf = os.path.basename(self.llama_model_file)
+                m = 'モデルファイルは"' + mf + '"が設定されています'
+                self.set_message_on_status_bar(m)
+                # PROMPT
+                if 'llama_qanda' not in vars(self):
+                    n = MD_TEXT_WIDTH - get_real_width('## 【LlamaにＸＸ】')
+                    self.llama_qanda \
+                        = '- 内部処理ですので、情報を外部に送信しません。\n' \
+                        + '- 無料ですので、料金は発生しません。\n\n' \
+                        + '## 【Llamaの設定】' + ('-' * n) + '\n\n' \
+                        + 'あなたは誠実で優秀な日本人のアシスタントです。\n' \
+                        + '特に指示が無い場合は、常に日本語で回答してください。\n\n' \
+                        + '## 【Llamaに質問】' + ('-' * n) + '\n\n'
+                self.txt.focus_force()
+                self._execute_sub_pane = self.ask_llama
+                self._close_sub_pane = self.close_llama
+                self._open_sub_pane(self.llama_qanda, False, 2)
+                self.sub.mark_set('insert', 'end-1c')
+                self._paint_llama_lines()
+                self.sub.edit_separator()
+                return True
+
+            def ask_llama(self) -> None:
+                n = MD_TEXT_WIDTH - get_real_width('## 【LlamaにＸＸ】')
+                llama_cnf_head = '## 【Llamaの設定】' + ('-' * n)
+                llama_que_head = '## 【Llamaに質問】' + ('-' * n)
+                llama_ans_head = '## 【Llamaの回答】' + ('-' * n)
+                messages = []
+                mc = ''
+                role = ''
+                doc = self.sub.get('1.0', 'end-1c') + '\n\n' + llama_ans_head
+                for line in doc.split('\n'):
+                    if line == llama_cnf_head or \
+                       line == llama_que_head or \
+                       line == llama_ans_head:
+                        if role != '' and mc != '':
+                            mc = re.sub('^\n+', '', mc)
+                            mc = re.sub('\n+$', '', mc)
+                            messages.append({'role': role, 'content': mc})
+                        mc = ''
+                    if line == llama_cnf_head:
+                        role = 'system'
+                    elif line == llama_que_head:
+                        role = 'user'
+                    elif line == llama_ans_head:
+                        role = 'assistant'
+                    else:
+                        mc += line + '\n'
+                self.set_message_on_status_bar('Llamaに質問しています', True)
+                q = ''
+                for m in messages:
+                    if m['role'] == 'user':
+                        q = m['content']
+                output = self.llama.query(q)
+                self.set_message_on_status_bar('', True)
+                answer = adjust_line(output.response)
+                if answer != '':
+                    self.sub['autoseparators'] = False
+                    self.sub.edit_separator()
+                    if not re.match('^(.|\n)*\n$', doc):
+                        self.sub.insert('end', '\n')
+                    if not re.match('^(.|\n)*\n\n$', doc):
+                        self.sub.insert('end', '\n')
+                    self.sub.insert('end', llama_ans_head + '\n\n')
+                    self.sub.insert('end', answer + '\n\n')
+                    self.sub.edit_separator()
+                    self.sub.insert('end', llama_que_head + '\n\n')
+                    self.sub.mark_set('insert', 'end-1c')
+                    self._put_back_cursor_to_pane(self.sub)
+                    self.llama_qanda = self.sub.get('1.0', 'end-1c')
+                    self._paint_llama_lines()
+                    self.sub['autoseparators'] = True
+                    self.sub.edit_separator()
+
+        def close_llama(self) -> None:
+            del self._execute_sub_pane
+            del self._close_sub_pane
+            del self.llama
+            del self.llama_qanda
+            self.set_message_on_status_bar('')
+            self._close_sub_pane()
 
 
 ######################################################################
