@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.03.19-11:06:39-JST>
+# Time-stamp:   <2025.03.22-14:50:05-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5603,7 +5603,9 @@ class Makdo:
                     self.clipboard_list.append('')
                 self.clipboard_list[-1] += c
                 if not self._is_read_only_pane(pane):
+                    pane.edit_separator()
                     pane.delete(beg, akn)
+                    pane.edit_separator()
                 self.cancel_region(pane)
             else:
                 if self._is_read_only_pane(pane):
@@ -5624,11 +5626,15 @@ class Makdo:
                 if c == '':
                     self.win.clipboard_append('\n')
                     self.clipboard_list[-1] += '\n'
+                    # pane.edit_separator()
                     pane.delete(ins, end + '+1c')
+                    pane.edit_separator()
                 else:
                     self.win.clipboard_append(c)
                     self.clipboard_list[-1] += c
+                    pane.edit_separator()
                     pane.delete(ins, end)
+                    # pane.edit_separator()
 
     def paint_out_line(self, line_number, pane=None):
         if pane is None:
@@ -15597,6 +15603,8 @@ class Makdo:
 
         # RAG (Retrieval-Augmented Generation)
 
+        embeded_model = 'intfloat/multilingual-e5-large'
+        # embeded_model = 'all-MiniLM-L6-v2'
         rag_file = CONFIG_DIR + '/rag.md'
         is_editing_rag_data = False
         if os.path.exists(rag_file):
@@ -15657,16 +15665,20 @@ class Makdo:
                     if 'llama_cpp' not in vars(self):
                         self.llama_cpp = LlamaCPP(
                             model_path=self.llama_model_file,
+                            model_kwargs={
+                                'n_gpu_layers': self.llama_gpu_layers,
+                                'n_ctx': self.llama_context_size,
+                            }
                         )
                     if 'llama_embed_model' not in vars(self):
                         self.llama_embed_model = HuggingFaceEmbedding(
-                            model_name="all-MiniLM-L6-v2")
+                            model_name=self.embeded_model)
                     if 'llama_reader' not in vars(self):
                         self.llama_reader = SimpleDirectoryReader(
                             input_files=[self.rag_file])
                     rag_data = self.llama_reader.load_data()
                     index = VectorStoreIndex.from_documents(
-                            rag_data, embed_model=self.llama_embed_model)
+                        rag_data, embed_model=self.llama_embed_model)
                     self.llama = index.as_query_engine(llm=self.llama_cpp,
                                                        streaming=False,
                                                        similarity_top_k=3)
@@ -15725,7 +15737,11 @@ class Makdo:
                         q = m['content']
                 output = self.llama.query(q)
                 self.set_message_on_status_bar('', True)
-                answer = adjust_line(output.response)
+                answer = output.response
+                answer = re.sub('^\s+', '', answer)
+                answer = re.sub('\s+$', '', answer)
+                answer = re.sub('\\\\n', '\n', answer)
+                answer = adjust_line(answer)
                 if answer != '':
                     self.sub['autoseparators'] = False
                     self.sub.edit_separator()
