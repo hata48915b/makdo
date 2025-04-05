@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.03.22-14:50:05-JST>
+# Time-stamp:   <2025.04.05-09:57:07-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6016,9 +6016,9 @@ class Makdo:
         self.quit_editing_formula()
         self.update_memo_pad()
         # RAG (Retrieval-Augmented Generation)
-        if hasattr(self, 'quit_editing_rag_data'):
-            if self.is_editing_rag_data:
-                self.quit_editing_rag_data()
+        if hasattr(self, 'quit_editing_llama_rag_data'):
+            if self.is_editing_llama_rag_data:
+                self.quit_editing_llama_rag_data()
         self.memo_pad_memory = None
         self.close_mouse_menu()  # close mouse menu
         self.pnd_r.remove(self.pnd2)
@@ -13355,14 +13355,18 @@ class Makdo:
                          command=self.set_openai_key)
         menu.add_separator()
         #
-        menu.add_command(label='Llamaに質問（内部処理、無料）',
-                         command=self.open_llama)
+        menu.add_command(label='LlamaにRAGなしで質問（内部処理、無料）',
+                         command=self.open_llama_without_rag)
+        menu.add_command(label='LlamaにRAGありで質問（内部処理、無料）',
+                         command=self.open_llama_with_rag)
         menu.add_command(label='Llamaのモデルファイルを設定',
                          command=self.set_llama_model_file)
         menu.add_command(label='LlamaのGPUで処理するレイヤーの数を設定',
                          command=self.set_llama_gpu_layers)
         menu.add_command(label='Llamaのコンテクストサイズを設定',
                          command=self.set_llama_context_size)
+        menu.add_command(label='LlamaのRAGデータを編集',
+                         command=self.edit_llama_rag_data)
         # menu.add_separator()
 
     @staticmethod
@@ -13399,8 +13403,13 @@ class Makdo:
         self._show_message_reducing_functions()
         return False
 
-    def open_llama(self) -> bool:
+    def open_llama_without_rag(self) -> bool:
         self._show_message_reducing_functions()
+        return False
+
+    def open_llama_with_rag(self) -> bool:
+        self._show_message_reducing_functions()
+        return False
 
     def set_llama_model_file(self) -> bool:
         self._show_message_reducing_functions()
@@ -13411,6 +13420,10 @@ class Makdo:
         return False
 
     def set_llama_context_size(self) -> bool:
+        self._show_message_reducing_functions()
+        return False
+
+    def edit_llama_rag_data(self) -> bool:
         self._show_message_reducing_functions()
         return False
 
@@ -15407,14 +15420,34 @@ class Makdo:
 
         # LLAMA
 
+        # RAG (Retrieval-Augmented Generation)
+        embeded_model = 'intfloat/multilingual-e5-large'
+        # embeded_model = 'all-MiniLM-L6-v2'
+        llama_rag_file = CONFIG_DIR + '/rag.md'
+        is_editing_llama_rag_data = False
+
         mc = Minibuffer.MinibufferCommand(
-            'ask-llama',
-            [None, 'Llamaに質問する'],
-            ['self.mother.open_llama()',
+            'ask-llama-without-rag',
+            [None, 'LlamaにRAGなし質問する'],
+            ['self.mother.open_llama_without_rag()',
              'self.set_return_to()'])
         Minibuffer.minibuffer_commands.append(mc)
 
-        def open_llama(self) -> bool:
+        mc = Minibuffer.MinibufferCommand(
+            'ask-llama-with-rag',
+            [None, 'LlamaにRAGありで質問する'],
+            ['self.mother.open_llama_without_rag()',
+             'self.set_return_to()'])
+        Minibuffer.minibuffer_commands.append(mc)
+
+        mc = Minibuffer.MinibufferCommand(
+            'edit-llama-rag-data',
+            [None, 'RAG用のデータを編集する'],
+            ['self.mother.edit_llama_rag_data()',
+             'self.set_return_to()'])
+        Minibuffer.minibuffer_commands.append(mc)
+
+        def open_llama_without_rag(self) -> bool:
             # CONFIGURATION
             if 'llama_model_file' not in vars(self):
                 self.set_llama_model_file()
@@ -15428,8 +15461,10 @@ class Makdo:
             if 'llama_context_size' not in vars(self):
                 self.llama_context_size = 512
             # LOAD MODULE
-            if 'llama' not in vars(self):
-                self.set_message_on_status_bar('Llamaを起動しています', True)
+            if 'llama_with_rag' in vars(self):
+                del self.llama_with_rag
+            if 'llama_without_rag' not in vars(self):
+                self.set_message_on_status_bar('LlamaをRAGなしで起動しています', True)
                 try:
                     from llama_cpp import Llama  # pip install llama-cpp-python
                 except ImportError:
@@ -15441,7 +15476,7 @@ class Makdo:
                         + 'pip install llama_cpp_python'
                     tkinter.messagebox.showerror(n, m)
                     return False
-                self.llama = Llama(
+                self.llama_without_rag = Llama(
                     model_path=self.llama_model_file,
                     n_gpu_layers=self.llama_gpu_layers,
                     n_ctx=self.llama_context_size,
@@ -15460,15 +15495,90 @@ class Makdo:
                     + '特に指示が無い場合は、常に日本語で回答してください。\n\n' \
                     + '## 【Llamaに質問】' + ('-' * n) + '\n\n'
             self.txt.focus_force()
-            self._execute_sub_pane = self.ask_llama
-            self._close_sub_pane = self.close_llama
+            self._execute_sub_pane = self.ask_llama_without_rag
+            self._close_sub_pane = self.close_llama_without_rag
             self._open_sub_pane(self.llama_qanda, False, 2)
             self.sub.mark_set('insert', 'end-1c')
             self._paint_llama_lines()
             self.sub.edit_separator()
             return True
 
-        def ask_llama(self) -> None:
+        def open_llama_with_rag(self) -> bool:
+            # CONFIGURATION
+            if 'llama_model_file' not in vars(self):
+                self.set_llama_model_file()
+            if 'llama_model_file' not in vars(self):
+                n = 'エラー'
+                m = 'Llamaのモデルファイルが設定されていません．'
+                tkinter.messagebox.showerror(n, m)
+                return False
+            # LOAD MODULE
+            if 'llama_without_rag' in vars(self):
+                del self.llama_without_rag
+            if 'llama_with_rag' not in vars(self):
+                self.set_message_on_status_bar('LlamaをRAGありで起動しています', True)
+                try:
+                    # pip install numpy
+                    # pip install llama-index-llms-llama-cpp
+                    from llama_index.llms.llama_cpp import LlamaCPP
+                    from llama_index.core \
+                        import SimpleDirectoryReader, VectorStoreIndex
+                    # pip install llama-index-embeddings-huggingface
+                    from llama_index.embeddings.huggingface \
+                        import HuggingFaceEmbedding
+                except ImportError:
+                    n = 'エラー'
+                    m = '"Llama"を\n' \
+                        + 'インポートできませんでした．\n\n' \
+                        + '次のコマンドを実行して、\n' \
+                        + 'インストールしてください．\n\n' \
+                        + 'pip install llama_cpp_python'
+                    tkinter.messagebox.showerror(n, m)
+                    return False
+                if 'llama_cpp' not in vars(self):
+                    self.llama_cpp = LlamaCPP(
+                        model_path=self.llama_model_file,
+                        model_kwargs={
+                            'n_gpu_layers': self.llama_gpu_layers,
+                            'n_ctx': self.llama_context_size,
+                        }
+                    )
+                if 'llama_embed_model' not in vars(self):
+                    self.llama_embed_model = HuggingFaceEmbedding(
+                        model_name=self.embeded_model)
+                if 'llama_reader' not in vars(self):
+                    self.llama_reader = SimpleDirectoryReader(
+                        input_files=[self.llama_rag_file])
+                llama_rag_data = self.llama_reader.load_data()
+                index = VectorStoreIndex.from_documents(
+                    llama_rag_data, embed_model=self.llama_embed_model)
+                self.llama_with_rag \
+                    = index.as_query_engine(llm=self.llama_cpp,
+                                            streaming=False,
+                                            similarity_top_k=3)
+            mf = os.path.basename(self.llama_model_file)
+            m = 'モデルファイルは"' + mf + '"が設定されています'
+            self.set_message_on_status_bar(m)
+            # PROMPT
+            if 'llama_qanda' not in vars(self):
+                n = MD_TEXT_WIDTH - get_real_width('## 【LlamaにＸＸ】')
+                self.llama_qanda \
+                    = '- 内部処理ですので、情報を外部に送信しません。\n' \
+                    + '- 無料ですので、料金は発生しません。\n\n' \
+                    + '## 【Llamaの設定】' + ('-' * n) + '\n\n' \
+                    + 'あなたは誠実で優秀な日本人のアシスタントです。\n' \
+                    + '特に指示が無い場合は、常に日本語で回答してください。\n\n' \
+                    + '## 【Llamaに質問】' + ('-' * n) + '\n\n'
+            self.txt.focus_force()
+            self._execute_sub_pane = self.ask_llama_with_rag
+            self._close_sub_pane = self.close_llama_with_rag
+            self._open_sub_pane(self.llama_qanda, False, 2)
+            self.sub.mark_set('insert', 'end-1c')
+            self._paint_llama_lines()
+            self.sub.edit_separator()
+            return True
+
+        def ask_llama_without_rag(self) -> None:
             n = MD_TEXT_WIDTH - get_real_width('## 【LlamaにＸＸ】')
             llama_cnf_head = '## 【Llamaの設定】' + ('-' * n)
             llama_que_head = '## 【Llamaに質問】' + ('-' * n)
@@ -15494,10 +15604,67 @@ class Makdo:
                     role = 'assistant'
                 else:
                     mc += line + '\n'
-            self.set_message_on_status_bar('Llamaに質問しています', True)
-            output = self.llama.create_chat_completion(messages=messages)
+            self.set_message_on_status_bar('LlamaにRAGなしで質問しています', True)
+            output = self.llama_without_rag.create_chat_completion(
+                messages=messages)
             self.set_message_on_status_bar('', True)
             answer = adjust_line(output['choices'][0]['message']['content'])
+            if answer != '':
+                self.sub['autoseparators'] = False
+                self.sub.edit_separator()
+                if not re.match('^(.|\n)*\n$', doc):
+                    self.sub.insert('end', '\n')
+                if not re.match('^(.|\n)*\n\n$', doc):
+                    self.sub.insert('end', '\n')
+                self.sub.insert('end', llama_ans_head + '\n\n')
+                self.sub.insert('end', answer + '\n\n')
+                self.sub.edit_separator()
+                self.sub.insert('end', llama_que_head + '\n\n')
+                self.sub.mark_set('insert', 'end-1c')
+                self._put_back_cursor_to_pane(self.sub)
+                self.llama_qanda = self.sub.get('1.0', 'end-1c')
+                self._paint_llama_lines()
+                self.sub['autoseparators'] = True
+                self.sub.edit_separator()
+
+        def ask_llama_with_rag(self) -> None:
+            n = MD_TEXT_WIDTH - get_real_width('## 【LlamaにＸＸ】')
+            llama_cnf_head = '## 【Llamaの設定】' + ('-' * n)
+            llama_que_head = '## 【Llamaに質問】' + ('-' * n)
+            llama_ans_head = '## 【Llamaの回答】' + ('-' * n)
+            messages = []
+            mc = ''
+            role = ''
+            doc = self.sub.get('1.0', 'end-1c') + '\n\n' + llama_ans_head
+            for line in doc.split('\n'):
+                if line == llama_cnf_head or \
+                   line == llama_que_head or \
+                   line == llama_ans_head:
+                    if role != '' and mc != '':
+                        mc = re.sub('^\n+', '', mc)
+                        mc = re.sub('\n+$', '', mc)
+                        messages.append({'role': role, 'content': mc})
+                    mc = ''
+                if line == llama_cnf_head:
+                    role = 'system'
+                elif line == llama_que_head:
+                    role = 'user'
+                elif line == llama_ans_head:
+                    role = 'assistant'
+                else:
+                    mc += line + '\n'
+            self.set_message_on_status_bar('LlamaにRAGありで質問しています', True)
+            q = ''
+            for m in messages:
+                if m['role'] == 'user':
+                    q = m['content']
+            output = self.llama_with_rag.query(q)
+            self.set_message_on_status_bar('', True)
+            answer = output.response
+            answer = re.sub('^\\s+', '', answer)
+            answer = re.sub('\\s+$', '', answer)
+            answer = re.sub('\\\\n', '\n', answer)
+            answer = adjust_line(answer)
             if answer != '':
                 self.sub['autoseparators'] = False
                 self.sub.edit_separator()
@@ -15531,12 +15698,20 @@ class Makdo:
                 n += len(pre) + len(key)
                 self.sub.tag_add('c-40-1-g-x', beg, end)
 
-        def close_llama(self) -> None:
+        def close_llama_without_rag(self) -> None:
             del self._execute_sub_pane
             del self._close_sub_pane
             # file_path = CONFIG_DIR + '/' + 'llama.md'
             # contents = self.sub.get('1.0', 'end-1c')
             # self._save_config_file(file_path, contents)
+            self.set_message_on_status_bar('')
+            self._close_sub_pane()
+
+        def close_llama_with_rag(self) -> None:
+            del self._execute_sub_pane
+            del self._close_sub_pane
+            del self.llama_with_rag
+            del self.llama_qanda
             self.set_message_on_status_bar('')
             self._close_sub_pane()
 
@@ -15601,172 +15776,21 @@ class Makdo:
             self.show_config_help_message()
             return True
 
-        # RAG (Retrieval-Augmented Generation)
+        def edit_llama_rag_data(self) -> bool:
+            try:
+                with open(self.llama_rag_file, 'r') as f:
+                    self.llama_rag_data = f.read()
+            except BaseException:
+                return False
+            self._open_sub_pane(self.llama_rag_data, False)
+            self.is_editing_llama_rag_data = True
+            return True
 
-        embeded_model = 'intfloat/multilingual-e5-large'
-        # embeded_model = 'all-MiniLM-L6-v2'
-        rag_file = CONFIG_DIR + '/rag.md'
-        is_editing_rag_data = False
-        if os.path.exists(rag_file):
-
-            def edit_rag_data(self) -> bool:
-                try:
-                    with open(self.rag_file, 'r') as f:
-                        self.rag_data = f.read()
-                except BaseException:
-                    return False
-                self._open_sub_pane(self.rag_data, False)
-                self.is_editing_rag_data = True
-                return True
-
-            def quit_editing_rag_data(self) -> bool:
-                self.is_editing_rag_data = False
-                rag_data = self.sub.get('1.0', 'end-1c')
-                self._save_config_file(self.rag_file, rag_data)
-                return True
-
-            mc = Minibuffer.MinibufferCommand(
-                'edit-rag-data',
-                [None, 'RAG用のデータを編集する'],
-                ['self.mother.edit_rag_data()',
-                 'self.set_return_to()'])
-            Minibuffer.minibuffer_commands.append(mc)
-
-            def open_llama(self) -> bool:
-                # CONFIGURATION
-                if 'llama_model_file' not in vars(self):
-                    self.set_llama_model_file()
-                if 'llama_model_file' not in vars(self):
-                    n = 'エラー'
-                    m = 'Llamaのモデルファイルが設定されていません．'
-                    tkinter.messagebox.showerror(n, m)
-                    return False
-                # LOAD MODULE
-                if 'llama' not in vars(self):
-                    self.set_message_on_status_bar('Llamaを起動しています', True)
-                    try:
-                        # pip install numpy
-                        # pip install llama-index-llms-llama-cpp
-                        from llama_index.llms.llama_cpp import LlamaCPP
-                        from llama_index.core \
-                            import SimpleDirectoryReader, VectorStoreIndex
-                        # pip install llama-index-embeddings-huggingface
-                        from llama_index.embeddings.huggingface \
-                            import HuggingFaceEmbedding
-                    except ImportError:
-                        n = 'エラー'
-                        m = '"Llama"を\n' \
-                            + 'インポートできませんでした．\n\n' \
-                            + '次のコマンドを実行して、\n' \
-                            + 'インストールしてください．\n\n' \
-                            + 'pip install llama_cpp_python'
-                        tkinter.messagebox.showerror(n, m)
-                        return False
-                    if 'llama_cpp' not in vars(self):
-                        self.llama_cpp = LlamaCPP(
-                            model_path=self.llama_model_file,
-                            model_kwargs={
-                                'n_gpu_layers': self.llama_gpu_layers,
-                                'n_ctx': self.llama_context_size,
-                            }
-                        )
-                    if 'llama_embed_model' not in vars(self):
-                        self.llama_embed_model = HuggingFaceEmbedding(
-                            model_name=self.embeded_model)
-                    if 'llama_reader' not in vars(self):
-                        self.llama_reader = SimpleDirectoryReader(
-                            input_files=[self.rag_file])
-                    rag_data = self.llama_reader.load_data()
-                    index = VectorStoreIndex.from_documents(
-                        rag_data, embed_model=self.llama_embed_model)
-                    self.llama = index.as_query_engine(llm=self.llama_cpp,
-                                                       streaming=False,
-                                                       similarity_top_k=3)
-                mf = os.path.basename(self.llama_model_file)
-                m = 'モデルファイルは"' + mf + '"が設定されています'
-                self.set_message_on_status_bar(m)
-                # PROMPT
-                if 'llama_qanda' not in vars(self):
-                    n = MD_TEXT_WIDTH - get_real_width('## 【LlamaにＸＸ】')
-                    self.llama_qanda \
-                        = '- 内部処理ですので、情報を外部に送信しません。\n' \
-                        + '- 無料ですので、料金は発生しません。\n\n' \
-                        + '## 【Llamaの設定】' + ('-' * n) + '\n\n' \
-                        + 'あなたは誠実で優秀な日本人のアシスタントです。\n' \
-                        + '特に指示が無い場合は、常に日本語で回答してください。\n\n' \
-                        + '## 【Llamaに質問】' + ('-' * n) + '\n\n'
-                self.txt.focus_force()
-                self._execute_sub_pane = self.ask_llama
-                self._close_sub_pane = self.close_llama
-                self._open_sub_pane(self.llama_qanda, False, 2)
-                self.sub.mark_set('insert', 'end-1c')
-                self._paint_llama_lines()
-                self.sub.edit_separator()
-                return True
-
-            def ask_llama(self) -> None:
-                n = MD_TEXT_WIDTH - get_real_width('## 【LlamaにＸＸ】')
-                llama_cnf_head = '## 【Llamaの設定】' + ('-' * n)
-                llama_que_head = '## 【Llamaに質問】' + ('-' * n)
-                llama_ans_head = '## 【Llamaの回答】' + ('-' * n)
-                messages = []
-                mc = ''
-                role = ''
-                doc = self.sub.get('1.0', 'end-1c') + '\n\n' + llama_ans_head
-                for line in doc.split('\n'):
-                    if line == llama_cnf_head or \
-                       line == llama_que_head or \
-                       line == llama_ans_head:
-                        if role != '' and mc != '':
-                            mc = re.sub('^\n+', '', mc)
-                            mc = re.sub('\n+$', '', mc)
-                            messages.append({'role': role, 'content': mc})
-                        mc = ''
-                    if line == llama_cnf_head:
-                        role = 'system'
-                    elif line == llama_que_head:
-                        role = 'user'
-                    elif line == llama_ans_head:
-                        role = 'assistant'
-                    else:
-                        mc += line + '\n'
-                self.set_message_on_status_bar('Llamaに質問しています', True)
-                q = ''
-                for m in messages:
-                    if m['role'] == 'user':
-                        q = m['content']
-                output = self.llama.query(q)
-                self.set_message_on_status_bar('', True)
-                answer = output.response
-                answer = re.sub('^\s+', '', answer)
-                answer = re.sub('\s+$', '', answer)
-                answer = re.sub('\\\\n', '\n', answer)
-                answer = adjust_line(answer)
-                if answer != '':
-                    self.sub['autoseparators'] = False
-                    self.sub.edit_separator()
-                    if not re.match('^(.|\n)*\n$', doc):
-                        self.sub.insert('end', '\n')
-                    if not re.match('^(.|\n)*\n\n$', doc):
-                        self.sub.insert('end', '\n')
-                    self.sub.insert('end', llama_ans_head + '\n\n')
-                    self.sub.insert('end', answer + '\n\n')
-                    self.sub.edit_separator()
-                    self.sub.insert('end', llama_que_head + '\n\n')
-                    self.sub.mark_set('insert', 'end-1c')
-                    self._put_back_cursor_to_pane(self.sub)
-                    self.llama_qanda = self.sub.get('1.0', 'end-1c')
-                    self._paint_llama_lines()
-                    self.sub['autoseparators'] = True
-                    self.sub.edit_separator()
-
-        def close_llama(self) -> None:
-            del self._execute_sub_pane
-            del self._close_sub_pane
-            del self.llama
-            del self.llama_qanda
-            self.set_message_on_status_bar('')
-            self._close_sub_pane()
+        def quit_editing_llama_rag_data(self) -> bool:
+            self.is_editing_llama_rag_data = False
+            llama_rag_data = self.sub.get('1.0', 'end-1c')
+            self._save_config_file(self.llama_rag_file, llama_rag_data)
+            return True
 
 
 ######################################################################
