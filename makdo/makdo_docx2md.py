@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.04.16-10:29:00-JST>
+# Time-stamp:   <2025.04.16-13:17:47-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -4731,6 +4731,8 @@ class LineTruncation:
             else:
                 # SECOND LINE AND ONWARDS
                 md_text_width = MD_TEXT_WIDTH - indent
+            if md_text_width < 2:
+                md_text_width = 2  # width of full width character
             # MATH MODE (MUST BE FIRST)
             if p == '\\[' and not is_in_math:
                 tex = __extend_tex(tmp)
