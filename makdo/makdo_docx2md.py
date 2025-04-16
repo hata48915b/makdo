@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.21-09:10:16-JST>
+# Time-stamp:   <2025.04.16-10:29:00-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5873,7 +5873,7 @@ class RawParagraph:
                                         '->', '<-', '\\+>', '<\\+')
         rts, rrt \
             = self._separate_head_space(self.raw_text[::-1],
-                                        '>-', '-<', '>\\+', '\\+<')
+                                        '-<', '>-', '>\\+', '\\+<')
         self.raw_text = rrt[::-1]
         self.tail_space = rts[::-1]
         self.raw_text_del = self._get_raw_text_del(self.raw_text)
@@ -6710,6 +6710,9 @@ class RawParagraph:
                 right = re.sub(res_ch, '\\2', right)
                 level_to_break = 1
             else:
+                level_to_break = 2
+            # JUST IN CASE
+            if right == '':
                 level_to_break = 2
         left = re.sub(del_beg + del_end, '', left)
         left = re.sub(ins_beg + ins_end, '', left)
