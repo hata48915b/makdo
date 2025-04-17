@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.04.05-09:57:07-JST>
+# Time-stamp:   <2025.04.17-11:58:14-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -140,7 +140,7 @@ COLOR_SPACE = (
     ('#226100', '#38A200', '#4FE200', '#B0FF86'),  # 100 : sect8
     ('#136500', '#1FA900', '#2CED00', '#AAFF97'),  # 110 : ruby
     ('#006B00', '#00B200', '#00FA00', '#A5FFA5'),  # 120 : fontdeco, par1
-    ('#006913', '#00AF20', '#00F52D', '#A1FFB2'),  # 130 :
+    ('#006913', '#00AF20', '#00F52D', '#A1FFB2'),  # 130 : proper_noun
     ('#006724', '#00AC3C', '#00F154', '#9DFFBF'),  # 140 : sp
     ('#006633', '#00AA55', '#00EE77', '#98FFCC'),  # 150 : length reviser
     ('#006441', '#00A76D', '#00EA99', '#94FFDA'),  # 160 : (tab), par2
@@ -4247,6 +4247,8 @@ class CharsState:
         # ANGLE
         if False:
             pass
+        elif chars == 'proper noun':  # proper noun
+            key += '-130'             # proper noun
         elif chars == ' ':
             return 'hsp_tag'
         elif chars == '\u3000':
@@ -4523,6 +4525,7 @@ class LineDatum:
                 return
         # PARTS
         beg, tmp = str(i + 1) + '.0', ''
+        is_in_proper_noun = False  # proper noun
         for j, c in enumerate(line_text):
             tmp += c
             s1 = line_text[j - 0:j + 1] if True else ''
@@ -4537,6 +4540,27 @@ class LineDatum:
             c5 = line_text[j - 4] if j > 3 else ''
             s_lft = line_text[:j + 1]
             s_rgt = line_text[j + 1:]
+            # PROPER NOUN
+            if c == '《' and re.match('^[^《》]+》.*$', s_rgt):
+                key = chars_state.get_key('')                           # 1.key
+                end = str(i + 1) + '.' + str(j)                         # 2.end
+                pane.tag_add(key, beg, end)                             # 3.tag
+                chars_state.toggle_is_in_comment()                      # 4.set
+                tmp = ''                                                # 5.tmp
+                beg = end                                               # 6.beg
+                is_in_proper_noun = True
+                continue
+            if c == '》' and is_in_proper_noun:
+                key = chars_state.get_key('proper noun')                # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                pane.tag_add(key, beg, end)                             # 3.tag
+                chars_state.toggle_is_in_comment()                      # 4.set
+                tmp = ''                                                # 5.tmp
+                beg = end                                               # 6.beg
+                is_in_proper_noun = False
+                continue
+            if is_in_proper_noun:
+                continue
             # END OF THE LINE "\n"
             if c1 == '\n':
                 key = chars_state.get_key('')                           # 1.key

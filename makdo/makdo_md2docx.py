@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.03.15-11:07:15-JST>
+# Time-stamp:   <2025.04.17-11:59:44-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6550,6 +6550,32 @@ class MdLine:
             sys.stderr.write(msg + '\n\n')
 
 
+# PROPER NOUN
+class ProperNoun:
+
+    def __init__(self, md_lines):
+        self.md_lines = md_lines
+
+    def substitute(self):
+        proper_nouns = {}
+        res1 = '^《(.+)》\\s*=\\s*"(.+)"\\s*(?:<!--.*-->)?'
+        res2 = '^《(.+)》\\s*=\\s*"(.+)".*'
+        for i, ml in enumerate(self.md_lines):
+            if re.match(res1, ml.raw_text) and re.match(res2, ml.text):
+                t1 = re.sub(res2, '\\1', ml.text)
+                t2 = re.sub(res2, '\\2', ml.text)
+                proper_nouns[t1] = t2
+                ml.comment = '<!-- ' + ml.text + '-->' + ml.comment
+                ml.text = ''
+            else:
+                for pn in proper_nouns:
+                    res_fr = NOT_ESCAPED + '《' + pn + '》(.*)$'
+                    res_to = '\\1' + proper_nouns[pn] + '\\2'
+                    while re.match(res_fr, ml.text):
+                        ml.text = re.sub(res_fr, res_to, ml.text)
+        return self.md_lines
+
+
 class Script:
 
     constant = {'pi': '3.141592653589793', 'e': '2.718281828459045'}
@@ -6752,7 +6778,7 @@ class Script:
                             msg = '※ 警告: ' \
                                 + '「' + val + '」は異常な数字です'
                             # msg = 'warning: ' \
-                                #     + '"' + v + '" is a wrong number'
+                            #     + '"' + v + '" is a wrong number'
                             md_line.append_warning_message(msg)
                     val = re.sub('[京兆億万]', '', val)
                     new += val
@@ -6954,6 +6980,8 @@ class Md2Docx:
         frm.configure()
         # UNFOLD
         doc.md_lines = Document().unfold(doc.md_lines)
+        # PROPER NOUN
+        doc.md_lines = ProperNoun(doc.md_lines).substitute()
         # EXECUTE SCRIPT
         doc.md_lines = Script(doc.md_lines).execute()
         # GET RAW PARAGRAPHS
