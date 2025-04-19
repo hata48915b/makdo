@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.04.17-11:58:14-JST>
+# Time-stamp:   <2025.04.20-06:51:27-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -140,7 +140,7 @@ COLOR_SPACE = (
     ('#226100', '#38A200', '#4FE200', '#B0FF86'),  # 100 : sect8
     ('#136500', '#1FA900', '#2CED00', '#AAFF97'),  # 110 : ruby
     ('#006B00', '#00B200', '#00FA00', '#A5FFA5'),  # 120 : fontdeco, par1
-    ('#006913', '#00AF20', '#00F52D', '#A1FFB2'),  # 130 : proper_noun
+    ('#006913', '#00AF20', '#00F52D', '#A1FFB2'),  # 130 :
     ('#006724', '#00AC3C', '#00F154', '#9DFFBF'),  # 140 : sp
     ('#006633', '#00AA55', '#00EE77', '#98FFCC'),  # 150 : length reviser
     ('#006441', '#00A76D', '#00EA99', '#94FFDA'),  # 160 : (tab), par2
@@ -154,7 +154,7 @@ COLOR_SPACE = (
     ('#3F3FFF', '#7676FF', '#ADADFF', '#E4E4FF'),  # 240 : chap4, (hsp), par6
     ('#5B36FF', '#8A70FF', '#B9A9FF', '#E8E2FF'),  # 250 : chap5
     ('#772EFF', '#9E6AFF', '#C5A5FF', '#ECE1FF'),  # 260 : par7
-    ('#9226FF', '#B164FF', '#D0A2FF', '#EFE0FF'),  # 270 :
+    ('#9226FF', '#B164FF', '#D0A2FF', '#EFE0FF'),  # 270 : proper_noun
     ('#B01DFF', '#C75DFF', '#DD9EFF', '#F4DFFF'),  # 280 : par8
     ('#D312FF', '#E056FF', '#EC9AFF', '#F9DDFF'),  # 290 : par9
     ('#FF05FF', '#FF4DFF', '#FF94FF', '#FFDBFF'),  # 300 : keyZ
@@ -4248,7 +4248,7 @@ class CharsState:
         if False:
             pass
         elif chars == 'proper noun':  # proper noun
-            key += '-130'             # proper noun
+            key += '-270'             # proper noun
         elif chars == ' ':
             return 'hsp_tag'
         elif chars == '\u3000':
@@ -4541,22 +4541,24 @@ class LineDatum:
             s_lft = line_text[:j + 1]
             s_rgt = line_text[j + 1:]
             # PROPER NOUN
-            if c == '《' and re.match('^[^《》]+》.*$', s_rgt):
-                key = chars_state.get_key('')                           # 1.key
-                end = str(i + 1) + '.' + str(j)                         # 2.end
-                pane.tag_add(key, beg, end)                             # 3.tag
-                chars_state.toggle_is_in_comment()                      # 4.set
-                tmp = ''                                                # 5.tmp
-                beg = end                                               # 6.beg
+            if c2 == '%' and c1 == '[' and not is_in_proper_noun and \
+               re.match(NOT_ESCAPED + '%\\[$', s_lft) and \
+               re.match('^.*\\]%.*$', s_rgt):
+                key = chars_state.get_key('')                       # 1.key
+                end = str(i + 1) + '.' + str(j - 1)                 # 2.end
+                pane.tag_add(key, beg, end)                         # 3.tag
+                chars_state.toggle_is_in_comment()                  # 4.set
+                tmp = ''                                            # 5.tmp
+                beg = end                                           # 6.beg
                 is_in_proper_noun = True
                 continue
-            if c == '》' and is_in_proper_noun:
-                key = chars_state.get_key('proper noun')                # 1.key
-                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                pane.tag_add(key, beg, end)                             # 3.tag
-                chars_state.toggle_is_in_comment()                      # 4.set
-                tmp = ''                                                # 5.tmp
-                beg = end                                               # 6.beg
+            if c2 == ']' and c1 == '%' and is_in_proper_noun:
+                key = chars_state.get_key('proper noun')            # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                 # 2.end
+                pane.tag_add(key, beg, end)                         # 3.tag
+                chars_state.toggle_is_in_comment()                  # 4.set
+                tmp = ''                                            # 5.tmp
+                beg = end                                           # 6.beg
                 is_in_proper_noun = False
                 continue
             if is_in_proper_noun:

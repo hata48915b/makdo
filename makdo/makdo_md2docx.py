@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.04.17-11:59:44-JST>
+# Time-stamp:   <2025.04.20-06:49:09-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6558,8 +6558,8 @@ class ProperNoun:
 
     def substitute(self):
         proper_nouns = {}
-        res1 = '^《(.+)》\\s*=\\s*"(.+)"\\s*(?:<!--.*-->)?'
-        res2 = '^《(.+)》\\s*=\\s*"(.+)".*'
+        res1 = '^%\\[(.+)\\]%\\s*=\\s*"(.+)"\\s*(?:<!--.*-->)?'
+        res2 = '^%\\[(.+)\\]%\\s*=\\s*"(.+)".*'
         for i, ml in enumerate(self.md_lines):
             if re.match(res1, ml.raw_text) and re.match(res2, ml.text):
                 t1 = re.sub(res2, '\\1', ml.text)
@@ -6568,11 +6568,22 @@ class ProperNoun:
                 ml.comment = '<!-- ' + ml.text + '-->' + ml.comment
                 ml.text = ''
             else:
-                for pn in proper_nouns:
-                    res_fr = NOT_ESCAPED + '《' + pn + '》(.*)$'
-                    res_to = '\\1' + proper_nouns[pn] + '\\2'
-                    while re.match(res_fr, ml.text):
-                        ml.text = re.sub(res_fr, res_to, ml.text)
+                for i in range(10):
+                    if not re.match(NOT_ESCAPED + '%\\[.*\\]%(.*)$', ml.text):
+                        break
+                    for pn in proper_nouns:
+                        res_fr = NOT_ESCAPED + '%\\[' + pn + '\\]%(.*)$'
+                        res_to = '\\1' + proper_nouns[pn] + '\\2'
+                        while re.match(res_fr, ml.text):
+                            ml.text = re.sub(res_fr, res_to, ml.text)
+        for i, ml in enumerate(self.md_lines):
+            res = NOT_ESCAPED + '%\\[.+\\]%(.*)$'
+            if re.match(res, ml.text):
+                msg = '※ 警告: ' \
+                    + '置換されていない変数が残っています'
+                # msg = 'warning: ' \
+                #     + 'unsubstituted variables remain'
+                ml.append_warning_message(msg)
         return self.md_lines
 
 
