@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.04.20-06:49:09-JST>
+# Time-stamp:   <2025.04.24-16:50:50-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6573,7 +6573,7 @@ class ProperNoun:
                         break
                     for pn in proper_nouns:
                         res_fr = NOT_ESCAPED + '%\\[' + pn + '\\]%(.*)$'
-                        res_to = '\\1' + proper_nouns[pn] + '\\2'
+                        res_to = '\g<1>' + proper_nouns[pn] + '\g<2>'
                         while re.match(res_fr, ml.text):
                             ml.text = re.sub(res_fr, res_to, ml.text)
         for i, ml in enumerate(self.md_lines):
