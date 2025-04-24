@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.04.16-13:17:47-JST>
+# Time-stamp:   <2025.04.24-12:17:11-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5481,7 +5481,7 @@ class Document:
                 if c == ' ':
                     w += 0.5
                 elif c == '\t':
-                    w += (int(wid / TAB_WIDTH) + 1) * TAB_WIDTH
+                    w += (int(w / TAB_WIDTH) + 1) * TAB_WIDTH
                 elif c == '\u3000':
                     w += 1.0
             p.head_space = ''
