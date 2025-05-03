@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.04.20-06:51:27-JST>
+# Time-stamp:   <2025.05.03-12:15:00-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -9183,7 +9183,7 @@ class Makdo:
         self._insert_hline('\uFF0D')  # 全角ハイフンマイナス
 
     def insert_hline_ff70(self):
-        self._insert_hline('\u2FF70')  # 半角カナの長音記号
+        self._insert_hline('\uFF70')  # 半角カナの長音記号
 
     def _insert_hline(self, char):
         pane = self.txt
