@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.04.24-16:50:50-JST>
+# Time-stamp:   <2025.05.07-13:29:41-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -977,6 +977,68 @@ def concatenate_text(str1, str2):
     res = '[0-9A-Za-z,\\.\\)}\\]]'
     if re.match('^.*' + res + '$', str1) and re.match('^' + res + '.*$', str2):
         return str1 + ' ' + str2
+    elif ((re.match(NOT_ESCAPED + '<$', str1) and re.match('^<.*$', str2)) or
+          (re.match(NOT_ESCAPED + '<$', str1) and re.match('^>.*$', str2)) or
+          (re.match(NOT_ESCAPED + '<$', str1) and re.match('^\\-.*$', str2)) or
+          (re.match(NOT_ESCAPED + '<$', str1) and re.match('^\\+.*$', str2))):
+        # "...<" + "(<|>|-|+)..."
+        if re.match(NOT_ESCAPED + '<<<$', str1):
+            return str1 + '<>' + str2
+        elif not re.match('^(<<|>>|\\-\\-|\\+\\+).*$', str2):
+            return str1 + '\\' + str2
+        else:
+            return str1 + ' ' + str2  # TODO (This is not the best.)
+    elif (  # "...<" + ">..." has processed.
+          (re.match(NOT_ESCAPED + '>$', str1) and re.match('^>.*$', str2)) or
+          (re.match(NOT_ESCAPED + '\\-$', str1) and re.match('^>.*$', str2)) or
+          (re.match(NOT_ESCAPED + '\\+$', str1) and re.match('^>.*$', str2))):
+        # "...(<|>|-|+)" + ">..."
+        return str1 + '<>' + str2
+    elif re.match(NOT_ESCAPED + '\\*$', str1) and re.match('^\\*.*$', str2):
+        # "...*" + "*..."
+        return str1 + '<>' + str2
+    elif re.match(NOT_ESCAPED + '~$', str1) and re.match('^~.*$', str2):
+        # "...~" + "~..."
+        return str1 + '<>' + str2
+    elif re.match(NOT_ESCAPED + '\\[$', str1) and re.match('^\\|.*$', str2):
+        # "...[" + "|..."
+        return str1 + '<>' + str2
+    elif re.match(NOT_ESCAPED + '\\|$', str1) and re.match('^\\].*$', str2):
+        # "...|" + "]...",
+        return str1 + '<>' + str2
+    elif re.match(NOT_ESCAPED + '_$', str1) and re.match('^_.*$', str2):
+        # "..._" + "_..."
+        return str1 + '<>' + str2
+    elif re.match(NOT_ESCAPED + '\\^$', str1) and re.match('^\\^.*$', str2):
+        # "...^" + "^..."
+        return str1 + '<>' + str2
+    elif re.match(NOT_ESCAPED + '\\-$', str1) and re.match('^\\-.*$', str2):
+        # "...-" + "-..."
+        return str1 + '<>' + str2
+    elif re.match(NOT_ESCAPED + '\\+$', str1) and re.match('^\\+.*$', str2):
+        # "...+" + "+..."
+        return str1 + '<>' + str2
+    elif re.match('^.*[0-9]$', str1) and re.match('^;.*$', str2):
+        # "...N" + ";..."
+        return str1 + '<>' + str2
+    elif (  # "...<" + "N..." is not necessary.
+          (re.match('^.*[0-9]$', str1) and re.match('^>.*$', str2))):
+        # "...<" + "N...", "...N" + ">..."
+        return str1 + '<>' + str2
+    elif re.match(NOT_ESCAPED + '\\\\$', str1) and re.match('^\\[.*$', str2):
+        # "...\" + "[..."
+        return str1 + '<>' + str2
+    elif re.match(NOT_ESCAPED + '\\\\$', str1) and re.match('^\\].*$', str2):
+        #  "...\" + "]..."
+        return str1 + '<>' + str2
+    elif ((re.match('^.*\\{$', str1) and re.match('^\\{.*$', str2)) or
+          (re.match('^.*\\}$', str1) and re.match('^\\}.*$', str2)) or
+          (re.match('^.*{$', str1) and re.match('^[0-9].*$', str2)) or
+          (re.match('^.*[0-9]$', str1) and re.match('^{.*$', str2)) or
+          (re.match('^.*}$', str1) and re.match('^[0-9].*$', str2)) or
+          (re.match('^.*[0-9]$', str1) and re.match('^}.*$', str2))):
+        # "...{" + "N...", "...N" + "{...", "...}" + "N...", "...N" + "}...",
+        return str1 + '<>' + str2
     else:
         return str1 + str2
 
@@ -6573,7 +6635,7 @@ class ProperNoun:
                         break
                     for pn in proper_nouns:
                         res_fr = NOT_ESCAPED + '%\\[' + pn + '\\]%(.*)$'
-                        res_to = '\g<1>' + proper_nouns[pn] + '\g<2>'
+                        res_to = '\\g<1>' + proper_nouns[pn] + '\\g<2>'
                         while re.match(res_fr, ml.text):
                             ml.text = re.sub(res_fr, res_to, ml.text)
         for i, ml in enumerate(self.md_lines):
