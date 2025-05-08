@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.05.07-11:07:24-JST>
+# Time-stamp:   <2025.05.08-11:08:59-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -4953,14 +4953,12 @@ class LineTruncation:
                         tex += tmp + '\n'
                         tmp = ''
         if tmp != '':
-            if re.match('^\\s', tmp):
-                tmp = '\\' + tmp
             tex += tmp + '\n'
             tmp = ''
         tmp = ''
         for t in tex.split('\n'):
             if re.match('^\\s+.*$', t):
-                if tmp == '' and (not re.match('^\\s+(1\\.|-)\\s', t)):
+                if (tmp != '') or (not re.match('^\\s+(1\\.|-)\\s', t)):
                     t = '\\' + t
             if re.match('^.*\\s+$', t):
                 t = t + '\\'
