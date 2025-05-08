@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.05.05-08:19:25-JST>
+# Time-stamp:   <2025.05.08-12:15:46-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -3657,9 +3657,19 @@ class OneWordDialog(tkinter.simpledialog.Dialog):
         self.mother.close_mouse_menu()  # close mouse menu
         self.entry.focus_force()
         self.mother.bt3 = tkinter.Menu(self, tearoff=False)
+        e = self.entry.get()
+        if e != '':
+            self.mother.bt3.add_command(label='コピー',
+                                        command=self.entry_copy_word)
+            self.mother.bt3.add_separator()
         self.mother.bt3.add_command(label='貼り付け',
                                     command=self.entry_paste_word)
         self.mother.bt3.post(click.x_root, click.y_root)
+
+    def entry_copy_word(self):
+        e = self.entry.get()
+        if e != '':
+            self.mother._clipboard_append(e)
 
     def entry_paste_word(self):
         try:
@@ -3797,6 +3807,11 @@ class TwoWordsDialog(tkinter.simpledialog.Dialog):
         self.mother.close_mouse_menu()  # close mouse menu
         self.entry1.focus_force()
         self.mother.bt3 = tkinter.Menu(self, tearoff=False)
+        e = self.entry1.get()
+        if e != '':
+            self.mother.bt3.add_command(label='コピー',
+                                        command=self.entry1_copy_word)
+            self.mother.bt3.add_separator()
         self.mother.bt3.add_command(label='貼り付け',
                                     command=self.entry1_paste_word)
         self.mother.bt3.post(click.x_root, click.y_root)
@@ -3805,9 +3820,19 @@ class TwoWordsDialog(tkinter.simpledialog.Dialog):
         self.mother.close_mouse_menu()  # close mouse menu
         self.entry2.focus_force()
         self.mother.bt3 = tkinter.Menu(self, tearoff=False)
+        e = self.entry2.get()
+        if e != '':
+            self.mother.bt3.add_command(label='コピー',
+                                        command=self.entry2_copy_word)
+            self.mother.bt3.add_separator()
         self.mother.bt3.add_command(label='貼り付け',
                                     command=self.entry2_paste_word)
         self.mother.bt3.post(click.x_root, click.y_root)
+
+    def entry1_copy_word(self):
+        e = self.entry1.get()
+        if e != '':
+            self.mother._clipboard_append(e)
 
     def entry1_paste_word(self):
         try:
@@ -3816,6 +3841,11 @@ class TwoWordsDialog(tkinter.simpledialog.Dialog):
             cb = ''
         if cb != '':
             self.entry1.insert('insert', cb)
+
+    def entry2_copy_word(self):
+        e = self.entry2.get()
+        if e != '':
+            self.mother._clipboard_append(e)
 
     def entry2_paste_word(self):
         try:
@@ -6252,6 +6282,15 @@ class Makdo:
         search_word = search_word.replace('^', '\\^').replace('$', '\\$')
         search_word = search_word.replace('|', '\\|')
         return search_word
+
+    def _clipboard_append(self, string):
+        if string != '':
+            self.win.clipboard_clear()
+            self.win.clipboard_append(string)
+            if self.clipboard_list[-1] != '':
+                self.clipboard_list.append('')
+            self.clipboard_list[-1] += string
+
 
     ####################################
     # MENU
@@ -14477,6 +14516,11 @@ class Makdo:
         self.close_mouse_menu()  # close mouse menu
         self.stb_sor1.focus_force()
         self.bt3 = tkinter.Menu(self.win, tearoff=False)
+        e = self.stb_sor1.get()
+        if e != '':
+            self.bt3.add_command(label='コピー',
+                                 command=self.sor1_copy_word)
+            self.bt3.add_separator()
         self.bt3.add_command(label='貼り付け',
                              command=self.sor1_paste_word)
         self.bt3.post(click.x_root, click.y_root)
@@ -14489,9 +14533,19 @@ class Makdo:
         self.close_mouse_menu()  # close mouse menu
         self.stb_sor2.focus_force()
         self.bt3 = tkinter.Menu(self.win, tearoff=False)
+        e = self.stb_sor2.get()
+        if e != '':
+            self.bt3.add_command(label='コピー',
+                                 command=self.sor2_copy_word)
+            self.bt3.add_separator()
         self.bt3.add_command(label='貼り付け',
                              command=self.sor2_paste_word)
         self.bt3.post(click.x_root, click.y_root)
+
+    def sor1_copy_word(self):
+        e = self.stb_sor1.get()
+        if e != '':
+            self._clipboard_append(e)
 
     def sor1_paste_word(self):
         try:
@@ -14500,6 +14554,11 @@ class Makdo:
             cb = ''
         if cb != '':
             self.stb_sor1.insert('insert', cb)
+
+    def sor2_copy_word(self):
+        e = self.stb_sor2.get()
+        if e != '':
+            self._clipboard_append(e)
 
     def sor2_paste_word(self):
         try:
