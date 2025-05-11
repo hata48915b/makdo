@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.05.11-10:50:09-JST>
+# Time-stamp:   <2025.05.11-11:54:02-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -1760,7 +1760,9 @@ class Form:
             if i > 0 and re.match(resb, xml_lines[i - 1], re.I):
                 if not re.match(rese, xl, re.I):
                     jst = datetime.timezone(datetime.timedelta(hours=+9))
-                    dt = datetime.datetime.strptime(xl, '%Y-%m-%dT%H:%M:%S%z')
+                    d = xl
+                    d = re.sub('\\.[0-9]+', '', d)  # '%Y-%m-%dT%H:%M:%S.%f%z'
+                    dt = datetime.datetime.strptime(d, '%Y-%m-%dT%H:%M:%S%z')
                     dt = dt.astimezone(jst)
                     Form.created_time = dt.isoformat()
             # MODIFIED TIME
@@ -1769,7 +1771,9 @@ class Form:
             if i > 0 and re.match(resb, xml_lines[i - 1], re.I):
                 if not re.match(rese, xl, re.I):
                     jst = datetime.timezone(datetime.timedelta(hours=+9))
-                    dt = datetime.datetime.strptime(xl, '%Y-%m-%dT%H:%M:%S%z')
+                    d = xl
+                    d = re.sub('\\.[0-9]+', '', d)  # '%Y-%m-%dT%H:%M:%S.%f%z'
+                    dt = datetime.datetime.strptime(d, '%Y-%m-%dT%H:%M:%S%z')
                     dt = dt.astimezone(jst)
                     Form.modified_time = dt.isoformat()
 
