@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.05.08-12:15:46-JST>
+# Time-stamp:   <2025.05.11-17:05:32-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -2676,7 +2676,8 @@ TYPEFACES = (
     'ァｧ', 'ィｨ', 'ゥｩ', 'ェｪ', 'ォｫ', 'ッｯ',
     'ャｬ', 'ュｭ', 'ョｮ',
     '+⁺₊', '-⁻₋', '=⁼₌', '(⁽₍', ')⁾₎',
-    '0⁰₀', '1⑴①', '2⑵②²₂', '3⑶③³₃', '4⑷④⁴₄', '5⑸⑤⁵₅', '6⑹⑥⁶₆', '7⑺⑦⁷₇', '8⑻⑧⁸₈', '9⑼⑨⁹₉',
+    '0⁰₀', '1⑴①', '2⑵②²₂', '3⑶③³₃', '4⑷④⁴₄',
+    '5⑸⑤⁵₅', '6⑹⑥⁶₆', '7⑺⑦⁷₇', '8⑻⑧⁸₈', '9⑼⑨⁹₉',
     'nⁿₙ',
     '印㊞', '有㈲', '株㈱', '社㈳', '財㈶', '学㈻',
     '吉𠮷', '崎﨑嵜', '高髙',
@@ -6290,7 +6291,6 @@ class Makdo:
             if self.clipboard_list[-1] != '':
                 self.clipboard_list.append('')
             self.clipboard_list[-1] += string
-
 
     ####################################
     # MENU
@@ -13825,9 +13825,54 @@ class Makdo:
                 self.save_file()
                 return 'break'
             else:
+                if 'unixtime_of_modf_pressed' not in vars(self):
+                    self.unixtime_of_modf_pressed = 0
+                unixtime_of_now = datetime.datetime.now().timestamp()
+                delta = unixtime_of_now - self.unixtime_of_modf_pressed
                 if 'akauni' in pane.mark_names():
                     pane.mark_unset('akauni')
-                pane.mark_set('akauni', 'insert')
+                if delta < 0.64:
+                    if 'stone1' not in pane.mark_names():
+                        self.set_message_on_status_bar('ストーンが設置されていません')
+                    elif ('stone4' in pane.mark_names() and
+                          'stone5' in pane.mark_names() and
+                          pane.index('stone4') == pane.index('insert')):
+                        pane.mark_set('insert', 'stone5')
+                        self.set_message_on_status_bar('ストーン５に移動しました')
+                    elif ('stone3' in pane.mark_names() and
+                          'stone4' in pane.mark_names() and
+                          pane.index('stone3') == pane.index('insert')):
+                        pane.mark_set('insert', 'stone4')
+                        self.set_message_on_status_bar('ストーン４に移動しました')
+                    elif ('stone2' in pane.mark_names() and
+                          'stone3' in pane.mark_names() and
+                          pane.index('stone2') == pane.index('insert')):
+                        pane.mark_set('insert', 'stone3')
+                        self.set_message_on_status_bar('ストーン３に移動しました')
+                    elif ('stone1' in pane.mark_names() and
+                          'stone2' in pane.mark_names() and
+                          pane.index('stone1') == pane.index('insert')):
+                        pane.mark_set('insert', 'stone2')
+                        self.set_message_on_status_bar('ストーン２に移動しました')
+                    else:
+                        pane.mark_set('insert', 'stone1')
+                        self.set_message_on_status_bar('ストーン１に移動しました')
+                    self.unixtime_of_modf_pressed = 0
+                elif delta < 2.56:
+                    if 'stone4' in pane.mark_names():
+                        pane.mark_set('stone5', 'stone4')
+                    if 'stone3' in pane.mark_names():
+                        pane.mark_set('stone4', 'stone3')
+                    if 'stone2' in pane.mark_names():
+                        pane.mark_set('stone3', 'stone2')
+                    if 'stone1' in pane.mark_names():
+                        pane.mark_set('stone2', 'stone1')
+                    pane.mark_set('stone1', 'insert')
+                    self.set_message_on_status_bar('ストーンを置きました')
+                    self.unixtime_of_modf_pressed = 0
+                else:
+                    pane.mark_set('akauni', 'insert')
+                    self.unixtime_of_modf_pressed = unixtime_of_now
                 return 'break'
         elif key.keysym == 'Delete':         # d (delete, quit)
             if self.key_history[-2] == 'F19':
