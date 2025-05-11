@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.05.08-11:08:59-JST>
+# Time-stamp:   <2025.05.11-10:50:09-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -8633,13 +8633,13 @@ class ParagraphTable(Paragraph):
         for j in range(num_clm):
             # ALIGNMENT AND LENGTH
             # ""=L / "-"=L / ":"=C / ":-*"=L / ":-*:"=C / "-*:"=R
-            if h_alig_tbl[std_row][j] == 'L':
+            if h_alig_tbl[std_row][j] == 'R':
                 if h_clen_row[j] == 0:
-                    h_conf_row[j] += ''
+                    pass
                 elif h_clen_row[j] == 1:
-                    h_conf_row[j] += '-'
+                    pass
                 else:
-                    h_conf_row[j] += ':' + '-' * (h_clen_row[j] - 1)
+                    h_conf_row[j] += '-' * (h_clen_row[j] - 1) + ':'
             elif h_alig_tbl[std_row][j] == 'C':
                 if h_clen_row[j] == 0:
                     pass
@@ -8647,13 +8647,13 @@ class ParagraphTable(Paragraph):
                     h_conf_row[j] += ':'
                 else:
                     h_conf_row[j] += ':' + '-' * (h_clen_row[j] - 2) + ':'
-            else:
+            else:  # "" or "L"
                 if h_clen_row[j] == 0:
-                    pass
+                    h_conf_row[j] += ''
                 elif h_clen_row[j] == 1:
-                    pass
+                    h_conf_row[j] += '-'
                 else:
-                    h_conf_row[j] += '-' * (h_clen_row[j] - 1) + ':'
+                    h_conf_row[j] += ':' + '-' * (h_clen_row[j] - 1)
             # RULE
             h_conf_row[j] += v_rule_tbl[std_row][j]
         return v_conf_clm, h_conf_row
@@ -8708,19 +8708,26 @@ class ParagraphTable(Paragraph):
                     #     cell = cell + '\\ '
                     # <
                 # TEXT
-                if h_alig_tbl[i][j] == 'L':
-                    if is_in_head or (h_alig_tbl[std_row][j] != 'L'):
-                        md_text += '|: ' + cell
+                if h_alig_tbl[i][j] == 'R':
+                    if is_in_head:
+                        md_text += '|' + cell + ' :'
+                    elif h_alig_tbl[std_row][j] != 'R':
+                        md_text += '|' + cell + ' :'
                     else:
                         md_text += '|' + cell
                 elif h_alig_tbl[i][j] == 'C':
-                    if (not is_in_head) and (h_alig_tbl[std_row][j] != 'C'):
+                    if is_in_head:
+                        md_text += '|' + cell
+                    elif h_alig_tbl[std_row][j] != 'C':
                         md_text += '|: ' + cell + ' :'
                     else:
                         md_text += '|' + cell
-                else:
-                    if is_in_head or (h_alig_tbl[std_row][j] != 'R'):
-                        md_text += '|' + cell + ' :'
+                else:  # "" or "L"
+                    if is_in_head:
+                        md_text += '|: ' + cell
+                    elif (h_alig_tbl[std_row][j] != '' and
+                          h_alig_tbl[std_row][j] != 'L'):
+                        md_text += '|: ' + cell
                     else:
                         md_text += '|' + cell
                 # MERGING CELLS
