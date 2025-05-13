@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.05.11-17:05:32-JST>
+# Time-stamp:   <2025.05.11-17:39:35-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -13857,6 +13857,7 @@ class Makdo:
                     else:
                         pane.mark_set('insert', 'stone1')
                         self.set_message_on_status_bar('ストーン１に移動しました')
+                    self._put_back_cursor_to_pane(pane)
                     self.unixtime_of_modf_pressed = 0
                 elif delta < 2.56:
                     if 'stone4' in pane.mark_names():

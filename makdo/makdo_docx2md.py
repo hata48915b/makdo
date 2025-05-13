@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.05.11-11:54:02-JST>
+# Time-stamp:   <2025.05.14-08:06:42-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -8330,6 +8330,7 @@ class ParagraphTable(Paragraph):
                             = CharsDatum.cancel_fd_cls(pre_cd, cur_cd)
                     pre_cd = cur_cd
         # FONT REVISERS
+        h_frs, t_frs = [], []
         fr_fd_cls = None
         bk_fd_cls = None
         for cd_row in cd_tbl:
@@ -8341,7 +8342,6 @@ class ParagraphTable(Paragraph):
         # fr_fd_cls = cd_tbl[0][0][0].fr_fd_cls
         # bk_fd_cls = cd_tbl[-1][-1][-1].bk_fd_cls
         if (fr_fd_cls is not None) and (bk_fd_cls is not None):
-            h_frs, t_frs = [], []
             fr, bk = fr_fd_cls.font_name, bk_fd_cls.font_name
             if fr != '' and bk != '' and FontDecorator.get_partner(fr) == bk:
                 fr_fd_cls.font_name, bk_fd_cls.font_name = '', ''

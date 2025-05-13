@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.05.08-09:54:22-JST>
+# Time-stamp:   <2025.05.14-00:06:00-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5664,59 +5664,28 @@ class ParagraphTable(Paragraph):
 
     @staticmethod
     def __get_tab_lines(md_lines):
+        #
+        is_left_aligment = False
+        for i, ml in enumerate(md_lines):
+            if re.match('^:\\s+(\\|(:?-*:?)?(\\^+|=+)?)+$', ml.text):
+                is_left_aligment = True
+        #
         tab_lines = []
-        tab_line = ''
+        t_ln = ''
         m = len(md_lines) - 1
         for i, ml in enumerate(md_lines):
-            tab_line += re.sub('^\\s*', '', ml.text)
-            # ESCAPED
-            if re.match(NOT_ESCAPED + '\\\\$', tab_line):
-                tab_line = re.sub('\\s*\\\\$', '', tab_line)
-                continue
-            # CONFIGURATIONS
-            res = '\\s*(\\|(:?-*:?)?(\\^+|=+)?)+$'
-            if re.match('^\\s*(:\\s+)?' + res, tab_line):
-                if i < m:
-                    j = i + 1
-                    if re.match('^' + res, md_lines[j].text):
-                        continue
-            # ONLY '|'
-            if ml.text == '|':
-                conf_cells = []
-                res = '\\s*(\\|(:?-*:?)?(\\^+|=+)?)+(?:\\s+:)?$'
-                for tl in tab_lines:
-                    if not re.match(res, tl):
-                        continue
-                    tl = re.sub('^(:\\s+)?\\|', '', tl)
-                    tl = re.sub('\\|(\\^+|=+)?(\\s+:)?$', '', tl)
-                    for c in tl.split('|'):
-                        if len(conf_cells) > 0 and \
-                           re.match(NOT_ESCAPED + '\\\\$', conf_cells[-1]):
-                            conf_cells[-1] += c
-                        else:
-                            conf_cells.append(c)
-                curr_cells = []
-                tl = tab_line
-                tl = re.sub('^\\|', '', tl)
-                tl = re.sub('\\|(:?-*:?)?(\\^+|=+)?$', '', tl)
-                for c in tl.split('|'):
-                    if len(curr_cells) > 0 and \
-                       re.match(NOT_ESCAPED + '\\\\$', curr_cells[-1]):
-                        curr_cells[-1] += c
-                    else:
-                        curr_cells.append(c)
-                if len(curr_cells) < len(conf_cells):
-                    continue
-            # NOT END BY '|'
-            res = NOT_ESCAPED + '\\|(:?-*:?)?(\\^+|=+)?(?:\\s+:)?$'
-            if not re.match(res, tab_line):
-                continue
-            # NOT BEGIN BY '|'
-            next_text = md_lines[i + 1].text if i < m else '|'
-            if not re.match('^:?\\s*\\|', next_text):
-                continue
-            tab_lines.append(tab_line)
-            tab_line = ''
+            if ((not is_left_aligment) and (len(ml.beg_space) <= 0)) or \
+               ((is_left_aligment) and (len(ml.beg_space) <= 2)):
+                #
+                if t_ln != '':
+                    tab_lines.append(t_ln)
+                    t_ln = ''
+            t_ln += ml.text
+        #
+        if t_ln != '':
+            tab_lines.append(t_ln)
+            t_ln = ''
+        #
         return tab_lines
 
     @staticmethod
@@ -5779,7 +5748,7 @@ class ParagraphTable(Paragraph):
                     row_heig_list.append(0.0)
                     row_alig_list.append(WD_ALIGN_VERTICAL.CENTER)
                 c = ''
-                res = '^(.*?\\|)?\\s*((?::?-+|:-*:|-*:)?(?:\\^+|=+)?)\\s*\\|?$'
+                res = '^(.*?\\|)?\\s*((?::?-+|:-*:|-*:)?(?:\\^+|=+)?)$'
                 if re.match(res, tl):
                     c = re.sub(res, '\\2', tl)
                     tl = re.sub(res, '\\1', tl)
