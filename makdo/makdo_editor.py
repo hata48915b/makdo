@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.05.15-20:33:23-JST>
+# Time-stamp:   <2025.05.16-07:52:32-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -15739,6 +15739,13 @@ class Makdo:
                     mc += line + '\n'
             self.set_message_on_status_bar('LlamaにRAGなしで質問しています', True)
             output = self.llama_without_rag.create_chat_completion(
+                # temperature=0.8,
+                frequency_penalty=1.000000001,
+                # presence_penalty=1.1,
+                # repeat_penalty=1.1,
+                # top_k=40,
+                # top_p=0.5,
+                # num_beams=1,
                 messages=messages)
             self.set_message_on_status_bar('', True)
             answer = adjust_line(output['choices'][0]['message']['content'])
