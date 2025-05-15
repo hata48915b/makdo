@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.05.11-17:39:35-JST>
+# Time-stamp:   <2025.05.15-20:33:23-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -15569,7 +15569,7 @@ class Makdo:
         mc = Minibuffer.MinibufferCommand(
             'ask-llama-with-rag',
             [None, 'LlamaにRAGありで質問する'],
-            ['self.mother.open_llama_without_rag()',
+            ['self.mother.open_llama_with_rag()',
              'self.set_return_to()'])
         Minibuffer.minibuffer_commands.append(mc)
 
@@ -15834,9 +15834,7 @@ class Makdo:
         def close_llama_without_rag(self) -> None:
             del self._execute_sub_pane
             del self._close_sub_pane
-            # file_path = CONFIG_DIR + '/' + 'llama.md'
-            # contents = self.sub.get('1.0', 'end-1c')
-            # self._save_config_file(file_path, contents)
+            self.llama_qanda = self.sub.get('1.0', 'end-1c')
             self.set_message_on_status_bar('')
             self._close_sub_pane()
 
