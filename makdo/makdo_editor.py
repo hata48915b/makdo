@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.05.16-07:52:32-JST>
+# Time-stamp:   <2025.05.20-09:20:33-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -150,13 +150,13 @@ COLOR_SPACE = (
     ('#005D8E', '#009AED', '#59C5FF', '#C8ECFF'),  # 200 : (fsp), ins, par4
     ('#0059B2', '#1F8FFF', '#79BCFF', '#D2E9FF'),  # 210 : chap1
     ('#0053EF', '#4385FF', '#8EB6FF', '#D9E7FF'),  # 220 : chap2, par5
-    ('#1F48FF', '#5F7CFF', '#9FB1FF', '#DFE5FF'),  # 230 : chap3
+    ('#1F48FF', '#5F7CFF', '#9FB1FF', '#DFE5FF'),  # 230 : chap3, proA
     ('#3F3FFF', '#7676FF', '#ADADFF', '#E4E4FF'),  # 240 : chap4, (hsp), par6
     ('#5B36FF', '#8A70FF', '#B9A9FF', '#E8E2FF'),  # 250 : chap5
     ('#772EFF', '#9E6AFF', '#C5A5FF', '#ECE1FF'),  # 260 : par7
-    ('#9226FF', '#B164FF', '#D0A2FF', '#EFE0FF'),  # 270 : proper_noun
+    ('#9226FF', '#B164FF', '#D0A2FF', '#EFE0FF'),  # 270 : proC
     ('#B01DFF', '#C75DFF', '#DD9EFF', '#F4DFFF'),  # 280 : par8
-    ('#D312FF', '#E056FF', '#EC9AFF', '#F9DDFF'),  # 290 : par9
+    ('#D312FF', '#E056FF', '#EC9AFF', '#F9DDFF'),  # 290 : par9, proB
     ('#FF05FF', '#FF4DFF', '#FF94FF', '#FFDBFF'),  # 300 : keyZ
     ('#FF0AD2', '#FF50DF', '#FF96EC', '#FFDCF9'),  # 310 : br, pgbr, hline
     ('#FF0EAB', '#FF53C3', '#FF98DB', '#FFDDF3'),  # 320 :
@@ -4280,8 +4280,12 @@ class CharsState:
         # ANGLE
         if False:
             pass
-        elif chars == 'proper noun':  # proper noun
-            key += '-270'             # proper noun
+        elif chars == 'proper noun A':  # proper noun
+            key += '-230'               # proper noun
+        elif chars == 'proper noun B':  # proper noun
+            key += '-290'               # proper noun
+        elif chars == 'proper noun C':  # proper noun
+            key +=   '-270'             # proper noun
         elif chars == ' ':
             return 'hsp_tag'
         elif chars == '\u3000':
@@ -4581,12 +4585,17 @@ class LineDatum:
                 end = str(i + 1) + '.' + str(j - 1)                 # 2.end
                 pane.tag_add(key, beg, end)                         # 3.tag
                 chars_state.toggle_is_in_comment()                  # 4.set
-                tmp = ''                                            # 5.tmp
+                tmp = '%['                                          # 5.tmp
                 beg = end                                           # 6.beg
                 is_in_proper_noun = True
                 continue
             if c2 == ']' and c1 == '%' and is_in_proper_noun:
-                key = chars_state.get_key('proper noun')            # 1.key
+                if re.match('%\\[A[0-9A-Za-z]?:.*\\]%', tmp):
+                    key = chars_state.get_key('proper noun A')      # 1.key
+                elif re.match('%\\[B[0-9A-Za-z]?:.*\\]%', tmp):
+                    key = chars_state.get_key('proper noun B')      # 1.key
+                else:
+                    key = chars_state.get_key('proper noun C')      # 1.key
                 end = str(i + 1) + '.' + str(j + 1)                 # 2.end
                 pane.tag_add(key, beg, end)                         # 3.tag
                 chars_state.toggle_is_in_comment()                  # 4.set
@@ -11010,15 +11019,20 @@ class Makdo:
         self.formula_number = 9
         self._insert_formula()
 
-    def edit_formula(self):
+    def edit_formula(self, mother=None):
+        pane = self.txt
+        if self.current_pane == 'sub':
+            pane = self.sub
+        if mother is None:
+            mother = pane
         self.quit_editing_formula()
         t = '定型句を編集'
         m = '編集する定型句を選んでください．'
         formulas = self._get_formulas()
         rd = RadiobuttonDialog(mother, self, t, m, formulas, formulas[0])
-        fd = self.FormulaDialog(self.txt, self, t, m)
-        self.formula_number = fd.get_value()
-        if self.formula_number > 0:
+        v = rd.get_value()
+        if v is not None:
+            self.formula_number = formulas.index(v) + 1
             self._edit_formula()
 
     def _edit_formula(self):
