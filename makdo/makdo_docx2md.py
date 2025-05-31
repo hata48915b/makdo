@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.05.14-08:06:42-JST>
+# Time-stamp:   <2025.05.31-10:42:45-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -320,7 +320,7 @@ RES_IMAGE = '! *\\[([^\\[\\]]*)\\] *\\(([^\\(\\)]+)\\)'
 RES_IMAGE_WITH_SIZE \
     = '!' \
     + ' *' \
-    + '\\[([^\\[\\]]+):(' + RES_NUMBER + ')x(' + RES_NUMBER + ')\\]' \
+    + '\\[([^\\[\\]]+?)\\s*@(' + RES_NUMBER + ')x(' + RES_NUMBER + ')\\]' \
     + ' *' \
     + '\\(([^\\(\\)]+)\\)'
 
@@ -6403,7 +6403,7 @@ class RawParagraph:
             fr, bk = '+++', '+++'
         else:
             # FREE SIZE
-            img_md_text = '![' + img_file_name + ':' + img_size + ']' \
+            img_md_text = '![' + img_file_name + ' @' + img_size + ']' \
                 + '(' + relative_dir + '/' + img_file_name + ')'
         return fr, img_md_text, bk
 
@@ -8306,19 +8306,33 @@ class ParagraphTable(Paragraph):
     @staticmethod
     def __get_txt_table_and_font_revisers(xml_tbl):
         cd_tbl = []
-        for row in xml_tbl:
+        for i in range(len(xml_tbl)):
             cd_row = []
-            for cell in row:
+            for j in range(len(xml_tbl[i])):
+                cell = xml_tbl[i][j]
                 chars_data, images, footnotes \
                     = RawParagraph._get_chars_data_and_etc('w:tbl', cell)
                 cd_row.append(chars_data)
-                # MERGING CELLS
-                gridspan = 1
+                # MERGE CELLS
+                span_x = 1
                 for xml in cell:
-                    gridspan \
-                        = XML.get_value('w:gridSpan', 'w:val', gridspan, xml)
-                if len(chars_data) > 0 and gridspan > 1:
-                    chars_data[-1].chars += '<gridspan=' + str(gridspan) + '>'
+                    span_x \
+                        = XML.get_value('w:gridSpan', 'w:val', span_x, xml)
+                if span_x != 1:
+                    chars_data.append(
+                        CharsDatum([], '<span_x=' + str(span_x) + '>', []))
+                span_y = 1
+                if '<w:vMerge w:val="restart"/>' in cell:
+                    for k in range(i + 1, len(xml_tbl)):
+                        if '<w:vMerge/>' in xml_tbl[k][j]:
+                            span_y += 1
+                        else:
+                            break
+                elif '<w:vMerge/>' in cell:
+                    span_y = -1
+                if span_y != 1:
+                    chars_data.append(
+                        CharsDatum([], '<span_y=' + str(span_y) + '>', []))
             cd_tbl.append(cd_row)
         # CANCEL
         pre_cd = None
@@ -8683,14 +8697,17 @@ class ParagraphTable(Paragraph):
                     is_in_head = False
             # DATA
             for j, cell in enumerate(row):
-                # MERGING CELLS
-                gridspan = 1
-                res = '^((?:.|\n)*)<gridspan=([0-9]+)>$'
+                # MERGE CELLS
+                span_y = 1
+                res = '^((?:.|\n)*)<span_y=(-?[0-9]+)>$'
                 if re.match(res, cell):
-                    gridspan = int(re.sub(res, '\\2', cell))
+                    span_y = int(re.sub(res, '\\2', cell))
                     cell = re.sub(res, '\\1', cell)
-                    # if gridspan > 1:
-                    #     cell += '@' + str(gridspan)
+                span_x = 1
+                res = '^((?:.|\n)*)<span_x=([0-9]+)>$'
+                if re.match(res, cell):
+                    span_x = int(re.sub(res, '\\2', cell))
+                    cell = re.sub(res, '\\1', cell)
                 # REPLACE
                 cell = cell.replace('|', '\\|')
                 cell = cell.replace('\n', '<br>')
@@ -8734,9 +8751,19 @@ class ParagraphTable(Paragraph):
                         md_text += '|: ' + cell
                     else:
                         md_text += '|' + cell
-                # MERGING CELLS
-                if gridspan > 1:
-                    md_text += '|' * (gridspan - 1)
+                # MERGE CELLS
+                if span_x > 1 or span_y > 1:
+                    span = ''
+                    if span_x > 1:
+                        span += str(span_x)
+                    if span_y > 1:
+                        span += 'x' + str(span_x)
+                    if span != '':
+                        if not re.match('^(.|\n)*\\s:$', md_text):
+                            md_text += ' '
+                        md_text += '@' + span
+                if span_x > 1:
+                    md_text += '|' * (span_x - 1)
                 # md_text += v_rule_tbl[i][j]
             md_text += '|' + v_conf_clm[i] + '\n'
         # md_text = md_text.replace('&lt;', '<')
@@ -8823,15 +8850,15 @@ class ParagraphImage(Paragraph):
                 cm_h = -0.5
             if cm_w < 0 and cm_h < 0:
                 img_text = '!' \
-                    + '[' + alte + ':' + str(cm_w) + 'x' + str(cm_h) + ']' \
+                    + '[' + alte + '@' + str(cm_w) + 'x' + str(cm_h) + ']' \
                     + '(' + path + ')'
             elif cm_w < 0:
                 img_text = '!' \
-                    + '[' + alte + ':' + str(cm_w) + 'x' + ']' \
+                    + '[' + alte + '@' + str(cm_w) + 'x' + ']' \
                     + '(' + path + ')'
             elif cm_h < 0:
                 img_text = '!' \
-                    + '[' + alte + ':' + 'x' + str(cm_h) + ']' \
+                    + '[' + alte + '@' + 'x' + str(cm_h) + ']' \
                     + '(' + path + ')'
         return img_text
 

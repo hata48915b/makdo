@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.05.20-09:20:33-JST>
+# Time-stamp:   <2025.05.31-10:29:20-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -10434,9 +10434,9 @@ class Makdo:
                     a_row.append('c')
                 else:
                     a_row.append(b_row[k])
-                if re.match('^:\\s.*\\s:$', cell):
+                if re.match('^:\\s.*\\s:(\\s*@([0-9]*x)?[0-9]+)?$', cell):
                     a_row[k] = 'c'
-                elif re.match('^.*\\s:$', cell):
+                elif re.match('^.*\\s:(\\s*@([0-9]*x)?[0-9]+)?$', cell):
                     a_row[k] = 'r'
                 elif re.match('^:\\s.*$', cell):
                     a_row[k] = 'l'
@@ -15754,7 +15754,7 @@ class Makdo:
             self.set_message_on_status_bar('LlamaにRAGなしで質問しています', True)
             output = self.llama_without_rag.create_chat_completion(
                 # temperature=0.8,
-                frequency_penalty=1.000000001,
+                # frequency_penalty=1.000000001,
                 # presence_penalty=1.1,
                 # repeat_penalty=1.1,
                 # top_k=40,

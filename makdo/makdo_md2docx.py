@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.05.14-00:06:00-JST>
+# Time-stamp:   <2025.05.31-10:16:17-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -75,8 +75,9 @@ __version__ = 'v08 Omachi'
 #
 # 表のセルにおいて、右側の空白が無視される。
 #
-# 数式環境で、"\mathrm"が効かず、イタリックになる
-
+# 数式環境で、"\mathrm"が効かず、イタリックになる。
+#
+# ルビを含む文字列があると、空白文字が無視される場合がある。
 
 ############################################################
 # POLICY
@@ -5218,7 +5219,9 @@ class Paragraph:
         text_height = PAPER_HEIGHT[Form.paper_size] \
             - Form.top_margin - Form.bottom_margin
         ms_run = ms_par.add_run()
-        res = '^(.*):(' + RES_NUMBER + ')?(?:x(' + RES_NUMBER + ')?)?$'
+        # BACKWARD COMPATIBILITY
+        res = '^(.*?)\\s*[:@](' + RES_NUMBER + ')?(?:x(' + RES_NUMBER + ')?)?$'
+        # res = '^(.*?)\\s*@(' + RES_NUMBER + ')?(?:x(' + RES_NUMBER + ')?)?$'
         cm_w = 0
         cm_h = 0
         if re.match(res, alte):
@@ -5559,6 +5562,7 @@ class ParagraphTable(Paragraph):
             col_alig_list, col_widt_list, col_rule_list, \
             row_alig_list, row_heig_list, row_rule_list \
             = self.__get_tab_data(tab_lines)
+        tab, merge_mtrx = self.__get_merge_mtrx(tab)
         cal, cwl, crl = col_alig_list, col_widt_list, col_rule_list
         tab, col_alig_mtrx, col_widt_mtrx, col_rule_mtrx \
             = self.__get_col_data(tab, conf_line_place, cal, cwl, crl)
@@ -5657,6 +5661,21 @@ class ParagraphTable(Paragraph):
                     XML.add_tag(ms_tcbr, 'w:left', {'w:val': 'double'})
                 if hori_rule_list[j] == '=':
                     XML.add_tag(ms_tcbr, 'w:right', {'w:val': 'double'})
+        # MERGE CELLS
+        for i in range(len(tab)):
+            for j in range(len(tab[i])):
+                merge_text = merge_mtrx[i][j]
+                if merge_text != '':
+                    res = '^([0-9]+)x([0-9]+)$'
+                    if re.match(res, merge_text):
+                        mt_x = int(re.sub(res, '\\1', merge_text)) - 1
+                        mt_y = int(re.sub(res, '\\2', merge_text)) - 1
+                    else:
+                        mt_x = int(merge_text) - 1
+                        mt_y = 0
+                    ms_cell_fr = ms_tab.cell(i, j)
+                    ms_cell_to = ms_tab.cell(i + mt_y, j + mt_x)
+                    ms_cell_fr.merge(ms_cell_to)
         # CHARS STATE
         self.chars_state.apply_font_decorators(self.tail_font_revisers)
         self.end_chars_state = self.chars_state.copy()
@@ -5674,12 +5693,13 @@ class ParagraphTable(Paragraph):
         t_ln = ''
         m = len(md_lines) - 1
         for i, ml in enumerate(md_lines):
-            if ((not is_left_aligment) and (len(ml.beg_space) <= 0)) or \
-               ((is_left_aligment) and (len(ml.beg_space) <= 2)):
-                #
-                if t_ln != '':
-                    tab_lines.append(t_ln)
-                    t_ln = ''
+            if re.match('^(:\\s+)?\\s*\\|', ml.text):
+                if ((not is_left_aligment) and (len(ml.beg_space) <= 0)) or \
+                   ((is_left_aligment) and (len(ml.beg_space) <= 2)):
+                    #
+                    if t_ln != '':
+                        tab_lines.append(t_ln)
+                        t_ln = ''
             t_ln += ml.text
         #
         if t_ln != '':
@@ -5825,6 +5845,22 @@ class ParagraphTable(Paragraph):
             row_alig_list, row_heig_list, row_rule_list
 
     @staticmethod
+    def __get_merge_mtrx(tab):
+        # MERGE CELLS
+        res = '^(.*)@((?:[0-9]*x)?[0-9]+)$'
+        merge_mtrx = []
+        for i in range(len(tab)):
+            merge_list = []
+            for j in range(len(tab[i])):
+                merge_text = ''
+                if re.match(res, tab[i][j]):
+                    merge_text = re.sub(res, '\\2', tab[i][j])
+                    tab[i][j] = re.sub(res, '\\1', tab[i][j])
+                merge_list.append(merge_text)
+            merge_mtrx.append(merge_list)
+        return tab, merge_mtrx
+
+    @staticmethod
     def __get_col_data(tab, conf_line_place,
                        col_alig_list, col_widt_list, col_rule_list):
         col_alig_mtrx, col_widt_mtrx, col_rule_mtrx = [], [], []
@@ -5888,7 +5924,9 @@ class ParagraphImage(Paragraph):
             - Form.left_margin - Form.right_margin
         text_height = PAPER_HEIGHT[Form.paper_size] \
             - Form.top_margin - Form.bottom_margin
-        res = '^(.*):(' + RES_NUMBER + ')?(?:x(' + RES_NUMBER + ')?)?$'
+        # BACKWARD COMPATIBILITY
+        res = '^(.*?)\\s*[:@](' + RES_NUMBER + ')?(?:x(' + RES_NUMBER + ')?)?$'
+        # res = '^(.*?)\\s*@(' + RES_NUMBER + ')?(?:x(' + RES_NUMBER + ')?)?$'
         for text in ttw.split('\n'):
             alte = re.sub(RES_IMAGE, '\\1', text)
             path = re.sub(RES_IMAGE, '\\2', text)
@@ -6584,8 +6622,8 @@ class ProperNoun:
 
     def substitute(self):
         proper_nouns = {}
-        res1 = '^%\\[(.+)\\]%\\s*=\\s*"(.+)"\\s*(?:<!--.*-->)?'
-        res2 = '^%\\[(.+)\\]%\\s*=\\s*"(.+)".*'
+        res1 = '^%\\[(.+)\\]%\\s*=\\s*"(.*)"\\s*(?:<!--.*-->)?'
+        res2 = '^%\\[(.+)\\]%\\s*=\\s*"(.*)".*'
         for i, ml in enumerate(self.md_lines):
             if re.match(res1, ml.raw_text) and re.match(res2, ml.text):
                 t1 = re.sub(res2, '\\1', ml.text)
@@ -6783,6 +6821,9 @@ class Script:
 
     def __calc_value(self, value, md_line):
         val = value
+        # STRING
+        if re.match('^"[^"]*"$', val) or re.match("^'[^']*'$", val):
+            return val
         # NEW LINE
         val = re.sub('\\\\n', '\n', val)
         # NUMBER
@@ -6910,6 +6951,8 @@ class Script:
         res = '^\\s*"((?:.|\n)*?)"\\s*\\+\\s*"((?:.|\n)*)"\\s*$'
         while re.match(res, val):
             val = re.sub(res, "'\\1\\2'", val)
+        if re.match('^"[^"]*"$', val) or re.match("^'[^']*'$", val):
+            return val  # string
         # BINARY OPERATE (x^y, x**y, x/y, x//y, x%y, x*y, x-y, x+y)
         val = self.__binary_operate('\\^|\\*\\*', val, md_line)
         val = self.__binary_operate('/|//|%|\\*', val, md_line)
