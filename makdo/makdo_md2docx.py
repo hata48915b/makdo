@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.05.31-10:16:17-JST>
+# Time-stamp:   <2025.06.01-09:34:34-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5624,24 +5624,41 @@ class ParagraphTable(Paragraph):
                 ms_par.style = 'makdo-t'
                 # TEXT
                 cell = tab[i][j]
-                # WORD WRAP (英単語の途中で改行する)
-                ms_ppr = ms_par._p.get_or_add_pPr()
-                XML.add_tag(ms_ppr, 'w:wordWrap', {'w:val': '0'})
                 cell = re.sub('^\\s+\\\\?', '', cell)
                 cell = re.sub('\\\\?\\s+$', '', cell)
-                self.write_text(ms_par, chars_state, cell)
-                ms_fmt = ms_par.paragraph_format
-                ms_fmt.alignment = hori_alig_mtrx[i][j]
-                ls = TABLE_LINE_SPACING * (1 + length_docx['line spacing'])
-                if ls >= 1.0:
-                    ms_fmt.line_spacing = Pt(ls * c_size)
-                else:
-                    ms_fmt.line_spacing = Pt(1.0 * c_size)
-                    msg = '※ 警告: ' \
-                        + '行間隔「X」の値が少なすぎます'
-                    # msg = 'warning: ' \
-                    #     + 'too small line spacing'
-                    self.md_lines[0].append_warning_message(msg)
+                pars = cell.split('<br>')
+                while len(ms_cell.paragraphs) < len(pars):
+                    ms_cell.add_paragraph()
+                for k, par in enumerate(pars):
+                    ms_par = ms_cell.paragraphs[k]
+                    ms_par.style = 'makdo-t'
+                    # WORD WRAP (英単語の途中で改行する)
+                    ms_ppr = ms_par._p.get_or_add_pPr()
+                    XML.add_tag(ms_ppr, 'w:wordWrap', {'w:val': '0'})
+                    ms_fmt = ms_par.paragraph_format
+                    if re.match('^\\s*:\\s', par) and \
+                       re.match(NOT_ESCAPED + '\\s:\\s*$', par):
+                        ms_fmt.alignment = WD_TABLE_ALIGNMENT.CENTER
+                        par = re.sub('^\\s*:\\s(.*)\\s:\\s*$', '\\1', par)
+                    elif re.match('^\\s*:\\s', cell):
+                        ms_fmt.alignment = WD_TABLE_ALIGNMENT.LEFT
+                        par = re.sub('^\\s*:\\s(.*)$', '\\1', par)
+                    elif re.match(NOT_ESCAPED + '\\s:\\s*$', cell):
+                        ms_fmt.alignment = WD_TABLE_ALIGNMENT.RIGHT
+                        par = re.sub('^(.*)\\s:\\s*$', '\\1', par)
+                    else:
+                        ms_fmt.alignment = hori_alig_mtrx[i][j]
+                    self.write_text(ms_par, chars_state, par)
+                    ls = TABLE_LINE_SPACING * (1 + length_docx['line spacing'])
+                    if ls >= 1.0:
+                        ms_fmt.line_spacing = Pt(ls * c_size)
+                    else:
+                        ms_fmt.line_spacing = Pt(1.0 * c_size)
+                        msg = '※ 警告: ' \
+                            + '行間隔「X」の値が少なすぎます'
+                        # msg = 'warning: ' \
+                            #     + 'too small line spacing'
+                        self.md_lines[0].append_warning_message(msg)
                 # RULE
                 ms_tcpr = ms_cell._tc.get_or_add_tcPr()
                 ms_tcbr = XML.add_tag(ms_tcpr, 'w:tcBorders')
@@ -5873,22 +5890,14 @@ class ParagraphTable(Paragraph):
             col_alig_mtrx.append(ca)
             col_widt_mtrx.append(cw)
             col_rule_mtrx.append(cr)
-        # ALIGNMENT
-        for i in range(len(tab)):
-            for j in range(len(tab[i])):
-                cell = tab[i][j]
-                if re.match('^\\s*:\\s', cell) and \
-                   re.match(NOT_ESCAPED + '\\s:\\s*$', cell):
-                    col_alig_mtrx[i][j] = WD_TABLE_ALIGNMENT.CENTER
-                    tab[i][j] = re.sub('^\\s*:\\s(.*)\\s:\\s*$', '\\1', cell)
-                elif re.match('^\\s*:\\s', cell):
-                    col_alig_mtrx[i][j] = WD_TABLE_ALIGNMENT.LEFT
-                    tab[i][j] = re.sub('^\\s*:\\s(.*)$', '\\1', cell)
-                elif re.match(NOT_ESCAPED + '\\s:\\s*$', cell):
-                    col_alig_mtrx[i][j] = WD_TABLE_ALIGNMENT.RIGHT
-                    tab[i][j] = re.sub('^(.*)\\s:\\s*$', '\\1', cell)
-                elif conf_line_place > 0 and i < conf_line_place:
-                    col_alig_mtrx[i][j] = WD_TABLE_ALIGNMENT.CENTER
+        # TABLE HEADER
+        if conf_line_place > 0:
+            for i in range(len(tab)):
+                if i < conf_line_place:
+                    for j in range(len(tab[i])):
+                        col_alig_mtrx[i][j] = WD_TABLE_ALIGNMENT.CENTER
+                else:
+                    break
         return tab, col_alig_mtrx, col_widt_mtrx, col_rule_mtrx
 
     @staticmethod
@@ -6614,41 +6623,34 @@ class MdLine:
             sys.stderr.write(msg + '\n\n')
 
 
-# PROPER NOUN
-class ProperNoun:
+class SubstitutePhrase:
 
-    def __init__(self, md_lines):
-        self.md_lines = md_lines
+    def __init__(self, initial_md_lines):
+        self.initial_md_lines = initial_md_lines
+        self.final_document = []
 
-    def substitute(self):
-        proper_nouns = {}
-        res1 = '^%\\[(.+)\\]%\\s*=\\s*"(.*)"\\s*(?:<!--.*-->)?'
-        res2 = '^%\\[(.+)\\]%\\s*=\\s*"(.*)".*'
-        for i, ml in enumerate(self.md_lines):
-            if re.match(res1, ml.raw_text) and re.match(res2, ml.text):
-                t1 = re.sub(res2, '\\1', ml.text)
-                t2 = re.sub(res2, '\\2', ml.text)
-                proper_nouns[t1] = t2
-                ml.comment = '<!-- ' + ml.text + '-->' + ml.comment
-                ml.text = ''
-            else:
-                for i in range(10):
-                    if not re.match(NOT_ESCAPED + '%\\[.*\\]%(.*)$', ml.text):
-                        break
-                    for pn in proper_nouns:
-                        res_fr = NOT_ESCAPED + '%\\[' + pn + '\\]%(.*)$'
-                        res_to = '\\g<1>' + proper_nouns[pn] + '\\g<2>'
-                        while re.match(res_fr, ml.text):
-                            ml.text = re.sub(res_fr, res_to, ml.text)
-        for i, ml in enumerate(self.md_lines):
-            res = NOT_ESCAPED + '%\\[.+\\]%(.*)$'
-            if re.match(res, ml.text):
-                msg = '※ 警告: ' \
-                    + '置換されていない変数が残っています'
-                # msg = 'warning: ' \
-                #     + 'unsubstituted variables remain'
-                ml.append_warning_message(msg)
-        return self.md_lines
+    def assign(self):
+        doc = '\n'.join(self.initial_md_lines)
+        substitute_phrases = {}
+        res = '^((?:.|\n)*\n)?' \
+            + '%\\[(.+?)\\]%\\s*=\\s*"' \
+            + '((?:(?:.|\n)*?[^\\\\])??(?:\\\\\\\\)*?)?' \
+            + '"(\n(?:.|\n)*)?$'
+        while re.match(res, doc):
+            prop_id = re.sub(res, '\\2', doc)
+            prop_val = re.sub(res, '\\3', doc)
+            substitute_phrases[prop_id] = prop_val
+            doc = re.sub(res, '\\1\\4', doc)
+        for _ in range(1000):
+            if not re.match(NOT_ESCAPED + '%\\[.*?\\]%((?:.|\n)*)$', doc):
+                break
+            for pn in substitute_phrases:
+                res_fr = NOT_ESCAPED + '%\\[' + pn + '\\]%((?:.|\n)*)$'
+                res_to = '\\g<1>' + substitute_phrases[pn] + '\\g<2>'
+                while re.match(res_fr, doc):
+                    doc = re.sub(res_fr, res_to, doc)
+        self.final_document = doc.split('\n')
+        return self.final_document
 
 
 class Script:
@@ -7053,15 +7055,14 @@ class Md2Docx:
         # READ MARKDOWN FILE
         io.set_md_file(inputed_md_file)
         formal_md_lines = io.read_md_file()
-        doc.md_lines = doc.get_md_lines(formal_md_lines)
+        assigned_md_lines = SubstitutePhrase(formal_md_lines).assign()
+        doc.md_lines = doc.get_md_lines(assigned_md_lines)
         # CONFIGURE
         frm.md_lines = doc.md_lines
         frm.args = args
         frm.configure()
         # UNFOLD
         doc.md_lines = Document().unfold(doc.md_lines)
-        # PROPER NOUN
-        doc.md_lines = ProperNoun(doc.md_lines).substitute()
         # EXECUTE SCRIPT
         doc.md_lines = Script(doc.md_lines).execute()
         # GET RAW PARAGRAPHS
