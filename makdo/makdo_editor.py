@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.06.02-20:18:00-JST>
+# Time-stamp:   <2025.06.02-20:26:06-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -4543,14 +4543,14 @@ class LineDatum:
                 # CHAPTER
                 res = '^((?:`|\\*|\\-{2,}|\\+{2,})+)' \
                     + '(\\${,5})(?:-\\$+)*(=[\\.0-9]+)?(?:\\s.*)?' \
-                    + '((?:`|\\*|\\-{2,}|\\+{2,})+)\n?$'
+                    + '((?:`|\\*|\\-{2,}|\\+{2,})*)\n?$'
                 if re.match(res, line_text):
                     dep = len(re.sub(res, '\\2', line_text))
                     chars_state.set_chapter_depth(dep)
                 # SECTION
                 res = '^((?:`|\\*|\\-{2,}|\\+{2,})+)' \
                     + '(#{,8})(?:-#+)*(=[\\.0-9]+)?(?:\\s.*)?' \
-                    + '((?:`|\\*|\\-{2,}|\\+{2,})+)\n?$'
+                    + '((?:`|\\*|\\-{2,}|\\+{2,})*)\n?$'
                 if re.match(res, line_text):
                     dep = len(re.sub(res, '\\2', line_text))
                     chars_state.set_section_depth(dep)
