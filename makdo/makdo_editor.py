@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.05.31-10:29:20-JST>
+# Time-stamp:   <2025.06.02-20:18:00-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -150,13 +150,13 @@ COLOR_SPACE = (
     ('#005D8E', '#009AED', '#59C5FF', '#C8ECFF'),  # 200 : (fsp), ins, par4
     ('#0059B2', '#1F8FFF', '#79BCFF', '#D2E9FF'),  # 210 : chap1
     ('#0053EF', '#4385FF', '#8EB6FF', '#D9E7FF'),  # 220 : chap2, par5
-    ('#1F48FF', '#5F7CFF', '#9FB1FF', '#DFE5FF'),  # 230 : chap3, proA
+    ('#1F48FF', '#5F7CFF', '#9FB1FF', '#DFE5FF'),  # 230 : chap3, subsA
     ('#3F3FFF', '#7676FF', '#ADADFF', '#E4E4FF'),  # 240 : chap4, (hsp), par6
     ('#5B36FF', '#8A70FF', '#B9A9FF', '#E8E2FF'),  # 250 : chap5
     ('#772EFF', '#9E6AFF', '#C5A5FF', '#ECE1FF'),  # 260 : par7
-    ('#9226FF', '#B164FF', '#D0A2FF', '#EFE0FF'),  # 270 : proC
+    ('#9226FF', '#B164FF', '#D0A2FF', '#EFE0FF'),  # 270 : subsC
     ('#B01DFF', '#C75DFF', '#DD9EFF', '#F4DFFF'),  # 280 : par8
-    ('#D312FF', '#E056FF', '#EC9AFF', '#F9DDFF'),  # 290 : par9, proB
+    ('#D312FF', '#E056FF', '#EC9AFF', '#F9DDFF'),  # 290 : par9, subsB
     ('#FF05FF', '#FF4DFF', '#FF94FF', '#FFDBFF'),  # 300 : keyZ
     ('#FF0AD2', '#FF50DF', '#FF96EC', '#FFDCF9'),  # 310 : br, pgbr, hline
     ('#FF0EAB', '#FF53C3', '#FF98DB', '#FFDDF3'),  # 320 :
@@ -4115,6 +4115,8 @@ class CharsState:
         self.is_resized = ''
         self.is_stretched = ''
         self.is_in_preformatted = False
+        self.is_in_italic = False
+        self.is_in_bold = False
         self.is_length_reviser = False
         self.chapter_depth = 0
         self.section_depth = 0
@@ -4142,6 +4144,10 @@ class CharsState:
             return False
         if self.is_in_preformatted != other.is_in_preformatted:
             return False
+        if self.is_in_italic != other.is_in_italic:
+            return False
+        if self.is_in_bold != other.is_in_bold:
+            return False
         return True
 
     def copy(self):
@@ -4158,6 +4164,8 @@ class CharsState:
         copy.is_resized = self.is_resized
         copy.is_stretched = self.is_stretched
         copy.is_in_preformatted = self.is_in_preformatted
+        copy.is_in_italic = self.is_in_italic
+        copy.is_in_bold = self.is_in_bold
         copy.is_length_reviser = self.is_length_reviser
         copy.chapter_depth = self.chapter_depth
         copy.section_depth = self.section_depth
@@ -4247,6 +4255,12 @@ class CharsState:
     def toggle_is_in_preformatted(self):
         self.is_in_preformatted = not self.is_in_preformatted
 
+    def toggle_is_in_italic(self):
+        self.is_in_italic = not self.is_in_italic
+
+    def toggle_is_in_bold(self):
+        self.is_in_bold = not self.is_in_bold
+
     def apply_parenthesis(self, parenthesis):
         ps = self.parentheses
         p = parenthesis
@@ -4280,12 +4294,12 @@ class CharsState:
         # ANGLE
         if False:
             pass
-        elif chars == 'proper noun A':  # proper noun
-            key += '-230'               # proper noun
-        elif chars == 'proper noun B':  # proper noun
-            key += '-290'               # proper noun
-        elif chars == 'proper noun C':  # proper noun
-            key +=   '-270'             # proper noun
+        elif chars == 'substitute phrase A':  # substitute phrase
+            key += '-230'                     # substitute phrase
+        elif chars == 'substitute phrase B':  # substitute phrase
+            key += '-290'                     # substitute phrase
+        elif chars == 'substitute phrase C':  # substitute phrase
+            key += '-270'                     # substitute phrase
         elif chars == ' ':
             return 'hsp_tag'
         elif chars == '\u3000':
@@ -4413,6 +4427,10 @@ class CharsState:
             key += '-u'  # stretched
         elif not self.is_in_comment and self.is_in_preformatted:
             key += '-u'  # preformatted
+        elif not self.is_in_comment and self.is_in_italic:
+            key += '-u'  # italic
+        elif not self.is_in_comment and self.is_in_bold:
+            key += '-u'  # bold
         else:
             key += '-x'  # no underline
         # RETURN
@@ -4451,7 +4469,7 @@ class LineDatum:
         # LINE
         if not chars_state.is_in_comment:
             # PAGE BREAK
-            if line_text == '<pgbr>\n':
+            if line_text == '<pgbr>\n' or line_text == '<Pgbr>\n':
                 beg, end = str(i + 1) + '.0', str(i + 1) + '.end'
                 key = chars_state.get_key('<pgbr>')                     # 1.key
                 #                                                       # 2.end
@@ -4519,6 +4537,23 @@ class LineDatum:
                 if re.match(res, line_text):
                     dep = len(re.sub(res, '\\1', line_text))
                     chars_state.set_section_depth(dep)
+            # CHAPTER AND SECTION
+            if line_text[0] == '`' or line_text[0] == '*' or \
+               line_text[0] == '-' or line_text[0] == '+':
+                # CHAPTER
+                res = '^((?:`|\\*|\\-{2,}|\\+{2,})+)' \
+                    + '(\\${,5})(?:-\\$+)*(=[\\.0-9]+)?(?:\\s.*)?' \
+                    + '((?:`|\\*|\\-{2,}|\\+{2,})+)\n?$'
+                if re.match(res, line_text):
+                    dep = len(re.sub(res, '\\2', line_text))
+                    chars_state.set_chapter_depth(dep)
+                # SECTION
+                res = '^((?:`|\\*|\\-{2,}|\\+{2,})+)' \
+                    + '(#{,8})(?:-#+)*(=[\\.0-9]+)?(?:\\s.*)?' \
+                    + '((?:`|\\*|\\-{2,}|\\+{2,})+)\n?$'
+                if re.match(res, line_text):
+                    dep = len(re.sub(res, '\\2', line_text))
+                    chars_state.set_section_depth(dep)
             if line_text[0] == '.':
                 res = '^(?:\\.\\.\\.\\[[0-9]+\\])' \
                     + '(#{,8})(?:-#+)*(=[\\.0-9]+)?(?:\\s.*)?\n?$'
@@ -4562,7 +4597,7 @@ class LineDatum:
                 return
         # PARTS
         beg, tmp = str(i + 1) + '.0', ''
-        is_in_proper_noun = False  # proper noun
+        is_in_substitute_phrase = False  # substitute phrase
         for j, c in enumerate(line_text):
             tmp += c
             s1 = line_text[j - 0:j + 1] if True else ''
@@ -4577,33 +4612,33 @@ class LineDatum:
             c5 = line_text[j - 4] if j > 3 else ''
             s_lft = line_text[:j + 1]
             s_rgt = line_text[j + 1:]
-            # PROPER NOUN
-            if c2 == '%' and c1 == '[' and not is_in_proper_noun and \
+            # SUBSTITUTE PHRASE
+            if c2 == '%' and c1 == '[' and not is_in_substitute_phrase and \
                re.match(NOT_ESCAPED + '%\\[$', s_lft) and \
                re.match('^.*\\]%.*$', s_rgt):
-                key = chars_state.get_key('')                       # 1.key
-                end = str(i + 1) + '.' + str(j - 1)                 # 2.end
-                pane.tag_add(key, beg, end)                         # 3.tag
-                chars_state.toggle_is_in_comment()                  # 4.set
-                tmp = '%['                                          # 5.tmp
-                beg = end                                           # 6.beg
-                is_in_proper_noun = True
+                key = chars_state.get_key('')                           # 1.key
+                end = str(i + 1) + '.' + str(j - 1)                     # 2.end
+                pane.tag_add(key, beg, end)                             # 3.tag
+                chars_state.toggle_is_in_comment()                      # 4.set
+                tmp = '%['                                              # 5.tmp
+                beg = end                                               # 6.beg
+                is_in_substitute_phrase = True
                 continue
-            if c2 == ']' and c1 == '%' and is_in_proper_noun:
+            if c2 == ']' and c1 == '%' and is_in_substitute_phrase:
                 if re.match('%\\[A[0-9A-Za-z]?:.*\\]%', tmp):
-                    key = chars_state.get_key('proper noun A')      # 1.key
+                    key = chars_state.get_key('substitute phrase A')    # 1.key
                 elif re.match('%\\[B[0-9A-Za-z]?:.*\\]%', tmp):
-                    key = chars_state.get_key('proper noun B')      # 1.key
+                    key = chars_state.get_key('substitute phrase B')    # 1.key
                 else:
-                    key = chars_state.get_key('proper noun C')      # 1.key
-                end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                pane.tag_add(key, beg, end)                         # 3.tag
-                chars_state.toggle_is_in_comment()                  # 4.set
-                tmp = ''                                            # 5.tmp
-                beg = end                                           # 6.beg
-                is_in_proper_noun = False
+                    key = chars_state.get_key('substitute phrase C')    # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
+                pane.tag_add(key, beg, end)                             # 3.tag
+                chars_state.toggle_is_in_comment()                      # 4.set
+                tmp = ''                                                # 5.tmp
+                beg = end                                               # 6.beg
+                is_in_substitute_phrase = False
                 continue
-            if is_in_proper_noun:
+            if is_in_substitute_phrase:
                 continue
             # END OF THE LINE "\n"
             if c1 == '\n':
@@ -4755,7 +4790,7 @@ class LineDatum:
                     beg = end                                           # 6.beg
                     continue
                 # LINE BREAK
-                if len(tmp) >= 4 and s4 == '<br>':
+                if len(tmp) >= 4 and (s4 == '<br>' or s4 == '<Br>'):
                     key = chars_state.get_key('')                       # 1.key
                     end = str(i + 1) + '.' + str(j - 3)                 # 2.end
                     pane.tag_add(key, beg, end)                         # 3.tag
@@ -5060,6 +5095,36 @@ class LineDatum:
                     pane.tag_add(key, beg, end)                         # 3.tag
                     if not iip and not re.match(NOT_ESCAPED + '```$', s_lft):
                         chars_state.toggle_is_in_preformatted()         # 4.set
+                    tmp = ''                                            # 5.tmp
+                    beg = end                                           # 6.beg
+                    continue
+                # ITALIC AND BOLD
+                if c == '*' and re.match(NOT_ESCAPED + '\\*$', s_lft) and \
+                   (c0 != '*' or re.match(NOT_ESCAPED + '\\*\\*\\*$', s_lft)):
+                    iii = chars_state.is_in_italic
+                    iib = chars_state.is_in_bold
+                    if re.match(NOT_ESCAPED + '\\*\\*\\*$', s_lft):
+                        n = 3
+                    elif re.match(NOT_ESCAPED + '\\*\\*$', s_lft):
+                        n = 2
+                    elif re.match(NOT_ESCAPED + '\\*$', s_lft):
+                        n = 1
+                    key = chars_state.get_key('')                       # 1.key
+                    end = str(i + 1) + '.' + str(j + 1 - n)             # 2.end
+                    pane.tag_add(key, beg, end)                         # 3.tag
+                    if iii and (n == 1 or n == 3):
+                        chars_state.toggle_is_in_italic()               # 4.set
+                    if iib and (n == 2 or n == 3):
+                        chars_state.toggle_is_in_bold()                 # 4.set
+                    # tmp = '*{1,3}'                                    # 5.tmp
+                    beg = end                                           # 6.beg
+                    key = chars_state.get_key('font decorator')         # 1.key
+                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
+                    pane.tag_add(key, beg, end)                         # 3.tag
+                    if not iii and (n == 1 or n == 3):
+                        chars_state.toggle_is_in_italic()               # 4.set
+                    if not iib and (n == 2 or n == 3):
+                        chars_state.toggle_is_in_bold()                 # 4.set
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
                     continue
@@ -12688,6 +12753,8 @@ class Makdo:
     def update_toc(self):
         res_chapter = '^(\\${1,5})(-\\$+)*(\\s.*)?$'
         res_section = '^(#{1,8})(-#+)*(\\s.*)?$'
+        res_chapter2 = '^(?:`|\\*|\\-{2,}|\\+{2,})+(\\${1,5})(-\\$+)*(\\s.*)?$'
+        res_section2 = '^(?:`|\\*|\\-{2,}|\\+{2,})+(#{1,8})(-#+)*(\\s.*)?$'
         # CONFIRM
         is_toc_display_mode = self.is_toc_display_mode.get()
         if not is_toc_display_mode:
@@ -12724,6 +12791,23 @@ class Makdo:
                             if re.match('^.*\\.{3}\\[[0-9]\\]+', line):
                                 res = '^(\\S+)\\s+(.*)\\.{3}\\[[0-9]\\]+'
                                 line = re.sub(res, '\\1 > \\2', line)
+                            toc_lines.append([n, line])
+                    elif (line[0] == '`' or line[0] == '*' or
+                          line[0] == '-' or line[0] == '+'):
+                        if re.match(res_chapter2, line):
+                            res = '^(?:`|\\*|\\-{2,}|\\+{2,})+' \
+                                + '(.*?)' \
+                                + '(?:`|\\*|\\-{2,}|\\+{2,})*$'
+                            line = re.sub(res, '\\1', line)
+                            toc_lines.append([n, line])
+                        elif re.match(res_section2, line):
+                            if re.match('^.*\\.{3}\\[[0-9]\\]+', line):
+                                res = '^(\\S+)\\s+(.*)\\.{3}\\[[0-9]\\]+'
+                                line = re.sub(res, '\\1 > \\2', line)
+                            res = '^(?:`|\\*|\\-{2,}|\\+{2,})+' \
+                                + '(.*?)' \
+                                + '(?:`|\\*|\\-{2,}|\\+{2,})*$'
+                            line = re.sub(res, '\\1', line)
                             toc_lines.append([n, line])
                     else:
                         if len(toc_lines) > 0:

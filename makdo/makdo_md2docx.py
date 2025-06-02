@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.06.01-09:34:34-JST>
+# Time-stamp:   <2025.06.02-19:26:39-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5657,7 +5657,7 @@ class ParagraphTable(Paragraph):
                         msg = '※ 警告: ' \
                             + '行間隔「X」の値が少なすぎます'
                         # msg = 'warning: ' \
-                            #     + 'too small line spacing'
+                        #     + 'too small line spacing'
                         self.md_lines[0].append_warning_message(msg)
                 # RULE
                 ms_tcpr = ms_cell._tc.get_or_add_tcPr()
