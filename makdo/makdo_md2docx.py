@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.06.03-10:19:24-JST>
+# Time-stamp:   <2025.06.04-08:28:25-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6641,15 +6641,28 @@ class SubstitutePhrase:
             prop_val = re.sub(res, '\\3', doc)
             substitute_phrases[prop_id] = prop_val
             doc = re.sub(res, '\\1\\4', doc)
-        for _ in range(1000):
-            if not re.match(NOT_ESCAPED + '%\\[.*?\\]%((?:.|\n)*)$', doc):
-                break
+        tmp1 = None
+        while tmp1 != doc:
+            tmp1 = doc
             for pn in substitute_phrases:
                 res_fr = NOT_ESCAPED + '%\\[' + pn + '\\]%((?:.|\n)*)$'
                 res_to = '\\g<1>' + substitute_phrases[pn] + '\\g<2>'
-                while re.match(res_fr, doc):
-                    doc = re.sub(res_fr, res_to, doc)
-        self.final_document = doc.split('\n')
+                tmp2 = None
+                while tmp2 != doc:
+                    tmp2 = doc
+                    if re.match(res_fr, doc):
+                        doc = re.sub(res_fr, res_to, doc)
+        final_document = doc.split('\n')
+        for i, fd in enumerate(final_document):
+            res = NOT_ESCAPED + '%\\[.+\\]%(.*)$'
+            if re.match(res, fd):
+                msg = '※ 警告: ' \
+                    + '置換されていない代語句が残っています'
+                # msg = 'warning: ' \
+                #     + 'unsubstituted substitute phrases'
+                msg = msg + '\n' + '  (line ' + str(i + 1) + ') ' + fd
+                sys.stderr.write(msg + '\n\n')
+        self.final_document = final_document
         return self.final_document
 
 
