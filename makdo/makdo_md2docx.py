@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.06.02-19:26:39-JST>
+# Time-stamp:   <2025.06.03-10:19:24-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5640,10 +5640,10 @@ class ParagraphTable(Paragraph):
                        re.match(NOT_ESCAPED + '\\s:\\s*$', par):
                         ms_fmt.alignment = WD_TABLE_ALIGNMENT.CENTER
                         par = re.sub('^\\s*:\\s(.*)\\s:\\s*$', '\\1', par)
-                    elif re.match('^\\s*:\\s', cell):
+                    elif re.match('^\\s*:\\s', par):
                         ms_fmt.alignment = WD_TABLE_ALIGNMENT.LEFT
                         par = re.sub('^\\s*:\\s(.*)$', '\\1', par)
-                    elif re.match(NOT_ESCAPED + '\\s:\\s*$', cell):
+                    elif re.match(NOT_ESCAPED + '\\s:\\s*$', par):
                         ms_fmt.alignment = WD_TABLE_ALIGNMENT.RIGHT
                         par = re.sub('^(.*)\\s:\\s*$', '\\1', par)
                     else:
