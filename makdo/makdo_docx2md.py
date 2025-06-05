@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.06.02-08:25:45-JST>
+# Time-stamp:   <2025.06.05-07:41:00-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -8789,10 +8789,11 @@ class ParagraphTable(Paragraph):
                     md_text += '|'
                 else:
                     for k, txt_par in enumerate(txt_cel):
+                        txt_par = re.sub('\n', '<br>', txt_par)
                         if k == 0:
                             md_text += '|'
                         else:
-                            md_text += '<br>'
+                            md_text += '<Br>'
                         if h_alig_tbl[i][j][k] == 'R':
                             if is_in_head:
                                 md_text += txt_par + ' :'

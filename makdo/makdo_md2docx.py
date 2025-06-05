@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.06.04-08:28:25-JST>
+# Time-stamp:   <2025.06.05-09:05:35-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5626,7 +5626,13 @@ class ParagraphTable(Paragraph):
                 cell = tab[i][j]
                 cell = re.sub('^\\s+\\\\?', '', cell)
                 cell = re.sub('\\\\?\\s+$', '', cell)
-                pars = cell.split('<br>')
+                pars = []
+                tmp = cell + '<Br>'
+                res = NOT_ESCAPED + '<Br>(.*)$'
+                while re.match(res, tmp):
+                    par = re.sub(res, '\\1', tmp)
+                    tmp = re.sub(res, '\\2', tmp)
+                    pars.append(par)
                 while len(ms_cell.paragraphs) < len(pars):
                     ms_cell.add_paragraph()
                 for k, par in enumerate(pars):
@@ -5838,21 +5844,32 @@ class ParagraphTable(Paragraph):
         max_width = [0.0 for j in range(len(tab[0]))]
         for i in range(len(tab)):
             for j in range(len(tab[i])):
-                line = ''
-                for t in tab[i][j].split('<br>'):
-                    if re.match(NOT_ESCAPED + '\\\\$', t):
-                        line += re.sub('\\\\$', '', t) + '<br>'
-                        continue
-                    line += t
-                    line = re.sub('^\\s*:\\s(.*)$', '\\1', line)
-                    line = re.sub(NOT_ESCAPED + '\\s:\\s*$', '\\1', line)
-                    for fd in FONT_DECORATORS + [RELAX_SYMBOL]:
-                        while re.match(NOT_ESCAPED + fd, line):
-                            line = re.sub(NOT_ESCAPED + fd, '\\1', line)
-                    w = get_real_width(line) / 2
-                    if max_width[j] < w:
-                        max_width[j] = w
+                cell = tab[i][j]
+                cell = re.sub('^\\s+\\\\?', '', cell)
+                cell = re.sub('\\\\?\\s+$', '', cell)
+                pars = []
+                tmp = cell + '<Br>'
+                res = NOT_ESCAPED + '<Br>(.*)$'
+                while re.match(res, tmp):
+                    par = re.sub(res, '\\1', tmp)
+                    tmp = re.sub(res, '\\2', tmp)
+                    pars.append(par)
+                for par in pars:
                     line = ''
+                    for t in par.split('<br>'):
+                        if re.match(NOT_ESCAPED + '\\\\$', t):
+                            line += re.sub('\\\\$', '', t) + '<br>'
+                            continue
+                        line += t
+                        line = re.sub('^\\s*:\\s(.*)$', '\\1', line)
+                        line = re.sub(NOT_ESCAPED + '\\s:\\s*$', '\\1', line)
+                        for fd in FONT_DECORATORS + [RELAX_SYMBOL]:
+                            while re.match(NOT_ESCAPED + fd, line):
+                                line = re.sub(NOT_ESCAPED + fd, '\\1', line)
+                        w = get_real_width(line) / 2
+                        if max_width[j] < w:
+                            max_width[j] = w
+                        line = ''
         for j in range(len(col_alig_list)):
             if col_widt_list[j] == 0:
                 col_widt_list[j] = max_width[j]
