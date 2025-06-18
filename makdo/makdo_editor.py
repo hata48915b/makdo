@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.06.02-20:26:06-JST>
+# Time-stamp:   <2025.06.18-11:03:38-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -11015,10 +11015,17 @@ class Makdo:
         t = '定型句を挿入'
         m = '挿入する定型句を選んでください．'
         formulas = self._get_formulas()
-        rd = RadiobuttonDialog(mother, self, t, m, formulas, formulas[0])
+        fs = []
+        for i, f in enumerate(formulas):
+            f = re.sub('タイトル:\\s*', '', f)
+            f = re.sub('\n(.|\n)*$', '', f)
+            if f == '':
+                f = '（空）'
+            fs.append(str(i + 1) + '. ' + f)
+        rd = RadiobuttonDialog(mother, self, t, m, fs, fs[0])
         v = rd.get_value()
         if v is not None:
-            self.formula_number = formulas.index(v) + 1
+            self.formula_number = fs.index(v) + 1
             self._insert_formula()
 
     @staticmethod
@@ -11040,6 +11047,7 @@ class Makdo:
         formulas = self._get_formulas()
         n = self.formula_number - 1
         v = formulas[n]
+        v = re.sub('^タイトル:\\s*.*\n', '', v)
         pane.edit_separator()
         pane.insert('insert', v)
         p = self._get_v_position_of_insert(pane) - 1
@@ -11094,10 +11102,17 @@ class Makdo:
         t = '定型句を編集'
         m = '編集する定型句を選んでください．'
         formulas = self._get_formulas()
-        rd = RadiobuttonDialog(mother, self, t, m, formulas, formulas[0])
+        fs = []
+        for i, f in enumerate(formulas):
+            f = re.sub('タイトル:\\s+', '', f)
+            f = re.sub('\n(.|\n)*$', '', f)
+            if f == '':
+                f = '（空）'
+            fs.append(str(i + 1) + '. ' + f)
+        rd = RadiobuttonDialog(mother, self, t, m, fs, fs[0])
         v = rd.get_value()
         if v is not None:
-            self.formula_number = formulas.index(v) + 1
+            self.formula_number = fs.index(v) + 1
             self._edit_formula()
 
     def _edit_formula(self):
@@ -11111,6 +11126,8 @@ class Makdo:
         except BaseException:
             return
         #
+        if not re.match('^タイトル:\\s*', formula):
+            formula = 'タイトル: （タイトル）\n' + formula
         self._open_sub_pane(formula, False)
 
     def edit_formula1(self):
