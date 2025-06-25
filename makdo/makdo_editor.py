@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.06.18-11:03:38-JST>
+# Time-stamp:   <2025.06.25-17:20:24-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6146,6 +6146,39 @@ class Makdo:
     def _close_sub_pane(self) -> bool:
         if len(self.pnd_r.panes()) == 1:
             return False
+        # SUB CURSOR
+        if 'x0eighth' in self.sub.mark_names():
+            sub_ins = self.sub.get('1.0', 'insert')
+            for i in range(8):
+                j = i + 1
+                ind_min = 'x' + str(i) + 'eighth'
+                ind_max = 'x' + str(j) + 'eighth'
+                sub_min = self.sub.get('1.0', ind_min)
+                sub_max = self.sub.get('1.0', ind_max)
+                n_up = len(sub_ins) - len(sub_min)
+                n_dn = len(sub_max) - len(sub_ins)
+                if n_up >= 0 and n_dn >= 0:
+                    sub_up = self.sub.get(ind_min, 'insert')
+                    sub_dn = self.sub.get('insert', ind_max)
+                    txt_up = self.txt.get(ind_min,
+                                          ind_min + '+' + str(n_up) + 'c')
+                    txt_dn = self.txt.get(ind_max + '-' + str(n_dn) + 'c',
+                                          ind_max)
+                    n_rt = (len(txt_up + txt_dn) * n_up) // (n_up + n_dn)
+                    if sub_up == txt_up:
+                        self.txt.mark_set('sub_insert',
+                                          ind_min + '+' + str(n_up) + 'c')
+                    elif sub_dn == txt_dn:
+                        self.txt.mark_set('sub_insert',
+                                          ind_max + '-' + str(n_dn) + 'c')
+                    else:
+                        self.txt.mark_set('sub_insert',
+                                          ind_min + '+' + str(n_rt) + 'c')
+                    break
+            # for i in range(9):
+            #     self.txt.mark_unset('x' + str(i) + 'eighth')
+            #     self.sub.mark_unset('x' + str(i) + 'eighth')
+        #
         self.quit_editing_formula()
         self.update_memo_pad()
         # RAG (Retrieval-Augmented Generation)
@@ -6162,7 +6195,7 @@ class Makdo:
         return True
 
     @staticmethod
-    def _put_back_cursor_to_pane(pane):
+    def _put_back_cursor_to_pane(pane, must_place_in_center=False):
         pane.update()
         p = pane.index('@0,0')  # "x,y" not "y,x"
         h_min = int(re.sub('\\.[0-9]+$', '', p))
@@ -6170,7 +6203,10 @@ class Makdo:
         h_max = int(re.sub('\\.[0-9]+$', '', p)) - 1
         p = pane.index('insert')
         h_cur = int(re.sub('\\.[0-9]+$', '', p))
-        if h_cur < h_min:
+        if must_place_in_center:
+            half = (h_max - h_min) // 2
+            pane.yview('insert-' + str(half) + 'l')
+        elif h_cur < h_min:
             pane.yview('insert')
         elif h_cur >= h_max:
             pane.yview('insert-' + str(h_max - h_min) + 'l')
@@ -10744,6 +10780,10 @@ class Makdo:
         self._make_submenu_goto_flag(menu)
         menu.add_separator()
         #
+        menu.add_command(label='サブカーソルに移動',
+                         command=self.goto_sub_cursor)
+        menu.add_separator()
+        #
         menu.add_command(label='行数と文字数を指定して移動',
                          command=self.goto_by_position)
         # menu.add_separator()
@@ -10893,6 +10933,16 @@ class Makdo:
             return
         self.txt.mark_set('insert', 'flag5')
         self._put_back_cursor_to_pane(self.txt)
+
+    def goto_sub_cursor(self):
+        m = self.txt.index('insert')
+        s = '1.0'
+        if 'sub_insert' in self.txt.mark_names():
+            s = self.txt.index('sub_insert')
+        self.txt.mark_set('insert', s)
+        self._put_back_cursor_to_pane(self.txt)
+        self.txt.mark_set('sub_insert', m)
+        self.txt.mark_gravity('sub_insert', 'left')
 
     def goto_by_position(self, father=None):
         pane = self.txt
@@ -11245,10 +11295,16 @@ class Makdo:
         self._close_sub_pane()
         document = self.txt.get('1.0', 'end-1c')
         self._open_sub_pane(document, True)
-        # INSERT
-        insert = self.txt.index('insert')
-        self.sub.mark_set('insert', insert)
-        self._put_back_cursor_to_pane(self.sub)
+        #
+        for i in range(9):
+            cs = ((len(document) * i) // 8)
+            self.txt.mark_set('x' + str(i) + 'eighth', '1.0+' + str(cs) + 'c')
+            self.sub.mark_set('x' + str(i) + 'eighth', '1.0+' + str(cs) + 'c')
+        if 'sub_insert' not in self.txt.mark_names():
+            self.txt.mark_set('sub_insert', '1.0')
+        s = self.txt.index('sub_insert')
+        self.sub.mark_set('insert', s)
+        self._put_back_cursor_to_pane(self.sub, must_place_in_center=True)
         # PAINT
         self.file_lines = document.split('\n')
         if document != '':
@@ -12085,6 +12141,12 @@ class Makdo:
             'goto-by-position',
             [None, '行数と文字数を指定して移動'],
             ['self.mother.goto_by_position(self)'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'goto-sub-cursor',
+            [None, 'サブカーソルに移動'],
+            ['self.mother.goto_sub_cursor()'])
         minibuffer_commands.append(mc)
 
         mc = MinibufferCommand(
@@ -13947,44 +14009,7 @@ class Makdo:
                 if 'akauni' in pane.mark_names():
                     pane.mark_unset('akauni')
                 if delta < 0.64:
-                    if 'stone1' not in pane.mark_names():
-                        self.set_message_on_status_bar('ストーンが設置されていません')
-                    elif ('stone4' in pane.mark_names() and
-                          'stone5' in pane.mark_names() and
-                          pane.index('stone4') == pane.index('insert')):
-                        pane.mark_set('insert', 'stone5')
-                        self.set_message_on_status_bar('ストーン５に移動しました')
-                    elif ('stone3' in pane.mark_names() and
-                          'stone4' in pane.mark_names() and
-                          pane.index('stone3') == pane.index('insert')):
-                        pane.mark_set('insert', 'stone4')
-                        self.set_message_on_status_bar('ストーン４に移動しました')
-                    elif ('stone2' in pane.mark_names() and
-                          'stone3' in pane.mark_names() and
-                          pane.index('stone2') == pane.index('insert')):
-                        pane.mark_set('insert', 'stone3')
-                        self.set_message_on_status_bar('ストーン３に移動しました')
-                    elif ('stone1' in pane.mark_names() and
-                          'stone2' in pane.mark_names() and
-                          pane.index('stone1') == pane.index('insert')):
-                        pane.mark_set('insert', 'stone2')
-                        self.set_message_on_status_bar('ストーン２に移動しました')
-                    else:
-                        pane.mark_set('insert', 'stone1')
-                        self.set_message_on_status_bar('ストーン１に移動しました')
-                    self._put_back_cursor_to_pane(pane)
-                    self.unixtime_of_modf_pressed = 0
-                elif delta < 2.56:
-                    if 'stone4' in pane.mark_names():
-                        pane.mark_set('stone5', 'stone4')
-                    if 'stone3' in pane.mark_names():
-                        pane.mark_set('stone4', 'stone3')
-                    if 'stone2' in pane.mark_names():
-                        pane.mark_set('stone3', 'stone2')
-                    if 'stone1' in pane.mark_names():
-                        pane.mark_set('stone2', 'stone1')
-                    pane.mark_set('stone1', 'insert')
-                    self.set_message_on_status_bar('ストーンを置きました')
+                    self.goto_sub_cursor()
                     self.unixtime_of_modf_pressed = 0
                 else:
                     pane.mark_set('akauni', 'insert')
@@ -15204,7 +15229,7 @@ class Makdo:
                 if (n % 40) == 0:
                     self.run_periodically_to_paint_line_globally()
             else:            # 60*2*1000/6000 =   20
-                if True:
+                if (n % 30) == 0:
                     self.run_periodically_to_paint_line_globally()
         if focus == self.sub:  # if focus is not None:
             n = self.run_periodically
