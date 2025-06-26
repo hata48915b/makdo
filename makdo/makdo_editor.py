@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.06.25-17:20:24-JST>
+# Time-stamp:   <2025.06.26-13:04:59-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6147,12 +6147,12 @@ class Makdo:
         if len(self.pnd_r.panes()) == 1:
             return False
         # SUB CURSOR
-        if 'x0eighth' in self.sub.mark_names():
+        if 'x0sixteenth' in self.sub.mark_names():
             sub_ins = self.sub.get('1.0', 'insert')
-            for i in range(8):
+            for i in range(16):
                 j = i + 1
-                ind_min = 'x' + str(i) + 'eighth'
-                ind_max = 'x' + str(j) + 'eighth'
+                ind_min = 'x' + str(i) + 'sixteenth'
+                ind_max = 'x' + str(j) + 'sixteenth'
                 sub_min = self.sub.get('1.0', ind_min)
                 sub_max = self.sub.get('1.0', ind_max)
                 n_up = len(sub_ins) - len(sub_min)
@@ -6164,7 +6164,11 @@ class Makdo:
                                           ind_min + '+' + str(n_up) + 'c')
                     txt_dn = self.txt.get(ind_max + '-' + str(n_dn) + 'c',
                                           ind_max)
-                    n_rt = (len(txt_up + txt_dn) * n_up) // (n_up + n_dn)
+                    if n_up + n_dn == 0:
+                        n_rt = len(txt_up + txt_dn) / 2
+                    else:
+                        n_rt = (len(txt_up + txt_dn) * n_up) / (n_up + n_dn)
+                    n_rt = round(n_rt)
                     if sub_up == txt_up:
                         self.txt.mark_set('sub_insert',
                                           ind_min + '+' + str(n_up) + 'c')
@@ -6175,9 +6179,9 @@ class Makdo:
                         self.txt.mark_set('sub_insert',
                                           ind_min + '+' + str(n_rt) + 'c')
                     break
-            # for i in range(9):
-            #     self.txt.mark_unset('x' + str(i) + 'eighth')
-            #     self.sub.mark_unset('x' + str(i) + 'eighth')
+            # for i in range(17):
+            #     self.txt.mark_unset('x' + str(i) + 'sixteenth')
+            #     self.sub.mark_unset('x' + str(i) + 'sixteenth')
         #
         self.quit_editing_formula()
         self.update_memo_pad()
@@ -6223,30 +6227,9 @@ class Makdo:
 
     @staticmethod
     def _get_width_of_pane(pane):
-        pane.update()
-        # INSERT
-        ins = pane.index('insert')
-        ins_v = int(re.sub('\\.[0-9]+$', '', ins))
-        ins_h = int(re.sub('^[0-9]+\\.', '', ins))
-        # MINIMUM AND MAXIMUM
-        i = 0
-        while True:
-            tmp = pane.index('@0,' + str(i))
-            tmp_v = int(re.sub('\\.[0-9]+$', '', tmp))
-            tmp_h = int(re.sub('^[0-9]+\\.', '', tmp))
-            if tmp_v >= ins_v:
-                break
-            i += 1
-        min_h = tmp_h
-        tmp = pane.index('@1000000,' + str(i))
-        max_h = int(re.sub('^[0-9]+\\.', '', tmp))
-        # WIDTH
-        line = pane.get('insert linestart' + '+' + str(min_h) + 'c',
-                        'insert linestart' + '+' + str(max_h + 1) + 'c')
-        line = re.sub('\n$', '', line)
-        width = get_real_width(line)
-        # RETERN
-        return width
+        pane_width = pane.winfo_width()
+        char_width = tkinter.font.Font(font=pane['font']).measure('X')
+        return pane_width // char_width
 
     def _move_vertically(self, pane, ideal_h_position, height_to_move):
         i = self._get_v_position_of_insert(pane) + height_to_move
@@ -11019,6 +11002,8 @@ class Makdo:
         #
         menu.add_command(label='画面を二つに分割',
                          command=self.split_window)
+        menu.add_command(label='二つの画面を入替え',
+                         command=self.swap_windows)
         menu.add_separator()
         #
         menu.add_command(label='別ファイルの内容を見る',
@@ -11296,10 +11281,10 @@ class Makdo:
         document = self.txt.get('1.0', 'end-1c')
         self._open_sub_pane(document, True)
         #
-        for i in range(9):
-            cs = ((len(document) * i) // 8)
-            self.txt.mark_set('x' + str(i) + 'eighth', '1.0+' + str(cs) + 'c')
-            self.sub.mark_set('x' + str(i) + 'eighth', '1.0+' + str(cs) + 'c')
+        for i in range(17):
+            cs = round((len(document) * i) / 16)
+            self.txt.mark_set('x' + str(i) + 'sixteenth', '1.0+' + str(cs) + 'c')
+            self.sub.mark_set('x' + str(i) + 'sixteenth', '1.0+' + str(cs) + 'c')
         if 'sub_insert' not in self.txt.mark_names():
             self.txt.mark_set('sub_insert', '1.0')
         s = self.txt.index('sub_insert')
@@ -11325,6 +11310,26 @@ class Makdo:
             self.set_message_on_status_bar('', True)
         # RETURN
         self.sub.focus_force()
+        return True
+
+    def swap_windows(self) -> bool:
+        if len(self.pnd_r.panes()) == 1:
+            return False
+        if 'x0sixteenth' not in self.sub.mark_names():
+            return False
+        if self.current_pane == 'sub':
+            current_pane = 'sub'
+        else:
+            current_pane = 'txt'
+        self._close_sub_pane()
+        self.goto_sub_cursor()
+        self.split_window()
+        if current_pane == 'sub':
+            self.sub.focus_set()
+            self.current_pane = 'sub'
+        else:
+            self.txt.focus_set()
+            self.current_pane = 'txt'
         return True
 
     def show_file(self):
@@ -12792,9 +12797,8 @@ class Makdo:
     def toc_process_key(self, event):
         self.key_history.append(event.keysym)
         if event.keysym == 'F19':  # x (ctrl)
-            if self.key_history[-2] == 'F19':
-                self.key_history[-1] = ''
-                self._jump_to_next_pane()
+            self._any_process_f19()
+            return 'break'
         if event.keysym == 'Up':
             if self.key_history[-2] == 'F19':
                 self._jump_to_prev_pane()
@@ -13911,25 +13915,10 @@ class Makdo:
         self.key_history.pop(0)
         #
         if key.keysym == 'F19':              # x (ctrl)
-            if self.key_history[-2] == 'F19':
-                self.key_history[-1] = '', ''
-                self._jump_to_next_pane()
+            self._any_process_f19()
             return 'break'
         elif key.keysym == 'F16':            # c (search forward)
-            if self.key_history[-2] == 'F13':
-                if self.key_history[-3] == 'F16' and \
-                   self.key_history[-4] == 'F13' and \
-                   Makdo.search_word != '':
-                    self.search_backward()
-                else:
-                    self.search_backward_from_dialog(pane)
-            else:
-                if self.key_history[-2] == 'F16' and \
-                   self.key_history[-3] != 'F13' and \
-                   Makdo.search_word != '':
-                    self.search_forward()
-                else:
-                    self.search_forward_from_dialog(pane)
+            self._any_process_f16(pane)
             return 'break'
         elif key.keysym == 'Left':
             self._paint_akauni_region(pane, '-1c')
@@ -13938,54 +13927,26 @@ class Makdo:
             self._paint_akauni_region(pane, '+1c')
             return
         elif key.keysym == 'Up':
-            if self.key_history[-2] == 'F19':
-                self._jump_to_prev_pane()
-                return 'break'
-            if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
-                self.ideal_h_position \
-                    = self._get_ideal_h_position_of_insert(pane)
-            self._move_vertically(pane, self.ideal_h_position, -1)
-            self._paint_akauni_region(pane, '')
+            self._any_process_up(pane)
             return 'break'
         elif key.keysym == 'Down':
-            if self.key_history[-2] == 'F19':
-                self._jump_to_next_pane()
-                return 'break'
-            if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
-                self.ideal_h_position \
-                    = self._get_ideal_h_position_of_insert(pane)
-            self._move_vertically(pane, self.ideal_h_position, +1)
-            self._paint_akauni_region(pane, '')
+            self._any_process_down(pane)
             return 'break'
         elif key.keysym == 'Prior':
-            if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
-                self.ideal_h_position \
-                    = self._get_ideal_h_position_of_insert(pane)
-            lines = self._get_lines_of_pane(pane)
-            self._move_vertically(pane, self.ideal_h_position, -lines)
-            self._paint_akauni_region(pane, '')
+            self._any_process_prior(pane)
             return 'break'
         elif key.keysym == 'Next':
             if self.key_history[-2] == 'F13' and self.current_pane == 'sub':
                 self.key_history[-1] = ''
                 self._execute_sub_pane()
                 return 'break'
-            if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
-                self.ideal_h_position \
-                    = self._get_ideal_h_position_of_insert(pane)
-            lines = self._get_lines_of_pane(pane)
-            self._move_vertically(pane, self.ideal_h_position, +lines)
-            self._paint_akauni_region(pane, '')
+            self._any_process_next(pane)
             return 'break'
         elif key.keysym == 'Home':
-            width = self._get_width_of_pane(pane)
-            self._move_horizontally(pane, -width)
-            self._paint_akauni_region(pane, '')
+            self._any_process_home(pane)
             return 'break'
         elif key.keysym == 'End':
-            width = self._get_width_of_pane(pane)
-            self._move_horizontally(pane, +width)
-            self._paint_akauni_region(pane, '')
+            self._any_process_end(pane)
             return 'break'
         elif key.keysym == 'F17':            # } (, calc)
             if self.key_history[-2] == 'F13':
@@ -13998,34 +13959,11 @@ class Makdo:
             self.edit_modified_redo()
             return 'break'
         elif key.keysym == 'F22':            # f (mark, save)
-            if self.key_history[-2] == 'F19':
-                self.save_file()
-                return 'break'
-            else:
-                if 'unixtime_of_modf_pressed' not in vars(self):
-                    self.unixtime_of_modf_pressed = 0
-                unixtime_of_now = datetime.datetime.now().timestamp()
-                delta = unixtime_of_now - self.unixtime_of_modf_pressed
-                if 'akauni' in pane.mark_names():
-                    pane.mark_unset('akauni')
-                if delta < 0.64:
-                    self.goto_sub_cursor()
-                    self.unixtime_of_modf_pressed = 0
-                else:
-                    pane.mark_set('akauni', 'insert')
-                    self.unixtime_of_modf_pressed = unixtime_of_now
-                return 'break'
+            self._any_process_f22(pane)
+            return 'break'
         elif key.keysym == 'Delete':         # d (delete, quit)
-            if self.key_history[-2] == 'F19':
-                self.quit_makdo()
+            if self._any_process_delete():
                 return 'break'
-            if self.key_history[-2] == 'F13':
-                self.cut_rectangle()
-                return 'break'
-            if self.key_history[-2] != 'Delete':
-                self.win.clipboard_clear()
-                if self.clipboard_list[-1] != '':
-                    self.clipboard_list.append('')
             # FOR PAINTING
             if pane == self.txt and \
                not pane.tag_ranges('sel') and \
@@ -14252,10 +14190,8 @@ class Makdo:
         self.key_history.pop(0)
         #
         if key.keysym == 'F19':              # x (ctrl)
-            if self.key_history[-2] == 'F19':
-                self.key_history[-1] = ''
-                self._jump_to_next_pane()
-                return 'break'
+            self._any_process_f19()
+            return 'break'
         elif key.keysym == 'Left':
             self._paint_akauni_region(pane, '-1c')
             return
@@ -14263,67 +14199,29 @@ class Makdo:
             self._paint_akauni_region(pane, '+1c')
             return
         elif key.keysym == 'Up':
-            if self.key_history[-2] == 'F19':
-                self._jump_to_prev_pane()
-                return 'break'
-            if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
-                self.ideal_h_position \
-                    = self._get_ideal_h_position_of_insert(pane)
-            self._move_vertically(pane, self.ideal_h_position, -1)
-            self._paint_akauni_region(pane, '')
+            self._any_process_up(pane)
             return 'break'
         elif key.keysym == 'Down':
-            if self.key_history[-2] == 'F19':
-                self._jump_to_next_pane()
-                return 'break'
-            if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
-                self.ideal_h_position \
-                    = self._get_ideal_h_position_of_insert(pane)
-            self._move_vertically(pane, self.ideal_h_position, +1)
-            self._paint_akauni_region(pane, '')
+            self._any_process_down(pane)
             return 'break'
         elif key.keysym == 'Prior':
-            if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
-                self.ideal_h_position \
-                    = self._get_ideal_h_position_of_insert(pane)
-            lines = self._get_lines_of_pane(pane)
-            self._move_vertically(pane, self.ideal_h_position, -lines)
-            self._paint_akauni_region(pane, '')
+            self._any_process_prior(pane)
             return 'break'
         elif key.keysym == 'Next':
-            if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
-                self.ideal_h_position \
-                    = self._get_ideal_h_position_of_insert(pane)
-            lines = self._get_lines_of_pane(pane)
-            self._move_vertically(pane, self.ideal_h_position, +lines)
-            self._paint_akauni_region(pane, '')
+            self._any_process_next(pane)
             return 'break'
         elif key.keysym == 'Home':
-            width = self._get_width_of_pane(pane)
-            self._move_horizontally(pane, -width)
-            self._paint_akauni_region(pane, '')
+            self._any_process_home(pane)
             return 'break'
         elif key.keysym == 'End':
-            width = self._get_width_of_pane(pane)
-            self._move_horizontally(pane, +width)
-            self._paint_akauni_region(pane, '')
+            self._any_process_end(pane)
             return 'break'
         elif key.keysym == 'F22':            # f (mark, save)
-            if 'akauni' in pane.mark_names():
-                pane.mark_unset('akauni')
-            pane.mark_set('akauni', 'insert')
+            self._any_process_f22(pane)
             return 'break'
         elif key.keysym == 'Delete':         # d (delete, quit)
-            if self.key_history[-2] == 'F19':
-                self.quit_makdo()
+            if self._any_process_delete():
                 return 'break'
-            if self.key_history[-2] == 'F13':
-                self.copy_rectangle()
-                return 'break'
-            if self.key_history[-2] != 'Delete':
-                self.win.clipboard_clear()
-                if self.clipboard_list[-1] != '':
-                    self.clipboard_list.append('')
             self._execute_when_delete_is_pressed(pane)
             return 'break'
         elif key.keysym == 'F14':            # v (quit)
@@ -14332,20 +14230,7 @@ class Makdo:
                 pane.mark_unset('akauni')
                 return 'break'
         elif key.keysym == 'F16':            # c (search forward)
-            if self.key_history[-2] == 'F13':
-                if self.key_history[-3] == 'F16' and \
-                   self.key_history[-4] == 'F13' and \
-                   Makdo.search_word != '':
-                    self.search_backward()
-                else:
-                    self.search_backward_from_dialog(pane)
-            else:
-                if self.key_history[-2] == 'F16' and \
-                   self.key_history[-3] != 'F13' and \
-                   Makdo.search_word != '':
-                    self.search_forward()
-                else:
-                    self.search_forward_from_dialog(pane)
+            self._any_process_f16(pane)
             return 'break'
         elif key.keysym == 'cent':           # cent (search backward)
             self.search_or_replace_backward()
@@ -14405,6 +14290,115 @@ class Makdo:
         #     return 'break'
         self.set_message_on_status_bar('読取専用です')
         return 'break'
+
+    def _any_process_up(self, pane):
+        if self.key_history[-2] == 'F19':
+            self._jump_to_prev_pane()
+            return
+        if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
+            self.ideal_h_position = self._get_ideal_h_position_of_insert(pane)
+        self._move_vertically(pane, self.ideal_h_position, -1)
+        self._paint_akauni_region(pane, '')
+        return
+
+    def _any_process_down(self, pane):
+        if self.key_history[-2] == 'F19':
+            self._jump_to_next_pane()
+            return
+        if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
+            self.ideal_h_position = self._get_ideal_h_position_of_insert(pane)
+        self._move_vertically(pane, self.ideal_h_position, +1)
+        self._paint_akauni_region(pane, '')
+        return
+
+    def _any_process_prior(self, pane):
+        if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
+            self.ideal_h_position = self._get_ideal_h_position_of_insert(pane)
+        lines = self._get_lines_of_pane(pane)
+        self._move_vertically(pane, self.ideal_h_position, -lines)
+        self._paint_akauni_region(pane, '')
+
+    def _any_process_next(self, pane):
+        if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
+            self.ideal_h_position = self._get_ideal_h_position_of_insert(pane)
+        lines = self._get_lines_of_pane(pane)
+        self._move_vertically(pane, self.ideal_h_position, +lines)
+        self._paint_akauni_region(pane, '')
+
+    def _any_process_home(self, pane):
+        width = self._get_width_of_pane(pane)
+        self._move_horizontally(pane, -width)
+        self._paint_akauni_region(pane, '')
+
+    def _any_process_end(self, pane):
+        width = self._get_width_of_pane(pane)
+        self._move_horizontally(pane, +width)
+        self._paint_akauni_region(pane, '')
+
+    def _any_process_delete(self) -> bool:
+        if self.key_history[-2] == 'F19':
+            self.quit_makdo()
+            return True
+        if self.key_history[-2] == 'F13':
+                self.cut_rectangle()
+                return True
+        if self.key_history[-2] != 'Delete':
+            self.win.clipboard_clear()
+            if self.clipboard_list[-1] != '':
+                self.clipboard_list.append('')
+        return False
+
+    def _any_process_f16(self, pane):
+        if self.key_history[-2] == 'F13':
+            if self.key_history[-3] == 'F16' and \
+               self.key_history[-4] == 'F13' and \
+               Makdo.search_word != '':
+                self.search_backward()
+            else:
+                self.search_backward_from_dialog(pane)
+        else:
+            if self.key_history[-2] == 'F16' and \
+               self.key_history[-3] != 'F13' and \
+               Makdo.search_word != '':
+                self.search_forward()
+            else:
+                self.search_forward_from_dialog(pane)
+
+    def _any_process_f19(self):
+        if self.key_history[-2] == 'F19':
+            self.key_history[-1] = '', ''
+            self._jump_to_next_pane()
+
+    def _any_process_f22(self, pane):
+        if self.key_history[-2] == 'F19':
+            self.save_file()
+        else:
+            if 'unixtime_of_modf_pressed' not in vars(self):
+                self.unixtime_of_modf_pressed = 0
+            unixtime_of_now = datetime.datetime.now().timestamp()
+            delta = unixtime_of_now - self.unixtime_of_modf_pressed
+            if 'akauni' in pane.mark_names():
+                has_akauni = True
+                pane.mark_set('prev_akauni', 'akauni')
+                pane.tag_remove('akauni_tag', '1.0', 'end')
+                pane.mark_unset('akauni')
+            else:
+                has_akauni = False
+            if delta < 0.64:
+                if len(self.pnd_r.panes()) > 1 and \
+                   'x0sixteenth' in self.sub.mark_names():
+                    self.swap_windows()
+                else:
+                    self.goto_sub_cursor()
+                if not has_akauni:
+                    pane.mark_set('akauni', 'prev_akauni')
+                    pane.mark_unset('prev_akauni')
+                self.unixtime_of_modf_pressed = 0
+            else:
+                if not has_akauni:
+                    pane.mark_set('akauni', 'insert')
+                    pane.mark_unset('prev_akauni')
+                self.unixtime_of_modf_pressed = unixtime_of_now
 
     @staticmethod
     def _paint_akauni_region(pane, shift=''):
