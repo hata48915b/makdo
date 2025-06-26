@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.06.26-13:04:59-JST>
+# Time-stamp:   <2025.06.27-08:36:39-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -4117,6 +4117,7 @@ class CharsState:
         self.is_in_preformatted = False
         self.is_in_italic = False
         self.is_in_bold = False
+        self.script_parenthesis = ''
         self.is_length_reviser = False
         self.chapter_depth = 0
         self.section_depth = 0
@@ -4148,6 +4149,8 @@ class CharsState:
             return False
         if self.is_in_bold != other.is_in_bold:
             return False
+        if self.script_parenthesis != other.script_parenthesis:
+            return False
         return True
 
     def copy(self):
@@ -4166,6 +4169,7 @@ class CharsState:
         copy.is_in_preformatted = self.is_in_preformatted
         copy.is_in_italic = self.is_in_italic
         copy.is_in_bold = self.is_in_bold
+        copy.script_parenthesis = self.script_parenthesis
         copy.is_length_reviser = self.is_length_reviser
         copy.chapter_depth = self.chapter_depth
         copy.section_depth = self.section_depth
@@ -4260,6 +4264,15 @@ class CharsState:
 
     def toggle_is_in_bold(self):
         self.is_in_bold = not self.is_in_bold
+
+    def set_or_unset_script_parenthesis(self, par):
+        if self.script_parenthesis == '':
+            if re.match('^{[0-9]?{$', par):
+                self.script_parenthesis = par
+        else:
+            n = self.script_parenthesis.replace('{', '')
+            if par == '}' + n + '}':
+                self.script_parenthesis = ''
 
     def apply_parenthesis(self, parenthesis):
         ps = self.parentheses
@@ -5098,9 +5111,25 @@ class LineDatum:
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
                     continue
+                # SCRIPT PARENTHESIS (DISABLE ITALIC)
+                if c == '{':
+                    if chars_state.script_parenthesis == '':
+                        if re.match(NOT_ESCAPED + '{[0-9]?{$', s_lft):
+                            par = re.sub('^(.*)({[0-9]?{)$', '\\2', s_lft)
+                            chars_state.set_or_unset_script_parenthesis(par)
+                elif c == '}':
+                    if chars_state.script_parenthesis != '':
+                        if re.match(NOT_ESCAPED + '}[0-9]?}$', s_lft):
+                            par = re.sub('^(.*)(}[0-9]?})$', '\\2', s_lft)
+                            chars_state.set_or_unset_script_parenthesis(par)
+                # SCRIPT PARENTHESIS (DISABLE ITALIC AND PARENTHESIS)
+                if chars_state.script_parenthesis != '':
+                    if c == '*' or c == '(' or c == ')':
+                        continue
                 # ITALIC AND BOLD
                 if c == '*' and re.match(NOT_ESCAPED + '\\*$', s_lft) and \
                    (c0 != '*' or re.match(NOT_ESCAPED + '\\*\\*\\*$', s_lft)):
+                    # if chars_state.script_parenthesis == '':
                     iii = chars_state.is_in_italic
                     iib = chars_state.is_in_bold
                     if re.match(NOT_ESCAPED + '\\*\\*\\*$', s_lft):
@@ -7948,6 +7977,8 @@ class Makdo:
         self._make_submenu_insert_underline(menu)
         self._make_submenu_insert_font_color_change(menu)
         self._make_submenu_insert_highlight_color_change(menu)
+        menu.add_command(label='代語句を挿入',
+                         command=self.insert_substitute_phrases)
         menu.add_separator()
         #
         menu.add_command(label='別のファイルの内容を挿入',
@@ -8504,6 +8535,13 @@ class Makdo:
     def insert_m_highlight_color(self):
         self.txt.insert('insert', '_M_（ここは下地がマゼンタ）_M_')
         self.txt.mark_set('insert', 'insert-3c')
+
+    ################
+    # COMMAND
+
+    def insert_substitute_phrases(self):
+        self.txt.insert('insert',
+                        '\n%[（代語句名）]% = "（内容）"\n%[（代語句名）]%\n')
 
     ################
     # COMMAND
@@ -11280,11 +11318,13 @@ class Makdo:
         self._close_sub_pane()
         document = self.txt.get('1.0', 'end-1c')
         self._open_sub_pane(document, True)
-        #
+        # SUB CURSOR
         for i in range(17):
             cs = round((len(document) * i) / 16)
-            self.txt.mark_set('x' + str(i) + 'sixteenth', '1.0+' + str(cs) + 'c')
-            self.sub.mark_set('x' + str(i) + 'sixteenth', '1.0+' + str(cs) + 'c')
+            ind = 'x' + str(i) + 'sixteenth'
+            pos = '1.0+' + str(cs) + 'c'
+            self.txt.mark_set(ind, pos)
+            self.sub.mark_set(ind, pos)
         if 'sub_insert' not in self.txt.mark_names():
             self.txt.mark_set('sub_insert', '1.0')
         s = self.txt.index('sub_insert')
@@ -14337,11 +14377,12 @@ class Makdo:
 
     def _any_process_delete(self) -> bool:
         if self.key_history[-2] == 'F19':
-            self.quit_makdo()
+            if self.current_pane == 'txt':
+                self.quit_makdo()
             return True
         if self.key_history[-2] == 'F13':
-                self.cut_rectangle()
-                return True
+            self.cut_rectangle()
+            return True
         if self.key_history[-2] != 'Delete':
             self.win.clipboard_clear()
             if self.clipboard_list[-1] != '':
