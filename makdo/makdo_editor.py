@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.06.27-08:36:39-JST>
+# Time-stamp:   <2025.06.28-07:41:13-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -14002,6 +14002,9 @@ class Makdo:
             self._any_process_f22(pane)
             return 'break'
         elif key.keysym == 'Delete':         # d (delete, quit)
+            if self.key_history[-2] == 'F19':
+                self.quit_makdo()
+                return True
             if self._any_process_delete():
                 return 'break'
             # FOR PAINTING
@@ -14376,10 +14379,6 @@ class Makdo:
         self._paint_akauni_region(pane, '')
 
     def _any_process_delete(self) -> bool:
-        if self.key_history[-2] == 'F19':
-            if self.current_pane == 'txt':
-                self.quit_makdo()
-            return True
         if self.key_history[-2] == 'F13':
             self.cut_rectangle()
             return True
