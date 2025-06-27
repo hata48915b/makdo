@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.06.05-07:41:00-JST>
+# Time-stamp:   <2025.06.27-09:38:00-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -8329,11 +8329,11 @@ class ParagraphTable(Paragraph):
                 if merge_y < 1:
                     merge_cel = ''
                 elif merge_x > 1 and merge_y > 1:
-                    merge_cel = str(merge_x) + 'x' + str(merge_y)
+                    merge_cel = '@' + str(merge_x) + 'x' + str(merge_y)
                 elif merge_x > 1:
-                    merge_cel = str(merge_x)
+                    merge_cel = '@' + str(merge_x) + 'x1'
                 elif merge_y > 1:
-                    merge_cel = 'x' + str(merge_y)
+                    merge_cel = '@1x' + str(merge_y)
                 else:
                     merge_cel = ''
                 merge_row.append(merge_cel)
@@ -8683,10 +8683,10 @@ class ParagraphTable(Paragraph):
                         = XML.get_value('w:gridSpan', 'w:val', merge_x, xml)
                 if merge_x > 1:
                     for _ in range(merge_x - 1):
-                        v_alig_row.append([''])
-                        h_alig_row.append([''])
-                        v_rule_row.append('')
-                        h_rule_row.append('')
+                        v_alig_row.append(v_alig_row[-1])
+                        h_alig_row.append(h_alig_row[-1])
+                        v_rule_row.append(v_rule_row[-1])
+                        h_rule_row.append(h_rule_row[-1])
             v_alig_tbl.append(v_alig_row)
             h_alig_tbl.append(h_alig_row)
             v_rule_tbl.append(v_rule_row)
