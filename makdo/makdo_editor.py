@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.06.28-13:49:00-JST>
+# Time-stamp:   <2025.06.28-15:35:02-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6414,6 +6414,31 @@ class Makdo:
                 self.clipboard_list.append('')
             self.clipboard_list[-1] += string
 
+    @staticmethod
+    def _remove_head_and_tail_fds(doc):
+        if doc[0] == '`' or doc[0] == '*' or \
+           doc[0] == '-' or doc[0] == '+' or \
+           doc[0] == '>' or doc[0] == '<' or \
+           doc[0] == '^' or doc[0] == '_' or \
+           doc[0] == '@' or doc[0] == '|':
+            fds = ['`',                        # preformatted
+                   '\\*{1,3}',                 # italic and bold
+                   '\\-{2,3}', '\\+{2,3}',     # font scale
+                   '\\+>', '<\\+',             # insert
+                   '<{2,3}', '>{2,3}',         # font width
+                   '\\^[0-9A-Za-z]{0,11}\\^',  # font color
+                   '_[0-9A-Za-z]{1,11}_',      # highlight color
+                   '@[^@]{1,66}@',             # font / font scale
+                   '\\[\\|', '\\|\\]',         # frame
+                   ]
+            tmp = ''
+            while doc != tmp:
+                tmp = doc
+                for fd in fds:
+                    doc = re.sub('^' + fd + '((?:.|\n)*?)$', '\\1', doc)
+                    doc = re.sub('^((?:.|\n)*?)' + fd + '$', '\\1', doc)
+        return doc
+
     ####################################
     # MENU
 
@@ -11009,6 +11034,10 @@ class Makdo:
                             postcommand=self.close_mouse_menu)
         self.mnb.add_cascade(label='ツール(T)', menu=menu, underline=4)
         #
+        menu.add_command(label='原稿の文字数を確認',
+                         command=self.count_chars)
+        menu.add_separator()
+        #
         menu.add_command(label='定型句を挿入',
                          command=self.insert_formula)
         menu.add_command(label='定型句を編集',
@@ -11057,6 +11086,19 @@ class Makdo:
 
     ################
     # COMMAND
+
+    def count_chars(self):
+        pane = self.txt
+        if self.current_pane == 'sub':
+            pane = self.sub
+        doc = pane.get('1.0', 'end-1c')
+        n_all = len(doc)
+        doc = pane.get('1.0', 'insert')
+        n_here = len(doc)
+        t = '文字数'
+        m = '原稿全体は' + "{:,}".format(n_all) + '文字です．\n' + \
+            'カーソルまでは' + "{:,}".format(n_here) + '文字です．'
+        tkinter.messagebox.showinfo(t, m)
 
     # INSERT AND EDIT FORMULA
 
@@ -11721,16 +11763,17 @@ class Makdo:
 
     def fold_section(self):
         sub_document = self.txt.get('insert linestart', 'end-1c')
+        tmp_document = self._remove_head_and_tail_fds(sub_document)
         # CHECK THAT THE LINE IS SECITION
         res = '^#+(?:-#+)*(?:\\s.*)?\n'
-        if not re.match(res, sub_document):
+        if not re.match(res, tmp_document):
             n = 'エラー'
             m = '行がセクションの見出し（"#"から始まる行）ではありません．'
             tkinter.messagebox.showerror(n, m)
             return
         # CHECK THAT HEADING IS NOT EMPTY
         res = '^#+(?:-#+)*\\s*\n\n'
-        if re.match(res, sub_document):
+        if re.match(res, tmp_document):
             n = 'エラー'
             m = 'セクションの見出しがありません（字下げの調整です）．'
             tkinter.messagebox.showerror(n, m)
@@ -11820,25 +11863,26 @@ class Makdo:
 
     def unfold_section(self):
         sub_document = self.txt.get('insert linestart', 'end-1c')
+        tmp_document = self._remove_head_and_tail_fds(sub_document)
         # CHECK THAT THE LINE IS SECITION
         res = '^#+(?:-#+)*(?:\\s.*)?\n'
-        if not re.match(res, sub_document):
+        if not re.match(res, tmp_document):
             n = 'エラー'
             m = '行がセクションの見出し（"#"から始まる行）ではありません．'
             tkinter.messagebox.showerror(n, m)
             return
         # CHECK THAT SECITION IS FOLDED
         res = '^#+(?:-#+)*(?:\\s.*)?\\.\\.\\.\\[([0-9]+)\\]\n(?:.|\n)*$'
-        if not re.match(res, sub_document):
+        if not re.match(res, tmp_document):
             n, m = 'エラー', 'セクションが折り畳まれていません．'
             tkinter.messagebox.showerror(n, m)
             return
         # CHECK THAT TEXT TO UNFOLD EXISTS
-        folding_number = re.sub(res, '\\1', sub_document)
+        folding_number = re.sub(res, '\\1', tmp_document)
         res_mark = '\\.\\.\\.\\[' + folding_number + '\\]'
         res = '^' + '((?:.|\n)*?\n)' \
             + '((?:' + DONT_EDIT_MESSAGE + '\n+)?)' \
-            + '(' + res_mark + '#+(?:-#+)*(?:\\s.*)?\n)' \
+            + '(' + res_mark + '.*#+(?:-#+)*(?:\\s.*)?\n)' \
             + '((?:.|\n)*)$'
         if not re.match(res, sub_document):
             n, m = 'エラー', '折り畳み先が見付かりません．'
@@ -11853,7 +11897,7 @@ class Makdo:
         text_d = re.sub(res, '\\4', sub_document)  # text to unfold
         res = '^' + '((?:.|\n)*?\n)' \
             + '((?:' + DONT_EDIT_MESSAGE + '\n+)?)' \
-            + '(\\.\\.\\.\\[[0-9]+\\]#+(?:-#+)*(?:\\s.*)?\n)' \
+            + '(\\.\\.\\.\\[[0-9]+\\].*#+(?:-#+)*(?:\\s.*)?\n)' \
             + '((?:.|\n)*)$'
         if re.match(res, text_d):
             text_d = re.sub(res, '\\1', text_d)
@@ -12009,6 +12053,7 @@ class Makdo:
 
     def fold_or_unfold_section(self):
         sub_document = self.txt.get('insert linestart', 'end-1c')
+        sub_document = self._remove_head_and_tail_fds(sub_document)
         # CHECK THAT THE LINE IS SECITION
         res = '^#+(?:-#+)*(?:\\s.*)?\n'
         if not re.match(res, sub_document):
@@ -12899,33 +12944,17 @@ class Makdo:
                           line[0] == '>' or line[0] == '<' or
                           line[0] == '^' or line[0] == '_' or
                           line[0] == '@' or line[0] == '|'):
-                        fds = ['`',                        # preformatted
-                               '\\*{1,3}',                 # italic and bold
-                               '\\-{2,3}', '\\+{2,3}',     # font scale
-                               '\\+>', '<\\+',             # insert
-                               '<{2,3}', '>{2,3}',         # font width
-                               '\\^[0-9A-Za-z]{0,11}\\^',  # font color
-                               '_[0-9A-Za-z]{1,11}_',      # highlight color
-                               '@[^@]{1,66}@',             # font / font scale
-                               '\\[\\|', '\\|\\]',         # frame
-                               ]
-                        tmp = ''
-                        while line != tmp:
-                            tmp = line
-                            for fd in fds:
-                                line = re.sub('^' + fd + '(.*?)$', '\\1', line)
-                                line = re.sub('^(.*?)' + fd + '$', '\\1', line)
+                        line = self._remove_head_and_tail_fds(line)
                         if re.match(res_chapter, line):
                             toc_lines.append([n, line])
                         elif re.match(res_section, line):
                             toc_lines.append([n, line])
-                    else:
-                        if len(toc_lines) > 0:
-                            t = toc_lines[-1]
-                            if n == t[0] + 1:
-                                if re.match('^\\S+(\\s+\\\\?)?$', t[1]):
-                                    t[1] = re.sub('\\s+\\\\?$', '', t[1]) \
-                                        + ' / ' + re.sub('^\\s+', '', line)
+                    if len(toc_lines) > 0:
+                        t = toc_lines[-1]
+                        if n == t[0] + 1:
+                            if re.match('^\\S+(\\s+\\\\?)?$', t[1]):
+                                t[1] = re.sub('\\s+\\\\?$', '', t[1]) \
+                                    + ' / ' + re.sub('^\\s+', '', line)
                 line = ''
                 n += 1
             else:
