@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.06.28-12:03:08-JST>
+# Time-stamp:   <2025.06.28-13:49:00-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -12857,8 +12857,6 @@ class Makdo:
     def update_toc(self):
         res_chapter = '^(\\${1,5})(-\\$+)*(\\s.*)?$'
         res_section = '^(#{1,8})(-#+)*(\\s.*)?$'
-        res_chapter2 = '^(?:`|\\*|\\-{2,}|\\+{2,})+(\\${1,5})(-\\$+)*(\\s.*)?$'
-        res_section2 = '^(?:`|\\*|\\-{2,}|\\+{2,})+(#{1,8})(-#+)*(\\s.*)?$'
         # CONFIRM
         is_toc_display_mode = self.is_toc_display_mode.get()
         if not is_toc_display_mode:
@@ -12897,21 +12895,29 @@ class Makdo:
                                 line = re.sub(res, '\\1 > \\2', line)
                             toc_lines.append([n, line])
                     elif (line[0] == '`' or line[0] == '*' or
-                          line[0] == '-' or line[0] == '+'):
-                        if re.match(res_chapter2, line):
-                            res = '^(?:`|\\*|\\-{2,}|\\+{2,})+' \
-                                + '(.*?)' \
-                                + '(?:`|\\*|\\-{2,}|\\+{2,})*$'
-                            line = re.sub(res, '\\1', line)
+                          line[0] == '-' or line[0] == '+' or
+                          line[0] == '>' or line[0] == '<' or
+                          line[0] == '^' or line[0] == '_' or
+                          line[0] == '@' or line[0] == '|'):
+                        fds = ['`',                        # preformatted
+                               '\\*{1,3}',                 # italic and bold
+                               '\\-{2,3}', '\\+{2,3}',     # font scale
+                               '\\+>', '<\\+',             # insert
+                               '<{2,3}', '>{2,3}',         # font width
+                               '\\^[0-9A-Za-z]{0,11}\\^',  # font color
+                               '_[0-9A-Za-z]{1,11}_',      # highlight color
+                               '@[^@]{1,66}@',             # font / font scale
+                               '\\[\\|', '\\|\\]',         # frame
+                               ]
+                        tmp = ''
+                        while line != tmp:
+                            tmp = line
+                            for fd in fds:
+                                line = re.sub('^' + fd + '(.*?)$', '\\1', line)
+                                line = re.sub('^(.*?)' + fd + '$', '\\1', line)
+                        if re.match(res_chapter, line):
                             toc_lines.append([n, line])
-                        elif re.match(res_section2, line):
-                            if re.match('^.*\\.{3}\\[[0-9]\\]+', line):
-                                res = '^(\\S+)\\s+(.*)\\.{3}\\[[0-9]\\]+'
-                                line = re.sub(res, '\\1 > \\2', line)
-                            res = '^(?:`|\\*|\\-{2,}|\\+{2,})+' \
-                                + '(.*?)' \
-                                + '(?:`|\\*|\\-{2,}|\\+{2,})*$'
-                            line = re.sub(res, '\\1', line)
+                        elif re.match(res_section, line):
                             toc_lines.append([n, line])
                     else:
                         if len(toc_lines) > 0:

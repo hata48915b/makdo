@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.06.05-09:05:35-JST>
+# Time-stamp:   <2025.06.28-13:35:25-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -435,7 +435,7 @@ FONT_DECORATORS_VISIBLE = [
     '~~',                            # strikethrough
     '\\[\\|', '\\|\\]',              # frame
     '_[\\$=\\.#\\-~\\+]{,4}_',       # underline
-    '_[0-9A-Za-z]{1,11}_',           # higilight color
+    '_[0-9A-Za-z]{1,11}_',           # highlight color
     '`',                             # preformatted
     '@' + RES_NUMBER + '@',          # font scale
     '@[^@]{1,66}@',                  # font
