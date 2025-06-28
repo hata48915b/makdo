@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.06.28-07:41:13-JST>
+# Time-stamp:   <2025.06.28-12:03:08-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -10855,44 +10855,38 @@ class Makdo:
         submenu = tkinter.Menu(self.mnb, tearoff=False)
         menu.add_cascade(label='フラグを設置', menu=submenu)
         #
-        submenu.add_command(label='フラグ１を設置',
+        submenu.add_command(label='フラグ1を設置',
                             command=self.place_flag1)
-        submenu.add_command(label='フラグ２を設置',
+        submenu.add_command(label='フラグ2を設置',
                             command=self.place_flag2)
-        submenu.add_command(label='フラグ３を設置',
+        submenu.add_command(label='フラグ3を設置',
                             command=self.place_flag3)
-        submenu.add_command(label='フラグ４を設置',
+        submenu.add_command(label='フラグ4を設置',
                             command=self.place_flag4)
-        submenu.add_command(label='フラグ５を設置',
+        submenu.add_command(label='フラグ5を設置',
                             command=self.place_flag5)
 
     #######
     # COMMAND
 
     def place_flag1(self):
-        if 'flag1' in self.txt.mark_names():
-            self.txt.mark_unset('flag1')
-        self.txt.mark_set('flag1', 'insert')
+        self._place_flag(1)
 
     def place_flag2(self):
-        if 'flag2' in self.txt.mark_names():
-            self.txt.mark_unset('flag2')
-        self.txt.mark_set('flag2', 'insert')
+        self._place_flag(2)
 
     def place_flag3(self):
-        if 'flag3' in self.txt.mark_names():
-            self.txt.mark_unset('flag3')
-        self.txt.mark_set('flag3', 'insert')
+        self._place_flag(3)
 
     def place_flag4(self):
-        if 'flag4' in self.txt.mark_names():
-            self.txt.mark_unset('flag4')
-        self.txt.mark_set('flag4', 'insert')
+        self._place_flag(4)
 
     def place_flag5(self):
-        if 'flag5' in self.txt.mark_names():
-            self.txt.mark_unset('flag5')
-        self.txt.mark_set('flag5', 'insert')
+        self._place_flag(5)
+
+    def _place_flag(self, n):
+        self.txt.mark_set('flag' + str(n), 'insert')
+        self.txt.mark_gravity('flag' + str(n), 'left')
 
     ################
     # SUBMENU GOTO FLAG
@@ -10901,59 +10895,46 @@ class Makdo:
         submenu = tkinter.Menu(self.mnb, tearoff=False)
         menu.add_cascade(label='フラグに移動', menu=submenu)
         #
-        submenu.add_command(label='フラグ１に移動',
+        submenu.add_command(label='フラグ1に移動',
                             command=self.goto_flag1)
-        submenu.add_command(label='フラグ２に移動',
+        submenu.add_command(label='フラグ2に移動',
                             command=self.goto_flag2)
-        submenu.add_command(label='フラグ３に移動',
+        submenu.add_command(label='フラグ3に移動',
                             command=self.goto_flag3)
-        submenu.add_command(label='フラグ４に移動',
+        submenu.add_command(label='フラグ4に移動',
                             command=self.goto_flag4)
-        submenu.add_command(label='フラグ５に移動',
+        submenu.add_command(label='フラグ5に移動',
                             command=self.goto_flag5)
 
     #######
     # COMMAND
 
     def goto_flag1(self):
-        if 'flag1' not in self.txt.mark_names():
-            n, m = 'エラー', 'フラグ１は設定されていません．'
-            tkinter.messagebox.showerror(n, m)
-            return
-        self.txt.mark_set('insert', 'flag1')
-        self._put_back_cursor_to_pane(self.txt)
+        self._goto_flag(1)
 
     def goto_flag2(self):
-        if 'flag2' not in self.txt.mark_names():
-            n, m = 'エラー', 'フラグ２は設定されていません．'
-            tkinter.messagebox.showerror(n, m)
-            return
-        self.txt.mark_set('insert', 'flag2')
-        self._put_back_cursor_to_pane(self.txt)
+        self._goto_flag(2)
 
     def goto_flag3(self):
-        if 'flag3' not in self.txt.mark_names():
-            n, m = 'エラー', 'フラグ３は設定されていません．'
-            tkinter.messagebox.showerror(n, m)
-            return
-        self.txt.mark_set('insert', 'flag3')
-        self._put_back_cursor_to_pane(self.txt)
+        self._goto_flag(3)
 
     def goto_flag4(self):
-        if 'flag4' not in self.txt.mark_names():
-            n, m = 'エラー', 'フラグ４は設定されていません．'
-            tkinter.messagebox.showerror(n, m)
-            return
-        self.txt.mark_set('insert', 'flag4')
-        self._put_back_cursor_to_pane(self.txt)
+        self._goto_flag(4)
 
     def goto_flag5(self):
-        if 'flag5' not in self.txt.mark_names():
-            n, m = 'エラー', 'フラグ５は設定されていません．'
-            tkinter.messagebox.showerror(n, m)
-            return
-        self.txt.mark_set('insert', 'flag5')
+        self._goto_flag(5)
+
+    def _goto_flag(self, n) -> bool:
+        if 'flag' + str(n) not in self.txt.mark_names():
+            t, m = 'エラー', 'フラグ' + str(n) + 'は設定されていません．'
+            tkinter.messagebox.showerror(t, m)
+            return False
+        self.txt.mark_set('insert', 'flag' + str(n))
         self._put_back_cursor_to_pane(self.txt)
+        return True
+
+    ################
+    # COMMAND
 
     def goto_sub_cursor(self):
         m = self.txt.index('insert')
@@ -11310,7 +11291,7 @@ class Makdo:
             self.update_memo_pad()
             self.memo_pad_memory = None
 
-    # SPLIT OR UNIFY WINDOW
+    # SPLIT WINDOW
 
     def split_window(self) -> bool:
         if len(self.pnd_r.panes()) > 1:
