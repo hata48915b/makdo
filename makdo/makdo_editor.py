@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.06.29-09:34:36-JST>
+# Time-stamp:   <2025.06.29-13:11:35-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -13986,11 +13986,11 @@ class Makdo:
             self._any_process_f16(pane)
             return 'break'
         elif key.keysym == 'Left':
-            self._paint_akauni_region(pane, '-1c')
-            return
+            self._any_process_left(pane)
+            return 'break'
         elif key.keysym == 'Right':
-            self._paint_akauni_region(pane, '+1c')
-            return
+            self._any_process_right(pane)
+            return 'break'
         elif key.keysym == 'Up':
             self._any_process_up(pane)
             return 'break'
@@ -14258,11 +14258,11 @@ class Makdo:
             self._any_process_f19()
             return 'break'
         elif key.keysym == 'Left':
-            self._paint_akauni_region(pane, '-1c')
-            return
+            self._any_process_left(pane)
+            return 'break'
         elif key.keysym == 'Right':
-            self._paint_akauni_region(pane, '+1c')
-            return
+            self._any_process_right(pane)
+            return 'break'
         elif key.keysym == 'Up':
             self._any_process_up(pane)
             return 'break'
@@ -14356,48 +14356,100 @@ class Makdo:
         self.set_message_on_status_bar('読取専用です')
         return 'break'
 
-    def _any_process_up(self, pane):
-        if self.key_history[-2] == 'F19':
-            self._jump_to_prev_pane()
-            return
-        if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
-            self.ideal_h_position = self._get_ideal_h_position_of_insert(pane)
-        self._move_vertically(pane, self.ideal_h_position, -1)
+    def _any_process_left(self, pane):
+        self._any_process_left_or_right(pane, 'left')
+
+    def _any_process_right(self, pane):
+        self._any_process_left_or_right(pane, 'right')
+
+    def _any_process_left_or_right(self, pane, key):
+        self._set_is_boosted_movement()
+        if self.is_boosted_movement:
+            if key == 'left':
+                pane.mark_set('insert', 'insert-5c')
+            else:
+                pane.mark_set('insert', 'insert+5c')
+        else:
+            if key == 'left':
+                pane.mark_set('insert', 'insert-1c')
+            else:
+                pane.mark_set('insert', 'insert+1c')
+        self._put_back_cursor_to_pane(pane)
         self._paint_akauni_region(pane, '')
-        return
+
+    def _any_process_up(self, pane):
+        self._any_process_up_or_down(pane, 'up')
 
     def _any_process_down(self, pane):
+        self._any_process_up_or_down(pane, 'down')
+
+    def _any_process_up_or_down(self, pane, key):
         if self.key_history[-2] == 'F19':
-            self._jump_to_next_pane()
+            if key == 'up':
+                self._jump_to_prev_pane()
+            else:
+                self._jump_to_next_pane()
             return
         if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
             self.ideal_h_position = self._get_ideal_h_position_of_insert(pane)
-        self._move_vertically(pane, self.ideal_h_position, +1)
+        self._set_is_boosted_movement()
+        if self.is_boosted_movement:
+            if key == 'up':
+                self._move_vertically(pane, self.ideal_h_position, -5)
+            else:
+                self._move_vertically(pane, self.ideal_h_position, +5)
+        else:
+            if key == 'up':
+                self._move_vertically(pane, self.ideal_h_position, -1)
+            else:
+                self._move_vertically(pane, self.ideal_h_position, +1)
         self._paint_akauni_region(pane, '')
         return
 
     def _any_process_prior(self, pane):
-        if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
-            self.ideal_h_position = self._get_ideal_h_position_of_insert(pane)
-        lines = self._get_lines_of_pane(pane)
-        self._move_vertically(pane, self.ideal_h_position, -lines)
-        self._paint_akauni_region(pane, '')
+        self._any_process_prior_or_next(pane, 'prior')
 
     def _any_process_next(self, pane):
+        self._any_process_prior_or_next(pane, 'next')
+
+    def _any_process_prior_or_next(self, pane, key):
         if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
             self.ideal_h_position = self._get_ideal_h_position_of_insert(pane)
-        lines = self._get_lines_of_pane(pane)
-        self._move_vertically(pane, self.ideal_h_position, +lines)
+        self._set_is_boosted_movement()
+        if self.is_boosted_movement:
+            if key == 'prior':
+                pane.mark_set('insert', '1.0')
+            else:
+                pane.mark_set('insert', 'end-1c')
+            self._put_back_cursor_to_pane(pane)
+        else:
+            lines = self._get_lines_of_pane(pane)
+            if key == 'prior':
+                self._move_vertically(pane, self.ideal_h_position, -lines)
+            else:
+                self._move_vertically(pane, self.ideal_h_position, +lines)
         self._paint_akauni_region(pane, '')
 
     def _any_process_home(self, pane):
-        width = self._get_width_of_pane(pane)
-        self._move_horizontally(pane, -width)
-        self._paint_akauni_region(pane, '')
+        self._any_process_home_or_end(pane, 'home')
 
     def _any_process_end(self, pane):
-        width = self._get_width_of_pane(pane)
-        self._move_horizontally(pane, +width)
+        self._any_process_home_or_end(pane, 'end')
+
+    def _any_process_home_or_end(self, pane, key):
+        self._set_is_boosted_movement()
+        if self.is_boosted_movement:
+            if key == 'home':
+                pane.mark_set('insert', 'insert linestart')
+            else:
+                pane.mark_set('insert', 'insert lineend')
+            self._put_back_cursor_to_pane(pane)
+        else:
+            width = self._get_width_of_pane(pane)
+            if key == 'home':
+                self._move_horizontally(pane, -width)
+            else:
+                self._move_horizontally(pane, +width)
         self._paint_akauni_region(pane, '')
 
     def _any_process_delete(self) -> bool:
@@ -14449,7 +14501,7 @@ class Makdo:
             has_akauni = False
         #
         delta = self.key_pressed_time[-1] - self.key_pressed_time[-2]
-        if self.key_history[-2] == 'F22' and delta < 0.64:
+        if self.key_history[-2] == 'F22' and delta < 0.32:
             if len(self.pnd_r.panes()) > 1 and \
                'x0sixteenth' in self.sub.mark_names():
                 self.swap_windows()
@@ -14459,6 +14511,29 @@ class Makdo:
             if not has_akauni:
                 pane.mark_set('akauni', 'insert')
                 pane.mark_unset('prev_akauni')
+
+    def _set_is_boosted_movement(self) -> bool:
+        key4 = self.key_history[-4]
+        key3 = self.key_history[-3]
+        key2 = self.key_history[-2]
+        key1 = self.key_history[-1]
+        delta34 = self.key_pressed_time[-3] - self.key_pressed_time[-4]
+        delta23 = self.key_pressed_time[-2] - self.key_pressed_time[-3]
+        delta12 = self.key_pressed_time[-1] - self.key_pressed_time[-2]
+        if 'is_boosted_movement' not in vars(self):
+            # X X X X
+            self.is_boosted_movement = False
+        elif key2 != key1 or key3 != key1:
+            # X X X O / X X O O
+            self.is_boosted_movement = False
+        elif key4 != key1 or delta34 > 0.3:
+            # X O O O
+            if delta23 < 0.3 and delta12 > 0.3:
+                self.is_boosted_movement = True
+        else:
+            # O O O O
+            if delta12 > 0.3:
+                self.is_boosted_movement = False
 
     @staticmethod
     def _paint_akauni_region(pane, shift=''):
