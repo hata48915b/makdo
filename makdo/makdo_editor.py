@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.06.28-15:35:02-JST>
+# Time-stamp:   <2025.06.29-09:34:36-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5520,8 +5520,8 @@ class Makdo:
         self.has_made_backup_file = False
         self.line_data = []
         self.clipboard_list = ['']
-        self.key_history = ['', '', '', '', '', '', '', '', '', '',
-                            '', '', '', '', '', '', '', '', '', '', '']
+        self.key_history = ['' for i in range(21)]
+        self.key_pressed_time = [0 for i in range(21)]
         self.current_pane = 'txt'
         self.formula_number = -1
         self.memo_pad_memory = None
@@ -11034,7 +11034,7 @@ class Makdo:
                             postcommand=self.close_mouse_menu)
         self.mnb.add_cascade(label='ツール(T)', menu=menu, underline=4)
         #
-        menu.add_command(label='原稿の文字数を確認',
+        menu.add_command(label='文字数と行数を確認',
                          command=self.count_chars)
         menu.add_separator()
         #
@@ -11091,13 +11091,19 @@ class Makdo:
         pane = self.txt
         if self.current_pane == 'sub':
             pane = self.sub
-        doc = pane.get('1.0', 'end-1c')
-        n_all = len(doc)
-        doc = pane.get('1.0', 'insert')
-        n_here = len(doc)
-        t = '文字数'
-        m = '原稿全体は' + "{:,}".format(n_all) + '文字です．\n' + \
-            'カーソルまでは' + "{:,}".format(n_here) + '文字です．'
+        if pane.tag_ranges('sel'):
+            beg, end = pane.index('sel.first'), pane.index('sel.last')
+        elif 'akauni' in pane.mark_names():
+            beg, end = self._get_indices_in_order(pane, 'insert', 'akauni')
+        else:
+            beg, end = '1.0', 'end-1c'
+        tex = pane.get(beg, end)
+        n_nl = tex.count('\n') + 1
+        tex = tex.replace('\n', '')
+        n_ch = len(tex)
+        t = '文字数と行数'
+        m = "{:,}".format(n_ch) + '文字\n' + \
+            "{:,}".format(n_nl) + '行'
         tkinter.messagebox.showinfo(t, m)
 
     # INSERT AND EDIT FORMULA
@@ -13969,6 +13975,9 @@ class Makdo:
         else:
             self.key_history.append(key.keysym)
         self.key_history.pop(0)
+        unix_time = datetime.datetime.now().timestamp()
+        self.key_pressed_time.append(unix_time)
+        self.key_pressed_time.pop(0)
         #
         if key.keysym == 'F19':              # x (ctrl)
             self._any_process_f19()
@@ -14018,9 +14027,6 @@ class Makdo:
             self._any_process_f22(pane)
             return 'break'
         elif key.keysym == 'Delete':         # d (delete, quit)
-            if self.key_history[-2] == 'F19':
-                self.quit_makdo()
-                return True
             if self._any_process_delete():
                 return 'break'
             # FOR PAINTING
@@ -14395,6 +14401,10 @@ class Makdo:
         self._paint_akauni_region(pane, '')
 
     def _any_process_delete(self) -> bool:
+        if self.key_history[-2] == 'F19':
+            if self.current_pane == 'txt':
+                self.quit_makdo()
+                return True
         if self.key_history[-2] == 'F13':
             self.cut_rectangle()
             return True
@@ -14428,33 +14438,27 @@ class Makdo:
     def _any_process_f22(self, pane):
         if self.key_history[-2] == 'F19':
             self.save_file()
+            return
+        #
+        if 'akauni' in pane.mark_names():
+            has_akauni = True
+            pane.mark_set('prev_akauni', 'akauni')
+            pane.tag_remove('akauni_tag', '1.0', 'end')
+            pane.mark_unset('akauni')
         else:
-            if 'unixtime_of_modf_pressed' not in vars(self):
-                self.unixtime_of_modf_pressed = 0
-            unixtime_of_now = datetime.datetime.now().timestamp()
-            delta = unixtime_of_now - self.unixtime_of_modf_pressed
-            if 'akauni' in pane.mark_names():
-                has_akauni = True
-                pane.mark_set('prev_akauni', 'akauni')
-                pane.tag_remove('akauni_tag', '1.0', 'end')
-                pane.mark_unset('akauni')
+            has_akauni = False
+        #
+        delta = self.key_pressed_time[-1] - self.key_pressed_time[-2]
+        if self.key_history[-2] == 'F22' and delta < 0.64:
+            if len(self.pnd_r.panes()) > 1 and \
+               'x0sixteenth' in self.sub.mark_names():
+                self.swap_windows()
             else:
-                has_akauni = False
-            if delta < 0.64:
-                if len(self.pnd_r.panes()) > 1 and \
-                   'x0sixteenth' in self.sub.mark_names():
-                    self.swap_windows()
-                else:
-                    self.goto_sub_cursor()
-                if not has_akauni:
-                    pane.mark_set('akauni', 'prev_akauni')
-                    pane.mark_unset('prev_akauni')
-                self.unixtime_of_modf_pressed = 0
-            else:
-                if not has_akauni:
-                    pane.mark_set('akauni', 'insert')
-                    pane.mark_unset('prev_akauni')
-                self.unixtime_of_modf_pressed = unixtime_of_now
+                self.goto_sub_cursor()
+        else:
+            if not has_akauni:
+                pane.mark_set('akauni', 'insert')
+                pane.mark_unset('prev_akauni')
 
     @staticmethod
     def _paint_akauni_region(pane, shift=''):
