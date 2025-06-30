@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.06.29-13:11:35-JST>
+# Time-stamp:   <2025.06.30-10:51:11-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6439,6 +6439,28 @@ class Makdo:
                     doc = re.sub('^((?:.|\n)*?)' + fd + '$', '\\1', doc)
         return doc
 
+    def _insert_inline_text(self, inline_text, step=0):
+        pane = self.txt
+        if self.current_pane == 'sub':
+            pane = self.sub
+        if self._is_read_only_pane(pane):
+            return
+        pane.edit_separator()
+        pane.insert('insert', inline_text)
+        pane.mark_set('insert', 'insert-' + str(step) + 'c')
+        pane.edit_separator()
+
+    def _insert_paragraph_text(self, paragraph_text):
+        pane = self.txt
+        if self.current_pane == 'sub':
+            pane = self.sub
+        if self._is_read_only_pane(pane):
+            return
+        pane.edit_separator()
+        self._insert_line_break_as_necessary()
+        pane.insert('insert', paragraph_text)
+        pane.edit_separator()
+
     ####################################
     # MENU
 
@@ -8002,6 +8024,7 @@ class Makdo:
         self._make_submenu_insert_underline(menu)
         self._make_submenu_insert_font_color_change(menu)
         self._make_submenu_insert_highlight_color_change(menu)
+        self._make_submenu_insert_math_expression(menu)
         menu.add_command(label='代語句を挿入',
                          command=self.insert_substitute_phrases)
         menu.add_separator()
@@ -8560,6 +8583,80 @@ class Makdo:
     def insert_m_highlight_color(self):
         self.txt.insert('insert', '_M_（ここは下地がマゼンタ）_M_')
         self.txt.mark_set('insert', 'insert-3c')
+
+    ################
+    # SUBMENU INSERT MATH EXPRESSINO
+
+    def _make_submenu_insert_math_expression(self, menu):
+        submenu = tkinter.Menu(menu, tearoff=False)
+        menu.add_cascade(label='数式を挿入', menu=submenu)
+        #
+        submenu.add_command(label='基本を挿入',
+                            command=self.insert_math_expression_basis)
+        submenu.add_command(label='分数を挿入',
+                            command=self.insert_math_fraction)
+        submenu.add_command(label='上付き文字を挿入',
+                            command=self.insert_math_superscript)
+        submenu.add_command(label='下付き文字を挿入',
+                            command=self.insert_math_subscript)
+        submenu.add_command(label='平方根を挿入',
+                            command=self.insert_math_square_root)
+        submenu.add_command(label='累乗根を挿入',
+                            command=self.insert_math_power_root)
+        submenu.add_command(label='総和を挿入',
+                            command=self.insert_math_summation)
+        submenu.add_command(label='総乗を挿入',
+                            command=self.insert_math_product)
+        submenu.add_command(label='積分を挿入',
+                            command=self.insert_math_integral)
+
+    ######
+    # COMMAND
+
+    def insert_math_expression_basis(self):
+        self._insert_math_expression('（ここに"LaTeX"形式の数式を挿入）')
+
+    def insert_math_fraction(self):
+        self._insert_math_expression('\\frac{分子}{分母}')
+
+    def insert_math_superscript(self):
+        self._insert_math_expression('^{上付き文字}')
+
+    def insert_math_subscript(self):
+        self._insert_math_expression('_{下付き文字}')
+
+    def insert_math_square_root(self):
+        self._insert_math_expression('\\sqrt{被開平数}')
+
+    def insert_math_power_root(self):
+        self._insert_math_expression('\\sqrt[指数]{被開平数}')
+
+    def insert_math_summation(self):
+        self._insert_math_expression('\\sum_{n=始値}^{終値}{被和値}')
+
+    def insert_math_product(self):
+        self._insert_math_expression('\\prod_{n=始値}^{終値}{被乗値}')
+
+    def insert_math_integral(self):
+        self._insert_math_expression('\\int_{始値}^{終値}{関数}dx')
+
+    def _insert_math_expression(self, inline_text):
+        pane = self.txt
+        if self.current_pane == 'sub':
+            pane = self.sub
+        #
+        doc_up = pane.get('1.0', 'insert')
+        while re.match(NOT_ESCAPED + '\\\\\\]', doc_up):
+            doc_up = re.sub(NOT_ESCAPED + '\\\\\\]', '', doc_up)
+        if not re.match(NOT_ESCAPED + '\\\\\\[', doc_up):
+            inline_text = '\\[' + inline_text
+        #
+        doc_dn = pane.get('insert', 'end-1c')
+        doc_dn = re.sub(NOT_ESCAPED + '\\\\\\[(.|\n)*$', '\\1', doc_dn)
+        if not re.match(NOT_ESCAPED + '\\\\\\]', doc_dn):
+            inline_text = inline_text + '\\]'
+        #
+        self._insert_inline_text(inline_text, 2)
 
     ################
     # COMMAND
@@ -9467,8 +9564,7 @@ class Makdo:
         self._make_submenu_insert_image(menu)
         menu.add_command(label='改ページを挿入',
                          command=self.insert_page_break)
-        menu.add_command(label='数式を挿入',
-                         command=self.insert_math)
+        self._make_submenu_insert_math_paragraph_expression(menu)
         menu.add_separator()
         #
         menu.add_command(label='チャプターの番号を変更',
@@ -10056,10 +10152,81 @@ class Makdo:
         self._insert_line_break_as_necessary()
         self.txt.insert('insert', '<pgbr>')
 
-    def insert_math(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '\\[（ここに"LaTeX"形式の数式を挿入）\\]')
-        self.txt.mark_set('insert', 'insert-2c')
+    ################
+    # SUBMENU INSERT MATH SAMPLE
+
+    def _make_submenu_insert_math_paragraph_expression(self, menu):
+        submenu = tkinter.Menu(menu, tearoff=False)
+        menu.add_cascade(label='数式を挿入', menu=submenu)
+        #
+        submenu.add_command(label='基本',
+                            command=self.insert_math_paragraph_expression)
+        submenu.add_command(label='テイラー展開',
+                            command=self.insert_taylor_expansion)
+        submenu.add_command(label='ピタゴラスの定理',
+                            command=self.insert_pythagorean_theorem)
+        submenu.add_command(label='フーリエ級数',
+                            command=self.insert_fourier_series)
+        submenu.add_command(label='円の面積',
+                            command=self.insert_area_of_circle)
+        submenu.add_command(label='三角比の公式1',
+                            command=self.insert_trigonometric_formulas_1)
+        submenu.add_command(label='三角比の公式2',
+                            command=self.insert_trigonometric_formulas_2)
+        submenu.add_command(label='二項定理',
+                            command=self.insert_binomial_theorem)
+        submenu.add_command(label='二次関数の解の公式',
+                            command=self.insert_quadratic_formula)
+        submenu.add_command(label='和の展開',
+                            command=self.insert_expansion_of_addition)
+
+    ######
+    # COMMAND
+
+    def insert_math_paragraph_expression(self):
+        self._insert_paragraph_text('\\[\n（ここに"LaTeX"形式の数式を挿入）\n\\]')
+
+    def insert_taylor_expansion(self):
+        tex = 'e^x ' + '= 1 ' \
+            + '+ \\frac{x}{1!} + \\frac{x^2}{2!} + \\frac{x^3}{3!} + …, ' \
+            + '-∞<x<∞'
+        self._insert_paragraph_text('X=+0.5\n\\[\n' + tex + '\n\\]')
+
+    def insert_pythagorean_theorem(self):
+        tex = 'a^2 + b^2 = c^2'
+        self._insert_paragraph_text('X=+0.5\n\\[\n' + tex + '\n\\]')
+
+    def insert_fourier_series(self):
+        tex = 'f(x) ' + '= a_0 ' + '+ \\sum_{n=1}^{∞}{' \
+            + '(a_n\\cos{\\frac{nπx}{L}} + b_n\\sin{\\frac{nπx}{L}})' \
+            + '}'
+        self._insert_paragraph_text('X=+0.5\n\\[\n' + tex + '\n\\]')
+
+    def insert_area_of_circle(self):
+        tex = 'A = π r^2'
+        self._insert_paragraph_text('X=+0.5\n\\[\n' + tex + '\n\\]')
+
+    def insert_trigonometric_formulas_1(self):
+        tex = '\\sin{α} ± \\sin{β} ' \
+            + '= 2 \\sin{\\frac{1}{2}({α±β})} \\cos{\\frac{1}{2}({α∓β})}'
+        self._insert_paragraph_text('X=+0.5\n\\[\n' + tex + '\n\\]')
+
+    def insert_trigonometric_formulas_2(self):
+        tex = '\\cos{α} + \\cos{β} ' \
+            + '= 2 \\cos{\\frac{1}{2}({α+β})} \\cos{\\frac{1}{2}({α-β})}'
+        self._insert_paragraph_text('X=+0.5\n\\[\n' + tex + '\n\\]')
+
+    def insert_binomial_theorem(self):
+        tex = '{(x + a)}^{n} = \\sum_{k=0}^{n}{_{n}C_{k} a^{k} x^{n-k}}'
+        self._insert_paragraph_text('X=+0.5\n\\[\n' + tex + '\n\\]')
+
+    def insert_quadratic_formula(self):
+        tex = 'x = \\frac{-b ± \\sqrt{b^2 - 4ac}}{2a}'
+        self._insert_paragraph_text('X=+0.5\n\\[\n' + tex + '\n\\]')
+
+    def insert_expansion_of_addition(self):
+        tex = '(1 + x)^n = 1 + \\frac{n x}{1!} + \\frac{n(n - 1) x^2}{2!} + …'
+        self._insert_paragraph_text('X=+0.5\n\\[\n' + tex + '\n\\]')
 
     ################
     # COMMAND
