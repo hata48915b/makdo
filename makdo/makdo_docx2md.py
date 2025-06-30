@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.06.30-11:01:49-JST>
+# Time-stamp:   <2025.06.30-12:41:28-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -3814,9 +3814,11 @@ class MathDatum:
                     math_data[i].chars = pre + beg + pos
                     # FRONT AND BACK LIST
                     for fd in math_data[i].fr_fd_lst:
-                        md_cur.append_fr_and_bk_fds(fd, '')
+                        if fd != '{':
+                            md_cur.append_fr_and_bk_fds(fd, '')
                     for fd in math_data[i].bk_fd_lst:
-                        md_cur.append_fr_and_bk_fds('', fd)
+                        if fd != '}':
+                            md_cur.append_fr_and_bk_fds('', fd)
                     break
             md_cur.chars += end
             math_data.append(MathDatum())  # no "<w:rPr/>" or "</w:rPr>"

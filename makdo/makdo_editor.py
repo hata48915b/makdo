@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.06.30-10:51:11-JST>
+# Time-stamp:   <2025.06.30-11:33:37-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -10217,7 +10217,8 @@ class Makdo:
         self._insert_paragraph_text('X=+0.5\n\\[\n' + tex + '\n\\]')
 
     def insert_binomial_theorem(self):
-        tex = '{(x + a)}^{n} = \\sum_{k=0}^{n}{_{n}C_{k} a^{k} x^{n-k}}'
+        tex = '{(x + a)}^{n} ' \
+            + '= \\sum_{k=0}^{n}{_{n}\mathrm{C}_{k} a^{k} x^{n-k}}'
         self._insert_paragraph_text('X=+0.5\n\\[\n' + tex + '\n\\]')
 
     def insert_quadratic_formula(self):
