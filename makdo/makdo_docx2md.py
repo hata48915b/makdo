@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.06.28-13:35:33-JST>
+# Time-stamp:   <2025.06.30-11:01:49-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -8906,15 +8906,15 @@ class ParagraphImage(Paragraph):
                 cm_h = -0.5
             if cm_w < 0 and cm_h < 0:
                 img_text = '!' \
-                    + '[' + alte + '@' + str(cm_w) + 'x' + str(cm_h) + ']' \
+                    + '[' + alte + ' @' + str(cm_w) + 'x' + str(cm_h) + ']' \
                     + '(' + path + ')'
             elif cm_w < 0:
                 img_text = '!' \
-                    + '[' + alte + '@' + str(cm_w) + 'x' + ']' \
+                    + '[' + alte + ' @' + str(cm_w) + 'x' + ']' \
                     + '(' + path + ')'
             elif cm_h < 0:
                 img_text = '!' \
-                    + '[' + alte + '@' + 'x' + str(cm_h) + ']' \
+                    + '[' + alte + ' @' + 'x' + str(cm_h) + ']' \
                     + '(' + path + ')'
         return img_text
 
