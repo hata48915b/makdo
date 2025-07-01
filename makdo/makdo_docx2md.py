@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.06.30-12:41:28-JST>
+# Time-stamp:   <2025.07.01-10:07:12-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -3514,6 +3514,28 @@ class MathDatum:
         # --------------------------------------------------
         if re.match('<m:chr m:val="(\u2192|\u20D7)"/>', xl):
             md_cur.chars += '\\vec'
+            return math_data, None
+        # DOT
+        # --------------------------------------------------
+        # <m:acc>
+        #     <m:chr m:val="̇"/>  # \u0307 / \u0308 / \u20DB
+        #     <w:rPr/> or <w:rPr>...</w:rPr>
+        #     <m:e>
+        #         <m:r>
+        #             A
+        #         </m:r>
+        #     </m:e>
+        # </m:acc>
+        # = \dot{A}
+        # --------------------------------------------------
+        if re.match('<m:chr m:val="(\u0307)"/>', xl):
+            md_cur.chars += '\\dot'
+            return math_data, None
+        if re.match('<m:chr m:val="(\u0308)"/>', xl):
+            md_cur.chars += '\\ddot'
+            return math_data, None
+        if re.match('<m:chr m:val="(\u20DB)"/>', xl):
+            md_cur.chars += '\\dddot'
             return math_data, None
         # FRACTION, BINOMIAL
         # --------------------------------------------------

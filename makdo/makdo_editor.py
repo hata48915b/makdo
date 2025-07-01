@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.06.30-11:33:37-JST>
+# Time-stamp:   <2025.07.01-10:05:06-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6022,40 +6022,6 @@ class Makdo:
                 table += '|\n'
         return table
 
-    def _insert_line_break_as_necessary(self):
-        t = self.txt.get('1.0', 'insert')
-        if len(t) == 0:
-            pass
-        elif len(t) == 1:
-            if t[-1] == '\n':
-                pass
-            else:
-                self.txt.insert('insert', '\n\n')
-        elif len(t) >= 2:
-            if t[-2] == '\n' and t[-1] == '\n':
-                pass
-            elif t[-1] == '\n':
-                self.txt.insert('insert', '\n')
-            else:
-                self.txt.insert('insert', '\n\n')
-        p = self.txt.index('insert')
-        t = self.txt.get('insert', 'end-1c')
-        if len(t) == 0:
-            self.txt.insert('insert', '\n')
-        elif len(t) == 1:
-            if t[0] == '\n':
-                pass
-            else:
-                self.txt.insert('insert', '\n\n')
-        elif len(t) >= 2:
-            if t[0] == '\n' and t[1] == '\n':
-                pass
-            elif t[0] == '\n':
-                self.txt.insert('insert', '\n')
-            else:
-                self.txt.insert('insert', '\n\n')
-        self.txt.mark_set('insert', p)
-
     def _is_read_only_pane(self, pane):
         if pane == self.sub:
             if self.sub_pane_is_read_only:
@@ -6447,7 +6413,11 @@ class Makdo:
             return
         pane.edit_separator()
         pane.insert('insert', inline_text)
-        pane.mark_set('insert', 'insert-' + str(step) + 'c')
+        s = str(step) + 'c'
+        if step >= 0:
+            s = '+' + str(step) + 'c'
+        pane.mark_set('insert', 'insert' + s)
+        self.paint_out_line(self._get_v_position_of_insert(pane) - 1)
         pane.edit_separator()
 
     def _insert_paragraph_text(self, paragraph_text):
@@ -6460,6 +6430,40 @@ class Makdo:
         self._insert_line_break_as_necessary()
         pane.insert('insert', paragraph_text)
         pane.edit_separator()
+
+    def _insert_line_break_as_necessary(self):
+        t = self.txt.get('1.0', 'insert')
+        if len(t) == 0:
+            pass
+        elif len(t) == 1:
+            if t[-1] == '\n':
+                pass
+            else:
+                self.txt.insert('insert', '\n\n')
+        elif len(t) >= 2:
+            if t[-2] == '\n' and t[-1] == '\n':
+                pass
+            elif t[-1] == '\n':
+                self.txt.insert('insert', '\n')
+            else:
+                self.txt.insert('insert', '\n\n')
+        p = self.txt.index('insert')
+        t = self.txt.get('insert', 'end-1c')
+        if len(t) == 0:
+            self.txt.insert('insert', '\n')
+        elif len(t) == 1:
+            if t[0] == '\n':
+                pass
+            else:
+                self.txt.insert('insert', '\n\n')
+        elif len(t) >= 2:
+            if t[0] == '\n' and t[1] == '\n':
+                pass
+            elif t[0] == '\n':
+                self.txt.insert('insert', '\n')
+            else:
+                self.txt.insert('insert', '\n\n')
+        self.txt.mark_set('insert', p)
 
     ####################################
     # MENU
@@ -8603,10 +8607,18 @@ class Makdo:
                             command=self.insert_math_square_root)
         submenu.add_command(label='累乗根を挿入',
                             command=self.insert_math_power_root)
+        submenu.add_command(label='ベクトルを挿入',
+                            command=self.insert_math_vector)
         submenu.add_command(label='総和を挿入',
                             command=self.insert_math_summation)
         submenu.add_command(label='総乗を挿入',
                             command=self.insert_math_product)
+        submenu.add_command(label='微分（分数）を挿入',
+                            command=self.insert_math_differentiation_frac)
+        submenu.add_command(label='微分（ドット）を挿入',
+                            command=self.insert_math_differentiation_dot)
+        submenu.add_command(label='偏微分を挿入',
+                            command=self.insert_math_partial_differentiation)
         submenu.add_command(label='積分を挿入',
                             command=self.insert_math_integral)
 
@@ -8617,28 +8629,40 @@ class Makdo:
         self._insert_math_expression('（ここに"LaTeX"形式の数式を挿入）')
 
     def insert_math_fraction(self):
-        self._insert_math_expression('\\frac{分子}{分母}')
+        self._insert_math_expression('\\frac{A}{B}')
 
     def insert_math_superscript(self):
-        self._insert_math_expression('^{上付き文字}')
+        self._insert_math_expression('{A}^{B}')
 
     def insert_math_subscript(self):
-        self._insert_math_expression('_{下付き文字}')
+        self._insert_math_expression('{A}_{B}')
 
     def insert_math_square_root(self):
-        self._insert_math_expression('\\sqrt{被開平数}')
+        self._insert_math_expression('\\sqrt{A}')
 
     def insert_math_power_root(self):
-        self._insert_math_expression('\\sqrt[指数]{被開平数}')
+        self._insert_math_expression('\\sqrt[A]{B}')
+
+    def insert_math_vector(self):
+        self._insert_math_expression('\\vec{A}')
 
     def insert_math_summation(self):
-        self._insert_math_expression('\\sum_{n=始値}^{終値}{被和値}')
+        self._insert_math_expression('\\sum_{n=A}^{B}{C_n}')
 
     def insert_math_product(self):
-        self._insert_math_expression('\\prod_{n=始値}^{終値}{被乗値}')
+        self._insert_math_expression('\\prod_{n=A}^{B}{C_n}')
+
+    def insert_math_differentiation_frac(self):
+        self._insert_math_expression('\\frac{\\mathrm{d}A}{\\mathrm{d}B}')
+
+    def insert_math_differentiation_dot(self):
+        self._insert_math_expression('\\dot{A}')
+
+    def insert_math_partial_differentiation(self):
+        self._insert_math_expression('\\frac{{\\partial}A}{{\\partial}B}')
 
     def insert_math_integral(self):
-        self._insert_math_expression('\\int_{始値}^{終値}{関数}dx')
+        self._insert_math_expression('\\int_{A}^{B}{f(x)}dx')
 
     def _insert_math_expression(self, inline_text):
         pane = self.txt
@@ -8656,7 +8680,7 @@ class Makdo:
         if not re.match(NOT_ESCAPED + '\\\\\\]', doc_dn):
             inline_text = inline_text + '\\]'
         #
-        self._insert_inline_text(inline_text, 2)
+        self._insert_inline_text(inline_text, -2)
 
     ################
     # COMMAND

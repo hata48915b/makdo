@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.06.28-13:35:25-JST>
+# Time-stamp:   <2025.07.01-10:11:49-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -2628,9 +2628,11 @@ class Math:
                          ((nubs[-2] == '_') or (nubs[-2] == '^')):
                         nubs[-3], nubs[-1] \
                             = cls._close_func(nubs[-3], nubs[-1])
-                # LINEBREAK, MATHRM, MATHBF, STRIKE, FRAME, UNDERLINE, EXP, VEC
+                # LINEBREAK, MATHRM, MATHBF, STRIKE, FRAME, UNDERLINE, EXP,
+                # VEC, DOT, DDOT, DDDOT
                 res = '^{\\\\(?:' \
                     + '\\\\|mathrm|mathbf|sout|boxed|underline|exp|vec' \
+                    + '|dot|ddot|dddot' \
                     + ')}$'
                 if (len(nubs) >= 2) and re.match(res, nubs[-2]):
                     nubs[-2], nubs[-1] = cls._close_func(nubs[-2], nubs[-1])
@@ -2953,6 +2955,15 @@ class Math:
         # VECTOR
         elif len(nubs) == 2 and nubs[0] == '{\\vec}':
             cls._write_vec(oe0, chars_state, nubs[1])
+        # DOT
+        elif len(nubs) == 2 and nubs[0] == '{\\dot}':
+            cls._write_dot(oe0, chars_state, nubs[1])
+        # DDOT
+        elif len(nubs) == 2 and nubs[0] == '{\\ddot}':
+            cls._write_ddot(oe0, chars_state, nubs[1])
+        # DDDOT
+        elif len(nubs) == 2 and nubs[0] == '{\\dddot}':
+            cls._write_dddot(oe0, chars_state, nubs[1])
         # MATRIX
         elif (len(nubs) >= 2 and
               nubs[0] == '{\\Xbmx}' and nubs[-1] == '{\\Xemx}'):
@@ -3394,10 +3405,34 @@ class Math:
     @classmethod
     def _write_vec(cls, oe0, chars_state, t1):
         # \vec{x}
+        cls._write_accent(oe0, chars_state, t1, '\u2192')  # MS OFFICE
+        # cls._write_accent(oe0, chars_state, t1, '\u20D7')  # LIBREOFFICE
+
+    # DOT
+    @classmethod
+    def _write_dot(cls, oe0, chars_state, t1):
+        # \dot{x}
+        cls._write_accent(oe0, chars_state, t1, '\u0307')
+
+    # DDOT
+    @classmethod
+    def _write_ddot(cls, oe0, chars_state, t1):
+        # \ddot{x}
+        cls._write_accent(oe0, chars_state, t1, '\u0308')
+
+    # DDOT
+    @classmethod
+    def _write_dddot(cls, oe0, chars_state, t1):
+        # \dddot{x}
+        cls._write_accent(oe0, chars_state, t1, '\u20DB')
+
+    # (ACCENT)
+    @classmethod
+    def _write_accent(cls, oe0, chars_state, t1, accent):
         oe1 = XML.add_tag(oe0, 'm:acc', {})
         #
         oe2 = XML.add_tag(oe1, 'm:accPr', {})
-        oe3 = XML.add_tag(oe2, 'm:chr', {'m:val': '⃗'})
+        oe3 = XML.add_tag(oe2, 'm:chr', {'m:val': accent})
         oe3 = XML.add_tag(oe2, 'm:ctrlPr', {})
         cls.__decorate_nub(oe3, chars_state)
         #
