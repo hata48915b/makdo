@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.07.01-10:05:06-JST>
+# Time-stamp:   <2025.07.01-10:41:19-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6010,9 +6010,10 @@ class Makdo:
         return table
 
     def _read_xlsx_file(self, file_path):
+        document = ''
         wb = openpyxl.load_workbook(file_path)
         for sheet_name in wb.sheetnames:
-            self.txt.insert('insert', '<!-- ' + sheet_name + ' -->\n')
+            document += '\n<!-- ' + sheet_name + ' -->\n'
             ws = wb[sheet_name]
             table = ''
             for row in ws.iter_rows(min_row=1, max_row=ws.max_row,
@@ -6020,7 +6021,9 @@ class Makdo:
                 for cell in row:
                     table += '|' + str(cell.value)
                 table += '|\n'
-        return table
+            document += table
+        document = re.sub('^\n+', '', document)
+        return document
 
     def _is_read_only_pane(self, pane):
         if pane == self.sub:
@@ -9866,24 +9869,19 @@ class Makdo:
     # COMMAND
 
     def insert_1_columns(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '|-|')
+        self._insert_paragraph_text('|-|')
 
     def insert_2_columns_mm(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '|-|-|')
+        self._insert_paragraph_text('|-|-|')
 
     def insert_2_columns_ls(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '|--|-|')
+        self._insert_paragraph_text('|--|-|')
 
     def insert_2_columns_sl(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '|-|--|')
+        self._insert_paragraph_text('|-|--|')
 
     def insert_3_columns(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '|-|-|-|')
+        self._insert_paragraph_text('|-|-|-|')
 
     ################
     # SUBMENU INSERT CHAPTER
@@ -9907,24 +9905,19 @@ class Makdo:
     # COMMAND
 
     def insert_chap_1(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '$ ')  # 第1編
+        self._insert_paragraph_text('$ ')  # 第1編
 
     def insert_chap_2(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '$$ ')  # 第1章
+        self._insert_paragraph_text('$$ ')  # 第1章
 
     def insert_chap_3(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '$$$ ')  # 第1節
+        self._insert_paragraph_text('$$$ ')  # 第1節
 
     def insert_chap_4(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '$$$$ ')  # 第1款
+        self._insert_paragraph_text('$$$$ ')  # 第1款
 
     def insert_chap_5(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '$$$$$ ')  # 第1目
+        self._insert_paragraph_text('$$$$$ ')  # 第1目
 
     ################
     # SUBMENU INSERT SECTION
@@ -9954,36 +9947,28 @@ class Makdo:
     # COMMAND
 
     def insert_sect_1(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '# ')  # タイトル
+        self._insert_paragraph_text('# ')  # タイトル
 
     def insert_sect_2(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '## ')  # 第1
+        self._insert_paragraph_text('## ')  # 第1
 
     def insert_sect_3(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '### ')  # 1
+        self._insert_paragraph_text('### ')  # 1
 
     def insert_sect_4(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '#### ')  # (1)
+        self._insert_paragraph_text('#### ')  # (1)
 
     def insert_sect_5(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '##### ')  # ア
+        self._insert_paragraph_text('##### ')  # ア
 
     def insert_sect_6(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '###### ')  # (ｱ)
+        self._insert_paragraph_text('###### ')  # (ｱ)
 
     def insert_sect_7(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '####### ')  # ａ
+        self._insert_paragraph_text('####### ')  # ａ
 
     def insert_sect_8(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '######## ')  # (a)
+        self._insert_paragraph_text('######## ')  # (a)
 
     ################
     # SUBMENU INSERT LIST
@@ -10015,36 +10000,28 @@ class Makdo:
     # COMMAND
 
     def insert_nlist_1(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '1. ')
+        self._insert_paragraph_text('1. ')  # ①
 
     def insert_nlist_2(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '  1. ')
+        self._insert_paragraph_text('  1. ')  # ㋐
 
     def insert_nlist_3(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '    1. ')
+        self._insert_paragraph_text('    1. ')  # ⓐ
 
     def insert_nlist_4(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '      1. ')
+        self._insert_paragraph_text('      1. ')  # ㊀
 
     def insert_blist_1(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '- ')
+        self._insert_paragraph_text('- ')  # ・
 
     def insert_blist_2(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '  - ')
+        self._insert_paragraph_text('  - ')  # ○
 
     def insert_blist_3(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '    - ')
+        self._insert_paragraph_text('    - ')  # △
 
     def insert_blist_4(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '      - ')
+        self._insert_paragraph_text('      - ')  # ◇
 
     ################
     # SUBMENU INSERT TABLE
@@ -10052,7 +10029,7 @@ class Makdo:
     def _make_submenu_insert_table(self, menu):
         submenu = tkinter.Menu(menu, tearoff=False)
         menu.add_cascade(label='表を挿入', menu=submenu)
-        submenu.add_command(label='表をエクセルから挿入',
+        submenu.add_command(label='表をエクセルのファイルから挿入',
                             command=self.insert_table_from_excel)
         submenu.add_command(label='表を書式で挿入',
                             command=self.insert_table_format)
@@ -10062,7 +10039,7 @@ class Makdo:
 
     def insert_table_from_excel(self, file_path=None):
         if file_path is None:
-            ti = '表をエクセルから挿入'
+            ti = '表をエクセルのファイルから挿入'
             ty = [('エクセル', '.xlsx .csv')]
             _d = None
             if self.file_path is not None:
@@ -10076,16 +10053,16 @@ class Makdo:
         else:
             table = self._read_csv_file(file_path)
         if table is not None:
-            self.txt.insert('insert', table)
+            self._insert_paragraph_text(table)
 
     def insert_table_format(self):
-        self._insert_line_break_as_necessary()
-        table_md_text = ''
-        table_md_text += '|タイトル  |タイトル  |タイトル  |=\n'
-        table_md_text += '|:---------|:--------:|---------:|\n'
-        table_md_text += '|左寄せセル|中寄せセル|右寄せセル|\n'
-        table_md_text += '|左寄せセル|中寄せセル|右寄せセル|'
-        self.txt.insert('insert', table_md_text)
+        md_text = ''
+        md_text += '|タイトル  |タイトル  |タイトル  |\n'
+        md_text += '==================================\n'
+        md_text += '|:---------|:--------:|---------:|\n'
+        md_text += '|左寄せセル|中寄せセル|右寄せセル|\n'
+        md_text += '|左寄せセル|中寄せセル|右寄せセル|'
+        self._insert_paragraph_text(md_text)
 
     ################
     # SUBMENU INSERT IMAGE
@@ -10113,9 +10090,8 @@ class Makdo:
         image_path = tkinter.filedialog.askopenfilename(
             title=ti, filetypes=ty, initialdir=_d)
         if image_path != () and image_path != '':
-            self._insert_line_break_as_necessary()
-            image_md_text = '![代替テキスト:横x縦](' + image_path + ' "説明")'
-            self.txt.insert('insert', image_md_text)
+            md_text = '![代替テキスト:横x縦](' + image_path + ' "説明")'
+            self._insert_paragraph_text(md_text)
 
     def insert_image_and_text_paragraph(self):
         ti = '画像を挿入'
@@ -10127,7 +10103,6 @@ class Makdo:
         image_path = tkinter.filedialog.askopenfilename(
             title=ti, filetypes=ty, initialdir=_d)
         if image_path != () and image_path != '':
-            self._insert_line_break_as_necessary()
             md_text = ''
             md_text += '<!--'
             md_text += '二段組にします．"-"の数で幅を設定してください．'
@@ -10141,7 +10116,7 @@ class Makdo:
             md_text += '（ここに文章を書く）\n\n'
             md_text += '<!--一段組に戻します．-->\n'
             md_text += '|-|'
-            self.txt.insert('insert', md_text)
+            self._insert_paragraph_text(md_text)
 
     def insert_text_and_image_paragraph(self):
         ti = '画像を挿入'
@@ -10153,7 +10128,6 @@ class Makdo:
         image_path = tkinter.filedialog.askopenfilename(
             title=ti, filetypes=ty, initialdir=_d)
         if image_path != () and image_path != '':
-            self._insert_line_break_as_necessary()
             md_text = ''
             md_text += '<!--'
             md_text += '二段組にします．"-"の数で幅を設定してください．'
@@ -10167,14 +10141,13 @@ class Makdo:
             md_text += '![代替テキスト:横x縦](' + image_path + ' "説明")\n\n'
             md_text += '<!--一段組に戻します．-->\n'
             md_text += '|-|'
-            self.txt.insert('insert', md_text)
+            self._insert_paragraph_text(md_text)
 
     ################
     # COMMAND
 
     def insert_page_break(self):
-        self._insert_line_break_as_necessary()
-        self.txt.insert('insert', '<pgbr>')
+        self._insert_paragraph_text('<pgbr>')
 
     ################
     # SUBMENU INSERT MATH SAMPLE
