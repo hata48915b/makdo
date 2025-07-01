@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.07.01-15:43:44-JST>
+# Time-stamp:   <2025.07.01-18:31:12-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -475,7 +475,7 @@ MDA6MDC8FBY7AAAAJXRFWHRkYXRlOm1vZGlmeQAyMDI1LTAyLTA2VDAwOjI4OjAyKzAwOjAwzUmuhwA
 AAABJRU5ErkJggg==
 '''
 
-HALF_FULL_TABLE_ASCII = [
+HALF_FULL_TABLE = [
     [' ', '\u3000'],
     ['!', '！'], ['"', '”'], ['#', '＃'], ['$', '＄'], ['%', '％'],
     ['&', '＆'], ["'", '’'], ['(', '（'], [')', '）'], ['*', '＊'],
@@ -498,9 +498,8 @@ HALF_FULL_TABLE_ASCII = [
     ['p', 'ｐ'], ['q', 'ｑ'], ['r', 'ｒ'], ['s', 'ｓ'], ['t', 'ｔ'],
     ['u', 'ｕ'], ['v', 'ｖ'], ['w', 'ｗ'], ['x', 'ｘ'], ['y', 'ｙ'],
     ['z', 'ｚ'],
-    ['{', '｛'], ['|', '｜'], ['}', '｝'], ['~', '〜']]
-
-HALF_FULL_TABLE_KATAKANA = [
+    ['{', '｛'], ['|', '｜'], ['}', '｝'], ['~', '〜'],
+    #
     ['ｳﾞ', 'ヴ'],
     ['ｶﾞ', 'ガ'], ['ｷﾞ', 'ギ'], ['ｸﾞ', 'グ'], ['ｹﾞ', 'ゲ'], ['ｺﾞ', 'ゴ'],
     ['ｻﾞ', 'ザ'], ['ｼﾞ', 'ジ'], ['ｽﾞ', 'ズ'], ['ｾﾞ', 'ゼ'], ['ｿﾞ', 'ゾ'],
@@ -7322,14 +7321,12 @@ class Makdo:
                          command=self.replace_lower_case_with_upper_case)
         menu.add_command(label='選択範囲を小文字に変換',
                          command=self.replace_upper_case_with_lower_case)
-        menu.add_command(label='選択範囲の英数記号を全角文字に変換',
-                         command=self.replace_half_width_with_full_width_ascii)
-        menu.add_command(label='選択範囲の英数記号を半角文字に変換',
-                         command=self.replace_full_width_with_half_width_ascii)
-        menu.add_command(label='選択範囲のカタカナを全角文字に変換',
-                         command=self.replace_half_width_with_full_width_kata)
-        menu.add_command(label='選択範囲のカタカナを半角文字に変換',
-                         command=self.replace_full_width_with_half_width_kata)
+        menu.add_command(label='選択範囲を全角文字に変換',
+                         command=self.replace_half_width_with_full_width)
+        menu.add_command(label='選択範囲を半角文字に変換',
+                         command=self.replace_full_width_with_half_width)
+        menu.add_command(label='選択範囲の半角全角を推奨の形に変換',
+                         command=self.adjust_character_width)
         menu.add_separator()
         #
         menu.add_command(label='選択範囲の行を正順にソート（並替え）',
@@ -7633,23 +7630,20 @@ class Makdo:
         # MESSAGE
         self.set_message_on_status_bar(str(m) + '個を置換しました')
 
-    def replace_lower_case_with_upper_case(self) -> bool:
+    def replace_lower_case_with_upper_case(self):
         self._replace_x_with_y('lower_case_with_upper_case')
 
-    def replace_upper_case_with_lower_case(self) -> bool:
+    def replace_upper_case_with_lower_case(self):
         self._replace_x_with_y('upper_case_with_lower_case')
 
-    def replace_half_width_with_full_width_ascii(self) -> bool:
-        self._replace_x_with_y('half_width_with_full_width_ascii')
+    def replace_half_width_with_full_width(self):
+        self._replace_x_with_y('half_width_with_full_width')
 
-    def replace_full_width_with_half_width_ascii(self) -> bool:
-        self._replace_x_with_y('full_width_with_half_width_ascii')
+    def replace_full_width_with_half_width(self):
+        self._replace_x_with_y('full_width_with_half_width')
 
-    def replace_half_width_with_full_width_kata(self) -> bool:
-        self._replace_x_with_y('half_width_with_full_width_kata')
-
-    def replace_full_width_with_half_width_kata(self) -> bool:
-        self._replace_x_with_y('full_width_with_half_width_kata')
+    def adjust_character_width(self):
+        self._replace_x_with_y('adjust_character_width')
 
     def sort_lines(self):
         self._replace_x_with_y('sort_in_forward_order')
@@ -7681,22 +7675,27 @@ class Makdo:
             new_str = old_str.upper()
         elif mode == 'upper_case_with_lower_case':
             new_str = old_str.lower()
-        elif mode == 'half_width_with_full_width_ascii':
+        elif mode == 'half_width_with_full_width':
             new_str = old_str
-            for hf in HALF_FULL_TABLE_ASCII:
+            for hf in HALF_FULL_TABLE:
                 new_str = new_str.replace(hf[0], hf[1])
-        elif mode == 'full_width_with_half_width_ascii':
+        elif mode == 'full_width_with_half_width':
             new_str = old_str
-            for hf in HALF_FULL_TABLE_ASCII:
+            for hf in HALF_FULL_TABLE:
                 new_str = new_str.replace(hf[1], hf[0])
-        elif mode == 'half_width_with_full_width_kata':
+        elif mode == 'adjust_character_width':
             new_str = old_str
-            for hf in HALF_FULL_TABLE_KATA:
-                new_str = new_str.replace(hf[0], hf[1])
-        elif mode == 'full_width_with_half_width_kata':
-            new_str = old_str
-            for hf in HALF_FULL_TABLE_KATA:
-                new_str = new_str.replace(hf[1], hf[0])
+            for i in range(0, 10):
+                new_str = new_str.replace(chr(i + 65296), chr(i + 48))
+            new_str = re.sub('＋([0-9]+)', '+\\1', new_str)
+            new_str = re.sub('－([0-9]+)', '-\\1', new_str)
+            new_str = re.sub('([0-9]+)．([0-9]+)', '\\1.\\2', new_str)
+            new_str = re.sub('([0-9]+)，([0-9]{3})', '\\1,\\2', new_str)
+            new_str = re.sub('([0-9]+)，([0-9]{3})', '\\1,\\2', new_str)
+            for i in range(0, 26):
+                new_str = new_str.replace(chr(i + 65313), chr(i + 65))
+                new_str = new_str.replace(chr(i + 65345), chr(i + 97))
+            new_str = new_str.replace('，', '、')
         elif mode == 'sort_in_forward_order':
             old_lst = old_str.split('\n')
             new_lst = sorted(old_lst)
@@ -12504,6 +12503,12 @@ class Makdo:
             'japanese-hankaku-region',
             [None, '選択範囲を半角文字に変換'],
             ['self.mother.replace_full_width_with_half_width()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'adjust-character-width',
+            [None, '選択範囲の半角全角を推奨の形に変換'],
+            ['self.mother.adjust_character_width()'])
         minibuffer_commands.append(mc)
 
         mc = MinibufferCommand(
