@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.07.01-10:41:19-JST>
+# Time-stamp:   <2025.07.01-15:43:44-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -141,17 +141,17 @@ COLOR_SPACE = (
     ('#136500', '#1FA900', '#2CED00', '#AAFF97'),  # 110 : ruby
     ('#006B00', '#00B200', '#00FA00', '#A5FFA5'),  # 120 : fontdeco, par1
     ('#006913', '#00AF20', '#00F52D', '#A1FFB2'),  # 130 :
-    ('#006724', '#00AC3C', '#00F154', '#9DFFBF'),  # 140 : sp
+    ('#006724', '#00AC3C', '#00F154', '#9DFFBF'),  # 140 :
     ('#006633', '#00AA55', '#00EE77', '#98FFCC'),  # 150 : length reviser
-    ('#006441', '#00A76D', '#00EA99', '#94FFDA'),  # 160 : (tab), par2
+    ('#006441', '#00A76D', '#00EA99', '#94FFDA'),  # 160 : tab, par2
     ('#006351', '#00A586', '#00E7BC', '#8EFFEA'),  # 170 : fold
     ('#006161', '#00A2A2', '#00E3E3', '#87FFFF'),  # 180 : algin, keyY, par3
     ('#005F75', '#009FC3', '#21D6FF', '#B5F1FF'),  # 190 : table
-    ('#005D8E', '#009AED', '#59C5FF', '#C8ECFF'),  # 200 : (fsp), ins, par4
+    ('#005D8E', '#009AED', '#59C5FF', '#C8ECFF'),  # 200 : fsp, ins, par4
     ('#0059B2', '#1F8FFF', '#79BCFF', '#D2E9FF'),  # 210 : chap1
     ('#0053EF', '#4385FF', '#8EB6FF', '#D9E7FF'),  # 220 : chap2, par5
     ('#1F48FF', '#5F7CFF', '#9FB1FF', '#DFE5FF'),  # 230 : chap3, subsA
-    ('#3F3FFF', '#7676FF', '#ADADFF', '#E4E4FF'),  # 240 : chap4, (hsp), par6
+    ('#3F3FFF', '#7676FF', '#ADADFF', '#E4E4FF'),  # 240 : chap4, hsp, par6
     ('#5B36FF', '#8A70FF', '#B9A9FF', '#E8E2FF'),  # 250 : chap5
     ('#772EFF', '#9E6AFF', '#C5A5FF', '#ECE1FF'),  # 260 : par7
     ('#9226FF', '#B164FF', '#D0A2FF', '#EFE0FF'),  # 270 : subsC
@@ -475,11 +475,11 @@ MDA6MDC8FBY7AAAAJXRFWHRkYXRlOm1vZGlmeQAyMDI1LTAyLTA2VDAwOjI4OjAyKzAwOjAwzUmuhwA
 AAABJRU5ErkJggg==
 '''
 
-HALF_FULL_TABLE = [
+HALF_FULL_TABLE_ASCII = [
     [' ', '\u3000'],
     ['!', '！'], ['"', '”'], ['#', '＃'], ['$', '＄'], ['%', '％'],
     ['&', '＆'], ["'", '’'], ['(', '（'], [')', '）'], ['*', '＊'],
-    ['+', '＋'], [',', '、'], ['-', '－'], ['.', '。'], ['/', '／'],
+    ['+', '＋'], [',', '，'], ['-', '－'], ['.', '．'], ['/', '／'],
     ['0', '０'], ['1', '１'], ['2', '２'], ['3', '３'], ['4', '４'],
     ['5', '５'], ['6', '６'], ['7', '７'], ['8', '８'], ['9', '９'],
     [':', '：'], [';', '；'], ['<', '＜'], ['=', '＝'], ['>', '＞'],
@@ -490,7 +490,7 @@ HALF_FULL_TABLE = [
     ['P', 'Ｐ'], ['Q', 'Ｑ'], ['R', 'Ｒ'], ['S', 'Ｓ'], ['T', 'Ｔ'],
     ['U', 'Ｕ'], ['V', 'Ｖ'], ['W', 'Ｗ'], ['X', 'Ｘ'], ['Y', 'Ｙ'],
     ['Z', 'Ｚ'],
-    ['[', '「'], ['\\', '＼'], [']', '」'], ['^', '＾'], ['_', '＿'],
+    ['[', '［'], ['\\', '＼'], [']', '］'], ['^', '＾'], ['_', '＿'],
     ['`', '｀'],
     ['a', 'ａ'], ['b', 'ｂ'], ['c', 'ｃ'], ['d', 'ｄ'], ['e', 'ｅ'],
     ['f', 'ｆ'], ['g', 'ｇ'], ['h', 'ｈ'], ['i', 'ｉ'], ['j', 'ｊ'],
@@ -498,8 +498,9 @@ HALF_FULL_TABLE = [
     ['p', 'ｐ'], ['q', 'ｑ'], ['r', 'ｒ'], ['s', 'ｓ'], ['t', 'ｔ'],
     ['u', 'ｕ'], ['v', 'ｖ'], ['w', 'ｗ'], ['x', 'ｘ'], ['y', 'ｙ'],
     ['z', 'ｚ'],
-    ['{', '｛'], ['|', '｜'], ['}', '｝'], ['~', '〜'],
-    ['｡', '。'], ['｢', '「'], ['｣', '」'], ['､', '、'], ['･', '・'],
+    ['{', '｛'], ['|', '｜'], ['}', '｝'], ['~', '〜']]
+
+HALF_FULL_TABLE_KATAKANA = [
     ['ｳﾞ', 'ヴ'],
     ['ｶﾞ', 'ガ'], ['ｷﾞ', 'ギ'], ['ｸﾞ', 'グ'], ['ｹﾞ', 'ゲ'], ['ｺﾞ', 'ゴ'],
     ['ｻﾞ', 'ザ'], ['ｼﾞ', 'ジ'], ['ｽﾞ', 'ズ'], ['ｾﾞ', 'ゼ'], ['ｿﾞ', 'ゾ'],
@@ -507,6 +508,7 @@ HALF_FULL_TABLE = [
     ['ﾊﾞ', 'バ'], ['ﾋﾞ', 'ビ'], ['ﾌﾞ', 'ブ'], ['ﾍﾞ', 'ベ'], ['ﾎﾞ', 'ボ'],
     ['ﾊﾟ', 'パ'], ['ﾋﾟ', 'ピ'], ['ﾌﾟ', 'プ'], ['ﾍﾟ', 'ペ'], ['ﾎﾟ', 'ポ'],
     ['ﾜﾞ', 'ヷ'], ['ｦﾞ', 'ヺ'],
+    ['｡', '。'], ['｢', '「'], ['｣', '」'], ['､', '、'], ['･', '・'],
     ['ｦ', 'ヲ'],
     ['ｧ', 'ァ'], ['ｨ', 'ィ'], ['ｩ', 'ゥ'], ['ｪ', 'ェ'], ['ｫ', 'ォ'],
     ['ｬ', 'ャ'], ['ｭ', 'ュ'], ['ｮ', 'ョ'], ['ｯ', 'ッ'], ['ｰ', 'ー'],
@@ -4337,6 +4339,8 @@ class CharsState:
             key += '-330'
         elif chars == 'alignment':
             key += '-180'
+        elif chars == 'half katakana':
+            key += '-050'
         elif re.match('^horizontalline[0-9]{3}$', chars):
             key += '-' + re.sub('^horizontalline0?0?', '', chars)
         elif chars == 'image':
@@ -5327,6 +5331,21 @@ class LineDatum:
                 #                                                       # 4.set
                 tmp = ''                                                # 5.tmp
                 beg = end                                               # 6.beg
+                continue
+            # HALF KATAKANA
+            if re.match('^[ｦ-ﾟ]$', c):
+                key = chars_state.get_key('')                       # 1.key
+                end = str(i + 1) + '.' + str(j)                     # 2.end
+                pane.tag_add(key, beg, end)                         # 3.tag
+                chars_state.set_or_unset_has_ruby(False)            # 4.set
+                # tmp = '[ｦ-ﾟ]'                                     # 5.tmp
+                beg = end                                           # 6.beg
+                key = chars_state.get_key('half katakana')          # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                 # 2.end
+                pane.tag_add(key, beg, end)                         # 3.tag
+                #                                                   # 4.set
+                tmp = ''                                            # 5.tmp
+                beg = end                                           # 6.beg
                 continue
             # HORIZONTAL LINES
             if not c.isascii() and \
@@ -7303,10 +7322,14 @@ class Makdo:
                          command=self.replace_lower_case_with_upper_case)
         menu.add_command(label='選択範囲を小文字に変換',
                          command=self.replace_upper_case_with_lower_case)
-        menu.add_command(label='選択範囲を全角文字に変換',
-                         command=self.replace_half_width_with_full_width)
-        menu.add_command(label='選択範囲を半角文字に変換',
-                         command=self.replace_full_width_with_half_width)
+        menu.add_command(label='選択範囲の英数記号を全角文字に変換',
+                         command=self.replace_half_width_with_full_width_ascii)
+        menu.add_command(label='選択範囲の英数記号を半角文字に変換',
+                         command=self.replace_full_width_with_half_width_ascii)
+        menu.add_command(label='選択範囲のカタカナを全角文字に変換',
+                         command=self.replace_half_width_with_full_width_kata)
+        menu.add_command(label='選択範囲のカタカナを半角文字に変換',
+                         command=self.replace_full_width_with_half_width_kata)
         menu.add_separator()
         #
         menu.add_command(label='選択範囲の行を正順にソート（並替え）',
@@ -7616,11 +7639,17 @@ class Makdo:
     def replace_upper_case_with_lower_case(self) -> bool:
         self._replace_x_with_y('upper_case_with_lower_case')
 
-    def replace_half_width_with_full_width(self) -> bool:
-        self._replace_x_with_y('half_width_with_full_width')
+    def replace_half_width_with_full_width_ascii(self) -> bool:
+        self._replace_x_with_y('half_width_with_full_width_ascii')
 
-    def replace_full_width_with_half_width(self) -> bool:
-        self._replace_x_with_y('full_width_with_half_width')
+    def replace_full_width_with_half_width_ascii(self) -> bool:
+        self._replace_x_with_y('full_width_with_half_width_ascii')
+
+    def replace_half_width_with_full_width_kata(self) -> bool:
+        self._replace_x_with_y('half_width_with_full_width_kata')
+
+    def replace_full_width_with_half_width_kata(self) -> bool:
+        self._replace_x_with_y('full_width_with_half_width_kata')
 
     def sort_lines(self):
         self._replace_x_with_y('sort_in_forward_order')
@@ -7652,13 +7681,21 @@ class Makdo:
             new_str = old_str.upper()
         elif mode == 'upper_case_with_lower_case':
             new_str = old_str.lower()
-        elif mode == 'half_width_with_full_width':
+        elif mode == 'half_width_with_full_width_ascii':
             new_str = old_str
-            for hf in HALF_FULL_TABLE:
+            for hf in HALF_FULL_TABLE_ASCII:
                 new_str = new_str.replace(hf[0], hf[1])
-        elif mode == 'full_width_with_half_width':
+        elif mode == 'full_width_with_half_width_ascii':
             new_str = old_str
-            for hf in HALF_FULL_TABLE:
+            for hf in HALF_FULL_TABLE_ASCII:
+                new_str = new_str.replace(hf[1], hf[0])
+        elif mode == 'half_width_with_full_width_kata':
+            new_str = old_str
+            for hf in HALF_FULL_TABLE_KATA:
+                new_str = new_str.replace(hf[0], hf[1])
+        elif mode == 'full_width_with_half_width_kata':
+            new_str = old_str
+            for hf in HALF_FULL_TABLE_KATA:
                 new_str = new_str.replace(hf[1], hf[0])
         elif mode == 'sort_in_forward_order':
             old_lst = old_str.split('\n')
@@ -10215,7 +10252,7 @@ class Makdo:
 
     def insert_binomial_theorem(self):
         tex = '{(x + a)}^{n} ' \
-            + '= \\sum_{k=0}^{n}{_{n}\mathrm{C}_{k} a^{k} x^{n-k}}'
+            + '= \\sum_{k=0}^{n}{_{n}\\mathrm{C}_{k} a^{k} x^{n-k}}'
         self._insert_paragraph_text('X=+0.5\n\\[\n' + tex + '\n\\]')
 
     def insert_quadratic_formula(self):
