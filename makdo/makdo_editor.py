@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.07.01-18:31:12-JST>
+# Time-stamp:   <2025.07.02-10:31:08-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -9561,6 +9561,16 @@ class Makdo:
                       '①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩',
                       '⑪', '⑫', '⑬', '⑭', '⑮', '⑯', '⑰', '⑱', '⑲', '⑳',
                       '²', '³',
+                      'Α', 'Β', 'Γ', 'Δ', 'Ε', 'Ζ', 'Η', 'Θ', 'Ι', 'Κ',
+                      'Λ', 'Μ', 'Ν', 'Ξ', 'Ο', 'Π', 'Ρ', 'Σ', 'Τ', 'Υ',
+                      'Φ', 'Χ', 'Ψ', 'Ω',
+                      'α', 'β', 'γ', 'δ', 'ε', 'ζ', 'η', 'θ', 'ι', 'κ',
+                      'λ', 'μ', 'ν', 'ξ', 'ο', 'π', 'ρ', 'ς', 'σ', 'τ',
+                      'υ', 'φ', 'χ', 'ψ', 'ω',
+                      '∞', '√', '∛', '∜', '∀', '∃', '∴', '∵',
+                      '±', '∓', '≠', '≡', '≒', '≈', '≦', '≧', '≤', '≥',
+                      '⊂', '⊃', '⊆', '⊇', '∈', '∋', '∩', '∪',
+                      '⋮', '⋯', '⋰', '⋱', '∂', '∫', '∮', '∑', '∏',
                       '㊞',
                       '♠', '♡', '♢', '♣', '♤', '♥', '♦', '♧',
                       '☹', '☺', '☻',
@@ -9584,7 +9594,8 @@ class Makdo:
                 rd = tkinter.Radiobutton(pane, text=cnd, font=fon,
                                          variable=self.symbol, value=cnd)
                 y, x = int(i / 10), (i % 10)
-                rd.grid(row=y, column=x, columnspan=1, padx=3, pady=3)
+                rd.grid(row=y, column=x, columnspan=1, padx=3, pady=3,
+                        sticky='w')
             # self.bind('<Key-Return>', self.ok)
             # self.bind('<Key-Escape>', self.cancel)
             # super().body(pane)
