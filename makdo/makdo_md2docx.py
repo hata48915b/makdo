@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.07.02-10:43:54-JST>
+# Time-stamp:   <2025.07.02-11:42:11-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -2583,6 +2583,22 @@ class Math:
     def _replace_symbol(chars):
         for com in Math.symbols:
             chars = re.sub('{\\' + com + '}', Math.symbols[com], chars)
+        chars = re.sub('(?:^| )(.)/(.)(?: |$)', '{\\\\frac}{\\1}{\\2}', chars)
+        chars = re.sub('(\\{[^\\{\\}]*\\})/(\\{\\{[^\\{\\}]*\\})',
+                       '{\\\\frac}\\1\\2', chars)
+        chars = re.sub('∫', '{\\\\int}', chars)
+        chars = re.sub('∮', '{\\\\oint}', chars)
+        chars = re.sub('∑|Σ', '{\\\\sum}', chars)
+        chars = re.sub('∏|Π', '{\\\\prod}', chars)
+        chars = re.sub('√', '{\\\\sqrt}', chars)
+        chars = re.sub('∛', '{\\\\sqrt}{[3]}', chars)
+        chars = re.sub('∜', '{\\\\sqrt}{[4]}', chars)
+        chars = re.sub('\\*\\*\\*([^\\*]+)\\*\\*\\*',
+                       '{\\\\mathbf}{{\\\\mathrm}{\\1}}', chars)
+        chars = re.sub('\\*\\*([^\\*]+)\\*\\*',
+                       '{\\\\mathbf}{\\1}', chars)
+        chars = re.sub('\\*([^\\*]+)\\*',
+                       '{\\\\mathrm}{\\1}', chars)
         return chars
 
     @classmethod
