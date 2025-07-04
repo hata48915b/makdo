@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.07.02-10:31:08-JST>
+# Time-stamp:   <2025.07.04-12:27:03-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -73,8 +73,8 @@ import webbrowser
 
 
 if sys.platform == 'win32':
-    CONFIG_DIR = os.getenv('APPDATA') + '/makdo'
-    CONFIG_FILE = CONFIG_DIR + '/init.md'
+    CONFIG_DIR = os.getenv('APPDATA') + '\\makdo'
+    CONFIG_FILE = CONFIG_DIR + '\\init.md'
 elif sys.platform == 'darwin':
     CONFIG_DIR = os.getenv('HOME') + '/Library/makdo'
     CONFIG_FILE = CONFIG_DIR + '/init.md'
@@ -5502,6 +5502,12 @@ class Makdo:
 
     args_dont_show_help = None         # True|+False
     file_dont_show_help = None
+    args_make_backup_file = False      # True|+False
+    file_make_backup_file = False
+    # args_is_toc_display_mode = True  # True|+False
+    file_is_toc_display_mode = True
+    args_read_only = None              # True|+False
+    # file_read_only = None
     args_background_color = None       # +W|B|G
     file_background_color = None
     args_font_size = None              # 3|6|9|12|15|+18|21|24|27|30|33|36|...
@@ -5514,12 +5520,8 @@ class Makdo:
     file_use_regexps = None
     args_digit_separator = None        # +0|3|4
     file_digit_separator = None
-    args_read_only = None              # True|+False
-    # file_read_only = None
-    args_make_backup_file = False      # True|+False
-    file_make_backup_file = False
-    # args_is_toc_display_mode = True  # True|+False
-    file_is_toc_display_mode = True
+    # args_makdos_shortcut_key = None  # True|+False
+    file_makdos_shortcut_key = None
 
     args_input_file = None
 
@@ -6328,16 +6330,14 @@ class Makdo:
 
     @staticmethod
     def _save_config_file(file_path, contents):
-        try:
+        if os.path.exists(file_path + '~'):
+            os.chmod(file_path + '~', 0o600)
+            os.remove(file_path + '~')
+        if os.path.exists(file_path):
             os.rename(file_path, file_path + '~')
-        except BaseException:
-            pass
-        try:
-            with open(file_path, 'w') as f:
-                f.write(contents)
-        except BaseException:
-            pass
-        os.chmod(file_path, 0o600)
+        with open(file_path, 'w') as f:
+            f.write(contents)
+        os.chmod(file_path, 0o400)
 
     def _execute_external_command(self, command: list) -> bool:
         self.set_message_on_status_bar('外部アプリを起動します', True)
@@ -12294,8 +12294,14 @@ class Makdo:
             pane = self.sub
         self.show_keyboard_macro_help_message()
         reversed_history = list(reversed(self.key_history))
-        if reversed_history[1] != 'Ctrl+e':
-            if reversed_history[0] == 'Ctrl+e':
+        k1, k2 = reversed_history[0], reversed_history[1]
+        is_mskey = self.makdos_shortcut_key.get()
+        if not (k2 == 'Ctrl+e' or \
+                k2 == 'F17' or \
+                (is_mskey and k2 == 'Ctrl+braceright')):
+            if (k1 == 'Ctrl+e' or \
+                k1 == 'F17' or \
+                (is_mskey and k1 == 'Ctrl+braceright')):
                 reversed_history.pop(0)
             for i in range(10, -1, -1):
                 kh1 = []
@@ -12304,7 +12310,12 @@ class Makdo:
                 kh2 = []
                 for j in range(i, i * 2):
                     kh2.append(reversed_history[j])
-                if 'Ctrl+e' in kh1 or 'Ctrl+e' in kh2:
+                if 'Ctrl+e' in kh1 or \
+                   'F17' in kh1 or \
+                   (is_mskey and 'Ctrl+braceright' in kh1) or \
+                   'Ctrl+e' in kh2 or \
+                   'F17' in kh2 or \
+                   (is_mskey and 'Ctrl+braceright' in kh2):
                     continue
                 if kh1 == kh2:
                     self.keyboard_macro = list(reversed(kh1))
@@ -12329,50 +12340,52 @@ class Makdo:
         for i, key in enumerate(self.keyboard_macro):
             if key in ascii:
                 key = ascii[key]
-            if key == 'BackSpace':
+            if key == 'BackSpace' or (is_mskey and key == 'Ctrl+h'):
                 pane.delete('insert-1c', 'insert')
                 self.paint_out_line(self._get_v_position_of_insert(pane) - 1)
                 self.update_toc()
-            elif key == 'Delete':
-                if i > 0 and self.keyboard_macro[i - 1] != 'Delete':
+            elif key == 'Delete' or (is_mskey and key == 'Ctrl+d'):
+                if i > 0 and \
+                   self.keyboard_macro[i - 1] != 'Delete' and \
+                   not (is_mskey and self.keyboard_macro[i - 1] == 'Ctrl+h'):
                     self.win.clipboard_clear()
                     if self.clipboard_list[-1] != '':
                         self.clipboard_list.append('')
                 self._execute_when_delete_is_pressed(pane)
                 self.paint_out_line(self._get_v_position_of_insert(pane) - 1)
                 self.update_toc()
-            elif key == 'Return':
+            elif key == 'Return' or (is_mskey and key == 'Ctrl+m'):
                 pane.insert('insert', '\n')
                 if pane == self.txt:
                     vp = self._get_v_position_of_insert(pane)
                     self.paint_out_line(vp - 2)
                     self.paint_out_line(vp - 1)
                     self.update_toc()
-            elif key == 'Ctrl+p' or key == 'F15':
+            elif (key == 'Ctrl+p' or
+                  key == 'F15' or (is_mskey and key == 'Ctrl+g')):
                 self.paste_region()
-            elif key == 'Home':
+            elif key == 'Home' or (is_mskey and key == 'Ctrl+l'):
                 width = self._get_width_of_pane(pane)
                 self._move_horizontally(pane, -width)
-            elif key == 'End':
+            elif key == 'End' or (is_mskey and key == 'Ctrl+braceleft'):
                 width = self._get_width_of_pane(pane)
                 self._move_horizontally(pane, +width)
-            elif key == 'Up':
+            elif key == 'Up' or (is_mskey and key == 'Ctrl+r'):
                 self._move_vertically(pane, self.ideal_h_position, -1)
-            elif key == 'Down':
+            elif key == 'Down' or (is_mskey and key == 'Ctrl+n'):
                 self._move_vertically(pane, self.ideal_h_position, +1)
-            elif key == 'Left':
+            elif key == 'Left' or (is_mskey and key == 'Ctrl+t'):
                 pane.mark_set('insert', 'insert-1c')
-            elif key == 'Right':
+            elif key == 'Right' or (is_mskey and key == 'Ctrl+s'):
                 pane.mark_set('insert', 'insert+1c')
-            elif key == 'F22':            # f (mark, save)
-                if 'akauni' in pane.mark_names():
-                    pane.mark_unset('akauni')
+            elif key == 'F22' or (is_mskey and key == 'Ctrl+f'):
                 pane.mark_set('akauni', 'insert')
             else:
                 pane.insert('insert', key)
                 self.paint_out_line(self._get_v_position_of_insert(pane) - 1)
                 self.update_toc()
-            if key != 'Up' and key != 'Down':
+            if key != 'Up' and not (is_mskey and key == 'Ctrl+r') and \
+               key != 'Down' and not (is_mskey and key == 'Ctrl+n'):
                 self.ideal_h_position \
                     = self._get_ideal_h_position_of_insert(pane)
         pane['autoseparators'] = True
@@ -12940,6 +12953,16 @@ class Makdo:
                             postcommand=self.close_mouse_menu)
         self.mnb.add_cascade(label='設定(S)', menu=menu, underline=3)
         #
+        self.dont_show_help = tkinter.BooleanVar(value=False)
+        if self.args_dont_show_help:
+            self.dont_show_help.set(True)
+        elif self.file_dont_show_help:
+            self.dont_show_help.set(True)
+        menu.add_checkbutton(label='ヘルプを表示しない',
+                             variable=self.dont_show_help,
+                             command=self.show_config_help_message)
+        menu.add_separator()
+        #
         self.is_toc_display_mode = tkinter.BooleanVar(value=False)
         if Makdo.file_is_toc_display_mode:
             self.is_toc_display_mode = tkinter.BooleanVar(value=True)
@@ -12953,16 +12976,6 @@ class Makdo:
             self.is_read_only.set(True)
         menu.add_checkbutton(label='読取専用',
                              variable=self.is_read_only)
-        menu.add_separator()
-        #
-        self.dont_show_help = tkinter.BooleanVar(value=False)
-        if self.args_dont_show_help:
-            self.dont_show_help.set(True)
-        elif self.file_dont_show_help:
-            self.dont_show_help.set(True)
-        menu.add_checkbutton(label='ヘルプを表示しない',
-                             variable=self.dont_show_help,
-                             command=self.show_config_help_message)
         menu.add_separator()
         #
         self._make_submenu_background_color(menu)
@@ -12996,6 +13009,9 @@ class Makdo:
                              command=self.args_use_regexps)
         menu.add_separator()
         #
+        self._make_submenu_digit_separator(menu)
+        menu.add_separator()
+        #
         self.make_backup_file = tkinter.BooleanVar(value=False)
         if self.args_make_backup_file:
             self.make_backup_file.set(True)
@@ -13004,9 +13020,6 @@ class Makdo:
         menu.add_checkbutton(label='バックアップファイルを残す',
                              variable=self.make_backup_file,
                              command=self.show_config_help_message)
-        menu.add_separator()
-        #
-        self._make_submenu_digit_separator(menu)
         menu.add_separator()
         #
         menu.add_command(label='OneDriveフォルダを設定',
@@ -13085,23 +13098,28 @@ class Makdo:
         self.pnd.add(self.pnd_r, minsize=100)
 
     def toc_process_key(self, event):
-        self.key_history.append(event.keysym)
-        if event.keysym == 'F19':  # x (ctrl)
-            self._any_process_f19()
+        if event.state == 4:
+            self.key_history.append('Ctrl+' + event.keysym)
+        else:
+            self.key_history.append(event.keysym)
+        k1, k2 = self.key_history[-1], self.key_history[-2]
+        is_mskey = self.makdos_shortcut_key.get()
+        if k1 == 'F19' or (is_mskey and k1 == 'Ctrl+x'):
+            self._any_process_escp1()
             return 'break'
-        if event.keysym == 'Up':
-            if self.key_history[-2] == 'F19':
+        elif k1 == 'Up' or (is_mskey and k1 == 'Ctrl+r'):
+            if k2 == 'F19' or (is_mskey and k2 == 'Ctrl+x'):
                 self._jump_to_prev_pane()
-                return 'break'
             else:
                 self.toc_cvs.yview_scroll(-1, 'units')
-        if event.keysym == 'Down':
-            if self.key_history[-2] == 'F19':
+            return 'break'
+        elif k1 == 'Down' or (is_mskey and k1 == 'Ctrl+n'):
+            if k2 == 'F19' or (is_mskey and k2 == 'Ctrl+x'):
                 self._jump_to_next_pane()
-                return 'break'
             else:
                 self.toc_cvs.yview_scroll(1, 'units')
-        if event.keysym == 'Tab':
+            return 'break'
+        elif k1 == 'Tab' or (is_mskey and k1 == 'Ctrl+i'):
             self._jump_to_next_pane()
             return 'break'
         self.set_message_on_status_bar('目次ウィンドウです')
@@ -13580,6 +13598,11 @@ class Makdo:
                     Makdo.file_dont_show_help = True
                 else:
                     Makdo.file_dont_show_help = False
+            elif item == 'make_backup_file':
+                if valu == 'True':
+                    Makdo.file_make_backup_file = True
+                elif valu == 'False':
+                    Makdo.file_make_backup_file = False
             elif item == 'is_toc_display_mode':
                 if valu == 'True':
                     Makdo.file_is_toc_display_mode = True
@@ -13598,6 +13621,11 @@ class Makdo:
                     Makdo.file_paint_keywords = False
             elif item == 'keywords_to_paint':
                 Makdo.file_keywords_to_paint = valu
+            elif item == 'makdos_shortcut_key':
+                if valu == 'True':
+                    Makdo.file_makdos_shortcut_key = True
+                else:
+                    Makdo.file_makdos_shortcut_key = False
             elif item == 'use_regexps':
                 if valu == 'True':
                     Makdo.file_use_regexps = True
@@ -13606,11 +13634,6 @@ class Makdo:
             elif item == 'digit_separator':
                 if valu == '3' or valu == '4':
                     Makdo.file_digit_separator = valu
-            elif item == 'make_backup_file':
-                if valu == 'True':
-                    Makdo.file_make_backup_file = True
-                elif valu == 'False':
-                    Makdo.file_make_backup_file = False
             elif item == 'onedrive_directory':
                 if os.path.exists(valu) and os.path.isdir(valu):
                     self.onedrive_directory = valu
@@ -13634,12 +13657,15 @@ class Makdo:
 
     def save_configurations(self):
         if os.path.exists(CONFIG_FILE + '~'):
+            os.chmod(CONFIG_FILE + '~', 0o600)
             os.remove(CONFIG_FILE + '~')
         if os.path.exists(CONFIG_FILE):
             os.rename(CONFIG_FILE, CONFIG_FILE + '~')
         with open(CONFIG_FILE, 'w') as f:
             f.write('dont_show_help:         '
                     + str(self.dont_show_help.get()) + '\n')
+            f.write('make_backup_file:       '
+                    + str(self.make_backup_file.get()) + '\n')
             f.write('is_toc_display_mode:    '
                     + str(self.is_toc_display_mode.get()) + '\n')
             f.write('background_color:       '
@@ -13651,12 +13677,12 @@ class Makdo:
             if self.keywords_to_paint != '':
                 f.write('keywords_to_paint:      '
                         + self.keywords_to_paint + '\n')
+            f.write('makdos_shortcut_key:    '
+                    + str(self.makdos_shortcut_key.get()) + '\n')
             f.write('use_regexps:            '
                     + str(self.use_regexps.get()) + '\n')
             f.write('digit_separator:        '
                     + str(self.digit_separator.get()) + '\n')
-            f.write('make_backup_file:       '
-                    + str(self.make_backup_file.get()) + '\n')
             if self.onedrive_directory is not None:
                 f.write('onedrive_directory:     '
                         + self.onedrive_directory + '\n')
@@ -13862,6 +13888,14 @@ class Makdo:
         menu = tkinter.Menu(self.mnb, tearoff=False,
                             postcommand=self.close_mouse_menu)
         self.mnb.add_cascade(label='裏の技(Z)', menu=menu, underline=3)
+        #
+        self.makdos_shortcut_key = tkinter.BooleanVar(value=False)
+        if self.file_makdos_shortcut_key:
+            self.makdos_shortcut_key.set(True)
+        menu.add_checkbutton(label='Makdo式ショートカットキー',
+                             variable=self.makdos_shortcut_key,
+                             command=self.show_config_help_message)
+        menu.add_separator()
         #
         menu.add_command(label='取引履歴の見本を挿入',
                          command=self.insert_sample_trading_history)
@@ -14196,55 +14230,53 @@ class Makdo:
         unix_time = datetime.datetime.now().timestamp()
         self.key_pressed_time.append(unix_time)
         self.key_pressed_time.pop(0)
-        #
-        if key.keysym == 'F19':              # x (ctrl)
-            self._any_process_f19()
+        k1, k2 = self.key_history[-1], self.key_history[-2]
+        is_mskey = self.makdos_shortcut_key.get()
+        # KEY
+        if k1 == 'Escape':
+            if k2 == 'Escape':
+                self.key_history[-1] = ''
+                return 'break'
+            self.set_message_on_status_bar('"Esc"が押されました．')
             return 'break'
-        elif key.keysym == 'F16':            # c (search forward)
-            self._any_process_f16(pane)
+        elif k1 == 'F19' or (is_mskey and k1 == 'Ctrl+x'):
+            self._any_process_escp1()
             return 'break'
-        elif key.keysym == 'Left':
+        elif k1 == 'F20' or (is_mskey and k1 == 'Ctrl+b'):
+            #
+            return 'break'
+        elif k1 == 'F13' or (is_mskey and k1 == 'Ctrl+minus'):
+            #
+            return 'break'
+        elif k1 == 'Left' or (is_mskey and k1 == 'Ctrl+t'):
             self._any_process_left(pane)
             return 'break'
-        elif key.keysym == 'Right':
+        elif k1 == 'Right' or (is_mskey and k1 == 'Ctrl+s'):
             self._any_process_right(pane)
             return 'break'
-        elif key.keysym == 'Up':
+        elif k1 == 'Up' or (is_mskey and k1 == 'Ctrl+r'):
             self._any_process_up(pane)
             return 'break'
-        elif key.keysym == 'Down':
+        elif k1 == 'Down' or (is_mskey and k1 == 'Ctrl+n'):
             self._any_process_down(pane)
             return 'break'
-        elif key.keysym == 'Prior':
-            self._any_process_prior(pane)
-            return 'break'
-        elif key.keysym == 'Next':
-            if self.key_history[-2] == 'F13' and self.current_pane == 'sub':
-                self.key_history[-1] = ''
-                self._execute_sub_pane()
-                return 'break'
-            self._any_process_next(pane)
-            return 'break'
-        elif key.keysym == 'Home':
+        elif k1 == 'Home' or (is_mskey and k1 == 'Ctrl+l'):
             self._any_process_home(pane)
             return 'break'
-        elif key.keysym == 'End':
+        elif k1 == 'End' or (is_mskey and k1 == 'Ctrl+braceleft'):
             self._any_process_end(pane)
             return 'break'
-        elif key.keysym == 'F17':            # } (, calc)
-            if self.key_history[-2] == 'F13':
-                self.calculate()
-                return 'break'
-        elif key.keysym == 'F21':            # w (undo)
-            self.edit_modified_undo()
+        elif k1 == 'Prior' or (is_mskey and k1 == 'Ctrl+bracketleft'):
+            self._any_process_prior(pane)
             return 'break'
-        elif key.keysym == 'XF86AudioMute':  # W (redo)
-            self.edit_modified_redo()
+        elif k1 == 'Next' or (is_mskey and k1 == 'Ctrl+bracketright'):
+            if k2 == 'F13' or (is_mskey and k2 == 'Ctrl+minus'):
+                if self.current_pane == 'sub':
+                    self._execute_sub_pane()
+                    return 'break'
+            self._any_process_next(pane)
             return 'break'
-        elif key.keysym == 'F22':            # f (mark, save)
-            self._any_process_f22(pane)
-            return 'break'
-        elif key.keysym == 'Delete':         # d (delete, quit)
+        elif k1 == 'Delete' or (is_mskey and k1 == 'Ctrl+d'):
             if self._any_process_delete():
                 return 'break'
             # FOR PAINTING
@@ -14260,13 +14292,8 @@ class Makdo:
                             ld.line_number = i
             self._execute_when_delete_is_pressed(pane)
             return 'break'
-        elif key.keysym == 'F14':            # v (quit)
-            if 'akauni' in pane.mark_names():
-                pane.tag_remove('akauni_tag', '1.0', 'end')
-                pane.mark_unset('akauni')
-                return 'break'
-        elif key.keysym == 'BackSpace':      # h (backspace)
-            if self.key_history[-2] == 'F19':
+        elif k1 == 'BackSpace' or (is_mskey and k1 == 'Ctrl+h'):
+            if k2 == 'F13' or (is_mskey and k2 == 'Ctrl+minus'):
                 self.split_window()
                 return 'break'
             # FOR PAINTING
@@ -14277,32 +14304,54 @@ class Makdo:
                     self.line_data.pop(vp - 1)
                     for i, ld in enumerate(self.line_data):
                         ld.line_number = i
-        elif key.keysym == 'Return':         # m (enter)
+            return
+        elif k1 == 'Return' or (is_mskey and k1 == 'Ctrl+m'):
             # FOR PAINTING
             if pane == self.txt:
                 vp = self._get_v_position_of_insert(pane)
                 self.line_data.insert(vp, LineDatum())
                 for i, ld in enumerate(self.line_data):
                     ld.line_number = i
-        elif key.keysym == 'F15':            # g (paste)
-            if self.key_history[-2] == 'F13':
-                self.paste_rectangle()
+            return
+        elif k1 == 'Tab' or (is_mskey and k1 == 'Ctrl+i'):
+            if self._any_process_tab(pane):
                 return 'break'
-            self.paste_region()
+            return
+        elif k1 == 'F16' or (is_mskey and k1 == 'Ctrl+c'):
+            self._any_process_search(pane)
             return 'break'
-        elif key.keysym == 'F16':            # c (search forward)
-            self.search_or_replace_forward()
+        elif k1 == 'F17' or (is_mskey and k1 == 'Ctrl+braceright'):
+            self.execute_keyboard_macro()
             return 'break'
-        elif key.keysym == 'cent':           # cent (search backward)
-            self.search_or_replace_backward()
+        elif k1 == 'F21' or (is_mskey and k1 == 'Ctrl+w'):
+            if k2 == 'F13' or (is_mskey and k2 == 'Ctrl+minus'):
+                self.edit_modified_redo()
+            else:
+                self.edit_modified_undo()
             return 'break'
-        elif key.keysym == 'g':
-            if self.key_history[-2] == 'Escape':
-                if ((self.key_history[-3] == 'F15' and
-                     self.key_history[-4] != 'F13') or
-                    (self.key_history[-3] == 'g' and
-                     self.key_history[-4] == 'Escape')):
-                    if self.key_history[-3] == 'F15':
+        elif k1 == 'F17' or (is_mskey and k1 == 'Ctrl+braceright'):
+            if k2 == 'F13' or (is_mskey and k2 == 'Ctrl+minus'):
+                self.calculate()
+            return 'break'
+        elif k1 == 'F22' or (is_mskey and k1 == 'Ctrl+f'):
+            self._any_process_mark(pane)
+            return 'break'
+        elif k1 == 'F14' or (is_mskey and k2 == 'Ctrl+v'):
+            self._any_process_quit(pane)
+            return 'break'
+        elif k1 == 'F15' or (is_mskey and k1 == 'Ctrl+g'):
+            self._any_process_paste()
+            return 'break'
+        elif k1 == 'g':
+            if k2 == 'Escape':
+                k3, k4 = self.key_history[-3], self.key_history[-4]
+                if is_mskey and k3 == 'Ctrl+g':
+                    k3 = 'F15'
+                if is_mskey and k4 == 'Ctrl+minus':
+                    k4 = 'F13'
+                if (k3 == 'F15' and k4 != 'F13') or \
+                   (k3 == 'g' and k4 == 'Escape'):
+                    if k3 == 'F15':
                         self.clipboard_list_number \
                             = len(self.clipboard_list) - 2
                     else:
@@ -14315,145 +14364,62 @@ class Makdo:
                     pane.delete('insert-' + str(len(prev)) + 'c', 'insert')
                     pane.insert('insert', curr)
                     return 'break'
-        elif key.keysym == 'x':
-            if self.key_history[-2] == 'Escape':
+            return
+        elif k1 == 'x':
+            if k2 == 'Escape':
                 self.start_minibuffer()
                 return 'break'
-        # Ctrl+A '\x01' select all          # Ctrl+N '\x0e' new document
-        # Ctrl+B '\x02' bold                # Ctrl+O '\x0f' open document
-        # Ctrl+C '\x03' copy                # Ctrl+P '\x10' print
-        # Ctrl+D '\x04' font                # Ctrl+Q '\x11' quit
-        # Ctrl+E '\x05' centered            # Ctrl+R '\x12' right
-        # Ctrl+F '\x06' search              # Ctrl+S '\x13' save
-        # Ctrl+G '\x07' move                # Ctrl+T '\x14' hanging indent
-        # Ctrl+H '\x08' replace             # Ctrl+U '\x15' underline
-        # Ctrl+I '\x09' italic              # Ctrl+V '\x16' paste
-        # Ctrl+J '\x0a' justified           # Ctrl+W '\x17' close document
-        # Ctrl+K '\x0b' hyper link          # Ctrl+X '\x18' cut
-        # Ctrl+L '\x0c' left                # Ctrl+Y '\x19' redo
-        # Ctrl+M '\x0d' indent              # Ctrl+Z '\x1a' undo
-        if key.char == '\x01':    # Ctrl+A
-            self.select_all()
-            return 'break'
-        elif key.char == '\x03':  # Ctrl+C
-            self.copy_region()
-            return 'break'
-        elif key.char == '\x05':  # Ctrl+E
-            self.execute_keyboard_macro()
-            return 'break'
-        elif key.char == '\x06':  # Ctrl+F
-            self.search_forward()
-            return 'break'
-        elif key.char == '\x0c':  # Ctrl+L
-            self.replace_forward()
-            return 'break'
-        elif key.char == '\x10':  # Ctrl+P
-            self.start_writer()
-            return 'break'
-        elif key.char == '\x11':  # Ctrl+Q
-            self.quit_makdo()
-            return 'break'
-        elif key.char == '\x13':  # Ctrl+S
-            self.save_file()
-            return 'break'
-        elif key.char == '\x16':  # Ctrl+V
-            self.paste_region()
-            return 'break'
-        elif key.char == '\x18':  # Ctrl+X
-            self.cut_region()
-            return 'break'
-        elif key.char == '\x19':  # Ctrl+Y
-            self.edit_modified_redo()
-            return 'break'
-        elif key.char == '\x1a':  # Ctrl+Z
-            self.edit_modified_undo()
-            return 'break'
-        elif key.keysym == 'Tab':
-            text = pane.get('1.0', 'insert')
-            line = pane.get('insert linestart', 'insert lineend')
-            posi = pane.index('insert')
-            # CONFIGURATION
-            res_open = '^<!--(?:.|\n)*'
-            res_close = '^(?:.|\n)*-->(?:.|\n)*'
-            if re.match(res_open, text) and not re.match(res_close, text):
-                for i, sample in enumerate(CONFIGURATION_SAMPLE):
-                    if line == sample:
-                        pane.delete('insert linestart', 'insert lineend')
-                        pane.insert('insert', CONFIGURATION_SAMPLE[i + 1])
-                        pane.mark_set('insert', 'insert lineend')
-                        return 'break'
-            # CALCULATE
-            res_open = '^((?:.|\n)*)(<!--(?:.|\n)*)'
-            res_close = '^((?:.|\n)*)(-->(?:.|\n)*)'
-            if re.match(res_open, text):
-                text = re.sub(res_open, '\\2', text)
-                if not re.match(res_close, text):
-                    if self.calculate(False):
-                        return 'break'
-            # SCRIPT
-            res_open = '^((?:.|\n)*){([0-9]*){((?:.|\n)*)'
-            res_close = '^((?:.|\n)*)}([0-9]*)}((?:.|\n)*)'
-            if re.match(res_open, text):
-                befo = re.sub(res_open, '\\1', text)
-                numb = re.sub(res_open, '\\2', text)
-                scri = re.sub(res_open, '\\3', text)
-                if not re.match(res_close, text):
-                    cur_to_end = pane.get('insert', 'end-1c')
-                    if re.match('^}' + numb + '}', cur_to_end):
-                        msg = '（ここにスクリプトを挿入（サンプルはTabを押す））'
-                        if scri == msg:
-                            beg_n = len(befo + '{' + numb + '{')
-                            end_n = beg_n + len(scri)
-                            beg = '1.0+' + str(beg_n) + 'c'
-                            end = '1.0+' + str(end_n) + 'c'
-                            pane.delete(beg, end)
-                            pane.insert(beg, SCRIPT_SAMPLE[1])
-                            return 'break'
-                        for i, sample in enumerate(SCRIPT_SAMPLE):
-                            if scri == sample:
-                                beg_n = len(befo + '{' + numb + '{')
-                                end_n = beg_n + len(scri)
-                                beg = '1.0+' + str(beg_n) + 'c'
-                                end = '1.0+' + str(end_n) + 'c'
-                                pane.delete(beg, end)
-                                pane.insert(beg, SCRIPT_SAMPLE[i + 1])
-                                return 'break'
-            # PARAGRAPH SAMPLE
-            if posi == pane.index('insert lineend'):
-                for i, sample in enumerate(PARAGRAPH_SAMPLE):
-                    if line == sample:
-                        pane.delete('insert linestart', 'insert lineend')
-                        pane.insert('insert', PARAGRAPH_SAMPLE[i + 1])
-                        pane.mark_set('insert', 'insert lineend')
-                        return 'break'
-            # TIDY UP PARAGRAPH
-            has_tidied = self.tidy_up_paragraph()
-            if has_tidied:
+            return
+        if is_mskey:
+            # Ctrl+A '\x01' select all          # Ctrl+N '\x0e' new document
+            # Ctrl+B '\x02' bold                # Ctrl+O '\x0f' open document
+            # Ctrl+C '\x03' copy                # Ctrl+P '\x10' print
+            # Ctrl+D '\x04' font                # Ctrl+Q '\x11' quit
+            # Ctrl+E '\x05' centered            # Ctrl+R '\x12' right
+            # Ctrl+F '\x06' search              # Ctrl+S '\x13' save
+            # Ctrl+G '\x07' move                # Ctrl+T '\x14' hanging indent
+            # Ctrl+H '\x08' replace             # Ctrl+U '\x15' underline
+            # Ctrl+I '\x09' italic              # Ctrl+V '\x16' paste
+            # Ctrl+J '\x0a' justified           # Ctrl+W '\x17' close document
+            # Ctrl+K '\x0b' hyper link          # Ctrl+X '\x18' cut
+            # Ctrl+L '\x0c' left                # Ctrl+Y '\x19' redo
+            # Ctrl+M '\x0d' indent              # Ctrl+Z '\x1a' undo
+            if key.char == '\x01':    # Ctrl+A
+                self.select_all()
                 return 'break'
-            # FONT DECORATER
-            for i, sample in enumerate(FONT_DECORATOR_SAMPLE):
-                if i == 0:
-                    continue
-                if i == len(FONT_DECORATOR_SAMPLE) - 1:
-                    break
-                sample_esc = sample
-                sample_esc = sample_esc.replace('*', '\\*')
-                sample_esc = sample_esc.replace('+', '\\+')
-                sample_esc = sample_esc.replace('^', '\\^')
-                beg_to_ins = pane.get('insert linestart', 'insert')
-                if re.match('^.*' + sample_esc + '$', beg_to_ins):
-                    pane.delete(posi + '-' + str(len(sample)) + 'c', posi)
-                    pane.insert('insert', FONT_DECORATOR_SAMPLE[i + 1])
-                    return 'break'
-            else:
-                pane.insert('insert', FONT_DECORATOR_SAMPLE[1])
+            elif key.char == '\x03':  # Ctrl+C
+                self.copy_region()
                 return 'break'
-        elif key.keysym == 'Escape':
-            if self.key_history[-2] == 'Escape':
-                self.key_history[-1] = ''
+            elif key.char == '\x05':  # Ctrl+E
+                self.execute_keyboard_macro()
                 return 'break'
-            self.set_message_on_status_bar('"Esc"が押されました．')
-            return 'break'
+            elif key.char == '\x06':  # Ctrl+F
+                self.search_forward()
+                return 'break'
+            elif key.char == '\x0c':  # Ctrl+L
+                self.replace_forward()
+                return 'break'
+            elif key.char == '\x10':  # Ctrl+P
+                self.start_writer()
+                return 'break'
+            elif key.char == '\x11':  # Ctrl+Q
+                self.quit_makdo()
+                return 'break'
+            elif key.char == '\x13':  # Ctrl+S
+                self.save_file()
+                return 'break'
+            elif key.char == '\x16':  # Ctrl+V
+                self.paste_region()
+                return 'break'
+            elif key.char == '\x18':  # Ctrl+X
+                self.cut_region()
+                return 'break'
+            elif key.char == '\x19':  # Ctrl+Y
+                self.edit_modified_redo()
+                return 'break'
+            elif key.char == '\x1a':  # Ctrl+Z
+                self.edit_modified_undo()
+                return 'break'
 
     def read_only_process_key(self, pane, key):
         self.set_message_on_status_bar('')
@@ -14471,118 +14437,102 @@ class Makdo:
         else:
             self.key_history.append(key.keysym)
         self.key_history.pop(0)
-        #
-        if key.keysym == 'F19':              # x (ctrl)
-            self._any_process_f19()
+        unix_time = datetime.datetime.now().timestamp()
+        self.key_pressed_time.append(unix_time)
+        self.key_pressed_time.pop(0)
+        k1, k2 = self.key_history[-1], self.key_history[-2]
+        is_mskey = self.makdos_shortcut_key.get()
+        # KEY
+        if k1 == 'Escape':
+            self.set_message_on_status_bar('"Esc"が押されました．')
             return 'break'
-        elif key.keysym == 'Left':
+        elif k1 == 'F19' or (is_mskey and k1 == 'Ctrl+x'):
+            self._any_process_escp1()
+            return 'break'
+        elif k1 == 'F20' or (is_mskey and k1 == 'Ctrl+b'):
+            #
+            return 'break'
+        elif k1 == 'F13' or (is_mskey and k1 == 'Ctrl+minus'):
+            #
+            return 'break'
+        elif k1 == 'Left' or (is_mskey and k1 == 'Ctrl+t'):
             self._any_process_left(pane)
             return 'break'
-        elif key.keysym == 'Right':
+        elif k1 == 'Right' or (is_mskey and k1 == 'Ctrl+s'):
             self._any_process_right(pane)
             return 'break'
-        elif key.keysym == 'Up':
+        elif k1 == 'Up' or (is_mskey and k1 == 'Ctrl+r'):
             self._any_process_up(pane)
             return 'break'
-        elif key.keysym == 'Down':
+        elif k1 == 'Down' or (is_mskey and k1 == 'Ctrl+n'):
             self._any_process_down(pane)
             return 'break'
-        elif key.keysym == 'Prior':
-            self._any_process_prior(pane)
-            return 'break'
-        elif key.keysym == 'Next':
-            self._any_process_next(pane)
-            return 'break'
-        elif key.keysym == 'Home':
+        elif k1 == 'Home' or (is_mskey and k1 == 'Ctrl+l'):
             self._any_process_home(pane)
             return 'break'
-        elif key.keysym == 'End':
+        elif k1 == 'End' or (is_mskey and k1 == 'Ctrl+braceleft'):
             self._any_process_end(pane)
             return 'break'
-        elif key.keysym == 'F22':            # f (mark, save)
-            self._any_process_f22(pane)
+        elif k1 == 'Prior' or (is_mskey and k1 == 'Ctrl+bracketleft'):
+            self._any_process_prior(pane)
             return 'break'
-        elif key.keysym == 'Delete':         # d (delete, quit)
+        elif k1 == 'Next' or (is_mskey and k1 == 'Ctrl+bracketright'):
+            self._any_process_next(pane)
+            return 'break'
+        elif k1 == 'Delete' or (is_mskey and k1 == 'Ctrl+d'):
             if self._any_process_delete():
                 return 'break'
             self._execute_when_delete_is_pressed(pane)
             return 'break'
-        elif key.keysym == 'F14':            # v (quit)
-            if 'akauni' in pane.mark_names():
-                pane.tag_remove('akauni_tag', '1.0', 'end')
-                pane.mark_unset('akauni')
+        elif k1 == 'F16' or (is_mskey and k1 == 'Ctrl+c'):
+            self._any_process_search(pane)
+            return 'break'
+        elif k1 == 'F22' or (is_mskey and k1 == 'Ctrl+f'):
+            self._any_process_mark(pane)
+            return 'break'
+        elif k1 == 'F14' or (is_mskey and k2 == 'Ctrl+v'):
+            self._any_process_quit(pane)
+            return 'break'
+        if is_mskey:
+            # Ctrl+A '\x01' select all          # Ctrl+N '\x0e' new document
+            # Ctrl+B '\x02' bold                # Ctrl+O '\x0f' open document
+            # Ctrl+C '\x03' copy                # Ctrl+P '\x10' print
+            # Ctrl+D '\x04' font                # Ctrl+Q '\x11' quit
+            # Ctrl+E '\x05' centered            # Ctrl+R '\x12' right
+            # Ctrl+F '\x06' search              # Ctrl+S '\x13' save
+            # Ctrl+G '\x07' move                # Ctrl+T '\x14' hanging indent
+            # Ctrl+H '\x08' replace             # Ctrl+U '\x15' underline
+            # Ctrl+I '\x09' italic              # Ctrl+V '\x16' paste
+            # Ctrl+J '\x0a' justified           # Ctrl+W '\x17' close document
+            # Ctrl+K '\x0b' hyper link          # Ctrl+X '\x18' cut
+            # Ctrl+L '\x0c' left                # Ctrl+Y '\x19' redo
+            # Ctrl+M '\x0d' indent              # Ctrl+Z '\x1a' undo
+            if key.char == '\x01':    # Ctrl+A
+                self.select_all()
                 return 'break'
-        elif key.keysym == 'F16':            # c (search forward)
-            self._any_process_f16(pane)
-            return 'break'
-        elif key.keysym == 'cent':           # cent (search backward)
-            self.search_or_replace_backward()
-            return 'break'
-        elif key.keysym == 'x':
-            if self.key_history[-2] == 'Escape':
-                self.start_minibuffer()
+            elif key.char == '\x03':  # Ctrl+C
+                self.copy_region()
                 return 'break'
-        # Ctrl+A '\x01' select all          # Ctrl+N '\x0e' new document
-        # Ctrl+B '\x02' bold                # Ctrl+O '\x0f' open document
-        # Ctrl+C '\x03' copy                # Ctrl+P '\x10' print
-        # Ctrl+D '\x04' font                # Ctrl+Q '\x11' quit
-        # Ctrl+E '\x05' centered            # Ctrl+R '\x12' right
-        # Ctrl+F '\x06' search              # Ctrl+S '\x13' save
-        # Ctrl+G '\x07' move                # Ctrl+T '\x14' hanging indent
-        # Ctrl+H '\x08' replace             # Ctrl+U '\x15' underline
-        # Ctrl+I '\x09' italic              # Ctrl+V '\x16' paste
-        # Ctrl+J '\x0a' justified           # Ctrl+W '\x17' close document
-        # Ctrl+K '\x0b' hyper link          # Ctrl+X '\x18' cut
-        # Ctrl+L '\x0c' left                # Ctrl+Y '\x19' redo
-        # Ctrl+M '\x0d' indent              # Ctrl+Z '\x1a' undo
-        if key.char == '\x01':    # Ctrl+A
-            self.select_all()
-            return 'break'
-        elif key.char == '\x03':  # Ctrl+C
-            self.copy_region()
-            return 'break'
-        # elif key.char == '\x05':  # Ctrl+E
-        #     self.execute_keyboard_macro()
-        #     return 'break'
-        elif key.char == '\x06':  # Ctrl+F
-            self.search_forward()
-            return 'break'
-        # elif key.char == '\x0c':  # Ctrl+L
-        #     self.replace_forward()
-        #     return 'break'
-        # elif key.char == '\x10':  # Ctrl+P
-        #     self.start_writer()
-        #     return 'break'
-        # elif key.char == '\x11':  # Ctrl+Q
-        #     self.quit_makdo()
-        #     return 'break'
-        # elif key.char == '\x13':  # Ctrl+S
-        #     self.save_file()
-        #     return 'break'
-        # elif key.char == '\x16':  # Ctrl+V
-        #     self.paste_region()
-        #     return 'break'
-        # elif key.char == '\x18':  # Ctrl+X
-        #     self.cut_region()
-        #     return 'break'
-        # elif key.char == '\x19':  # Ctrl+Y
-        #     self.edit_modified_redo()
-        #     return 'break'
-        # elif key.char == '\x1a':  # Ctrl+Z
-        #     self.edit_modified_undo()
-        #     return 'break'
+            elif key.char == '\x06':  # Ctrl+F
+                self.search_forward()
+                return 'break'
         self.set_message_on_status_bar('読取専用です')
         return 'break'
 
-    def _any_process_left(self, pane):
+    def _any_process_escp1(self):  # F19 / Ctrl+X
+        k2 = self.key_history[-2]
+        if k2 == 'F19' or k2 == 'Ctrl+x':
+            self.key_history[-1] = ''
+            self._jump_to_next_pane()
+
+    def _any_process_left(self, pane):  # Left / Ctrl+T
         self._any_process_left_or_right(pane, 'left')
 
-    def _any_process_right(self, pane):
+    def _any_process_right(self, pane):  # Right / Ctrl+S
         self._any_process_left_or_right(pane, 'right')
 
     def _any_process_left_or_right(self, pane, key):
-        self._set_is_boosted_movement()
-        if self.is_boosted_movement:
+        if self._is_boosted_movement():
             if key == 'left':
                 pane.mark_set('insert', 'insert-5c')
             else:
@@ -14595,23 +14545,25 @@ class Makdo:
         self._put_back_cursor_to_pane(pane)
         self._paint_akauni_region(pane, '')
 
-    def _any_process_up(self, pane):
+    def _any_process_up(self, pane):  # Up / Ctrl+R
         self._any_process_up_or_down(pane, 'up')
 
-    def _any_process_down(self, pane):
+    def _any_process_down(self, pane):  # Down / Ctrl+N
         self._any_process_up_or_down(pane, 'down')
 
     def _any_process_up_or_down(self, pane, key):
-        if self.key_history[-2] == 'F19':
+        k2 = self.key_history[-2]
+        if k2 == 'F19' or k2 == 'Ctrl+x':
             if key == 'up':
                 self._jump_to_prev_pane()
             else:
                 self._jump_to_next_pane()
             return
-        if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
+        res = '^Up|Down|Prior|Next' + \
+            '|Ctrl\\+r|Ctrl\\+n|Ctrl\\+bracketleft|Ctrl\\+bracketright$'
+        if not re.match(res, k2):
             self.ideal_h_position = self._get_ideal_h_position_of_insert(pane)
-        self._set_is_boosted_movement()
-        if self.is_boosted_movement:
+        if self._is_boosted_movement():
             if key == 'up':
                 self._move_vertically(pane, self.ideal_h_position, -5)
             else:
@@ -14624,17 +14576,19 @@ class Makdo:
         self._paint_akauni_region(pane, '')
         return
 
-    def _any_process_prior(self, pane):
+    def _any_process_prior(self, pane):  # Prior / Ctrl+BracketLeft
         self._any_process_prior_or_next(pane, 'prior')
 
-    def _any_process_next(self, pane):
+    def _any_process_next(self, pane):  # Next / Ctrl+BracketRight
         self._any_process_prior_or_next(pane, 'next')
 
     def _any_process_prior_or_next(self, pane, key):
-        if not re.match('^Up|Down|Prior|Next$', self.key_history[-2]):
+        k2 = self.key_history[-2]
+        res = '^Up|Down|Prior|Next' + \
+            '|Ctrl\\+r|Ctrl\\+n|Ctrl\\+bracketleft|Ctrl\\+bracketright$'
+        if not re.match(res, k2):
             self.ideal_h_position = self._get_ideal_h_position_of_insert(pane)
-        self._set_is_boosted_movement()
-        if self.is_boosted_movement:
+        if self._is_boosted_movement():
             if key == 'prior':
                 pane.mark_set('insert', '1.0')
             else:
@@ -14648,15 +14602,14 @@ class Makdo:
                 self._move_vertically(pane, self.ideal_h_position, +lines)
         self._paint_akauni_region(pane, '')
 
-    def _any_process_home(self, pane):
+    def _any_process_home(self, pane):  # Home / Ctrl+L
         self._any_process_home_or_end(pane, 'home')
 
-    def _any_process_end(self, pane):
+    def _any_process_end(self, pane):  # End / Ctrl+BraceLeft
         self._any_process_home_or_end(pane, 'end')
 
     def _any_process_home_or_end(self, pane, key):
-        self._set_is_boosted_movement()
-        if self.is_boosted_movement:
+        if self._is_boosted_movement():
             if key == 'home':
                 pane.mark_set('insert', 'insert linestart')
             else:
@@ -14670,46 +14623,150 @@ class Makdo:
                 self._move_horizontally(pane, +width)
         self._paint_akauni_region(pane, '')
 
-    def _any_process_delete(self) -> bool:
-        if self.key_history[-2] == 'F19':
+    def _any_process_tab(self, pane):  # Tab / Ctrl+I
+        text = pane.get('1.0', 'insert')
+        line = pane.get('insert linestart', 'insert lineend')
+        posi = pane.index('insert')
+        # CONFIGURATION
+        res_open = '^<!--(?:.|\n)*'
+        res_close = '^(?:.|\n)*-->(?:.|\n)*'
+        if re.match(res_open, text) and not re.match(res_close, text):
+            for i, sample in enumerate(CONFIGURATION_SAMPLE):
+                if line == sample:
+                    pane.delete('insert linestart', 'insert lineend')
+                    pane.insert('insert', CONFIGURATION_SAMPLE[i + 1])
+                    pane.mark_set('insert', 'insert lineend')
+                    return True
+        # CALCULATE
+        res_open = '^((?:.|\n)*)(<!--(?:.|\n)*)'
+        res_close = '^((?:.|\n)*)(-->(?:.|\n)*)'
+        if re.match(res_open, text):
+            text = re.sub(res_open, '\\2', text)
+            if not re.match(res_close, text):
+                if self.calculate(False):
+                    return True
+        # SCRIPT
+        res_open = '^((?:.|\n)*){([0-9]*){((?:.|\n)*)'
+        res_close = '^((?:.|\n)*)}([0-9]*)}((?:.|\n)*)'
+        if re.match(res_open, text):
+            befo = re.sub(res_open, '\\1', text)
+            numb = re.sub(res_open, '\\2', text)
+            scri = re.sub(res_open, '\\3', text)
+            if not re.match(res_close, text):
+                cur_to_end = pane.get('insert', 'end-1c')
+                if re.match('^}' + numb + '}', cur_to_end):
+                    msg = '（ここにスクリプトを挿入（サンプルはTabを押す））'
+                    if scri == msg:
+                        beg_n = len(befo + '{' + numb + '{')
+                        end_n = beg_n + len(scri)
+                        beg = '1.0+' + str(beg_n) + 'c'
+                        end = '1.0+' + str(end_n) + 'c'
+                        pane.delete(beg, end)
+                        pane.insert(beg, SCRIPT_SAMPLE[1])
+                        return True
+                    for i, sample in enumerate(SCRIPT_SAMPLE):
+                        if scri == sample:
+                            beg_n = len(befo + '{' + numb + '{')
+                            end_n = beg_n + len(scri)
+                            beg = '1.0+' + str(beg_n) + 'c'
+                            end = '1.0+' + str(end_n) + 'c'
+                            pane.delete(beg, end)
+                            pane.insert(beg, SCRIPT_SAMPLE[i + 1])
+                            return True
+        # PARAGRAPH SAMPLE
+        if posi == pane.index('insert lineend'):
+            for i, sample in enumerate(PARAGRAPH_SAMPLE):
+                if line == sample:
+                    pane.delete('insert linestart', 'insert lineend')
+                    pane.insert('insert', PARAGRAPH_SAMPLE[i + 1])
+                    pane.mark_set('insert', 'insert lineend')
+                    return True
+        # TIDY UP PARAGRAPH
+        has_tidied = self.tidy_up_paragraph()
+        if has_tidied:
+            return True
+        # FONT DECORATER
+        for i, sample in enumerate(FONT_DECORATOR_SAMPLE):
+            if i == 0:
+                continue
+            if i == len(FONT_DECORATOR_SAMPLE) - 1:
+                break
+            sample_esc = sample
+            sample_esc = sample_esc.replace('*', '\\*')
+            sample_esc = sample_esc.replace('+', '\\+')
+            sample_esc = sample_esc.replace('^', '\\^')
+            beg_to_ins = pane.get('insert linestart', 'insert')
+            if re.match('^.*' + sample_esc + '$', beg_to_ins):
+                pane.delete(posi + '-' + str(len(sample)) + 'c', posi)
+                pane.insert('insert', FONT_DECORATOR_SAMPLE[i + 1])
+                return True
+        else:
+            pane.insert('insert', FONT_DECORATOR_SAMPLE[1])
+            return True
+        return False
+
+    def _any_process_delete(self) -> bool:  # Delete / Ctrl+D
+        k2 = self.key_history[-2]
+        if k2 == 'F19' or k2 == 'Ctrl+x':
             if self.current_pane == 'txt':
                 self.quit_makdo()
                 return True
-        if self.key_history[-2] == 'F13':
+        if k2 == 'F13' or k2 == 'Ctrl+minus':
             self.cut_rectangle()
             return True
-        if self.key_history[-2] != 'Delete':
+        if k2 != 'Delete' and k2 != 'Ctrl+d':
             self.win.clipboard_clear()
             if self.clipboard_list[-1] != '':
                 self.clipboard_list.append('')
         return False
 
-    def _any_process_f16(self, pane):
-        if self.key_history[-2] == 'F13':
-            if self.key_history[-3] == 'F16' and \
-               self.key_history[-4] == 'F13' and \
+    def _any_process_quit(self, pane):  # F14 / Ctrl+V
+        k2 = self.key_history[-2]
+        # CLOSE
+        if k2 == 'F19' or k2 == 'Ctrl+x':
+            if self.current_pane == 'txt':
+                self.close_file()
+                return
+        # UNMARK
+        if 'akauni' in pane.mark_names():
+            pane.tag_remove('akauni_tag', '1.0', 'end')
+            pane.mark_unset('akauni')
+        return
+
+    def _any_process_paste(self):  # F15 / Ctrl+G
+        k2 = self.key_history[-2]
+        # PASTE
+        if k2 == 'F13' or k2 == 'Ctrl+minus':
+            self.paste_rectangle()
+        else:
+            self.paste_region()
+
+    def _any_process_search(self, pane):  # F16 / Ctrl+C
+        k2 = self.key_history[-2]
+        k3 = self.key_history[-3]
+        k4 = self.key_history[-4]
+        # SEARCH
+        if k2 == 'F13' or k2 == 'Ctrl+minus':
+            if (k3 == 'F16' or k3 == 'Ctrl+c') and \
+               (k4 == 'F13' or k4 == 'Ctrl+minus') and \
                Makdo.search_word != '':
                 self.search_backward()
             else:
                 self.search_backward_from_dialog(pane)
         else:
-            if self.key_history[-2] == 'F16' and \
-               self.key_history[-3] != 'F13' and \
+            if (k2 == 'F16' or k2 == 'Ctrl+c') and \
+               not (k3 == 'F13' or k3 == 'Ctrl+minus') and \
                Makdo.search_word != '':
                 self.search_forward()
             else:
                 self.search_forward_from_dialog(pane)
 
-    def _any_process_f19(self):
-        if self.key_history[-2] == 'F19':
-            self.key_history[-1] = '', ''
-            self._jump_to_next_pane()
-
-    def _any_process_f22(self, pane):
-        if self.key_history[-2] == 'F19':
+    def _any_process_mark(self, pane):  # F22 / Ctrl+F
+        k2 = self.key_history[-2]
+        if k2 == 'F19' or k2 == 'Ctrl+x':
             self.save_file()
             return
-        #
+        # UNMARK
         if 'akauni' in pane.mark_names():
             has_akauni = True
             pane.mark_set('prev_akauni', 'akauni')
@@ -14717,20 +14774,21 @@ class Makdo:
             pane.mark_unset('akauni')
         else:
             has_akauni = False
-        #
         delta = self.key_pressed_time[-1] - self.key_pressed_time[-2]
-        if self.key_history[-2] == 'F22' and delta < 0.32:
+        if (k2 == 'F22' or k2 == 'Ctrl+f') and delta < 0.32:
+            # SUB CURSOR
             if len(self.pnd_r.panes()) > 1 and \
                'x0sixteenth' in self.sub.mark_names():
                 self.swap_windows()
             else:
                 self.goto_sub_cursor()
         else:
+            # MARK
             if not has_akauni:
                 pane.mark_set('akauni', 'insert')
                 pane.mark_unset('prev_akauni')
 
-    def _set_is_boosted_movement(self) -> bool:
+    def _is_boosted_movement(self) -> bool:
         key4 = self.key_history[-4]
         key3 = self.key_history[-3]
         key2 = self.key_history[-2]
@@ -14738,20 +14796,21 @@ class Makdo:
         delta34 = self.key_pressed_time[-3] - self.key_pressed_time[-4]
         delta23 = self.key_pressed_time[-2] - self.key_pressed_time[-3]
         delta12 = self.key_pressed_time[-1] - self.key_pressed_time[-2]
-        if 'is_boosted_movement' not in vars(self):
+        if '__is_boosted_movement' not in vars(self):
             # X X X X
-            self.is_boosted_movement = False
+            self.__is_boosted_movement = False
         elif key2 != key1 or key3 != key1:
             # X X X O / X X O O
-            self.is_boosted_movement = False
+            self.__is_boosted_movement = False
         elif key4 != key1 or delta34 > 0.3:
             # X O O O
             if delta23 < 0.3 and delta12 > 0.3:
-                self.is_boosted_movement = True
+                self.__is_boosted_movement = True
         else:
             # O O O O
             if delta12 > 0.3:
-                self.is_boosted_movement = False
+                self.__is_boosted_movement = False
+        return self.__is_boosted_movement
 
     @staticmethod
     def _paint_akauni_region(pane, shift=''):
