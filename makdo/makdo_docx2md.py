@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.07.01-10:07:12-JST>
+# Time-stamp:   <2025.07.05-10:54:35-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -732,7 +732,7 @@ def get_real_width(s):
     p = ''
     wid = 0.0
     for c in s:
-        if (c == '\t'):
+        if c == '\t':
             wid += (int(wid / TAB_WIDTH) + 1) * TAB_WIDTH
             continue
         w = unicodedata.east_asian_width(c)
@@ -809,7 +809,7 @@ def get_real_width(s):
 def get_ideal_width(s):
     wid = 0
     for c in s:
-        if (c == '\t'):
+        if c == '\t':
             wid += (int(wid / TAB_WIDTH) + 1) * TAB_WIDTH
             continue
         w = unicodedata.east_asian_width(c)
