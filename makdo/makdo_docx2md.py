@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.07.05-10:54:35-JST>
+# Time-stamp:   <2025.07.09-11:43:56-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6204,8 +6204,9 @@ class RawParagraph:
                     font_color = FONT_COLOR[val]
                 else:
                     font_color = val
-                cd.fr_fd_cls.font_color = '^' + font_color + '^'
-                cd.bk_fd_cls.font_color = '^' + font_color + '^'
+                if font_color != 'black':  # default font color
+                    cd.fr_fd_cls.font_color = '^' + font_color + '^'
+                    cd.bk_fd_cls.font_color = '^' + font_color + '^'
                 continue
             # HIGHLIGHT COLOR
             if re.match('^<w:highlight w:val="[a-zA-Z]+"( .*)?/?>$', xl):
@@ -7432,10 +7433,11 @@ class Paragraph:
                     if section_states[2][0] == 1 and section_states[2][1] == 0:
                         if '##=1' not in numbering_revisers:
                             if '<=+1.0' in length_revisers:
-                                ParagraphSection.states[1][0] = 0
-                                section_states[1][0] = 0
-                                numbering_revisers.insert(0, '##=1')
-                                length_revisers.remove('<=+1.0')
+                                if self.head_space == '':
+                                    ParagraphSection.states[1][0] = 0
+                                    section_states[1][0] = 0
+                                    numbering_revisers.insert(0, '##=1')
+                                    length_revisers.remove('<=+1.0')
         return section_states, numbering_revisers, length_revisers
 
     @staticmethod
