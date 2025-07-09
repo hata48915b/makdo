@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.07.05-10:53:03-JST>
+# Time-stamp:   <2025.07.09-14:18:05-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -1616,9 +1616,9 @@ class Form:
             tmp = ''
             is_in_font_name = False
             for c in Form.page_number:
-                if c == '@' and re.match(NOT_ESCAPED + '@', tmp + c):
+                if c == '@' and re.match(NOT_ESCAPED + '@$', tmp + c):
                     is_in_font_name = not is_in_font_name
-                if re.match(NOT_ESCAPED + 'N', tmp + c):
+                if re.match(NOT_ESCAPED + 'N$', tmp + c):
                     if not is_in_font_name:
                         c = 'M'
                 tmp += c
