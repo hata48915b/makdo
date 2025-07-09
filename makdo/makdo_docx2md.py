@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.07.09-13:45:01-JST>
+# Time-stamp:   <2025.07.09-18:14:57-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -4984,7 +4984,12 @@ class LineTruncation:
                         tex += tmp + '\n'
                         tmp = ''
         if tmp != '':
-            tex += tmp + '\n'
+            if is_in_deleted:
+                tex += '->' + tmp
+            elif is_in_inserted:
+                tex += '+>' + tmp
+            else:
+                tex += tmp + '\n'
             tmp = ''
         tmp = ''
         for t in tex.split('\n'):

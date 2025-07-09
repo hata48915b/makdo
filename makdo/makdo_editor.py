@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.07.09-08:49:34-JST>
+# Time-stamp:   <2025.07.09-16:41:36-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -15156,7 +15156,7 @@ class Makdo:
                 self.stb_sor1.insert(0, h[n])
                 self.search_word_history_number = n
             return 'break'
-        elif self._is_key(k3, 'F15', 'C-g', 'C-g', 'C-v'):
+        elif self._is_key(k, 'F15', 'C-g', 'C-g', 'C-v'):
             self.sor1_paste_word()
             return 'break'
 
@@ -15184,7 +15184,7 @@ class Makdo:
                 self.stb_sor2.delete(0, 'end')
                 self.stb_sor2.insert(0, h[n])
                 self.replace_word_history_number = n
-        elif self._is_key(k3, 'F15', 'C-g', 'C-g', 'C-v'):
+        elif self._is_key(k, 'F15', 'C-g', 'C-g', 'C-v'):
             self.sor2_paste_word()
             return 'break'
 
