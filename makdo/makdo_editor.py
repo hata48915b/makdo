@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.07.09-16:41:36-JST>
+# Time-stamp:   <2025.07.09-22:58:14-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -12394,10 +12394,10 @@ class Makdo:
                 pane.delete('insert-1c', 'insert')
                 self.paint_out_line(self._get_v_position_of_insert(pane) - 1)
                 self.update_toc()
-            elif self._is_key(key, 'Delete', 'C-d', 'C-h'):
+            elif self._is_key(key, 'Delete', 'C-d', 'C-h', 'C-x'):
                 if i > 0:
                     k = self.keyboard_macro[i - 1]
-                    if not self._is_key(k, 'Delete', 'C-d', 'C-h'):
+                    if not self._is_key(k, 'Delete', 'C-d', 'C-h', 'C-x'):
                         self.win.clipboard_clear()
                         if self.clipboard_list[-1] != '':
                             self.clipboard_list.append('')
@@ -14299,44 +14299,44 @@ class Makdo:
                 return 'break'
             self.set_message_on_status_bar('"Esc"が押されました．')
             return 'break'
-        elif self._is_key(k1, 'F19', 'C-x', 'C-b'):         # C-x
+        elif self._is_key(k1, 'F19', 'C-x', 'C-b'):            # C-x
             self._any_process_escp1()
             return 'break'
-        elif self._is_key(k1, 'F20', 'C-b', 'C-n'):         # C-b
+        elif self._is_key(k1, 'F20', 'C-b', 'C-n'):            # C-b
             #
             return 'break'
-        elif self._is_key(k1, 'F13', 'C--', 'C-q'):         # C--
+        elif self._is_key(k1, 'F13', 'C--', 'C-q'):            # C--
             #
             return 'break'
-        elif self._is_key(k1, 'Left', 'C-t', 'C-k'):        # C-t
+        elif self._is_key(k1, 'Left', 'C-t', 'C-k'):           # C-t
             self._any_process_left(pane)
             return 'break'
-        elif self._is_key(k1, 'Right', 'C-s', 'C-;'):       # C-s
+        elif self._is_key(k1, 'Right', 'C-s', 'C-;'):          # C-s
             self._any_process_right(pane)
             return 'break'
-        elif self._is_key(k1, 'Up', 'C-r', 'C-o'):          # C-r
+        elif self._is_key(k1, 'Up', 'C-r', 'C-o'):             # C-r
             self._any_process_up(pane)
             return 'break'
-        elif self._is_key(k1, 'Down', 'C-n', 'C-l'):        # C-n
+        elif self._is_key(k1, 'Down', 'C-n', 'C-l'):           # C-n
             self._any_process_down(pane)
             return 'break'
-        elif self._is_key(k1, 'Home', 'C-l', 'C-p'):        # C-l
+        elif self._is_key(k1, 'Home', 'C-l', 'C-p'):           # C-l
             self._any_process_home(pane)
             return 'break'
-        elif self._is_key(k1, 'End', 'C-{', 'C-['):         # C-{
+        elif self._is_key(k1, 'End', 'C-{', 'C-['):            # C-{
             self._any_process_end(pane)
             return 'break'
-        elif self._is_key(k1, 'Prior', 'C-[', 'C-@'):       # C-[
+        elif self._is_key(k1, 'Prior', 'C-[', 'C-@'):          # C-[
             self._any_process_prior(pane)
             return 'break'
-        elif self._is_key(k1, 'Next', 'C-]', 'C-:'):        # C-]
+        elif self._is_key(k1, 'Next', 'C-]', 'C-:'):           # C-]
             if self._is_key(k2, 'F13', 'C--', 'C-q'):
                 if self.current_pane == 'sub':
                     self._execute_sub_pane()
                     return 'break'
             self._any_process_next(pane)
             return 'break'
-        elif self._is_key(k1, 'Delete', 'C-d', 'C-h'):      # C-d
+        elif self._is_key(k1, 'Delete', 'C-d', 'C-h', 'C-x'):  # C-d
             if self._any_process_delete():
                 return 'break'
             # FOR PAINTING
@@ -14352,7 +14352,7 @@ class Makdo:
                             ld.line_number = i
             self._execute_when_delete_is_pressed(pane)
             return 'break'
-        elif self._is_key(k1, 'BackSpace', 'C-h', 'C-j'):   # C-h
+        elif self._is_key(k1, 'BackSpace', 'C-h', 'C-j'):      # C-h
             if self._is_key(k2, 'F13', 'C--', 'C-q'):
                 self.split_window()
                 return 'break'
@@ -14366,7 +14366,7 @@ class Makdo:
                         ld.line_number = i
             self.txt.delete('insert-1c', 'insert')
             return 'break'
-        elif self._is_key(k1, 'Return', 'C-m', 'C-m'):      # C-m
+        elif self._is_key(k1, 'Return', 'C-m', 'C-m'):         # C-m
             # FOR PAINTING
             if pane == self.txt:
                 vp = self._get_v_position_of_insert(pane)
@@ -14374,32 +14374,32 @@ class Makdo:
                 for i, ld in enumerate(self.line_data):
                     ld.line_number = i
             return
-        elif self._is_key(k1, 'Tab', 'C-i', 'C-g'):         # C-i
+        elif self._is_key(k1, 'Tab', 'C-i', 'C-g'):            # C-i
             if self._any_process_tab(pane):
                 return 'break'
             return
-        elif self._is_key(k1, 'F14', 'C-v', 'C-y'):         # C-v
+        elif self._is_key(k1, 'F14', 'C-v', 'C-y'):            # C-v
             self._any_process_quit(pane)
             return 'break'
-        elif self._is_key(k1, 'F15', 'C-g', 'C-u', 'C-v'):  # C-g
+        elif self._is_key(k1, 'F15', 'C-g', 'C-u', 'C-v'):     # C-g
             self._any_process_paste()
             return 'break'
-        elif self._is_key(k1, 'F16', 'C-c', 'C-i', 'C-f'):  # C-c
+        elif self._is_key(k1, 'F16', 'C-c', 'C-i', 'C-f'):     # C-c
             self._any_process_search(pane)
             return 'break'
-        elif self._is_key(k1, 'F17', 'C-}', 'C-]', 'C-e'):  # C-}
+        elif self._is_key(k1, 'F17', 'C-}', 'C-]', 'C-e'):     # C-}
             if self._is_key(k2, 'F13', 'C--', 'C-q'):
                 self.calculate()
                 return 'break'
             self.execute_keyboard_macro()
             return 'break'
-        elif self._is_key(k1, 'F21', 'C-w', 'C-,'):         # C-w
+        elif self._is_key(k1, 'F21', 'C-w', 'C-,', 'C-z'):     # C-w
             if self._is_key(k2, 'F13', 'C--', 'C-q'):
                 self.edit_modified_redo()
             else:
                 self.edit_modified_undo()
             return 'break'
-        elif self._is_key(k1, 'F22', 'C-f', 'C-.'):         # C-f
+        elif self._is_key(k1, 'F22', 'C-f', 'C-.'):            # C-f
             self._any_process_mark(pane)
             return 'break'
         elif k1 == 'g':
@@ -14429,46 +14429,30 @@ class Makdo:
                 self.start_minibuffer()
                 return 'break'
             return
-        if self.shortcut_key_layout.get() == 'normal':
-            if key.char == '\x01':    # Ctrl+A
-                self.select_all()
-                return 'break'
-            elif key.char == '\x03':  # Ctrl+C
-                self.copy_region()
-                return 'break'
-            elif key.char == '\x05':  # Ctrl+E
-                self.execute_keyboard_macro()
-                return 'break'
-            elif key.char == '\x06':  # Ctrl+F
-                self.search_forward()
-                return 'break'
-            elif key.char == '\x0c':  # Ctrl+L
-                self.replace_forward()
-                return 'break'
-            elif key.char == '\x0f':  # Ctrl+O
-                self.open_file()
-                return 'break'
-            elif key.char == '\x10':  # Ctrl+P
-                self.start_writer()
-                return 'break'
-            # elif key.char == '\x11':  # Ctrl+Q
-            #     self.quit_makdo()
-            #     return 'break'
-            elif key.char == '\x13':  # Ctrl+S
-                self.save_file()
-                return 'break'
-            elif key.char == '\x16':  # Ctrl+V
-                self.paste_region()
-                return 'break'
-            elif key.char == '\x18':  # Ctrl+X
-                self.cut_region()
-                return 'break'
-            elif key.char == '\x19':  # Ctrl+Y
-                self.edit_modified_redo()
-                return 'break'
-            elif key.char == '\x1a':  # Ctrl+Z
-                self.edit_modified_undo()
-                return 'break'
+        elif self._is_key(k1, None, None, None, 'C-a'):
+            self.select_all()
+            return 'break'
+        elif self._is_key(k1, None, None, None, 'C-c'):
+            self.copy_region()
+            return 'break'
+        elif self._is_key(k1, None, None, None, 'C-l'):
+            self.replace_forward()
+            return 'break'
+        elif self._is_key(k1, None, None, None, 'C-o'):
+            self.open_file()
+            return 'break'
+        elif self._is_key(k1, None, None, None, 'C-p'):
+            self.start_writer()
+            return 'break'
+        # elif self._is_key(k1, None, None, None, 'C-q'):
+        #     self.quit_makdo()
+        #     return 'break'
+        elif self._is_key(k1, None, None, None, 'C-s'):
+            self.save_file()
+            return 'break'
+        elif self._is_key(k1, None, None, None, 'C-y'):
+            self.edit_modified_redo()
+            return 'break'
 
     def read_only_process_key(self, pane, key):
         self.set_message_on_status_bar('')
@@ -14519,7 +14503,7 @@ class Makdo:
         elif self._is_key(k1, 'Next', 'C-]', 'C-:'):
             self._any_process_next(pane)
             return 'break'
-        elif self._is_key(k1, 'Delete', 'C-d', 'C-h'):
+        elif self._is_key(k1, 'Delete', 'C-d', 'C-h', 'C-x'):
             if self._any_process_delete():
                 return 'break'
             self._execute_when_delete_is_pressed(pane)
@@ -14533,16 +14517,12 @@ class Makdo:
         elif self._is_key(k1, 'F22', 'C-f', 'C-.'):
             self._any_process_mark(pane)
             return 'break'
-        if self.shortcut_key_layout.get() == 'normal':
-            if key.char == '\x01':    # Ctrl+A
-                self.select_all()
-                return 'break'
-            elif key.char == '\x03':  # Ctrl+C
-                self.copy_region()
-                return 'break'
-            elif key.char == '\x06':  # Ctrl+F
-                self.search_forward()
-                return 'break'
+        elif self._is_key(k1, None, None, None, 'C-a'):
+            self.select_all()
+            return 'break'
+        elif self._is_key(k1, None, None, None, 'C-c'):
+            self.copy_region()
+            return 'break'
         self.set_message_on_status_bar('読取専用です')
         return 'break'
 
@@ -14799,7 +14779,7 @@ class Makdo:
         if self._is_key(k2, 'F13', 'C--', 'C-q'):
             self.cut_rectangle()
             return True
-        if not self._is_key(k2, 'Delete', 'C-d', 'C-h'):
+        if not self._is_key(k2, 'Delete', 'C-d', 'C-h', 'C-x'):
             self.win.clipboard_clear()
             if self.clipboard_list[-1] != '':
                 self.clipboard_list.append('')
@@ -14839,8 +14819,8 @@ class Makdo:
             else:
                 self.search_backward_from_dialog(pane)
         else:
-            if self._is_key(k3, 'F16', 'C-c', 'C-i', 'C-f') and \
-               not self._is_key(k4, 'F13', 'C--', 'C-q') and \
+            if self._is_key(k2, 'F16', 'C-c', 'C-i', 'C-f') and \
+               not self._is_key(k3, 'F13', 'C--', 'C-q') and \
                Makdo.search_word != '':
                 self.search_forward()
             else:
