@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.07.09-11:43:56-JST>
+# Time-stamp:   <2025.07.09-13:45:01-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -2651,6 +2651,9 @@ class AutoNumberingStyle:
             if re.match(res_s3_a, txt) or re.match(res_s3_b, txt):
                 return 'section', 3
             if re.match(res_s4_a, txt):
+                return 'section', 4
+        if fmt == 'decimalEnclosedParen':
+            if re.match('^%[1-9]' + res_sp + '?$', txt):
                 return 'section', 4
         if fmt == 'aiueo' or fmt == 'aiueoFullWidth':
             if re.match(res_s5_a, txt):
@@ -6247,6 +6250,9 @@ class RawParagraph:
                     n = ans.start + ans.state
                     if re.match('^decimal(?:FullWidth)?$', ans.number_format):
                         hs = re.sub('%[1-9]', str(n), ans.head_string)
+                        cd.chars += hs + ' '
+                    elif re.match('^decimalEnclosedParen$', ans.number_format):
+                        hs = re.sub('%[1-9]', '(' + str(n) + ')', ans.head_string)
                         cd.chars += hs + ' '
                     elif re.match('^aiueo(?:FullWidth)?$', ans.number_format):
                         hs = re.sub('%[1-9]', n2c_n_kata(n), ans.head_string)
