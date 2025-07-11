@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.07.09-22:58:14-JST>
+# Time-stamp:   <2025.07.11-16:25:23-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -14364,7 +14364,7 @@ class Makdo:
                     self.line_data.pop(vp - 1)
                     for i, ld in enumerate(self.line_data):
                         ld.line_number = i
-            self.txt.delete('insert-1c', 'insert')
+            pane.delete('insert-1c', 'insert')
             return 'break'
         elif self._is_key(k1, 'Return', 'C-m', 'C-m'):         # C-m
             # FOR PAINTING
@@ -14577,7 +14577,7 @@ class Makdo:
                 self._jump_to_prev_pane()
             else:
                 self._jump_to_next_pane()
-            self.key_history[-2] = ''
+            self.key_history[-1] = ''
             return
         if not (self._is_key(k2, 'Up', 'C-r', 'C-o') or
                 self._is_key(k2, 'Down', 'C-n', 'C-l') or
