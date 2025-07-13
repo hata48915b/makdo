@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.07.11-16:25:23-JST>
+# Time-stamp:   <2025.07.13-14:40:47-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -11338,6 +11338,10 @@ class Makdo:
                          command=self.compare_files)
         menu.add_separator()
         #
+        menu.add_command(label='編集前の原稿と比較してWordの変更履歴にする',
+                         command=self.insert_track_change_tag)
+        menu.add_separator()
+        #
         menu.add_command(label='セクションを折り畳む・展開',
                          command=self.fold_or_unfold_section)
         menu.add_command(label='セクションを全て展開',
@@ -12038,6 +12042,42 @@ class Makdo:
         self.current_pane = 'txt'
 
     # MDDIFF<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+    def insert_track_change_tag(self):
+        document = ''
+        text1 = self.txt.get('1.0', 'end-1c')
+        text2 = self.init_text
+        file1 = makdo.makdo_mddiff.File()
+        file2 = makdo.makdo_mddiff.File()
+        file1.set_up_from_text(text1)
+        file2.set_up_from_text(text2)
+        para1 = file1.cmp_paragraphs
+        para2 = file2.cmp_paragraphs
+        comp = makdo.makdo_mddiff.Comparison(para2, para1)
+        for cp in comp.paragraphs:
+            if cp.track_change_text != '':
+                document += cp.track_change_text + '\n\n'
+        document = re.sub('\n+$', '\n', document)
+        self.txt.delete('1.0', 'end-1c')
+        self.txt.insert('1.0', document)
+        # PAINT
+        self.file_lines = document.split('\n')
+        if document != '':
+            paint_keywords = self.paint_keywords.get()
+            self.line_data = [LineDatum() for line in self.file_lines]
+            for i, line in enumerate(self.file_lines):
+                self.line_data[i].line_number = i
+                self.line_data[i].line_text = line + '\n'
+                if i > 0:
+                    self.line_data[i].beg_chars_state \
+                        = self.line_data[i - 1].end_chars_state.copy()
+                    self.line_data[i].beg_chars_state.reset_partially()
+                n = i + 1
+                if (n % 1000) == 0:
+                    t = '行を色付けしています（' + str(n) + '行目）'
+                    self.set_message_on_status_bar(t, True)
+                self.line_data[i].paint_line(self.txt, paint_keywords)
+            self.set_message_on_status_bar('', True)
 
     # FOLD
 
@@ -14353,7 +14393,7 @@ class Makdo:
             self._execute_when_delete_is_pressed(pane)
             return 'break'
         elif self._is_key(k1, 'BackSpace', 'C-h', 'C-j'):      # C-h
-            if self._is_key(k2, 'F13', 'C--', 'C-q'):
+            if self._is_key(k2, 'F19', 'C-x', 'C-b'):
                 self.split_window()
                 return 'break'
             # FOR PAINTING

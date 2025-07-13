@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         mddiff.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.02.21-09:11:22-JST>
+# Time-stamp:   <2025.07.13-11:08:27-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -68,6 +68,10 @@ def get_arguments():
         '-H', '--html',
         action='store_true',
         help='違いをHTMLで表示します')
+    parser.add_argument(
+        '-T', '--track-changes',
+        action='store_true',
+        help='Wordの更新形式で表示します')
     parser.add_argument(
         '-V', '--verbose',
         action='store_true',
@@ -281,13 +285,14 @@ class Paragraph:
     #                                     hhhhhhhhhhhhhhhh  O| hhhhhhhhhhhhhhhh
 
     def __init__(self, ses_symbol,
-                 diff_id, rev_id, diff_text,
+                 diff_id, rev_id, diff_text, track_change_text,
                  main_number, main_paragraph, sub_number, sub_paragraph):
         self.ses_symbol = ses_symbol
         self.has_applied = False
         self.diff_id = diff_id
         self.rev_id = rev_id
         self.diff_text = diff_text
+        self.track_change_text = track_change_text
         self.main_number = main_number
         self.main_paragraph = main_paragraph
         self.sub_number = sub_number
@@ -375,6 +380,7 @@ class Comparison:
         strs_y += ['']
         for s in shortest_edit_script:
             diff_text = ''
+            track_change_text = ''
             nx, ny = self._step_or_reset_nz(s, nx, ny)
             diff_id = Comparison._get_hash(x, ny, s, strs_x[x], strs_y[y])
             if s == '-':
@@ -387,6 +393,7 @@ class Comparison:
                 pn = str(x) + '/' + str(y)
                 diff_text += '【第' + pn + '段落】\n'
                 diff_text += re.sub('\n', '\n | ', ' | ' + strs_y[y]) + '\n'
+                track_change_text = strs_y[y]
             elif s == '&':
                 d11 = Levenshtein.distance(strs_x[x], strs_y[y])
                 d10, d01 = len(strs_x[x]), len(strs_y[y])
@@ -413,30 +420,36 @@ class Comparison:
                         tx, ty = self._step_z(d, tx, ty)
                         if dire[tx][ty] == '/':
                             break
+                    track_change_text \
+                        = self.get_track_change_text(strs_x[x], strs_y[y])
                 elif strs_x[x] != '':  # <- for configuration
                     diff_text += re.sub('\n', '\nX| ', 'X| ' + strs_x[x]) \
                         + '\n'
+                    track_change_text = '->\n' + strs_x[x] + '\n<-'
                 elif strs_y[y] != '':  # <- for configuration
                     diff_text += re.sub('\n', '\nO| ', 'O| ' + strs_y[y]) \
                         + '\n'
+                    track_change_text = '+>\n' + strs_y[y] + '\n<+'
             elif s == '-':
                 pn = str(x) + '/' + str(y - 1) + '+' + str(nx)
                 diff_text += '【第' + pn + '段落】' \
                     + ' 削除（' + diff_id + '）\n'
                 diff_text += re.sub('\n', '\nX| ', 'X| ' + strs_x[x]) + '\n'
+                track_change_text = '->\n' + strs_x[x] + '\n<-'
             elif s == '+':
                 pn = str(x - 1) + '+' + str(ny) + '/' + str(y)
                 diff_text += '【第' + pn + '段落】' \
                     + ' 追加（' + diff_id + '）\n'
                 diff_text += re.sub('\n', '\nO| ', 'O| ' + strs_y[y]) + '\n'
+                track_change_text = '+>\n' + strs_y[y] + '\n<+'
             if s == '-':
-                p = Paragraph(s, diff_id, rev_id, diff_text,
+                p = Paragraph(s, diff_id, rev_id, diff_text, track_change_text,
                               x, strs_x[x], -1, '')
             elif s == '+':
-                p = Paragraph(s, diff_id, rev_id, diff_text,
+                p = Paragraph(s, diff_id, rev_id, diff_text, track_change_text,
                               -1, '', y, strs_y[y])
             else:
-                p = Paragraph(s, diff_id, rev_id, diff_text,
+                p = Paragraph(s, diff_id, rev_id, diff_text, track_change_text,
                               x, strs_x[x], y, strs_y[y])
             paragraphs.append(p)
             x, y = self._step_z(s, x, y)
@@ -472,6 +485,37 @@ class Comparison:
             + str(x) + '+' + str(ny) + '(' + s + ')\n' \
             + str_x + '\n\n' + str_y
         return hashlib.md5(s.encode()).hexdigest()
+
+    @staticmethod
+    def get_track_change_text(strs_x, strs_y):
+        track_change_text = ''
+        not_escaped = '^((?:(?:.|\n)*?[^\\\\])??(?:\\\\\\\\)*?)?'
+        dire_mx, dist_mx = Comparison.get_matrices(strs_x, strs_y)
+        shortest_edit_script = Comparison.get_shortest_edit_script(dire_mx)
+        x, y = 0, 0
+        for ses in shortest_edit_script:
+            if ses == '.':
+                track_change_text += strs_x[x]
+                x += 1
+                y += 1
+            elif ses == '-':
+                if re.match(not_escaped + '<\\-\n$', track_change_text):
+                    track_change_text \
+                        = re.sub('<\\-\n$', '', track_change_text)
+                    track_change_text += strs_x[x] + '<-\n'
+                else:
+                    track_change_text += '\n->' + strs_x[x] + '<-\n'
+                x += 1
+            elif ses == '+':
+                if re.match(not_escaped + '<\\+\n$', track_change_text):
+                    track_change_text \
+                        = re.sub('<\\+\n$', '', track_change_text)
+                    track_change_text += strs_y[y] + '<+\n'
+                else:
+                    track_change_text += '\n+>' + strs_y[y] + '<+\n'
+                y += 1
+        track_change_text = re.sub('\n+', '\n', track_change_text)
+        return track_change_text
 
     def print_current_paragraphs(self):
         m = len(self.paragraphs) - 1
@@ -540,6 +584,17 @@ class Comparison:
               '<input type="submit" value="適用する" id="' + hash + '" />' +
               '</form>')
 
+    def print_track_changes(self):
+        retval = 0
+        m = len(self.paragraphs) - 1
+        for i, p in enumerate(self.paragraphs):
+            if i == 0 and p.track_change_text == '':
+                continue
+            print(p.track_change_text)
+            if i < m:
+                print('')
+        return retval
+
     def print_all_diff_text(self):
         retval = 0
         for p in self.paragraphs:
@@ -584,6 +639,9 @@ def main():
         sys.exit(retval)
     elif args.html:
         retval = comp.print_diff_html()
+        sys.exit(retval)
+    elif args.track_changes:
+        retval = comp.print_track_changes()
         sys.exit(retval)
     elif args.verbose:
         retval = comp.print_all_diff_text()
