@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.07.09-18:12:32-JST>
+# Time-stamp:   <2025.07.14-12:15:14-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -4148,6 +4148,7 @@ class RawParagraph:
             for ml in md_lines:
                 if re.match(res, ml.text):
                     full_text = ml.beg_space + full_text
+                    break
         # self.full_text = full_text
         return full_text
 
@@ -5575,7 +5576,7 @@ class ParagraphList(Paragraph):
 
     @classmethod
     def _reset_states(cls, paragraph_class):
-        if paragraph_class != 'list':
+        if paragraph_class != 'remarks' and paragraph_class != 'list':
             for s in cls.states:
                 s[0] = 0
         return
