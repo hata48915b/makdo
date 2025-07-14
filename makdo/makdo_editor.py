@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.07.14-09:06:35-JST>
+# Time-stamp:   <2025.07.14-11:38:09-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -15329,7 +15329,7 @@ class Makdo:
                 return
             # SEARCH
             pane.mark_set('insert', '1.0 +' + str(len(sub)) + 'c')
-            self._put_back_cursor_to_pane(pane)
+            self._put_back_cursor_to_pane(pane, True)
             if must_replace:
                 if not self._is_read_only_pane(pane):
                     # REPLACE
@@ -15394,7 +15394,7 @@ class Makdo:
                 return
             # SEARCH
             pane.mark_set('insert', 'insert +' + str(len(sub)) + 'c')
-            self._put_back_cursor_to_pane(pane)
+            self._put_back_cursor_to_pane(pane, True)
             if must_replace:
                 if not self._is_read_only_pane(pane):
                     # REPLACE
