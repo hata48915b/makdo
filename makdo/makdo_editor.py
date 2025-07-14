@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.07.14-09:01:54-JST>
+# Time-stamp:   <2025.07.14-09:06:35-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6239,7 +6239,7 @@ class Makdo:
         if must_place_in_center:
             half = (h_max - h_min) // 2
             pane.yview('insert-' + str(half) + 'l')
-        elif h_cur < h_min:
+        elif h_cur <= h_min:
             pane.yview('insert-1l')
         elif h_cur >= h_max:
             pane.yview('insert-' + str(h_max - h_min - 1) + 'l')
