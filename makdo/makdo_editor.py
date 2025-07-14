@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.07.14-11:38:09-JST>
+# Time-stamp:   <2025.07.15-08:04:56-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6050,7 +6050,10 @@ class Makdo:
             for row in ws.iter_rows(min_row=1, max_row=ws.max_row,
                                     min_col=1, max_col=ws.max_column):
                 for cell in row:
-                    table += '|' + str(cell.value)
+                    if cell.value == None:
+                        table += '|'
+                    else:
+                        table += '|' + str(cell.value)
                 table += '|\n'
             document += table
         document = re.sub('^\n+', '', document)
