@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.07.15-08:04:56-JST>
+# Time-stamp:   <2025.07.24-08:42:57-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -14911,14 +14911,14 @@ class Makdo:
         elif key2 != key1 or key3 != key1:
             # --> ? ? X O --> | --> ? X ? O -->
             self._has_boosted = False
-        elif key4 != key1 or delta34 > 1.0:
+        elif key4 != key1 or delta34 > 0.14:
             # --> X O O O --> | --> O (t>1.0) O O O -->
-            if delta23 < 0.2 and delta12 > 0.4:
+            if delta23 < 0.14 and delta12 > 0.4 and delta12 < 1.4:
                 # --> ? O (t<0.2) O (t>0.4) O -->
                 self._has_boosted = True
         else:
             # --> O O O O -->
-            if delta12 >= 0.2:
+            if delta12 >= 0.14:
                 # --> O O O (t<0.2) O -->
                 self._has_boosted = False
         return self._has_boosted
