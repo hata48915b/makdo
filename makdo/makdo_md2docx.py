@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.07.14-12:15:14-JST>
+# Time-stamp:   <2025.07.17-16:39:03-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -3882,7 +3882,7 @@ class Document:
                 datetime_cls = datetime_cls.replace(tzinfo=jst)
             datetime_cls = datetime_cls.astimezone(utc)
         except BaseException:
-            datetime_cls = datetime.datetime.utcnow()
+            datetime_cls = datetime.datetime.now(datetime.UTC)
             datetime_cls = datetime_cls.replace(tzinfo=utc)
         return datetime_cls
 
