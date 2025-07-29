@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.07.17-16:39:03-JST>
+# Time-stamp:   <2025.07.30-07:41:21-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5542,6 +5542,8 @@ class ParagraphList(Paragraph):
         if re.match('\\s*[0-9]+(?:\\.|\\))\\s', full_text):
             is_numbering = True
         line = re.sub(res, '', line)
+        if line == '\\':
+            line = ''
         if not is_numbering:
             if proper_depth == 1:
                 head_strings = '・'
