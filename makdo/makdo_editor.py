@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.07.30-07:03:25-JST>
+# Time-stamp:   <2025.07.30-08:10:41-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -14604,6 +14604,11 @@ class Makdo:
         self._any_process_left_or_right(pane, 'right')
 
     def _any_process_left_or_right(self, pane, key):
+        k2 = self.key_history[-2]
+        if self._is_key(k2, 'F19', 'C-x', 'C-b'):
+            if len(self.pnd_r.panes()) > 1 and self.sub_btn1['text'] == '入替':
+                self.swap_windows()
+                return
         if self._is_boosted_movement():
             if key == 'left':
                 pane.mark_set('insert', 'insert-5c')
@@ -14616,6 +14621,7 @@ class Makdo:
                 pane.mark_set('insert', 'insert+1c')
         self._put_back_cursor_to_pane(pane)
         self._paint_akauni_region(pane, '')
+        return
 
     def _any_process_up(self, pane):  # Up / Ctrl+R
         self._any_process_up_or_down(pane, 'up')
