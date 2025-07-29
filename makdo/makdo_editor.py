@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.07.25-08:19:19-JST>
+# Time-stamp:   <2025.07.30-07:03:25-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6112,7 +6112,7 @@ class Makdo:
             return position2, position1
         return position1, position2
 
-    def _open_sub_pane(self, document, is_read_only, button_number=1) -> bool:
+    def _open_sub_pane(self, document, is_read_only, exec_button='') -> bool:
         self.sub_pane_is_read_only = is_read_only
         if len(self.pnd_r.panes()) > 1:
             n = 'エラー'
@@ -6144,9 +6144,19 @@ class Makdo:
             self.sub_btn3.destroy()
         except BaseException:
             pass
-        if button_number == 2:
+        if exec_button == '質問':
             self.sub_btn1 = tkinter.Button(self.sub_frm, text='質問',
                                            command=self._execute_sub_pane)
+            self.sub_btn1.pack(side='left', anchor='e')
+            self.sub_btn2 = tkinter.Label(self.sub_frm, text='\u3000',
+                                          bg='#BC7A00')
+            self.sub_btn2.pack(side='left', anchor='e', fill='both')
+            self.sub_btn3 = tkinter.Button(self.sub_frm, text='終了',
+                                           command=self._close_sub_pane)
+            self.sub_btn3.pack(side='right', anchor='w')
+        elif exec_button == '入替':
+            self.sub_btn1 = tkinter.Button(self.sub_frm, text='入替',
+                                           command=self.swap_windows)
             self.sub_btn1.pack(side='left', anchor='e')
             self.sub_btn2 = tkinter.Label(self.sub_frm, text='\u3000',
                                           bg='#BC7A00')
@@ -11627,7 +11637,7 @@ class Makdo:
             return False
         self._close_sub_pane()
         document = self.txt.get('1.0', 'end-1c')
-        self._open_sub_pane(document, True)
+        self._open_sub_pane(document, True, '入替')
         # SUB CURSOR
         for i in range(17):
             cs = round((len(document) * i) / 16)
@@ -14904,7 +14914,7 @@ class Makdo:
         delta34 = self.key_pressed_time[-3] - self.key_pressed_time[-4]
         delta23 = self.key_pressed_time[-2] - self.key_pressed_time[-3]
         delta12 = self.key_pressed_time[-1] - self.key_pressed_time[-2]
-        # --> O (t<0.14) O (0.4<t<1.4) O (t<0.1) O -->
+        # --> O (t<0.15) O (0.4<t<1.0) O (t<0.1) O -->
         if '_has_boosted' not in vars(self):
             # --> X X X X -->
             self._has_boosted = False
@@ -16094,7 +16104,7 @@ class Makdo:
             self.txt.focus_force()
             self._execute_sub_pane = self.ask_openai
             self._close_sub_pane = self.close_openai
-            self._open_sub_pane(self.openai_qanda, False, 2)
+            self._open_sub_pane(self.openai_qanda, False, '質問')
             self.sub.mark_set('insert', 'end-1c')
             self._paint_openai_lines()
             self.sub.edit_separator()
@@ -16284,7 +16294,7 @@ class Makdo:
             self.txt.focus_force()
             self._execute_sub_pane = self.ask_llama_without_rag
             self._close_sub_pane = self.close_llama_without_rag
-            self._open_sub_pane(self.llama_qanda, False, 2)
+            self._open_sub_pane(self.llama_qanda, False, '質問')
             self.sub.mark_set('insert', 'end-1c')
             self._paint_llama_lines()
             self.sub.edit_separator()
@@ -16359,7 +16369,7 @@ class Makdo:
             self.txt.focus_force()
             self._execute_sub_pane = self.ask_llama_with_rag
             self._close_sub_pane = self.close_llama_with_rag
-            self._open_sub_pane(self.llama_qanda, False, 2)
+            self._open_sub_pane(self.llama_qanda, False, '質問')
             self.sub.mark_set('insert', 'end-1c')
             self._paint_llama_lines()
             self.sub.edit_separator()
