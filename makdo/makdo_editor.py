@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.07.30-08:10:41-JST>
+# Time-stamp:   <2025.08.05-11:42:15-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6252,10 +6252,10 @@ class Makdo:
         if must_place_in_center:
             half = (h_max - h_min) // 2
             pane.yview('insert-' + str(half) + 'l')
-        elif h_cur <= h_min:
-            pane.yview('insert-1l')
-        elif h_cur >= h_max:
-            pane.yview('insert-' + str(h_max - h_min - 1) + 'l')
+        elif h_cur <= h_min + 2:
+            pane.yview('insert-2l')
+        elif h_cur >= h_max - 2:
+            pane.yview('insert-' + str(h_max - h_min - 2) + 'l')
 
     @staticmethod
     def _get_lines_of_pane(pane):
@@ -14920,7 +14920,7 @@ class Makdo:
         delta34 = self.key_pressed_time[-3] - self.key_pressed_time[-4]
         delta23 = self.key_pressed_time[-2] - self.key_pressed_time[-3]
         delta12 = self.key_pressed_time[-1] - self.key_pressed_time[-2]
-        # --> O (t<0.15) O (0.4<t<1.0) O (t<0.1) O -->
+        # --> O (t<0.2) O (0.4<t<1.0) O (t<0.1) O -->
         if '_has_boosted' not in vars(self):
             # --> X X X X -->
             self._has_boosted = False
@@ -14930,7 +14930,7 @@ class Makdo:
         else:
             if delta12 < 0.1:
                 if delta23 > 0.4 and delta23 < 1.0:
-                    if delta34 < 0.15:
+                    if delta34 < 0.2:
                         self._has_boosted = True
             else:
                 self._has_boosted = False

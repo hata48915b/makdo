@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.07.30-07:41:21-JST>
+# Time-stamp:   <2025.07.30-12:16:26-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -3557,7 +3557,8 @@ class Document:
             if len(block) > 0:
                 pre_text = block[-1].raw_text
                 cur_text = ml.raw_text
-                for pc in [ParagraphChapter, ParagraphSection, ParagraphList]:
+                for pc in [ParagraphChapter, ParagraphSection, ParagraphList,
+                           ParagraphFootnotes]:
                     res = '^\\s*' + pc.res_symbol + '\\s+\\S+.*$'
                     if re.match(res, pre_text) and re.match(res, cur_text):
                         is_block_end = True
@@ -6581,7 +6582,8 @@ class ParagraphFootnotes(Paragraph):
     """A class to handle footnotes paragraph"""
 
     paragraph_class = 'footnotes'
-    res_feature = '^\\[\\^\\S{,20}\\]:\\s.*$'
+    res_symbol = '\\[\\^\\S{,20}\\]:'
+    res_feature = '^' + res_symbol + '(?:\\s((?:.|\n)*))?$'
 
     def write_paragraph(self, ms_doc):
         res = '^\\[\\^(\\S{,20})\\]:\\s(.*)$'

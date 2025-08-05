@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.07.09-18:14:57-JST>
+# Time-stamp:   <2025.07.30-16:10:17-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
