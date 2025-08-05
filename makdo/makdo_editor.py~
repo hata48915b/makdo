@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.05-19:14:20-JST>
+# Time-stamp:   <2025.08.05-18:58:20-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -10747,8 +10747,6 @@ class Makdo:
                     table[-1][-1] += cell + c
                     cell = ''
                 elif (i < len(bare_par) - 1 and
-                      not re.match('^\\s*\\|:\\s',
-                               bare_par[i + 1:]) and
                       re.match('^\\s*(\\|[:-]-*:?(\\^|=)?)+(\\|(\\s*:)?)?\\s*',
                                bare_par[i + 1:]) and
                       len(table) > 0 and len(table[-1]) > 0):
@@ -10781,6 +10779,7 @@ class Makdo:
     @staticmethod
     def get_should_tidy_up(table):
         m = len(table[0])
+        print(table)
         for row in table:
             if len(row) != m:
                 n = '警告'
