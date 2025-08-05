@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.07.30-16:10:17-JST>
+# Time-stamp:   <2025.08.05-18:13:52-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -8832,21 +8832,27 @@ class ParagraphTable(Paragraph):
                         else:
                             md_text += '<Br>'
                         if h_alig_tbl[i][j][k] == 'R':
-                            if is_in_head:
+                            if merge_tbl[i][j] != '':
+                                md_text += txt_par + ' :'
+                            elif is_in_head:
                                 md_text += txt_par + ' :'
                             elif h_alig_tbl[std_row][j][0] != 'R':
                                 md_text += txt_par + ' :'
                             else:
                                 md_text += txt_par
                         elif h_alig_tbl[i][j][k] == 'C':
-                            if is_in_head:
+                            if merge_tbl[i][j] != '':
+                                md_text += ': ' + txt_par + ' :'
+                            elif is_in_head:
                                 md_text += txt_par
                             elif h_alig_tbl[std_row][j][0] != 'C':
                                 md_text += ': ' + txt_par + ' :'
                             else:
                                 md_text += txt_par
                         else:  # "" or "L"
-                            if is_in_head:
+                            if merge_tbl[i][j] != '':
+                                md_text += ': ' + txt_par
+                            elif is_in_head:
                                 md_text += ': ' + txt_par
                             elif (h_alig_tbl[std_row][j][0] != '' and
                                   h_alig_tbl[std_row][j][0] != 'L'):
@@ -8855,7 +8861,7 @@ class ParagraphTable(Paragraph):
                                 md_text += txt_par
                 # MERGE CELLS
                 if merge_tbl[i][j] != '':
-                    if not re.match('^.*:$', md_text):
+                    if not re.match('^(.|\n)*\\s:$', md_text):
                         md_text += ' '
                     md_text += merge_tbl[i][j]
             md_text += '|' + v_conf_clm[i] + '\n'
