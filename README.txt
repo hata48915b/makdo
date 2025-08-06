@@ -1,6 +1,12 @@
-<!-- Time-stamp:   <2025.03.05-09:24:17-JST> -->
+<!-- Time-stamp:   <2025.08.07-08:37:07-JST> -->
 
 # Makdo（MS Word形式のファイルをMarkdownで作成・編集するエディタアプリ）
+
+〜〜 **Makdoでコーヒー片手に余裕の起案！** 〜〜
+
+- LaTeXの論理性とEmacsの機能性で、MS Word形式のファイルの作成・編集が可能
+- MS Wordがなくても、MS Word形式のファイルを作成したり編集したり読んだりできます
+- わずらわしいナンバリング（番号付け）やインデント（字下げ）から、あなたを解放します
 
 [公式ウェブページ](https://makdo.jp/)
 
@@ -15,12 +21,6 @@
 - [［実行ファイル（Linux）のダウンロード］](https://makdo.jp/makdo_lin.zip)
 
 ![MakdoのLOGO (circle)](https://raw.githubusercontent.com/hata48915b/makdo/main/image/makdo9.png "MakdoのLOGO (circle)")
-
-〜〜 LaTeXの論理性とEmacsの機能性を、MS Word形式のファイルの作成・編集に！ 〜〜
-
-〜〜 MS Wordがなくても、MS Word形式のファイルを読んだり編集できたりします 〜〜
-
-〜〜 わずらわしいナンバリング（番号付け）やインデント（字下げ）から、あなたを解放します 〜〜
 
 ## このアプリの概要
 
