@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.06-09:40:21-JST>
+# Time-stamp:   <2025.08.06-10:07:47-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -10747,9 +10747,7 @@ class Makdo:
                     table[-1][-1] += cell + c
                     cell = ''
                 elif (i < len(bare_par) - 1 and
-                      not re.match('^\\s*\\|:\\s',
-                               bare_par[i + 1:]) and
-                      re.match('^\\s*(\\|[:-]-*:?(\\^|=)?)+(\\|(\\s*:)?)?\\s*',
+                      re.match('^\\s*(\\|[:-]-*:?(\\^|=)?)+\n?(\\|(\\s*:)?)',
                                bare_par[i + 1:]) and
                       len(table) > 0 and len(table[-1]) > 0):
                     # "|:--\n|:--"
