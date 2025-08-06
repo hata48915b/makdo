@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.06-09:25:56-JST>
+# Time-stamp:   <2025.08.06-09:40:21-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -11034,14 +11034,12 @@ class Makdo:
             res = '^()(\\s*)(.*?)(\\s*)((?:\\s@[0-9]*(?:x[0-9]+)?)?)$'
         else:
             res = '^()(\\s*)(.*?)(\\s*)(\\s:(?:@[0-9]*(?:x[0-9]+)?)?)$'
-        print(res)
         cell = self._tupt_basis(pane, text, cell, res, 'r', width)
         return cell
 
     def _tupt_basis(self, pane, text, cell, res, alignment, width):
         symbol_l, spaces_l_from, body, spaces_r_from, symbol_r \
             = self._split_cell(res, cell)
-        print(symbol_l + '/' + spaces_l_from + '/' + body + '/' + spaces_r_from + '/' + symbol_r)
         w = width - len(symbol_l) - get_real_width(body) - len(symbol_r)
         if alignment == 'r':
             spaces_l_to, spaces_r_to = (' ' * w), ('')
