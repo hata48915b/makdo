@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.05-19:14:20-JST>
+# Time-stamp:   <2025.08.06-09:25:56-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -11015,53 +11015,42 @@ class Makdo:
 
     def _tupt_left(self, pane, text, cell, width):
         if not re.match('^:\\s.*$', cell):
-            res = '^(\\s*)(.*?)(\\s*)$'
+            res = '^()(\\s*)(.*?)(\\s*)((?:\\s@[0-9]*(?:x[0-9]+)?)?)$'
         else:
-            res = '^:(\\s+)(.*?)(\\s*)$'
+            res = '^(:\\s)(\\s*)(.*?)(\\s*)((?:\\s@[0-9]*(?:x[0-9]+)?)?)$'
         cell = self._tupt_basis(pane, text, cell, res, 'l', width)
         return cell
 
     def _tupt_center(self, pane, text, cell, width):
-        if not re.match('^:\\s.*\\s:$', cell):
-            res = '^(\\s*)(.*?)(\\s*)$'
+        if not re.match('^:\\s.*\\s:(@[0-9]*(x[0-9]+)?)?$', cell):
+            res = '^()(\\s*)(.*?)(\\s*)((?:\\s@[0-9]*(?:x[0-9]+)?)?)$'
         else:
-            res = '^:(\\s+)(.*?)(\\s+):$'
+            res = '^(:\\s)(\\s*)(.*?)(\\s*)(\\s:(?:@[0-9]*(?:x[0-9]+)?)?)$'
         cell = self._tupt_basis(pane, text, cell, res, 'c', width)
         return cell
 
     def _tupt_right(self, pane, text, cell, width):
-        if not re.match('^:\\s.*\\s:$', cell):
-            res = '^(\\s*)(.*?)(\\s*)$'
+        if not re.match('^.*\\s:(@[0-9]*(x[0-9]+)?)?$', cell):
+            res = '^()(\\s*)(.*?)(\\s*)((?:\\s@[0-9]*(?:x[0-9]+)?)?)$'
         else:
-            res = '^(\\s+)(.*?)(\\s+):$'
+            res = '^()(\\s*)(.*?)(\\s*)(\\s:(?:@[0-9]*(?:x[0-9]+)?)?)$'
+        print(res)
         cell = self._tupt_basis(pane, text, cell, res, 'r', width)
         return cell
 
     def _tupt_basis(self, pane, text, cell, res, alignment, width):
-        spaces_l_from, body, spaces_r_from = self._separate_spaces(res, cell)
-        symbol_l, symbol_r = '', ''
-        if re.match('^\\^:.*\\$$', res):
-            symbol_l = ':'
-        if re.match('^\\^.*:\\$$', res):
-            symbol_r = ':'
-        w = width - get_real_width((symbol_l * 2) + body + (symbol_r * 2))
+        symbol_l, spaces_l_from, body, spaces_r_from, symbol_r \
+            = self._split_cell(res, cell)
+        print(symbol_l + '/' + spaces_l_from + '/' + body + '/' + spaces_r_from + '/' + symbol_r)
+        w = width - len(symbol_l) - get_real_width(body) - len(symbol_r)
         if alignment == 'r':
-            if symbol_r == '':
-                spaces_l_to, spaces_r_to = (' ' * w), ('')
-            else:
-                spaces_l_to, spaces_r_to = (' ' * w), (' ')
+            spaces_l_to, spaces_r_to = (' ' * w), ('')
         elif alignment == 'c':
             w_r = int(w / 2)
             w_l = w - w_r
-            if symbol_l == '' and symbol_r == '':
-                spaces_l_to, spaces_r_to = (' ' * w_l), (' ' * w_r)
-            else:
-                spaces_l_to, spaces_r_to = (' ' * (w_l + 1)), (' ' * (w_r + 1))
+            spaces_l_to, spaces_r_to = (' ' * w_l), (' ' * w_r)
         else:
-            if symbol_l == '':
-                spaces_l_to, spaces_r_to = (''), (' ' * w)
-            else:
-                spaces_l_to, spaces_r_to = (' '), (' ' * w)
+            spaces_l_to, spaces_r_to = (''), (' ' * w)
         if cell != (symbol_l + spaces_l_to + body + spaces_r_to + symbol_r):
             t = text + symbol_l + spaces_l_from + body
             sp_r = self._replace_spaces(pane, t, spaces_r_from, spaces_r_to)
@@ -11071,11 +11060,13 @@ class Makdo:
         return cell
 
     @staticmethod
-    def _separate_spaces(res, cell):
-        sp_l = re.sub(res, '\\1', cell)
-        body = re.sub(res, '\\2', cell)
-        sp_r = re.sub(res, '\\3', cell)
-        return sp_l, body, sp_r
+    def _split_cell(res, cell):
+        sy_l = re.sub(res, '\\1', cell)
+        sp_l = re.sub(res, '\\2', cell)
+        body = re.sub(res, '\\3', cell)
+        sp_r = re.sub(res, '\\4', cell)
+        sy_r = re.sub(res, '\\5', cell)
+        return sy_l, sp_l, body, sp_r, sy_r
 
     @staticmethod
     def _replace_spaces(pane, text, spaces_from, spaces_to):
