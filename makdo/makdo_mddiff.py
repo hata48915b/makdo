@@ -1,9 +1,9 @@
 #!/usr/bin/python3
 # Name:         mddiff.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.07.13-11:08:27-JST>
+# Time-stamp:   <2025.08.09-09:18:10-JST>
 
-# md2docx.py
+# mddiff.py
 # Copyright (C) 2022-2025  Seiichiro HATA
 #
 # This program is free software: you can redistribute it and/or modify
