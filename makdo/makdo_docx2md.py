@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.05-18:13:52-JST>
+# Time-stamp:   <2025.08.10-09:40:27-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -1059,6 +1059,10 @@ def c2n_c_kanj(s):
         # ㊀㊁㊂㊃㊄㊅㊆㊇㊈㊉
         return i - n
     return -1
+
+
+def n2c_p_arab(n, md_line=None):
+    return '(' + str(n) + ')'
 
 
 def n2c_n_kata(n, md_line=None):
@@ -6257,7 +6261,7 @@ class RawParagraph:
                         hs = re.sub('%[1-9]', str(n), ans.head_string)
                         cd.chars += hs + ' '
                     elif re.match('^decimalEnclosedParen$', ans.number_format):
-                        hs = re.sub('%[1-9]', '(' + str(n) + ')', ans.head_string)
+                        hs = re.sub('%[1-9]', n2c_p_arab(n), ans.head_string)
                         cd.chars += hs + ' '
                     elif re.match('^aiueo(?:FullWidth)?$', ans.number_format):
                         hs = re.sub('%[1-9]', n2c_n_kata(n), ans.head_string)
@@ -8247,139 +8251,148 @@ class ParagraphTable(Paragraph):
 
     def _get_revisers_and_md_text(self, raw_text):
         xml_lines = self.xml_lines
-        numbering_revisers = []
-        tbl_alig, xml_tbl, v_rlen_clm, h_rlen_row \
-            = self.__get_raw_table_data(xml_lines)
-        merge_tbl = self.__get_merge_tbl(xml_tbl)
+        tbl_alg = self.__get_table_alignment(xml_lines)
+        xml_tbl = self.__get_xml_table(xml_lines)
+        mrg_tbl = self.__get_merge_table(xml_tbl)
+        num_row, num_clm = self.__get_table_size(xml_tbl)
+        v_raw_hgt, h_raw_wid \
+            = self.__get_raw_length(xml_lines, num_row, num_clm)
         txt_tbl, h_frs, t_frs \
             = self.__get_txt_table_and_font_revisers(xml_tbl)
-        head_font_revisers, tail_font_revisers = h_frs, t_frs
-        std_row, std_clm = self.__get_standard_row_and_column(txt_tbl)
-        num_row, num_clm \
-            = self.__get_number_of_row_and_column(txt_tbl, std_row, std_clm)
         font_size = self.__get_font_size(h_frs, t_frs)
-        v_clen_clm, h_clen_row \
-            = self.__get_length_in_char_units(v_rlen_clm, h_rlen_row,
+        v_chr_hgt, h_chr_wid \
+            = self.__get_length_in_char_units(v_raw_hgt, h_raw_wid,
                                               font_size)
         v_alig_tbl, h_alig_tbl, v_rule_tbl, h_rule_tbl \
             = self.__get_cell_state(xml_tbl)
+        std_row, std_clm \
+            = self.__get_standard_row_and_column(num_row, v_alig_tbl,
+                                                 num_clm, h_alig_tbl)
         v_conf_clm, h_conf_row = self.__get_confs(num_row, num_clm,
                                                   std_row, std_clm,
-                                                  v_clen_clm, h_clen_row,
+                                                  v_chr_hgt, h_chr_wid,
                                                   v_alig_tbl, h_alig_tbl,
                                                   v_rule_tbl, h_rule_tbl)
-        md_text = self.__get_md_text(merge_tbl,
-                                     tbl_alig, txt_tbl, std_row, std_clm,
+        md_text = self.__get_md_text(tbl_alg, txt_tbl, mrg_tbl,
+                                     std_row, std_clm,
                                      v_alig_tbl, h_alig_tbl,
                                      v_rule_tbl, h_rule_tbl,
                                      v_conf_clm, h_conf_row)
         md_text = self.__split_long_lines(md_text)
+        numbering_revisers = []
+        head_font_revisers, tail_font_revisers = h_frs, t_frs
         return numbering_revisers, head_font_revisers, tail_font_revisers, \
             md_text
 
     @staticmethod
-    def __get_raw_table_data(xml_lines):
-        tbl_alig, xml_tbl, v_rlen_clm, h_rlen_row = 'center', [], [], []
+    def __get_table_alignment(xml_lines):
+        tbl_alig = 'center'
         res_tpr_beg = '^<w:tblPr( .*)?>$'
         res_tpr_end = '^</w:tblPr( .*)?>$'
+        res_tpr_alg = '^<w:jc(?: .*)? w:val=[\'"]([a-z]*)[\'"](?: .*)?/>$'
+        is_in_tpr = False
+        for xl in xml_lines:
+            if re.match(res_tpr_beg, xl):
+                is_in_tpr = True
+            elif re.match(res_tpr_end, xl):
+                break
+            elif re.match(res_tpr_alg, xl):
+                if is_in_tpr:
+                    tbl_alig = re.sub(res_tpr_alg, '\\1', xl)
+        return tbl_alig
+
+    @staticmethod
+    def __get_xml_table(xml_lines):
+        xml_tbl = []
         res_row_beg = '^<w:tr( .*)?>$'
         res_row_end = '^</w:tr( .*)?>$'
         res_cel_beg = '^<w:tc( .*)?>$'
         res_cel_end = '^</w:tc( .*)?>'
-        res_tpr_alg = '^<w:jc(?: .*)? w:val=[\'"]([a-z]*)[\'"](?: .*)?/>$'
-        res_v_len = '^<w:trHeight(?: .*)? w:val=[\'"]([0-9]+)[\'"](?: .*)?/>$'
-        res_h_len = '^<w:gridCol(?: .*)? w:w=[\'"]([0-9]+)[\'"](?: .*)?/>$'
-        is_in_tpr = False
         is_in_row = False
         is_in_cel = False
         for xl in xml_lines:
-            if re.match(res_tpr_beg, xl):
-                is_in_tpr = True
-                continue
-            if re.match(res_tpr_end, xl):
-                is_in_tpr = False
-                continue
             if re.match(res_row_beg, xl):
                 xml_row = []
                 is_in_row = True
-                continue
-            if re.match(res_row_end, xl):
-                is_in_row = False
+            elif re.match(res_row_end, xl):
                 xml_tbl.append(xml_row)
-                continue
-            if re.match(res_cel_beg, xl):
+                is_in_row = False
+            elif re.match(res_cel_beg, xl):
                 xml_cel = []
+                span_h = 1
                 is_in_cel = True
-                continue
-            if re.match(res_cel_end, xl):
+            elif re.match(res_cel_end, xl):
                 xml_row.append(xml_cel)
+                for i in range(1, span_h):
+                    xml_row.append([])
                 is_in_cel = False
-                continue
-            if re.match(res_tpr_alg, xl):
-                if is_in_tpr:
-                    tbl_alig = re.sub(res_tpr_alg, '\\1', xl)
-            if is_in_cel:
+            elif is_in_cel:
                 if ('</w:p>' in xml_cel) and re.match('<w:p( .*)?>', xl):
                     xml_cel.append('<w:br/>')
                 xml_cel.append(xl)
-            if re.match(res_v_len, xl):
-                while len(v_rlen_clm) < len(xml_tbl):
-                    v_rlen_clm.append(0)
-                val = re.sub(res_v_len, '\\1', xl)
-                v_rlen_clm.append(int(val))
-            if re.match(res_h_len, xl):
-                val = re.sub(res_h_len, '\\1', xl)
-                h_rlen_row.append(int(val))
-        v_m = len(xml_tbl)
-        while len(v_rlen_clm) < v_m:
-            v_rlen_clm.append(0)
-        h_m = 0
-        for xt in xml_tbl:
-            n = len(xt)
-            if h_m < n:
-                h_m = n
-        while len(h_rlen_row) < h_m:
-            h_rlen_row.append(0)
-        return tbl_alig, xml_tbl, v_rlen_clm, h_rlen_row
+                span_h = XML.get_value('w:gridSpan', 'w:val', span_h, xl)
+        return xml_tbl
 
     @staticmethod
-    def __get_merge_tbl(xml_tbl):
+    def __get_merge_table(xml_tbl):
         merge_tbl = []
         for i in range(len(xml_tbl)):
             merge_row = []
             for j in range(len(xml_tbl[i])):
-                cell = xml_tbl[i][j]
-                merge_x = 1
-                for xml in cell:
-                    merge_x \
-                        = XML.get_value('w:gridSpan', 'w:val', merge_x, xml)
-                merge_y = 1
-                if '<w:vMerge w:val="restart"/>' in cell:
+                h_span = 1
+                for xml in xml_tbl[i][j]:
+                    h_span \
+                        = XML.get_value('w:gridSpan', 'w:val', h_span, xml)
+                v_span = 1
+                if '<w:vMerge w:val="restart"/>' in xml_tbl[i][j]:
                     for k in range(i + 1, len(xml_tbl)):
                         if '<w:vMerge/>' in xml_tbl[k][j]:
-                            merge_y += 1
+                            v_span += 1
                         else:
                             break
-                elif '<w:vMerge/>' in cell:
-                    merge_y = -1
-                #
-                if merge_y < 1:
-                    merge_cel = ''
-                elif merge_x > 1 and merge_y > 1:
-                    merge_cel = '@' + str(merge_x) + 'x' + str(merge_y)
-                elif merge_x > 1:
-                    merge_cel = '@' + str(merge_x) + 'x1'
-                elif merge_y > 1:
-                    merge_cel = '@1x' + str(merge_y)
+                elif '<w:vMerge/>' in xml_tbl[i][j]:
+                    v_span = -1
+                if (h_span >= 2 and v_span >= 1) or\
+                   (h_span >= 1 and v_span >= 2):
+                    merge_cel = '@' + str(h_span) + 'x' + str(v_span)
                 else:
                     merge_cel = ''
                 merge_row.append(merge_cel)
-                #
-                if merge_x > 1:
-                    for i in range(merge_x - 1):
-                        merge_row.append('')
             merge_tbl.append(merge_row)
         return merge_tbl
+
+    @staticmethod
+    def __get_table_size(xml_tbl):
+        num_row = len(xml_tbl)
+        nc = []
+        for row in xml_tbl:
+            nc.append(len(row))
+        num_clm = max(nc)
+        return num_row, num_clm
+
+    @staticmethod
+    def __get_raw_length(xml_lines, num_row, num_clm):
+        v_raw_hgt, h_raw_wid = [], []
+        res_row_beg = '^<w:tr( .*)?>$'
+        res_v_hgt = '^<w:trHeight(?: .*)? w:val=[\'"]([0-9]+)[\'"](?: .*)?/>$'
+        res_h_wid = '^<w:gridCol(?: .*)? w:w=[\'"]([0-9]+)[\'"](?: .*)?/>$'
+        n = 0
+        for xl in xml_lines:
+            if re.match(res_row_beg, xl):
+                n += 1
+            elif re.match(res_v_hgt, xl):
+                while len(v_raw_hgt) < n - 1:
+                    v_raw_hgt.append(0)
+                val = re.sub(res_v_hgt, '\\1', xl)
+                v_raw_hgt.append(int(val))
+            elif re.match(res_h_wid, xl):
+                val = re.sub(res_h_wid, '\\1', xl)
+                h_raw_wid.append(int(val))
+        while len(v_raw_hgt) < num_row:
+            v_raw_hgt.append(0)
+        while len(h_raw_wid) < num_clm:
+            h_raw_wid.append(0)
+        return v_raw_hgt, h_raw_wid
 
     def __get_txt_table_and_font_revisers(self, xml_tbl):
         par_xml_tbl = self.__get_par_xml_tbl(xml_tbl)
@@ -8394,15 +8407,6 @@ class ParagraphTable(Paragraph):
                         = RawParagraph._get_chars_data_and_etc('w:tbl', par)
                     cd_cel.append(chars_data)
                 cd_row.append(cd_cel)
-                # MERGE CELLS
-                cell = xml_tbl[i][j]
-                merge_x = 1
-                for xml in cell:
-                    merge_x \
-                        = XML.get_value('w:gridSpan', 'w:val', merge_x, xml)
-                if merge_x > 1:
-                    for _ in range(merge_x - 1):
-                        cd_row.append([])
             cd_tbl.append(cd_row)
         # CANCEL
         pre_cd = None
@@ -8582,45 +8586,6 @@ class ParagraphTable(Paragraph):
         return head_font_revisers, tail_font_revisers
 
     @staticmethod
-    def __get_standard_row_and_column(txt_tbl):
-        shorest = -1
-        longest = -1
-        for i in range(len(txt_tbl)):
-            leng = len(txt_tbl[i])
-            if shorest == -1 or shorest > leng:
-                shorest = leng
-            #     sh_list = []
-            # if leng == shorest:
-            #     sh_list.append(i)
-            if longest == -1 or longest < leng:
-                longest = leng
-                lo_list = []
-            if leng == longest:
-                lo_list.append(i)
-        # ROW
-        tmp_len = len(lo_list)
-        if tmp_len == 1:
-            half_row = 0
-        else:
-            half_row = int(tmp_len / 2) + int(tmp_len % 2)
-        std_row = lo_list[half_row]
-        # COLUMN
-        tmp_len = shorest
-        if tmp_len == 1:
-            half_clm = 0
-        else:
-            half_clm = int(tmp_len / 2) + int(tmp_len % 2)
-        std_clm = half_clm
-        # RETURN
-        return std_row, std_clm
-
-    @staticmethod
-    def __get_number_of_row_and_column(txt_tbl, std_row, std_clm):
-        num_row = len(txt_tbl)
-        num_clm = len(txt_tbl[std_row])
-        return num_row, num_clm
-
-    @staticmethod
     def __get_font_size(h_frs, t_frs):
         font_size = Form.font_size * 1.0
         for fr in h_frs:
@@ -8640,22 +8605,22 @@ class ParagraphTable(Paragraph):
         return font_size
 
     @staticmethod
-    def __get_length_in_char_units(v_rlen_clm, h_rlen_row, font_size):
-        v_clen_clm, h_clen_row = [], []
-        for rlen in v_rlen_clm:
-            clen = rlen / font_size / 10
-            # clen = (rlen / font_size / 10) - (BASIC_TABLE_CELL_HEIGHT * 2)
-            clen = round(clen)
-            if clen < 0:
-                clen = 0
-            v_clen_clm.append(clen)
-        for rlen in h_rlen_row:
-            clen = (rlen / font_size / 10) - (BASIC_TABLE_CELL_WIDTH * 2)
-            clen = round(clen)
-            if clen < 0:
-                clen = 0
-            h_clen_row.append(clen)
-        return v_clen_clm, h_clen_row
+    def __get_length_in_char_units(v_raw_hgt, h_raw_wid, font_size):
+        v_chr_hgt, h_chr_wid = [], []
+        for rh in v_raw_hgt:
+            ch = rh / font_size / 10
+            # ch = (rh / font_size / 10) - (BASIC_TABLE_CELL_HEIGHT * 2)
+            if ch < 0:
+                ch = 0
+            ch = round(ch)
+            v_chr_hgt.append(ch)
+        for rw in h_raw_wid:
+            cw = (rw / font_size / 10) - (BASIC_TABLE_CELL_WIDTH * 2)
+            if cw < 0:
+                cw = 0
+            cw = round(cw)
+            h_chr_wid.append(cw)
+        return v_chr_hgt, h_chr_wid
 
     def __get_cell_state(self, xml_tbl):
         par_xml_tbl = self.__get_par_xml_tbl(xml_tbl)
@@ -8712,23 +8677,61 @@ class ParagraphTable(Paragraph):
                 h_alig_row.append(h_alig_cel)
                 v_rule_row.append(v_rule_val)
                 h_rule_row.append(h_rule_val)
-                # MERGE CELLS
-                cell = xml_tbl[i][j]
-                merge_x = 1
-                for xml in cell:
-                    merge_x \
-                        = XML.get_value('w:gridSpan', 'w:val', merge_x, xml)
-                if merge_x > 1:
-                    for _ in range(merge_x - 1):
-                        v_alig_row.append(v_alig_row[-1])
-                        h_alig_row.append(h_alig_row[-1])
-                        v_rule_row.append(v_rule_row[-1])
-                        h_rule_row.append(h_rule_row[-1])
             v_alig_tbl.append(v_alig_row)
             h_alig_tbl.append(h_alig_row)
             v_rule_tbl.append(v_rule_row)
             h_rule_tbl.append(h_rule_row)
         return v_alig_tbl, h_alig_tbl, v_rule_tbl, h_rule_tbl
+
+    @staticmethod
+    def __get_standard_row_and_column(num_row, v_alig_tbl,
+                                      num_clm, h_alig_tbl):
+        ha_tbl = [['' for j in range(num_clm)] for i in range(num_row)]
+        va_tbl = [['' for i in range(num_row)] for j in range(num_clm)]
+        for i in range(num_row):
+            for j in range(num_clm):
+                ha_tbl[i][j] = h_alig_tbl[i][j][0]
+                va_tbl[j][i] = v_alig_tbl[i][j][0]
+        hm_dct, ha_dct = {}, {}
+        vm_dct, va_dct = {}, {}
+        # ROW
+        if num_row == 1:
+            std_row = 0
+        else:
+            for i in range(1, num_row):
+                ha_str = ''
+                for ht in ha_tbl[i]:
+                    if ht == '' and len(ha_str) > 0:
+                        ha_str += ha_str[-1]
+                    else:
+                        ha_str += ht
+                if ha_str not in ha_dct:
+                    hm_dct[ha_str] = i
+                    ha_dct[ha_str] = 1
+                else:
+                    ha_dct[ha_str] += 1
+            max_num_ha_str = max(ha_dct, key=ha_dct.get)
+            std_row = hm_dct[max_num_ha_str]
+        # COLUMN
+        if num_clm == 1:
+            str_clm = 0
+        else:
+            for j in range(1, num_clm):
+                va_str = ''
+                for vt in va_tbl[j]:
+                    if vt == '' and len(va_str) > 0:
+                        va_str += va_str[-1]
+                    else:
+                        va_str += vt
+                if va_str not in va_dct:
+                    vm_dct[va_str] = j
+                    va_dct[va_str] = 1
+                else:
+                    va_dct[va_str] += 1
+            max_num_va_str = max(va_dct, key=va_dct.get)
+            std_clm = vm_dct[max_num_va_str]
+        # RETURN
+        return std_row, std_clm
 
     @staticmethod
     def __get_confs(num_row, num_clm,
@@ -8749,20 +8752,20 @@ class ParagraphTable(Paragraph):
                     v_conf_clm[i] += '-'
                 else:
                     v_conf_clm[i] += ':' + '-' * (v_clen_clm[i] - 1)
-            elif v_alig_tbl[i][std_clm][0] == 'C':
-                if v_clen_clm[i] == 0:
-                    v_conf_clm[i] += ''
-                elif v_clen_clm[i] == 1:
-                    v_conf_clm[i] += ':'
-                else:
-                    v_conf_clm[i] += ':' + '-' * (v_clen_clm[i] - 2) + ':'
-            else:
+            elif v_alig_tbl[i][std_clm][0] == 'B':
                 if v_clen_clm[i] == 0:
                     pass
                 elif v_clen_clm[i] == 1:
                     pass
                 else:
                     v_conf_clm[i] += '-' * (v_clen_clm[i] - 1) + ':'
+            else:  # "" or "C"
+                if v_clen_clm[i] == 0:
+                    v_conf_clm[i] += ''
+                elif v_clen_clm[i] == 1:
+                    v_conf_clm[i] += ':'
+                else:
+                    v_conf_clm[i] += ':' + '-' * (v_clen_clm[i] - 2) + ':'
             # RULE
             v_conf_clm[i] += h_rule_tbl[i][std_clm]
             # REMOVE DEFAULT CONFIGURATION
@@ -8801,8 +8804,8 @@ class ParagraphTable(Paragraph):
         return v_conf_clm, h_conf_row
 
     @staticmethod
-    def __get_md_text(merge_tbl,
-                      tbl_alig, txt_tbl, std_row, std_clm,
+    def __get_md_text(tbl_alig, txt_tbl, merge_tbl,
+                      std_row, std_clm,
                       v_alig_tbl, h_alig_tbl, v_rule_tbl, h_rule_tbl,
                       v_conf_clm, h_conf_row):
         md_text = ''
@@ -8810,7 +8813,7 @@ class ParagraphTable(Paragraph):
         for i, txt_row in enumerate(txt_tbl):
             # CONFIGURATION
             if is_in_head:
-                if h_alig_tbl[i] == h_alig_tbl[std_row]:
+                if i == std_row:
                     if tbl_alig == 'left':
                         md_text += ': '
                     for j, _ in enumerate(txt_row):
@@ -8832,27 +8835,27 @@ class ParagraphTable(Paragraph):
                         else:
                             md_text += '<Br>'
                         if h_alig_tbl[i][j][k] == 'R':
-                            if merge_tbl[i][j] != '':
+                            if is_in_head:
                                 md_text += txt_par + ' :'
-                            elif is_in_head:
+                            elif merge_tbl[i][j] != '':
                                 md_text += txt_par + ' :'
                             elif h_alig_tbl[std_row][j][0] != 'R':
                                 md_text += txt_par + ' :'
                             else:
                                 md_text += txt_par
                         elif h_alig_tbl[i][j][k] == 'C':
-                            if merge_tbl[i][j] != '':
-                                md_text += ': ' + txt_par + ' :'
-                            elif is_in_head:
+                            if is_in_head:
                                 md_text += txt_par
+                            elif merge_tbl[i][j] != '':
+                                md_text += ': ' + txt_par + ' :'
                             elif h_alig_tbl[std_row][j][0] != 'C':
                                 md_text += ': ' + txt_par + ' :'
                             else:
                                 md_text += txt_par
                         else:  # "" or "L"
-                            if merge_tbl[i][j] != '':
+                            if is_in_head:
                                 md_text += ': ' + txt_par
-                            elif is_in_head:
+                            elif merge_tbl[i][j] != '':
                                 md_text += ': ' + txt_par
                             elif (h_alig_tbl[std_row][j][0] != '' and
                                   h_alig_tbl[std_row][j][0] != 'L'):

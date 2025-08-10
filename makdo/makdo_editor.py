@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.06-10:07:47-JST>
+# Time-stamp:   <2025.08.10-09:04:15-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -44,9 +44,6 @@ __version__ = 'v08 Omachi'
 import sys
 import os
 import subprocess
-if sys.platform == 'win32':
-    # To launch MS Word on Windows
-    import win32com.client  # PSF License (pip install pywin32)
 import shutil
 import argparse     # Python Software Foundation License
 import re
@@ -60,17 +57,18 @@ import tkinter.filedialog
 import tkinter.simpledialog
 import tkinter.messagebox
 import tkinter.font
-# mac doesn't support "tkinterdnd2" (drag and drop)
-if sys.platform != 'darwin':
-    import tkinterdnd2  # MIT License
-# from tkinterdnd2 import TkinterDnD, DND_FILES
 import importlib    # Python Software Foundation License
 import makdo.makdo_md2docx
 import makdo.makdo_docx2md
 import makdo.makdo_mddiff  # MDDIFF
 import openpyxl     # MIT License
 import webbrowser
-
+# To launch MS Word on Windows
+if sys.platform == 'win32':
+    import win32com.client  # PSF License (pip install pywin32)
+# Mac doesn't support "tkinterdnd2" (drag and drop)
+if sys.platform != 'darwin':
+    import tkinterdnd2  # MIT License
 
 if sys.platform == 'win32':
     CONFIG_DIR = os.getenv('APPDATA') + '\\makdo'
@@ -4998,8 +4996,12 @@ class LineDatum:
                 if c == ':':
                     res1, res2 = '^.*\\|', '^-*:?[\\^|=]?$'
                     res3, res4 = '^.*\\|:?-*:$', '^[\\^|=]?$'
+                    res5, res6 = '^.*\\|:$', '^\\s.*$'
+                    res7, res8 = '^.*\\s:$', '^(@([0-9]*x)?[0-9]+)?\\|.*$'
                     if (re.match(res1, s_lft) and re.match(res2, s_rgt)) or \
-                       (re.match(res3, s_lft) and re.match(res4, s_rgt)):
+                       (re.match(res3, s_lft) and re.match(res4, s_rgt)) or \
+                       (re.match(res5, s_lft) and re.match(res6, s_rgt)) or \
+                       (re.match(res7, s_lft) and re.match(res8, s_rgt)):
                         key = chars_state.get_key('alignment')          # 1.key
                         end = str(i + 1) + '.' + str(j + 1)             # 2.end
                         pane.tag_add(key, beg, end)                     # 3.tag
@@ -6051,7 +6053,7 @@ class Makdo:
             for row in ws.iter_rows(min_row=1, max_row=ws.max_row,
                                     min_col=1, max_col=ws.max_column):
                 for cell in row:
-                    if cell.value == None:
+                    if cell.value is None:
                         table += '|'
                     else:
                         table += '|' + str(cell.value)

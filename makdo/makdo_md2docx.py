@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.07.30-12:16:26-JST>
+# Time-stamp:   <2025.08.09-16:30:40-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5744,15 +5744,27 @@ class ParagraphTable(Paragraph):
             for j in range(len(tab[i])):
                 merge_text = merge_mtrx[i][j]
                 if merge_text != '':
-                    res = '^([0-9]+)x([0-9]+)$'
-                    if re.match(res, merge_text):
-                        mt_x = int(re.sub(res, '\\1', merge_text)) - 1
-                        mt_y = int(re.sub(res, '\\2', merge_text)) - 1
-                    else:
-                        mt_x = int(merge_text) - 1
+                    res_x = '^([0-9]+)x?$'
+                    res_y = '^x([0-9]+)$'
+                    res_xy = '^([0-9]+)x([0-9]+)$'
+                    if re.match(res_x, merge_text):
+                        mt_x = int(re.sub(res_x, '\\1', merge_text)) - 1
                         mt_y = 0
+                    elif re.match(res_y, merge_text):
+                        mt_x = 0
+                        mt_y = int(re.sub(res_y, '\\1', merge_text)) - 1
+                    else:
+                        mt_x = int(re.sub(res_xy, '\\1', merge_text)) - 1
+                        mt_y = int(re.sub(res_xy, '\\2', merge_text)) - 1
                     ms_cell_fr = ms_tab.cell(i, j)
-                    ms_cell_to = ms_tab.cell(i + mt_y, j + mt_x)
+                    #
+                    i_to, j_to = i + mt_y, j + mt_x
+                    if i_to > len(tab) - 1:
+                        i_to = len(tab) - 1
+                    if j_to > len(tab[i_to]) - 1:
+                        j_to = len(tab[i_to]) - 1
+                    #
+                    ms_cell_to = ms_tab.cell(i_to, j_to)
                     ms_cell_fr.merge(ms_cell_to)
         # CHARS STATE
         self.chars_state.apply_font_decorators(self.tail_font_revisers)
