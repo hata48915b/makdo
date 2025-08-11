@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         mddiff.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.09-09:18:10-JST>
+# Time-stamp:   <2025.08.11-09:39:31-JST>
 
 # mddiff.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -312,7 +312,7 @@ class Comparison:
     def __init__(self, strs_x, strs_y):
         dire_mx, dist_mx = Comparison.get_matrices(strs_x, strs_y)
         edit_distance = dist_mx[0][0]
-        shortest_edit_script = self.get_shortest_edit_script(dire_mx)
+        shortest_edit_script = self.get_shortest_edit_script(dire_mx, True)
         self.paragraphs \
             = self.get_paragraphs(shortest_edit_script, strs_x, strs_y)
 
@@ -342,10 +342,10 @@ class Comparison:
                 t10 = dist_mx[x + 1][y] + d10
                 t01 = dist_mx[x][y + 1] + d01
                 if d11 == 0:
-                    dire_mx[x][y] = '.'  # RIGHT DOWN
+                    dire_mx[x][y] = '.'  # RIGHT DOWN (SAME)
                     dist_mx[x][y] = t11
                 elif t11 <= t01 and t11 <= t10:
-                    dire_mx[x][y] = '&'  # RIGHT DOWN
+                    dire_mx[x][y] = '&'  # RIGHT DOWN (SIMILAR)
                     dist_mx[x][y] = t11
                 elif t10 <= t01:
                     dire_mx[x][y] = '-'  # RIGHT -
@@ -356,14 +356,15 @@ class Comparison:
         return dire_mx, dist_mx
 
     @staticmethod
-    def get_shortest_edit_script(dire_mx):
+    def get_shortest_edit_script(dire_mx, has_config=False):
         shortest_edit_script = ''
         x = 0
         y = 0
         while True:
             d = dire_mx[x][y]
-            if x == 0 and y == 0 and d != '.':
-                d = '&'  # <- for configuration
+            if has_config:
+                if x == 0 and y == 0 and d != '.':
+                    d = '&'  # <- for configuration
             shortest_edit_script += d
             if d == '.' or d == '&' or d == '-':
                 x += 1
@@ -499,7 +500,9 @@ class Comparison:
                 x += 1
                 y += 1
             elif ses == '-':
-                if re.match(not_escaped + '<\\-\n$', track_change_text):
+                if strs_x[x] == '\n':
+                    track_change_text += '\n\n'  # "A\n" matches "A$"
+                elif re.match(not_escaped + '<\\-\n$', track_change_text):
                     track_change_text \
                         = re.sub('<\\-\n$', '', track_change_text)
                     track_change_text += strs_x[x] + '<-\n'
@@ -507,7 +510,9 @@ class Comparison:
                     track_change_text += '\n->' + strs_x[x] + '<-\n'
                 x += 1
             elif ses == '+':
-                if re.match(not_escaped + '<\\+\n$', track_change_text):
+                if strs_y[y] == '\n':
+                    track_change_text += '\n\n'  # "A\n" matches "A$"
+                elif re.match(not_escaped + '<\\+\n$', track_change_text):
                     track_change_text \
                         = re.sub('<\\+\n$', '', track_change_text)
                     track_change_text += strs_y[y] + '<+\n'
@@ -515,6 +520,8 @@ class Comparison:
                     track_change_text += '\n+>' + strs_y[y] + '<+\n'
                 y += 1
         track_change_text = re.sub('\n+', '\n', track_change_text)
+        track_change_text = re.sub('^\n+', '', track_change_text)
+        track_change_text = re.sub('\n+$', '', track_change_text)
         return track_change_text
 
     def print_current_paragraphs(self):
