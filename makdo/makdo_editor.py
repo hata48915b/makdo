@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.10-09:04:15-JST>
+# Time-stamp:   <2025.08.11-14:59:03-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5874,6 +5874,25 @@ class Makdo:
         self.line_data[ln].end_chars_state = CharsState()
         self.line_data[ln].paint_line(pane, paint_keywords)
 
+    def paint_all_lines(self, pane):
+        document = pane.get('1.0', 'end-1c')
+        if document != '':
+            paint_keywords = self.paint_keywords.get()
+            self.line_data = [LineDatum() for line in self.file_lines]
+            for i, line in enumerate(self.file_lines):
+                self.line_data[i].line_number = i
+                self.line_data[i].line_text = line + '\n'
+                if i > 0:
+                    self.line_data[i].beg_chars_state \
+                        = self.line_data[i - 1].end_chars_state.copy()
+                    self.line_data[i].beg_chars_state.reset_partially()
+                n = i + 1
+                if (n % 1000) == 0:
+                    t = '行を色付けしています（' + str(n) + '行目）'
+                    self.set_message_on_status_bar(t, True)
+                self.line_data[i].paint_line(pane, paint_keywords)
+            self.set_message_on_status_bar('', True)
+
     @staticmethod
     def _get_now():
         now = datetime.datetime.now(datetime.UTC) \
@@ -6669,23 +6688,8 @@ class Makdo:
         self._set_file_name(file_path)
         if document == '':
             self.set_message_on_status_bar('空のファイルを開きました')
-        # PAINT
-        if document != '':
-            paint_keywords = self.paint_keywords.get()
-            self.line_data = [LineDatum() for line in self.file_lines]
-            for i, line in enumerate(self.file_lines):
-                self.line_data[i].line_number = i
-                self.line_data[i].line_text = line + '\n'
-                if i > 0:
-                    self.line_data[i].beg_chars_state \
-                        = self.line_data[i - 1].end_chars_state.copy()
-                    self.line_data[i].beg_chars_state.reset_partially()
-                n = i + 1
-                if (n % 1000) == 0:
-                    t = '行を色付けしています（' + str(n) + '行目）'
-                    self.set_message_on_status_bar(t, True)
-                self.line_data[i].paint_line(self.txt, paint_keywords)
-            self.set_message_on_status_bar('', True)
+        # PAINT ALL LINES
+        self.paint_all_lines(self.txt)
         # TABLE OF CONTENTS
         self.update_toc()
         # CLEAR THE UNDO STACK
@@ -8306,16 +8310,7 @@ class Makdo:
         self.current_pane = 'txt'
         self.txt.mark_set('insert', '1.0')
         # PAINT
-        paint_keywords = self.paint_keywords.get()
-        self.line_data = [LineDatum() for line in self.file_lines]
-        for i, line in enumerate(self.file_lines):
-            self.line_data[i].line_number = i
-            self.line_data[i].line_text = line + '\n'
-            if i > 0:
-                self.line_data[i].beg_chars_state \
-                    = self.line_data[i - 1].end_chars_state.copy()
-                self.line_data[i].beg_chars_state.reset_partially()
-            self.line_data[i].paint_line(self.txt, paint_keywords)
+        self.paint_all_lines(self.txt)
         # CLEAR THE UNDO STACK
         self.txt.edit_reset()
 
@@ -11344,7 +11339,9 @@ class Makdo:
                          command=self.compare_files)
         menu.add_separator()
         #
-        menu.add_command(label='編集前の原稿と比較してWordの変更履歴にする',
+        menu.add_command(label='変更履歴の全ての変更を反映',
+                         command=self.accept_all_changes)
+        menu.add_command(label='編集前の原稿と比較して変更履歴にする',
                          command=self.insert_track_change_tag)
         menu.add_separator()
         #
@@ -11645,22 +11642,7 @@ class Makdo:
         self._put_back_cursor_to_pane(self.sub, must_place_in_center=True)
         # PAINT
         self.file_lines = document.split('\n')
-        if document != '':
-            paint_keywords = self.paint_keywords.get()
-            self.line_data = [LineDatum() for line in self.file_lines]
-            for i, line in enumerate(self.file_lines):
-                self.line_data[i].line_number = i
-                self.line_data[i].line_text = line + '\n'
-                if i > 0:
-                    self.line_data[i].beg_chars_state \
-                        = self.line_data[i - 1].end_chars_state.copy()
-                    self.line_data[i].beg_chars_state.reset_partially()
-                n = i + 1
-                if (n % 1000) == 0:
-                    t = '行を色付けしています（' + str(n) + '行目）'
-                    self.set_message_on_status_bar(t, True)
-                self.line_data[i].paint_line(self.sub, paint_keywords)
-            self.set_message_on_status_bar('', True)
+        self.paint_all_lines(self.sub)
         # RETURN
         self.sub.focus_force()
         return True
@@ -12049,8 +12031,16 @@ class Makdo:
 
     # MDDIFF<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
+    def accept_all_changes(self):
+        doc = self.txt.get('1.0', 'end-1c')
+        doc = makdo.makdo_mddiff.TrackChange.accept_all_changes(doc)
+        self.txt.delete('1.0', 'end-1c')
+        self.txt.insert('1.0', doc)
+        # PAINT
+        self.file_lines = doc.split('\n')
+        self.paint_all_lines(self.txt)
+
     def insert_track_change_tag(self):
-        document = ''
         text1 = self.txt.get('1.0', 'end-1c')
         text2 = self.init_text
         file1 = makdo.makdo_mddiff.File()
@@ -12060,30 +12050,18 @@ class Makdo:
         para1 = file1.cmp_paragraphs
         para2 = file2.cmp_paragraphs
         comp = makdo.makdo_mddiff.Comparison(para2, para1)
+        # REMAKE DOC
+        doc = ''
         for cp in comp.paragraphs:
             if cp.track_change_text != '':
-                document += cp.track_change_text + '\n\n'
-        document = re.sub('\n+$', '\n', document)
+                doc += cp.track_change_text + '\n\n'
+        doc = makdo.makdo_mddiff.TrackChange.repair_tc_text(doc)
+        doc = re.sub('\n+$', '\n', doc)
         self.txt.delete('1.0', 'end-1c')
-        self.txt.insert('1.0', document)
+        self.txt.insert('1.0', doc)
         # PAINT
-        self.file_lines = document.split('\n')
-        if document != '':
-            paint_keywords = self.paint_keywords.get()
-            self.line_data = [LineDatum() for line in self.file_lines]
-            for i, line in enumerate(self.file_lines):
-                self.line_data[i].line_number = i
-                self.line_data[i].line_text = line + '\n'
-                if i > 0:
-                    self.line_data[i].beg_chars_state \
-                        = self.line_data[i - 1].end_chars_state.copy()
-                    self.line_data[i].beg_chars_state.reset_partially()
-                n = i + 1
-                if (n % 1000) == 0:
-                    t = '行を色付けしています（' + str(n) + '行目）'
-                    self.set_message_on_status_bar(t, True)
-                self.line_data[i].paint_line(self.txt, paint_keywords)
-            self.set_message_on_status_bar('', True)
+        self.file_lines = doc.split('\n')
+        self.paint_all_lines(self.txt)
 
     # FOLD
 
@@ -12277,16 +12255,7 @@ class Makdo:
         self.current_pane = 'txt'
         self.txt.mark_set('insert', '1.0')
         # PAINT
-        paint_keywords = self.paint_keywords.get()
-        self.line_data = [LineDatum() for line in self.file_lines]
-        for i, line in enumerate(self.file_lines):
-            self.line_data[i].line_number = i
-            self.line_data[i].line_text = line + '\n'
-            if i > 0:
-                self.line_data[i].beg_chars_state \
-                    = self.line_data[i - 1].end_chars_state.copy()
-                self.line_data[i].beg_chars_state.reset_partially()
-            self.line_data[i].paint_line(self.txt, paint_keywords)
+        self.paint_all_lines(self.txt)
 
     def get_fully_unfolded_document(self, old_document: str, must_warn=True):
         # |                ->  |

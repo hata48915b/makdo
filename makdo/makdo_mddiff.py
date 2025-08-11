@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         mddiff.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.11-09:39:31-JST>
+# Time-stamp:   <2025.08.11-15:19:29-JST>
 
 # mddiff.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -86,6 +86,8 @@ def get_arguments():
 
 
 SALT = "L'essentiel est invisible pour les yeux."
+
+NOT_ESCAPED = '^((?:(?:.|\n)*?[^\\\\])??(?:\\\\\\\\)*?)?'
 
 
 class File:
@@ -422,7 +424,7 @@ class Comparison:
                         if dire[tx][ty] == '/':
                             break
                     track_change_text \
-                        = self.get_track_change_text(strs_x[x], strs_y[y])
+                        = TrackChange.get_tc_text(strs_x[x], strs_y[y])
                 elif strs_x[x] != '':  # <- for configuration
                     diff_text += re.sub('\n', '\nX| ', 'X| ' + strs_x[x]) \
                         + '\n'
@@ -486,43 +488,6 @@ class Comparison:
             + str(x) + '+' + str(ny) + '(' + s + ')\n' \
             + str_x + '\n\n' + str_y
         return hashlib.md5(s.encode()).hexdigest()
-
-    @staticmethod
-    def get_track_change_text(strs_x, strs_y):
-        track_change_text = ''
-        not_escaped = '^((?:(?:.|\n)*?[^\\\\])??(?:\\\\\\\\)*?)?'
-        dire_mx, dist_mx = Comparison.get_matrices(strs_x, strs_y)
-        shortest_edit_script = Comparison.get_shortest_edit_script(dire_mx)
-        x, y = 0, 0
-        for ses in shortest_edit_script:
-            if ses == '.':
-                track_change_text += strs_x[x]
-                x += 1
-                y += 1
-            elif ses == '-':
-                if strs_x[x] == '\n':
-                    track_change_text += '\n\n'  # "A\n" matches "A$"
-                elif re.match(not_escaped + '<\\-\n$', track_change_text):
-                    track_change_text \
-                        = re.sub('<\\-\n$', '', track_change_text)
-                    track_change_text += strs_x[x] + '<-\n'
-                else:
-                    track_change_text += '\n->' + strs_x[x] + '<-\n'
-                x += 1
-            elif ses == '+':
-                if strs_y[y] == '\n':
-                    track_change_text += '\n\n'  # "A\n" matches "A$"
-                elif re.match(not_escaped + '<\\+\n$', track_change_text):
-                    track_change_text \
-                        = re.sub('<\\+\n$', '', track_change_text)
-                    track_change_text += strs_y[y] + '<+\n'
-                else:
-                    track_change_text += '\n+>' + strs_y[y] + '<+\n'
-                y += 1
-        track_change_text = re.sub('\n+', '\n', track_change_text)
-        track_change_text = re.sub('^\n+', '', track_change_text)
-        track_change_text = re.sub('\n+$', '', track_change_text)
-        return track_change_text
 
     def print_current_paragraphs(self):
         m = len(self.paragraphs) - 1
@@ -617,6 +582,138 @@ class Comparison:
                 retval = 1
                 print(p.diff_text)
         return retval
+
+
+class TrackChange:
+
+    """A class to process track change text"""
+
+    @staticmethod
+    def get_tc_text(strs_x, strs_y):
+        track_change_text = ''
+        dire_mx, dist_mx = Comparison.get_matrices(strs_x, strs_y)
+        shortest_edit_script = Comparison.get_shortest_edit_script(dire_mx)
+        x, y = 0, 0
+        for ses in shortest_edit_script:
+            if ses == '.':
+                track_change_text += strs_x[x]
+                x += 1
+                y += 1
+            elif ses == '-':
+                if strs_x[x] == '\n':
+                    track_change_text += '\n\n'  # "A\n" matches "A$"
+                elif re.match(NOT_ESCAPED + '<\\-\n$', track_change_text):
+                    track_change_text \
+                        = re.sub('<\\-\n$', '', track_change_text)
+                    track_change_text += strs_x[x] + '<-\n'
+                else:
+                    track_change_text += '\n->' + strs_x[x] + '<-\n'
+                x += 1
+            elif ses == '+':
+                if strs_y[y] == '\n':
+                    track_change_text += '\n\n'  # "A\n" matches "A$"
+                elif re.match(NOT_ESCAPED + '<\\+\n$', track_change_text):
+                    track_change_text \
+                        = re.sub('<\\+\n$', '', track_change_text)
+                    track_change_text += strs_y[y] + '<+\n'
+                else:
+                    track_change_text += '\n+>' + strs_y[y] + '<+\n'
+                y += 1
+        track_change_text = re.sub('\n+', '\n', track_change_text)
+        track_change_text = re.sub('^\n+', '', track_change_text)
+        track_change_text = re.sub('\n+$', '', track_change_text)
+        return track_change_text
+
+    @staticmethod
+    def repair_tc_text(in_text):
+        out_text = ''
+        is_in_del = False
+        res_del = '^\\->(.*)<\\-$'
+        res_d_ins = '^\\+>(\\+>.*<\\+)<\\+$'
+        for line in in_text.split('\n'):
+            if line == '+>-><+':
+                if re.match(NOT_ESCAPED + '<\\-\n$', out_text):
+                    out_text = re.sub('<\\-\n$', '', out_text)
+                else:
+                    out_text += '->'
+                is_in_del = True
+                continue
+            elif line == '+><-<+':
+                out_text += '<-\n'
+                is_in_del = False
+                continue
+            if is_in_del:
+                # DELETED
+                if re.match(res_del, line):
+                    out_text += re.sub(res_del, '\\1', line)
+                elif re.match('^\\+>.*<\\+$', line):
+                    continue
+                else:
+                    out_text += line
+                    continue
+            elif re.match(res_d_ins, line):
+                # INSERTED
+                out_text += re.sub(res_d_ins, '\\1', line) + '\n'
+                continue
+            else:
+                # NORAML
+                out_text += line + '\n'
+                continue
+        return out_text
+
+    @staticmethod
+    def accept_all_changes(in_text):
+        out_text = in_text
+        i = 0
+        tmp = ''
+        is_in_comment = False
+        beg_del, end_del, beg_ins, end_ins = -1, -1, -1, -1
+        for c in in_text:
+            i += 1
+            tmp += c
+            # COMMENT
+            if re.match('^(.|\n)*<!--$', tmp) and not is_in_comment:
+                tmp, is_in_comment = '', True
+                continue
+            elif re.match('^(.|\n)*-->$', tmp) and is_in_comment:
+                tmp, is_in_comment = '', False
+                continue
+            if is_in_comment:
+                continue
+            # SCALE AND WIDTH
+            if tmp == '---' or tmp == '+++' or tmp == '>>>' or tmp == '<<<':
+                tmp = ''
+                continue
+            elif (re.match(NOT_ESCAPED + '\\-\\-$', tmp) or
+                  re.match(NOT_ESCAPED + '\\+\\+$', tmp) or
+                  re.match(NOT_ESCAPED + '>>$', tmp) or
+                  re.match(NOT_ESCAPED + '<<$', tmp)):
+                tmp = tmp[-2:]
+                continue
+            # DELETE AND INSERT
+            if beg_del < 0 and beg_ins < 0:
+                if re.match(NOT_ESCAPED + '\\->$', tmp):
+                    beg_del = i
+                elif re.match(NOT_ESCAPED + '\\+>$', tmp):
+                    beg_ins = i
+            elif beg_del >= 0:
+                if re.match(NOT_ESCAPED + '<\\-$', tmp):
+                    end_del = i
+                    t1 = out_text[:beg_del - 2]
+                    t2 = out_text[end_del + 0:]
+                    out_text = t1 + t2
+                    i = beg_del - 2
+                    beg_del, end_del = -1, -1
+            elif beg_ins >= 0:
+                if re.match(NOT_ESCAPED + '<\\+$', tmp):
+                    end_ins = i
+                    t1 = out_text[:beg_ins - 2]
+                    t2 = out_text[beg_ins + 0:end_ins - 2]
+                    t3 = out_text[end_ins - 0:]
+                    out_text = t1 + t2 + t3
+                    i = end_ins - 4
+                    beg_ins, end_ins = -1, -1
+        return out_text
 
 
 def main():
