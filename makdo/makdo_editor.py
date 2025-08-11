@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.11-14:59:03-JST>
+# Time-stamp:   <2025.08.11-15:38:23-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -15815,6 +15815,8 @@ class Makdo:
 
         # CALCULATE INTEREST OR CHARGE
 
+        import makdo.keiji  # keiji
+
         def insert_sample_trading_history(self) -> None:
             self._insert_line_break_as_necessary()
             ins = '<!--\n' \
@@ -15858,7 +15860,6 @@ class Makdo:
 
         def calc_interest_or_charge(self):
             if 'keiji_is_loaded' not in vars(self):
-                import makdo.keiji  # keiji
                 self.keiji = makdo.keiji
                 self.keiji_is_loaded = True
             upper_text = self.txt.get('1.0', 'insert')

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         keiji.py
 # Version:      v02
-# Time-stamp:   <2025.01.09-09:25:59-JST>
+# Time-stamp:   <2025.08.11-15:47:56-JST>
 
 # keiji.py
 # Copyright (C) 2017-2025  Seiichiro HATA
@@ -33,11 +33,9 @@ import locale
 from decimal import Decimal
 
 
-# VERSION
 __version__ = 'v02'
 
 
-# GENGO
 GENGO = [['M', datetime.date(1868,  1, 25)],  # MEIJI
          ['T', datetime.date(1912,  7, 30)],  # TAISHO
          ['S', datetime.date(1926, 12, 25)],  # SHOWA
@@ -46,19 +44,16 @@ GENGO = [['M', datetime.date(1868,  1, 25)],  # MEIJI
          ]
 
 
-# STATUTORY RATE
 STATUTORY_RATE = [['5', datetime.date(1,     1,  1)],
                   ['3', datetime.date(2020,  4,  1)],
                   ]
 
 
-# RESTRICTED RATE
 RESTRICTED_RATE = [['20',       '0'],
                    ['18',  '100000'],
                    ['15', '1000000']]
 
 
-# TABLE HEADER
 TABLE_HEADER = ['日付',
                 '借入',
                 '返済',
@@ -70,7 +65,6 @@ TABLE_HEADER = ['日付',
                 '残元金']
 
 
-# TABLE FOOTER
 TABLE_FOOTER = ['',
                 '',
                 '',
@@ -82,11 +76,9 @@ TABLE_FOOTER = ['',
                 '$total']
 
 
-# TABLE WIDTH
 TABLE_WIDTH = [9, 9, 8, 4, 4, 8, 9, 9, 10]
 
 
-# HELP MESSAGE
 HELP_MESSAGE = '''\
 Usage: keiji [オプション]... [ファイル]
 
@@ -169,9 +161,36 @@ Usage: keiji [オプション]... [ファイル]
 '''
 
 
-# SAMPLE DATA
+MANUAL_FOR_MAKDO = '''\
+<!--
+各行は「日付 借入額 返済額 年利 設定」から構成されます
+- 日付
+    69未満は2000年代、70以上は1900年代
+    M??は明治、T??は大正、S??は昭和、H??は平成、R??は令和
+- 借入額
+    先頭の"_"に付けると元金に充当
+- 返済額
+    先頭の"_"に付けると元金に充当
+- 年利
+    "="は利息制限法及び民法所定の金利
+    "*"は遅延損害金で1.46倍
+- 設定
+    - 初日算入
+        "+"は初日算入（デフォルト）
+        "-"は初日不算入
+    - 閏年の扱い
+        "?"は年未満を日歩計算
+        "!"は全期間を日歩計算
+    - 日付出力
+        ";"は日付を和暦で出力
+        "."は日付を西暦2桁で出力
+        ":"は日付を西暦4桁で出力
+-->\
+'''
+
+
 SAMPLE_DATA = '''\
-H24-01-01    10,000        -
+H24-01-01    10,000        - = +
 H25-01-01   100,000        -
 H26-01-01 1,000,000        -
 H27-01-01         -  300,000
@@ -183,14 +202,12 @@ R02-01-01         -  300,000\
 '''
 
 
-# WARNING MESSAGE NUMBER OF DAYS IS NEGATIVE
 WARNING_MESSAGE_NUMBER_OF_DAYS_IS_NEGATIVE \
     = \
     'WARNING: The number of days is negative. ' + \
     '-------------------------------------'
 
 
-# WARNING MESSAGE STATUTORY INTEREST RATE MAY BE CHANGED
 # WARNING_MESSAGE_STATUTORY_INTEREST_RATE_MAY_BE_CHANGED \
 #     = \
 #     'WARNING: The statutory interest rates after ' + \
@@ -205,7 +222,6 @@ locale.setlocale(locale.LC_NUMERIC, 'ja_JP.UTF-8')
 # FUNCTIONS
 
 
-# WIDTH
 def width(string):
     if(sys.version_info[0] == 2):
         st = string.decode('utf-8')
@@ -220,7 +236,6 @@ def width(string):
     return le
 
 
-# TO DATE
 def to_date(date):
     if(not (isinstance(date, str))):
         sys.stderr.write('bad date type "' + str(date) + '"\n')
@@ -251,7 +266,6 @@ def to_date(date):
         return None
 
 
-# TO STR
 def to_str(date, style='3jc'):
     if(not (isinstance(date, datetime.date))):
         sys.stderr.write('bad date type "' + str(date) + '"\n')
@@ -278,7 +292,6 @@ def to_str(date, style='3jc'):
     return sg + sy + '-' + sm + '-' + sd
 
 
-# COUNT YEARS AND DAYS
 def count_years_and_days(first_day, last_day,
                          has_to_include_first_day=False,
                          has_to_include_last_day=True):
@@ -333,7 +346,6 @@ def count_years_and_days(first_day, last_day,
     return ds, ys, dn, dl
 
 
-# IS LEAP YEAR
 def is_leap_year(year):
     if((year % 400) == 0):
         return True
@@ -343,7 +355,6 @@ def is_leap_year(year):
         return True
 
 
-# GET STATUTORY RATE
 def get_statutory_rate(this_principal, prev_principal='0',
                        prev_rate='0',
                        date=datetime.date.today().strftime("%Y-%m-%d"),
@@ -397,7 +408,6 @@ def get_statutory_rate(this_principal, prev_principal='0',
     return sr
 
 
-# CALCULATE INTEREST
 def calculate_interest(principal, interest_rate,
                        days, years, days_in_normal_year, days_in_leap_year,
                        calculating_unit='yearly'):
@@ -762,7 +772,6 @@ class Trade:
     ####################################
     # HEAD SYMBOL
 
-    # SET HEAD SYMBOL
     def set_head_symbol(self, line):
         fo = re.search(re.compile(r'^[^0-9a-zA-Z\\|]+\s*'), line)
         if(fo):
@@ -770,14 +779,12 @@ class Trade:
         else:
             self._head_symbol = ''
 
-    # GET HEAD SYMBOL
     def get_head_symbol(self):
         return self._head_symbol
 
     ####################################
     # DATE
 
-    # SET INPUT DATE STYLE
     def set_input_date_style(self, date):
         date = date.replace('.', '-')
         mw = r'^[A-Z]?[0-9]{1,4}-[0-9]{1,2}-[0-9]{1,2}$'  # G?YY.MM.DD
@@ -790,11 +797,9 @@ class Trade:
         else:
             self._input_date_style = '4wc'
 
-    # GET INPUT DATE STYLE
     def get_input_date_style(self):
         return self._input_date_style
 
-    # SET THIS DATE
     def set_this_date(self, date):
         date = date.replace('.', '-')
         mw = r'^[A-Z]?[0-9]{1,4}-[0-9]{1,2}-[0-9]{1,2}$'  # G?YY.MM.DD
@@ -802,11 +807,9 @@ class Trade:
             self._error('bad this date "' + str(date) + '"')
         self._this_date = to_date(date)
 
-    # GET THIS DATE
     def get_this_date(self, style='3jc'):
         return to_str(self._this_date, style)
 
-    # SET PREV DATE
     def set_prev_date(self, _date):
         _date = _date.replace('.', '-')
         mw = r'^[A-Z]?[0-9]{1,4}-[0-9]{1,2}-[0-9]{1,2}$'  # G?YY.MM.DD
@@ -814,14 +817,12 @@ class Trade:
             self._error('bad prev date "' + str(_date) + '"')
         self._prev_date = to_date(_date)
 
-    # GET PREV DATE
     def get_prev_date(self, style='3jc'):
         return to_str(self._prev_date, style)
 
     ####################################
     # BORROWING AND REPAYMENT AMOUNT
 
-    # _SHAPE AMOUNT
     def _shape_amount(self, amount):
         amount = re.sub('^_', '', amount)
         if(amount == '-'):
@@ -829,7 +830,6 @@ class Trade:
         else:
             return Decimal(amount.replace(',', ''))
 
-    # SET APPLIES BORROWING TO CAPITAL
     def set_applies_borrowing_to_principal(self, amount):
         mw = '^(-)|(_?[0-9]{1,3}(,?[0-9]{3})*)$'
         if(not re.match(mw, amount)):
@@ -839,33 +839,27 @@ class Trade:
         else:
             self._applies_borrowing_to_principal = False
 
-    # APPLIES BORROWING TO CAPITAL
     def applies_borrowing_to_principal(self):
         return self._applies_borrowing_to_principal
 
-    # SET THIS BORROWING AMOUNT
     def set_this_borrowing_amount(self, amount):
         mw = '^(-)|(_?[0-9]{1,3}(,?[0-9]{3})*)$'
         if(not re.match(mw, amount)):
             self._error('bad this borrowing amount "' + str(amount) + '"')
         self._this_borrowing_amount = self._shape_amount(amount)
 
-    # GET THIS BORROWING AMOUNT
     def get_this_borrowing_amount(self):
         return str(self._this_borrowing_amount)
 
-    # SET PREV BORROWING AMOUNT
     def set_prev_borrowing_amount(self, amount):
         mw = '^(-)|(_?[0-9]{1,3}(,?[0-9]{3})*)$'
         if(not re.match(mw, amount)):
             self._error('bad prev borrowing amount "' + str(amount) + '"')
         self._prev_borrowing_amount = self._shape_amount(amount)
 
-    # GET PREV BORROWING AMOUNT
     def get_prev_borrowing_amount(self):
         return str(self._prev_borrowing_amount)
 
-    # SET APPLIES REPAYMENT TO CAPITAL
     def set_applies_repayment_to_principal(self, amount):
         mw = '^(-)|(_?[0-9]{1,3}(,?[0-9]{3})*)$'
         if(not re.match(mw, amount)):
@@ -875,36 +869,30 @@ class Trade:
         else:
             self._applies_repayment_to_principal = False
 
-    # APPLIES REPAYMENT TO CAPITAL
     def applies_repayment_to_principal(self):
         return self._applies_repayment_to_principal
 
-    # SET THIS REPAYMENT AMOUNT
     def set_this_repayment_amount(self, amount):
         mw = '^(-)|(_?[0-9]{1,3}(,?[0-9]{3})*)$'
         if(not re.match(mw, amount)):
             self._error('bad this repayment amount "' + str(amount) + '"')
         self._this_repayment_amount = self._shape_amount(amount)
 
-    # GET THIS REPAYMENT AMOUNT
     def get_this_repayment_amount(self):
         return str(self._this_repayment_amount)
 
-    # SET PREV REPAYMENT AMOUNT
     def set_prev_repayment_amount(self, amount):
         mw = '^(-)|(_?[0-9]{1,3}(,?[0-9]{3})*)$'
         if(not re.match(mw, amount)):
             self._error('bad prev repayment amount "' + str(amount) + '"')
         self._prev_repayment_amount = self._shape_amount(amount)
 
-    # GET PREV REPAYMENT AMOUNT
     def get_prev_repayment_amount(self):
         return str(self._prev_repayment_amount)
 
     ####################################
     # INTEREST RATE
 
-    # SET THIS INTEREST RATE STANDARD
     def set_this_interest_rate_standard(self, rate):
         mw = r'^((=)|(\*)|(((=)|(\*))?[0-9]+(\\.[0-9]+)?%?))?$'
         if(not re.match(mw, rate)):
@@ -916,29 +904,24 @@ class Trade:
         else:
             self._this_interest_rate_standard = rate.rstrip('%')
 
-    # GET THIS INTEREST RATE STANDARD
     def get_this_interest_rate_standard(self):
         return self._this_interest_rate_standard
 
-    # SET PREV INTEREST RATE STANDARD
     def set_prev_interest_rate_standard(self, rate):
         mw = r'^(=)|(\*)|([0-9]+(\\.[0-9]+)?%?)$'
         if(not re.match(mw, rate)):
             self._error('bad prev interest rate standard "' + str(rate) + '"')
         self._prev_interest_rate_standard = rate
 
-    # GET PREV INTEREST RATE STANDARD
     def get_prev_interest_rate_standard(self):
         return self._prev_interest_rate_standard
 
-    # CHECK AND SET THIS INTEREST RATE STANDARD
     def check_and_set_this_interest_rate_standard(self):
         ts = self.get_this_interest_rate_standard()
         if(ts == ''):
             ps = self.get_prev_interest_rate_standard()
             self.set_this_interest_rate_standard(ps)
 
-    # SET THIS INTEREST RATE
     def set_this_interest_rate(self, rate):
         mw = r'^((=)|(\*)|(((=)|(\*))?[0-9]+(\.[0-9]+)?%?))?$'
         if(not re.match(mw, rate)):
@@ -949,22 +932,18 @@ class Trade:
         if(rate != ''):
             self._this_interest_rate = Decimal(rate)
 
-    # GET THIS INTEREST RATE
     def get_this_interest_rate(self):
         return str(self._this_interest_rate)
 
-    # SET PREV INTEREST RATE
     def set_prev_interest_rate(self, rate):
         mw = r'^[0-9]+(\.[0-9]+)?%?$'
         if(not re.match(mw, rate)):
             self._error('bad prev interest rate "' + str(rate) + '"')
         self._prev_interest_rate = Decimal(rate)
 
-    # GET PREV INTEREST RATE
     def get_prev_interest_rate(self):
         return str(self._prev_interest_rate)
 
-    # CALC AND SET THIS INTEREST RATE
     def calc_and_set_this_interest_rate(self):
         ts = self.get_this_interest_rate_standard()
         ps = self.get_prev_interest_rate_standard()
@@ -984,13 +963,11 @@ class Trade:
     ####################################
     # DAYS
 
-    # SET OPTIONS
     def set_options(self, days):
         if(not re.match(r'^([\_\;\.\:\+\-\?\!tcwm]+)|([0-9]+)', days)):
             self._error('bad options "' + str(days) + '"')
         self.options = days
 
-    # GET OPTIONS
     def get_options(self):
         sc = self.should_insert_comma()
         cu = self.get_calculating_unit()
@@ -1015,47 +992,38 @@ class Trade:
             op = op + '!'
         return op
 
-    # SET DAYS
     def set_days(self, days):
         if(not re.match('^-?[0-9]+', days)):
             self._error('bad days "' + str(days) + '"')
         self._days = Decimal(days)
 
-    # GET DAYS
     def get_days(self):
         return str(self._days)
 
-    # SET YEARS
     def set_years(self, amount):
         if(not re.match('^-?[0-9]+', amount)):
             self._error('bad years "' + str(amount) + '"')
         self._years = Decimal(amount)
 
-    # GET YEARS
     def get_years(self):
         return str(self._years)
 
-    # SET DAYS IN NORMAL YEAR
     def set_days_in_normal_year(self, amount):
         if(not re.match('^-?[0-9]+', amount)):
             self._error('bad days in normal year "' + str(amount) + '"')
         self._days_in_normal_year = Decimal(amount)
 
-    # GET DAYS IN NORMAL YEAR
     def get_days_in_normal_year(self):
         return str(self._days_in_normal_year)
 
-    # SET DAYS IN LEAP YEAR
     def set_days_in_leap_year(self, amount):
         if(not re.match('^-?[0-9]+', amount)):
             self._error('bad days in leap year "' + str(amount) + '"')
         self._days_in_leap_year = Decimal(amount)
 
-    # GET DAYS IN LEAP YEAR
     def get_days_in_leap_year(self):
         return str(self._days_in_leap_year)
 
-    # CALC AND SET YEARS AND DAYS
     def calc_and_set_years_and_days(self):
         pd = self.get_prev_date('4wc')
         td = self.get_this_date('4wc')
@@ -1070,17 +1038,14 @@ class Trade:
     ####################################
     # INTEREST
 
-    # SET INTEREST
     def set_interest(self, amount):
         if(not re.match('^-?[0-9]+', amount)):
             self._error('bad interest "' + str(amount) + '"')
         self._interest = Decimal(amount)
 
-    # GET INTEREST
     def get_interest(self):
         return str(self._interest)
 
-    # CALC AND SET INTEREST
     def calc_and_set_interest(self):
         pp = self.get_prev_remaining_principal()
         pr = self.get_prev_interest_rate()
@@ -1095,61 +1060,51 @@ class Trade:
     ####################################
     # CHANGE OF PRINCIPLE
 
-    # SET CHANGE OF PRINCIPLE
     def set_change_of_principal(self, amount):
         if(not re.match('^-?[0-9]+', amount)):
             self._error('bad change of principal "' + str(amount) + '"')
         self._change_of_principal = Decimal(amount)
 
-    # GET CHANGE OF PRINCIPLE
     def get_change_of_principal(self):
         return str(self._change_of_principal)
 
     ####################################
     # REMAINING INTEREST
 
-    # SET THIS REMAINING INTEREST
     def set_this_remaining_interest(self, amount):
         if(not re.match('^-?[0-9]+', amount)):
             self._error('bad this remaining interest "' + str(amount) + '"')
         self._this_remaining_interest = Decimal(amount)
 
-    # GET THIS REMAINING INTEREST
     def get_this_remaining_interest(self):
         return str(self._this_remaining_interest)
 
-    # SET PREV REMAINING INTEREST
     def set_prev_remaining_interest(self, amount):
         if(not re.match('^-?[0-9]+', amount)):
             self._error('bad prev remaining interest "' + str(amount) + '"')
         self._prev_remaining_interest = Decimal(amount)
 
-    # GET PREV REMAINING INTEREST
     def get_prev_remaining_interest(self):
         return str(self._prev_remaining_interest)
 
     ####################################
     # REMAINING PRINCIPAL
 
-    # SET THIS REMAINING PRINCIPAL
     def set_this_remaining_principal(self, amount):
         if(not re.match('^-?[0-9]+', amount)):
             self._error('bad this remaining principal "' + str(amount) +
                         '"')
         self._this_remaining_principal = Decimal(amount)
 
-    # GET THIS REMAINING PRINCIPAL
     def get_this_remaining_principal(self):
         return str(self._this_remaining_principal)
 
-    # SET PREV REMAINING PRINCIPAL
     def set_prev_remaining_principal(self, amount):
         if(not re.match('^-?[0-9]+', amount)):
             self._error('bad prev remaining principal "' + str(amount) +
                         '"')
         self._prev_remaining_principal = Decimal(amount)
 
-    # GET PREV REMAINING PRINCIPAL
     def get_prev_remaining_principal(self):
         return str(self._prev_remaining_principal)
 
@@ -1206,7 +1161,6 @@ class Trade:
     ####################################
     # REMARKS
 
-    # SET REMARKS
     def set_remarks(self, line):
         fo = re.search(re.compile('#.*$'), line)
         if(fo):
@@ -1214,30 +1168,24 @@ class Trade:
         else:
             self._remarks = ''
 
-    # GET REMARKS
     def get_remarks(self):
         return self._remarks
 
     ####################################
     # HAS TO INCLUDE DAY
 
-    # SET HAS TO INCLUDE THIS DAY
     def set_has_to_include_this_day(self, has_to):
         self._has_to_include_this_day = has_to
 
-    # HAS TO INCLUDE THIS DAY
     def has_to_include_this_day(self):
         return self._has_to_include_this_day
 
-    # SET HAS TO INCLUDE PREV DAY
     def set_has_to_include_prev_day(self, has_to):
         self._has_to_include_prev_day = has_to
 
-    # HAS TO INCLUDE PREV DAY
     def has_to_include_prev_day(self):
         return self._has_to_include_prev_day
 
-    # CALC AND SET HAS TO INCLUDE THIS DAY
     def calc_and_set_has_to_include_this_day(self):
         pp = Decimal(self.get_prev_remaining_principal())
         ba = Decimal(self.get_this_borrowing_amount())
@@ -1249,7 +1197,6 @@ class Trade:
             th = True
         self.set_has_to_include_this_day(th)
 
-    # CALC AND SET HAS TO INCLUDE PREV DAY
     def calc_and_set_has_to_include_prev_day(self):
         pp = Decimal(self.get_prev_remaining_principal())
         ba = Decimal(self.get_prev_borrowing_amount())
@@ -1261,7 +1208,6 @@ class Trade:
             ph = False
         self.set_has_to_include_prev_day(ph)
 
-    # JUDGE HAS TO INCLUDE FIRST DAY
     def judge_has_to_include_first_day(self, prev_remaining, trading_amount):
         pr = prev_remaining
         ta = trading_amount
@@ -1285,7 +1231,6 @@ class Trade:
     ##############################################
     # PRINT
 
-    # PRINT TRADE
     def get_trade(self, i):
         # SHOULD INSERT COMMA
         sc = self.should_insert_comma()
@@ -1370,7 +1315,6 @@ class Trade:
     def print_trade(self, i):
         print(self.get_trade(i))
 
-    # GET TRADE MATH
     def get_trade_math(self):
         sc = self.should_insert_comma()
         co = self.get_comment_out_symbol()
@@ -1411,7 +1355,6 @@ class Trade:
                 yd + ' = ' +
                 ' ' * (8 - len(it)) + it)
 
-    # GET TRADE TEX
     def get_trade_tex(self, co, td, ba, ra, tr, dy, it, cp, ti, tp, rm):
         rm = rm.replace('\\', '{\\textbackslash}')
         rm = rm.replace('#', '\\#')
@@ -1427,7 +1370,6 @@ class Trade:
                 tp + '&' +
                 rm + '\\\\')
 
-    # GET TRADE CSV
     def get_trade_csv(self, co, td, ba, ra, tr, dy, it, cp, ti, tp, rm):
         return ('"' + td + '",' +
                 '"' + ba + '",' +
@@ -1440,7 +1382,6 @@ class Trade:
                 '"' + tp + '",' +
                 '"' + rm + '"')
 
-    # GET TRADE WEB
     def get_trade_web(self, co, td, ba, ra, tr, dy, it, cp, ti, tp, rm):
         return ('<tr>' +
                 '<td>' + td + '</td>' +
@@ -1455,7 +1396,6 @@ class Trade:
                 '<td>' + rm + '</td>' +
                 '</tr>')
 
-    # GET TRADE MARKDOWN
     def get_trade_mkd(self, co, td, ba, ra, tr, dy, it, cp, ti, tp, rm):
         if(rm != ''):
             rm = ' ' + rm
@@ -1471,7 +1411,6 @@ class Trade:
                 '|' + ' ' * (10 - len(tp)) + tp +
                 '|' + rm)
 
-    # GET TRADE TEXT
     def get_trade_txt(self, co, td, ba, ra, tr, dy, it, cp, ti, tp, rm):
         if(rm != ''):
             rm = ' ' + rm
@@ -1539,7 +1478,6 @@ class Trade:
     ####################################
     # RESET OPTIONS
 
-    # RESET OPTIONS
     def reset_options(self):
         self.set_comment_out_symbol(self.get_head_symbol())
         if('_' in self.options):
@@ -1570,7 +1508,6 @@ class Trade:
     ####################################
     # INHERIT PREV DATA
 
-    # INHERIT PREV DATA FOR FIRST TRADE
     def inherit_prev_data_for_first_trade(self):
         # DATE
         self.set_prev_date(self.get_this_date())
@@ -1589,7 +1526,6 @@ class Trade:
         # HAS TO INCLUDE PREV DAY
         self.set_has_to_include_prev_day(True)  # False causes an error
 
-    # INHERIT PREV DATA FOR SECOND AND SUBSEQUENT TRADE
     def inherit_prev_data_for_second_and_subsequent_trade(self, prev):
         # DATE
         pd = prev.get_this_date()
