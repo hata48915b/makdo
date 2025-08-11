@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         keiji.py
 # Version:      v02
-# Time-stamp:   <2025.08.11-15:47:56-JST>
+# Time-stamp:   <2025.08.11-16:53:12-JST>
 
 # keiji.py
 # Copyright (C) 2017-2025  Seiichiro HATA
@@ -206,12 +206,6 @@ WARNING_MESSAGE_NUMBER_OF_DAYS_IS_NEGATIVE \
     = \
     'WARNING: The number of days is negative. ' + \
     '-------------------------------------'
-
-
-# WARNING_MESSAGE_STATUTORY_INTEREST_RATE_MAY_BE_CHANGED \
-#     = \
-#     'WARNING: The statutory interest rates after ' + \
-#     '"$date" may be changed. ------'
 
 
 # LOCALE
@@ -683,10 +677,6 @@ class Trade:
                     th[8] + '-' * (tw[8] - width(th[8])))         # 残元金
 
     @classmethod
-    def print_header(cls):
-        print(cls.get_header())
-
-    @classmethod
     def get_footer(cls):
         of = cls.get_output_style()
         tf = TABLE_FOOTER
@@ -761,10 +751,6 @@ class Trade:
                     tf[6] + '-' * (tw[6] - width(tf[6])) + ' ' +
                     tf[7] + ' ' * (tw[7] - width(tf[7])) + ' ' +  # 【合計】
                     ' ' * (tw[8] - len(tf[8])) + tf[8])
-
-    @classmethod
-    def print_footer(cls):
-        print(cls.get_footer())
 
     ##############################################
     # INSTANCE FUNCTION AND VARIABLE
@@ -1312,9 +1298,6 @@ class Trade:
             trade_line += co + WARNING_MESSAGE_NUMBER_OF_DAYS_IS_NEGATIVE
         return trade_line
 
-    def print_trade(self, i):
-        print(self.get_trade(i))
-
     def get_trade_math(self):
         sc = self.should_insert_comma()
         co = self.get_comment_out_symbol()
@@ -1660,14 +1643,13 @@ def is_data_line(line):
     return True
 
 
-if __name__ == '__main__':
-    # IMPORT DATA
-    input = open_input_source(args)
-    bad_lines = []
+def main(raw_data):
     trades = []
-    for i, line in enumerate(input):
+    bad_lines = []
+    lines = raw_data.split('\n')
+    for i, line in enumerate(lines):
         # MESSAGE FOR DEBUGGING
-        if(debug_mode):
+        if debug_mode:
             sys.stderr.write('reading line ' + str(i) + '\n')
         # ACCEPT DATA
         line = line.rstrip()
@@ -1695,7 +1677,7 @@ if __name__ == '__main__':
         # HAS TO INCLUDE PREV DAY AND THIS DAY
         this.calc_and_set_has_to_include_prev_day()
         this.calc_and_set_has_to_include_this_day()
-        if(i == (len(trades) - 1)):
+        if i == (len(trades) - 1):
             this.set_has_to_include_this_day(True)  # include last day
         # YEARS AND DAYS
         this.calc_and_set_years_and_days()
@@ -1711,23 +1693,26 @@ if __name__ == '__main__':
         Trade.set_total_amount(str(tp + ti))
         # CHECK CONSISTENCY
         # this.check_consistency()
-    # PRINT
-    Trade.print_header()  # header
-    for i, this in enumerate(trades):
+    # MAKE OUTPUT
+    output = ''
+    output += Trade.get_header() + '\n'
+    for i, tr in enumerate(trades):
         # MESSAGE FOR DEBUGGING
-        if(debug_mode):
+        if debug_mode:
             sys.stderr.write('printing line ' + str(i) + '\n')
-        this.print_trade(i)  # trade
-    Trade.print_footer()  # footer
+        output += tr.get_trade(i) + '\n'
+    output += Trade.get_footer() + '\n'
     if len(bad_lines) > 0:
-        sys.stderr.write('次の行は除外しました\n')
+        output += '次の行は除外しました。\n'
         for line in bad_lines:
-            sys.stderr.write(line + '\n')
-    # WARNING MESSAGE
-    # last_trade_date = to_date(trades[len(trades) - 1].get_this_date())
-    # lr = STATUTORY_RATE[len(STATUTORY_RATE) - 1][1]
-    # next_revision_date = datetime.date((lr.year + 3), lr.month, lr.day)
-    # if(last_trade_date >= next_revision_date):
-    #     co = Trade.get_comment_out_symbol()
-    #     wn = WARNING_MESSAGE_STATUTORY_INTEREST_RATE_MAY_BE_CHANGED
-    #     print(co + wn.replace('$date', to_str(next_revision_date)))
+            output += line + '\n'
+    return output
+
+
+if __name__ == '__main__':
+    # IMPORT DATA
+    input = open_input_source(args)
+    raw_data = input.read()
+    output = main(raw_data)
+    # PRINT
+    print(output, end='')
