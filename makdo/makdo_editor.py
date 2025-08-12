@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.12-09:26:29-JST>
+# Time-stamp:   <2025.08.12-10:13:39-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -14014,7 +14014,7 @@ class Makdo:
         menu.add_command(label='取引履歴の見本を挿入',
                          command=self.insert_sample_trading_history)
         menu.add_command(label='利息・遅延損害金を計算',
-                         command=self.calc_interest_or_charge)
+                         command=self.calculate_interest_and_charge)
         menu.add_separator()
         #
         menu.add_command(label='Epwing形式の辞書で調べる',
@@ -14057,7 +14057,7 @@ class Makdo:
     def insert_sample_trading_history(self) -> None:
         self._show_message_reducing_functions()
 
-    def calc_interest_or_charge(self) -> None:
+    def calculate_interest_and_charge(self) -> None:
         self._show_message_reducing_functions()
 
     def look_in_epwing(self) -> None:
@@ -15861,12 +15861,17 @@ class Makdo:
 
         # CALCULATE INTEREST OR CHARGE
 
-        import makdo.keiji  # keiji
+        def _load_keiji(self):
+            if 'keiji_is_loaded' not in vars(self):
+                import makdo.keiji  # keiji
+                self.keiji = makdo.keiji
+                self.keiji_is_loaded = True
 
         def insert_sample_trading_history(self) -> None:
+            self._load_keiji()
             self._insert_line_break_as_necessary()
-            ins = makdo.keiji.MANUAL_FOR_MAKDO + '\n\n' \
-                + makdo.keiji.SAMPLE_DATA
+            ins = self.keiji.MANUAL_FOR_MAKDO + '\n\n' \
+                + self.keiji.SAMPLE_DATA
             self.txt.insert('insert', ins)
             vp = self._get_v_position_of_insert(self.txt) - 1
             n = ins.count('\n') + 1
@@ -15874,7 +15879,8 @@ class Makdo:
                 self.paint_out_line(vp - n + i + 1)
             self.txt.mark_set('insert', 'insert+1c')
 
-        def calc_interest_or_charge(self):
+        def calculate_interest_and_charge(self):
+            self._load_keiji()
             # GET DATA
             upper_text = self.txt.get('1.0', 'insert')
             lower_text = self.txt.get('insert', 'end-1c')
@@ -15889,7 +15895,7 @@ class Makdo:
             end = '1.0+' + str(len(upper_text + lower_par)) + 'c'
             par = self.txt.get(beg, end)
             # CALCULATE
-            output = makdo.keiji.main(par)
+            output = self.keiji.main(par)
             # WRITE
             self.txt.edit_separator()
             self.txt.insert(end, '\n' + output)
@@ -15904,14 +15910,16 @@ class Makdo:
              'self.set_return_to()'])
         Minibuffer.minibuffer_commands.append(mc)
 
-        def look_in_epwing(self, pane=None) -> bool:
-            if pane is None:
-                pane = self.txt
-            # LOAD MODULE
+        def _load_eblook(self):
             if 'eblook_is_loaded' not in vars(self):
                 import makdo.eblook  # epwing
                 self.eblook = makdo.eblook.Eblook()
                 self.eblook_is_loaded = True
+
+        def look_in_epwing(self, pane=None) -> bool:
+            if pane is None:
+                pane = self.txt
+            self._load_eblook()
             if 'epwing_directory' not in vars(self):
                 self.set_epwing_directory()
             if 'epwing_directory' not in vars(self):
@@ -15925,7 +15933,7 @@ class Makdo:
                 w = ''
                 w += self.txt.get('akauni', 'insert')
                 w += self.txt.get('insert', 'akauni')
-            #
+            # LOOK IN DICTIONARY
             b = '辞書で調べる'
             p = '調べる言葉を入力してください．'
             h, t = '', ''
