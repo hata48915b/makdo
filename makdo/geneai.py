@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         geneai.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.09-09:03:57-JST>
+# Time-stamp:   <2025.08.12-16:01:34-JST>
 
 # geneai.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -30,5 +30,11 @@
 # 2025.01.04 v08 Omachi
 
 __version__ = 'v08 Omachi'
+
+
+import ollama
+
+
+DEFAULT_OLLAMA_MODEL = 'gemma3:27b'
 
 

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.12-10:13:39-JST>
+# Time-stamp:   <2025.08.12-16:42:14-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -63,6 +63,8 @@ import makdo.makdo_docx2md
 import makdo.makdo_mddiff  # MDDIFF
 import openpyxl     # MIT License
 import webbrowser
+import threading
+
 # To launch MS Word on Windows
 if sys.platform == 'win32':
     import win32com.client  # PSF License (pip install pywin32)
@@ -114,6 +116,8 @@ OPENAI_MODELS = [
 ]
 DEFAULT_OPENAI_MODEL = 'gpt-4o-mini'
 # DEFAULT_OPENAI_MODEL = 'gpt-3.5-turbo'
+
+DEFAULT_OLLAMA_MODEL = 'gemma3:27b'
 
 MD_TEXT_WIDTH = 68
 
@@ -13764,6 +13768,8 @@ class Makdo:
             elif item == 'llama_context_size':
                 if re.match('^[0-9]+$', valu):
                     self.llama_context_size = int(valu)
+            elif item == 'ollama_model':
+                self.ollama_model = valu
         return True
 
     def save_configurations(self):
@@ -13815,6 +13821,9 @@ class Makdo:
             if 'llama_context_size' in vars(self):
                 f.write('llama_context_size:     '
                         + str(self.llama_context_size) + '\n')
+            if 'ollama_model' in vars(self):
+                f.write('ollama_model:           '
+                        + self.ollama_model + '\n')
             self.set_message_on_status_bar('設定を保存しました')
         os.chmod(CONFIG_FILE, 0o400)
 
@@ -14043,6 +14052,12 @@ class Makdo:
                          command=self.set_llama_context_size)
         menu.add_command(label='LlamaのRAGデータを編集',
                          command=self.edit_llama_rag_data)
+        menu.add_separator()
+        #
+        menu.add_command(label='Ollamaに質問（内部処理、無料）',
+                         command=self.open_ollama)
+        menu.add_command(label='Ollamaのモデルを設定',
+                         command=self.set_ollama_model)
         # menu.add_separator()
 
     @staticmethod
@@ -14100,6 +14115,14 @@ class Makdo:
         return False
 
     def edit_llama_rag_data(self) -> bool:
+        self._show_message_reducing_functions()
+        return False
+
+    def open_ollama(self) -> bool:
+        self._show_message_reducing_functions()
+        return False
+
+    def set_ollama_model(self) -> bool:
         self._show_message_reducing_functions()
         return False
 
@@ -14638,6 +14661,7 @@ class Makdo:
         self._any_process_up_or_down(pane, 'down')
 
     def _any_process_up_or_down(self, pane, key):
+        k3 = self.key_history[-3]
         k2 = self.key_history[-2]
         if self._is_key(k2, 'F19', 'C-x', 'C-b'):
             if key == 'up':
@@ -14650,6 +14674,9 @@ class Makdo:
                 self._is_key(k2, 'Down', 'C-n', 'C-l') or
                 self._is_key(k2, 'Prior', 'C-[', 'C-@') or
                 self._is_key(k2, 'Next', 'C-]', 'C-:')):
+            self.ideal_h_position = self._get_ideal_h_position_of_insert(pane)
+        elif (self._is_key(k3, 'F13', 'C--', 'C-q') or
+              self._is_key(k3, 'F19', 'C-x', 'C-b')):
             self.ideal_h_position = self._get_ideal_h_position_of_insert(pane)
         if self._is_boosted_movement():
             if key == 'up':
@@ -14671,11 +14698,15 @@ class Makdo:
         self._any_process_prior_or_next(pane, 'next')
 
     def _any_process_prior_or_next(self, pane, key):
+        k3 = self.key_history[-3]
         k2 = self.key_history[-2]
         if not (self._is_key(k2, 'Up', 'C-r', 'C-o') or
                 self._is_key(k2, 'Down', 'C-n', 'C-l') or
                 self._is_key(k2, 'Prior', 'C-[', 'C-@') or
                 self._is_key(k2, 'Next', 'C-]', 'C-:')):
+            self.ideal_h_position = self._get_ideal_h_position_of_insert(pane)
+        elif (self._is_key(k3, 'F13', 'C--', 'C-q') or
+              self._is_key(k3, 'F19', 'C-x', 'C-b')):
             self.ideal_h_position = self._get_ideal_h_position_of_insert(pane)
         if self._is_boosted_movement():
             if key == 'prior':
@@ -15862,10 +15893,9 @@ class Makdo:
         # CALCULATE INTEREST OR CHARGE
 
         def _load_keiji(self):
-            if 'keiji_is_loaded' not in vars(self):
+            if 'keiji' not in vars(self):
                 import makdo.keiji  # keiji
                 self.keiji = makdo.keiji
-                self.keiji_is_loaded = True
 
         def insert_sample_trading_history(self) -> None:
             self._load_keiji()
@@ -15911,10 +15941,9 @@ class Makdo:
         Minibuffer.minibuffer_commands.append(mc)
 
         def _load_eblook(self):
-            if 'eblook_is_loaded' not in vars(self):
+            if 'eblook' not in vars(self):
                 import makdo.eblook  # epwing
                 self.eblook = makdo.eblook.Eblook()
-                self.eblook_is_loaded = True
 
         def look_in_epwing(self, pane=None) -> bool:
             if pane is None:
@@ -16058,36 +16087,12 @@ class Makdo:
             self._close_sub_pane = self.close_openai
             self._open_sub_pane(self.openai_qanda, False, '質問')
             self.sub.mark_set('insert', 'end-1c')
-            self._paint_openai_lines()
+            self._paint_geneai_lines('OpenAI')
             self.sub.edit_separator()
             return True
 
         def ask_openai(self) -> None:
-            n = MD_TEXT_WIDTH - get_real_width('## 【OpenAIにＸＸ】')
-            openai_cnf_head = '## 【OpenAIの設定】' + ('-' * n)
-            openai_que_head = '## 【OpenAIに質問】' + ('-' * n)
-            openai_ans_head = '## 【OpenAIの回答】' + ('-' * n)
-            messages = []
-            mc = ''
-            role = ''
-            doc = self.sub.get('1.0', 'end-1c') + '\n\n' + openai_ans_head
-            for line in doc.split('\n'):
-                if line == openai_cnf_head or \
-                   line == openai_que_head or \
-                   line == openai_ans_head:
-                    if role != '' and mc != '':
-                        mc = re.sub('^\n+', '', mc)
-                        mc = re.sub('\n+$', '', mc)
-                        messages.append({'role': role, 'content': mc})
-                    mc = ''
-                if line == openai_cnf_head:
-                    role = 'system'
-                elif line == openai_que_head:
-                    role = 'user'
-                elif line == openai_ans_head:
-                    role = 'assistant'
-                else:
-                    mc += line + '\n'
+            messages = self._get_message('OpenAI')
             self.set_message_on_status_bar('OpenAIに質問しています', True)
             ok = Witch.dechant(self.openai_key)
             output = self.openai.OpenAI(api_key=ok).chat.completions.create(
@@ -16096,39 +16101,10 @@ class Makdo:
                 messages=messages,
             )
             self.set_message_on_status_bar('', True)
-            answer = adjust_line(output.choices[0].message.content)
-            if answer != '':
-                self.sub['autoseparators'] = False
-                self.sub.edit_separator()
-                if not re.match('^(.|\n)*\n$', doc):
-                    self.sub.insert('end', '\n')
-                if not re.match('^(.|\n)*\n\n$', doc):
-                    self.sub.insert('end', '\n')
-                self.sub.insert('end', openai_ans_head + '\n\n')
-                self.sub.insert('end', answer + '\n\n')
-                self.sub.edit_separator()
-                self.sub.insert('end', openai_que_head + '\n\n')
-                self.sub.mark_set('insert', 'end-1c')
-                self._put_back_cursor_to_pane(self.sub)
-                self.openai_qanda = self.sub.get('1.0', 'end-1c')
-                self._paint_openai_lines()
-                self.sub['autoseparators'] = True
-                self.sub.edit_separator()
-
-        def _paint_openai_lines(self):
-            for tag in self.sub.tag_names():
-                self.sub.tag_remove(tag, '1.0', 'end-1c')
-            n = 0
-            pos = self.openai_qanda
-            res = '^((?:.|\n)*?)(## 【OpenAI...】-+)(\n(?:.|\n)*)$'
-            while re.match(res, pos):
-                pre = re.sub(res, '\\1', pos)
-                key = re.sub(res, '\\2', pos)
-                pos = re.sub(res, '\\3', pos)
-                beg = '1.0+' + str(n + len(pre)) + 'c'
-                end = '1.0+' + str(n + len(pre) + len(key)) + 'c'
-                n += len(pre) + len(key)
-                self.sub.tag_add('c-40-1-g-x', beg, end)
+            answer = output.choices[0].message.content
+            answer = adjust_line(answer)
+            self._write_answer('OpenAI', answer)
+            self.openai_qanda = self.sub.get('1.0', 'end-1c')
 
         def close_openai(self) -> None:
             del self._execute_sub_pane
@@ -16248,7 +16224,7 @@ class Makdo:
             self._close_sub_pane = self.close_llama_without_rag
             self._open_sub_pane(self.llama_qanda, False, '質問')
             self.sub.mark_set('insert', 'end-1c')
-            self._paint_llama_lines()
+            self._paint_geneai_lines('Llama')
             self.sub.edit_separator()
             return True
 
@@ -16323,36 +16299,12 @@ class Makdo:
             self._close_sub_pane = self.close_llama_with_rag
             self._open_sub_pane(self.llama_qanda, False, '質問')
             self.sub.mark_set('insert', 'end-1c')
-            self._paint_llama_lines()
+            self._paint_geneai_lines('Llama')
             self.sub.edit_separator()
             return True
 
         def ask_llama_without_rag(self) -> None:
-            n = MD_TEXT_WIDTH - get_real_width('## 【LlamaにＸＸ】')
-            llama_cnf_head = '## 【Llamaの設定】' + ('-' * n)
-            llama_que_head = '## 【Llamaに質問】' + ('-' * n)
-            llama_ans_head = '## 【Llamaの回答】' + ('-' * n)
-            messages = []
-            mc = ''
-            role = ''
-            doc = self.sub.get('1.0', 'end-1c') + '\n\n' + llama_ans_head
-            for line in doc.split('\n'):
-                if line == llama_cnf_head or \
-                   line == llama_que_head or \
-                   line == llama_ans_head:
-                    if role != '' and mc != '':
-                        mc = re.sub('^\n+', '', mc)
-                        mc = re.sub('\n+$', '', mc)
-                        messages.append({'role': role, 'content': mc})
-                    mc = ''
-                if line == llama_cnf_head:
-                    role = 'system'
-                elif line == llama_que_head:
-                    role = 'user'
-                elif line == llama_ans_head:
-                    role = 'assistant'
-                else:
-                    mc += line + '\n'
+            messages = self._get_message('Llama')
             self.set_message_on_status_bar('LlamaにRAGなしで質問しています', True)
             output = self.llama_without_rag.create_chat_completion(
                 # temperature=0.8,
@@ -16364,51 +16316,13 @@ class Makdo:
                 # num_beams=1,
                 messages=messages)
             self.set_message_on_status_bar('', True)
-            answer = adjust_line(output['choices'][0]['message']['content'])
-            if answer != '':
-                self.sub['autoseparators'] = False
-                self.sub.edit_separator()
-                if not re.match('^(.|\n)*\n$', doc):
-                    self.sub.insert('end', '\n')
-                if not re.match('^(.|\n)*\n\n$', doc):
-                    self.sub.insert('end', '\n')
-                self.sub.insert('end', llama_ans_head + '\n\n')
-                self.sub.insert('end', answer + '\n\n')
-                self.sub.edit_separator()
-                self.sub.insert('end', llama_que_head + '\n\n')
-                self.sub.mark_set('insert', 'end-1c')
-                self._put_back_cursor_to_pane(self.sub)
-                self.llama_qanda = self.sub.get('1.0', 'end-1c')
-                self._paint_llama_lines()
-                self.sub['autoseparators'] = True
-                self.sub.edit_separator()
+            answer = output['choices'][0]['message']['content']
+            answer = adjust_line(answer)
+            self._write_answer('Llama', answer)
+            self.llama_qanda = self.sub.get('1.0', 'end-1c')
 
         def ask_llama_with_rag(self) -> None:
-            n = MD_TEXT_WIDTH - get_real_width('## 【LlamaにＸＸ】')
-            llama_cnf_head = '## 【Llamaの設定】' + ('-' * n)
-            llama_que_head = '## 【Llamaに質問】' + ('-' * n)
-            llama_ans_head = '## 【Llamaの回答】' + ('-' * n)
-            messages = []
-            mc = ''
-            role = ''
-            doc = self.sub.get('1.0', 'end-1c') + '\n\n' + llama_ans_head
-            for line in doc.split('\n'):
-                if line == llama_cnf_head or \
-                   line == llama_que_head or \
-                   line == llama_ans_head:
-                    if role != '' and mc != '':
-                        mc = re.sub('^\n+', '', mc)
-                        mc = re.sub('\n+$', '', mc)
-                        messages.append({'role': role, 'content': mc})
-                    mc = ''
-                if line == llama_cnf_head:
-                    role = 'system'
-                elif line == llama_que_head:
-                    role = 'user'
-                elif line == llama_ans_head:
-                    role = 'assistant'
-                else:
-                    mc += line + '\n'
+            messages = self._get_message('Llama')
             self.set_message_on_status_bar('LlamaにRAGありで質問しています', True)
             q = ''
             for m in messages:
@@ -16421,38 +16335,8 @@ class Makdo:
             answer = re.sub('\\s+$', '', answer)
             answer = re.sub('\\\\n', '\n', answer)
             answer = adjust_line(answer)
-            if answer != '':
-                self.sub['autoseparators'] = False
-                self.sub.edit_separator()
-                if not re.match('^(.|\n)*\n$', doc):
-                    self.sub.insert('end', '\n')
-                if not re.match('^(.|\n)*\n\n$', doc):
-                    self.sub.insert('end', '\n')
-                self.sub.insert('end', llama_ans_head + '\n\n')
-                self.sub.insert('end', answer + '\n\n')
-                self.sub.edit_separator()
-                self.sub.insert('end', llama_que_head + '\n\n')
-                self.sub.mark_set('insert', 'end-1c')
-                self._put_back_cursor_to_pane(self.sub)
-                self.llama_qanda = self.sub.get('1.0', 'end-1c')
-                self._paint_llama_lines()
-                self.sub['autoseparators'] = True
-                self.sub.edit_separator()
-
-        def _paint_llama_lines(self):
-            for tag in self.sub.tag_names():
-                self.sub.tag_remove(tag, '1.0', 'end-1c')
-            n = 0
-            pos = self.llama_qanda
-            res = '^((?:.|\n)*?)(## 【Llama...】-+)(\n(?:.|\n)*)$'
-            while re.match(res, pos):
-                pre = re.sub(res, '\\1', pos)
-                key = re.sub(res, '\\2', pos)
-                pos = re.sub(res, '\\3', pos)
-                beg = '1.0+' + str(n + len(pre)) + 'c'
-                end = '1.0+' + str(n + len(pre) + len(key)) + 'c'
-                n += len(pre) + len(key)
-                self.sub.tag_add('c-40-1-g-x', beg, end)
+            self._write_answer('Llama', answer)
+            self.llama_qanda = self.sub.get('1.0', 'end-1c')
 
         def close_llama_without_rag(self) -> None:
             del self._execute_sub_pane
@@ -16545,6 +16429,167 @@ class Makdo:
             llama_rag_data = self.sub.get('1.0', 'end-1c')
             self._save_config_file(self.llama_rag_file, llama_rag_data)
             return True
+
+        # OLLAMA
+
+        mc = Minibuffer.MinibufferCommand(
+            'ask-ollama',
+            [None, 'Ollamaに質問する'],
+            ['self.mother.open_ollama()',
+             'self.set_return_to()'])
+        Minibuffer.minibuffer_commands.append(mc)
+
+        def open_ollama(self) -> bool:
+            if 'ollama_model' not in vars(self):
+                self.set_ollama_model()
+            if 'ollama_model' not in vars(self):
+                n, m = 'エラー', 'oLlamaのモデルが設定されていません．'
+                tkinter.messagebox.showerror(n, m)
+                return False
+            self.set_message_on_status_bar('Ollamaを起動しています', True)
+            m = 'モデルは"' + self.ollama_model + '"が設定されています'
+            self.set_message_on_status_bar(m, True)
+            # PROMPT
+            if 'ollama_qanda' not in vars(self):
+                n = MD_TEXT_WIDTH - get_real_width('## 【OllamaにＸＸ】')
+                self.ollama_qanda \
+                    = '- 内部処理ですので、情報を外部に送信しません。\n' \
+                    + '- 無料ですので、料金は発生しません。\n\n' \
+                    + '## 【Ollamaの設定】' + ('-' * n) + '\n\n' \
+                    + 'あなたは誠実で優秀な日本人のアシスタントです。\n' \
+                    + '特に指示が無い場合は、常に日本語で回答してください。\n\n' \
+                    + '## 【Ollamaに質問】' + ('-' * n) + '\n\n'
+            self.txt.focus_force()
+            self._execute_sub_pane = self.ask_ollama
+            self._close_sub_pane = self.close_ollama
+            self._open_sub_pane(self.ollama_qanda, False, '質問')
+            self.sub.mark_set('insert', 'end-1c')
+            self._paint_geneai_lines('Ollama')
+            self.sub.edit_separator()
+            return True
+
+        def ask_ollama(self):
+            thread_1 = threading.Thread(target=self._ask_ollama)
+            thread_1.start()
+            return True
+
+        def _ask_ollama(self):
+            model = self.ollama_model
+            messages = self._get_message('Ollama')
+            self.set_message_on_status_bar('Ollamaに質問しています', True)
+            if 'ollama' not in sys.modules:
+                try:
+                    import ollama
+                except ImportError:
+                    n = 'エラー'
+                    m = '"ollama"を\n' \
+                        + 'インポートできませんでした．\n\n' \
+                        + '次のコマンドを実行して、\n' \
+                        + 'インストールしてください．\n\n' \
+                        + 'pip install ollama'
+                    tkinter.messagebox.showerror(n, m)
+                    return False
+                self.ollama = ollama
+            response = self.ollama.chat(
+                model=model, messages=messages,
+                think=False,  # for reasoning model
+                # options={ "temperature": 0, "num_ctx": 512 }
+            )
+            answer = response.message.content
+            answer = adjust_line(answer)
+            self.set_message_on_status_bar('', True)
+            self._write_answer('Ollama', answer)
+            self.ollama_qanda = self.sub.get('1.0', 'end-1c')
+
+        def close_ollama(self) -> None:
+            del self._execute_sub_pane
+            del self._close_sub_pane
+            self.ollama_qanda = self.sub.get('1.0', 'end-1c')
+            self.set_message_on_status_bar('')
+            self._close_sub_pane()
+
+        def set_ollama_model(self) -> bool:
+            if 'ollama_model' not in vars(self):
+                self.ollama_model = DEFAULT_OLLAMA_MODEL
+            b, p = 'Ollamaのモデル', 'Ollamaのモデルを入力してください．'
+            h, t, i = '', '', self.ollama_model
+            om = OneWordDialog(self.txt, self, b, p, h, t, i).get_value()
+            if om is None:
+                return False
+            self.ollama_model = om
+            self.show_config_help_message()
+            return True
+
+        # TOOLS
+
+        def _get_geneai_head(self, geneai):
+            n = MD_TEXT_WIDTH - get_real_width('## 【' + geneai + 'にＸＸ】')
+            cnf_head = '## 【' + geneai + 'の設定】' + ('-' * n)
+            que_head = '## 【' + geneai + 'に質問】' + ('-' * n)
+            ans_head = '## 【' + geneai + 'の回答】' + ('-' * n)
+            return cnf_head, que_head, ans_head
+
+        def _get_message(self, geneai):
+            cnf_head, que_head, ans_head = self._get_geneai_head(geneai)
+            messages = []
+            role, mc = '', ''
+            doc = self.sub.get('1.0', 'end-1c') + '\n\n' + ans_head
+            for line in doc.split('\n'):
+                if line == cnf_head or \
+                   line == que_head or \
+                   line == ans_head:
+                    if role != '' and mc != '':
+                        mc = re.sub('^\n+', '', mc)
+                        mc = re.sub('\n+$', '', mc)
+                        messages.append({'role': role, 'content': mc})
+                    mc = ''
+                if line == cnf_head:
+                    role = 'system'
+                elif line == que_head:
+                    role = 'user'
+                elif line == ans_head:
+                    role = 'assistant'
+                else:
+                    mc += line + '\n'
+            return messages
+
+        def _write_answer(self, geneai, answer):
+            if answer == '':
+                return -1
+            cnf_head, que_head, ans_head = self._get_geneai_head(geneai)
+            self.sub['autoseparators'] = False
+            self.sub.edit_separator()
+            doc = self.sub.get('1.0', 'end-1c')
+            if not re.match('^(.|\n)*\n$', doc):
+                self.sub.insert('end', '\n')
+            if not re.match('^(.|\n)*\n\n$', doc):
+                self.sub.insert('end', '\n')
+            self.sub.insert('end', ans_head + '\n\n')
+            self.sub.insert('end', answer + '\n\n')
+            self.sub.edit_separator()
+            self.sub.insert('end', que_head + '\n\n')
+            self.sub.mark_set('insert', 'end-1c')
+            self._put_back_cursor_to_pane(self.sub)
+            self._paint_geneai_lines(geneai)
+            self.sub['autoseparators'] = True
+            self.sub.edit_separator()
+
+        def _paint_geneai_lines(self, geneai):
+            for tag in self.sub.tag_names():
+                self.sub.tag_remove(tag, '1.0', 'end-1c')
+            n = 0
+            pos = self.sub.get('1.0', 'end-1c')
+            res = '^((?:.|\n)*?)' + \
+                '(## 【' + geneai + '...】-+)' + \
+                '(\n(?:.|\n)*)$'
+            while re.match(res, pos):
+                pre = re.sub(res, '\\1', pos)
+                key = re.sub(res, '\\2', pos)
+                pos = re.sub(res, '\\3', pos)
+                beg = '1.0+' + str(n + len(pre)) + 'c'
+                end = '1.0+' + str(n + len(pre) + len(key)) + 'c'
+                n += len(pre) + len(key)
+                self.sub.tag_add('c-40-1-g-x', beg, end)
 
 
 ######################################################################
