@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.11-16:54:30-JST>
+# Time-stamp:   <2025.08.12-09:26:29-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -11339,10 +11339,16 @@ class Makdo:
                          command=self.compare_files)
         menu.add_separator()
         #
-        menu.add_command(label='変更履歴の全ての変更を反映',
-                         command=self.accept_all_changes)
-        menu.add_command(label='編集前の原稿と比較して変更履歴にする',
+        menu.add_command(label='編集前の原稿との違いを変更履歴にする',
                          command=self.insert_track_change_tag)
+        menu.add_command(label='前の変更履歴に移動',
+                         command=self.search_previous_track_change_tag)
+        menu.add_command(label='次の変更履歴に移動',
+                         command=self.search_next_track_change_tag)
+        menu.add_command(label='カーソル位置の変更履歴を反映',
+                         command=self.accept_current_track_change)
+        menu.add_command(label='全ての変更履歴を反映',
+                         command=self.accept_all_track_changes)
         menu.add_separator()
         #
         menu.add_command(label='セクションを折り畳む・展開',
@@ -12031,15 +12037,6 @@ class Makdo:
 
     # MDDIFF<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-    def accept_all_changes(self):
-        doc = self.txt.get('1.0', 'end-1c')
-        doc = makdo.makdo_mddiff.TrackChange.accept_all_changes(doc)
-        self.txt.delete('1.0', 'end-1c')
-        self.txt.insert('1.0', doc)
-        # PAINT
-        self.file_lines = doc.split('\n')
-        self.paint_all_lines(self.txt)
-
     def insert_track_change_tag(self):
         text1 = self.txt.get('1.0', 'end-1c')
         text2 = self.init_text
@@ -12062,6 +12059,55 @@ class Makdo:
         # PAINT
         self.file_lines = doc.split('\n')
         self.paint_all_lines(self.txt)
+
+    def search_previous_track_change_tag(self):
+        doc = self.txt.get('1.0', 'end-1c')
+        p = len(self.txt.get('1.0', 'insert'))
+        beg = makdo.makdo_mddiff.TrackChange.get_previous_track_change(doc, p)
+        if beg > 0:
+            self.txt.mark_set('insert', '1.0+' + str(beg) + 'c')
+            return True
+        return False
+
+    def search_next_track_change_tag(self):
+        doc = self.txt.get('1.0', 'end-1c')
+        p = len(self.txt.get('1.0', 'insert'))
+        beg = makdo.makdo_mddiff.TrackChange.get_next_track_change(doc, p)
+        if beg > 0:
+            self.txt.mark_set('insert', '1.0+' + str(beg) + 'c')
+            return True
+        return False
+
+    def accept_current_track_change(self):
+        doc = self.txt.get('1.0', 'end-1c')
+        p = len(self.txt.get('1.0', 'insert'))
+        del_or_ins, beg_num, end_num \
+            = makdo.makdo_mddiff.TrackChange.get_current_track_change(doc, p)
+        if del_or_ins == 'del':
+            self.txt.delete('1.0+' + str(beg_num) + 'c',
+                            '1.0+' + str(end_num) + 'c')
+        elif del_or_ins == 'ins':
+            self.txt.delete('1.0+' + str(beg_num + 0) + 'c',
+                            '1.0+' + str(beg_num + 2) + 'c')
+            self.txt.delete('1.0+' + str(end_num - 4) + 'c',
+                            '1.0+' + str(end_num - 2) + 'c')
+            # PAINT
+            beg_line = doc[:beg_num].count('\n')
+            end_line = doc[:end_num].count('\n')
+            for i in range(beg_line, end_line + 1):
+                self.paint_out_line(i)
+        else:
+            n = 'エラー'
+            m = 'カーソルが変更履歴の範囲にありません．'
+            tkinter.messagebox.showerror(n, m)
+
+    def accept_all_track_changes(self):
+        self.txt.mark_set('_tmp', 'insert')
+        self.txt.mark_set('insert', '1.0')
+        while self.search_next_track_change_tag():
+            self.accept_current_track_change()
+        self.txt.mark_set('insert', '_tmp')
+        self.txt.mark_unset('_tmp')
 
     # FOLD
 

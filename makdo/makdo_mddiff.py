@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         mddiff.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.11-15:19:29-JST>
+# Time-stamp:   <2025.08.12-09:25:05-JST>
 
 # mddiff.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -662,14 +662,36 @@ class TrackChange:
         return out_text
 
     @staticmethod
-    def accept_all_changes(in_text):
-        out_text = in_text
-        i = 0
-        tmp = ''
+    def get_previous_track_change(text, position):
+        tc_list = TrackChange._get_track_change_list(text)
+        for tc in reversed(tc_list):
+            if tc[1] < position:
+                return tc[1]
+        return -1
+
+    @staticmethod
+    def get_next_track_change(text, position):
+        tc_list = TrackChange._get_track_change_list(text)
+        for tc in tc_list:
+            if tc[1] > position:
+                return tc[1]
+        return -1
+
+    @staticmethod
+    def get_current_track_change(text, position):
+        tc_list = TrackChange._get_track_change_list(text)
+        for tc in tc_list:
+            if tc[1] <= position and tc[2] >= position:
+                return tc[0], tc[1], tc[2]
+        return '', -1, -1
+
+    @staticmethod
+    def _get_track_change_list(text):
+        track_change_list = []
+        tmp = text
         is_in_comment = False
         beg_del, end_del, beg_ins, end_ins = -1, -1, -1, -1
-        for c in in_text:
-            i += 1
+        for i, c in enumerate(text):
             tmp += c
             # COMMENT
             if re.match('^(.|\n)*<!--$', tmp) and not is_in_comment:
@@ -693,27 +715,20 @@ class TrackChange:
             # DELETE AND INSERT
             if beg_del < 0 and beg_ins < 0:
                 if re.match(NOT_ESCAPED + '\\->$', tmp):
-                    beg_del = i
+                    beg_del = i - 1
                 elif re.match(NOT_ESCAPED + '\\+>$', tmp):
-                    beg_ins = i
+                    beg_ins = i - 1
             elif beg_del >= 0:
                 if re.match(NOT_ESCAPED + '<\\-$', tmp):
-                    end_del = i
-                    t1 = out_text[:beg_del - 2]
-                    t2 = out_text[end_del + 0:]
-                    out_text = t1 + t2
-                    i = beg_del - 2
+                    end_del = i + 1
+                    track_change_list.append(['del', beg_del, end_del])
                     beg_del, end_del = -1, -1
             elif beg_ins >= 0:
                 if re.match(NOT_ESCAPED + '<\\+$', tmp):
-                    end_ins = i
-                    t1 = out_text[:beg_ins - 2]
-                    t2 = out_text[beg_ins + 0:end_ins - 2]
-                    t3 = out_text[end_ins - 0:]
-                    out_text = t1 + t2 + t3
-                    i = end_ins - 4
+                    end_ins = i + 1
+                    track_change_list.append(['ins', beg_ins, end_ins])
                     beg_ins, end_ins = -1, -1
-        return out_text
+        return track_change_list
 
 
 def main():
