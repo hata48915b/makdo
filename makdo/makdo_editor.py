@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.12-16:42:14-JST>
+# Time-stamp:   <2025.08.13-08:50:18-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -16490,11 +16490,21 @@ class Makdo:
                     tkinter.messagebox.showerror(n, m)
                     return False
                 self.ollama = ollama
-            response = self.ollama.chat(
-                model=model, messages=messages,
-                think=False,  # for reasoning model
-                # options={ "temperature": 0, "num_ctx": 512 }
-            )
+            try:
+                response = self.ollama.chat(
+                    model=model, messages=messages,
+                    think=False,  # for reasoning model
+                    # options={ "temperature": 0, "num_ctx": 512 }
+                )
+            except BaseException:
+                n = 'エラー'
+                m = '"ollama"に\n' \
+                    + '接続できませんでした．\n\n' \
+                    + '次のコマンドを実行して、\n' \
+                    + '起動しておいてください．\n' \
+                    + 'ollama serve'
+                tkinter.messagebox.showerror(n, m)
+                return False
             answer = response.message.content
             answer = adjust_line(answer)
             self.set_message_on_status_bar('', True)
