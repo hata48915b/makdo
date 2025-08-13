@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.10-09:40:27-JST>
+# Time-stamp:   <2025.08.13-15:39:57-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -1653,10 +1653,10 @@ class Form:
                         jf = xl
                     elif re.match('^.* w:cs=[\'"]([^\'"]*)[\'"].*$', xl):
                         jf = xl
-                    elif re.match('^<w:sz( .*)/>$', xl):
-                        fs = xl
-                    elif re.match('^<w:szCs( .*)/>$', xl):
-                        fsc = xl
+                elif re.match('^<w:sz( .*)/>$', xl):
+                    fs = xl
+                elif re.match('^<w:szCs( .*)/>$', xl):
+                    fsc = xl
             # LINE NUMBER
             if re.match('^<w:lnNumType( .*)?>$', xl):
                 Form.line_number = True
