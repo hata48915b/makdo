@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.14-06:52:45-JST>
+# Time-stamp:   <2025.08.14-06:49:35-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6714,7 +6714,7 @@ class Makdo:
         elif re.match(res_xls, file_path, re.I):
             self.insert_table_from_excel(file_path)
         elif re.match(res_img, file_path, re.I):
-            image_md_text = '![代替テキスト @横x縦](' + file_path + ' "説明")'
+            image_md_text = '![代替テキスト @縦x横](' + file_path + ' "説明")'
             self.txt.edit_separator()
             self.txt.insert('insert', image_md_text)
             self.paint_out_line(self._get_v_position_of_insert(pane) - 1)
@@ -8360,12 +8360,11 @@ class Makdo:
         image_paths = tkinter.filedialog.askopenfilenames(
                 title=ti, filetypes=ty, initialdir=_d)
         for i in image_paths:
-            image_md_text = '![代替テキスト @横x縦](' + i + ' "説明")'
+            image_md_text = '![代替テキスト:横x縦](' + i + ' "説明")'
             self.txt.insert('insert', image_md_text)
 
     def insert_image_format(self):
-        t = '![代替テキスト @横x縦](ファイルパス "説明")'
-        self.txt.insert('insert', t)
+        self.txt.insert('insert', '![代替テキスト:横x縦](ファイルパス "説明")')
         n = self._get_v_position_of_insert(self.txt) - 1
         self.paint_out_line(n)
 
@@ -10240,7 +10239,7 @@ class Makdo:
         image_path = tkinter.filedialog.askopenfilename(
             title=ti, filetypes=ty, initialdir=_d)
         if image_path != () and image_path != '':
-            md_text = '![代替テキスト @横x縦](' + image_path + ' "説明")'
+            md_text = '![代替テキスト:横x縦](' + image_path + ' "説明")'
             self._insert_paragraph_text(md_text)
 
     def insert_image_and_text_paragraph(self):
@@ -10261,7 +10260,7 @@ class Makdo:
             md_text += '<!--画像の位置の調整のために入れています．-->\n'
             md_text += '^^-----^^\n\n'
             md_text += '<!--画像の大きさをセンチメートルで設定してください．-->\n'
-            md_text += '![代替テキスト @横x縦](' + image_path + ' "説明")\n\n'
+            md_text += '![代替テキスト:横x縦](' + image_path + ' "説明")\n\n'
             md_text += '<!--ここに文章を書きます．-->\n'
             md_text += '（ここに文章を書く）\n\n'
             md_text += '<!--一段組に戻します．-->\n'
@@ -10288,13 +10287,13 @@ class Makdo:
             md_text += '<!--画像の位置の調整のために入れています．-->\n'
             md_text += '^^-----^^\n\n'
             md_text += '<!--画像の大きさをセンチメートルで設定してください．-->\n'
-            md_text += '![代替テキスト @横x縦](' + image_path + ' "説明")\n\n'
+            md_text += '![代替テキスト:横x縦](' + image_path + ' "説明")\n\n'
             md_text += '<!--一段組に戻します．-->\n'
             md_text += '|-|'
             self._insert_paragraph_text(md_text)
 
     def insert_image_paragraph_format(self):
-        p = '![代替テキスト @横x縦](ファイルパス "説明")'
+        p = '![代替テキスト:横x縦](ファイルパス "説明")'
         self._insert_paragraph_text(p)
 
     ################
