@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.13-08:50:18-JST>
+# Time-stamp:   <2025.08.13-14:53:27-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -30,6 +30,7 @@
 # 2025.01.04 v08 Omachi
 
 __version__ = 'v08 Omachi'
+__revision__ = 'v08.15'
 
 
 # USAGE
@@ -14273,8 +14274,10 @@ class Makdo:
 
     def show_about_makdo(self):
         n = 'バージョン情報'
-        m = 'makdo ' + __version__ + '\n\n' + \
-            '秦誠一郎により開発されています．'
+        m = 'MAKDO\n\n' + __version__ + '\n(' + __revision__ + ')\n\n' + \
+            'このソフトは、\n秦誠一郎により開発されています．\n\n' + \
+            'このソフトは、\n多数のモジュールを利用しています．\n' + \
+            '開発者の皆様に、\n心より感謝の言葉を申し上げます．'
         tkinter.messagebox.showinfo(n, m)
 
     ####################################
