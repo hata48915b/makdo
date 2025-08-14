@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.14-12:10:09-JST>
+# Time-stamp:   <2025.08.14-13:42:21-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -8625,16 +8625,23 @@ class ParagraphTable(Paragraph):
     def __get_cell_state(self, xml_tbl):
         par_xml_tbl = self.__get_par_xml_tbl(xml_tbl)
         v_alig_tbl, h_alig_tbl, v_rule_tbl, h_rule_tbl = [], [], [], []
+        res_tcpr_beg = '^<w:tcPr(?: .*)?>$'
+        res_tcpr_end = '^</w:tcPr(?: .*)?>$'
         res_v_top = '^<w:vAlign(?: .*)? w:val=[\'"]top[\'"](?: .*)?/>$'
         res_v_cen = '^<w:vAlign(?: .*)? w:val=[\'"]center[\'"](?: .*)?/>$'
         res_v_bot = '^<w:vAlign(?: .*)? w:val=[\'"]bottom[\'"](?: .*)?/>$'
-        res_h_lef = '^<w:jc(?: .*)? w:val=[\'"]left[\'"](?: .*)?/>$'
-        res_h_cen = '^<w:jc(?: .*)? w:val=[\'"]center[\'"](?: .*)?/>$'
-        res_h_rig = '^<w:jc(?: .*)? w:val=[\'"]right[\'"](?: .*)?/>$'
+        res_tcborders_beg = '^<w:tcBorders(?: .*)?>$'
+        res_tcborders_end = '^</w:tcBorders(?: .*)?>$'
         res_v_nil = '^<w:right(?: .*)? w:val=[\'"]nil[\'"]( .*)?/>$'
         res_v_dbl = '^<w:right(?: .*)? w:val=[\'"]double[\'"]( .*)?/>$'
         res_h_nil = '^<w:bottom(?: .*)? w:val=[\'"]nil[\'"]( .*)?/>$'
         res_h_dbl = '^<w:bottom(?: .*)? w:val=[\'"]double[\'"]( .*)?/>$'
+        res_ppr_beg = '^<w:pPr(?: .*)?>$'
+        res_ppr_end = '^</w:pPr(?: .*)?>$'
+        res_h_lef = '^<w:jc(?: .*)? w:val=[\'"]left[\'"](?: .*)?/>$'
+        res_h_cen = '^<w:jc(?: .*)? w:val=[\'"]center[\'"](?: .*)?/>$'
+        res_h_rig = '^<w:jc(?: .*)? w:val=[\'"]right[\'"](?: .*)?/>$'
+        is_in_tcpr, is_in_tcborders , is_in_ppr = False, False, False
         for i, par_xml_row in enumerate(par_xml_tbl):
             v_alig_row, h_alig_row = [], []
             v_rule_row, h_rule_row = [], []
@@ -8642,30 +8649,43 @@ class ParagraphTable(Paragraph):
                 #
                 v_alig_val, v_rule_val, h_rule_val = '', '', ''
                 for k, xml in enumerate(xml_tbl[i][j]):
-                    if re.match(res_v_top, xml):
+                    if re.match(res_tcpr_beg, xml):
+                        is_in_tcpr = True
+                    elif re.match(res_tcpr_end, xml):
+                        is_in_tcpr = False
+                    elif is_in_tcpr and re.match(res_v_top, xml):
                         v_alig_val = 'T'  # top
-                    elif re.match(res_v_cen, xml):
+                    elif is_in_tcpr and re.match(res_v_cen, xml):
                         v_alig_val = 'C'  # vertical center
-                    elif re.match(res_v_bot, xml):
+                    elif is_in_tcpr and re.match(res_v_bot, xml):
                         v_alig_val = 'B'  # bottom
-                    elif re.match(res_v_nil, xml):
+                    elif re.match(res_tcborders_beg, xml):
+                        is_in_tcborders = True
+                    elif re.match(res_tcborders_end, xml):
+                        is_in_tcborders = False
+                    elif is_in_tcborders and re.match(res_v_nil, xml):
                         v_rule_val = '^'  # nil
-                    elif re.match(res_v_dbl, xml):
+                    elif is_in_tcborders and re.match(res_v_dbl, xml):
                         v_rule_val = '='  # double
-                    elif re.match(res_h_nil, xml):
+                    elif is_in_tcborders and re.match(res_h_nil, xml):
+                        print(h_rule_val)
                         h_rule_val = '^'  # nil
-                    elif re.match(res_h_dbl, xml):
+                    elif is_in_tcborders and re.match(res_h_dbl, xml):
                         h_rule_val = '='  # double
                 #
                 v_alig_cel, h_alig_cel = [], []
                 for k, par_xml_par in enumerate(par_xml_cel):
                     h_alig_val = ''
                     for xml in par_xml_par:
-                        if re.match(res_h_lef, xml):
+                        if re.match(res_ppr_beg, xml):
+                            is_in_ppr = True
+                        elif re.match(res_ppr_end, xml):
+                            is_in_ppr = False
+                        elif is_in_ppr and re.match(res_h_lef, xml):
                             h_alig_val = 'L'  # left
-                        elif re.match(res_h_cen, xml):
+                        elif is_in_ppr and re.match(res_h_cen, xml):
                             h_alig_val = 'C'  # horizontal center
-                        elif re.match(res_h_rig, xml):
+                        elif is_in_ppr and re.match(res_h_rig, xml):
                             h_alig_val = 'R'  # right
                     v_alig_cel.append(v_alig_val)
                     h_alig_cel.append(h_alig_val)

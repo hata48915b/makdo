@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.09-16:30:40-JST>
+# Time-stamp:   <2025.08.14-13:29:07-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5590,7 +5590,7 @@ class ParagraphTable(Paragraph):
     """A class to handle table paragraph"""
 
     paragraph_class = 'table'
-    res_feature = '^(?::\\s+)?\\|.*\\|(:?-*:?)?(\\^+|=+)?(?:\\s+:)?$'
+    res_feature = '^(?::\\s+)?\\|.*\\|(:?-*:?)?\\s?(\\^+|=+)?(?:\\s+:)?$'
 
     @classmethod
     def is_this_class(cls, full_text,
