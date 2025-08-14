@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.14-06:52:45-JST>
+# Time-stamp:   <2025.08.14-11:53:51-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -16079,7 +16079,7 @@ class Makdo:
                 tkinter.messagebox.showerror(n, m)
                 return False
             if 'openai_key' not in vars(self):
-                self.openai_key()
+                self.set_openai_key()
             if 'openai_key' not in vars(self):
                 n = 'エラー'
                 m = 'OpenAIのキーが設定されていません．'
@@ -16090,6 +16090,8 @@ class Makdo:
                 self.set_message_on_status_bar('openaiを起動しています', True)
                 try:
                     import openai  # Apache Software License
+                    ok = Witch.dechant(self.openai_key)
+                    self.openai = openai.OpenAI(api_key=ok)
                 except ImportError:
                     n = 'エラー'
                     m = '"openai"を\n' \
@@ -16098,10 +16100,9 @@ class Makdo:
                         + 'インストールしてください．\n\n' \
                         + 'pip install openai'
                     tkinter.messagebox.showerror(n, m)
+                    self.set_message_on_status_bar('', True)
                     return False
-                self.openai = openai
-            om = self.openai_model
-            m = 'モデルは"' + om + '"が設定されています'
+            m = 'モデルは"' + self.openai_model + '"が設定されています'
             self.set_message_on_status_bar(m)
             # PROMPT
             if 'openai_qanda' not in vars(self):
@@ -16123,14 +16124,20 @@ class Makdo:
             return True
 
         def ask_openai(self) -> None:
+            model = self.openai_model
             messages = self._get_message('OpenAI')
             self.set_message_on_status_bar('OpenAIに質問しています', True)
-            ok = Witch.dechant(self.openai_key)
-            output = self.openai.OpenAI(api_key=ok).chat.completions.create(
-                model=self.openai_model,
-                n=1, max_tokens=1000,
-                messages=messages,
-            )
+            try:
+                output = self.openai.chat.completions.create(
+                    model=model, messages=messages,
+                    n=1, max_tokens=1000,
+                )
+            except BaseException:
+                n = 'エラー'
+                m = '"openal"から\n' \
+                    + '回答を得られませんでした．'
+                tkinter.messagebox.showerror(n, m)
+                return
             self.set_message_on_status_bar('', True)
             answer = output.choices[0].message.content
             answer = adjust_line(answer)
@@ -16477,19 +16484,16 @@ class Makdo:
                 n, m = 'エラー', 'oLlamaのモデルが設定されていません．'
                 tkinter.messagebox.showerror(n, m)
                 return False
-            self.set_message_on_status_bar('Ollamaを起動しています', True)
-            m = 'モデルは"' + self.ollama_model + '"が設定されています'
-            self.set_message_on_status_bar(m, True)
             # PROMPT
+            cnf_head, que_head, ans_head = self._get_geneai_head('Ollama')
             if 'ollama_qanda' not in vars(self):
-                n = MD_TEXT_WIDTH - get_real_width('## 【OllamaにＸＸ】')
                 self.ollama_qanda \
                     = '- 内部処理ですので、情報を外部に送信しません。\n' \
                     + '- 無料ですので、料金は発生しません。\n\n' \
-                    + '## 【Ollamaの設定】' + ('-' * n) + '\n\n' \
+                    + cnf_head + '\n\n' \
                     + 'あなたは誠実で優秀な日本人のアシスタントです。\n' \
                     + '特に指示が無い場合は、常に日本語で回答してください。\n\n' \
-                    + '## 【Ollamaに質問】' + ('-' * n) + '\n\n'
+                    + que_head + '\n\n'
             self.txt.focus_force()
             self._execute_sub_pane = self.ask_ollama
             self._close_sub_pane = self.close_ollama
@@ -16499,15 +16503,15 @@ class Makdo:
             self.sub.edit_separator()
             return True
 
-        def ask_ollama(self):
+        def ask_ollama(self) -> None:
             thread_1 = threading.Thread(target=self._ask_ollama)
+            thread_2 = threading.Thread(target=self._set_message_ollama)
             thread_1.start()
-            return True
+            thread_2.start()
 
-        def _ask_ollama(self):
+        def _ask_ollama(self) -> bool:
             model = self.ollama_model
             messages = self._get_message('Ollama')
-            self.set_message_on_status_bar('Ollamaに質問しています', True)
             if 'ollama' not in sys.modules:
                 try:
                     import ollama
@@ -16538,9 +16542,20 @@ class Makdo:
                 return False
             answer = response.message.content
             answer = adjust_line(answer)
-            self.set_message_on_status_bar('', True)
             self._write_answer('Ollama', answer)
             self.ollama_qanda = self.sub.get('1.0', 'end-1c')
+            return True
+
+        def _set_message_ollama(self) -> bool:
+            message = 'Ollamaに質問しています'
+            if len(threading.enumerate()) > 1:
+                for te in threading.enumerate():
+                    if re.match('^Thread-[0-9]+ \\(_ask_ollama\\)$', te.name):
+                        self.set_message_on_status_bar(message, True)
+                        self.win.after(1_000, self._set_message_ollama)
+                        return True
+            self.set_message_on_status_bar('', True)
+            return False
 
         def close_ollama(self) -> None:
             del self._execute_sub_pane
@@ -16563,14 +16578,14 @@ class Makdo:
 
         # TOOLS
 
-        def _get_geneai_head(self, geneai):
+        def _get_geneai_head(self, geneai) -> tuple[str, str, str]:
             n = MD_TEXT_WIDTH - get_real_width('## 【' + geneai + 'にＸＸ】')
             cnf_head = '## 【' + geneai + 'の設定】' + ('-' * n)
             que_head = '## 【' + geneai + 'に質問】' + ('-' * n)
             ans_head = '## 【' + geneai + 'の回答】' + ('-' * n)
             return cnf_head, que_head, ans_head
 
-        def _get_message(self, geneai):
+        def _get_message(self, geneai) -> list[dict]:
             cnf_head, que_head, ans_head = self._get_geneai_head(geneai)
             messages = []
             role, mc = '', ''
@@ -16594,7 +16609,7 @@ class Makdo:
                     mc += line + '\n'
             return messages
 
-        def _write_answer(self, geneai, answer):
+        def _write_answer(self, geneai, answer) -> None:
             if answer == '':
                 return -1
             cnf_head, que_head, ans_head = self._get_geneai_head(geneai)
@@ -16615,7 +16630,7 @@ class Makdo:
             self.sub['autoseparators'] = True
             self.sub.edit_separator()
 
-        def _paint_geneai_lines(self, geneai):
+        def _paint_geneai_lines(self, geneai) -> None:
             for tag in self.sub.tag_names():
                 self.sub.tag_remove(tag, '1.0', 'end-1c')
             n = 0
