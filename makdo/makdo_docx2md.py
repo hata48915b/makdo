@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.13-15:39:57-JST>
+# Time-stamp:   <2025.08.14-12:10:09-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -8511,11 +8511,11 @@ class ParagraphTable(Paragraph):
                 par_xml_cel = []
                 is_in_par = False
                 for xml in xml_cel:
-                    if xml == '<w:p>':
+                    if re.match('<w:p( .+)?>', xml):
                         is_in_par = True
                         par_xml = []
                         par_xml.append(xml)
-                    elif xml == '</w:p>':
+                    elif re.match('</w:p( .+)?>', xml):
                         is_in_par = False
                         par_xml.append(xml)
                         par_xml_cel.append(par_xml)
