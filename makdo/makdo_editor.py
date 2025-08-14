@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.14-11:53:51-JST>
+# Time-stamp:   <2025.08.15-07:52:03-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -118,7 +118,7 @@ OPENAI_MODELS = [
 DEFAULT_OPENAI_MODEL = 'gpt-4o-mini'
 # DEFAULT_OPENAI_MODEL = 'gpt-3.5-turbo'
 
-DEFAULT_OLLAMA_MODEL = 'gemma3:27b'
+DEFAULT_OLLAMA_MODEL = 'gemma3:4b'
 
 MD_TEXT_WIDTH = 68
 
@@ -6639,7 +6639,7 @@ class Makdo:
                          command=self.upload_to_onedrive)
         menu.add_separator()
         #
-        menu.add_command(label='終了(Q)', underline=3,
+        menu.add_command(label='Makdoを終了(Q)', underline=3,
                          command=self.quit_makdo, accelerator='Ctrl+Q')
         # menu.add_separator()
 
@@ -7398,7 +7398,7 @@ class Makdo:
                          command=self.replace_backward)
         menu.add_command(label='後を置換',
                          command=self.replace_forward, accelerator='Ctrl+L')
-        menu.add_command(label='全て置換',
+        menu.add_command(label='全体又は選択範囲を全て置換',
                          command=self.replace_all)
         menu.add_separator()
         #
@@ -7424,13 +7424,13 @@ class Makdo:
                          command=self.calculate)
         menu.add_separator()
         #
-        menu.add_command(label='字体を変える',
+        menu.add_command(label='入力位置の字体を変える',
                          command=self.change_typeface)
         menu.add_separator()
         #
-        menu.add_command(label='コメントアウトにする',
+        menu.add_command(label='選択範囲をコメントアウトにする',
                          command=self.comment_out_region)
-        menu.add_command(label='コメントアウトを取り消す',
+        menu.add_command(label='選択範囲のコメントアウトを解除',
                          command=self.uncomment_in_region)
         # menu.add_separator()
 
@@ -11372,6 +11372,10 @@ class Makdo:
                          command=self.compare_files)
         menu.add_separator()
         #
+        menu.add_command(label='サブウィンドウを閉じる',
+                         command=self._close_sub_pane)
+        menu.add_separator()
+        #
         menu.add_command(label='編集前の原稿との違いを変更履歴にする',
                          command=self.insert_track_change_tag)
         menu.add_command(label='前の変更履歴に移動',
@@ -11384,19 +11388,15 @@ class Makdo:
                          command=self.accept_all_track_changes)
         menu.add_separator()
         #
-        menu.add_command(label='セクションを折り畳む・展開',
+        menu.add_command(label='セクションを折畳又は展開',
                          command=self.fold_or_unfold_section)
-        menu.add_command(label='セクションを全て展開',
+        menu.add_command(label='セクションの折畳を全て展開',
                          command=self.unfold_section_fully)
         menu.add_separator()
         #
         menu.add_command(label='キーボードマクロを実行',
                          command=self.execute_keyboard_macro,
                          accelerator='Ctrl+E')
-        menu.add_separator()
-        #
-        menu.add_command(label='サブウィンドウを閉じる',
-                         command=self._close_sub_pane)
         menu.add_separator()
         #
         menu.add_command(label='コマンドを入力して実行',
@@ -12562,11 +12562,342 @@ class Makdo:
 
         minibuffer_commands = []
 
+        # FLIE
+        mc = MinibufferCommand('## ファイル', [None, ''], [''])
+        minibuffer_commands.append(mc)
+
         mc = MinibufferCommand(
-            'help',
-            [None, 'このメッセージを表示'],
-            ['self.Help(self, self.mother, self.help_message)',
-             'Makdo.Minibuffer(self.pane, self.mother)'])
+            'save-buffer',
+            [None, 'ファイルを保存'],
+            ['self.mother.save_file()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'kill-makdo',
+            [None, 'Makdoを終了'],
+            ['self.mother.quit_makdo()'])  # 2 ERRORS OCCUR
+        minibuffer_commands.append(mc)
+
+        # EDIT
+        mc = MinibufferCommand('## 編集', [None, ''], [''])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'undo',
+            [None, '元に戻す'],
+            ['self.mother.edit_modified_undo()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'redo',
+            [None, 'やり直す'],
+            ['self.mother.edit_modified_redo()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'paste-region-from-list',
+            [None, 'リストから選んで貼り付け'],
+            ['self.mother.paste_region_from_list(self)'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'replace-backward',
+            [None, '前を置換'],
+            ['self.mother.replace_forward_from_dialog(self)'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'replace-forward',
+            [None, '後を置換'],
+            ['self.mother.replace_backward_from_dialog(self)'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'replace-string',
+            [None, '全体又は選択範囲を全て置換'],
+            ['self.mother.replace_all(self)'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'clear-search-and-replace-words',
+            [None, '検索語と置換語をリセットする'],
+            ['self.mother.clear_search_and_replace()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'upcase-region',
+            [None, '選択範囲を大文字に変換'],
+            ['self.mother.replace_lower_case_with_upper_case()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'downcase-region',
+            [None, '選択範囲を小文字に変換'],
+            ['self.mother.replace_upper_case_with_lower_case()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'japanese-zenkaku-region',
+            [None, '選択範囲を全角文字に変換'],
+            ['self.mother.replace_half_width_with_full_width()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'japanese-hankaku-region',
+            [None, '選択範囲を半角文字に変換'],
+            ['self.mother.replace_full_width_with_half_width()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'adjust-character-width',
+            [None, '選択範囲の半角全角を推奨の形に変換'],
+            ['self.mother.adjust_character_width()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'sort-lines',
+            [None, '選択範囲の行を正順にソート（並替え）'],
+            ['self.mother.sort_lines()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'sort-lines-in-reverse-order',
+            [None, '選択範囲の行を逆順にソート（並替え）'],
+            ['self.mother.sort_lines_in_reverse_order()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'change-typeface',
+            [None, '入力位置の字形を変える'],
+            ['self.mother.change_typeface(self)'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'comment-out-region',
+            [None, '選択範囲をコメントアウトにする'],
+            ['self.mother.comment_out_region()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'uncomment-in-region',
+            [None, '選択範囲のコメントアウトを解除'],
+            ['self.mother.uncomment_in_region()'])
+        minibuffer_commands.append(mc)
+
+        # INSERT
+        mc = MinibufferCommand('## 挿入', [None, ''], [''])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'insert-comment',
+            [None, 'コメントを挿入'],
+            ['self.mother.txt.insert("insert", "<!---->")',
+             'self.mother.txt.mark_set("insert", "insert-3c")'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'insert-image-format',
+            [None, '画像の書式を挿入'],
+            ['self.mother.insert_image_format()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'insert-file',
+            [None, '別のファイルの内容を挿入'],
+            ['self.mother.insert_file()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'insert-file-names',
+            [None, 'ファイル名のみを一括挿入'],
+            ['self.mother.insert_file_names_in_same_folder()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'insert-current-date',
+            [None, '今日の日付（令和y年m月d日）を挿入'],
+            ['self.mother.insert_date_Gymd()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'insert-current-time',
+            [None, '現在の日時（yy-mm-ddThh:mm:ss）を挿入'],
+            ['self.mother.insert_datetime_simple()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'insert-hyphen',
+            [None, 'ハイフン（U+2010）を挿入'],
+            ['self.mother.insert_hline_2010()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'insert-minus-sign',
+            [None, 'マイナスサイン（U+2212）を挿入'],
+            ['self.mother.insert_hline_2212()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'insert-small-hyphen-minus',
+            [None, '小さいハイフンマイナス（U+FE63）を挿入'],
+            ['self.mother.insert_hline_fe63()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'insert-fullwidth-hyphen-minus',
+            [None, '全角ハイフンマイナス（U+FF0D）を挿入'],
+            ['self.mother.insert_hline_ff0d()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'insert-symbol',
+            [None, '記号を挿入'],
+            ['self.mother.insert_symbol()'])
+        minibuffer_commands.append(mc)
+
+        # PARAGRAPH
+        mc = MinibufferCommand('## 段落', [None, ''], [''])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'insert-table-from-excel',
+            [None, '表をエクセルのファイルから挿入'],
+            ['self.mother.insert_table_from_excel()'])
+        minibuffer_commands.append(mc)
+
+        # MOVE
+        mc = MinibufferCommand('## 移動', [None, ''], [''])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'search-backward',
+            [None, '前を検索'],
+            ['self.mother.search_backward_from_dialog(self)'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'search-forward',
+            [None, '後を検索'],
+            ['self.mother.search_forward_from_dialog(self)'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'place-flag',
+            ['place-flagX(X=1..5)', 'フラグXを設置'],
+            ['self.mother.place_flag1()'])
+        minibuffer_commands.append(mc)
+        for i in range(1, 10):
+            mc = MinibufferCommand(
+                'place-flag' + str(i),
+                None,
+                ['self.mother.place_flag' + str(i) + '()'])
+            minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'goto-flag',
+            ['goto-flagX(X=1..5)', 'フラグXに移動'],
+            ['self.mother.goto_flag1()'])
+        minibuffer_commands.append(mc)
+        for i in range(1, 10):
+            mc = MinibufferCommand(
+                'goto-flag' + str(i),
+                None,
+                ['self.mother.goto_flag' + str(i) + '()'])
+            minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'goto-sub-cursor',
+            [None, 'サブカーソルに移動'],
+            ['self.mother.goto_sub_cursor()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'goto-by-position',
+            [None, '行数と文字数を指定して移動'],
+            ['self.mother.goto_by_position(self)'])
+        minibuffer_commands.append(mc)
+
+        # TOOLS
+        mc = MinibufferCommand('## ツール', [None, ''], [''])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'insert-formula',
+            ['insert-formulaX(X=1..9)', '定型句Xを挿入'],
+            ['self.mother.insert_formula1()'])
+        minibuffer_commands.append(mc)
+        for i in range(1, 10):
+            mc = MinibufferCommand(
+                'insert-formula' + str(i),
+                None,
+                ['self.mother.insert_formula' + str(i) + '()'])
+            minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'edit-formula',
+            ['edit-formulaX(X=1..9)', '定型句Xを編集'],
+            ['self.mother.edit_formula1()'])
+        minibuffer_commands.append(mc)
+        for i in range(1, 10):
+            mc = MinibufferCommand(
+                'edit-formula' + str(i),
+                None,
+                ['self.mother.edit_formula' + str(i) + '()'])
+            minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'open-memo-pad',
+            [None, 'メモ帳を開く'],
+            ['self.mother.open_memo_pad()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'split-window',
+            [None, '画面を二つに分割'],
+            ['self.mother.split_window()',
+             'self.set_return_to()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'compare-with-previous-draft',
+            [None, '編集前の原稿と比較して元に戻す'],
+            ['self.mother.compare_with_previous_draft()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'previous_window',
+            [None, '前のウィンドウに移動'],
+            ['self.mother._jump_to_prev_pane()',
+             'self.set_return_to()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'next_window',
+            [None, '次のウィンドウに移動'],
+            ['self.mother._jump_to_next_pane()',
+             'self.set_return_to()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'close-sub-window',
+            [None, 'サブウィンドウを閉じる'],
+            ['self.mother._close_sub_pane()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'fold-or-unfold-section',
+            [None, 'セクションの折畳又は展開'],
+            ['self.mother.fold_or_unfold_section()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'unfold-section-fully',
+            [None, 'セクションの折畳を全て展開'],
+            ['self.mother.unfold_section_fully()'])
+        minibuffer_commands.append(mc)
+
+        # CONFIGS
+        mc = MinibufferCommand('## 設定', [None, ''], [''])
         minibuffer_commands.append(mc)
 
         mc = MinibufferCommand(
@@ -12582,133 +12913,18 @@ class Makdo:
             else:
                 self.mother.is_read_only.set(True)
 
-        mc = MinibufferCommand(
-            'goto-by-position',
-            [None, '行数と文字数を指定して移動'],
-            ['self.mother.goto_by_position(self)'])
+        # INTERNET
+        mc = MinibufferCommand('## ネット', [None, ''], [''])
         minibuffer_commands.append(mc)
 
         mc = MinibufferCommand(
-            'goto-sub-cursor',
-            [None, 'サブカーソルに移動'],
-            ['self.mother.goto_sub_cursor()'])
+            'browse-mints',
+            [None, 'mints（民事裁判書類電子提出システム）に接続'],
+            ['self.mother.browse_mints()'])
         minibuffer_commands.append(mc)
 
-        mc = MinibufferCommand(
-            'place-flag',
-            ['place-flagX(X=1..5)', 'フラグXを設置'],
-            ['self.mother.place_flag1()'])
-        minibuffer_commands.append(mc)
-        for i in range(1, 10):
-            mc = MinibufferCommand(
-                'place-flag' + str(i),
-                None,
-                ['self.mother.place_flag' + str(i) + '()'])
-            minibuffer_commands.append(mc)
-        mc = MinibufferCommand(
-            'goto-flag',
-            ['goto-flagX(X=1..5)', 'フラグXに移動'],
-            ['self.mother.goto_flag1()'])
-        minibuffer_commands.append(mc)
-        for i in range(1, 10):
-            mc = MinibufferCommand(
-                'goto-flag' + str(i),
-                None,
-                ['self.mother.goto_flag' + str(i) + '()'])
-            minibuffer_commands.append(mc)
-
-        mc = MinibufferCommand(
-            'search-backward',
-            [None, '上方を検索'],
-            ['self.mother.search_backward_from_dialog(self)'])
-        minibuffer_commands.append(mc)
-        mc = MinibufferCommand(
-            'search-forward',
-            [None, '下方を検索'],
-            ['self.mother.search_forward_from_dialog(self)'])
-        minibuffer_commands.append(mc)
-
-        mc = MinibufferCommand(
-            'replace-string',
-            [None, '文章全体又は選択範囲を全置換'],
-            ['self.mother.replace_all(self)'])
-        minibuffer_commands.append(mc)
-
-        mc = MinibufferCommand(
-            'replace-backward',
-            [None, '上方を置換'],
-            ['self.mother.replace_forward_from_dialog(self)'])
-        minibuffer_commands.append(mc)
-        mc = MinibufferCommand(
-            'replace-forward',
-            [None, '下方を置換'],
-            ['self.mother.replace_backward_from_dialog(self)'])
-        minibuffer_commands.append(mc)
-
-        mc = MinibufferCommand(
-            'clear-search-and-replace-words',
-            [None, '検索語と置換語をリセットする'],
-            ['self.mother.clear_search_and_replace()'])
-        minibuffer_commands.append(mc)
-
-        mc = MinibufferCommand(
-            'upcase-region',
-            [None, '選択範囲を大文字に変換'],
-            ['self.mother.replace_lower_case_with_upper_case()'])
-        minibuffer_commands.append(mc)
-        mc = MinibufferCommand(
-            'downcase-region',
-            [None, '選択範囲を小文字に変換'],
-            ['self.mother.replace_upper_case_with_lower_case()'])
-        minibuffer_commands.append(mc)
-        mc = MinibufferCommand(
-            'japanese-zenkaku-region',
-            [None, '選択範囲を全角文字に変換'],
-            ['self.mother.replace_half_width_with_full_width()'])
-        minibuffer_commands.append(mc)
-        mc = MinibufferCommand(
-            'japanese-hankaku-region',
-            [None, '選択範囲を半角文字に変換'],
-            ['self.mother.replace_full_width_with_half_width()'])
-        minibuffer_commands.append(mc)
-
-        mc = MinibufferCommand(
-            'adjust-character-width',
-            [None, '選択範囲の半角全角を推奨の形に変換'],
-            ['self.mother.adjust_character_width()'])
-        minibuffer_commands.append(mc)
-
-        mc = MinibufferCommand(
-            'sort-lines',
-            [None, '選択範囲の行を正順にソート'],
-            ['self.mother.sort_lines()'])
-        minibuffer_commands.append(mc)
-        mc = MinibufferCommand(
-            'sort-lines-in-reverse-order',
-            [None, '選択範囲の行を逆順にソート'],
-            ['self.mother.sort_lines_in_reverse_order()'])
-        minibuffer_commands.append(mc)
-
-        mc = MinibufferCommand(
-            'comment-out-region',
-            [None, '選択範囲をコメントアウト'],
-            ['self.mother.comment_out_region()'])
-        minibuffer_commands.append(mc)
-        mc = MinibufferCommand(
-            'uncomment-in-region',
-            [None, '選択範囲のコメントアウトを解除'],
-            ['self.mother.uncomment_in_region()'])
-        minibuffer_commands.append(mc)
-
-        mc = MinibufferCommand(
-            'fold-or-unfold-section',
-            [None, 'セクションの折畳又は展開'],
-            ['self.mother.fold_or_unfold_section()'])
-        minibuffer_commands.append(mc)
-        mc = MinibufferCommand(
-            'unfold-section-fully',
-            [None, 'セクションの折畳を全て展開'],
-            ['self.mother.unfold_section_fully()'])
+        # HELP
+        mc = MinibufferCommand('## ヘルプ', [None, ''], [''])
         minibuffer_commands.append(mc)
 
         mc = MinibufferCommand(
@@ -12718,160 +12934,10 @@ class Makdo:
         minibuffer_commands.append(mc)
 
         mc = MinibufferCommand(
-            'change-typeface',
-            [None, '字形を変える'],
-            ['self.mother.change_typeface(self)'])
-        minibuffer_commands.append(mc)
-
-        mc = MinibufferCommand(
-            'paste-region-from-list',
-            [None, 'リストから選んで貼り付け'],
-            ['self.mother.paste_region_from_list(self)'])
-        minibuffer_commands.append(mc)
-
-        mc = MinibufferCommand(
-            'insert-file',
-            [None, 'ファイルの内容を挿入'],
-            ['self.mother.insert_file()'])
-        minibuffer_commands.append(mc)
-
-        mc = MinibufferCommand(
-            'insert-file-names',
-            [None, 'ファイル名のみを一括挿入'],
-            ['self.mother.insert_file_names_in_same_folder()'])
-        minibuffer_commands.append(mc)
-
-        mc = MinibufferCommand(
-            'insert-current-time',
-            [None, '現在の日時を挿入'],
-            ['self.mother.insert_datetime_simple()'])
-        minibuffer_commands.append(mc)
-
-        mc = MinibufferCommand(
-            'insert-current-date',
-            [None, '今日の日付を挿入'],
-            ['self.mother.insert_date_Gymd()'])
-        minibuffer_commands.append(mc)
-
-        mc = MinibufferCommand(
-            'insert-symbol',
-            [None, '記号を挿入'],
-            ['self.mother.insert_symbol()'])
-        minibuffer_commands.append(mc)
-
-        mc = MinibufferCommand(
-            'insert-hyphen',
-            [None, 'ハイフンを挿入'],
-            ['self.mother.insert_hline_2010()'])
-        minibuffer_commands.append(mc)
-
-        mc = MinibufferCommand(
-            'insert-minus-sign',
-            [None, 'マイナスサインを挿入'],
-            ['self.mother.insert_hline_2212()'])
-        minibuffer_commands.append(mc)
-
-        mc = MinibufferCommand(
-            'insert-small-hyphen-minus',
-            [None, '小さいハイフンマイナスを挿入'],
-            ['self.mother.insert_hline_fe63()'])
-        minibuffer_commands.append(mc)
-
-        mc = MinibufferCommand(
-            'insert-fullwidth-hyphen-minus',
-            [None, '全角ハイフンマイナスを挿入'],
-            ['self.mother.insert_hline_ff0d()'])
-        minibuffer_commands.append(mc)
-
-        mc = MinibufferCommand(
-            'insert-comment',
-            [None, 'コメントを挿入'],
-            ['self.mother.txt.insert("insert", "<!---->")',
-             'self.mother.txt.mark_set("insert", "insert-3c")'])
-        minibuffer_commands.append(mc)
-
-        mc = MinibufferCommand(
-            'edit-formula',
-            ['edit-formulaX(X=1..9)', '定型句Xを編集'],
-            ['self.mother.edit_formula1()'])
-        minibuffer_commands.append(mc)
-        for i in range(1, 10):
-            mc = MinibufferCommand(
-                'edit-formula' + str(i),
-                None,
-                ['self.mother.edit_formula' + str(i) + '()'])
-            minibuffer_commands.append(mc)
-        mc = MinibufferCommand(
-            'insert-formula',
-            ['insert-formulaX(X=1..9)', '定型句Xを挿入'],
-            ['self.mother.insert_formula1()'])
-        minibuffer_commands.append(mc)
-        for i in range(1, 10):
-            mc = MinibufferCommand(
-                'insert-formula' + str(i),
-                None,
-                ['self.mother.insert_formula' + str(i) + '()'])
-            minibuffer_commands.append(mc)
-
-        mc = MinibufferCommand(
-            'split-window',
-            [None, '画面を分割'],
-            ['self.mother.split_window()',
-             'self.set_return_to()'])
-        minibuffer_commands.append(mc)
-
-        mc = MinibufferCommand(
-            'open-memo-pad',
-            [None, 'メモ帳を開く'],
-            ['self.mother.open_memo_pad()'])
-        minibuffer_commands.append(mc)
-
-        mc = MinibufferCommand(
-            'compare-with-previous-draft',
-            [None, '編集前の原稿と比較'],
-            ['self.mother.compare_with_previous_draft()'])
-        minibuffer_commands.append(mc)
-
-        mc = MinibufferCommand(
-            'previous_window',
-            [None, '前のウィンドウに移動'],
-            ['self.mother._jump_to_prev_pane()',
-             'self.set_return_to()'])
-        minibuffer_commands.append(mc)
-        mc = MinibufferCommand(
-            'next_window',
-            [None, '次のウィンドウに移動'],
-            ['self.mother._jump_to_next_pane()',
-             'self.set_return_to()'])
-        minibuffer_commands.append(mc)
-
-        mc = MinibufferCommand(
-            'close-sub-window',
-            [None, 'サブウィンドウを閉じる'],
-            ['self.mother._close_sub_pane()'])
-        minibuffer_commands.append(mc)
-
-        mc = MinibufferCommand(
-            'undo',
-            [None, '元に戻す'],
-            ['self.mother.edit_modified_undo()'])
-        minibuffer_commands.append(mc)
-        mc = MinibufferCommand(
-            'redo',
-            [None, 'やり直す'],
-            ['self.mother.edit_modified_redo()'])
-        minibuffer_commands.append(mc)
-
-        mc = MinibufferCommand(
-            'save-buffer',
-            [None, 'ファイルを保存'],
-            ['self.mother.save_file()'])
-        minibuffer_commands.append(mc)
-
-        mc = MinibufferCommand(
-            'kill-makdo',
-            [None, 'Makdoを終了'],
-            ['self.mother.quit_makdo()'])  # 2 ERRORS OCCUR
+            'help',
+            [None, 'このメッセージを表示'],
+            ['self.Help(self, self.mother, self.help_message)',
+             'Makdo.Minibuffer(self.pane, self.mother)'])
         minibuffer_commands.append(mc)
 
         history = []
@@ -12910,10 +12976,10 @@ class Makdo:
                     help_command = mc.command_text
                 help_message += \
                     help_command \
-                    + (' ' * (32 - len(help_command)))
+                    + (' ' * (40 - len(help_command)))
                 help_message += \
                     help_explanation \
-                    + (' ' * (32 - get_real_width(help_explanation))) + '\n'
+                    + (' ' * (40 - get_real_width(help_explanation))) + '\n'
             return help_message
 
         def body(self, pane):
@@ -14163,7 +14229,7 @@ class Makdo:
                             postcommand=self.close_mouse_menu)
         self.mnb.add_cascade(label='ヘルプ(H)', menu=menu, underline=4)
         #
-        menu.add_command(label='文字情報',
+        menu.add_command(label='入力位置の文字情報を表示',
                          command=self.show_char_info)
         menu.add_separator()
         #
@@ -15921,6 +15987,10 @@ class Makdo:
     # NOT PYINSTALLER
     if not getattr(sys, 'frozen', False):
 
+        # TRICK
+        mc = Minibuffer.MinibufferCommand('## 裏の技', [None, ''], [''])
+        Minibuffer.minibuffer_commands.append(mc)
+
         # CALCULATE INTEREST OR CHARGE
 
         def _load_keiji(self):
@@ -16484,6 +16554,8 @@ class Makdo:
                 n, m = 'エラー', 'oLlamaのモデルが設定されていません．'
                 tkinter.messagebox.showerror(n, m)
                 return False
+            m = 'モデルは"' + self.ollama_model + '"が設定されています'
+            self.set_message_on_status_bar(m)
             # PROMPT
             cnf_head, que_head, ans_head = self._get_geneai_head('Ollama')
             if 'ollama_qanda' not in vars(self):
