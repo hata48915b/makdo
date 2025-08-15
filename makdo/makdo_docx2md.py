@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.14-13:42:21-JST>
+# Time-stamp:   <2025.08.15-21:21:13-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -8641,7 +8641,7 @@ class ParagraphTable(Paragraph):
         res_h_lef = '^<w:jc(?: .*)? w:val=[\'"]left[\'"](?: .*)?/>$'
         res_h_cen = '^<w:jc(?: .*)? w:val=[\'"]center[\'"](?: .*)?/>$'
         res_h_rig = '^<w:jc(?: .*)? w:val=[\'"]right[\'"](?: .*)?/>$'
-        is_in_tcpr, is_in_tcborders , is_in_ppr = False, False, False
+        is_in_tcpr, is_in_tcborders, is_in_ppr = False, False, False
         for i, par_xml_row in enumerate(par_xml_tbl):
             v_alig_row, h_alig_row = [], []
             v_rule_row, h_rule_row = [], []

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.15-07:52:03-JST>
+# Time-stamp:   <2025.08.15-21:17:06-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5900,7 +5900,7 @@ class Makdo:
 
     @staticmethod
     def _get_now():
-        now = datetime.datetime.now(datetime.UTC) \
+        now = datetime.datetime.now(datetime.timezone.utc) \
             + datetime.timedelta(hours=+9)
         jst = datetime.timezone(datetime.timedelta(hours=+9))
         now = now.replace(tzinfo=jst)
@@ -6861,7 +6861,7 @@ class Makdo:
         if not re.match('^\\s*<!--', file_text):
             return
         file_text = re.sub('-->(.|\n)*$', '', file_text)
-        now = datetime.datetime.now(datetime.UTC) \
+        now = datetime.datetime.now(datetime.timezone.utc) \
             + datetime.timedelta(hours=+9)
         jst = datetime.timezone(datetime.timedelta(hours=+9))
         now = now.replace(tzinfo=jst)
