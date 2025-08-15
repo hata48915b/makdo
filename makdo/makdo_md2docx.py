@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.14-13:29:07-JST>
+# Time-stamp:   <2025.08.15-08:58:51-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -3807,9 +3807,9 @@ class Document:
         for i, p in enumerate(paragraphs):
             if i > 0:
                 p_prev = paragraphs[i - 1]
-            if p.paragraph_class == 'pagebreak':
-                if p_prev.paragraph_class not in exception:
-                    p.is_attached_pagebreak = True
+                if p.paragraph_class == 'pagebreak':
+                    if p_prev.paragraph_class not in exception:
+                        p.is_attached_pagebreak = True
         return self.paragraphs
 
     def write_property(self, ms_doc):
@@ -5229,9 +5229,13 @@ class Paragraph:
                     XML.write_chars(ms_par._p, chars_state, '\u3000')
                 chars_state.font_width = ori_fw
         elif re.match(NOT_ESCAPED + '(n|N|M)$', chars):
-            res = NOT_ESCAPED + '@[^@]{1,66}.$'
+            res_font_name = NOT_ESCAPED + '@[^@]{1,66}.$'
+            res_image_1 = NOT_ESCAPED + '!\\[[^\\[\\]]+$'
+            res_image_2 = NOT_ESCAPED + '!\\[[^\\[\\]]+\\]\\([^\\(\\)]+$'
             if type == 'footer' and \
-               not re.match(res, chars):  # not in a font name
+               not re.match(res_font_name, chars) and \
+               not re.match(res_image_1, chars) and \
+               not re.match(res_image_2, chars):
                 # "n|N|M" (PAGE NUMBER)
                 char = re.sub(NOT_ESCAPED + '(n|N|M)$', '\\2', chars)
                 chars = re.sub(NOT_ESCAPED + '(n|N|M)$', '\\1', chars)
