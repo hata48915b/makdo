@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.15-08:58:51-JST>
+# Time-stamp:   <2025.08.15-09:19:50-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -1360,8 +1360,10 @@ class IO:
         ms_doc.styles['makdo-f'].font.size = Pt(f_size * 2 / 3)
         ms_doc.styles['makdo-f'].paragraph_format.line_spacing \
             = Pt(f_size * 2 / 3)
-        ms_doc.styles['makdo-f'].paragraph_format.space_before \
-            = Pt(((line_spacing * f_size) - (f_size * 1 / 3)) / 2)
+        pt = Pt(((line_spacing * f_size) - (f_size * 1 / 3)) / 2)
+        if pt < 0:
+            pt = 0
+        ms_doc.styles['makdo-f'].paragraph_format.space_before = pt
         ms_doc.styles['makdo-f'].paragraph_format.space_after = Pt(0)
         ms_doc.styles['makdo-f'].paragraph_format.first_line_indent \
             = Pt(- f_size)
