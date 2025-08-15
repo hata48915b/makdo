@@ -1,7 +1,7 @@
 import sys
 from setuptools import setup
 
-VERSION = '08.15'
+VERSION = '08.16'
 
 INSTALL_REQUIRES = ['python-docx', 'chardet', 'Levenshtein', 'openpyxl']
 if sys.platform == 'win32':
