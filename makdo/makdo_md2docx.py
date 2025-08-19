@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.15-21:19:35-JST>
+# Time-stamp:   <2025.08.19-10:24:25-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -1186,11 +1186,11 @@ class IO:
         ms_sec.left_margin = Cm(Form.left_margin)
         ms_sec.right_margin = Cm(Form.right_margin)
         ms_sec.header_distance = Cm(1.0)
-        if Form.top_margin < 1.0:
-            ms_sec.header_distance = Cm(Form.top_margin)
+        if Form.top_margin < 2.0:
+            ms_sec.header_distance = Cm(Form.top_margin / 2)
         ms_sec.footer_distance = Cm(1.0)
-        if Form.bottom_margin < 1.0:
-            ms_sec.footer_distance = Cm(Form.bottom_margin)
+        if Form.bottom_margin < 2.0:
+            ms_sec.footer_distance = Cm(Form.bottom_margin / 2)
         # NORMAL (LINE NUMBER)
         ms_doc.styles['Normal'].font.size = Pt(f_size / 2)
         XML.set_font(ms_doc.styles['Normal'], DEFAULT_LINE_NUMBER_FONT)

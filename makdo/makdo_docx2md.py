@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.15-21:21:13-JST>
+# Time-stamp:   <2025.08.19-10:31:34-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -1676,13 +1676,13 @@ class Form:
             if 20.9 <= height and height <= 21.1:
                 Form.paper_size = 'A4L'
         # MARGIN
-        if top_x > 0:
+        if top_x >= 0:
             Form.top_margin = round(top_x / 567, 1)
-        if bottom_x > 0:
+        if bottom_x >= 0:
             Form.bottom_margin = round(bottom_x / 567, 1)
-        if left_x > 0:
+        if left_x >= 0:
             Form.left_margin = round(left_x / 567, 1)
-        if right_x > 0:
+        if right_x >= 0:
             Form.right_margin = round(right_x / 567, 1)
         # DOCUMENT STYLE
         xml_body = XML.get_body('w:body', xml_lines)
