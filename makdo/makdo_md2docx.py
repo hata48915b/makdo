@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.19-10:24:25-JST>
+# Time-stamp:   <2025.08.21-17:29:04-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5733,47 +5733,33 @@ class ParagraphTable(Paragraph):
                 # RULE
                 ms_tcpr = ms_cell._tc.get_or_add_tcPr()
                 ms_tcbr = XML.add_tag(ms_tcpr, 'w:tcBorders')
-                if i > 0 and vert_rule_list[i - 1] == '^':
-                    XML.add_tag(ms_tcbr, 'w:top', {'w:val': 'nil'})
-                if vert_rule_list[i] == '^':
-                    XML.add_tag(ms_tcbr, 'w:bottom', {'w:val': 'nil'})
-                if i > 0 and vert_rule_list[i - 1] == '=':
-                    XML.add_tag(ms_tcbr, 'w:top', {'w:val': 'double'})
-                if vert_rule_list[i] == '=':
-                    XML.add_tag(ms_tcbr, 'w:bottom', {'w:val': 'double'})
-                if j > 0 and hori_rule_list[j - 1] == '^':
-                    XML.add_tag(ms_tcbr, 'w:left', {'w:val': 'nil'})
-                if hori_rule_list[j] == '^':
-                    XML.add_tag(ms_tcbr, 'w:right', {'w:val': 'nil'})
-                if j > 0 and hori_rule_list[j - 1] == '=':
-                    XML.add_tag(ms_tcbr, 'w:left', {'w:val': 'double'})
-                if hori_rule_list[j] == '=':
-                    XML.add_tag(ms_tcbr, 'w:right', {'w:val': 'double'})
+                e_i, e_j = merge_mtrx[i][j][0], merge_mtrx[i][j][1]
+                if e_i > 0 and e_j > 0:
+                    i_u, i_d = i - 1, i + e_i - 1
+                    j_l, j_r = j - 1, j + e_j - 1
+                    if i_u >= 0 and vert_rule_list[i_u] == '^':
+                        XML.add_tag(ms_tcbr, 'w:top', {'w:val': 'nil'})
+                    if vert_rule_list[i_d] == '^':
+                        XML.add_tag(ms_tcbr, 'w:bottom', {'w:val': 'nil'})
+                    if i_u >= 0 and vert_rule_list[i_u - 1] == '=':
+                        XML.add_tag(ms_tcbr, 'w:top', {'w:val': 'double'})
+                    if vert_rule_list[i_d] == '=':
+                        XML.add_tag(ms_tcbr, 'w:bottom', {'w:val': 'double'})
+                    if j_l >= 0 and hori_rule_list[j_l] == '^':
+                        XML.add_tag(ms_tcbr, 'w:left', {'w:val': 'nil'})
+                    if hori_rule_list[j_r] == '^':
+                        XML.add_tag(ms_tcbr, 'w:right', {'w:val': 'nil'})
+                    if j_l > 0 and hori_rule_list[j_l] == '=':
+                        XML.add_tag(ms_tcbr, 'w:left', {'w:val': 'double'})
+                    if hori_rule_list[j_r] == '=':
+                        XML.add_tag(ms_tcbr, 'w:right', {'w:val': 'double'})
         # MERGE CELLS
-        for i in range(len(tab)):
-            for j in range(len(tab[i])):
-                merge_text = merge_mtrx[i][j]
-                if merge_text != '':
-                    res_x = '^([0-9]+)x?$'
-                    res_y = '^x([0-9]+)$'
-                    res_xy = '^([0-9]+)x([0-9]+)$'
-                    if re.match(res_x, merge_text):
-                        mt_x = int(re.sub(res_x, '\\1', merge_text)) - 1
-                        mt_y = 0
-                    elif re.match(res_y, merge_text):
-                        mt_x = 0
-                        mt_y = int(re.sub(res_y, '\\1', merge_text)) - 1
-                    else:
-                        mt_x = int(re.sub(res_xy, '\\1', merge_text)) - 1
-                        mt_y = int(re.sub(res_xy, '\\2', merge_text)) - 1
-                    ms_cell_fr = ms_tab.cell(i, j)
-                    #
-                    i_to, j_to = i + mt_y, j + mt_x
-                    if i_to > len(tab) - 1:
-                        i_to = len(tab) - 1
-                    if j_to > len(tab[i_to]) - 1:
-                        j_to = len(tab[i_to]) - 1
-                    #
+        for i_fr in range(len(tab)):
+            for j_fr in range(len(tab[i])):
+                e_i, e_j = merge_mtrx[i_fr][j_fr][0], merge_mtrx[i_fr][j_fr][1]
+                if e_i > 1 or e_j > 1:
+                    i_to, j_to = i_fr + e_i - 1, j_fr + e_j - 1
+                    ms_cell_fr = ms_tab.cell(i_fr, j_fr)
                     ms_cell_to = ms_tab.cell(i_to, j_to)
                     ms_cell_fr.merge(ms_cell_to)
         # CHARS STATE
@@ -5906,8 +5892,7 @@ class ParagraphTable(Paragraph):
         # FOR SHORTAGE
         max_row = 0
         for row in tab:
-            if max_row < len(row):
-                max_row = len(row)
+            max_row = max(max_row, len(row))
         for row in tab:
             while len(row) < max_row:
                 row.append('')
@@ -5957,18 +5942,37 @@ class ParagraphTable(Paragraph):
 
     @staticmethod
     def __get_merge_mtrx(tab):
-        # MERGE CELLS
+        m_i = len(tab)
+        m_j = len(tab[0])
+        merge_mtrx = [[(1, 1) for j in range(m_j)] for i in range(m_i)]
         res = '^(.*)@((?:[0-9]*x)?[0-9]+)$'
-        merge_mtrx = []
+        res_i = '^x([0-9]+)$'
+        res_j = '^([0-9]+)x?$'
+        res_ji = '^([0-9]+)x([0-9]+)$'
         for i in range(len(tab)):
-            merge_list = []
             for j in range(len(tab[i])):
-                merge_text = ''
                 if re.match(res, tab[i][j]):
                     merge_text = re.sub(res, '\\2', tab[i][j])
                     tab[i][j] = re.sub(res, '\\1', tab[i][j])
-                merge_list.append(merge_text)
-            merge_mtrx.append(merge_list)
+                    if re.match(res_i, merge_text):
+                        e_i = int(re.sub(res_i, '\\1', merge_text))
+                        e_j = 1
+                    elif re.match(res_j, merge_text):
+                        e_i = 1
+                        e_j = int(re.sub(res_j, '\\1', merge_text))
+                    else:
+                        e_i = int(re.sub(res_ji, '\\2', merge_text))
+                        e_j = int(re.sub(res_ji, '\\1', merge_text))
+                    if i + e_i >= m_i:
+                        e_i = m_i - i
+                    if j + e_j >= m_j:
+                        e_j = m_j - j
+                    for d_i in range(e_i):
+                        t_i = i + d_i
+                        for d_j in range(e_j):
+                            t_j = j + d_j
+                            merge_mtrx[t_i][t_j] = (-1, -1)
+                    merge_mtrx[i][j] = (e_i, e_j)
         return tab, merge_mtrx
 
     @staticmethod
