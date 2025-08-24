@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.20-12:41:50-JST>
+# Time-stamp:   <2025.08.24-09:25:50-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -16211,7 +16211,7 @@ class Makdo:
                 return
             self.set_message_on_status_bar('', True)
             answer = output.choices[0].message.content
-            answer = adjust_line(answer)
+            # answer = adjust_line(answer)
             self._write_answer('OpenAI', answer)
             self.openai_qanda = self.sub.get('1.0', 'end-1c')
 
@@ -16426,7 +16426,7 @@ class Makdo:
                 messages=messages)
             self.set_message_on_status_bar('', True)
             answer = output['choices'][0]['message']['content']
-            answer = adjust_line(answer)
+            # answer = adjust_line(answer)
             self._write_answer('Llama', answer)
             self.llama_qanda = self.sub.get('1.0', 'end-1c')
 
@@ -16443,7 +16443,7 @@ class Makdo:
             answer = re.sub('^\\s+', '', answer)
             answer = re.sub('\\s+$', '', answer)
             answer = re.sub('\\\\n', '\n', answer)
-            answer = adjust_line(answer)
+            # answer = adjust_line(answer)
             self._write_answer('Llama', answer)
             self.llama_qanda = self.sub.get('1.0', 'end-1c')
 
@@ -16614,7 +16614,7 @@ class Makdo:
                 tkinter.messagebox.showerror(n, m)
                 return False
             answer = response.message.content
-            answer = adjust_line(answer)
+            # answer = adjust_line(answer)
             self._write_answer('Ollama', answer)
             self.ollama_qanda = self.sub.get('1.0', 'end-1c')
             return True
