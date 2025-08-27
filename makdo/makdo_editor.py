@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.24-09:25:50-JST>
+# Time-stamp:   <2025.08.27-14:17:39-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -30,7 +30,7 @@
 # 2025.01.04 v08 Omachi
 
 __version__ = 'v08 Omachi'
-__revision__ = 'v08.16'
+__revision__ = 'v08.17'
 
 
 # USAGE
