@@ -1,6 +1,6 @@
-<!-- Time-stamp:   <2025.08.27-09:07:36-JST> -->
+<!-- Time-stamp:   <2025.08.27-09:18:04-JST> -->
 
-# Makdo（Microsoft Word形式のファイルをMarkdownで作成・編集するエディタアプリ）
+# Makdo（Microsoft Word形式のファイルをMarkdown記法で作成・編集するエディタアプリ）
 
 **〜〜 Makdoでコーヒー片手に余裕の起案！ 〜〜**
 
