@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.31-08:30:23-JST>
+# Time-stamp:   <2025.08.31-09:04:17-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -11144,7 +11144,7 @@ class Makdo:
         menu.add_separator()
         #
         menu.add_command(label='行数と文字数を指定して移動',
-                         command=self.goto_by_position)
+                         command=self.goto_position)
         # menu.add_separator()
 
     ################
@@ -11333,7 +11333,7 @@ class Makdo:
         self.txt.mark_set('sub_insert', m)
         self.txt.mark_gravity('sub_insert', 'left')
 
-    def goto_by_position(self, father=None):
+    def goto_position(self, father=None):
         pane = self.txt
         if self.current_pane == 'sub':
             pane = self.sub
@@ -12866,9 +12866,9 @@ class Makdo:
         minibuffer_commands.append(mc)
 
         mc = MinibufferCommand(
-            'goto-by-position',
+            'goto-position',
             [None, '行数と文字数を指定して移動'],
-            ['self.mother.goto_by_position(self)'])
+            ['self.mother.goto_position(self)'])
         minibuffer_commands.append(mc)
 
         # TOOLS
