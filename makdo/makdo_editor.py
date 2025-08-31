@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.27-14:17:39-JST>
+# Time-stamp:   <2025.08.31-08:30:23-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -11131,6 +11131,10 @@ class Makdo:
                          command=self.search_forward, accelerator='Ctrl+F')
         menu.add_separator()
         #
+        menu.add_command(label='対となる括弧に移動',
+                         command=self.goto_matching_parenthesis)
+        menu.add_separator()
+        #
         self._make_submenu_place_flag(menu)
         self._make_submenu_goto_flag(menu)
         menu.add_separator()
@@ -11181,6 +11185,55 @@ class Makdo:
             self.search_forward_from_dialog(pane)
         else:
             self.search_or_replace_forward(False)   # must_replace = False
+
+    ################
+    # COMMAND
+
+    def goto_matching_parenthesis(self):
+        parens = [['(', ')'], ['（', '）'], ['{', '}'], ['｛', '｝'],
+                  ['[', ']'], ['［', '］'], ['<', '>'], ['＜', '＞'],
+                  ['【', '】'], ['「', '」'], ['『', '』'], ['〔', '〕'],
+                  ['〈', '〉'], ['《', '》'], ['“', '”'],
+                 ]
+        pane = self.txt
+        if self.current_pane == 'sub':
+            pane = self.sub
+        cha = pane.get('insert', 'insert+1c')
+        for par in parens:
+            if par[0] == cha:
+                doc, dep, num = pane.get('insert', 'end-1c'), 0, -1
+                for c in doc:
+                    num += 1
+                    if c == par[0]:
+                        dep += 1
+                    elif c == par[1]:
+                        dep -= 1
+                    if dep == 0:
+                        pane.mark_set('insert', 'insert+' + str(num) + 'c')
+                        return True
+                n = 'エラー'
+                m = '対となる括弧が見つかりません．'
+                tkinter.messagebox.showerror(n, m)
+                return False
+            elif par[1] == cha:
+                doc, dep, num = pane.get('1.0', 'insert'), -1, 0
+                for c in doc[::-1]:
+                    num += 1
+                    if c == par[0]:
+                        dep += 1
+                    elif c == par[1]:
+                        dep -= 1
+                    if dep == 0:
+                        pane.mark_set('insert', 'insert-' + str(num) + 'c')
+                        return True
+                n = 'エラー'
+                m = '対となる括弧が見つかりません．'
+                tkinter.messagebox.showerror(n, m)
+                return False
+        n = 'エラー'
+        m = 'カーソルが括弧にありません．'
+        tkinter.messagebox.showerror(n, m)
+        return False
 
     ################
     # SUBMENU PLACE FLAG
