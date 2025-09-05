@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.31-09:04:17-JST>
+# Time-stamp:   <2025.09.05-09:26:10-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -14527,6 +14527,9 @@ class Makdo:
         unix_time = datetime.datetime.now().timestamp()
         self.key_pressed_time.append(unix_time)
         self.key_pressed_time.pop(0)
+        # EDIT SEPARATOR
+        if (not re.match('^[0-9A-Za-z]$', k1)) and (k1 != k2):
+            pane.edit_separator()
         # KEY
         if k1 == 'Escape':
             if k2 == 'Escape':
