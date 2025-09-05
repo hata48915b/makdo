@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.09.05-13:25:08-JST>
+# Time-stamp:   <2025.09.05-17:03:36-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -11194,7 +11194,7 @@ class Makdo:
                   ['[', ']'], ['［', '］'], ['<', '>'], ['＜', '＞'],
                   ['【', '】'], ['「', '」'], ['『', '』'], ['〔', '〕'],
                   ['〈', '〉'], ['《', '》'], ['“', '”'],
-                 ]
+                  ]
         pane = self.txt
         if self.current_pane == 'sub':
             pane = self.sub
@@ -11931,10 +11931,72 @@ class Makdo:
         for p in comp.paragraphs:
             if p.ses_symbol == '.':
                 continue
+            res = '^(.*)\n((?:.|\n)*?)\n*$'
+            head_text = re.sub(res, '\\1', p.diff_text)
+            diff_text = re.sub(res, '\\2', p.diff_text)
+            #
             frm0 = tkinter.Frame(cvs_frm)
+            frm0.configure(bg=cols['bg'])
+            frm0.pack(expand=True, side='top', anchor='w', fill='x')
             frm1 = tkinter.Frame(frm0)
+            frm1.configure(bg=cols['bg'])
+            # frm1.pack(expand=True, side='top', anchor='w', fill='x')
             frm2 = tkinter.Frame(frm0)
+            frm2.configure(bg=cols['bg'])
+            frm2.pack(expand=True, side='top', anchor='w', fill='x')
             frm3 = tkinter.Frame(frm0)
+            frm3.configure(bg=cols['bg'])
+            frm3.pack(expand=True, side='top', anchor='w', fill='x')
+            #
+            head_font = self.gothic_font.copy()
+            head_font['weight'] = 'bold'
+            head_lbl = tkinter.Label(frm2, text=('## ' + head_text),
+                                     font=head_font, justify='left')
+            head_lbl.configure(bg=cols['bg'], fg=cols['sc'][1])
+            head_lbl.pack(expand=True, side='left', anchor='w')
+            #
+            nor_font = self.gothic_font.copy()
+            doi_font = self.gothic_font.copy()
+            nor_font['weight'] = 'normal'
+            doi_font['weight'] = 'bold'
+            diff_lines = []
+            lines = diff_text.split('\n')
+            for i, line in enumerate(lines):
+                if re.match('^X\\| ', line):
+                    diff_lines.append([['nor', line[:3]], ['del', line[3:]]])
+                elif re.match('^O\\| ', line):
+                    diff_lines.append([['nor', line[:3]], ['ins', line[3:]]])
+                elif re.match('^x\\| ', line):
+                    x = lines[i][3:]
+                    o = lines[i + 1][3:]
+                    parts = self._get_doi_parts('del', o, x)
+                    diff_lines.append(parts)
+                elif re.match('^o\\| ', line):
+                    x = lines[i - 1][3:]
+                    o = lines[i][3:]
+                    parts = self._get_doi_parts('ins', x, o)
+                    diff_lines.append(parts)
+                else:
+                    diff_lines.append([['nor', line[:3]], ['nor', line[3:]]])
+            for diff_parts in diff_lines:
+                line_frm = tkinter.Frame(frm3)
+                line_frm.configure(bg=cols['bg'])
+                line_frm.pack(expand=True, side='top', anchor='w', fill='x')
+                for dp in diff_parts:
+                    if dp[0] == 'del' or dp[0] == 'ins':
+                        diff_lbl = tkinter.Label(line_frm, text=dp[1],
+                                                 font=doi_font, justify='left')
+                    else:
+                        diff_lbl = tkinter.Label(line_frm, text=dp[1],
+                                                 font=nor_font, justify='left')
+                    if dp[0] == 'del':
+                        diff_lbl.configure(bg=cols['bg'], fg=cols['del'])
+                    elif dp[0] == 'ins':
+                        diff_lbl.configure(bg=cols['bg'], fg=cols['ins'])
+                    else:
+                        diff_lbl.configure(bg=cols['bg'], fg=cols['fg'])
+                    diff_lbl.pack(expand=False, side='left', anchor='w')
+            #
             btn1 = tkinter.Button(frm1, text='適用',
                                   command=self._apply_diff(frm0,
                                                            p.diff_id, comp))
@@ -11946,32 +12008,10 @@ class Makdo:
                                   command=self._goto_diff(p.diff_id, comp))
             self.btns.append(btn3)
             btn9 = tkinter.Label(frm1, font=self.gothic_font, text='\n')
-            res = '^(.*)\n((?:.|\n)*?)\n*$'
-            head_text = re.sub(res, '\\1', p.diff_text)
-            diff_text = re.sub(res, '\\2', p.diff_text)
-            head_font = self.gothic_font.copy()
-            head_font['weight'] = 'bold'
-            diff_font = self.gothic_font.copy()
-            head_lbl = tkinter.Label(frm2, text=('## ' + head_text),
-                                     font=head_font, justify='left')
-            diff_lbl = tkinter.Label(frm3, text=diff_text,
-                                     font=diff_font, justify='left')
-            frm0.configure(bg=cols['bg'])
-            frm1.configure(bg=cols['bg'])
-            frm2.configure(bg=cols['bg'])
-            frm3.configure(bg=cols['bg'])
             btn9.configure(bg=cols['bg'])
-            head_lbl.configure(bg=cols['bg'], fg=cols['sc'][1])
-            diff_lbl.configure(bg=cols['bg'], fg=cols['fg'])
-            frm0.pack(expand=True, side='top', anchor='w', fill='x')
-            # frm1.pack(expand=True, side='top', anchor='w', fill='x')
             # btn1.pack(side='left')
             # btn2.pack(side='left')
             # btn3.pack(side='left')
-            frm2.pack(expand=True, side='top', anchor='w', fill='x')
-            head_lbl.pack(expand=True, side='left', anchor='w')
-            frm3.pack(expand=True, side='top', anchor='w', fill='x')
-            diff_lbl.pack(expand=True, side='left', anchor='w')
             frm1.pack(expand=True, side='top', anchor='w', fill='x')
             btn1.pack(side='left', anchor='n')
             btn2.pack(side='left', anchor='n')
@@ -11999,6 +12039,34 @@ class Makdo:
         cvs_frm.focus_force()
         self.cmp_cvs = cvs
         self.cmp_cvs_frm = cvs_frm
+
+    @staticmethod
+    def _get_doi_parts(doi, text1, text2):
+        parts = []
+        if doi == 'del':
+            parts.append(['nor', 'x| '])
+        else:
+            parts.append(['nor', 'o| '])
+        t1 = makdo.makdo_mddiff.File()
+        t2 = makdo.makdo_mddiff.File()
+        t1.set_up_from_text(text1)
+        t2.set_up_from_text(text2)
+        p1 = t1.cmp_paragraphs
+        p2 = t2.cmp_paragraphs
+        comp = makdo.makdo_mddiff.Comparison(p2, p1)
+        parts_text = comp.paragraphs[1].track_change_text
+        res_del, res_ins = '^\\->(.*)<\\-$', '^\\+>(.*)<\\+$'
+        for part in parts_text.split('\n'):
+            if re.match(res_del, part):
+                if doi == 'del':
+                    parts.append(['del', re.sub(res_del, '\\1', part)])
+                if doi == 'ins':
+                    parts.append(['ins', re.sub(res_del, '\\1', part)])
+            elif re.match(res_ins, part):
+                pass
+            else:
+                parts.append(['nor', part])
+        return parts
 
     def cmp_process_button1(self, event):
         self.close_mouse_menu()
@@ -13706,6 +13774,7 @@ class Makdo:
             self.txt.tag_config('tab_tag', background='#C9FFEC')  # (0.95, 160)
             self.colors = {
                 'bg': 'white', 'cg': '#CCCCCC', 'fg': 'black',
+                'del': '#FF6512', 'ins': '#009AED',
                 'cp': [cs[21][1], cs[22][1], cs[23][1], cs[24][1], cs[25][1]],
                 'sc': [cs[3][1], cs[4][1], cs[5][1], cs[6][1],
                        cs[7][1], cs[8][1], cs[9][1], cs[10][1]]
@@ -13727,6 +13796,7 @@ class Makdo:
             self.txt.tag_config('tab_tag', background='#005437')  # (0.25, 160)
             self.colors = {
                 'bg': 'black', 'cg': '#666666', 'fg': 'white',
+                'del': '#FFA271', 'ins': '#59C5FF',
                 'cp': [cs[21][2], cs[22][2], cs[23][2], cs[24][2], cs[25][2]],
                 'sc': [cs[3][2], cs[4][2], cs[5][2], cs[6][2],
                        cs[7][2], cs[8][2], cs[9][2], cs[10][2]]
@@ -13748,6 +13818,7 @@ class Makdo:
             self.txt.tag_config('tab_tag', background='#00754C')  # (0.35, 160)
             self.colors = {
                 'bg': 'darkgreen', 'cg': '#339733', 'fg': 'lightyellow',
+                'del': '#FFA271', 'ins': '#59C5FF',
                 'cp': [cs[21][2], cs[22][2], cs[23][2], cs[24][2], cs[25][2]],
                 'sc': [cs[3][2], cs[4][2], cs[5][2], cs[6][2],
                        cs[7][2], cs[8][2], cs[9][2], cs[10][2]]
