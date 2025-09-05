@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.09.05-10:51:14-JST>
+# Time-stamp:   <2025.09.05-13:25:08-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -16629,8 +16629,10 @@ class Makdo:
             return True
 
         def ask_ollama(self) -> None:
-            thread_1 = threading.Thread(target=self._ask_ollama)
-            thread_2 = threading.Thread(target=self._set_message_ollama)
+            thread_1 = threading.Thread(target=self._ask_ollama,
+                                        daemon=True)
+            thread_2 = threading.Thread(target=self._set_message_ollama,
+                                        daemon=True)
             thread_1.start()
             thread_2.start()
 
