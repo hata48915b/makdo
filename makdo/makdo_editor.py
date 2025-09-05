@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.09.05-17:03:36-JST>
+# Time-stamp:   <2025.09.05-17:30:33-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -12055,14 +12055,18 @@ class Makdo:
         p2 = t2.cmp_paragraphs
         comp = makdo.makdo_mddiff.Comparison(p2, p1)
         parts_text = comp.paragraphs[1].track_change_text
+        parts_lines = parts_text.split('\n')
+        m = len(parts_lines) - 1
         res_del, res_ins = '^\\->(.*)<\\-$', '^\\+>(.*)<\\+$'
-        for part in parts_text.split('\n'):
-            if re.match(res_del, part):
+        for i, part in enumerate(parts_lines):
+            pre = '' if i == 0 else parts_lines[i - 1]
+            nex = '' if i == m else parts_lines[i + 1]
+            if re.match(res_del, part) and re.match(res_ins, nex):
                 if doi == 'del':
                     parts.append(['del', re.sub(res_del, '\\1', part)])
                 if doi == 'ins':
                     parts.append(['ins', re.sub(res_del, '\\1', part)])
-            elif re.match(res_ins, part):
+            elif re.match(res_ins, part) and re.match(res_del, pre):
                 pass
             else:
                 parts.append(['nor', part])
