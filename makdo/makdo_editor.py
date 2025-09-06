@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.09.05-17:30:33-JST>
+# Time-stamp:   <2025.09.06-10:59:21-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -4322,12 +4322,6 @@ class CharsState:
         # ANGLE
         if False:
             pass
-        elif chars == 'substitute phrase A':  # substitute phrase
-            key += '-230'                     # substitute phrase
-        elif chars == 'substitute phrase B':  # substitute phrase
-            key += '-290'                     # substitute phrase
-        elif chars == 'substitute phrase C':  # substitute phrase
-            key += '-270'                     # substitute phrase
         elif chars == ' ':
             return 'hsp_tag'
         elif chars == '\u3000':
@@ -4336,6 +4330,12 @@ class CharsState:
             return 'tab_tag'
         elif self.is_in_comment:
             key += '-0'
+        elif chars == 'substitute phrase A':  # substitute phrase
+            key += '-230'                     # substitute phrase
+        elif chars == 'substitute phrase B':  # substitute phrase
+            key += '-290'                     # substitute phrase
+        elif chars == 'substitute phrase C':  # substitute phrase
+            key += '-270'                     # substitute phrase
         elif chars == 'escape':
             key += '-340'
         elif chars == 'font decorator':
@@ -4649,7 +4649,7 @@ class LineDatum:
                 key = chars_state.get_key('')                           # 1.key
                 end = str(i + 1) + '.' + str(j - 1)                     # 2.end
                 pane.tag_add(key, beg, end)                             # 3.tag
-                chars_state.toggle_is_in_comment()                      # 4.set
+                #                                                       # 4.set
                 tmp = '%['                                              # 5.tmp
                 beg = end                                               # 6.beg
                 is_in_substitute_phrase = True
@@ -4663,7 +4663,7 @@ class LineDatum:
                     key = chars_state.get_key('substitute phrase C')    # 1.key
                 end = str(i + 1) + '.' + str(j + 1)                     # 2.end
                 pane.tag_add(key, beg, end)                             # 3.tag
-                chars_state.toggle_is_in_comment()                      # 4.set
+                #                                                       # 4.set
                 tmp = ''                                                # 5.tmp
                 beg = end                                               # 6.beg
                 is_in_substitute_phrase = False
