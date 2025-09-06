@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.21-17:29:04-JST>
+# Time-stamp:   <2025.09.06-11:05:32-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6734,7 +6734,7 @@ class SubstitutePhrase:
         res = '^((?:.|\n)*\n)?' \
             + '%\\[(.+?)\\]%\\s*=\\s*"' \
             + '((?:(?:.|\n)*?[^\\\\])??(?:\\\\\\\\)*?)?' \
-            + '"(\n(?:.|\n)*)?$'
+            + '"(?: *<!--.*-->)?(\n(?:.|\n)*)?$'
         while re.match(res, doc):
             prop_id = re.sub(res, '\\2', doc)
             prop_val = re.sub(res, '\\3', doc)
