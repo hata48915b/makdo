@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.09.06-11:05:32-JST>
+# Time-stamp:   <2025.09.06-14:26:48-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5741,7 +5741,7 @@ class ParagraphTable(Paragraph):
                         XML.add_tag(ms_tcbr, 'w:top', {'w:val': 'nil'})
                     if vert_rule_list[i_d] == '^':
                         XML.add_tag(ms_tcbr, 'w:bottom', {'w:val': 'nil'})
-                    if i_u >= 0 and vert_rule_list[i_u - 1] == '=':
+                    if i_u >= 0 and vert_rule_list[i_u] == '=':
                         XML.add_tag(ms_tcbr, 'w:top', {'w:val': 'double'})
                     if vert_rule_list[i_d] == '=':
                         XML.add_tag(ms_tcbr, 'w:bottom', {'w:val': 'double'})
