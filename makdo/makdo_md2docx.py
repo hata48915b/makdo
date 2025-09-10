@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.09.06-14:26:48-JST>
+# Time-stamp:   <2025.09.11-08:21:23-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -4007,6 +4007,7 @@ class RawParagraph:
         self.length_revisers = []
         self.head_font_revisers = []
         self.tail_font_revisers = []
+        self.tab_revisers = []
         self.full_text = ''
         self.full_text_del = ''
         self.full_text_ins = ''
@@ -4022,6 +4023,7 @@ class RawParagraph:
             self.length_revisers, \
             self.head_font_revisers, \
             self.tail_font_revisers, \
+            self.tab_revisers, \
             self.md_lines \
             = self._get_revisers(self.md_lines)
         self.full_text \
@@ -4054,12 +4056,15 @@ class RawParagraph:
         length_revisers = []
         head_font_revisers = []
         tail_font_revisers = []
+        tab_revisers = []
         res_cr = '^\\s*(' + ParagraphChapter.res_reviser + ')(?:\\s*(.*))?$'
         res_sr = '^\\s*(' + ParagraphSection.res_reviser + ')(?:\\s*(.*))?$'
         res_lr = '^(\\s*' + ParagraphList.res_reviser + ')(?:\\s*(.*))?$'
         res_er = '^\\s*((?:v|V|X|x|<<|<|>)=' + RES_NUMBER + ')(?:\\s*(.*))?$'
         res_fr = '^(' + '|'.join(FONT_DECORATORS) + ')(.*)$'
         res_tr = NOT_ESCAPED + '(' + '|'.join(FONT_DECORATORS) + ')$'
+        res_tb = ('^\\s*(/(?::?-*:?/)+)(?:\\s*(.*))?$',
+                  '^\\s*(/(?:[-:]{2,}/)+)(?:\\s*(.*))?$')
         res_hl = '^' + ParagraphHorizontalLine.res_feature + '$'
         # HEAD REVISERS
         for ml in md_lines:
@@ -4091,6 +4096,15 @@ class RawParagraph:
                     reviser = re.sub(res_fr, '\\1', ml.text)
                     ml.text = re.sub(res_fr, '\\2', ml.text)
                     head_font_revisers.append(reviser)
+                elif (re.match(res_tb[0], ml.text) and
+                      re.match(res_tb[1], ml.text)):
+                    reviser = re.sub(res_tb[0], '\\1', ml.text)
+                    ml.text = re.sub(res_tb[0], '\\2', ml.text)
+                    revisers = reviser.split('/')
+                    revisers.pop(0)
+                    for i in range(len(revisers)):
+                        revisers[i] = '/' + revisers[i]
+                    tab_revisers = revisers
                 else:
                     break
             if ml.text != '':
@@ -4135,9 +4149,11 @@ class RawParagraph:
         # self.length_revisers = length_revisers
         # self.head_font_revisers = head_font_revisers
         # self.tail_font_revisers = tail_font_revisers
+        # self.tab_revisers = tab_revisers
         # self.md_lines = md_lines
         return chapter_revisers, section_revisers, list_revisers, \
-            length_revisers, head_font_revisers, tail_font_revisers, md_lines
+            length_revisers, head_font_revisers, tail_font_revisers, \
+            tab_revisers, md_lines
 
     @staticmethod
     def _get_full_text(head_font_revisers, md_lines):
@@ -4346,6 +4362,7 @@ class Paragraph:
         self.length_revisers = raw_paragraph.length_revisers
         self.head_font_revisers = raw_paragraph.head_font_revisers
         self.tail_font_revisers = raw_paragraph.tail_font_revisers
+        self.tab_revisers = raw_paragraph.tab_revisers
         self.full_text = raw_paragraph.full_text
         self.section_depth_setters = raw_paragraph.section_depth_setters
         self.paragraph_class = raw_paragraph.paragraph_class
@@ -4797,6 +4814,7 @@ class Paragraph:
         md_lines = self.md_lines
         chars_state = self.chars_state
         text_to_write_with_reviser = self.text_to_write_with_reviser
+        tab_revisers = self.tab_revisers
         if text_to_write_with_reviser == '':
             return
         if paragraph_class == 'alignment':
@@ -4831,6 +4849,23 @@ class Paragraph:
         # CHARS STATE
         self.end_chars_state = self.chars_state.copy()
         Paragraph.bridge_chars_state = self.end_chars_state.copy()
+        # TAB
+        m = len(tab_revisers)
+        if m > 0:
+            ms_ppr = ms_par._p.get_or_add_pPr()
+            ms_tab = XML.add_tag(ms_ppr, 'w:tabs')
+            wid = 0
+            for i in range(m - 1):
+                j = i + 1
+                t_i, t_j = tab_revisers[i], tab_revisers[j]
+                wid += int(len(t_i) * Form.font_size * 10)
+                ali = 'left'
+                if re.match('^/.*:$', t_i):
+                    if re.match('^/:.*$', t_j):
+                        ali = 'center'
+                    else:
+                        ali = 'right'
+                XML.add_tag(ms_tab, 'w:tab', {'w:val': ali, 'w:pos': str(wid)})
 
     def _get_ms_par(self, ms_doc, par_style='makdo'):
         length_docx = self.length_docx
@@ -5234,6 +5269,12 @@ class Paragraph:
                     chars_state.font_width = tmp_fw
                     XML.write_chars(ms_par._p, chars_state, '\u3000')
                 chars_state.font_width = ori_fw
+        elif re.match(NOT_ESCAPED + '< *tab *>$', chars):
+            # "< *tab *>"
+            chars = re.sub(NOT_ESCAPED + '< *tab *>$', '\\1', chars)
+            chars = XML.write_chars(ms_par._p, chars_state, chars)
+            ms_run = XML.add_tag(ms_par._p, 'w:r', {})
+            ms_tab = XML.add_tag(ms_run, 'w:tab', {})
         elif re.match(NOT_ESCAPED + '(n|N|M)$', chars):
             res_font_name = NOT_ESCAPED + '@[^@]{1,66}.$'
             res_image_1 = NOT_ESCAPED + '!\\[[^\\[\\]]+$'

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.19-10:31:34-JST>
+# Time-stamp:   <2025.09.10-11:38:56-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6945,6 +6945,7 @@ class Paragraph:
         self.length_supp = {}
         self.length_revi = {}
         self.length_revisers = []
+        self.tab_revisers_line = ''
         self.pre_text_to_write = ''
         self.post_text_to_write = ''
         self.text_to_write_with_reviser = ''
@@ -6977,6 +6978,7 @@ class Paragraph:
                                                self.numbering_revisers,
                                                self.length_revisers)
         self.char_spacing = self._get_char_spacing(self.xml_lines)
+        self.tab_revisers_line = self._get_tab_revisers_line(self.xml_lines)
         # EXECUTION
         self.md_lines_text = self._get_md_lines_text(self.md_text)
         self.text_to_write = self._get_text_to_write()
@@ -7466,6 +7468,40 @@ class Paragraph:
                 return round(cs, 2)
         return 0.0
 
+    @staticmethod
+    def _get_tab_revisers_line(xml_lines):
+        tr_line = ''
+        is_in_ppr = False
+        is_in_tab = False
+        pos = 0
+        for xl in xml_lines:
+            if xl == '<w:pPr>':
+                is_in_ppr = True
+            elif xl == '</w:pPr>':
+                break
+            elif xl == '<w:tabs>':
+                is_in_tab = True
+            elif xl == '</w:tabs>':
+                break
+            elif is_in_ppr and is_in_tab:
+                res = '^<w:tab w:val="([^"]+)" w:pos="([0-9]+)"/>$'
+                if re.match(res, xl):
+                    if tr_line == '':
+                        tr_line = '/-'
+                    ali = re.sub(res, '\\1', xl)
+                    w = int(re.sub(res, '\\2', xl))
+                    wid = round(w / Form.font_size / 10) - pos
+                    if ali == 'right':
+                        tr_line += '-' * (wid - 3) + ':/-'
+                    elif ali == 'center':
+                        tr_line += '-' * (wid - 3) + ':/:'
+                    else:
+                        tr_line += '-' * (wid - 3) + '-/-'
+                    pos += wid
+        tr_line = re.sub('-$', '', tr_line)
+        tab_revisers_line = tr_line
+        return tab_revisers_line
+
     def _get_md_lines_text(self, md_text):
         paragraph_class = self.paragraph_class
         # FOR TRAILING WHITE SPACE
@@ -7529,6 +7565,7 @@ class Paragraph:
         char_spacing = self.char_spacing
         head_font_revisers = self.head_font_revisers
         tail_font_revisers = self.tail_font_revisers
+        tab_revisers_line = self.tab_revisers_line
         text_to_write = self.text_to_write
         pre_text_to_write = self.pre_text_to_write
         post_text_to_write = self.post_text_to_write
@@ -7585,6 +7622,10 @@ class Paragraph:
             ttwwr = re.sub(' $', '\n', ttwwr)
         if has_left_sharp:
             ttwwr += '# '
+        # TAB
+        if tab_revisers_line != '' and '\t' in text_to_write:
+            ttwwr += tab_revisers_line + '\n'
+            text_to_write = text_to_write.replace('\t', '<tab>')
         # LEFT SYMBOL
         if len(head_pair_font_revisers) > 0:
             ttwwr += ''.join(head_pair_font_revisers) + '\n'
