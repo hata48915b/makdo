@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.09.13-16:03:46-JST>
+# Time-stamp:   <2025.09.13-17:40:41-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -8711,7 +8711,6 @@ class ParagraphTable(Paragraph):
                     elif is_in_tcborders and re.match(res_v_dbl, xml):
                         v_rule_val = '='  # double
                     elif is_in_tcborders and re.match(res_h_nil, xml):
-                        print(h_rule_val)
                         h_rule_val = '^'  # nil
                     elif is_in_tcborders and re.match(res_h_dbl, xml):
                         h_rule_val = '='  # double
