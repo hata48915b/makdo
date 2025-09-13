@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.09.13-17:47:05-JST>
+# Time-stamp:   <2025.09.14-08:48:28-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -11461,7 +11461,7 @@ class Makdo:
         menu.add_separator()
         #
         menu.add_command(label='編集前の原稿との違いを変更履歴にする',
-                         command=self.insert_track_change_tag)
+                         command=self.insert_track_change_tags)
         menu.add_command(label='前の変更履歴に移動',
                          command=self.search_previous_track_change_tag)
         menu.add_command(label='次の変更履歴に移動',
@@ -12222,7 +12222,7 @@ class Makdo:
 
     # MDDIFF<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-    def insert_track_change_tag(self):
+    def insert_track_change_tags(self):
         text1 = self.txt.get('1.0', 'end-1c')
         text2 = self.init_text
         file1 = makdo.makdo_mddiff.File()
@@ -12239,8 +12239,12 @@ class Makdo:
                 doc += cp.track_change_text + '\n\n'
         doc = makdo.makdo_mddiff.TrackChange.repair_tc_text(doc)
         doc = re.sub('\n+$', '\n', doc)
+        self.txt['autoseparators'] = False
+        self.txt.edit_separator()
         self.txt.delete('1.0', 'end-1c')
         self.txt.insert('1.0', doc)
+        self.txt.edit_separator()
+        self.txt['autoseparators'] = True
         # PAINT
         self.file_lines = doc.split('\n')
         self.paint_all_lines(self.txt)
