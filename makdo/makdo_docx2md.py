@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.09.10-11:38:56-JST>
+# Time-stamp:   <2025.09.13-16:03:46-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -7487,16 +7487,18 @@ class Paragraph:
                 res = '^<w:tab w:val="([^"]+)" w:pos="([0-9]+)"/>$'
                 if re.match(res, xl):
                     if tr_line == '':
-                        tr_line = '/-'
+                        tr_line = '/'
                     ali = re.sub(res, '\\1', xl)
                     w = int(re.sub(res, '\\2', xl))
                     wid = round(w / Form.font_size / 10) - pos
+                    if re.match('^.+:$', tr_line):
+                        wid -= 1
                     if ali == 'right':
-                        tr_line += '-' * (wid - 3) + ':/-'
+                        tr_line += '-' * (wid - 2) + ':/'
                     elif ali == 'center':
-                        tr_line += '-' * (wid - 3) + ':/:'
+                        tr_line += '-' * (wid - 2) + ':/:'
                     else:
-                        tr_line += '-' * (wid - 3) + '-/-'
+                        tr_line += '-' * (wid - 1) + '/'
                     pos += wid
         tr_line = re.sub('-$', '', tr_line)
         tab_revisers_line = tr_line

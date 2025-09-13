@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.09.10-12:15:03-JST>
+# Time-stamp:   <2025.09.13-17:37:21-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -239,6 +239,9 @@ CONFIGURATION_SAMPLE = [
 PARAGRAPH_SAMPLE = ['', '\t',
                     '<!-------q1--------q2--------q3------' +
                     '--q4--------q5--------q6--------q7-->',
+                    '/-----------------------------------/',
+                    '/----------------------------------:/',
+                    '/----------------------------------:/:',
                     '<!--コメント-->',
                     '# <!--タイトル-->', '## <!--第１-->', '### <!--１-->',
                     '#### <!--(1)-->', '##### <!--ア-->', '###### <!--(ｱ)-->',
@@ -4571,27 +4574,28 @@ class LineDatum:
             if line_text[0] == '`' or line_text[0] == '*' or \
                line_text[0] == '-' or line_text[0] == '+':
                 # CHAPTER
-                res = '^((?:`|\\*|\\-{2,}|\\+{2,})+)' \
+                res = '^((?:`|\\*|\\-{2,3}|\\+{2,3})+)' \
                     + '(\\${,5})(?:-\\$+)*(=[\\.0-9]+)?(?:\\s.*)?' \
-                    + '((?:`|\\*|\\-{2,}|\\+{2,})*)\n?$'
-                if re.match(res, line_text):
+                    + '((?:`|\\*|\\-{2,3}|\\+{2,3})*)\n?$'
+                if ('$' in line_text) and re.match(res, line_text):
                     dep = len(re.sub(res, '\\2', line_text))
                     chars_state.set_chapter_depth(dep)
                 # SECTION
-                res = '^((?:`|\\*|\\-{2,}|\\+{2,})+)' \
+                res = '^((?:`|\\*|\\-{2,3}|\\+{2,3})+)' \
                     + '(#{,8})(?:-#+)*(=[\\.0-9]+)?(?:\\s.*)?' \
-                    + '((?:`|\\*|\\-{2,}|\\+{2,})*)\n?$'
-                if re.match(res, line_text):
+                    + '((?:`|\\*|\\-{2,3}|\\+{2,3})*)\n?$'
+                if ('#' in line_text) and re.match(res, line_text):
                     dep = len(re.sub(res, '\\2', line_text))
                     chars_state.set_section_depth(dep)
             if line_text[0] == '.':
                 res = '^(?:\\.\\.\\.\\[[0-9]+\\])' \
                     + '(#{,8})(?:-#+)*(=[\\.0-9]+)?(?:\\s.*)?\n?$'
-                if re.match(res, line_text):
+                if ('#' in line_text) and re.match(res, line_text):
                     dep = len(re.sub(res, '\\1', line_text))
                     chars_state.set_section_depth(dep)
             # TABLE
-            if line_text[0] == '|':
+            res = '^\\|.*\\|(:?-*:?[=\\^]?)?$'
+            if line_text[0] == '|' and re.match(res, line_text):
                 if chars_state.standard_size == '':
                     chars_state.standard_size = chars_state.is_resized
             res = '^(:\\s+)?\\s*(\\|:?-*:?[\\^=]?)+(\\|(\\s+:)?|\\\\)?$'
@@ -4626,8 +4630,8 @@ class LineDatum:
                 self.end_chars_state = chars_state.copy()
                 return
             # TAB
-            if re.match('^/(?::?-*:?/)+$', line_text) and \
-               re.match('^/(?:[-:]{2,}/)+$', line_text):
+            if re.match('^/(?::?-*:?/)+:?$', line_text) and \
+               re.match('^/(?:[-:]+/)+:?$', line_text):
                 for j, c in enumerate(line_text + '\0'):
                     if c == '/':
                         key = chars_state.get_key('table')              # 1.key

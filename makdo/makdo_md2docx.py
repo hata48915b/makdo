@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.09.11-08:21:23-JST>
+# Time-stamp:   <2025.09.13-16:09:06-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -4063,8 +4063,8 @@ class RawParagraph:
         res_er = '^\\s*((?:v|V|X|x|<<|<|>)=' + RES_NUMBER + ')(?:\\s*(.*))?$'
         res_fr = '^(' + '|'.join(FONT_DECORATORS) + ')(.*)$'
         res_tr = NOT_ESCAPED + '(' + '|'.join(FONT_DECORATORS) + ')$'
-        res_tb = ('^\\s*(/(?::?-*:?/)+)(?:\\s*(.*))?$',
-                  '^\\s*(/(?:[-:]{2,}/)+)(?:\\s*(.*))?$')
+        res_tb = ('^\\s*(/(?::?-*:?/)+:?)(?:\\s*(.*))?$',
+                  '^\\s*(/(?:[-:]+/)+:?)(?:\\s*(.*))?$')
         res_hl = '^' + ParagraphHorizontalLine.res_feature + '$'
         # HEAD REVISERS
         for ml in md_lines:
@@ -4861,7 +4861,7 @@ class Paragraph:
                 wid += int(len(t_i) * Form.font_size * 10)
                 ali = 'left'
                 if re.match('^/.*:$', t_i):
-                    if re.match('^/:.*$', t_j):
+                    if re.match('^/:.+$', t_j):
                         ali = 'center'
                     else:
                         ali = 'right'
