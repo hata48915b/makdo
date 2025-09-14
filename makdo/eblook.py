@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         eblook.py
 # Version:      v01
-# Time-stamp:   <2025.09.14-11:20:59-JST>
+# Time-stamp:   <2025.09.14-13:37:55-JST>
 
 # eblook.py
 # Copyright (C) 2017-2025  Seiichiro HATA
@@ -425,7 +425,7 @@ class Eblook:
             for d in self.dictionaries:
                 command = 'echo "' \
                     + 'select ' + str(d.number) + '\n' \
-                    + 'search ' + search_word \
+                    + 'search \\"' + search_word  + '\\"'\
                     + '" | ' \
                     + EBLOOK + ' ' + self.dictionary_directory
                 try:
