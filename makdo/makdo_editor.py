@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.09.14-08:48:28-JST>
+# Time-stamp:   <2025.09.14-13:36:50-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -14281,7 +14281,7 @@ class Makdo:
         menu.add_separator()
         #
         menu.add_command(label='Epwing形式の辞書で調べる',
-                         command=self.look_in_epwing)
+                         command=self.look_up_in_epwing)
         menu.add_command(label='Epwing形式の辞書フォルダを設定',
                          command=self.set_epwing_directory)
         menu.add_separator()
@@ -14329,7 +14329,7 @@ class Makdo:
     def calculate_interest_and_charge(self) -> None:
         self._show_message_reducing_functions()
 
-    def look_in_epwing(self) -> None:
+    def look_up_in_epwing(self) -> None:
         self._show_message_reducing_functions()
 
     def set_epwing_directory(self) -> bool:
@@ -16199,7 +16199,7 @@ class Makdo:
         mc = Minibuffer.MinibufferCommand(
             'lookup',
             [None, 'Epwing形式の辞書で調べる'],
-            ['self.mother.look_in_epwing(self)',
+            ['self.mother.look_up_in_epwing(self)',
              'self.set_return_to()'])
         Minibuffer.minibuffer_commands.append(mc)
 
@@ -16208,7 +16208,7 @@ class Makdo:
                 import makdo.eblook  # epwing
                 self.eblook = makdo.eblook.Eblook()
 
-        def look_in_epwing(self, pane=None) -> bool:
+        def look_up_in_epwing(self, pane=None) -> bool:
             if pane is None:
                 pane = self.txt
             self._load_eblook()
@@ -16225,60 +16225,115 @@ class Makdo:
                 w = ''
                 w += self.txt.get('akauni', 'insert')
                 w += self.txt.get('insert', 'akauni')
-            # LOOK IN DICTIONARY
+            # LOOK UP IN DICTIONARY
             b = '辞書で調べる'
             p = '調べる言葉を入力してください．'
             h, t = '', ''
             e = self.epwing_history
-            s = OneWordDialog(pane, self, b, p, h, t, w, e).get_value()
-            if s is None:
-                return
+            word = OneWordDialog(pane, self, b, p, h, t, w, e).get_value()
+            if word is None:
+                return False
+            self._look_up_in_epwing(word)
+
+        def _look_up_in_epwing(self, word) -> bool:
+            if word != self.epwing_history[-1]:
+                self.epwing_history.append(word)
             msg = '辞書で検索しています'
             self.set_message_on_status_bar(msg, True)
             if self.epwing_directory is None:
                 return
             self.eblook.set_dictionaries(self.epwing_directory)
-            self.eblook.set_search_word(s)
-            dic = ''
+            self.eblook.set_search_word(word)
             if len(self.eblook.items) == 0:
                 msg = '辞書に登録がありません'
                 self.set_message_on_status_bar(msg)
                 return
             msg = ''
             self.set_message_on_status_bar(msg, True)
+            dic = ''
+            if re.match('^[0-9]+:[0-9]+:[0-9]+$', word):
+                dic = '[戻る]\n\n'
             for ei in self.eblook.items:
                 dic += '## 【' + ei.dictionary.k_name \
                     + '\u3000' + ei.title + '】\n\n'
                 dic += ei.content + '\n\n'
+            self._close_sub_pane()
             self._open_sub_pane(dic, True)
-            # TITLE
-            n = 0
-            pos = dic
-            res = '^((?:.|\n)*?)(## .*)(\n(?:.|\n)*)$'
-            while re.match(res, pos):
-                pre = re.sub(res, '\\1', pos)
-                key = re.sub(res, '\\2', pos)
-                pos = re.sub(res, '\\3', pos)
-                beg = '1.0+' + str(n + len(pre)) + 'c'
-                end = '1.0+' + str(n + len(pre) + len(key)) + 'c'
-                n += len(pre) + len(key)
-                self.sub.tag_add('c-40-1-g-x', beg, end)
-            # ERROR
-            n = 0
-            pos = dic
-            res = '^((?:.|\n)*?)(<gaiji=[^<>]+>)((?:.|\n)*)$'
-            while re.match(res, pos):
-                pre = re.sub(res, '\\1', pos)
-                key = re.sub(res, '\\2', pos)
-                pos = re.sub(res, '\\3', pos)
-                beg = '1.0+' + str(n + len(pre)) + 'c'
-                end = '1.0+' + str(n + len(pre) + len(key)) + 'c'
-                n += len(pre) + len(key)
-                self.sub.tag_add('error_tag', beg, end)
+            self.sub.bind('<Button-1>', self._look_up_link_in_epwing)
+            self.sub.bind('<Return>', self._look_up_link_in_epwing)
+            self.sub.bind('<Tab>', self._goto_next_item_or_link)
+            self.sub.bind('<B>', self._look_up_prev_item)
+            #
+            if dic[:6] == '[戻る]\n\n':
+                self.sub.tag_add('c-220-1-g-u', '1.0', '1.4')
+            painting_list = (
+                # TITLE
+                ('^((?:.|\n)*?)(## .*)(\n(?:.|\n)*)$',
+                 'c-40-1-g-x'),
+                # LINK
+                ('^((?:.|\n)*?)(<[0-9]+:[0-9]+:[0-9]+>)((?:.|\n)*)$',
+                 'c-220-1-g-u'),
+                # ERROR
+                ('^((?:.|\n)*?)(<gaiji=[^<>]+>)((?:.|\n)*)$',
+                 'error_tag'))
+            for p in painting_list:
+                n, pos, res, col = 0, dic, p[0], p[1]
+                while re.match(res, pos):
+                    pre = re.sub(res, '\\1', pos)
+                    key = re.sub(res, '\\2', pos)
+                    pos = re.sub(res, '\\3', pos)
+                    beg = '1.0+' + str(n + len(pre)) + 'c'
+                    end = '1.0+' + str(n + len(pre) + len(key)) + 'c'
+                    n += len(pre) + len(key)
+                    self.sub.tag_add(col, beg, end)
             #
             # self.sub.focus_force()
             # self.current_pane = 'sub'
             return True
+
+        def _look_up_link_in_epwing(self, event):
+            if event.keysym != 'Return':
+                self.sub.mark_set('insert', 'current')
+            doc_lft = self.sub.get('1.0', 'insert')
+            doc_rgt = self.sub.get('insert', 'end-1c')
+            doc = doc_lft + doc_rgt
+            ins = self.sub.index('insert')
+            if doc[:6] == '[戻る]\n\n' and re.match('^1\\.[0-3]$', ins):
+                self._look_up_prev_item(event)
+                return 'break'
+            res = '^<([0-9:]+:[0-9:]+:[0-9:]+)>(?:.|\n)*$'
+            if re.match(res, doc_rgt):
+                ent = re.sub(res, '\\1', doc_rgt)
+                self._look_up_in_epwing(ent)
+                return 'break'
+            lnk_lft, lnk_rgt = '', ''
+            res_lft = '^(?:.|\n)*<([0-9:]*)$'
+            res_rgt = '^([0-9:]*)>(?:.|\n)*$'
+            if re.match(res_lft, doc_lft) and re.match(res_rgt, doc_rgt):
+                ent_lft = re.sub(res_lft, '\\1', doc_lft)
+                ent_rgt = re.sub(res_rgt, '\\1', doc_rgt)
+                ent = ent_lft + ent_rgt
+                if re.match('^[0-9]+:[0-9]+:[0-9]+$', ent):
+                    self._look_up_in_epwing(ent)
+                    return 'break'
+            return 'break'
+
+        def _look_up_prev_item(self, event):
+            if re.match('^[0-9]+:[0-9]+:[0-9]+$', self.epwing_history[-1]):
+                self.epwing_history.pop()
+                self._look_up_in_epwing(self.epwing_history[-1])
+            return 'break'
+
+        def _goto_next_item_or_link(self, event):
+            rgt = self.sub.get('insert', 'end-1c')
+            res = '^((?:.|\n)*?)(\n## |.<[0-9]+:[0-9]+:[0-9]+>)((?:.|\n)*)$'
+            if not re.match(res, rgt):
+                return 'break'
+            pre = re.sub(res, '\\1', rgt)
+            mov = len(pre) + 1
+            self.sub.mark_set('insert', 'insert+' + str(mov) + 'c')
+            self._put_back_cursor_to_pane(self.sub)
+            return 'break'
 
         def set_epwing_directory(self):
             ed = ''
