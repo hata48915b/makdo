@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         eblook.py
 # Version:      v01
-# Time-stamp:   <2025.01.07-07:23:04-JST>
+# Time-stamp:   <2025.09.14-11:20:59-JST>
 
 # eblook.py
 # Copyright (C) 2017-2025  Seiichiro HATA
@@ -419,6 +419,7 @@ class Eblook:
                     i.dictionary = d
                     i.code = cc
                     i.content = i.get_content(self.dictionary_directory)
+                    i.title = i.content.split('\n')[0]
                     items.append(i)
         else:
             for d in self.dictionaries:
