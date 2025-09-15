@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         eblook.py
 # Version:      v01
-# Time-stamp:   <2025.09.15-10:49:18-JST>
+# Time-stamp:   <2025.09.15-11:09:00-JST>
 
 # eblook.py
 # Copyright (C) 2017-2025  Seiichiro HATA
@@ -153,11 +153,13 @@ GAIJI_KOJIEN = {
     'zc83b': '【漢字（旁の異字体）】',
     'zc845': '时',
     'zc84b': '【漢字（時の異字体）】',
+    'zc84d': '曐',
     'zc874': '【漢字（月の異字体）】',
     'zc875': '肊',
     'zc965': '枒',
     'zcb53': '【漢字（気の異字体）】',
     'zcb6c': '【漢字（法の異字体）】', 'zcb6d': '㳒',
+    'zcb72': '洄',
     'zcb73': '海',
     'zcc29': '【漢字（消の⺌が小）】',
     'zcd4d': '煁',
@@ -251,7 +253,8 @@ GAIJI_BIZTEC = {
 }
 
 GAIJI_NANMED = {
-    'hb124': 'Ö',
+    'hb121': 'ß', 'hb122': 'ä',
+    'hb124': 'Ö', 'hb125': 'ü',
     'hb127': 'ê', 'hb128': 'à', 'hb129': 'ä',
     'hb12b': 'é', 'hb12c': 'ê', 'hb12d': 'è', 'hb12e': 'ë',
     'hb132': 'Ï',
@@ -477,10 +480,10 @@ class Eblook:
     def _remove_image(content):
         # KOJIEN
         res = '<img=jpeg>(.*?)\n(.*?)</img=[0-9]+:[0-9]+>'
-        content = re.sub(res, '<画像（\\1/\\2）>', content)
+        content = re.sub(res, '〈画像（\\1/\\2）〉', content)
         # KANJIGEN
         res = '<img=mono:[0-9]+x[0-9]+></img=[0-9]+:[0-9]+>'
-        content = re.sub(res, '<画像>', content)
+        content = re.sub(res, '〈画像〉', content)
         # RETURN
         return content
 
