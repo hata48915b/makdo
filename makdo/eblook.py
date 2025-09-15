@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         eblook.py
 # Version:      v01
-# Time-stamp:   <2025.09.15-09:53:05-JST>
+# Time-stamp:   <2025.09.15-10:49:18-JST>
 
 # eblook.py
 # Copyright (C) 2017-2025  Seiichiro HATA
@@ -154,6 +154,7 @@ GAIJI_KOJIEN = {
     'zc845': '时',
     'zc84b': '【漢字（時の異字体）】',
     'zc874': '【漢字（月の異字体）】',
+    'zc875': '肊',
     'zc965': '枒',
     'zcb53': '【漢字（気の異字体）】',
     'zcb6c': '【漢字（法の異字体）】', 'zcb6d': '㳒',
@@ -251,13 +252,16 @@ GAIJI_BIZTEC = {
 
 GAIJI_NANMED = {
     'hb124': 'Ö',
-    'hb127': 'ê',
-    'hb129': 'ä',
+    'hb127': 'ê', 'hb128': 'à', 'hb129': 'ä',
     'hb12b': 'é', 'hb12c': 'ê', 'hb12d': 'è', 'hb12e': 'ë',
-    'hb136': 'ö',
+    'hb132': 'Ï',
+    'hb135': 'Ô', 'hb136': 'ö',
     'hb138': 'ü',
     'za122': '①', 'za123': '②', 'za124': '③', 'za125': '④', 'za126': '⑤',
-    'za127': '⑥', 'za128': '⑦', 'za129': '⑧',
+    'za127': '⑥', 'za128': '⑦', 'za129': '⑧', 'za12a': '⑨', 'za12b': '⑩',
+    'za12c': '⑪', 'za12d': '⑫',
+    'za131': 'Ⓠ',
+    'za138': '⇌',
 }
 
 
@@ -433,6 +437,7 @@ class Eblook:
                     i.dictionary = d
                     i.code = cc
                     i.content = i.get_content(self.dictionary_directory)
+                    i.content = self._remove_image(i.content)
                     i.title = i.content.split('\n')[0]
                     items.append(i)
         else:
@@ -463,9 +468,21 @@ class Eblook:
                         i.title = re.sub(res, '\\3', sos)
                         i.title = i.make_up_title(i.title)
                         i.content = i.get_content(self.dictionary_directory)
+                        i.content = self._remove_image(i.content)
                         items.append(i)
         self.items = items
         return True
+
+    @staticmethod
+    def _remove_image(content):
+        # KOJIEN
+        res = '<img=jpeg>(.*?)\n(.*?)</img=[0-9]+:[0-9]+>'
+        content = re.sub(res, '<画像（\\1/\\2）>', content)
+        # KANJIGEN
+        res = '<img=mono:[0-9]+x[0-9]+></img=[0-9]+:[0-9]+>'
+        content = re.sub(res, '<画像>', content)
+        # RETURN
+        return content
 
 
 if __name__ == '__main__':
