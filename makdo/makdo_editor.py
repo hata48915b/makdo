@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.09.14-13:36:50-JST>
+# Time-stamp:   <2025.09.16-13:52:37-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -4321,11 +4321,44 @@ class CharsState:
         self.section_depth = depth
 
     def get_key(self, chars):
+        cv = Makdo.color_vision
+        if cv == 'P':
+            return self._get_key_type_p(chars)
+        elif cv == 'D':
+            return self._get_key_type_d(chars)
+        elif cv == 'T':
+            return self._get_key_type_t(chars)
+        elif cv == 'A':
+            return self._get_key_type_a(chars)
+        else:
+            return self._get_key_type_c(chars)
+
+    def _get_key_type_p(self, chars):
+        key = 'c'
+        return ''
+
+    def _get_key_type_d(self, chars):
+        return self._get_key_type_p(chars)
+
+    def _get_key_type_t(self, chars):
+        return self._get_key_type_c(chars)
+
+    def _get_key_type_a(self, chars):
+        if self.is_in_comment:
+            return 'c-360-1-g-u'
+        elif self.chapter_depth > 0:
+            return 'c-360-1-g-u'
+        elif self.section_depth > 0:
+            return 'c-360-1-g-u'
+        elif chars != '':
+            return 'c-360-1-g-u'
+        else:
+            return ''
+
+    def _get_key_type_c(self, chars):
         key = 'c'
         # ANGLE
-        if False:
-            pass
-        elif chars == ' ':
+        if chars == ' ':
             return 'hsp_tag'
         elif chars == '\u3000':
             return 'fsp_tag'
@@ -5560,6 +5593,8 @@ class Makdo:
     file_background_color = None
     args_font_size = None              # 3|6|9|12|15|+18|21|24|27|30|33|36|...
     file_font_size = None
+    # args_color_vision = None         # C|P|D|T|A
+    file_color_vision = None
     args_paint_keywords = None         # True|+False
     file_paint_keywords = None
     args_keywords_to_paint = None      # 'foo|bar|baz'
@@ -13351,6 +13386,7 @@ class Makdo:
         self._make_submenu_character_size(menu)
         menu.add_separator()
         #
+        self._make_submenu_color_vision(menu)
         self.paint_keywords = tkinter.BooleanVar(value=False)
         if self.args_paint_keywords:
             self.paint_keywords.set(True)
@@ -13680,6 +13716,24 @@ class Makdo:
                                     variable=self.background_color, value=c,
                                     command=self.set_background_color)
 
+    def _make_submenu_color_vision(self, menu):
+        submenu = tkinter.Menu(self.mnb, tearoff=False)
+        menu.add_cascade(label='色覚多様性', menu=submenu)
+        self.color_vision = tkinter.StringVar(value='C')
+        if self.file_color_vision is not None:
+            self.color_vision.set(self.file_color_vision)
+        color_visions \
+            = {'C': 'C型', 'P': 'P型（準備中）', 'D': 'D型（準備中）',
+               'T': 'T型（テスト中）', 'A': 'A型（テスト中）'}
+        for c in color_visions:
+            submenu.add_radiobutton(label=color_visions[c],
+                                    variable=self.color_vision, value=c,
+                                    command=self.set_color_vision)
+
+    def set_color_vision(self):
+        Makdo.color_vision = self.color_vision.get()
+        self.show_config_help_message()
+
     ################
     # COMMAND
 
@@ -13986,6 +14040,9 @@ class Makdo:
             elif item == 'font_size':
                 if re.match('^[0-9]+$', valu) and (int(valu) % 3) == 0:
                     Makdo.file_font_size = int(valu)
+            elif item == 'color_vision':
+                if re.match('^[CPDTA]$', valu):
+                    Makdo.color_vision = valu
             elif item == 'paint_keywords':
                 if valu == 'True':
                     Makdo.file_paint_keywords = True
@@ -14043,6 +14100,8 @@ class Makdo:
                     + self.background_color.get() + '\n')
             f.write('font_size:              '
                     + str(self.font_size.get()) + '\n')
+            f.write('color_vision:           '
+                    + self.color_vision.get() + '\n')
             f.write('paint_keywords:         '
                     + str(self.paint_keywords.get()) + '\n')
             if self.keywords_to_paint != '':
