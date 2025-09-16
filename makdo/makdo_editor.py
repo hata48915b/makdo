@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.09.16-22:03:59-JST>
+# Time-stamp:   <2025.09.16-23:16:59-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -10660,6 +10660,20 @@ class Makdo:
                 return True
         _, tidied_par, _ = self.get_bare_paragraph(pane)
         if bare_par == tidied_par:
+            if par_class == 'table':
+                # MOVE TO A NEXT CELL
+                res = NOT_ESCAPED + '\\|(.|\n)*$'
+                doc_rgt = pane.get('insert', 'end-1c')
+                par_rgt = re.sub('\n\n(.|\n)*$', '', doc_rgt)
+                if re.match(res, par_rgt):
+                    n = len(re.sub(res, '\\1', par_rgt)) + 1
+                    pane.mark_set('insert', 'insert+' + str(n) + 'c')
+                    self._put_back_cursor_to_pane(pane)
+                    return True
+                if re.match(res, bare_par):
+                    n = len(pre_text) + len(re.sub(res, '\\1', bare_par)) + 1
+                    pane.mark_set('insert', '1.0+' + str(n) + 'c')
+                    return True
             return False
         pre, par, pos = self.get_paragraph(pane)
         pre_n, par_n = pre.count('\n'), par.count('\n')
@@ -11091,22 +11105,6 @@ class Makdo:
                 if '\n' in c:
                     r_width = 0
                 text += c
-
-    def goto_cell_in_table(self):
-        pane = self.txt
-        if self.current_pane == 'sub':
-            pane = self.sub
-        pre_text, bare_par, pos_text = self.get_bare_paragraph(pane)
-        par_class = self.get_par_class(bare_par)
-        if par_class == 'table':
-            doc_rgt = pane.get('insert', 'end-1c')
-            par_rgt = re.sub('\n\n(.|\n)*$', '', doc_rgt)
-            res = NOT_ESCAPED + '\\|(.|\n)*$'
-            if re.match(res, par_rgt):
-                n = len(re.sub(res, '\\1', par_rgt)) + 1
-                pane.mark_set('insert', 'insert+' + str(n) + 'c')
-                return True
-        return False
 
     def _tupt_linebreaks(self, pane, text, cell, borders):
         # RIGHT SPACES
@@ -15173,10 +15171,6 @@ class Makdo:
         # TIDY UP PARAGRAPH
         has_tidied = self.tidy_up_paragraph()
         if has_tidied:
-            return True
-        # NEXT CELL
-        has_gone = self.goto_cell_in_table()
-        if has_gone:
             return True
         # AUTO CORRECT
         left = pane.get('insert linestart', 'insert')
