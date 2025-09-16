@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.09.16-21:46:32-JST>
+# Time-stamp:   <2025.09.16-22:03:59-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -236,7 +236,7 @@ CONFIGURATION_SAMPLE = [
     '更新時: - USER',
     '']
 
-PARAGRAPH_SAMPLE = ['', '<tab>',
+PARAGRAPH_SAMPLE = ['', '< tab >',
                     '<!-------q1--------q2--------q3------' +
                     '--q4--------q5--------q6--------q7-->',
                     '/-----------------------------------/',
@@ -276,7 +276,7 @@ SCRIPT_SAMPLE = ['',
                  'print(sum, "4s")',
                  '']
 
-FONT_DECORATOR_SAMPLE = ['', '<tab>',
+FONT_DECORATOR_SAMPLE = ['', '< tab >',
                          '<!--コメント-->',
                          '*<!--斜体-->*',
                          '*<!--太字-->*',
@@ -8243,7 +8243,7 @@ class Makdo:
         #
         menu.add_command(label='コメントを挿入',
                          command=self.insert_comment)
-        menu.add_command(label='空白を挿入',
+        menu.add_command(label='文字数を指定して空白を挿入',
                          command=self.insert_space)
         menu.add_command(label='改行を挿入',
                          command=self.insert_line_break)
