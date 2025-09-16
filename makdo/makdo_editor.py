@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.09.16-13:52:37-JST>
+# Time-stamp:   <2025.09.16-21:46:32-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -236,7 +236,7 @@ CONFIGURATION_SAMPLE = [
     '更新時: - USER',
     '']
 
-PARAGRAPH_SAMPLE = ['', '\t',
+PARAGRAPH_SAMPLE = ['', '<tab>',
                     '<!-------q1--------q2--------q3------' +
                     '--q4--------q5--------q6--------q7-->',
                     '/-----------------------------------/',
@@ -276,7 +276,7 @@ SCRIPT_SAMPLE = ['',
                  'print(sum, "4s")',
                  '']
 
-FONT_DECORATOR_SAMPLE = ['', '\t',
+FONT_DECORATOR_SAMPLE = ['', '<tab>',
                          '<!--コメント-->',
                          '*<!--斜体-->*',
                          '*<!--太字-->*',
@@ -4334,24 +4334,59 @@ class CharsState:
             return self._get_key_type_c(chars)
 
     def _get_key_type_p(self, chars):
-        key = 'c'
-        return ''
+        if chars == ' ':
+            return 'c-120-1-g-u'
+        elif chars == '\u3000':
+            return 'c-260-1-g-u'
+        elif self.is_in_comment:
+            return 'c-120-1-g-x'
+        elif self.chapter_depth > 0:
+            return 'c-120-1-g-x'
+        elif self.section_depth > 0:
+            return 'c-120-1-g-x'
+        elif (chars == 'red' or
+              chars == 'yellow' or chars == 'cyan' or chars == 'magenta'):
+            return 'c-260-1-g-x'
+        elif chars != '':
+            return 'c-120-1-g-x'
+        else:
+            return ''
 
     def _get_key_type_d(self, chars):
-        return self._get_key_type_p(chars)
+        if chars == ' ':
+            return 'c-10-1-g-u'
+        elif chars == '\u3000':
+            return 'c-220-1-g-u'
+        elif self.is_in_comment:
+            return 'c-10-1-g-x'
+        elif self.chapter_depth > 0:
+            return 'c-10-1-g-x'
+        elif self.section_depth > 0:
+            return 'c-10-1-g-x'
+        elif (chars == 'red' or
+              chars == 'yellow' or chars == 'cyan' or chars == 'magenta'):
+            return 'c-220-1-g-x'
+        elif chars != '':
+            return 'c-10-1-g-x'
+        else:
+            return ''
 
     def _get_key_type_t(self, chars):
         return self._get_key_type_c(chars)
 
     def _get_key_type_a(self, chars):
-        if self.is_in_comment:
+        if chars == ' ':
+            return 'c-360-1-g-x'
+        elif chars == '\u3000':
             return 'c-360-1-g-u'
+        elif self.is_in_comment:
+            return 'c-360-1-g-x'
         elif self.chapter_depth > 0:
-            return 'c-360-1-g-u'
+            return 'c-360-1-g-x'
         elif self.section_depth > 0:
-            return 'c-360-1-g-u'
+            return 'c-360-1-g-x'
         elif chars != '':
-            return 'c-360-1-g-u'
+            return 'c-360-1-g-x'
         else:
             return ''
 
@@ -11057,6 +11092,22 @@ class Makdo:
                     r_width = 0
                 text += c
 
+    def goto_cell_in_table(self):
+        pane = self.txt
+        if self.current_pane == 'sub':
+            pane = self.sub
+        pre_text, bare_par, pos_text = self.get_bare_paragraph(pane)
+        par_class = self.get_par_class(bare_par)
+        if par_class == 'table':
+            doc_rgt = pane.get('insert', 'end-1c')
+            par_rgt = re.sub('\n\n(.|\n)*$', '', doc_rgt)
+            res = NOT_ESCAPED + '\\|(.|\n)*$'
+            if re.match(res, par_rgt):
+                n = len(re.sub(res, '\\1', par_rgt)) + 1
+                pane.mark_set('insert', 'insert+' + str(n) + 'c')
+                return True
+        return False
+
     def _tupt_linebreaks(self, pane, text, cell, borders):
         # RIGHT SPACES
         res_nl = '^((?:.|\n)*?)(\\s*\n\\s*)$'
@@ -13722,9 +13773,9 @@ class Makdo:
         self.color_vision = tkinter.StringVar(value='C')
         if self.file_color_vision is not None:
             self.color_vision.set(self.file_color_vision)
+            Makdo.color_vision = self.file_color_vision
         color_visions \
-            = {'C': 'C型', 'P': 'P型（準備中）', 'D': 'D型（準備中）',
-               'T': 'T型（テスト中）', 'A': 'A型（テスト中）'}
+            = {'C': 'Ｃ型', 'P': 'Ｐ型', 'D': 'Ｄ型', 'T': 'Ｔ型', 'A': 'Ａ型'}
         for c in color_visions:
             submenu.add_radiobutton(label=color_visions[c],
                                     variable=self.color_vision, value=c,
@@ -14042,7 +14093,7 @@ class Makdo:
                     Makdo.file_font_size = int(valu)
             elif item == 'color_vision':
                 if re.match('^[CPDTA]$', valu):
-                    Makdo.color_vision = valu
+                    Makdo.file_color_vision = valu
             elif item == 'paint_keywords':
                 if valu == 'True':
                     Makdo.file_paint_keywords = True
@@ -15123,6 +15174,10 @@ class Makdo:
         has_tidied = self.tidy_up_paragraph()
         if has_tidied:
             return True
+        # NEXT CELL
+        has_gone = self.goto_cell_in_table()
+        if has_gone:
+            return True
         # AUTO CORRECT
         left = pane.get('insert linestart', 'insert')
         if len(left) > 0:
@@ -15181,10 +15236,8 @@ class Makdo:
                 pane.delete(posi + '-' + str(len(sample)) + 'c', posi)
                 pane.insert('insert', FONT_DECORATOR_SAMPLE[i + 1])
                 return True
-        else:
-            pane.insert('insert', FONT_DECORATOR_SAMPLE[1])
-            return True
-        return False
+        pane.insert('insert', FONT_DECORATOR_SAMPLE[1])
+        return True
 
     def _any_process_delete(self) -> bool:  # Delete / Ctrl+D
         k2 = self.key_history[-2]
