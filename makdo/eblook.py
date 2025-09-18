@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         eblook.py
 # Version:      v01
-# Time-stamp:   <2025.09.15-11:09:00-JST>
+# Time-stamp:   <2025.09.18-21:57:39-JST>
 
 # eblook.py
 # Copyright (C) 2017-2025  Seiichiro HATA
@@ -212,8 +212,9 @@ GAIJI_KANJIGEN = {
 
 GAIJI_CHUJITEN = {
     'ha121': '・', 'ha122': '：', 'ha123': '︙',
-    'ha172': '（？）',
-    'ha174': '（？）',
+    'ha172': '',  # empty
+    'ha174': '',  # empty
+    'ha176': '',  # empty
     'ha26b': '･',
     'za321': '【名】', 'za322': '【代】', 'za323': '【形】', 'za324': '【動】',
     'za325': '【副】', 'za326': '【接】', 'za327': '【前】', 'za328': '【冠】',
