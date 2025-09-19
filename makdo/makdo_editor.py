@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.09.16-23:16:59-JST>
+# Time-stamp:   <2025.09.19-17:18:38-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -13321,7 +13321,14 @@ class Makdo:
             # TAB
             if self.mother._is_key(k1, 'Tab', 'C-i', 'C-g'):
                 com = self.etr.get()
-                if self.mother._is_key(k2, 'Tab', 'C-i', 'C-g'):
+                if not self.mother._is_key(k2, 'Tab', 'C-i', 'C-g'):
+                    self.process_key_tab(key)
+                    self.prev_key = 'Tab'
+                    if com == self.etr.get() and \
+                       com in self.command_candidates:
+                        return  # Entry -> OK -> Cancel -> Entry
+                    return 'break'
+                else:
                     if len(self.command_candidates) == 0:
                         return 'break'
                     if len(self.command_candidates) == 1:
@@ -13338,13 +13345,6 @@ class Makdo:
                     else:
                         self.etr.insert(0, self.command_candidates[0])
                     return 'break'
-                else:
-                    self.process_key_tab(key)
-                    self.prev_key = 'Tab'
-                    if com == self.etr.get() and \
-                       com in self.command_candidates:
-                        return  # Entry -> OK -> Cancel -> Entry
-                    return 'break'
             self.prev_key = None
             if self.mother._is_key(k1, 'Up', 'C-r', 'C-o'):
                 self.process_key_up(key)
@@ -13354,10 +13354,10 @@ class Makdo:
                 return 'break'
 
         def process_key_tab(self, key):
+            self.command_candidates = []
             com = self.etr.get()
             if com == '':
                 return  # empty
-            self.command_candidates = []
             for c in self.commands:
                 if com == c:
                     self.command_candidates.append(c)
