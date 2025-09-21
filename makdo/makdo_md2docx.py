@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.09.20-17:19:02-JST>
+# Time-stamp:   <2025.09.21-09:41:18-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -1179,7 +1179,18 @@ class IO:
         f_size = Form.font_size
         ms_doc = docx.Document()
         ms_sec = ms_doc.sections[0]
-        self.reset_section(ms_sec)
+        ms_sec.page_height = Cm(PAPER_HEIGHT[Form.paper_size])
+        ms_sec.page_width = Cm(PAPER_WIDTH[Form.paper_size])
+        ms_sec.top_margin = Cm(Form.top_margin)
+        ms_sec.bottom_margin = Cm(Form.bottom_margin)
+        ms_sec.left_margin = Cm(Form.left_margin)
+        ms_sec.right_margin = Cm(Form.right_margin)
+        ms_sec.header_distance = Cm(1.0)
+        if Form.top_margin < 2.0:
+            ms_sec.header_distance = Cm(Form.top_margin / 2)
+        ms_sec.footer_distance = Cm(1.0)
+        if Form.bottom_margin < 2.0:
+            ms_sec.footer_distance = Cm(Form.bottom_margin / 2)
         # NORMAL (LINE NUMBER)
         ms_doc.styles['Normal'].font.size = Pt(f_size / 2)
         XML.set_font(ms_doc.styles['Normal'], DEFAULT_LINE_NUMBER_FONT)
@@ -1285,21 +1296,6 @@ class IO:
             XML.add_tag(ms_doc.sections[0]._sectPr, 'w:lnNumType', opts)
         self._make_styles(ms_doc)
         return ms_doc
-
-    @staticmethod
-    def reset_section(ms_sec):
-        ms_sec.page_height = Cm(PAPER_HEIGHT[Form.paper_size])
-        ms_sec.page_width = Cm(PAPER_WIDTH[Form.paper_size])
-        ms_sec.top_margin = Cm(Form.top_margin)
-        ms_sec.bottom_margin = Cm(Form.bottom_margin)
-        ms_sec.left_margin = Cm(Form.left_margin)
-        ms_sec.right_margin = Cm(Form.right_margin)
-        ms_sec.header_distance = Cm(1.0)
-        if Form.top_margin < 2.0:
-            ms_sec.header_distance = Cm(Form.top_margin / 2)
-        ms_sec.footer_distance = Cm(1.0)
-        if Form.bottom_margin < 2.0:
-            ms_sec.footer_distance = Cm(Form.bottom_margin / 2)
 
     def _make_styles(self, ms_doc):
         f_size = Form.font_size
@@ -6459,7 +6455,6 @@ class ParagraphMultiColumns(Paragraph):
         wid.pop(-1)
         # ADD NEW SECTION
         ms_sec = ms_doc.add_section(WD_SECTION.CONTINUOUS)
-        IO.reset_section(ms_doc.sections[0])
         # REMOVE OLD "<w:p>...<w:sectPr>...</w:sectPr>...</w:p>"
         e = ms_doc.paragraphs[-1]._element
         e.getparent().remove(e)
@@ -6485,13 +6480,20 @@ class ParagraphMultiColumns(Paragraph):
         w_h = str(round(PAPER_HEIGHT[Form.paper_size] / 2.54 * 72 * 20))
         XML.add_tag(ms_spr, 'w:pgSz',
                     {'w:w': w_w, 'w:h': w_h})
-        w_top = str(int(Form.top_margin / 2.54 * 72 * 20))
-        w_bottom = str(int(Form.bottom_margin / 2.54 * 72 * 20))
-        w_left = str(int(Form.left_margin / 2.54 * 72 * 20))
-        w_right = str(int(Form.right_margin / 2.54 * 72 * 20))
+        w_top = str(round(Form.top_margin / 2.54 * 72 * 20))
+        w_bottom = str(round(Form.bottom_margin / 2.54 * 72 * 20))
+        w_left = str(round(Form.left_margin / 2.54 * 72 * 20))
+        w_right = str(round(Form.right_margin / 2.54 * 72 * 20))
+        w_header = str(round(1.0 / 2.54 * 72 * 20))
+        if Form.top_margin < 2.0:
+            w_header = str(round((Form.top_margin / 2) / 2.54 * 72 * 20))
+        w_footer = str(round(1.0 / 2.54 * 72 * 20))
+        if Form.bottom_margin < 2.0:
+            w_footer = str(round((Form.bottom_margin / 2) / 2.54 * 72 * 20))
         XML.add_tag(ms_spr, 'w:pgMar',
                     {'w:top': w_top, 'w:bottom': w_bottom,
-                     'w:right': w_right, 'w:left': w_left})
+                     'w:right': w_right, 'w:left': w_left,
+                     'w:header': w_header,'w:footer': w_footer})
         XML.add_tag(ms_spr, 'w:docGrid', {'w:linePitch': '0'})
         ms_col = XML.add_tag(ms_spr, 'w:type', {'w:val': 'continuous'})
         w_num = str(md_text.count('|') - 1)
