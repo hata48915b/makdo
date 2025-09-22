@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.09.22-12:14:43-JST>
+# Time-stamp:   <2025.09.22-14:05:58-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -413,7 +413,7 @@ RES_FORCED_TO_BE_FULL_WIDTH = '[' + \
     '㊶㊷㊸㊹㊺㊻㊼㊽㊾㊿' + \
     ']'
 
-RES_IMAGE = '! *\\[([^\\[\\]]*)\\] *\\(([^\\(\\)]+)\\)'
+RES_IMAGE = '! *\\[([^\\[\\]]*)\\] *\\(([^\\(\\)]+?(?:\\s"[^"]+")?)\\)'
 
 FONT_DECORATORS_INVISIBLE = [
     '\\*\\*\\*',                     # italic and bold
