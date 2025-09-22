@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.09.13-17:40:41-JST>
+# Time-stamp:   <2025.09.22-12:11:51-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -7003,6 +7003,10 @@ class Paragraph:
         numbering_revisers = []
         head_font_revisers, tail_font_revisers, raw_text \
             = Paragraph.get_font_revisers_and_md_text(raw_text)
+        # IMAGE (CAPTION)
+        if self.paragraph_class == 'image':
+            raw_text += ''.join(reversed(tail_font_revisers))
+            tail_font_revisers = []
         md_text = self._get_md_text(raw_text)
         # PREFORMATTED
         if self.paragraph_class == 'preformatted':

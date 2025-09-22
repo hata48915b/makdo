@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.09.21-09:41:18-JST>
+# Time-stamp:   <2025.09.22-12:14:43-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6109,9 +6109,9 @@ class ParagraphImage(Paragraph):
                 ms_doc.paragraphs[-1].alignment = WD_ALIGN_PARAGRAPH.CENTER
                 # CAPTION
                 if capt != '':
-                    ms_run = ms_doc.paragraphs[-1].add_run('\n' + capt)
-                    XML.set_font(ms_run, self.chars_state.mincho_font)
-                    ms_run.font.size = Pt(self.chars_state.font_size)
+                    ms_par = ms_doc.paragraphs[-1]
+                    self.write_text(ms_par, CharsState(), '\n' + capt)
+                    # self.write_text(ms_par, self.chars_state, '\n' + capt)
             except BaseException:
                 e = ms_doc.paragraphs[-1]._element
                 e.getparent().remove(e)
