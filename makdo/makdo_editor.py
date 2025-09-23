@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.09.19-17:18:38-JST>
+# Time-stamp:   <2025.09.23-11:59:51-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -7016,30 +7016,28 @@ class Makdo:
     # NAME AND SAVE
 
     def name_and_save_by_md(self):
-        ti = 'Markdown形式で名前をつけて保存'
-        ty = [('Markdown', '.md')]
-        file_path \
-            = tkinter.filedialog.asksaveasfilename(title=ti, filetypes=ty)
-        if file_path == () or file_path == '':
-            return False
-        if not re.match('^(?:.|\n)+\\.md$', file_path):
-            file_path += '.md'
-        self.remove_auto_file(self.file_path)
-        self.file_path = file_path
-        self.saved_text = ''
-        self._set_file_name(file_path)
-        self.save_file()
-        return True
+        self._name_and_save('Markdown形式で名前をつけて保存',
+                            [('Markdown', '.md')], '.md')
 
     def name_and_save_by_docx(self):
-        ti = 'MS Word形式で名前をつけて保存'
-        ty = [('MS Word', '.docx')]
-        file_path \
-            = tkinter.filedialog.asksaveasfilename(title=ti, filetypes=ty)
+        self._name_and_save('MS Word形式で名前をつけて保存',
+                            [('MS Word', '.docx')], '.docx')
+
+    def _name_and_save(self, title, filetypes, extension):
+        if self.file_path == '':
+            file_path = tkinter.filedialog.asksaveasfilename(
+                title=title, filetypes=filetypes)
+        else:
+            dn = os.path.dirname(self.file_path)
+            fn = os.path.basename(self.file_path)
+            fn = re.sub('\\.(md|docx)$', '', fn)
+            file_path = tkinter.filedialog.asksaveasfilename(
+                title=title, filetypes=filetypes,
+                initialdir=dn, initialfile=fn)
         if file_path == () or file_path == '':
             return False
-        if not re.match('^(?:.|\n)+\\.docx$', file_path):
-            file_path += '.docx'
+        if not re.match('^(?:.|\n)+\\' + extension + '$', file_path):
+            file_path += extension
         self.remove_auto_file(self.file_path)
         self.file_path = file_path
         self.saved_text = ''
