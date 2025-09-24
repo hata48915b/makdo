@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.09.23-11:59:51-JST>
+# Time-stamp:   <2025.09.23-13:12:44-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -4121,6 +4121,8 @@ class Witch:
 
 class CharsState:
 
+    color_vision = 'C'
+
     def __init__(self):
         self.del_or_ins = ''
         self.is_in_comment = False
@@ -4321,7 +4323,7 @@ class CharsState:
         self.section_depth = depth
 
     def get_key(self, chars):
-        cv = Makdo.color_vision
+        cv = self.color_vision
         if cv == 'P':
             return self._get_key_type_p(chars)
         elif cv == 'D':
@@ -13769,7 +13771,7 @@ class Makdo:
         self.color_vision = tkinter.StringVar(value='C')
         if self.file_color_vision is not None:
             self.color_vision.set(self.file_color_vision)
-            Makdo.color_vision = self.file_color_vision
+            CharsState.color_vision = self.file_color_vision
         color_visions \
             = {'C': 'Ｃ型', 'P': 'Ｐ型', 'D': 'Ｄ型', 'T': 'Ｔ型', 'A': 'Ａ型'}
         for c in color_visions:
@@ -13778,7 +13780,7 @@ class Makdo:
                                     command=self.set_color_vision)
 
     def set_color_vision(self):
-        Makdo.color_vision = self.color_vision.get()
+        CharsState.color_vision = self.color_vision.get()
         self.show_config_help_message()
 
     ################

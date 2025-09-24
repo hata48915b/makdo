@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.09.22-12:11:51-JST>
+# Time-stamp:   <2025.09.24-17:35:58-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -107,8 +107,8 @@ def get_arguments():
     parser.add_argument(
         '-p', '--paper-size',
         type=str,
-        choices=['A3', 'A3L', 'A3P', 'A4', 'A4L', 'A4P'],
-        help='用紙設定（A3、A3L、A3P、A4、A4L、A4P）')
+        choices=['A3', 'A3L', 'A3P', 'A4', 'A4L', 'A4P', 'slide'],
+        help='用紙設定（A3、A3L、A3P、A4、A4L、A4P、slide）')
     parser.add_argument(
         '-t', '--top-margin',
         type=float,
@@ -232,9 +232,11 @@ DEFAULT_DOCUMENT_STYLE = 'n'
 
 DEFAULT_PAPER_SIZE = 'A4'
 PAPER_HEIGHT = {'A3': 29.7, 'A3L': 29.7, 'A3P': 42.0,
-                'A4': 29.7, 'A4L': 21.0, 'A4P': 29.7}
+                'A4': 29.7, 'A4L': 21.0, 'A4P': 29.7,
+                'slide': 14.2875}
 PAPER_WIDTH = {'A3': 42.0, 'A3L': 42.0, 'A3P': 29.7,
-               'A4': 21.0, 'A4L': 29.7, 'A4P': 21.0}
+               'A4': 21.0, 'A4L': 29.7, 'A4P': 21.0,
+               'slide': 25.4}
 
 DEFAULT_TOP_MARGIN = 3.5
 DEFAULT_BOTTOM_MARGIN = 2.2
@@ -1675,6 +1677,9 @@ class Form:
         if 29.6 <= width and width <= 29.8:
             if 20.9 <= height and height <= 21.1:
                 Form.paper_size = 'A4L'
+        if 25.3 <= width and width <= 25.5:
+            if 14.1875 <= height and height <= 14.3875:
+                Form.paper_size = 'slide'
         # MARGIN
         if top_x >= 0:
             Form.top_margin = round(top_x / 567, 1)
@@ -2038,11 +2043,15 @@ class Form:
         elif value == 'A4P' or value == 'A4縦':
             Form.paper_size = 'A4P'
             return True
+        elif value == 'slide' or value == 'スライド':
+            Form.paper_size = 'slide'
+            return True
         msg = '※ 警告: ' \
             + '「' + item + '」の値は' \
-            + '"A3横"、"A3縦"、"A4横"又は"A4縦"でなければなりません'
+            + '"A3横"、"A3縦"、"A4横"、"A4縦"又は"スライド"で' \
+            + 'なければなりません'
         # msg = 'warning: ' \
-        #     + '"' + item + '" must be "A3", "A3P", "A4" or "A4L"'
+        #     + '"' + item + '" must be "A3", "A3P", "A4", "A4L" or "slide"'
         sys.stderr.write(msg + '\n\n')
         return False
 
@@ -2332,9 +2341,11 @@ class Form:
         cfgs += '\n'
 
         cfgs += \
-            '# 用紙のサイズ（A3横、A3縦、A4横、A4縦）を指定できます。'
+            '# 用紙サイズ（A3横、A3縦、A4横、A4縦、スライド）を指定できます。'
         cfgs += '\n'
-        if cls.paper_size == 'A3L' or cls.paper_size == 'A3':
+        if cls.paper_size == 'slide':
+            cfgs += '用紙サ: スライド\n'
+        elif cls.paper_size == 'A3L' or cls.paper_size == 'A3':
             cfgs += '用紙サ: A3横\n'
         elif cls.paper_size == 'A3P':
             cfgs += '用紙サ: A3縦\n'

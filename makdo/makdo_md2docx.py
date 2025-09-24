@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.09.22-14:05:58-JST>
+# Time-stamp:   <2025.09.24-17:38:51-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -143,8 +143,8 @@ def get_arguments():
     parser.add_argument(
         '-p', '--paper-size',
         type=str,
-        choices=['A3', 'A3L', 'A3P', 'A4', 'A4L', 'A4P'],
-        help='用紙設定（A3、A3L、A3P、A4、A4L、A4P）')
+        choices=['A3', 'A3L', 'A3P', 'A4', 'A4L', 'A4P', 'slide'],
+        help='用紙設定（A3、A3L、A3P、A4、A4L、A4P、slide）')
     parser.add_argument(
         '-t', '--top-margin',
         type=float,
@@ -353,9 +353,11 @@ DEFAULT_DOCUMENT_STYLE = 'n'
 
 DEFAULT_PAPER_SIZE = 'A4'
 PAPER_HEIGHT = {'A3': 29.7, 'A3L': 29.7, 'A3P': 42.0,
-                'A4': 29.7, 'A4L': 21.0, 'A4P': 29.7}
+                'A4': 29.7, 'A4L': 21.0, 'A4P': 29.7,
+                'slide': 14.2875}
 PAPER_WIDTH = {'A3': 42.0, 'A3L': 42.0, 'A3P': 29.7,
-               'A4': 21.0, 'A4L': 29.7, 'A4P': 21.0}
+               'A4': 21.0, 'A4L': 29.7, 'A4P': 21.0,
+               'slide': 25.4}
 
 DEFAULT_TOP_MARGIN = 3.5
 DEFAULT_BOTTOM_MARGIN = 2.2
@@ -1807,11 +1809,15 @@ class Form:
         elif value == 'A4P' or value == 'A4縦':
             Form.paper_size = 'A4P'
             return True
+        elif value == 'slide' or value == 'スライド':
+            Form.paper_size = 'slide'
+            return True
         msg = '※ 警告: ' \
             + '「' + item + '」の値は' \
-            + '"A3横"、"A3縦"、"A4横"又は"A4縦"でなければなりません'
+            + '"A3横"、"A3縦"、"A4横"、"A4縦"又は"スライド"で' \
+            + 'なければなりません'
         # msg = 'warning: ' \
-        #     + '"' + item + '" must be "A3", "A3P", "A4" or "A4L"'
+        #     + '"' + item + '" must be "A3", "A3P", "A4", "A4L" or "slide"'
         sys.stderr.write(msg + '\n\n')
         return False
 
@@ -6493,7 +6499,7 @@ class ParagraphMultiColumns(Paragraph):
         XML.add_tag(ms_spr, 'w:pgMar',
                     {'w:top': w_top, 'w:bottom': w_bottom,
                      'w:right': w_right, 'w:left': w_left,
-                     'w:header': w_header,'w:footer': w_footer})
+                     'w:header': w_header, 'w:footer': w_footer})
         XML.add_tag(ms_spr, 'w:docGrid', {'w:linePitch': '0'})
         ms_col = XML.add_tag(ms_spr, 'w:type', {'w:val': 'continuous'})
         w_num = str(md_text.count('|') - 1)
