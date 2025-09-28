@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.09.26-04:27:08-JST>
+# Time-stamp:   <2025.09.29-07:44:11-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6101,6 +6101,7 @@ class Makdo:
             document = self._decode_data(encoding, raw_data)
         except BaseException:
             return None
+        document = document.replace('\r\n', '\n')
         return document
 
     def _read_docx_file(self, file_path):
@@ -6148,8 +6149,6 @@ class Makdo:
                     table += '|\n|'
                 else:
                     table += '<br>'
-            elif c == '\r':
-                continue
             elif c == ',':
                 if not is_in_cell:
                     table += '|'
@@ -7104,7 +7103,7 @@ class Makdo:
             if os.path.exists(auto_path):
                 with zipfile.ZipFile(auto_path, 'r') as old_zip:
                     with old_zip.open('doc.md', 'r') as f:
-                        old_text = f.read()
+                        old_text = f.read().replace('\r\n', '\n')
                         if new_text == old_text.decode():
                             return
             try:
@@ -11625,7 +11624,7 @@ class Makdo:
             try:
                 path = CONFIG_DIR + '/formula' + str(i + 1) + '.md'
                 with open(path, 'r') as f:
-                    formulas[i] = f.read()
+                    formulas[i] = f.read().replace('\r\n', '\n')
             except BaseException:
                 pass
         return formulas
@@ -11712,7 +11711,7 @@ class Makdo:
             open(formula_path, 'w').close()
         try:
             with open(formula_path, 'r') as f:
-                formula = f.read()
+                formula = f.read().replace('\r\n', '\n')
         except BaseException:
             return
         #
@@ -11790,7 +11789,7 @@ class Makdo:
             return False
         try:
             with open(memo_pad_path, 'r') as f:
-                self.memo_pad_memory = f.read()
+                self.memo_pad_memory = f.read().replace('\r\n', '\n')
         except BaseException:
             return False
         #
@@ -11812,7 +11811,7 @@ class Makdo:
             return False
         try:
             with open(memo_pad_path, 'r') as f:
-                memo_pad_file = f.read()
+                memo_pad_file = f.read().replace('\r\n', '\n')
         except BaseException:
             return False
         if memo_pad_file != memo_pad_memory:
@@ -14061,7 +14060,7 @@ class Makdo:
             open(CONFIG_FILE, 'w').close()
         try:
             with open(CONFIG_FILE, 'r') as f:
-                lines = f.read().replace('\r', '')
+                lines = f.read().replace('\r\n', '\n')
         except BaseException:
             return False
         for line in lines.split('\n'):
@@ -16848,7 +16847,7 @@ class Makdo:
         def edit_llama_rag_data(self) -> bool:
             try:
                 with open(self.llama_rag_file, 'r') as f:
-                    self.llama_rag_data = f.read()
+                    self.llama_rag_data = f.read().replace('\r\n', '\n')
             except BaseException:
                 return False
             self._open_sub_pane(self.llama_rag_data, False)
