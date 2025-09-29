@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.09.29-07:44:11-JST>
+# Time-stamp:   <2025.09.29-13:01:29-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -7103,8 +7103,8 @@ class Makdo:
             if os.path.exists(auto_path):
                 with zipfile.ZipFile(auto_path, 'r') as old_zip:
                     with old_zip.open('doc.md', 'r') as f:
-                        old_text = f.read().replace('\r\n', '\n')
-                        if new_text == old_text.decode():
+                        old_text = f.read().decode().replace('\r\n', '\n')
+                        if new_text == old_text:
                             return
             try:
                 with zipfile.ZipFile(auto_path, 'w',
