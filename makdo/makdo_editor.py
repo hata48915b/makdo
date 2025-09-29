@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.09.29-13:01:29-JST>
+# Time-stamp:   <2025.09.30-08:01:46-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -7025,7 +7025,7 @@ class Makdo:
                             [('MS Word', '.docx')], '.docx')
 
     def _name_and_save(self, title, filetypes, extension):
-        if self.file_path == '':
+        if self.file_path is None or self.file_path == '':
             file_path = tkinter.filedialog.asksaveasfilename(
                 title=title, filetypes=filetypes)
         else:
