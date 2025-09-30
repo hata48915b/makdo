@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.09.30-08:01:46-JST>
+# Time-stamp:   <2025.10.01-07:47:33-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5684,14 +5684,14 @@ class Makdo:
         self.win.geometry(WINDOW_SIZE)
         self.win.protocol("WM_DELETE_WINDOW", self.quit_makdo)
         # SPLASH SCREEN
-        if getattr(sys, 'frozen', False):
-            import _socket
-            _socket.setdefaulttimeout(5)
-            import pyi_splash
-            pyi_splash.close()
-        else:
-            if sys.platform != 'darwin':
-                # mac doesn't support splash screen
+        if sys.platform != 'darwin':
+            # mac doesn't support splash screen
+            if getattr(sys, 'frozen', False):
+                import _socket
+                _socket.setdefaulttimeout(5)
+                import pyi_splash
+                pyi_splash.close()
+            else:
                 self.show_splash_screen(SPLASH_IMG)
         # TITLE BAR ICON
         if sys.platform != 'darwin' or getattr(sys, 'frozen', False):
@@ -6122,6 +6122,7 @@ class Makdo:
             tkinter.messagebox.showerror(n, msg)
             return None
         document = self._read_md_file(md_path)
+        os.remove(md_path)
         return document
 
     def _read_md_file(self, file_path):
@@ -6943,6 +6944,7 @@ class Makdo:
             try:
                 m2d = makdo.makdo_md2docx.Md2Docx(md_path)
                 m2d.save(self.file_path)
+                os.remove(md_path)
             except BaseException:
                 pass
             sys.stderr.seek(0)
@@ -7435,6 +7437,7 @@ class Makdo:
         try:
             m2d = makdo.makdo_md2docx.Md2Docx(md_path)
             m2d.save(file_path)
+            os.remove(md_path)
         except BaseException:
             pass
         sys.stderr.seek(0)
@@ -11951,6 +11954,7 @@ class Makdo:
             try:
                 d2m = makdo.makdo_docx2md.Docx2Md(file_path)
                 d2m.save(md_path)
+                os.remove(md_path)
             except BaseException:
                 pass
             sys.stderr.seek(0)
