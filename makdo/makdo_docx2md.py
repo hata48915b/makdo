@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.09.24-17:35:58-JST>
+# Time-stamp:   <2025.10.01-19:08:26-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -8791,7 +8791,7 @@ class ParagraphTable(Paragraph):
             std_row = hm_dct[max_num_ha_str]
         # COLUMN
         if num_clm == 1:
-            str_clm = 0
+            std_clm = 0
         else:
             for j in range(1, num_clm):
                 va_str = ''
