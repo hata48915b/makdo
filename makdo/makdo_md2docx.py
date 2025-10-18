@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.09.24-17:38:51-JST>
+# Time-stamp:   <2025.10.18-08:37:39-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5186,18 +5186,26 @@ class Paragraph:
             # .[0-9]+; (IVS (IDEOGRAPHIC VARIATION SEQUENCE))
             ivsn = re.sub(res_ivs, '\\3', chars)
             ivsc = re.sub(res_ivs, '\\2', chars)
-            chars = re.sub(res_ivs, '\\1', chars)
-            ivsu = int('0xE0100', 16) + int(ivsn)
-            if int(ivsu) <= int('0xE01EF', 16):
-                chars = XML.write_chars(ms_par._p, chars_state, chars)
-                is_mincho_font = False
-                if chars_state.mincho_font == Form.mincho_font:
-                    is_mincho_font = True
+            chrs = re.sub(res_ivs, '\\1', chars)
+            ivsu = 0xE0100 + int(ivsn)
+            if ivsu <= 0xE01EF:
+                ivss, font = ivsc + chr(ivsu), chars_state.mincho_font
+                chars = XML.write_chars(ms_par._p, chars_state, chrs)
+                if font == Form.mincho_font:
                     chars_state.mincho_font = chars_state.ivs_font
-                chars \
-                    = XML.write_chars(ms_par._p, chars_state, ivsc + chr(ivsu))
-                if is_mincho_font:
+                chars = XML.write_chars(ms_par._p, chars_state, ivss)
+                if font == Form.mincho_font:
                     chars_state.mincho_font = Form.mincho_font
+        elif re.match('^(.|\n)*.[' + chr(0xE0100) + '-' + chr(0xE01EF) + ']$',
+                      chars):
+            # IVS (IDEOGRAPHIC VARIATION SEQUENCE)
+            chrs, ivss, font = chars[:-2], chars[-2:], chars_state.mincho_font
+            chars = XML.write_chars(ms_par._p, chars_state, chrs)
+            if font == Form.mincho_font:
+                chars_state.mincho_font = chars_state.ivs_font
+            chars = XML.write_chars(ms_par._p, chars_state, ivss)
+            if font == Form.mincho_font:
+                chars_state.mincho_font = Form.mincho_font
         elif re.match(res_foc, chars):
             # "^.*^" (FONT COLOR)
             col = re.sub(res_foc, '\\2', chars)
