@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.10.01-19:08:26-JST>
+# Time-stamp:   <2025.11.09-02:50:01-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6956,7 +6956,7 @@ class Paragraph:
         self.length_supp = {}
         self.length_revi = {}
         self.length_revisers = []
-        self.tab_revisers_line = ''
+        self.tab_config = []
         self.pre_text_to_write = ''
         self.post_text_to_write = ''
         self.text_to_write_with_reviser = ''
@@ -6989,7 +6989,7 @@ class Paragraph:
                                                self.numbering_revisers,
                                                self.length_revisers)
         self.char_spacing = self._get_char_spacing(self.xml_lines)
-        self.tab_revisers_line = self._get_tab_revisers_line(self.xml_lines)
+        self.tab_config = self._get_tab_config(self.xml_lines)
         # EXECUTION
         self.md_lines_text = self._get_md_lines_text(self.md_text)
         self.text_to_write = self._get_text_to_write()
@@ -7484,11 +7484,10 @@ class Paragraph:
         return 0.0
 
     @staticmethod
-    def _get_tab_revisers_line(xml_lines):
-        tr_line = ''
+    def _get_tab_config(xml_lines):
+        tab_config = []
         is_in_ppr = False
         is_in_tab = False
-        pos = 0
         for xl in xml_lines:
             if xl == '<w:pPr>':
                 is_in_ppr = True
@@ -7501,23 +7500,18 @@ class Paragraph:
             elif is_in_ppr and is_in_tab:
                 res = '^<w:tab w:val="([^"]+)" w:pos="([0-9]+)"/>$'
                 if re.match(res, xl):
-                    if tr_line == '':
-                        tr_line = '/'
                     ali = re.sub(res, '\\1', xl)
-                    w = int(re.sub(res, '\\2', xl))
-                    wid = round(w / Form.font_size / 10) - pos
-                    if re.match('^.+:$', tr_line):
-                        wid -= 1
+                    wid = int(re.sub(res, '\\2', xl))
+                    wc = str(round(wid / Form.font_size / 20, 2))
+                    wc = re.sub('\\.?0+$', '', wc)
                     if ali == 'right':
-                        tr_line += '-' * (wid - 2) + ':/'
+                        tc = '@' + wc + ':'
                     elif ali == 'center':
-                        tr_line += '-' * (wid - 2) + ':/:'
+                        tc = ':' + '@' + wc + ':'
                     else:
-                        tr_line += '-' * (wid - 1) + '/'
-                    pos += wid
-        tr_line = re.sub('-$', '', tr_line)
-        tab_revisers_line = tr_line
-        return tab_revisers_line
+                        tc = '@' + wc
+                    tab_config.append(tc)
+        return tab_config
 
     def _get_md_lines_text(self, md_text):
         paragraph_class = self.paragraph_class
@@ -7552,6 +7546,7 @@ class Paragraph:
         md_lines_text = self.md_lines_text
         length_docx = self.length_docx
         head_space = self.head_space
+        tab_config = self.tab_config
         indent = length_docx['first indent'] \
             + length_docx['left indent'] \
             + length_docx['right indent']
@@ -7569,6 +7564,11 @@ class Paragraph:
                 += ParagraphImage.replace_with_fixed_size(img_text, region_cm)
             md_lines_text = re.sub(res, '\\7', md_lines_text)
         text_to_write += md_lines_text
+        # TAB
+        for tc in tab_config:
+            if '\t' not in text_to_write:
+                break
+            text_to_write = text_to_write.replace('\t', '< ' + tc + ' >', 1)
         # FOOTNOTES
         res = '^((?:.|\n)*)\\^{([0-9]+)）}'
         while re.match(res, text_to_write):
@@ -7582,7 +7582,6 @@ class Paragraph:
         char_spacing = self.char_spacing
         head_font_revisers = self.head_font_revisers
         tail_font_revisers = self.tail_font_revisers
-        tab_revisers_line = self.tab_revisers_line
         text_to_write = self.text_to_write
         pre_text_to_write = self.pre_text_to_write
         post_text_to_write = self.post_text_to_write
@@ -7639,10 +7638,6 @@ class Paragraph:
             ttwwr = re.sub(' $', '\n', ttwwr)
         if has_left_sharp:
             ttwwr += '# '
-        # TAB
-        if tab_revisers_line != '' and '\t' in text_to_write:
-            ttwwr += tab_revisers_line + '\n'
-            text_to_write = text_to_write.replace('\t', '<tab>')
         # LEFT SYMBOL
         if len(head_pair_font_revisers) > 0:
             ttwwr += ''.join(head_pair_font_revisers) + '\n'

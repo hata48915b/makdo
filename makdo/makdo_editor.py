@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.11.06-14:04:34-JST>
+# Time-stamp:   <2025.11.09-04:21:01-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -236,12 +236,9 @@ CONFIGURATION_SAMPLE = [
     '更新時: - USER',
     '']
 
-PARAGRAPH_SAMPLE = ['', '< tab >',
+PARAGRAPH_SAMPLE = ['', '< @15 >', '< @25: >',
                     '<!-------q1--------q2--------q3------' +
                     '--q4--------q5--------q6--------q7-->',
-                    '/-----------------------------------/',
-                    '/----------------------------------:/',
-                    '/----------------------------------:/:',
                     '<!--コメント-->',
                     '# <!--タイトル-->', '## <!--第１-->', '### <!--１-->',
                     '#### <!--(1)-->', '##### <!--ア-->', '###### <!--(ｱ)-->',
@@ -276,7 +273,7 @@ SCRIPT_SAMPLE = ['',
                  'print(sum, "4s")',
                  '']
 
-FONT_DECORATOR_SAMPLE = ['', '< tab >',
+FONT_DECORATOR_SAMPLE = ['', '< @15 >', '< @25: >',
                          '<!--コメント-->',
                          '*<!--斜体-->*',
                          '*<!--太字-->*',
@@ -4699,21 +4696,6 @@ class LineDatum:
                 pane.tag_add(key, beg, end)                             # 3.tag
                 self.end_chars_state = chars_state.copy()
                 return
-            # TAB
-            if re.match('^/(?::?-*:?/)+:?$', line_text) and \
-               re.match('^/(?:[-:]+/)+:?$', line_text):
-                for j, c in enumerate(line_text + '\0'):
-                    if c == '/':
-                        key = chars_state.get_key('table')              # 1.key
-                    elif c != '\0':
-                        key = chars_state.get_key('font decorator')     # 1.key
-                    else:  # c == '\0'
-                        break
-                    beg = str(i + 1) + '.' + str(j)                     # 2.beg
-                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                    pane.tag_add(key, beg, end)                         # 3.tag
-                self.end_chars_state = chars_state.copy()
-                return
         # PARTS
         beg, tmp = str(i + 1) + '.0', ''
         is_in_substitute_phrase = False  # substitute phrase
@@ -5088,15 +5070,27 @@ class LineDatum:
                     beg = end                                           # 6.beg
                     continue
                 if c == ':':
+                    # ALIGNMENT
                     res1, res2 = '^.*\\|', '^-*:?[\\^|=]?$'
                     res3, res4 = '^.*\\|:?-*:$', '^[\\^|=]?$'
                     res5, res6 = '^.*\\|:$', '^\\s.*$'
                     res7, res8 = '^.*\\s:$', '^(@([0-9]*x)?[0-9]+)?\\|.*$'
+                    resA, resB = '^.*<\\s*:?@(?:[0-9]*\\.)[0-9]+:', '\\s*>'
                     if (re.match(res1, s_lft) and re.match(res2, s_rgt)) or \
                        (re.match(res3, s_lft) and re.match(res4, s_rgt)) or \
                        (re.match(res5, s_lft) and re.match(res6, s_rgt)) or \
                        (re.match(res7, s_lft) and re.match(res8, s_rgt)):
                         key = chars_state.get_key('alignment')          # 1.key
+                        end = str(i + 1) + '.' + str(j + 1)             # 2.end
+                        pane.tag_add(key, beg, end)                     # 3.tag
+                        #                                               # 4.set
+                        tmp = ''                                        # 5.tmp
+                        beg = end                                       # 6.beg
+                        continue
+                    # TAB
+                    res1, res2 = '^.*<\\s*:?@(?:[0-9]*\\.)?[0-9]+:', '\\s*>'
+                    if (re.match(res1, s_lft) and re.match(res2, s_rgt)):
+                        key = chars_state.get_key('font decorator')     # 1.key
                         end = str(i + 1) + '.' + str(j + 1)             # 2.end
                         pane.tag_add(key, beg, end)                     # 3.tag
                         #                                               # 4.set
@@ -5138,7 +5132,7 @@ class LineDatum:
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
                 # SPACE (< n >) / TAB (< tab >)
-                res = '^\\s*([\\.0-9]+|tab)\\s*>.*$'
+                res = '^\\s*([\\.0-9]+|:?@[\\.0-9]+:?)\\s*>.*$'
                 if c == '<' and re.match(res, s_rgt):
                     key = chars_state.get_key('')                       # 1.key
                     end = str(i + 1) + '.' + str(j)                     # 2.end
@@ -5153,7 +5147,7 @@ class LineDatum:
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
                     continue
-                res = '^.*<\\s*([\\.0-9]+|tab)\\s*>$'
+                res = '^.*<\\s*([\\.0-9]+|:?@[\\.0-9]+:?)\\s*>$'
                 if c == '>' and re.match(res, s_lft):
                     key = chars_state.get_key('<sp>')                   # 1.key
                     end = str(i + 1) + '.' + str(j + 1)                 # 2.end
@@ -5324,7 +5318,17 @@ class LineDatum:
                     (re.match('^.*<\\s*[0-9]*\\.$', s_lft) and
                      re.match('^[0-9]+\\s*>.*$', s_rgt)) or
                     (re.match('^.*<\\s*[0-9]*\\.[0-9]+$', s_lft) and
-                     re.match('^[0-9]*\\s*>.*$', s_rgt))):
+                     re.match('^[0-9]*\\s*>.*$', s_rgt)) or
+                    (re.match('^.*<\\s*:?@[0-9]+$', s_lft) and
+                     re.match('^[0-9]*:?\\s*>.*$', s_rgt)) or
+                    (re.match('^.*<\\s*:?@[0-9]+$', s_lft) and
+                     re.match('^[0-9]*\\.[0-9]+:?\\s*>.*$', s_rgt)) or
+                    (re.match('^.*<\\s*:?@[0-9]*\\.$', s_lft) and
+                     re.match('^[0-9]+:?\\s*>.*$', s_rgt)) or
+                    (re.match('^.*<\\s*:?@[0-9]*\\.[0-9]+$', s_lft) and
+                     re.match('^[0-9]*:?\\s*>.*$', s_rgt)) or
+                    (re.match('^.*<\\s*:?@[0-9]*\\.[0-9]+$', s_lft) and
+                     re.match('^[0-9]*:?\\s*>.*$', s_rgt))):
                     key = chars_state.get_key('<sp>')                   # 1.key
                     end = str(i + 1) + '.' + str(j + 1)                 # 2.end
                     pane.tag_add(key, beg, end)                         # 3.tag
@@ -5342,15 +5346,6 @@ class LineDatum:
                     (re.match('^.*@[0-9]*\\.[0-9]+$', s_lft) and
                      re.match('^[0-9]*@.*$', s_rgt))):
                     continue
-            # TAB (< tab >)
-            if tmp == 'tab':
-                key = chars_state.get_key('<sp>')                       # 1.key
-                end = str(i + 1) + '.' + str(j + 1)                     # 2.end
-                pane.tag_add(key, beg, end)                             # 3.tag
-                #                                                       # 4.set
-                tmp = ''                                                # 5.tmp
-                beg = end                                               # 6.beg
-                continue
             # NUMBER
             if re.match('^[0-9]$', c):
                 if re.match('^#+(-#+)*(\\s.*)?\\.\\.\\.\\[[0-9]+$', s_lft) \
