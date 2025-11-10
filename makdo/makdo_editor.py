@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.11.09-04:21:01-JST>
+# Time-stamp:   <2025.11.10-13:30:28-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -117,8 +117,6 @@ OPENAI_MODELS = [
 ]
 DEFAULT_OPENAI_MODEL = 'gpt-4o-mini'
 # DEFAULT_OPENAI_MODEL = 'gpt-3.5-turbo'
-
-DEFAULT_OLLAMA_MODEL = 'gemma3:4b'
 
 MD_TEXT_WIDTH = 68
 
@@ -16869,7 +16867,17 @@ class Makdo:
              'self.set_return_to()'])
         Minibuffer.minibuffer_commands.append(mc)
 
+        mc = Minibuffer.MinibufferCommand(
+            'set-ollama-model',
+            [None, 'Ollamatoのモデルを設定'],
+            ['self.mother.set_ollama_model(self)',
+             'self.set_return_to()'])
+        Minibuffer.minibuffer_commands.append(mc)
+
         def open_ollama(self) -> bool:
+            if 'ollama' not in sys.modules:
+                if not self._import_ollama():
+                    return False
             if 'ollama_model' not in vars(self):
                 self.set_ollama_model()
             if 'ollama_model' not in vars(self):
@@ -16908,19 +16916,6 @@ class Makdo:
         def _ask_ollama(self) -> bool:
             model = self.ollama_model
             messages = self._get_message('Ollama')
-            if 'ollama' not in sys.modules:
-                try:
-                    import ollama
-                except ImportError:
-                    n = 'エラー'
-                    m = '"ollama"を\n' \
-                        + 'インポートできませんでした．\n\n' \
-                        + '次のコマンドを実行して、\n' \
-                        + 'インストールしてください．\n\n' \
-                        + 'pip install ollama'
-                    tkinter.messagebox.showerror(n, m)
-                    return False
-                self.ollama = ollama
             try:
                 response = self.ollama.chat(
                     model=model, messages=messages,
@@ -16943,7 +16938,7 @@ class Makdo:
             return True
 
         def _set_message_ollama(self) -> bool:
-            message = 'Ollamaに質問しています'
+            message = 'Ollama（' + self.ollama_model + '）に質問しています'
             if len(threading.enumerate()) > 1:
                 for te in threading.enumerate():
                     if re.match('^Thread-[0-9]+ \\(_ask_ollama\\)$', te.name):
@@ -16960,16 +16955,48 @@ class Makdo:
             self.set_message_on_status_bar('')
             self._close_sub_pane()
 
-        def set_ollama_model(self) -> bool:
-            if 'ollama_model' not in vars(self):
-                self.ollama_model = DEFAULT_OLLAMA_MODEL
-            b, p = 'Ollamaのモデル', 'Ollamaのモデルを入力してください．'
-            h, t, i = '', '', self.ollama_model
-            om = OneWordDialog(self.txt, self, b, p, h, t, i).get_value()
-            if om is None:
+        def set_ollama_model(self, mother=None) -> bool:
+            pane = self.txt
+            if self.current_pane == 'sub':
+                pane = self.sub
+            if mother is None:
+                mother = pane
+            if 'ollama' not in sys.modules:
+                if not self._import_ollama():
+                    return False
+            tit = 'Ollamaのモデルを選択'
+            mes = 'Ollamaのモデルを選択してください．'
+            mol = []
+            for om in self.ollama.list().models:
+                mol.append(om.model)
+            num = -1
+            if 'ollama_model' in vars(self):
+                om = self.ollama_model
+                if om in mol:
+                    num = mol.index(om)
+            rd = RadiobuttonDialog(mother, self, tit, mes, mol, num)
+            val = rd.get_value()
+            if val is not None:
+                self.ollama_model = val
+                m = 'Ollamaのモデルを"' + val + '"に設定しました'
+                self.set_message_on_status_bar(m)
+                self.show_config_help_message()
+                return True
+            return False
+
+        def _import_ollama(self) -> bool:
+            try:
+                import ollama
+            except ImportError:
+                n = 'エラー'
+                m = '"ollama"を\n' \
+                    + 'インポートできませんでした．\n\n' \
+                    + '次のコマンドを実行して、\n' \
+                    + 'インストールしてください．\n\n' \
+                    + 'pip install ollama'
+                tkinter.messagebox.showerror(n, m)
                 return False
-            self.ollama_model = om
-            self.show_config_help_message()
+            self.ollama = ollama
             return True
 
         # TOOLS
