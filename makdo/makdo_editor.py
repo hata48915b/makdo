@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.11.10-13:30:28-JST>
+# Time-stamp:   <2025.11.10-13:51:56-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -16923,12 +16923,7 @@ class Makdo:
                     # options={ "temperature": 0, "num_ctx": 512 }
                 )
             except BaseException:
-                n = 'エラー'
-                m = '"ollama"に\n' \
-                    + '接続できませんでした．\n\n' \
-                    + '次のコマンドを実行して、\n' \
-                    + '起動しておいてください．\n' \
-                    + 'ollama serve'
+                n, m = 'エラー', self._olloma_message_unable_to_execute
                 tkinter.messagebox.showerror(n, m)
                 return False
             answer = response.message.content
@@ -16966,9 +16961,14 @@ class Makdo:
                     return False
             tit = 'Ollamaのモデルを選択'
             mes = 'Ollamaのモデルを選択してください．'
-            mol = []
-            for om in self.ollama.list().models:
-                mol.append(om.model)
+            try:
+                mol = []
+                for om in self.ollama.list().models:
+                    mol.append(om.model)
+            except BaseException:
+                n, m = 'エラー', self._olloma_message_unable_to_execute
+                tkinter.messagebox.showerror(n, m)
+                return False
             num = -1
             if 'ollama_model' in vars(self):
                 om = self.ollama_model
@@ -16998,6 +16998,13 @@ class Makdo:
                 return False
             self.ollama = ollama
             return True
+
+        _olloma_message_unable_to_execute \
+            = '"ollama"に\n' \
+            + '接続できませんでした．\n\n' \
+            + '次のコマンドを実行して、\n' \
+            + '起動しておいてください．\n' \
+            + 'ollama serve'
 
         # TOOLS
 
