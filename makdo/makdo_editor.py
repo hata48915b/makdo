@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.11.10-13:51:56-JST>
+# Time-stamp:   <2025.11.11-07:12:39-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -16976,7 +16976,7 @@ class Makdo:
                     num = mol.index(om)
             rd = RadiobuttonDialog(mother, self, tit, mes, mol, num)
             val = rd.get_value()
-            if val is not None:
+            if (val is not None) and (val != self.ollama_model):
                 self.ollama_model = val
                 m = 'Ollamaのモデルを"' + val + '"に設定しました'
                 self.set_message_on_status_bar(m)
