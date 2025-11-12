@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.11.12-18:06:59-JST>
+# Time-stamp:   <2025.11.13-06:43:26-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5976,6 +5976,18 @@ class RawParagraph:
 
     @classmethod
     def _get_chars_data_and_etc(cls, raw_class, xml_lines, type='normal'):
+        # MARKUP COMPATIBILITY
+        m = len(xml_lines) - 1
+        must_drop = False
+        for i in range(m - 1, -1, -1):
+            cur, nex = xml_lines[i], xml_lines[i + 1]
+            if re.match('^</mc:Choice( .*[^/])?>$', cur):
+                if re.match('^<mc:Fallback( .*[^/])?>$', nex):
+                    must_drop = True
+            if must_drop:
+                xml_lines.pop(i)
+            if re.match('^<mc:Choice( .*[^/])?>$', cur):
+                must_drop = False
         font_size = Form.font_size
         chars_data = []
         images = {}
