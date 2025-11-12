@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.11.12-14:44:39-JST>
+# Time-stamp:   <2025.11.12-14:51:34-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -9479,6 +9479,17 @@ class Docx2Md:
         comments_xml_lines = io.read_xml_file('/word/comments.xml')
         numbering_xml_lines = io.read_xml_file('/word/numbering.xml')
         footnotes_xml_lines = io.read_xml_file('/word/footnotes.xml')
+        # IMAGE LIST
+        Form.rels = Form.get_rels(rels_xml_lines)
+        # REMARKS
+        Form.remarks = Form.get_remarks(comments_xml_lines)
+        # STYLE LIST
+        Form.styles = Form.get_styles(styles_xml_lines)
+        # AUTO NUMBERING STYLE
+        Form.auto_numbering_styles \
+            = Form.get_auto_numbering_styles(numbering_xml_lines)
+        # FOOTNOTES
+        Form.footnotes = Form.get_footnotes(footnotes_xml_lines)
         # CONFIGURE
         frm.document_xml_lines = document_xml_lines
         frm.core_xml_lines = core_xml_lines
@@ -9493,17 +9504,6 @@ class Docx2Md:
         frm.footnotes_xml_lines = footnotes_xml_lines
         frm.args = args
         frm.configure()
-        # IMAGE LIST
-        Form.rels = Form.get_rels(rels_xml_lines)
-        # REMARKS
-        Form.remarks = Form.get_remarks(comments_xml_lines)
-        # STYLE LIST
-        Form.styles = Form.get_styles(styles_xml_lines)
-        # AUTO NUMBERING STYLE
-        Form.auto_numbering_styles \
-            = Form.get_auto_numbering_styles(numbering_xml_lines)
-        # FOOTNOTES
-        Form.footnotes = Form.get_footnotes(footnotes_xml_lines)
         # PRESERVE
         doc.document_xml_lines = document_xml_lines
 
