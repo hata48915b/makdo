@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.11.12-15:15:48-JST>
+# Time-stamp:   <2025.11.12-19:19:10-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5836,6 +5836,10 @@ class ParagraphTable(Paragraph):
                     if t_ln != '':
                         tab_lines.append(t_ln)
                         t_ln = ''
+            if re.match('^.*\\|:$', t_ln) and re.match('^\\|', ml.text) or \
+               re.match('^.*\\|:$', t_ln) and re.match('^:\\|', ml.text) or \
+               re.match('^.*\\|$', t_ln) and re.match('^:\\|', ml.text):
+                t_ln += '  '  # for an empty cell with alignment
             t_ln += ml.text
         #
         if t_ln != '':

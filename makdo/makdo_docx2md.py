@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.11.12-14:51:34-JST>
+# Time-stamp:   <2025.11.12-18:06:59-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -8976,7 +8976,7 @@ class ParagraphTable(Paragraph):
                 #     = re.sub('<br>([^\\|])', '<br>\\\n    \\1', tmp_text)
                 break
         tmp_lines = tmp_text.split('\n')
-        # ': \n  ...' -> ': ...'
+        # LEFT TABLE ALIGNMENT (': \n  ...' -> ': ...')
         for j in range(len(tmp_lines)):
             if j == 0:
                 continue
