@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.11.09-02:50:01-JST>
+# Time-stamp:   <2025.11.12-14:44:39-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -8357,24 +8357,31 @@ class ParagraphTable(Paragraph):
     @staticmethod
     def __get_xml_table(xml_lines):
         xml_tbl = []
+        res_tbl_beg = '^<w:tbl( .*)?>$'
+        res_tbl_end = '^</w:tbl( .*)?>$'
+        depth = 0
         res_row_beg = '^<w:tr( .*)?>$'
         res_row_end = '^</w:tr( .*)?>$'
+        is_in_row = False
         res_cel_beg = '^<w:tc( .*)?>$'
         res_cel_end = '^</w:tc( .*)?>'
-        is_in_row = False
         is_in_cel = False
         for xl in xml_lines:
-            if re.match(res_row_beg, xl):
+            if re.match(res_tbl_beg, xl):
+                depth += 1
+            elif re.match(res_tbl_end, xl):
+                depth -= 1
+            if depth == 1 and re.match(res_row_beg, xl):
                 xml_row = []
                 is_in_row = True
-            elif re.match(res_row_end, xl):
+            elif depth == 1 and re.match(res_row_end, xl):
                 xml_tbl.append(xml_row)
                 is_in_row = False
-            elif re.match(res_cel_beg, xl):
+            elif depth == 1 and re.match(res_cel_beg, xl):
                 xml_cel = []
                 span_h = 1
                 is_in_cel = True
-            elif re.match(res_cel_end, xl):
+            elif depth == 1 and re.match(res_cel_end, xl):
                 xml_row.append(xml_cel)
                 for i in range(1, span_h):
                     xml_row.append([])
@@ -8426,19 +8433,26 @@ class ParagraphTable(Paragraph):
     @staticmethod
     def __get_raw_length(xml_lines, num_row, num_clm):
         v_raw_hgt, h_raw_wid = [], []
+        res_tbl_beg = '^<w:tbl( .*)?>$'
+        res_tbl_end = '^</w:tbl( .*)?>$'
+        depth = 0
         res_row_beg = '^<w:tr( .*)?>$'
         res_v_hgt = '^<w:trHeight(?: .*)? w:val=[\'"]([0-9]+)[\'"](?: .*)?/>$'
         res_h_wid = '^<w:gridCol(?: .*)? w:w=[\'"]([0-9]+)[\'"](?: .*)?/>$'
         n = 0
         for xl in xml_lines:
-            if re.match(res_row_beg, xl):
+            if re.match(res_tbl_beg, xl):
+                depth += 1
+            elif re.match(res_tbl_end, xl):
+                depth -= 1
+            if depth == 1 and re.match(res_row_beg, xl):
                 n += 1
-            elif re.match(res_v_hgt, xl):
+            elif depth == 1 and re.match(res_v_hgt, xl):
                 while len(v_raw_hgt) < n - 1:
                     v_raw_hgt.append(0)
                 val = re.sub(res_v_hgt, '\\1', xl)
                 v_raw_hgt.append(int(val))
-            elif re.match(res_h_wid, xl):
+            elif depth == 1 and re.match(res_h_wid, xl):
                 val = re.sub(res_h_wid, '\\1', xl)
                 h_raw_wid.append(int(val))
         while len(v_raw_hgt) < num_row:
@@ -8961,7 +8975,27 @@ class ParagraphTable(Paragraph):
                 # tmp_text \
                 #     = re.sub('<br>([^\\|])', '<br>\\\n    \\1', tmp_text)
                 break
-        md_text = tmp_text
+        tmp_lines = tmp_text.split('\n')
+        # ': \n  ...' -> ': ...'
+        for j in range(len(tmp_lines)):
+            if j == 0:
+                continue
+            i = j - 1
+            if re.match('^:\\s*$', tmp_lines[i]) and \
+               re.match('^\\s*\\|.*$', tmp_lines[j]):
+                tmp_lines[i] = ': ' + re.sub('^\\s*', '', tmp_lines[j])
+                tmp_lines.pop(j)
+                break
+        # MODIFY INDENT
+        is_left_alignment = False
+        for tl in tmp_lines:
+            if re.match('^:\\s', tl):
+                is_left_alignment = True
+        if is_left_alignment:
+            for i in range(len(tmp_lines)):
+                if not re.match('^:\\s', tmp_lines[i]):
+                    tmp_lines[i] = '  ' + tmp_lines[i]
+        md_text = '\n'.join(tmp_lines)
         return md_text
 
 
