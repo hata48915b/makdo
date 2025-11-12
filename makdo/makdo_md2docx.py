@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.11.12-19:19:10-JST>
+# Time-stamp:   <2025.11.13-08:23:17-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5297,6 +5297,15 @@ class Paragraph:
                 chars = re.sub(NOT_ESCAPED + '(n|N|M)$', '\\1', chars)
                 chars = XML.write_chars(ms_par._p, chars_state, chars)
                 chars += XML.write_page_number(ms_par._p, chars_state, char)
+        elif re.match(NOT_ESCAPED + '\\$\\[$', chars) or \
+             re.match(NOT_ESCAPED + '\\]\\$$', chars):
+            # "$[...]$" (TEXTBOX)
+            XML.write_chars(ms_par._p, chars_state, chars[:-2])
+            if re.match(NOT_ESCAPED + '\\$\\[$', chars):
+                chars = XML.write_chars(ms_par._p, CharsState(), '[')
+            else:
+                chars = XML.write_chars(ms_par._p, CharsState(), ']')
+            chars = ''
         elif re.match(NOT_ESCAPED + '\\[\\^(\\S{,20})\\]$', chars):
             # "[^.*]" (FOOTNOTES)
             res = '\\[\\^(.{,20})\\]$'

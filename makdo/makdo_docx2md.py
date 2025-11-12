@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.11.13-06:43:26-JST>
+# Time-stamp:   <2025.11.13-08:08:15-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6087,6 +6087,13 @@ class RawParagraph:
                 img_file_name = ''
                 img_size = ''
             if must_continue:
+                continue
+            # TEXTBOX
+            if re.match('^<v:textbox( .*[^/])?>$', xl):
+                chars_data.append(CharsDatum([], '$[', []))
+                continue
+            elif re.match('^</v:textbox( .*[^/])?>$', xl):
+                chars_data.append(CharsDatum([], ']$', []))
                 continue
             # TRACK CHANGES
             if re.match('^<w:del( .*[^/])?>$', xl):
