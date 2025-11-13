@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.11.13-08:23:17-JST>
+# Time-stamp:   <2025.11.14-07:24:14-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5302,9 +5302,9 @@ class Paragraph:
             # "$[...]$" (TEXTBOX)
             XML.write_chars(ms_par._p, chars_state, chars[:-2])
             if re.match(NOT_ESCAPED + '\\$\\[$', chars):
-                chars = XML.write_chars(ms_par._p, CharsState(), '[')
+                chars = XML.write_chars(ms_par._p, CharsState(), '⟦')
             else:
-                chars = XML.write_chars(ms_par._p, CharsState(), ']')
+                chars = XML.write_chars(ms_par._p, CharsState(), '⟧')
             chars = ''
         elif re.match(NOT_ESCAPED + '\\[\\^(\\S{,20})\\]$', chars):
             # "[^.*]" (FOOTNOTES)
