@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.11.14-07:48:12-JST>
+# Time-stamp:   <2025.11.14-11:05:24-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5536,7 +5536,7 @@ class LineDatum:
                 beg = end                                               # 6.beg
                 continue
             # ERROR ("★")
-            res = '^[' + \
+            res_bushu = '^[' + \
                 '⺀⺁⺂⺃⺄⺅⺆⺇⺈⺉⺊⺋⺌⺍⺎⺏' + \
                 '⺐⺑⺒⺓⺔⺕⺖⺗⺘⺙⺛⺜⺝⺞⺟' + \
                 '⺠⺡⺢⺣⺤⺥⺦⺧⺨⺩⺪⺫⺬⺭⺮⺯' + \
@@ -5560,7 +5560,7 @@ class LineDatum:
                 '⿀⿁⿂⿃⿄⿅⿆⿇⿈⿉⿊⿋⿌⿍⿎⿏' + \
                 '⿐⿑⿒⿓⿔⿕' + \
                 ']$'
-            if c == '★' or re.match(res, c):  # bushu
+            if c == '★' or re.match(res_bushu, c):
                 key = chars_state.get_key('')                           # 1.key
                 end = str(i + 1) + '.' + str(j)                         # 2.end
                 pane.tag_add(key, beg, end)                             # 3.tag
