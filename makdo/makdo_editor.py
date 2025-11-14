@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.11.15-06:51:53-JST>
+# Time-stamp:   <2025.11.15-07:11:24-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6810,6 +6810,8 @@ class Makdo:
         self.current_pane = 'txt'
         self.txt.mark_set('insert', '1.0')
         self._set_file_name(file_path)
+        if not os.access(file_path, os.W_OK):
+            self.is_read_only.set(True)
         if document == '':
             self.set_message_on_status_bar('空のファイルを開きました')
         # PAINT ALL LINES
