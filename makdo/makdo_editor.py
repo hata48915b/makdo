@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.11.14-11:05:24-JST>
+# Time-stamp:   <2025.11.14-20:29:29-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -162,13 +162,13 @@ COLOR_SPACE = (
     ('#005D8E', '#009AED', '#59C5FF', '#C8ECFF'),  # 200 : fsp, ins, par4
     ('#0059B2', '#1F8FFF', '#79BCFF', '#D2E9FF'),  # 210 : chap1
     ('#0053EF', '#4385FF', '#8EB6FF', '#D9E7FF'),  # 220 : chap2, par5
-    ('#1F48FF', '#5F7CFF', '#9FB1FF', '#DFE5FF'),  # 230 : chap3, subsA
+    ('#1F48FF', '#5F7CFF', '#9FB1FF', '#DFE5FF'),  # 230 : chap3, subwA
     ('#3F3FFF', '#7676FF', '#ADADFF', '#E4E4FF'),  # 240 : chap4, hsp, par6
     ('#5B36FF', '#8A70FF', '#B9A9FF', '#E8E2FF'),  # 250 : chap5
     ('#772EFF', '#9E6AFF', '#C5A5FF', '#ECE1FF'),  # 260 : par7
-    ('#9226FF', '#B164FF', '#D0A2FF', '#EFE0FF'),  # 270 : subsC
+    ('#9226FF', '#B164FF', '#D0A2FF', '#EFE0FF'),  # 270 : subwC
     ('#B01DFF', '#C75DFF', '#DD9EFF', '#F4DFFF'),  # 280 : par8
-    ('#D312FF', '#E056FF', '#EC9AFF', '#F9DDFF'),  # 290 : par9, subsB
+    ('#D312FF', '#E056FF', '#EC9AFF', '#F9DDFF'),  # 290 : par9, subwB
     ('#FF05FF', '#FF4DFF', '#FF94FF', '#FFDBFF'),  # 300 : keyZ
     ('#FF0AD2', '#FF50DF', '#FF96EC', '#FFDCF9'),  # 310 : br, pgbr, hline
     ('#FF0EAB', '#FF53C3', '#FF98DB', '#FFDDF3'),  # 320 :
@@ -4398,12 +4398,12 @@ class CharsState:
             return 'tab_tag'
         elif self.is_in_comment:
             key += '-0'
-        elif chars == 'substitute phrase A':  # substitute phrase
-            key += '-230'                     # substitute phrase
-        elif chars == 'substitute phrase B':  # substitute phrase
-            key += '-290'                     # substitute phrase
-        elif chars == 'substitute phrase C':  # substitute phrase
-            key += '-270'                     # substitute phrase
+        elif chars == 'substitute word A':
+            key += '-230'
+        elif chars == 'substitute word B':
+            key += '-290'
+        elif chars == 'substitute word C':
+            key += '-270'
         elif chars == 'escape':
             key += '-340'
         elif chars == 'font decorator':
@@ -4696,7 +4696,7 @@ class LineDatum:
                 return
         # PARTS
         beg, tmp = str(i + 1) + '.0', ''
-        is_in_substitute_phrase = False  # substitute phrase
+        is_in_substitute_word = False  # substitute word
         for j, c in enumerate(line_text):
             tmp += c
             s1 = line_text[j - 0:j + 1] if True else ''
@@ -4711,8 +4711,8 @@ class LineDatum:
             c5 = line_text[j - 4] if j > 3 else ''
             s_lft = line_text[:j + 1]
             s_rgt = line_text[j + 1:]
-            # SUBSTITUTE PHRASE
-            if c2 == '%' and c1 == '[' and not is_in_substitute_phrase and \
+            # SUBSTITUTE WORD
+            if c2 == '%' and c1 == '[' and not is_in_substitute_word and \
                re.match(NOT_ESCAPED + '%\\[$', s_lft) and \
                re.match('^.*\\]%.*$', s_rgt):
                 key = chars_state.get_key('')                           # 1.key
@@ -4721,23 +4721,23 @@ class LineDatum:
                 #                                                       # 4.set
                 tmp = '%['                                              # 5.tmp
                 beg = end                                               # 6.beg
-                is_in_substitute_phrase = True
+                is_in_substitute_word = True
                 continue
-            if c2 == ']' and c1 == '%' and is_in_substitute_phrase:
+            if c2 == ']' and c1 == '%' and is_in_substitute_word:
                 if re.match('%\\[A[0-9A-Za-z]?:.*\\]%', tmp):
-                    key = chars_state.get_key('substitute phrase A')    # 1.key
+                    key = chars_state.get_key('substitute word A')      # 1.key
                 elif re.match('%\\[B[0-9A-Za-z]?:.*\\]%', tmp):
-                    key = chars_state.get_key('substitute phrase B')    # 1.key
+                    key = chars_state.get_key('substitute word B')      # 1.key
                 else:
-                    key = chars_state.get_key('substitute phrase C')    # 1.key
+                    key = chars_state.get_key('substitute word C')      # 1.key
                 end = str(i + 1) + '.' + str(j + 1)                     # 2.end
                 pane.tag_add(key, beg, end)                             # 3.tag
                 #                                                       # 4.set
                 tmp = ''                                                # 5.tmp
                 beg = end                                               # 6.beg
-                is_in_substitute_phrase = False
+                is_in_substitute_word = False
                 continue
-            if is_in_substitute_phrase:
+            if is_in_substitute_word:
                 continue
             # END OF THE LINE "\n"
             if c1 == '\n':
@@ -7551,6 +7551,12 @@ class Makdo:
                          command=self.comment_out_region)
         menu.add_command(label='選択範囲のコメントアウトを解除',
                          command=self.uncomment_in_region)
+        menu.add_separator()
+        #
+        menu.add_command(label='代語句を挿入',
+                         command=self.insert_substitute_word)
+        menu.add_command(label='代語句でマスキング',
+                         command=self.mask_with_substitute_word)
         # menu.add_separator()
 
     ######
@@ -8249,6 +8255,45 @@ class Makdo:
         pane.edit_separator()
         self.update_toc()
 
+    def insert_substitute_word(self):
+        self.txt.insert('insert',
+                        '\n%[（代語句名）]% = "（内容）"\n%[（代語句名）]%\n')
+
+    def mask_with_substitute_word(self):
+        self.txt['autoseparators'] = False
+        self.txt.edit_separator()
+        substitute_words = {}
+        res = '^(?:.|\n)*?\n%\\[(.+?)\\]%\\s*=\\s*"([^"]+?)"((?:.|\n)*)'
+        pre = ''
+        cur = self.txt.get('1.0', 'end-1c')
+        while pre != cur:
+            doc = '\n' + self.txt.get('1.0', 'end-1c')
+            while re.match(res, doc):
+                t1 = re.sub(res, '\\1', doc)
+                t2 = re.sub(res, '\\2', doc)
+                doc = re.sub(res, '\n\\3', doc)
+                substitute_words[t1] = t2
+            for sw in substitute_words:
+                es1 = self._escape_search_word(sw)
+                es2 = self._escape_search_word(substitute_words[sw])
+                res1 = '^(?:.|\n)*\n%\\[' + es1 + '\\]%\\s*=\\s*"$'
+                res2 = '^((.|\n)*)' + es2 + '((.|\n)*)$'
+                res3 = '^"(.|\n)*$'
+                doc1 = self.txt.get('1.0', 'end-1c')
+                while re.match(res2, doc1):
+                    doc3 = re.sub(res2, '\\2', doc1)
+                    doc1 = re.sub(res2, '\\1', doc1)
+                    if re.match(res1, '\n' + doc1) and re.match(res3, doc3):
+                        continue
+                    p1 = '1.0+' + str(len(doc1)) + 'c'
+                    p2 = '1.0+' + str(len(doc1 + substitute_words[sw])) + 'c'
+                    self.txt.delete(p1, p2)
+                    self.txt.insert(p1, '%[' + sw + ']%')
+            pre = cur
+            cur = self.txt.get('1.0', 'end-1c')
+        self.txt['autoseparators'] = True
+        self.txt.edit_separator()
+
     ##########################
     # MENU INSERT
 
@@ -8274,8 +8319,6 @@ class Makdo:
         self._make_submenu_insert_font_color_change(menu)
         self._make_submenu_insert_highlight_color_change(menu)
         self._make_submenu_insert_math_expression(menu)
-        menu.add_command(label='代語句を挿入',
-                         command=self.insert_substitute_phrases)
         menu.add_separator()
         #
         menu.add_command(label='別のファイルの内容を挿入',
@@ -8935,13 +8978,6 @@ class Makdo:
             inline_text = inline_text + '\\]'
         #
         self._insert_inline_text(inline_text, -2)
-
-    ################
-    # COMMAND
-
-    def insert_substitute_phrases(self):
-        self.txt.insert('insert',
-                        '\n%[（代語句名）]% = "（内容）"\n%[（代語句名）]%\n')
 
     ################
     # COMMAND
