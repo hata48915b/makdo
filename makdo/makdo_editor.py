@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.11.15-07:11:24-JST>
+# Time-stamp:   <2025.11.15-07:28:35-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -8283,9 +8283,9 @@ class Makdo:
                 while re.match(res2, doc1):
                     doc3 = re.sub(res2, '\\2', doc1)
                     doc1 = re.sub(res2, '\\1', doc1)
-                    # ...\n%[ss]% = " + "...
-                    res1 = '^(.|\n)*\n%\\[' + es1 + '\\]%\\s*=\\s*"$'
-                    res3 = '^"(.|\n)*$'
+                    # ...\n%[...]% = "... + ..."...
+                    res1 = '^(.|\n)*\n%\\[[^\\[\\]]*\\]%\\s*=\\s*"[^"]*$'
+                    res3 = '^[^"]*"(.|\n)*$'
                     if re.match(res1, '\n' + doc1) and re.match(res3, doc3):
                         continue
                     # ...%[... + ...]%...
