@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.11.13-08:08:15-JST>
+# Time-stamp:   <2025.11.14-10:58:01-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -277,7 +277,6 @@ MS_FONTS = [
     ['ヒラギノ角ゴ', 'Hiragino Kaku Gothic'],
     ['ヒラギノ丸ゴ', 'Hiragino Maru Gothic'],
 ]
-
 DEFAULT_LINE_SPACING = 2.14  # (2.0980+2.1812)/2=2.1396
 TABLE_LINE_SPACING = 1.5
 
@@ -1558,7 +1557,7 @@ class Form:
         self.args = None
 
     def configure(self):
-        # PAPER SIZE, MARGIN, LINE NUMBER, DOCUMENT STYLE
+        # PAPER SIZE, MARGIN, LINE NUMBER, DOCUMENT STYLE, FONT
         self._configure_by_document_xml(self.document_xml_lines)
         # DOCUMENT TITLE, DOCUMENT STYLE, VERSION NUMBER, CONTENT STATUS,
         # CREATED TIME, MODIFIED TIME
@@ -1619,7 +1618,6 @@ class Form:
             bottom_x = XML.get_value('w:pgMar', 'w:bottom', bottom_x, xl)
             left_x = XML.get_value('w:pgMar', 'w:left', left_x, xl)
             right_x = XML.get_value('w:pgMar', 'w:right', right_x, xl)
-            # STATISTICS
             if re.match('^<w:rPr( .*)?>$', xl):
                 af, jf, fs, fsc = '', '', '', ''
             elif re.match('^</w:rPr( .*)?>$', xl):
@@ -1711,14 +1709,18 @@ class Form:
                 Form.document_style = 'k'
             else:
                 Form.document_style = 'j'
-        # STATISTICS
+        # FONT
         afont = self.__get_max(afonts)
         jfont = self.__get_max(jfonts)
-        if jfont != '':
-            if afont == '' or afont == jfont:
-                Form.mincho_font = '= / ' + jfont
-            else:
-                Form.mincho_font = afont + ' / ' + jfont
+        for mfs in MS_FONTS:
+            if afont in mfs:
+                afont = mfs[0]
+            if jfont in mfs:
+                jfont = mfs[0]
+        if afont == jfont:
+            Form.mincho_font = '= / ' + jfont
+        else:
+            Form.mincho_font = afont + ' / ' + jfont
         fsize = self.__get_max(fsizes)
         if re.match('^[0-9]+$', fsize):
             Form.font_size = round(float(fsize) / 2, 1)
@@ -1787,28 +1789,63 @@ class Form:
                     Form.modified_time = dt.isoformat()
 
     def _configure_by_styles_xml(self, xml_lines):
-        # DEFAULT
-        afnt = ''
-        jfnt = ''
+        # FONT
+        res = '^\\s*(.*?)\\s*/\\s*(.*?)\\s*$'
+        fmf_afnt = Form.mincho_font
+        fmf_jfnt = Form.mincho_font
+        if re.match(res, Form.mincho_font):
+            fmf_afnt = re.sub(res, '\\1', Form.mincho_font)
+            fmf_jfnt = re.sub(res, '\\2', Form.mincho_font)
+            if fmf_afnt == '=':
+                fmf_afnt = fmf_jfnt
+        sty_afnt = ''
+        sty_jfnt = ''
         is_in_default = False
         for xl in xml_lines:
             if xl == '<w:docDefaults>':
                 is_in_default = True
-            if xl == '</w:docDefaults>':
+            elif xl == '</w:docDefaults>':
                 break
-            if is_in_default:
-                afnt = XML.get_value('w:rFonts', 'w:ascii', afnt, xl)
-                jfnt = XML.get_value('w:rFonts', 'w:eastAsia', jfnt, xl)
-            # MINCHO FONT
-            if afnt != '' and jfnt != '':
-                if afnt == jfnt:
-                    Form.mincho_font = afnt
-                else:
-                    Form.mincho_font = afnt + ' / ' + jfnt
-            elif afnt != '' and jfnt == '':
-                Form.mincho_font = afnt
-            elif afnt == '' and jfnt != '':
-                Form.mincho_font = jfnt
+            if not is_in_default:
+                continue
+            sty_afnt = XML.get_value('w:rFonts', 'w:ascii', sty_afnt, xl)
+            sty_jfnt = XML.get_value('w:rFonts', 'w:eastAsia', sty_jfnt, xl)
+        def_afnt = DEFAULT_MINCHO_FONT
+        def_jfnt = DEFAULT_MINCHO_FONT
+        if re.match(res, DEFAULT_MINCHO_FONT):
+            def_afnt = re.sub(res, '\\1', DEFAULT_MINCHO_FONT)
+            def_jfnt = re.sub(res, '\\2', DEFAULT_MINCHO_FONT)
+            if def_afnt == def_jfnt:
+                def_afnt = def_jfnt
+        if fmf_afnt != '':
+            afnt = fmf_afnt
+        elif sty_afnt != '':
+            afnt = sty_afnt
+        else:
+            afnt = def_afnt
+        if fmf_jfnt != '':
+            jfnt = fmf_jfnt
+        elif sty_jfnt != '':
+            jfnt = sty_jfnt
+        else:
+            jfnt = def_jfnt
+        for mfs in MS_FONTS:
+            if afnt in mfs:
+                afnt = mfs[0]
+            if jfnt in mfs:
+                jfnt = mfs[0]
+        if afnt != '' and jfnt != '':
+            if afnt == jfnt:
+                Form.mincho_font = '= / ' + jfnt
+            else:
+                Form.mincho_font = afnt + ' / ' + jfnt
+        elif afnt != '' and jfnt == '':
+            Form.mincho_font = afnt
+        elif afnt == '' and jfnt != '':
+            Form.mincho_font = jfnt
+        else:
+            Form.mincho_font = DEFAULT_MINCHO_FONT
+        # BLOCKS
         xml_body = XML.get_body('w:styles', xml_lines)
         xml_blocks = XML.get_blocks(xml_body)
         sb = ['0.0', '0.0', '0.0', '0.0', '0.0', '0.0']
@@ -1850,7 +1887,7 @@ class Form:
                 # MINCHO FONT
                 if afnt != '' and jfnt != '':
                     if afnt == jfnt:
-                        Form.mincho_font = afnt
+                        Form.mincho_font = '= / ' + jfnt
                     else:
                         Form.mincho_font = afnt + ' / ' + jfnt
                 elif afnt != '' and jfnt == '':
@@ -1872,7 +1909,7 @@ class Form:
                 # GOTHIC FONT
                 if afnt != '' and jfnt != '':
                     if afnt == jfnt:
-                        Form.gothic_font = afnt
+                        Form.gothic_font = '= / ' + jfnt
                     else:
                         Form.gothic_font = afnt + ' / ' + jfnt
                 elif afnt != '' and jfnt == '':
@@ -6132,7 +6169,6 @@ class RawParagraph:
                 else:
                     # (FOR COMPLEX SCRIPT)
                     jfnt = XML.get_value('w:rFonts', 'w:cs', '', xl)
-                # SYMPTOMATIC TREATMENT
                 for mfs in MS_FONTS:
                     if afnt in mfs:
                         afnt = mfs[0]
@@ -6141,7 +6177,7 @@ class RawParagraph:
                 font = ''
                 if afnt != '' and jfnt != '':
                     if afnt == jfnt:
-                        font = afnt
+                        font = '= / ' + jfnt
                     else:
                         font = afnt + ' / ' + jfnt
                 elif afnt != '' and jfnt == '':
