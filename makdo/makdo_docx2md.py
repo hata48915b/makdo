@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.11.14-10:58:01-JST>
+# Time-stamp:   <2025.11.19-16:19:27-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -8421,6 +8421,7 @@ class ParagraphTable(Paragraph):
         res_cel_beg = '^<w:tc( .*)?>$'
         res_cel_end = '^</w:tc( .*)?>'
         is_in_cel = False
+        max_row = -1
         for xl in xml_lines:
             if re.match(res_tbl_beg, xl):
                 depth += 1
@@ -8430,6 +8431,7 @@ class ParagraphTable(Paragraph):
                 xml_row = []
                 is_in_row = True
             elif depth == 1 and re.match(res_row_end, xl):
+                max_row = max(max_row, len(xml_row))
                 xml_tbl.append(xml_row)
                 is_in_row = False
             elif depth == 1 and re.match(res_cel_beg, xl):
@@ -8446,6 +8448,9 @@ class ParagraphTable(Paragraph):
                     xml_cel.append('<w:br/>')
                 xml_cel.append(xl)
                 span_h = XML.get_value('w:gridSpan', 'w:val', span_h, xl)
+        for xml_row in xml_tbl:
+            for i in range(len(xml_row), max_row):
+                xml_row.append([])
         return xml_tbl
 
     @staticmethod

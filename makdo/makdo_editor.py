@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.11.15-07:28:35-JST>
+# Time-stamp:   <2025.11.19-13:08:42-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -11931,6 +11931,8 @@ class Makdo:
         self.split_window()
         self.txt.focus_set()
         self.current_pane = 'txt'
+        self._put_back_cursor_to_pane(self.txt)
+        self._put_back_cursor_to_pane(self.sub)
         return True
 
     def show_file(self):
