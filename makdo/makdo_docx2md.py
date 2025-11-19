@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.11.19-16:19:27-JST>
+# Time-stamp:   <2025.11.20-07:31:21-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6627,7 +6627,61 @@ class RawParagraph:
             res = NOT_ESCAPED + '>>><' + j + '><<<' + '((?:.|\n)*)$'
             while re.match(res, raw_text):
                 raw_text = re.sub(res, '\\1' + '\u3000' * i + '\\2', raw_text)
+        # CANCEL FONT FONT DECORATORS
+        raw_text = cls._cancel_font_font_decorators(raw_text)
         # self.raw_text = raw_text
+        return raw_text
+
+    @staticmethod
+    def _cancel_font_font_decorators(raw_text):
+        # ...(=new) + @...@(=beg) + ...(=mid) + @...@(=end) + ...(=old)
+        new, beg, mid, end, old = '', '', '', '', raw_text
+        res = NOT_ESCAPED + '(@[^@]{1,66}@)' + '((?:.|\n)*)$'
+        while re.match(res, old):
+            pre = re.sub(res, '\\1', old)
+            com = re.sub(res, '\\2', old)
+            old = re.sub(res, '\\3', old)
+            if beg == '':
+                if not re.match('@' + RES_NUMBER + '@', com):
+                    new += pre
+                    beg = com
+                else:
+                    new += pre + com
+            else:
+                if not re.match('@' + RES_NUMBER + '@', com):
+                    mid += pre
+                    end = com
+                    t = None
+                    for c in mid:
+                        if t is None:
+                            if c.isascii():
+                                t = 'Ascii'
+                            else:
+                                t = 'Nonascii'
+                        elif t == 'Ascii':
+                            if not c.isascii():
+                                t = 'Multi'
+                        elif t == 'Nonascii':
+                            if c.isascii():
+                                t = 'Multi'
+                    f_afnt = re.sub(' */.*$', '', Form.mincho_font)
+                    f_jfnt = re.sub('^.*/ *', '', Form.mincho_font)
+                    if f_afnt == '=':
+                        f_afnt = f_jfnt
+                    t_afnt = re.sub('^@(.*?) */ *(.*)@$', '\\1', beg)
+                    t_jfnt = re.sub('^@(.*?) */ *(.*)@$', '\\2', beg)
+                    if t_afnt == '=':
+                        t_afnt = t_jfnt
+                    if beg == end and t == 'Ascii' and t_afnt == f_afnt:
+                        new += mid
+                    elif beg == end and t == 'Nonascii' and t_jfnt == f_jfnt:
+                        new += mid
+                    else:
+                        new += beg + mid + end
+                    beg, mid, end = '', '', ''
+                else:
+                    mid += pre + com
+        raw_text = new + beg + mid + old
         return raw_text
 
     @classmethod
