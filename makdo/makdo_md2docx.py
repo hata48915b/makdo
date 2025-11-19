@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.11.14-07:24:14-JST>
+# Time-stamp:   <2025.11.20-07:50:43-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5776,7 +5776,7 @@ class ParagraphTable(Paragraph):
                         par = re.sub('^(.*)\\s:\\s*$', '\\1', par)
                     else:
                         ms_fmt.alignment = hori_alig_mtrx[i][j]
-                    par = re.sub('^\\s+\\\\?', '', par)
+                    par = re.sub('^\\s*\\\\?(\\s+)', '\\1', par)
                     par = re.sub('\\\\?\\s+$', '', par)
                     self.write_text(ms_par, chars_state, par)
                     ls = TABLE_LINE_SPACING * (1 + length_docx['line spacing'])
