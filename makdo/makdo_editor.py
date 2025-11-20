@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.11.20-09:30:06-JST>
+# Time-stamp:   <2025.11.20-09:52:59-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -8347,6 +8347,7 @@ class Makdo:
                          command=self.insert_character_by_code)
         self._make_submenu_insert_ivs_character(menu)
         self._make_submenu_insert_horizontal_line(menu)
+        self._make_submenu_insert_parentheses(menu)
         menu.add_command(label='記号を挿入',
                          command=self.insert_symbol)
         # menu.add_separator()
@@ -9811,6 +9812,79 @@ class Makdo:
         if self._is_read_only_pane(pane):
             return
         pane.insert('insert', char)
+        self.paint_out_line(self._get_v_position_of_insert(pane) - 1)
+
+    ################
+    # SUBMENU INSERT HORIZONTAL LINE
+
+    def _make_submenu_insert_parentheses(self, menu):
+        submenu = tkinter.Menu(menu, tearoff=False)
+        menu.add_cascade(label='括弧を挿入', menu=submenu)
+        #
+        submenu.add_command(label='"()" 半角小括弧',
+                            command=self.insert_parentheses_28)
+        submenu.add_command(label='"{}" 半角中括弧',
+                            command=self.insert_parentheses_7b)
+        submenu.add_command(label='"[]" 半角大括弧',
+                            command=self.insert_parentheses_5b)
+        submenu.add_command(label='"<>" 半角不等号',
+                            command=self.insert_parentheses_3c)
+        submenu.add_command(label='"（）" 全角小括弧',
+                            command=self.insert_parentheses_ff08)
+        submenu.add_command(label='"｛｝" 全角中括弧',
+                            command=self.insert_parentheses_ff5b)
+        submenu.add_command(label='"［］" 全角大括弧',
+                            command=self.insert_parentheses_ff3b)
+        submenu.add_command(label='"＜＞" 全角不等号',
+                            command=self.insert_parentheses_ff1c)
+        submenu.add_command(label='"「」" 鈎括弧',
+                            command=self.insert_parentheses_300c)
+        submenu.add_command(label='"『』" 二重鈎括弧',
+                            command=self.insert_parentheses_300e)
+        submenu.add_command(label='"【】" 墨付括弧',
+                            command=self.insert_parentheses_3010)
+
+    def insert_parentheses_28(self):
+        self._insert_parentheses('()')
+
+    def insert_parentheses_7b(self):
+        self._insert_parentheses('{}')
+
+    def insert_parentheses_5b(self):
+        self._insert_parentheses('[]')
+
+    def insert_parentheses_3c(self):
+        self._insert_parentheses('<>')
+
+    def insert_parentheses_ff08(self):
+        self._insert_parentheses('（）')
+
+    def insert_parentheses_ff5b(self):
+        self._insert_parentheses('｛｝')
+
+    def insert_parentheses_ff3b(self):
+        self._insert_parentheses('［］')
+
+    def insert_parentheses_ff1c(self):
+        self._insert_parentheses('＜＞')
+
+    def insert_parentheses_300c(self):
+        self._insert_parentheses('「」')
+
+    def insert_parentheses_300e(self):
+        self._insert_parentheses('『』')
+
+    def insert_parentheses_3010(self):
+        self._insert_parentheses('【】')
+
+    def _insert_parentheses(self, chars):
+        pane = self.txt
+        if self.current_pane == 'sub':
+            pane = self.sub
+        if self._is_read_only_pane(pane):
+            return
+        pane.insert('insert', chars)
+        pane.mark_set('insert', 'insert-1c')
         self.paint_out_line(self._get_v_position_of_insert(pane) - 1)
 
     ################
