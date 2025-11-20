@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.11.19-13:08:42-JST>
+# Time-stamp:   <2025.11.20-09:27:35-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -8268,6 +8268,7 @@ class Makdo:
         res = '^(?:.|\n)*?\n%\\[(.+?)\\]%\\s*=\\s*"([^"]+?)"((?:.|\n)*)'
         pre = ''
         cur = self.txt.get('1.0', 'end-1c')
+        i = 0
         while pre != cur:
             doc = '\n' + self.txt.get('1.0', 'end-1c')
             while re.match(res, doc):
@@ -8297,8 +8298,10 @@ class Makdo:
                     p2 = '1.0+' + str(len(doc1 + substitute_symbols[ss])) + 'c'
                     self.txt.delete(p1, p2)
                     self.txt.insert(p1, '%[' + ss + ']%')
+                    i += 1
             pre = cur
             cur = self.txt.get('1.0', 'end-1c')
+        self.set_message_on_status_bar(str(i) + '個の文字列をマスクしました')
         self.txt['autoseparators'] = True
         self.txt.edit_separator()
 
