@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.11.20-07:31:21-JST>
+# Time-stamp:   <2025.11.20-09:16:11-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -9075,41 +9075,37 @@ class ParagraphTable(Paragraph):
 
     @staticmethod
     def __split_long_lines(md_text):
-        tmp_text = md_text
-        for line in tmp_text.split('\n'):
+        for line in md_text.split('\n'):
             if get_ideal_width(line) > MD_TEXT_WIDTH:
-                # tmp_text = re.sub('\\|\n', '|\n\\\n', tmp_text)
-                tmp_text = re.sub('\\|', '\\  |', tmp_text)
-                tmp_text = re.sub('(^|\n)\\\\  \\|', '\\1|', tmp_text)
-                tmp_text = re.sub('\\\\  \\|(\n|$)', '|\\1', tmp_text)
-                tmp_text = re.sub('\\\\  \\|', '\n  |', tmp_text)
-                # tmp_text = re.sub('\\\\  \\|', '\\\n  |', tmp_text)
-                tmp_text = re.sub('<br>(\\s+)', '<br>\\\\\\1', tmp_text)
-                tmp_text = re.sub('<br>([^\\|])', '<br>\n    \\1', tmp_text)
-                # tmp_text \
-                #     = re.sub('<br>([^\\|])', '<br>\\\n    \\1', tmp_text)
                 break
-        tmp_lines = tmp_text.split('\n')
-        # LEFT TABLE ALIGNMENT (': \n  ...' -> ': ...')
-        for j in range(len(tmp_lines)):
-            if j == 0:
-                continue
-            i = j - 1
-            if re.match('^:\\s*$', tmp_lines[i]) and \
-               re.match('^\\s*\\|.*$', tmp_lines[j]):
-                tmp_lines[i] = ': ' + re.sub('^\\s*', '', tmp_lines[j])
-                tmp_lines.pop(j)
-                break
-        # MODIFY INDENT
+        else:
+            return md_text  # no long lines
+        # LEFT ALIGNMENT
         is_left_alignment = False
-        for tl in tmp_lines:
-            if re.match('^:\\s', tl):
+        for line in md_text.split('\n'):
+            if re.match('^:\\s*\\|(:?-*:?(^|=)?\\|)+:?-*:?(^|=)?$', line):
                 is_left_alignment = True
-        if is_left_alignment:
-            for i in range(len(tmp_lines)):
-                if not re.match('^:\\s', tmp_lines[i]):
-                    tmp_lines[i] = '  ' + tmp_lines[i]
-        md_text = '\n'.join(tmp_lines)
+        # SPLIT LINE
+        new_text = ''
+        for line in md_text.split('\n'):
+            new_line = ''
+            i = 0 if not is_left_alignment else 1
+            for c in line:
+                if c == '|' and re.match(NOT_ESCAPED + '\\|$', new_line + c):
+                    if re.match('\\s$', new_line) and new_line != ': ':
+                        new_line += '\\'
+                    if new_line != '' and new_line != ': ':
+                        new_line += '\n'
+                    if new_line != ': ':
+                        new_line += ' ' * (i * 2)
+                    new_line += c
+                    i += 1
+                elif re.match(NOT_ESCAPED + '<(b|B)r>$', new_line + c):
+                    new_line += c + '\n' + ' ' * (i * 2 - 1)
+                else:
+                    new_line += c
+            new_text += new_line + '\n'
+        md_text = new_text
         return md_text
 
 
