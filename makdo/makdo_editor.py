@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.11.20-09:27:35-JST>
+# Time-stamp:   <2025.11.20-09:30:06-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -7558,7 +7558,7 @@ class Makdo:
         menu.add_command(label='代記号を挿入',
                          command=self.insert_substitute_symbol)
         menu.add_command(label='代記号でマスキング',
-                         command=self.mask_with_substitute_symbol)
+                         command=self.mask_with_substitute_symbols)
         # menu.add_separator()
 
     ######
@@ -8261,7 +8261,7 @@ class Makdo:
         self.txt.insert('insert',
                         '\n%[（代記号名）]% = "（内容）"\n%[（代記号名）]%\n')
 
-    def mask_with_substitute_symbol(self):
+    def mask_with_substitute_symbols(self):
         self.txt['autoseparators'] = False
         self.txt.edit_separator()
         substitute_symbols = {}
@@ -13000,9 +13000,9 @@ class Makdo:
         minibuffer_commands.append(mc)
 
         mc = MinibufferCommand(
-            'mask-with-substitute-symbol',
+            'mask-with-substitute-symbols',
             [None, '代記号でマスキング'],
-            ['self.mother.mask_with_substitute_symbol()'])
+            ['self.mother.mask_with_substitute_symbols()'])
         minibuffer_commands.append(mc)
 
         # INSERT
