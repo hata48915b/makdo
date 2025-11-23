@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.11.20-09:52:59-JST>
+# Time-stamp:   <2025.11.24-04:10:47-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -64,7 +64,6 @@ import makdo.makdo_docx2md
 import makdo.makdo_mddiff  # MDDIFF
 import openpyxl     # MIT License
 import webbrowser
-import threading
 
 # To launch MS Word on Windows
 if sys.platform == 'win32':
@@ -6235,7 +6234,7 @@ class Makdo:
 
     def cancel_region(self, pane):
         if pane.tag_ranges('sel'):
-            pane.tag_remove('sel', "1.0", "end")
+            pane.tag_remove('sel', '1.0', 'end')
         if 'akauni' in pane.mark_names():
             pane.tag_remove('akauni_tag', '1.0', 'end')
             pane.mark_unset('akauni')
@@ -6257,6 +6256,18 @@ class Makdo:
         if (p2_v < p1_v) or (p2_v == p1_v and p2_h < p1_h):
             return position2, position1
         return position1, position2
+
+    def _get_pane(self):
+        pane = self.txt
+        if self.current_pane == 'sub':
+            pane = self.sub
+        return pane
+
+    def _execute_main_pane(self) -> bool:
+        return True
+
+    def _execute_sub_pane(self) -> bool:
+        return True
 
     def _open_sub_pane(self, document, is_read_only, exec_button='') -> bool:
         self.sub_pane_is_read_only = is_read_only
@@ -6326,9 +6337,6 @@ class Makdo:
         # self.sub.configure(state='disabled')
         self.sub.focus_force()
         self.current_pane = 'sub'
-        return True
-
-    def _execute_sub_pane(self) -> bool:
         return True
 
     def _close_sub_pane(self) -> bool:
@@ -6600,9 +6608,7 @@ class Makdo:
         return doc
 
     def _insert_inline_text(self, inline_text, step=0):
-        pane = self.txt
-        if self.current_pane == 'sub':
-            pane = self.sub
+        pane = self._get_pane()
         if self._is_read_only_pane(pane):
             return
         pane.edit_separator()
@@ -6615,9 +6621,7 @@ class Makdo:
         pane.edit_separator()
 
     def _insert_paragraph_text(self, paragraph_text):
-        pane = self.txt
-        if self.current_pane == 'sub':
-            pane = self.sub
+        pane = self._get_pane()
         if self._is_read_only_pane(pane):
             return
         pane.edit_separator()
@@ -6626,38 +6630,39 @@ class Makdo:
         pane.edit_separator()
 
     def _insert_line_break_as_necessary(self):
-        t = self.txt.get('1.0', 'insert')
+        pane = self._get_pane()
+        t = pane.get('1.0', 'insert')
         if len(t) == 0:
             pass
         elif len(t) == 1:
             if t[-1] == '\n':
                 pass
             else:
-                self.txt.insert('insert', '\n\n')
+                pane.insert('insert', '\n\n')
         elif len(t) >= 2:
             if t[-2] == '\n' and t[-1] == '\n':
                 pass
             elif t[-1] == '\n':
-                self.txt.insert('insert', '\n')
+                pane.insert('insert', '\n')
             else:
-                self.txt.insert('insert', '\n\n')
-        p = self.txt.index('insert')
-        t = self.txt.get('insert', 'end-1c')
+                pane.insert('insert', '\n\n')
+        p = pane.index('insert')
+        t = pane.get('insert', 'end-1c')
         if len(t) == 0:
-            self.txt.insert('insert', '\n')
+            pane.insert('insert', '\n')
         elif len(t) == 1:
             if t[0] == '\n':
                 pass
             else:
-                self.txt.insert('insert', '\n\n')
+                pane.insert('insert', '\n\n')
         elif len(t) >= 2:
             if t[0] == '\n' and t[1] == '\n':
                 pass
             elif t[0] == '\n':
-                self.txt.insert('insert', '\n')
+                pane.insert('insert', '\n')
             else:
-                self.txt.insert('insert', '\n\n')
-        self.txt.mark_set('insert', p)
+                pane.insert('insert', '\n\n')
+        pane.mark_set('insert', p)
 
     @staticmethod
     def _get_key(event):
@@ -7565,9 +7570,7 @@ class Makdo:
     # COMMAND
 
     def edit_modified_undo(self):
-        pane = self.txt
-        if self.current_pane == 'sub':
-            pane = self.sub
+        pane = self._get_pane()
         try:
             pane.edit_undo()
         except BaseException:
@@ -7578,9 +7581,7 @@ class Makdo:
         self.set_message_on_status_bar('元に戻しました（undo）')
 
     def edit_modified_redo(self):
-        pane = self.txt
-        if self.current_pane == 'sub':
-            pane = self.sub
+        pane = self._get_pane()
         try:
             pane.edit_redo()
         except BaseException:
@@ -7597,9 +7598,7 @@ class Makdo:
         self._cut_or_copy_region(False)
 
     def _cut_or_copy_region(self, must_cut=False):
-        pane = self.txt
-        if self.current_pane == 'sub':
-            pane = self.sub
+        pane = self._get_pane()
         if must_cut:
             if self._is_read_only_pane(pane):
                 return False
@@ -7632,9 +7631,7 @@ class Makdo:
         return True
 
     def paste_region(self):
-        pane = self.txt
-        if self.current_pane == 'sub':
-            pane = self.sub
+        pane = self._get_pane()
         if self._is_read_only_pane(pane):
             return False
         if self.current_pane == 'txt':
@@ -7664,9 +7661,7 @@ class Makdo:
         return True
 
     def paste_region_from_list(self, mother=None):
-        pane = self.txt
-        if self.current_pane == 'sub':
-            pane = self.sub
+        pane = self._get_pane()
         if mother is None:
             mother = pane
         t = 'リストから貼付け'
@@ -7689,9 +7684,7 @@ class Makdo:
         self._cut_or_copy_rectangle(False)
 
     def _cut_or_copy_rectangle(self, must_cut=False):
-        pane = self.txt
-        if self.current_pane == 'sub':
-            pane = self.sub
+        pane = self._get_pane()
         if must_cut:
             if self._is_read_only_pane(pane):
                 return False
@@ -7734,9 +7727,7 @@ class Makdo:
         return True
 
     def paste_rectangle(self):
-        pane = self.txt
-        if self.current_pane == 'sub':
-            pane = self.sub
+        pane = self._get_pane()
         if self._is_read_only_pane(pane):
             return False
         if self.rectangle_text_list == []:
@@ -7780,9 +7771,7 @@ class Makdo:
         self.search_or_replace_forward(True)   # must_replace = True
 
     def replace_all(self, focus=None):
-        pane = self.txt
-        if self.current_pane == 'sub':
-            pane = self.sub
+        pane = self._get_pane()
         if self._is_read_only_pane(pane):
             return
         if focus is None:
@@ -7864,9 +7853,7 @@ class Makdo:
         self._replace_x_with_y('sort_in_reverse_order')
 
     def _replace_x_with_y(self, mode: str) -> bool:
-        pane = self.txt
-        if self.current_pane == 'sub':
-            pane = self.sub
+        pane = self._get_pane()
         if self._is_read_only_pane(pane):
             return False
         if not self._is_region_specified(pane):
@@ -8130,9 +8117,7 @@ class Makdo:
         return True
 
     def change_typeface(self, mother=None):
-        pane = self.txt
-        if self.current_pane == 'sub':
-            pane = self.sub
+        pane = self._get_pane()
         if mother is None:
             mother = pane
         c = self.txt.get('insert', 'insert+1c')
@@ -8158,9 +8143,7 @@ class Makdo:
             return False
 
     def comment_out_region(self):
-        pane = self.txt
-        if self.current_pane == 'sub':
-            pane = self.sub
+        pane = self._get_pane()
         if self._is_read_only_pane(pane):
             return
         if pane.tag_ranges('sel'):
@@ -8201,9 +8184,7 @@ class Makdo:
         self.update_toc()
 
     def uncomment_in_region(self):
-        pane = self.txt
-        if self.current_pane == 'sub':
-            pane = self.sub
+        pane = self._get_pane()
         if self._is_read_only_pane(pane):
             return
         #
@@ -8566,9 +8547,7 @@ class Makdo:
     # COMMAND
 
     def insert_selected_mincho_font(self, mother=None):
-        pane = self.txt
-        if self.current_pane == 'sub':
-            pane = self.sub
+        pane = self._get_pane()
         if mother is None:
             mother = pane
         mincho_font_list = []
@@ -8634,9 +8613,7 @@ class Makdo:
 
     def _insert_selected_x_font(self, mother, title, prompt,
                                 candidates, default):
-        pane = self.txt
-        if self.current_pane == 'sub':
-            pane = self.sub
+        pane = self._get_pane()
         if mother is None:
             mother = pane
         candidates.sort()
@@ -8974,9 +8951,7 @@ class Makdo:
         self._insert_math_expression('\\int_{A}^{B}{f(x)}dx')
 
     def _insert_math_expression(self, inline_text):
-        pane = self.txt
-        if self.current_pane == 'sub':
-            pane = self.sub
+        pane = self._get_pane()
         #
         doc_up = pane.get('1.0', 'insert')
         while re.match(NOT_ESCAPED + '\\\\\\]', doc_up):
@@ -9806,9 +9781,7 @@ class Makdo:
         self._insert_hline('\uFF70')  # 半角カナの長音記号
 
     def _insert_hline(self, char):
-        pane = self.txt
-        if self.current_pane == 'sub':
-            pane = self.sub
+        pane = self._get_pane()
         if self._is_read_only_pane(pane):
             return
         pane.insert('insert', char)
@@ -9878,9 +9851,7 @@ class Makdo:
         self._insert_parentheses('【】')
 
     def _insert_parentheses(self, chars):
-        pane = self.txt
-        if self.current_pane == 'sub':
-            pane = self.sub
+        pane = self._get_pane()
         if self._is_read_only_pane(pane):
             return
         pane.insert('insert', chars)
@@ -9896,6 +9867,10 @@ class Makdo:
                       '⓪',
                       '①', '②', '③', '④', '⑤', '⑥', '⑦', '⑧', '⑨', '⑩',
                       '⑪', '⑫', '⑬', '⑭', '⑮', '⑯', '⑰', '⑱', '⑲', '⑳',
+                      '㉑', '㉒', '㉓', '㉔', '㉕', '㉖', '㉗', '㉘', '㉙', '㉚',
+                      '㉛', '㉜', '㉝', '㉞', '㉟', '㊱', '㊲', '㊳', '㊴', '㊵',
+                      '㊶', '㊷', '㊸', '㊹', '㊺', '㊻', '㊼', '㊽', '㊾', '㊿',
+                      ''
                       '²', '³',
                       'Α', 'Β', 'Γ', 'Δ', 'Ε', 'Ζ', 'Η', 'Θ', 'Ι', 'Κ',
                       'Λ', 'Μ', 'Ν', 'Ξ', 'Ο', 'Π', 'Ρ', 'Σ', 'Τ', 'Υ',
@@ -10625,9 +10600,7 @@ class Makdo:
     # COMMAND
 
     def set_chapter_number(self, mother=None):
-        pane = self.txt
-        if self.current_pane == 'sub':
-            pane = self.sub
+        pane = self._get_pane()
         if mother is None:
             mother = pane
         t = 'チャプター番号を変更'
@@ -10662,9 +10635,7 @@ class Makdo:
         return True
 
     def set_section_number(self, mother=None):
-        pane = self.txt
-        if self.current_pane == 'sub':
-            pane = self.sub
+        pane = self._get_pane()
         if mother is None:
             mother = pane
         t = 'セクション番号を変更'
@@ -10715,9 +10686,7 @@ class Makdo:
             self._insert_number_revisers(pane, revs)
 
     def set_list_number(self, mother=None):
-        pane = self.txt
-        if self.current_pane == 'sub':
-            pane = self.sub
+        pane = self._get_pane()
         if mother is None:
             mother = pane
         t = 'リスト番号を変更'
@@ -10779,9 +10748,7 @@ class Makdo:
         pane.insert('1.0+' + str(len(doc)) + 'c', revisers + '\n')
 
     def tidy_up_paragraph(self) -> bool:
-        pane = self.txt
-        if self.current_pane == 'sub':
-            pane = self.sub
+        pane = self._get_pane()
         pane['autoseparators'] = False
         pane.edit_separator()
         pre_text, bare_par, pos_text = self.get_bare_paragraph(pane)
@@ -11423,9 +11390,7 @@ class Makdo:
     def search_backward(self):
         word1 = self.stb_sor1.get()
         if word1 == '':
-            pane = self.txt
-            if self.current_pane == 'sub':
-                pane = self.sub
+            pane = self._get_pane()
             self.search_backward_from_dialog(pane)
         else:
             self.search_or_replace_backward(False)  # must_replace = False
@@ -11433,9 +11398,7 @@ class Makdo:
     def search_forward(self):
         word1 = self.stb_sor1.get()
         if word1 == '':
-            pane = self.txt
-            if self.current_pane == 'sub':
-                pane = self.sub
+            pane = self._get_pane()
             self.search_forward_from_dialog(pane)
         else:
             self.search_or_replace_forward(False)   # must_replace = False
@@ -11449,9 +11412,7 @@ class Makdo:
                   ['【', '】'], ['「', '」'], ['『', '』'], ['〔', '〕'],
                   ['〈', '〉'], ['《', '》'], ['“', '”'],
                   ]
-        pane = self.txt
-        if self.current_pane == 'sub':
-            pane = self.sub
+        pane = self._get_pane()
         cha = pane.get('insert', 'insert+1c')
         for par in parens:
             if par[0] == cha:
@@ -11588,9 +11549,7 @@ class Makdo:
         self.txt.mark_gravity('sub_insert', 'left')
 
     def goto_position(self, father=None):
-        pane = self.txt
-        if self.current_pane == 'sub':
-            pane = self.sub
+        pane = self._get_pane()
         if father is None:
             father = pane
         self.PositionDialog(pane, father, self)
@@ -11716,9 +11675,7 @@ class Makdo:
     # COMMAND
 
     def count_chars(self):
-        pane = self.txt
-        if self.current_pane == 'sub':
-            pane = self.sub
+        pane = self._get_pane()
         if pane.tag_ranges('sel'):
             beg, end = pane.index('sel.first'), pane.index('sel.last')
         elif 'akauni' in pane.mark_names():
@@ -11737,9 +11694,7 @@ class Makdo:
     # INSERT AND EDIT FORMULA
 
     def insert_formula(self, mother=None):
-        pane = self.txt
-        if self.current_pane == 'sub':
-            pane = self.sub
+        pane = self._get_pane()
         if mother is None:
             mother = pane
         t = '定型句を挿入'
@@ -11771,9 +11726,7 @@ class Makdo:
         return formulas
 
     def _insert_formula(self):
-        pane = self.txt
-        if self.current_pane == 'sub':
-            pane = self.sub
+        pane = self._get_pane()
         formulas = self._get_formulas()
         n = self.formula_number - 1
         v = formulas[n]
@@ -11823,9 +11776,7 @@ class Makdo:
         self._insert_formula()
 
     def edit_formula(self, mother=None):
-        pane = self.txt
-        if self.current_pane == 'sub':
-            pane = self.sub
+        pane = self._get_pane()
         if mother is None:
             mother = pane
         self.quit_editing_formula()
@@ -12828,9 +12779,7 @@ class Makdo:
         self.update_toc()
 
     def execute_keyboard_macro(self):
-        pane = self.txt
-        if self.current_pane == 'sub':
-            pane = self.sub
+        pane = self._get_pane()
         self.show_keyboard_macro_help_message()
         reversed_history = list(reversed(self.key_history))
         k1, k2 = reversed_history[0], reversed_history[1]
@@ -14571,10 +14520,16 @@ class Makdo:
                          command=self.edit_llama_rag_data)
         menu.add_separator()
         #
-        menu.add_command(label='Ollamaに質問（内部処理、無料）',
+        menu.add_command(label='Ollamaを開く',
                          command=self.open_ollama)
+        menu.add_command(label='Ollamaに質問',
+                         command=self.ask_ollama)
         menu.add_command(label='Ollamaのモデルを設定',
                          command=self.set_ollama_model)
+        menu.add_command(label='Ollamaで本文の固有名詞を抽出',
+                         command=self.pick_up_proper_nouns)
+        menu.add_command(label='Ollamaで本文の誤字脱字を確認',
+                         command=self.find_typos)
         # menu.add_separator()
 
     @staticmethod
@@ -14639,7 +14594,19 @@ class Makdo:
         self._show_message_reducing_functions()
         return False
 
+    def ask_ollama(self) -> bool:
+        self._show_message_reducing_functions()
+        return False
+
     def set_ollama_model(self) -> bool:
+        self._show_message_reducing_functions()
+        return False
+
+    def pick_up_proper_nouns(self) -> bool:
+        self._show_message_reducing_functions()
+        return False
+
+    def find_typos(self) -> bool:
         self._show_message_reducing_functions()
         return False
 
@@ -14937,9 +14904,11 @@ class Makdo:
             return 'break'
         elif self._is_key(k1, 'Next', 'C-]', 'C-:'):           # C-]
             if self._is_key(k2, 'F13', 'C--', 'C-q'):
-                if self.current_pane == 'sub':
+                if self.current_pane != 'sub':
+                    self._execute_main_pane()
+                else:
                     self._execute_sub_pane()
-                    return 'break'
+                return 'break'
             self._any_process_next(pane)
             return 'break'
         elif self._is_key(k1, 'Delete', 'C-d', 'C-h', 'C-x'):  # C-d
@@ -15851,9 +15820,7 @@ class Makdo:
             self.search_or_replace_backward(True)
 
     def search_or_replace_backward(self, must_replace=False):
-        pane = self.txt
-        if self.current_pane == 'sub':
-            pane = self.sub
+        pane = self._get_pane()
         word1 = self.stb_sor1.get()
         word2 = self.stb_sor2.get()
         if word1 != '':
@@ -15924,9 +15891,7 @@ class Makdo:
             self.search_or_replace_forward(True)
 
     def search_or_replace_forward(self, must_replace=False):
-        pane = self.txt
-        if self.current_pane == 'sub':
-            pane = self.sub
+        pane = self._get_pane()
         word1 = self.stb_sor1.get()
         word2 = self.stb_sor2.get()
         if word1 != '':
@@ -17019,10 +16984,16 @@ class Makdo:
         # OLLAMA
 
         mc = Minibuffer.MinibufferCommand(
-            'ask-ollama',
-            [None, 'Ollamaに質問する'],
+            'open-ollama',
+            [None, 'Ollamaを開く'],
             ['self.mother.open_ollama()',
              'self.set_return_to()'])
+        Minibuffer.minibuffer_commands.append(mc)
+
+        mc = Minibuffer.MinibufferCommand(
+            'ask-ollama',
+            [None, 'Ollamaに質問'],
+            ['self.mother.ask_ollama()'])
         Minibuffer.minibuffer_commands.append(mc)
 
         mc = Minibuffer.MinibufferCommand(
@@ -17032,208 +17003,67 @@ class Makdo:
              'self.set_return_to()'])
         Minibuffer.minibuffer_commands.append(mc)
 
+        mc = Minibuffer.MinibufferCommand(
+            'pick-up-proper-nouns',
+            [None, 'Ollamaで本文の固有名詞を抽出'],
+            ['self.mother.pick_up_proper_nouns()'])
+        Minibuffer.minibuffer_commands.append(mc)
+
+        mc = Minibuffer.MinibufferCommand(
+            'find-typos',
+            [None, 'Ollamaで本文の誤字脱字を確認'],
+            ['self.mother.find_typos()'])
+        Minibuffer.minibuffer_commands.append(mc)
+
+        def _execute_main_pane(self) -> bool:
+            if self._is_genai_ready():
+                self.genai.ask_ollama_on_main_pane()
+
         def open_ollama(self) -> bool:
-            if 'ollama' not in sys.modules:
-                if not self._import_ollama():
-                    return False
-            if 'ollama_model' not in vars(self):
-                self.set_ollama_model()
-            if 'ollama_model' not in vars(self):
-                n, m = 'エラー', 'oLlamaのモデルが設定されていません．'
-                tkinter.messagebox.showerror(n, m)
-                return False
-            m = 'モデルは"' + self.ollama_model + '"が設定されています'
-            self.set_message_on_status_bar(m)
-            # PROMPT
-            cnf_head, que_head, ans_head = self._get_geneai_head('Ollama')
-            if 'ollama_qanda' not in vars(self):
-                self.ollama_qanda \
-                    = '- 内部処理ですので、情報を外部に送信しません。\n' \
-                    + '- 無料ですので、料金は発生しません。\n\n' \
-                    + cnf_head + '\n\n' \
-                    + 'あなたは誠実で優秀な日本人のアシスタントです。\n' \
-                    + '特に指示が無い場合は、常に日本語で回答してください。\n\n' \
-                    + que_head + '\n\n'
-            self.txt.focus_force()
-            self._execute_sub_pane = self.ask_ollama
-            self._close_sub_pane = self.close_ollama
-            self._open_sub_pane(self.ollama_qanda, False, '質問')
-            self.sub.mark_set('insert', 'end-1c')
-            self._paint_geneai_lines('Ollama')
-            self.sub.edit_separator()
-            return True
+            if self._is_genai_ready():
+                self.genai.open_ollama()
 
-        def ask_ollama(self) -> None:
-            thread_1 = threading.Thread(target=self._ask_ollama,
-                                        daemon=True)
-            thread_2 = threading.Thread(target=self._set_message_ollama,
-                                        daemon=True)
-            thread_1.start()
-            thread_2.start()
-
-        def _ask_ollama(self) -> bool:
-            model = self.ollama_model
-            messages = self._get_message('Ollama')
-            try:
-                response = self.ollama.chat(
-                    model=model, messages=messages,
-                    think=False,  # for reasoning model
-                    # options={ "temperature": 0, "num_ctx": 512 }
-                )
-            except BaseException:
-                n, m = 'エラー', self._olloma_message_unable_to_execute
-                tkinter.messagebox.showerror(n, m)
-                return False
-            answer = response.message.content
-            # answer = adjust_line(answer)
-            self._write_answer('Ollama', answer)
-            self.ollama_qanda = self.sub.get('1.0', 'end-1c')
-            return True
-
-        def _set_message_ollama(self) -> bool:
-            message = 'Ollama（' + self.ollama_model + '）に質問しています'
-            if len(threading.enumerate()) > 1:
-                for te in threading.enumerate():
-                    if re.match('^Thread-[0-9]+ \\(_ask_ollama\\)$', te.name):
-                        self.set_message_on_status_bar(message, True)
-                        self.win.after(1_000, self._set_message_ollama)
-                        return True
-            self.set_message_on_status_bar('', True)
-            return False
-
-        def close_ollama(self) -> None:
-            del self._execute_sub_pane
-            del self._close_sub_pane
-            self.ollama_qanda = self.sub.get('1.0', 'end-1c')
-            self.set_message_on_status_bar('')
-            self._close_sub_pane()
+        def ask_ollama(self) -> bool:
+            if self._is_genai_ready():
+                self.genai.ask_ollama()
 
         def set_ollama_model(self, mother=None) -> bool:
-            pane = self.txt
-            if self.current_pane == 'sub':
-                pane = self.sub
-            if mother is None:
-                mother = pane
-            if 'ollama' not in sys.modules:
-                if not self._import_ollama():
-                    return False
-            tit = 'Ollamaのモデルを選択'
-            mes = 'Ollamaのモデルを選択してください．'
-            try:
-                mol = []
-                for om in self.ollama.list().models:
-                    mol.append(om.model)
-            except BaseException:
-                n, m = 'エラー', self._olloma_message_unable_to_execute
-                tkinter.messagebox.showerror(n, m)
-                return False
-            num = -1
-            if 'ollama_model' in vars(self):
-                om = self.ollama_model
-                if om in mol:
-                    num = mol.index(om)
-            rd = RadiobuttonDialog(mother, self, tit, mes, mol, num)
-            val = rd.get_value()
-            if (val is not None) and (val != self.ollama_model):
-                self.ollama_model = val
-                m = 'Ollamaのモデルを"' + val + '"に設定しました'
-                self.set_message_on_status_bar(m)
-                self.show_config_help_message()
-                return True
-            return False
+            if self._is_genai_ready():
+                self.genai.set_ollama_model(mother)
 
-        def _import_ollama(self) -> bool:
-            try:
-                import ollama
-            except ImportError:
-                n = 'エラー'
-                m = '"ollama"を\n' \
-                    + 'インポートできませんでした．\n\n' \
-                    + '次のコマンドを実行して、\n' \
-                    + 'インストールしてください．\n\n' \
-                    + 'pip install ollama'
-                tkinter.messagebox.showerror(n, m)
+        def pick_up_proper_nouns(self) -> bool:
+            if self._is_genai_ready():
+                self.genai.pick_up_proper_nouns()
+
+        def find_typos(self) -> bool:
+            if self._is_genai_ready():
+                self.genai.find_typos()
+
+        def _is_genai_ready(self) -> bool:
+            if not self._import_genai():
                 return False
-            self.ollama = ollama
+            if not self.genai._import_ollama():
+                return False
+            if not self.genai._test_ollama():
+                return False
+            if not self.genai._validate_ollama_model():
+                return False
             return True
 
-        _olloma_message_unable_to_execute \
-            = '"ollama"に\n' \
-            + '接続できませんでした．\n\n' \
-            + '次のコマンドを実行して、\n' \
-            + '起動しておいてください．\n' \
-            + 'ollama serve'
-
-        # TOOLS
-
-        def _get_geneai_head(self, geneai) -> tuple[str, str, str]:
-            n = MD_TEXT_WIDTH - get_real_width('## 【' + geneai + 'にＸＸ】')
-            cnf_head = '## 【' + geneai + 'の設定】' + ('-' * n)
-            que_head = '## 【' + geneai + 'に質問】' + ('-' * n)
-            ans_head = '## 【' + geneai + 'の回答】' + ('-' * n)
-            return cnf_head, que_head, ans_head
-
-        def _get_message(self, geneai) -> list[dict]:
-            cnf_head, que_head, ans_head = self._get_geneai_head(geneai)
-            messages = []
-            role, mc = '', ''
-            doc = self.sub.get('1.0', 'end-1c') + '\n\n' + ans_head
-            for line in doc.split('\n'):
-                if line == cnf_head or \
-                   line == que_head or \
-                   line == ans_head:
-                    if role != '' and mc != '':
-                        mc = re.sub('^\n+', '', mc)
-                        mc = re.sub('\n+$', '', mc)
-                        messages.append({'role': role, 'content': mc})
-                    mc = ''
-                if line == cnf_head:
-                    role = 'system'
-                elif line == que_head:
-                    role = 'user'
-                elif line == ans_head:
-                    role = 'assistant'
-                else:
-                    mc += line + '\n'
-            return messages
-
-        def _write_answer(self, geneai, answer) -> None:
-            if answer == '':
-                return -1
-            cnf_head, que_head, ans_head = self._get_geneai_head(geneai)
-            self.sub['autoseparators'] = False
-            self.sub.edit_separator()
-            doc = self.sub.get('1.0', 'end-1c')
-            if not re.match('^(.|\n)*\n$', doc):
-                self.sub.insert('end', '\n')
-            if not re.match('^(.|\n)*\n\n$', doc):
-                self.sub.insert('end', '\n')
-            self.sub.insert('end', ans_head + '\n\n')
-            self.sub.insert('end', answer + '\n\n')
-            self.sub.edit_separator()
-            self.sub.insert('end', que_head + '\n\n')
-            self.sub.mark_set('insert', 'end-1c')
-            self._put_back_cursor_to_pane(self.sub)
-            self._paint_geneai_lines(geneai)
-            self.sub['autoseparators'] = True
-            self.sub.edit_separator()
-
-        def _paint_geneai_lines(self, geneai) -> None:
-            for tag in self.sub.tag_names():
-                self.sub.tag_remove(tag, '1.0', 'end-1c')
-            n = 0
-            pos = self.sub.get('1.0', 'end-1c')
-            res = '^((?:.|\n)*?)' + \
-                '(## 【' + geneai + '...】-+)' + \
-                '(\n(?:.|\n)*)$'
-            while re.match(res, pos):
-                pre = re.sub(res, '\\1', pos)
-                key = re.sub(res, '\\2', pos)
-                pos = re.sub(res, '\\3', pos)
-                beg = '1.0+' + str(n + len(pre)) + 'c'
-                end = '1.0+' + str(n + len(pre) + len(key)) + 'c'
-                n += len(pre) + len(key)
-                self.sub.tag_add('c-40-1-g-x', beg, end)
+        def _import_genai(self) -> bool:
+            if 'genai' in vars(self):
+                return True
+            try:
+                import makdo.genai
+                makdo.genai.MD_TEXT_WIDTH = MD_TEXT_WIDTH
+                makdo.genai.get_real_width = get_real_width
+                makdo.genai.RadiobuttonDialog = RadiobuttonDialog
+            except ImportError:
+                n, m = 'エラー', '"genai"を\nインポートできませんでした．'
+                tkinter.messagebox.showerror(n, m)
+                return False
+            self.genai = makdo.genai.Ollama(self)
+            return True
 
 
 ######################################################################
