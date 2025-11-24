@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         genai.py
 # Version:      v01
-# Time-stamp:   <2025.11.24-13:30:41-JST>
+# Time-stamp:   <2025.11.25-05:18:53-JST>
 
 # genai.py
 # Copyright (C) 2025  Seiichiro HATA
@@ -78,7 +78,9 @@ class GenAI:
         self.makdo.set_message_on_status_bar('', True)
         return False
 
-    def _write_answer(self, answer) -> None:
+
+
+    def _write_formal_answer(self, answer) -> None:
         if answer == '':
             return -1
         cnf_head, que_head, ans_head = self._get_genai_head()
@@ -328,7 +330,7 @@ class OpenAI(GenAI):
         self.makdo.set_message_on_status_bar('')
         answer = output.choices[0].message.content  # one answer
         # answer = adjust_line(answer)
-        self._write_answer(answer)
+        self._write_formal_answer(answer)
 
     def close_openai(self) -> None:
         del self.makdo._execute_sub_pane
@@ -461,7 +463,7 @@ class Ollama(GenAI):
         if response is None:
             return False
         answer = response.message.content
-        self._write_answer(answer)
+        self._write_formal_answer(answer)
         return True
 
     def close_ollama(self) -> None:
@@ -493,8 +495,7 @@ class Ollama(GenAI):
         if response is None:
             return False
         answer = response.message.content
-        answer = self._format_answer(self.makdo.txt, answer)
-        self.makdo.txt.insert('ollama', answer)
+        self._write_simple_answer(self.makdo.txt, answer)
         self.makdo.txt.tag_remove('ollama', '1.0', 'end')
         self.makdo.cancel_region(self.makdo.txt)
 
@@ -522,9 +523,8 @@ class Ollama(GenAI):
         answer_list = self._json_to_list(answer_json)
         answer = ''
         for a in answer_list:
-            answer += a
-        answer = self._format_answer(self.makdo.txt, answer)
-        pane.insert('ollama', answer)
+            answer += a + '\n'
+        self._write_simple_answer(self.makdo.txt, answer)
         pane.tag_remove('ollama', '1.0', 'end')
         self.makdo.cancel_region(pane)
         return True
@@ -558,11 +558,8 @@ class Ollama(GenAI):
         sc = self.system_message
         uc = '次の文章に誤字脱字があれば、指摘してください。\n'
         response = self._execute_ollama(sc, uc + '\n' + doc)
-        if response is None:
-            return False
         answer = response.message.content
-        answer = self._format_answer(self.makdo.txt, answer)
-        pane.insert('ollama', answer)
+        self._write_simple_answer(self.makdo.txt, answer)
         pane.tag_remove('ollama', '1.0', 'end')
         self.makdo.cancel_region(pane)
         return True
@@ -620,10 +617,11 @@ class Ollama(GenAI):
             return None
         return response
 
-    @staticmethod
-    def _format_answer(pane, answer):
+    def _write_simple_answer(self, pane, answer) -> None:
         answer = re.sub('^\n+', '', answer)
         answer = re.sub('\n+$', '', answer)
+        if answer == '':
+            answer = '（空）'
         pre = pane.get('1.0', 'ollama')
         pos = pane.get('ollama', 'end-1c')
         rmd = re.sub('^((.|\n)*?<!--(.|\n)*?-->)*', '', pre)
@@ -631,8 +629,5 @@ class Ollama(GenAI):
             answer = '-----\n' + answer + '\n-----'
         else:
             answer = '<!--\n' + answer + '\n-->'
-        if len(pre) > 0 and pre[-1] != '\n':
-            answer = '\n' + answer
-        if len(pos) > 0 and pos[0] != '\n':
-            answer = answer + '\n'
-        return answer
+        self.makdo._insert_line_break_as_necessary('ollama')
+        pane.insert('ollama', answer)

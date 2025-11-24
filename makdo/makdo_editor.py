@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.11.24-11:00:43-JST>
+# Time-stamp:   <2025.11.25-04:57:25-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6534,40 +6534,40 @@ class Makdo:
         pane.insert('insert', paragraph_text)
         pane.edit_separator()
 
-    def _insert_line_break_as_necessary(self):
+    def _insert_line_break_as_necessary(self, index='insert'):
         pane = self._get_pane()
-        t = pane.get('1.0', 'insert')
+        t = pane.get('1.0', index)
         if len(t) == 0:
             pass
         elif len(t) == 1:
             if t[-1] == '\n':
                 pass
             else:
-                pane.insert('insert', '\n\n')
+                pane.insert(index, '\n\n')
         elif len(t) >= 2:
             if t[-2] == '\n' and t[-1] == '\n':
                 pass
             elif t[-1] == '\n':
-                pane.insert('insert', '\n')
+                pane.insert(index, '\n')
             else:
-                pane.insert('insert', '\n\n')
-        p = pane.index('insert')
-        t = pane.get('insert', 'end-1c')
+                pane.insert(index, '\n\n')
+        p = pane.index(index)
+        t = pane.get(index, 'end-1c')
         if len(t) == 0:
-            pane.insert('insert', '\n')
+            pane.insert(index, '\n')
         elif len(t) == 1:
             if t[0] == '\n':
                 pass
             else:
-                pane.insert('insert', '\n\n')
+                pane.insert(index, '\n\n')
         elif len(t) >= 2:
             if t[0] == '\n' and t[1] == '\n':
                 pass
             elif t[0] == '\n':
-                pane.insert('insert', '\n')
+                pane.insert(index, '\n')
             else:
-                pane.insert('insert', '\n\n')
-        pane.mark_set('insert', p)
+                pane.insert(index, '\n\n')
+        pane.mark_set(index, p)
 
     @staticmethod
     def _get_key(event):
