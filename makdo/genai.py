@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         genai.py
 # Version:      v01
-# Time-stamp:   <2025.11.24-12:12:49-JST>
+# Time-stamp:   <2025.11.24-12:58:43-JST>
 
 # genai.py
 # Copyright (C) 2025  Seiichiro HATA
@@ -30,6 +30,8 @@ import threading
 class GenAI:
 
     genai_name = None
+    system_message = 'あなたは誠実で優秀な日本人のアシスタントです。\n' \
+        + '特に指示が無い場合は、常に日本語で回答してください。'
 
     def __init__(self, makdo):
         self.makdo = makdo
@@ -289,9 +291,7 @@ class OpenAI(GenAI):
             self.openai_qanda \
                 = '- 外部処理ですので、個人情報の流出に注意してください。\n' \
                 + '- 有料ですので、料金に注意してください。\n\n' \
-                + cnf_head + '\n\n' \
-                + 'あなたは誠実で優秀な日本人のアシスタントです。\n' \
-                + '特に指示が無い場合は、常に日本語で回答してください。\n\n' \
+                + cnf_head + '\n\n' + self.system_message + '\n\n' \
                 + que_head + '\n\n'
         self.makdo.txt.focus_force()
         self.makdo._execute_sub_pane = self.ask_openai
@@ -319,15 +319,14 @@ class OpenAI(GenAI):
         self.makdo.set_message_on_status_bar('OpenAIに質問しています', True)
         try:
             output = self.openai.chat.completions.create(
-                model=model, messages=messages,
-                n=1, max_tokens=1000,
+                model=model, messages=messages, n=1,  # one answer
             )
         except BaseException:
             n, m = 'エラー', '"openal"から\n回答を得られませんでした．'
             tkinter.messagebox.showerror(n, m)
             return
         self.makdo.set_message_on_status_bar('')
-        answer = output.choices[0].message.content
+        answer = output.choices[0].message.content  # one answer
         # answer = adjust_line(answer)
         self._write_answer(answer)
 
@@ -427,9 +426,7 @@ class Ollama(GenAI):
             self.ollama_qanda \
                 = '- 内部処理ですので、情報を外部に送信しません。\n' \
                 + '- 無料ですので、料金は発生しません。\n\n' \
-                + cnf_head + '\n\n' \
-                + 'あなたは誠実で優秀な日本人のアシスタントです。\n' \
-                + '特に指示が無い場合は、常に日本語で回答してください。\n\n' \
+                + cnf_head + '\n\n' + self.system_message + '\n\n' \
                 + que_head + '\n\n'
         self.makdo.txt.focus_force()
         self.makdo._execute_sub_pane = self.ask_ollama
@@ -486,8 +483,7 @@ class Ollama(GenAI):
 
     def _ollama_ask_ollama_on_main_pane(self) -> bool:
         self.makdo.txt.mark_set('ollama', 'insert')
-        sc = 'あなたは誠実で優秀な日本人のアシスタントです。\n' \
-            + '特に指示が無い 場合は、常に日本語で回答してください。'
+        sc = self.system_message
         doc = self._get_document(self.makdo.txt)
         doc = self._insert_files(doc)
         uc = ''
@@ -527,8 +523,7 @@ class Ollama(GenAI):
         pane = self.makdo._get_pane()
         pane.mark_set('ollama', 'insert')
         doc = self._get_document(pane)
-        sc = 'あなたは誠実で優秀な日本人のアシスタントです。\n' \
-            + '特に指示が無い 場合は、常に日本語で回答してください。'
+        sc = self.system_message
         uc = '次の文章から固有名詞を抽出してください。\n' \
             + '回答はjson形式で回答してください。\n'
         response = self._execute_ollama(sc, uc + '\n' + doc)
@@ -571,8 +566,7 @@ class Ollama(GenAI):
         pane = self.makdo._get_pane()
         pane.mark_set('ollama', 'insert')
         doc = self._get_document(pane)
-        sc = 'あなたは誠実で優秀な日本人のアシスタントです。\n' \
-            + '特に指示が無い 場合は、常に日本語で回答してください。'
+        sc = self.system_message
         uc = '次の文章に誤字脱字があれば、指摘してください。\n'
         response = self._execute_ollama(sc, uc + '\n' + doc)
         if response is None:
