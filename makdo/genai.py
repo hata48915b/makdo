@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         genai.py
 # Version:      v01
-# Time-stamp:   <2025.11.24-12:58:43-JST>
+# Time-stamp:   <2025.11.24-13:30:41-JST>
 
 # genai.py
 # Copyright (C) 2025  Seiichiro HATA
@@ -493,18 +493,7 @@ class Ollama(GenAI):
         if response is None:
             return False
         answer = response.message.content
-        answer = re.sub('\n+$', '', answer)
-        pre = self.makdo.txt.get('1.0', 'ollama')
-        pos = self.makdo.txt.get('ollama', 'end-1c')
-        rmd = re.sub('^((.|\n)*?<!--(.|\n)*?-->)*', '', pre)
-        if re.match('^(.|\n)*<!--(.|\n)*$', rmd):
-            answer = '-----\n' + answer + '\n-----'
-        else:
-            answer = '<!--\n' + answer + '\n-->'
-        if len(pre) > 0 and pre[-1] != '\n':
-            answer = '\n' + answer
-        if len(pos) > 0 and pos[0] != '\n':
-            answer = answer + '\n'
+        answer = self._format_answer(self.makdo.txt, answer)
         self.makdo.txt.insert('ollama', answer)
         self.makdo.txt.tag_remove('ollama', '1.0', 'end')
         self.makdo.cancel_region(self.makdo.txt)
@@ -514,7 +503,7 @@ class Ollama(GenAI):
     def pick_up_proper_nouns(self):
         thread_1 = threading.Thread(target=self._ollama_pick_up_proper_nouns,
                                     daemon=True)
-        thread_2 = threading.Thread(target=self.__set_message_on_status_bar,
+        thread_2 = threading.Thread(target=self._set_message_on_status_bar,
                                     daemon=True)
         thread_1.start()
         thread_2.start()
@@ -531,11 +520,11 @@ class Ollama(GenAI):
             return False
         answer_json = response.message.content
         answer_list = self._json_to_list(answer_json)
-        self.makdo._insert_line_break_as_necessary()
-        pane.insert('ollama', '<!--\n')
+        answer = ''
         for a in answer_list:
-            pane.insert('ollama', a + '\n')
-        pane.insert('ollama', '-->')
+            answer += a
+        answer = self._format_answer(self.makdo.txt, answer)
+        pane.insert('ollama', answer)
         pane.tag_remove('ollama', '1.0', 'end')
         self.makdo.cancel_region(pane)
         return True
@@ -572,11 +561,8 @@ class Ollama(GenAI):
         if response is None:
             return False
         answer = response.message.content
-        answer = re.sub('\n+$', '', answer)
-        self.makdo._insert_line_break_as_necessary()
-        pane.insert('ollama', '<!--\n')
-        pane.insert('ollama', answer + '\n')
-        pane.insert('ollama', '-->')
+        answer = self._format_answer(self.makdo.txt, answer)
+        pane.insert('ollama', answer)
         pane.tag_remove('ollama', '1.0', 'end')
         self.makdo.cancel_region(pane)
         return True
@@ -633,3 +619,20 @@ class Ollama(GenAI):
             tkinter.messagebox.showerror(n, m)
             return None
         return response
+
+    @staticmethod
+    def _format_answer(pane, answer):
+        answer = re.sub('^\n+', '', answer)
+        answer = re.sub('\n+$', '', answer)
+        pre = pane.get('1.0', 'ollama')
+        pos = pane.get('ollama', 'end-1c')
+        rmd = re.sub('^((.|\n)*?<!--(.|\n)*?-->)*', '', pre)
+        if re.match('^(.|\n)*<!--(.|\n)*$', rmd):
+            answer = '-----\n' + answer + '\n-----'
+        else:
+            answer = '<!--\n' + answer + '\n-->'
+        if len(pre) > 0 and pre[-1] != '\n':
+            answer = '\n' + answer
+        if len(pos) > 0 and pos[0] != '\n':
+            answer = answer + '\n'
+        return answer
