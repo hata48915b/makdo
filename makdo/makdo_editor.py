@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.11.24-04:10:47-JST>
+# Time-stamp:   <2025.11.24-11:00:43-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -104,18 +104,6 @@ TAB_WIDTH = 4
 # DOCX用のフォント
 DOCX_MINCHO_FONT = 'ＭＳ 明朝'
 DOCX_ALPHANUMERIC_FONT = 'Times New Roman'
-
-OPENAI_MODELS = [
-    'o1-preview',     # $ 15.000 / 60.000
-    'o1-mini',        # $  3.000 / 12.000
-    'gpt-4',          # $ 30.000 / 60.000
-    'gpt-4-turbo',    # $ 10.000 / 30.000
-    'gpt-4o',         # $  2.500 / 10.000
-    'gpt-4o-mini',    # $  0.150 /  0.075
-    # 'gpt-3.5-turbo',  # $  0.500 /  1.500
-]
-DEFAULT_OPENAI_MODEL = 'gpt-4o-mini'
-# DEFAULT_OPENAI_MODEL = 'gpt-3.5-turbo'
 
 MD_TEXT_WIDTH = 68
 
@@ -4024,89 +4012,6 @@ class PasswordDialog(tkinter.simpledialog.Dialog):
             cb = ''
         if cb != '':
             self.entry.insert('insert', cb)
-
-
-############################################################
-# WITCH
-
-
-class Witch:
-
-    # 00-94 (32-126)
-    pepper = [
-        42, 84, 62, 18, 76,  4, 68, 37, 53, 26, 59, 71, 23, 27, 33, 29,
-        51, 20, 25, 76, 89, 30, 90, 86, 45, 74,  6, 42, 14,  7, 34, 51,
-        31, 31, 13, 74, 68, 32, 41, 44, 17, 39, 34,  4, 41, 25, 79, 94,
-        56, 61, 23, 42, 58, 44, 79, 91, 38,  7, 42, 14,  7, 11, 12, 75,
-        43, 71,  5,  1,  4, 42, 45, 32, 68, 83, 42,  5, 52, 13, 32, 47,
-        39,  7, 48, 90,  1,  1, 53, 80, 42, 57, 64, 56,  5, 82, 30, 15,
-        12, 82, 51, 48, 43, 63, 12, 14, 20, 62, 93, 55, 13, 24, 68, 63,
-        71, 30, 79, 20, 22, 42, 29, 81, 56, 61, 70, 37, 35, 37, 27, 37,
-        57, 82, 58, 71, 83,  4, 57, 62,  3, 31, 40, 48, 21, 51, 87, 49,
-        38, 27, 48,  7, 54, 35, 45, 58, 85, 35, 39, 11, 88, 37, 18, 90,
-        90, 21, 66, 56, 18, 91, 36, 71, 63, 48, 46, 75, 52, 65, 12, 33,
-        42, 72, 41, 31, 86, 59, 24, 56, 27, 94, 23, 47, 92, 42, 15, 15,
-        40, 27, 62, 53, 65, 59, 36, 38, 93, 21, 37, 32, 43, 55, 77, 64,
-        17, 67, 48, 88, 74, 75, 67,  9, 94, 84,  4,  0, 90, 48, 24, 50,
-        22,  6, 27, 39, 38, 10, 68, 46, 90,  5, 66, 34,  4, 40, 50, 31,
-        93,  5, 54, 89, 43, 44, 54, 57, 90, 26, 60, 61, 33, 33, 45, 28,
-    ]
-
-    @staticmethod
-    def enchant(dechant_word):
-        m = len(dechant_word)
-        ns = []
-        for i in range(m):
-            j = i - m // 2
-            if j < 0:
-                j += m
-            # j = i - 1
-            # if j == -1:
-            #     j = -1
-            c_i = dechant_word[i]
-            c_j = dechant_word[j]
-            n_i = (ord(c_i) - 32) // 5  # 0-18
-            n_j = (ord(c_j) - 32) % 5   # 0-4
-            n = (n_j * 19) + n_i        # (4 * 19) + 18 = 94
-            # n = (n_i * 5) + n_j        # (18 * 5) + 4 = 94
-            ns.append(n)
-        enchant_word = ''
-        for i in range(m):
-            n = ns[i]
-            n += Witch.pepper[i % len(Witch.pepper)]
-            if n >= 95:
-                n -= 95
-            e = chr(n + 32)
-            enchant_word += e
-        return enchant_word
-
-    @staticmethod
-    def dechant(enchant_word):
-        m = len(enchant_word)
-        ns = []
-        for i in range(m):
-            e = enchant_word[i]
-            n = ord(e) - 32
-            n -= Witch.pepper[i % len(Witch.pepper)]
-            if n < 0:
-                n += 95
-            ns.append(n)
-        dechant_word = ''
-        for i in range(m):
-            j = i + m // 2
-            if j >= m:
-                j -= m
-            # j = i + 1
-            # if j == m:
-            #     j = 0
-            n_i = ns[i] % 19     # 0 -> 18
-            n_j = ns[j] // 19    # 0 -> 4
-            # n_i = ns[i] // 5    # 0 -> 18
-            # n_j = ns[j] % 5     # 0 -> 4
-            n = (n_i * 5) + n_j  # (18 * 5) + 4 = 94
-            d = chr(n + 32)
-            dechant_word += d
-        return dechant_word
 
 
 ############################################################
@@ -14498,7 +14403,7 @@ class Makdo:
                          command=self.set_epwing_directory)
         menu.add_separator()
         #
-        menu.add_command(label='OpenAIに質問（外部処理、有料）',
+        menu.add_command(label='OpenAIを開く（外部処理、有料）',
                          command=self.open_openai)
         menu.add_command(label='OpenAIのモデルを設定',
                          command=self.set_openai_model)
@@ -14506,9 +14411,9 @@ class Makdo:
                          command=self.set_openai_key)
         menu.add_separator()
         #
-        menu.add_command(label='LlamaにRAGなしで質問（内部処理、無料）',
+        menu.add_command(label='LlamaにRAGなしで開く（内部処理、無料）',
                          command=self.open_llama_without_rag)
-        menu.add_command(label='LlamaにRAGありで質問（内部処理、無料）',
+        menu.add_command(label='LlamaにRAGありで開く（内部処理、無料）',
                          command=self.open_llama_with_rag)
         menu.add_command(label='Llamaのモデルファイルを設定',
                          command=self.set_llama_model_file)
@@ -14520,7 +14425,7 @@ class Makdo:
                          command=self.edit_llama_rag_data)
         menu.add_separator()
         #
-        menu.add_command(label='Ollamaを開く',
+        menu.add_command(label='Ollamaを開く（内部・クラウド処理、無料）',
                          command=self.open_ollama)
         menu.add_command(label='Ollamaに質問',
                          command=self.ask_ollama)
@@ -14740,6 +14645,8 @@ class Makdo:
             '　　Apache Software License\n' + \
             '- numpy: BSD License\n'
         # '- typing_extensions: PSF License\n'
+        # OLLAMA
+        #
         # LEVENSHTEIN (MDDIFF)
         m += \
             '- Levenshtein: GPLv2+\n'
@@ -16576,122 +16483,31 @@ class Makdo:
         # OPENAI
 
         mc = Minibuffer.MinibufferCommand(
-            'ask-openai',
-            [None, 'OpenAIに質問する'],
+            'open-openai',
+            [None, 'OpenAIを開く'],
             ['self.mother.open_openai()',
              'self.set_return_to()'])
         Minibuffer.minibuffer_commands.append(mc)
 
         def open_openai(self) -> bool:
-            # CONFIGURATION
-            if 'openai_model' not in vars(self):
-                self.set_openai_model()
-            if 'openai_model' not in vars(self):
-                n = 'エラー'
-                m = 'OpenAIのモデルが設定されていません．'
-                tkinter.messagebox.showerror(n, m)
+            if self._is_openai_ready():
+                self.openai.open_openai()
+
+        def set_openai_model(self, mother=None) -> bool:
+            if self._is_openai_ready():
+                self.openai.set_openai_model(mother)
+
+        def _is_openai_ready(self) -> bool:
+            if not self._import_genai():
                 return False
-            if 'openai_key' not in vars(self):
-                self.set_openai_key()
-            if 'openai_key' not in vars(self):
-                n = 'エラー'
-                m = 'OpenAIのキーが設定されていません．'
-                tkinter.messagebox.showerror(n, m)
-                return False
-            # LOAD MODULE
             if 'openai' not in vars(self):
-                self.set_message_on_status_bar('openaiを起動しています', True)
-                try:
-                    import openai  # Apache Software License
-                    ok = Witch.dechant(self.openai_key)
-                    self.openai = openai.OpenAI(api_key=ok)
-                except ImportError:
-                    n = 'エラー'
-                    m = '"openai"を\n' \
-                        + 'インポートできませんでした．\n\n' \
-                        + '次のコマンドを実行して、\n' \
-                        + 'インストールしてください．\n\n' \
-                        + 'pip install openai'
-                    tkinter.messagebox.showerror(n, m)
-                    self.set_message_on_status_bar('', True)
-                    return False
-            m = 'モデルは"' + self.openai_model + '"が設定されています'
-            self.set_message_on_status_bar(m)
-            # PROMPT
-            if 'openai_qanda' not in vars(self):
-                n = MD_TEXT_WIDTH - get_real_width('## 【OpenAIにＸＸ】')
-                self.openai_qanda \
-                    = '- 外部処理ですので、個人情報の流出に注意してください。\n' \
-                    + '- 有料ですので、料金に注意してください。\n\n' \
-                    + '## 【OpenAIの設定】' + ('-' * n) + '\n\n' \
-                    + 'あなたは誠実で優秀な日本人のアシスタントです。\n' \
-                    + '特に指示が無い場合は、常に日本語で回答してください。\n\n' \
-                    + '## 【OpenAIに質問】' + ('-' * n) + '\n\n'
-            self.txt.focus_force()
-            self._execute_sub_pane = self.ask_openai
-            self._close_sub_pane = self.close_openai
-            self._open_sub_pane(self.openai_qanda, False, '質問')
-            self.sub.mark_set('insert', 'end-1c')
-            self._paint_geneai_lines('OpenAI')
-            self.sub.edit_separator()
-            return True
-
-        def ask_openai(self) -> None:
-            model = self.openai_model
-            messages = self._get_message('OpenAI')
-            self.set_message_on_status_bar('OpenAIに質問しています', True)
-            try:
-                output = self.openai.chat.completions.create(
-                    model=model, messages=messages,
-                    n=1, max_tokens=1000,
-                )
-            except BaseException:
-                n = 'エラー'
-                m = '"openal"から\n' \
-                    + '回答を得られませんでした．'
-                tkinter.messagebox.showerror(n, m)
-                return
-            self.set_message_on_status_bar('', True)
-            answer = output.choices[0].message.content
-            # answer = adjust_line(answer)
-            self._write_answer('OpenAI', answer)
-            self.openai_qanda = self.sub.get('1.0', 'end-1c')
-
-        def close_openai(self) -> None:
-            del self._execute_sub_pane
-            del self._close_sub_pane
-            # file_path = CONFIG_DIR + '/' + 'openai.md'
-            # contents = self.sub.get('1.0', 'end-1c')
-            # self._save_config_file(file_path, contents)
-            self.set_message_on_status_bar('')
-            self._close_sub_pane()
-
-        def set_openai_model(self) -> bool:
-            b = 'OpenAIのモデル'
-            m = 'OpenAIのモデルを入力してください．'
-            h, t = '', ''
-            if 'openai_model' not in vars(self):
-                self.openai_model = DEFAULT_OPENAI_MODEL
-            om = self.openai_model
-            ca = []
-            for c in OPENAI_MODELS:
-                if c != om:
-                    ca.append(c)
-            om = OneWordDialog(self.txt, self, b, m, h, t, om, ca).get_value()
-            if om is None:
+                self.openai = makdo.genai.OpenAI(self)
+            if not self.openai._has_key_openai():
                 return False
-            self.openai_model = om
-            self.show_config_help_message()
-            return True
-
-        def set_openai_key(self) -> bool:
-            t = 'OpenAIのキー'
-            m = 'OpenAIのキーを入力してください．'
-            ok = PasswordDialog(self.txt, self, t, m).get_value()
-            if ok is None:
+            if not self.openai._import_openai():
                 return False
-            self.openai_key = Witch.enchant(ok)
-            self.show_config_help_message()
+            if not self.openai._validate_openai_model():
+                return False
             return True
 
         # LLAMA
@@ -17016,42 +16832,44 @@ class Makdo:
         Minibuffer.minibuffer_commands.append(mc)
 
         def _execute_main_pane(self) -> bool:
-            if self._is_genai_ready():
-                self.genai.ask_ollama_on_main_pane()
+            if self._is_ollama_ready():
+                self.ollama.ask_ollama_on_main_pane()
 
         def open_ollama(self) -> bool:
-            if self._is_genai_ready():
-                self.genai.open_ollama()
+            if self._is_ollama_ready():
+                self.ollama.open_ollama()
 
         def ask_ollama(self) -> bool:
-            if self._is_genai_ready():
-                self.genai.ask_ollama()
+            if self._is_ollama_ready():
+                self.ollama.ask_ollama()
 
         def set_ollama_model(self, mother=None) -> bool:
-            if self._is_genai_ready():
-                self.genai.set_ollama_model(mother)
+            if self._is_ollama_ready():
+                self.ollama.set_ollama_model(mother)
 
         def pick_up_proper_nouns(self) -> bool:
-            if self._is_genai_ready():
-                self.genai.pick_up_proper_nouns()
+            if self._is_ollama_ready():
+                self.ollama.pick_up_proper_nouns()
 
         def find_typos(self) -> bool:
-            if self._is_genai_ready():
-                self.genai.find_typos()
+            if self._is_ollama_ready():
+                self.ollama.find_typos()
 
-        def _is_genai_ready(self) -> bool:
+        def _is_ollama_ready(self) -> bool:
             if not self._import_genai():
                 return False
-            if not self.genai._import_ollama():
+            if 'ollama' not in vars(self):
+                self.ollama = makdo.genai.Ollama(self)
+            if not self.ollama._import_ollama():
                 return False
-            if not self.genai._test_ollama():
+            if not self.ollama._test_ollama():
                 return False
-            if not self.genai._validate_ollama_model():
+            if not self.ollama._validate_ollama_model():
                 return False
             return True
 
         def _import_genai(self) -> bool:
-            if 'genai' in vars(self):
+            if 'makdo.genai' in sys.modules:
                 return True
             try:
                 import makdo.genai
@@ -17062,7 +16880,6 @@ class Makdo:
                 n, m = 'エラー', '"genai"を\nインポートできませんでした．'
                 tkinter.messagebox.showerror(n, m)
                 return False
-            self.genai = makdo.genai.Ollama(self)
             return True
 
 
