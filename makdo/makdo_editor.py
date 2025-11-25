@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.11.25-04:57:25-JST>
+# Time-stamp:   <2025.11.25-14:25:44-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5060,47 +5060,51 @@ class LineDatum:
                     continue
                 # RUBY (<xxx/yyy>)
                 if c == '<' and re.match('^[^</>]*/[^</>]*>.*$', s_rgt):
-                    key = chars_state.get_key('')                       # 1.key
-                    end = str(i + 1) + '.' + str(j)                     # 2.end
-                    pane.tag_add(key, beg, end)                         # 3.tag
-                    #                                                   # 4.set
-                    # tmp = '<'                                         # 5.tmp
-                    beg = end                                           # 6.beg
-                    key = chars_state.get_key('ruby')                   # 1.key
-                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                    pane.tag_add(key, beg, end)                         # 3.tag
-                    chars_state.set_or_unset_has_ruby(True)             # 4.set
-                    tmp = ''                                            # 5.tmp
-                    beg = end                                           # 6.beg
+                    if not re.match('^!--[^</>]*/[^</>]*-->.*$', s_rgt):
+                        key = chars_state.get_key('')                   # 1.key
+                        end = str(i + 1) + '.' + str(j)                 # 2.end
+                        pane.tag_add(key, beg, end)                     # 3.tag
+                        #                                               # 4.set
+                        # tmp = '<'                                     # 5.tmp
+                        beg = end                                       # 6.beg
+                        key = chars_state.get_key('ruby')               # 1.key
+                        end = str(i + 1) + '.' + str(j + 1)             # 2.end
+                        pane.tag_add(key, beg, end)                     # 3.tag
+                        chars_state.set_or_unset_has_ruby(True)         # 4.set
+                        tmp = ''                                        # 5.tmp
+                        beg = end                                       # 6.beg
                 if c == '/' and \
                    re.match('^.*<[^</>]*/$', s_lft) and \
                    re.match('^[^</>]*>.*$', s_rgt):
-                    key = chars_state.get_key('')                       # 1.key
-                    end = str(i + 1) + '.' + str(j)                     # 2.end
-                    pane.tag_add(key, beg, end)                         # 3.tag
-                    chars_state.set_or_unset_has_ruby(False)            # 4.set
-                    # tmp = '/'                                         # 5.tmp
-                    beg = end                                           # 6.beg
-                    key = chars_state.get_key('ruby')                   # 1.key
-                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                    pane.tag_add(key, beg, end)                         # 3.tag
-                    chars_state.set_or_unset_has_ruby(True)             # 4.set
-                    tmp = ''                                            # 5.tmp
-                    beg = end                                           # 6.beg
+                    if not re.match('^.*<!--[^</>]*/$', s_lft) or \
+                       not re.match('^[^</>]*-->.*$', s_rgt):
+                        key = chars_state.get_key('')                   # 1.key
+                        end = str(i + 1) + '.' + str(j)                 # 2.end
+                        pane.tag_add(key, beg, end)                     # 3.tag
+                        chars_state.set_or_unset_has_ruby(False)        # 4.set
+                        # tmp = '/'                                     # 5.tmp
+                        beg = end                                       # 6.beg
+                        key = chars_state.get_key('ruby')               # 1.key
+                        end = str(i + 1) + '.' + str(j + 1)             # 2.end
+                        pane.tag_add(key, beg, end)                     # 3.tag
+                        chars_state.set_or_unset_has_ruby(True)         # 4.set
+                        tmp = ''                                        # 5.tmp
+                        beg = end                                       # 6.beg
                 if c == '>' and re.match('^.*<[^</>]*/[^</>]*>$', s_lft):
-                    key = chars_state.get_key('')                       # 1.key
-                    end = str(i + 1) + '.' + str(j)                     # 2.end
-                    pane.tag_add(key, beg, end)                         # 3.tag
-                    chars_state.set_or_unset_has_ruby(False)            # 4.set
-                    # tmp = '>'                                         # 5.tmp
-                    beg = end                                           # 6.beg
-                    key = chars_state.get_key('ruby')                   # 1.key
-                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                    pane.tag_add(key, beg, end)                         # 3.tag
-                    #                                                   # 4.set
-                    tmp = ''                                            # 5.tmp
-                    beg = end                                           # 6.beg
-                    continue
+                    if not match('^.*<!--[^</>]*/[^</>]*-->$', s_lft):
+                        key = chars_state.get_key('')                   # 1.key
+                        end = str(i + 1) + '.' + str(j)                 # 2.end
+                        pane.tag_add(key, beg, end)                     # 3.tag
+                        chars_state.set_or_unset_has_ruby(False)        # 4.set
+                        # tmp = '>'                                     # 5.tmp
+                        beg = end                                       # 6.beg
+                        key = chars_state.get_key('ruby')               # 1.key
+                        end = str(i + 1) + '.' + str(j + 1)             # 2.end
+                        pane.tag_add(key, beg, end)                     # 3.tag
+                        #                                               # 4.set
+                        tmp = ''                                        # 5.tmp
+                        beg = end                                       # 6.beg
+                        continue
                 # PREFORMATTED
                 if c == '`' and re.match(NOT_ESCAPED + c + '$', s_lft):
                     iip = chars_state.is_in_preformatted
