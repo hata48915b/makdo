@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.11.26-13:58:37-JST>
+# Time-stamp:   <2025.11.26-15:57:35-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -3335,9 +3335,32 @@ DONT_EDIT_MESSAGE = '<!--【以下は必要なデータですので編集しな�
 
 def get_real_width(s: str) -> int:
     wid = 0
+    if '\t' not in s:
+        wid += s.count(' ')
+        s = s.replace(' ', '')
+        wid += s.count('|')
+        s = s.replace('|', '')
+        wid += s.count(':')
+        s = s.replace(':', '')
+        wid += s.count('-')
+        s = s.replace('-', '')
+        wid += s.count('\u3000') * 2
+        s = s.replace('\u3000', '')
     for c in s:
         if c == '\t':
             wid += (int(wid / TAB_WIDTH) + 1) * TAB_WIDTH
+            continue
+        elif c == ' ' or c == '|' or c == ':' or c == '-':
+            wid += 1
+            continue
+        elif c.isascii():
+            wid += 1
+            continue
+        elif c == '\u3000':
+            wid += 2
+            continue
+        elif c == '（' or c == '）' or c == '「' or c == '」' or c == '『' or c == '』':
+            wid += 2
             continue
         w = unicodedata.east_asian_width(c)
         if c == '':
@@ -3405,7 +3428,6 @@ def get_real_width(s: str) -> int:
         elif(w == 'N'):   # Arabic character ...
             wid += 1
     return wid
-
 
 def c2n_n_arab(s: str) -> int:
     n = 0
@@ -5791,13 +5813,13 @@ class Makdo:
     @staticmethod
     def _get_v_position_of_insert(pane):
         insert_position = pane.index('insert')
-        insert_v_position = int(re.sub('\\.[0-9]+$', '', insert_position))
+        insert_v_position = int(insert_position.split('.')[0])
         return insert_v_position
 
     @staticmethod
     def _get_h_position_of_insert(pane):
         insert_position = pane.index('insert')
-        insert_h_position = int(re.sub('^[0-9]+\\.', '', insert_position))
+        insert_v_position = int(insert_position.split('.')[1])
         return insert_h_position
 
     @staticmethod
