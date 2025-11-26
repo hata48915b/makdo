@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.11.25-14:25:44-JST>
+# Time-stamp:   <2025.11.26-13:58:37-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5091,7 +5091,7 @@ class LineDatum:
                         tmp = ''                                        # 5.tmp
                         beg = end                                       # 6.beg
                 if c == '>' and re.match('^.*<[^</>]*/[^</>]*>$', s_lft):
-                    if not match('^.*<!--[^</>]*/[^</>]*-->$', s_lft):
+                    if not re.match('^.*<!--[^</>]*/[^</>]*-->$', s_lft):
                         key = chars_state.get_key('')                   # 1.key
                         end = str(i + 1) + '.' + str(j)                 # 2.end
                         pane.tag_add(key, beg, end)                     # 3.tag
