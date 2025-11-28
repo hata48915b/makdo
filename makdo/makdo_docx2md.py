@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.11.20-09:16:11-JST>
+# Time-stamp:   <2025.11.28-16:05:02-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -327,14 +327,14 @@ RES_IMAGE_WITH_SIZE \
 
 # MS OFFICE
 RES_XML_IMG_MS \
-    = '^<v:imagedata r:id=[\'"](.+)[\'"] o:title=[\'"](.+)[\'"]/>$'
+    = '^<v:imagedata r:id=[\'"]([^\'"]+)[\'"] o:title=[\'"]([^\'"]+)[\'"]/>$'
 # PYTHON-DOCX AND LIBREOFFICE
 RES_XML_IMG_PY_ID \
-    = '^<a:blip r:embed=[\'"](.+)[\'"]/?>$'
+    = '^<a:blip r:embed=[\'"]([^\'"]+)[\'"](?: .*)?/?>$'
 RES_XML_IMG_PY_NAME \
-    = '^<pic:cNvPr id=[\'"](.+)[\'"] name=[\'"]([^\'"]+)[\'"](?: .*)?/?>$'
+    = '^<pic:cNvPr id=[\'"]([^\'"]+)[\'"] name=[\'"]([^\'"]+)[\'"](?: .*)?/?>$'
 RES_XML_IMG_SIZE \
-    = '^<wp:extent cx=[\'"]([0-9]+)[\'"] cy=[\'"]([0-9]+)[\'"]/>$'
+    = '^<wp:extent cx=[\'"]([0-9]+)[\'"] cy=[\'"]([0-9]+)[\'"](?: .*)?/>$'
 
 FONT_DECORATORS_INVISIBLE = [
     '\\*\\*\\*',                     # italic and bold
@@ -2522,11 +2522,18 @@ class Form:
     @staticmethod
     def get_rels(xml_lines):
         rels = {}
-        res = '^<Relationship Id=[\'"](.*)[\'"] .* Target=[\'"](.*)[\'"]/>$'
+        res_head, res_tail = '^<Relationship(?: .*)?', '(?: .*)?/>$'
+        res_id, res_tg = ' Id=[\'"](.*?)[\'"]', ' Target=[\'"](.*?)[\'"]'
+        res1 = res_head + res_id + '(?: .*)?' + res_tg + res_tail
+        res2 = res_head + res_tg + '(?: .*)?' + res_id + res_tail
         for xl in xml_lines:
-            if re.match(res, xl):
-                rel_id = re.sub(res, '\\1', xl)
-                rel_tg = re.sub(res, '\\2', xl)
+            if re.match(res1, xl):
+                rel_id = re.sub(res1, '\\1', xl)
+                rel_tg = re.sub(res1, '\\2', xl)
+                rels[rel_id] = rel_tg
+            elif re.match(res2, xl):
+                rel_id = re.sub(res2, '\\2', xl)
+                rel_tg = re.sub(res2, '\\1', xl)
                 rels[rel_id] = rel_tg
         # Form.rels = rels
         return rels
