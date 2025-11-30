@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.11.26-15:57:35-JST>
+# Time-stamp:   <2025.11.30-13:24:42-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -3353,14 +3353,11 @@ def get_real_width(s: str) -> int:
         elif c == ' ' or c == '|' or c == ':' or c == '-':
             wid += 1
             continue
-        elif c.isascii():
-            wid += 1
-            continue
         elif c == '\u3000':
             wid += 2
             continue
-        elif c == '（' or c == '）' or c == '「' or c == '」' or c == '『' or c == '』':
-            wid += 2
+        elif c.isascii():
+            wid += 1
             continue
         w = unicodedata.east_asian_width(c)
         if c == '':
