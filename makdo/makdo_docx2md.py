@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.11.28-16:05:02-JST>
+# Time-stamp:   <2025.11.30-12:39:59-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -391,36 +391,21 @@ UNDERLINE = {
 }
 
 FONT_COLOR = {
-    'FF0000': 'red',
-    # 'FF0000': 'R',
-    '770000': 'darkRed',
-    # '770000': 'DR',
-    'FFFF00': 'yellow',
-    # 'FFFF00': 'Y',
-    '777700': 'darkYellow',
-    # '777700': 'DY',
-    '00FF00': 'green',
-    # '00FF00': 'G',
-    '007700': 'darkGreen',
-    # '007700': 'DG',
-    '00FFFF': 'cyan',
-    # '00FFFF': 'C',
-    '007777': 'darkCyan',
-    # '007777': 'DC',
-    '0000FF': 'blue',
-    # '0000FF': 'B',
-    '000077': 'darkBlue',
-    # '000077': 'DB',
-    'FF00FF': 'magenta',
-    # 'FF00FF': 'M',
-    '770077': 'darkMagenta',
-    # '770077': 'DM',
-    'BBBBBB': 'lightGray',
-    # 'BBBBBB': 'G1',
-    '777777': 'darkGray',
-    # '777777': 'G2',
-    '000000': 'black',
-    # '000000': 'BK',
+    'FF0000': 'red',          # 'R'
+    '770000': 'darkRed',      # 'DR'
+    'FFFF00': 'yellow',       # 'Y'
+    '777700': 'darkYellow',   # 'DY'
+    '00FF00': 'green',        # 'G'
+    '007700': 'darkGreen',    # 'DG'
+    '00FFFF': 'cyan',         # 'C'
+    '007777': 'darkCyan',     # 'DC'
+    '0000FF': 'blue',         # 'B'
+    '000077': 'darkBlue',     # 'DB'
+    'FF00FF': 'magenta',      # 'M'
+    '770077': 'darkMagenta',  # 'DM'
+    'BBBBBB': 'lightGray',    # 'G1'
+    '777777': 'darkGray',     # 'G2'
+    '000000': 'black',        # 'BK'
     'FF5D5D': 'a000',
     'FF603C': 'a010',
     'FF6512': 'a020',
@@ -1790,14 +1775,8 @@ class Form:
 
     def _configure_by_styles_xml(self, xml_lines):
         # FONT
-        res = '^\\s*(.*?)\\s*/\\s*(.*?)\\s*$'
-        fmf_afnt = Form.mincho_font
-        fmf_jfnt = Form.mincho_font
-        if re.match(res, Form.mincho_font):
-            fmf_afnt = re.sub(res, '\\1', Form.mincho_font)
-            fmf_jfnt = re.sub(res, '\\2', Form.mincho_font)
-            if fmf_afnt == '=':
-                fmf_afnt = fmf_jfnt
+        fmf_afnt, fmf_jfnt \
+            = RawParagraph._get_ascii_and_kanji_font(Form.mincho_font)
         sty_afnt = ''
         sty_jfnt = ''
         is_in_default = False
@@ -1810,13 +1789,8 @@ class Form:
                 continue
             sty_afnt = XML.get_value('w:rFonts', 'w:ascii', sty_afnt, xl)
             sty_jfnt = XML.get_value('w:rFonts', 'w:eastAsia', sty_jfnt, xl)
-        def_afnt = DEFAULT_MINCHO_FONT
-        def_jfnt = DEFAULT_MINCHO_FONT
-        if re.match(res, DEFAULT_MINCHO_FONT):
-            def_afnt = re.sub(res, '\\1', DEFAULT_MINCHO_FONT)
-            def_jfnt = re.sub(res, '\\2', DEFAULT_MINCHO_FONT)
-            if def_afnt == def_jfnt:
-                def_afnt = def_jfnt
+        def_afnt, def_jfnt \
+            = RawParagraph._get_ascii_and_kanji_font(DEFAULT_MINCHO_FONT)
         if fmf_afnt != '':
             afnt = fmf_afnt
         elif sty_afnt != '':
@@ -1829,22 +1803,7 @@ class Form:
             jfnt = sty_jfnt
         else:
             jfnt = def_jfnt
-        for mfs in MS_FONTS:
-            if afnt in mfs:
-                afnt = mfs[0]
-            if jfnt in mfs:
-                jfnt = mfs[0]
-        if afnt != '' and jfnt != '':
-            if afnt == jfnt:
-                Form.mincho_font = '= / ' + jfnt
-            else:
-                Form.mincho_font = afnt + ' / ' + jfnt
-        elif afnt != '' and jfnt == '':
-            Form.mincho_font = afnt
-        elif afnt == '' and jfnt != '':
-            Form.mincho_font = jfnt
-        else:
-            Form.mincho_font = DEFAULT_MINCHO_FONT
+        Form.mincho_font = FontDecorator.get_font_name(afnt, jfnt)
         # BLOCKS
         xml_body = XML.get_body('w:styles', xml_lines)
         xml_blocks = XML.get_blocks(xml_body)
@@ -1958,10 +1917,8 @@ class Form:
     @staticmethod
     def _configure_by_headerX_xml(xml_lines):
         # HEADER STRING
-        chars_data, images, footnotes \
-            = RawParagraph._get_chars_data_and_etc('', xml_lines, 'header')
-        raw_text = RawParagraph.get_raw_text(chars_data)
-        alignment = RawParagraph.get_alignment(xml_lines)
+        style, alignment, chars_data, raw_text, images, footnotes \
+            = RawParagraph.get_raw_text_and_etc(xml_lines, 'header')
         if alignment == 'center':
             raw_text = ': ' + raw_text + ' :'
         elif alignment == 'right':
@@ -1972,10 +1929,8 @@ class Form:
     @staticmethod
     def _configure_by_footerX_xml(xml_lines):
         # PAGE NUMBER
-        chars_data, images, footnotes \
-            = RawParagraph._get_chars_data_and_etc('', xml_lines, 'footer')
-        raw_text = RawParagraph.get_raw_text(chars_data)
-        alignment = RawParagraph.get_alignment(xml_lines)
+        style, alignment, chars_data, raw_text, images, footnotes \
+            = RawParagraph.get_raw_text_and_etc(xml_lines, 'footer')
         if alignment == 'center':
             raw_text = ': ' + raw_text + ' :'
         elif alignment == 'right':
@@ -2378,7 +2333,7 @@ class Form:
         cfgs += '\n'
 
         cfgs += \
-            '# 用紙サイズ（A3横、A3縦、A4横、A4縦、スライド）を指定できます。'
+            '# 用紙のサイズ（A3横、A3縦、A4横、A4縦、スライド）を指定できます。'
         cfgs += '\n'
         if cls.paper_size == 'slide':
             cfgs += '用紙サ: スライド\n'
@@ -2953,13 +2908,48 @@ class CharsDatum:
     def are_consecutive(lft_cd, rgt_cd):
         return FontDecorator.is_same(rgt_cd.fr_fd_cls, lft_cd.bk_fd_cls)
 
+    def apply_style(self, style):
+        fr, bk = self.fr_fd_cls, self.bk_fd_cls
+        if style is None:
+            return
+        if style.font is not None:
+            if fr.font_name == '' and bk.font_name == '':
+                if style.font != Form.mincho_font:
+                    fd = FontDecorator.get_font_name_fd(style.font)
+                    fr.font_name, bk.font_name = fd, fd
+        if style.font_size is not None:
+            if fr.font_scale == '' and bk.font_scale == '':
+                fd = FontDecorator.get_font_scale_fd(style.font_size)
+                if fd is not None:
+                    fr.font_name, bk.font_name = fd, fd
+        if style.is_italic:
+            if fr.italic == '' and bk.italic == '':
+                fr.font_name, bk.font_name = '*', '*'
+        if style.is_bold:
+            if fr.bold == '' and bk.bold == '':
+                fr.font_name, bk.font_name = '**', '**'
+        if style.has_strike:
+            if fr.strike == '' and bk.strike == '':
+                fr.font_name, bk.font_name = '~~', '~~'
+        if style.has_frame:
+            if fr.frame == '' and bk.frame == '':
+                fr.font_name, bk.font_name = '[|', '|]'
+        if style.underline is not None:
+            if fr.underline == '' and bk.underline == '':
+                fd = FontDecorator.get_underline_fd(style.underline)
+                fr.font_name, bk.font_name = fd, fd
+        if style.font_color is not None and style.font_color != 'auto':
+            if fr.font_color == '' and bk.font_color == '':
+                fd = FontDecorator.get_font_color_fd(style.font_color)
+                fr.font_name, bk.font_name = fd, fd
+
 
 class FontDecorator:
 
     def __init__(self, fds):
         self.reset_fds()
-        self.track_changes = ''     # TRACK CHANGES (-> / <- / +> / <+)
         self.set_fds(fds)
+        self.track_changes = ''     # TRACK CHANGES (-> / <- / +> / <+)
 
     def reset_fds(self):
         self.font_name = ''         # FONT NAME (` / @.+@)
@@ -2975,6 +2965,108 @@ class FontDecorator:
         self.highlight_color = ''   # HIGHLIGHT COLOR (_.+_)
         self.sub_or_sup = ''        # SUB OR SUP (_{ / _} / ^{ / ^})
         # self.track_changes = ''     # TRACK CHANGES (-> / <- / +> / <+)
+
+    @staticmethod
+    def get_font_name(afont, jfont):
+        f_afont = re.sub('\\s*/.*$', '', Form.mincho_font)
+        f_jfont = re.sub('^.*/\\s*', '', Form.mincho_font)
+        if afont is None:
+            afont = f_afont
+        if jfont is None:
+            jfont = f_jfont
+        for mfs in MS_FONTS:
+            if afont in mfs:
+                afont = mfs[0]
+            if jfont in mfs:
+                jfont = mfs[0]
+        if jfont == Form.ivs_font:
+            return jfont
+        if afont == jfont:
+            return '= / ' + jfont
+        return afont + ' / ' + jfont
+
+    @staticmethod
+    def get_font_name_fd(name):
+        if name is None:
+            return None
+        elif name == Form.mincho_font:
+            return None
+        elif name == Form.gothic_font:
+            return '`'
+        elif re.match('^=\\s*/\\s*', name):
+            return '@' + re.sub('^=\\s*/\\s*', '', name) + '@'
+        else:
+            return '@' + name + '@'
+
+    @staticmethod
+    def get_font_scale_fd(size):
+        if size is None:
+            return None
+        elif size < Form.font_size * 0.4:     # changed from "0.5" to "0.4"
+            if size.is_integer():
+                size = int(size)
+            return '@' + str(size) + '@'
+        elif size < Form.font_size * 0.7:
+            return '---'
+        elif size < Form.font_size * 0.9:
+            return '--'
+        elif size <= Form.font_size * 1.1:
+            return None
+        elif size <= Form.font_size * 1.3:
+            return '++'
+        elif size <= Form.font_size * 1.6:  # changed from "1.5" to "1.6"
+            return '+++'
+        else:
+            if size.is_integer():
+                size = int(size)
+            return '@' + str(size) + '@'
+
+    @staticmethod
+    def get_font_width_fd(width):
+        if width is None:
+            return None, None
+        elif width < 70:
+            return '>>>', '<<<'
+        elif width < 90:
+            return '>>', '<<'
+        elif width > 130:
+            return '<<<', '>>>'
+        elif width > 110:
+            return '<<', '>>'
+        else:
+            return None, None
+
+    @staticmethod
+    def get_underline_fd(underline):
+        if underline is None:
+            return None
+        elif underline == '':
+            return '__'
+        elif underline in UNDERLINE:
+            return '_' + UNDERLINE[underline] + '_'
+        return None
+
+    @staticmethod
+    def get_font_color_fd(color):
+        if color is None:
+            return None
+        color = color.upper()
+        if color == '000000':
+            return None
+        if color == 'FFFFFF':
+            return '^^'
+        if color in FONT_COLOR:
+            return '^' + FONT_COLOR[color] + '^'
+        # res = '^(00|11|22|33|44|55|66|77|88|99|AA|BB|CC|DD|EE|FF){3}$'
+        # if re.match(res, color):
+        #     return '^' +  re.sub('^.(.).(.).(.)$', '\\1\\2\\3', color) + '^'
+        return '^' + color + '^'
+
+    @staticmethod
+    def get_highlight_color_fd(color):
+        if color is None:
+            return None
+        return '_' + color + '_'
 
     def set_fds(self, fds):
         for fd in fds:
@@ -5833,28 +5925,29 @@ class Style:
         self.number = number
         self.xml_lines = xml_lines
         self.type = None
-        self.styleid = None
+        self.style_id = None
         self.name = None
         self.font = None
         self.font_size = None
+        # self.font_width = None
         self.is_italic = False
         self.is_bold = False
         self.has_strike = False
         self.has_frame = False
         self.underline = None
         self.font_color = None
-        self.highlight_color = None
+        # self.highlight_color = None
         self.alignment = None
-        self.raw_length \
-            = {'space before': None, 'space after': None, 'line spacing': None,
-               'first indent': None, 'left indent': None, 'right indent': None}
+        self.raw_length = {'sb': 0.0, 'sa': 0.0, 'sl': 0.0, 'if': 0.0,
+                           'ih': 0.0, 'il': 0.0, 'ir': 0.0, 'tw': 0.0}
         self._substitute_values()
 
     def _substitute_values(self):
         type = None
         stid = None
         name = None
-        font = None
+        afnt = None
+        jfnt = None
         f_2s = None
         f_it = False
         f_bd = False
@@ -5862,39 +5955,37 @@ class Style:
         f_fr = False
         f_ul = None
         f_cl = None
-        f_hc = None
         alig = None
-        rl = {'sb': None, 'sa': None, 'ls': None,
-              'fi': None, 'hi': None, 'li': None, 'ri': None}
+        rl = {'sb': 0.0, 'sa': 0.0, 'sl': 0.0, 'if': 0.0,
+              'ih': 0.0, 'il': 0.0, 'ir': 0.0, 'tw': 0.0}
         for xl in self.xml_lines:
             type = XML.get_value('w:style', 'w:type', type, xl)
             stid = XML.get_value('w:style', 'w:styleId', stid, xl)
             name = XML.get_value('w:name', 'w:val', name, xl)
-            font = XML.get_value('w:rFonts', 'w:ascii', font, xl)
-            font = XML.get_value('w:rFonts', 'w:eastAsia', font, xl)
+            afnt = XML.get_value('w:rFonts', 'w:ascii', afnt, xl)
+            jfnt = XML.get_value('w:rFonts', 'w:eastAsia', jfnt, xl)
             # font = XML.get_value('w:rFonts', '*', font, xl)
             f_2s = XML.get_value('w:sz', 'w:val', f_2s, xl)
-            f_2s = XML.get_value('w:szCs', 'w:val', f_2s, xl)
+            # f_2s = XML.get_value('w:szCs', 'w:val', f_2s, xl)
             f_it = XML.is_this_tag('w:i', f_it, xl)
             f_bd = XML.is_this_tag('w:b', f_bd, xl)
             f_sk = XML.is_this_tag('w:strike', f_sk, xl)
             f_fr = XML.is_this_tag('w:bdr', f_fr, xl)
             f_ul = XML.get_value('w:u', 'w:val', f_ul, xl)
             f_cl = XML.get_value('w:color', 'w:val', f_cl, xl)
-            f_hc = XML.get_value('w:highlight', 'w:val', f_hc, xl)
             alig = XML.get_value('w:jc', 'w:val', alig, xl)
             rl['sb'] = XML.get_value('w:spacing', 'w:before', rl['sb'], xl)
             rl['sa'] = XML.get_value('w:spacing', 'w:after', rl['sa'], xl)
-            rl['ls'] = XML.get_value('w:spacing', 'w:line', rl['ls'], xl)
-            rl['ls'] = XML.get_value('w:spacing', 'w:line', rl['ls'], xl)
-            rl['fi'] = XML.get_value('w:ind', 'w:firstLine', rl['fi'], xl)
-            rl['hi'] = XML.get_value('w:ind', 'w:hanging', rl['hi'], xl)
-            rl['li'] = XML.get_value('w:ind', 'w:left', rl['li'], xl)
-            rl['ri'] = XML.get_value('w:ind', 'w:right', rl['ri'], xl)
+            rl['sl'] = XML.get_value('w:spacing', 'w:line', rl['sl'], xl)
+            rl['if'] = XML.get_value('w:ind', 'w:firstLine', rl['if'], xl)
+            rl['ih'] = XML.get_value('w:ind', 'w:hanging', rl['ih'], xl)
+            rl['il'] = XML.get_value('w:ind', 'w:left', rl['il'], xl)
+            rl['ir'] = XML.get_value('w:ind', 'w:right', rl['ir'], xl)
+            rl['tw'] = XML.get_value('w:tblInd', 'w:w', rl['tw'], xl)
         self.type = type
-        self.styleid = stid
+        self.style_id = stid
         self.name = name
-        self.font = font
+        self.font = FontDecorator.get_font_name(afnt, jfnt)
         if f_2s is not None:
             self.font_size = round(float(f_2s) / 2, 1)
         self.is_italic = f_it
@@ -5903,24 +5994,8 @@ class Style:
         self.has_frame = f_fr
         self.underline = f_ul
         self.font_color = f_cl
-        self.highlight_color = f_hc
         self.alignment = alig
-        if rl['sb'] is not None:
-            self.raw_length['space before'] = float(rl['sb'])
-        if rl['sa'] is not None:
-            self.raw_length['space after'] = float(rl['sa'])
-        if rl['ls'] is not None:
-            self.raw_length['line spacing'] = float(rl['ls'])
-        if (rl['fi'] is not None) or (rl['hi'] is not None):
-            self.raw_length['first indent'] = 0.0
-            if rl['fi'] is not None:
-                self.raw_length['first indent'] += float(rl['fi'])
-            if rl['hi'] is not None:
-                self.raw_length['first indent'] -= float(rl['hi'])
-        if rl['li'] is not None:
-            self.raw_length['left indent'] = float(rl['li'])
-        if rl['ri'] is not None:
-            self.raw_length['right indent'] = float(rl['ri'])
+        self.raw_length = rl
 
 
 class RawParagraph:
@@ -5935,6 +6010,8 @@ class RawParagraph:
         self.has_removed = False
         self.xml_lines = []
         self.raw_class = ''
+        self.style = None
+        self.alignment = ''
         self.horizontal_line = ''  # 'top'|'bottom'|'textbox'
         self.attached_pagebreak = ''  # 'pgbr' | 'Pgbr'
         self.chars_data = []
@@ -5947,24 +6024,17 @@ class RawParagraph:
         self.raw_text_ins = ''
         self.raw_text_doi = ''
         self.remarks = []
-        self.style = ''
-        self.alignment = ''
         self.paragraph_class = ''
         # SUBSTITUTION
         RawParagraph.raw_paragraph_number += 1
         self.raw_paragraph_number = RawParagraph.raw_paragraph_number
         self.xml_lines = xml_lines
-        self.raw_class = self._get_raw_class(self.xml_lines)
+        self.raw_class = self._get_raw_class(xml_lines)
+        self.style, self.alignment, self.chars_data, self.raw_text, \
+            self.images, self.footnotes = self.get_raw_text_and_etc(xml_lines)
         self.horizontal_line \
-            = self._get_horizontal_line(self.raw_class, self.xml_lines)
-        self.attached_pagebreak = self._get_attached_pagebreak(self.xml_lines)
-        self.chars_data, self.images, self.footnotes \
-            = self._get_chars_data_and_etc(self.raw_class, self.xml_lines)
-        self.chars_data = self._reduce_font_name(self.chars_data)
-        # self.chars_data.reverse()
-        # self.chars_data = self._reduce_font_name(self.chars_data)
-        # self.chars_data.reverse()
-        self.raw_text = self.get_raw_text(self.chars_data)
+            = self._get_horizontal_line(self.raw_class, xml_lines)
+        self.attached_pagebreak = self._get_attached_pagebreak(xml_lines)
         self.head_space, self.raw_text \
             = self._separate_head_space(self.raw_text,
                                         '->', '<-', '\\+>', '<\\+')
@@ -5982,8 +6052,6 @@ class RawParagraph:
         if self.raw_text_del != '' and self.raw_text_ins == '':
             self.has_removed = True
         self.remarks = self._get_remarks(xml_lines)
-        self.style = self._get_style(xml_lines)
-        self.alignment = self.get_alignment(self.xml_lines)
         self.paragraph_class = self._get_paragraph_class()
 
     @staticmethod
@@ -6018,8 +6086,47 @@ class RawParagraph:
                 return 'pgbr'
         return ''
 
+    @staticmethod
+    def get_raw_text_and_etc(xml_lines, type='normal'):
+        style = RawParagraph._get_style(xml_lines)
+        alignment = RawParagraph.get_alignment(style, xml_lines)
+        chars_data, images, footnotes \
+            = RawParagraph._get_chars_data_and_etc(xml_lines, style, type)
+        chars_data = RawParagraph._reduce_font_name(chars_data)
+        # chars_data.reverse()
+        # chars_data = RawParagraph._reduce_font_name(chars_data)
+        # chars_data.reverse()
+        raw_text = RawParagraph.get_raw_text(chars_data)
+        return style, alignment, chars_data, raw_text, images, footnotes
+
+    @staticmethod
+    def _get_style(xml_lines):
+        style_id = None
+        for xl in xml_lines:
+            style_id = XML.get_value('w:pStyle', 'w:val', style_id, xl)
+        style = None
+        if style_id is not None:
+            for fs in Form.styles:
+                if fs.type == 'paragraph' and style_id == fs.style_id:
+                    style = fs
+                    break
+        # self.style = style
+        return style
+
+    @staticmethod
+    def get_alignment(style, xml_lines):
+        alignment = ''
+        if style is not None and style.alignment is not None:
+            alignment = style.alignment
+        for xl in xml_lines:
+            alignment = XML.get_value('w:jc', 'w:val', alignment, xl)
+            if not re.match('^(left|center|right)$', alignment):
+                alignment = ''
+        # self.alignment = alignment
+        return alignment
+
     @classmethod
-    def _get_chars_data_and_etc(cls, raw_class, xml_lines, type='normal'):
+    def _get_chars_data_and_etc(cls, xml_lines, style, type):
         # MARKUP COMPATIBILITY
         m = len(xml_lines) - 1
         must_drop = False
@@ -6045,6 +6152,7 @@ class RawParagraph:
         ruby = ''  # ''|'rub'|'bas'
         width = 100
         cd = CharsDatum([], '', [])
+        cd.apply_style(style)
         for xl in xml_lines:
             # EMPTY
             if xl == '':
@@ -6168,6 +6276,7 @@ class RawParagraph:
             # RESET
             if xl == '<w:rPr>':
                 cd.reset_fds()
+                cd.apply_style(style)
             # FONT
             if re.match('^<w:rFonts .*>$', xl):
                 afnt = XML.get_value('w:rFonts', 'w:ascii', '', xl)
@@ -6176,76 +6285,29 @@ class RawParagraph:
                 else:
                     # (FOR COMPLEX SCRIPT)
                     jfnt = XML.get_value('w:rFonts', 'w:cs', '', xl)
-                for mfs in MS_FONTS:
-                    if afnt in mfs:
-                        afnt = mfs[0]
-                    if jfnt in mfs:
-                        jfnt = mfs[0]
-                font = ''
-                if afnt != '' and jfnt != '':
-                    if afnt == jfnt:
-                        font = '= / ' + jfnt
-                    else:
-                        font = afnt + ' / ' + jfnt
-                elif afnt != '' and jfnt == '':
-                    font = afnt
-                elif afnt == '' and jfnt != '':
-                    font = jfnt
-                if font != '':
-                    if font == Form.mincho_font:
-                        pass
-                    elif font == Form.gothic_font:
-                        cd.fr_fd_cls.font_name = '`'
-                        cd.bk_fd_cls.font_name = '`'
-                    else:
-                        cd.fr_fd_cls.font_name = '@' + font + '@'
-                        cd.bk_fd_cls.font_name = '@' + font + '@'
+                font = FontDecorator.get_font_name(afnt, jfnt)
+                fd = FontDecorator.get_font_name_fd(font)
+                if fd is not None:
+                    cd.fr_fd_cls.font_name = fd
+                    cd.bk_fd_cls.font_name = fd
                 continue
             # FONT SIZE AND SCALE
             v = XML.get_value('w:sz', 'w:val', -1.0, xl)
             v = XML.get_value('w:szCs', 'w:val', v, xl)  # (for complex script)
             if v > 0:
                 s = round(v / 2, 1)
-                if s < Form.font_size * 0.4:     # changed from "0.5" to "0.4"
-                    if s.is_integer():
-                        s = int(s)
-                    cd.fr_fd_cls.font_scale = '@' + str(s) + '@'
-                    cd.bk_fd_cls.font_scale = '@' + str(s) + '@'
-                elif s < Form.font_size * 0.7:
-                    cd.fr_fd_cls.font_scale = '---'
-                    cd.bk_fd_cls.font_scale = '---'
-                elif s < Form.font_size * 0.9:
-                    cd.fr_fd_cls.font_scale = '--'
-                    cd.bk_fd_cls.font_scale = '--'
-                elif s <= Form.font_size * 1.1:
-                    pass
-                elif s <= Form.font_size * 1.3:
-                    cd.fr_fd_cls.font_scale = '++'
-                    cd.bk_fd_cls.font_scale = '++'
-                elif s <= Form.font_size * 1.6:  # changed from "1.5" to "1.6"
-                    cd.fr_fd_cls.font_scale = '+++'
-                    cd.bk_fd_cls.font_scale = '+++'
-                else:
-                    if s.is_integer():
-                        s = int(s)
-                    cd.fr_fd_cls.font_scale = '@' + str(s) + '@'
-                    cd.bk_fd_cls.font_scale = '@' + str(s) + '@'
+                fd = FontDecorator.get_font_scale_fd(s)
+                if fd is not None:
+                    cd.fr_fd_cls.font_scale = fd
+                    cd.bk_fd_cls.font_scale = fd
                 continue
             # FONT WIDTH
             w = XML.get_value('w:w', 'w:val', -1.0, xl)
             if w > 0:
-                if w < 70:
-                    cd.fr_fd_cls.font_width = '>>>'
-                    cd.bk_fd_cls.font_width = '<<<'
-                elif w < 90:
-                    cd.fr_fd_cls.font_width = '>>'
-                    cd.bk_fd_cls.font_width = '<<'
-                elif w > 130:
-                    cd.fr_fd_cls.font_width = '<<<'
-                    cd.bk_fd_cls.font_width = '>>>'
-                elif w > 110:
-                    cd.fr_fd_cls.font_width = '<<'
-                    cd.bk_fd_cls.font_width = '>>'
+                fd1, fd2 = FontDecorator.get_font_width_fd(w)
+                if fd1 is not None and fd2 is not None:
+                    cd.fr_fd_cls.font_width = fd1
+                    cd.bk_fd_cls.font_width = fd2
                 width = w
                 continue
             # ITALIC
@@ -6270,35 +6332,28 @@ class RawParagraph:
                 continue
             # UNDERLINE
             if re.match('^<w:u( .*)?>$', xl):
-                underline = ''
+                val = ''
                 res = '^<.* w:val=[\'"]([a-zA-Z]+)[\'"].*>$'
                 if re.match(res, xl):
                     val = re.sub(res, '\\1', xl)
-                    if val in UNDERLINE:
-                        underline = UNDERLINE[val]
-                cd.fr_fd_cls.underline = '_' + underline + '_'
-                cd.bk_fd_cls.underline = '_' + underline + '_'
+                fd = FontDecorator.get_underline_fd(val)
+                if fd is not None:
+                    cd.fr_fd_cls.underline = fd
+                    cd.bk_fd_cls.underline = fd
                 continue
             # FONT COLOR
             if re.match('^<w:color w:val="[0-9A-F]+"( .*)?/?>$', xl):
                 val = re.sub('^<.* w:val="([0-9A-F]+)".*>$', '\\1', xl, re.I)
-                val = val.upper()
-                if val == 'FFFFFF':
-                    font_color = ''
-                elif val in FONT_COLOR:
-                    font_color = FONT_COLOR[val]
-                else:
-                    font_color = val
-                if font_color != 'black':  # default font color
-                    cd.fr_fd_cls.font_color = '^' + font_color + '^'
-                    cd.bk_fd_cls.font_color = '^' + font_color + '^'
+                fd = FontDecorator.get_font_color_fd(val)
+                cd.fr_fd_cls.font_color = fd
+                cd.bk_fd_cls.font_color = fd
                 continue
             # HIGHLIGHT COLOR
             if re.match('^<w:highlight w:val="[a-zA-Z]+"( .*)?/?>$', xl):
                 val = re.sub('^<.* w:val="([a-zA-Z]+)".*>$', '\\1', xl)
-                highlight = val
-                cd.fr_fd_cls.highlight_color = '_' + highlight + '_'
-                cd.bk_fd_cls.highlight_color = '_' + highlight + '_'
+                fd = FontDecorator.get_highlight_color_fd(val)
+                cd.fr_fd_cls.highlight_color = fd
+                cd.bk_fd_cls.highlight_color = fd
                 continue
             # SUBSCRIPT OR SUPERSCRIPT
             if xl == '<w:vertAlign w:val="subscript"/>':
@@ -6387,6 +6442,7 @@ class RawParagraph:
                     chars_data.append(cd)
                 width = 100
                 cd = CharsDatum([], '', [])
+                cd.apply_style(style)
                 continue
         # RUBY (PUT OUT OR CANCEL FONT DECORATORS)
         for i in range(len(chars_data)):
@@ -6524,7 +6580,7 @@ class RawParagraph:
     def _reduce_font_name(cls, chars_data):
         # FORM
         frm_font = Form.mincho_font
-        frm_afont, frm_jfont = cls.__get_ascii_and_kanji_font(frm_font)
+        frm_afont, frm_jfont = cls._get_ascii_and_kanji_font(frm_font)
         for i, cur_cd in enumerate(chars_data):
             # PREVIOUS
             pre_font = ''
@@ -6532,13 +6588,13 @@ class RawParagraph:
                 pre_cd = chars_data[i - 1]
                 pre_state = cls.__get_chars_state(pre_cd.chars)
                 pre_font = pre_cd.fr_fd_cls.font_name
-                pre_afont, pre_jfont = cls.__get_ascii_and_kanji_font(pre_font)
+                pre_afont, pre_jfont = cls._get_ascii_and_kanji_font(pre_font)
                 pre_fd = '@' + pre_font + '@'
             # CURRENT
             if True:
                 cur_state = cls.__get_chars_state(cur_cd.chars)
                 cur_font = cur_cd.fr_fd_cls.font_name
-                cur_afont, cur_jfont = cls.__get_ascii_and_kanji_font(cur_font)
+                cur_afont, cur_jfont = cls._get_ascii_and_kanji_font(cur_font)
                 cur_fd = '@' + cur_font + '@'
             # REDUCE
             if cur_font != '':
@@ -6585,7 +6641,7 @@ class RawParagraph:
         return state
 
     @staticmethod
-    def __get_ascii_and_kanji_font(font):
+    def _get_ascii_and_kanji_font(font):
         if re.match('^(.*) / (.*)$', font):
             ascii_font = re.sub('^(.*) / (.*)$', '\\1', font)
             kanji_font = re.sub('^(.*) / (.*)$', '\\2', font)
@@ -6901,33 +6957,6 @@ class RawParagraph:
                 remarks.append(Form.remarks[remark_id])
         return remarks
 
-    @staticmethod
-    def _get_style(xml_lines):
-        style = None
-        for xl in xml_lines:
-            style = XML.get_value('w:pStyle', 'w:val', style, xl)
-        for ds in Form.styles:
-            if style != ds.name:
-                continue
-            # REMOVED 23.02.18 >
-            # self.alignment = ds.alignment
-            # for s in self.length:
-            #     if ds.raw_length[s] is not None:
-            #         self.length[s] = ds.raw_length[s]
-            # <
-        # self.style = style
-        return style
-
-    @staticmethod
-    def get_alignment(xml_lines):
-        alignment = ''
-        for xl in xml_lines:
-            alignment = XML.get_value('w:jc', 'w:val', alignment, xl)
-            if not re.match('^(left|center|right)$', alignment):
-                alignment = ''
-        # self.alignment = alignment
-        return alignment
-
     def _get_paragraph_class(self):
         if False:
             pass
@@ -7028,10 +7057,10 @@ class Paragraph:
         # rp = raw_paragraph
         # rp_xls = rp.xml_lines
         # rp_rcl = rp.raw_class
-        # rp_rtx = rp.raw_text_doi
-        # rp_img = rp.images
         # rp_sty = rp.style
         # rp_alg = rp.alignment
+        # rp_rtx = rp.raw_text_doi
+        # rp_img = rp.images
         # rp_fsz = Document.font_size
         return False
 
@@ -7041,6 +7070,8 @@ class Paragraph:
         self.has_removed = raw_paragraph.has_removed
         self.xml_lines = raw_paragraph.xml_lines
         self.raw_class = raw_paragraph.raw_class
+        self.style = raw_paragraph.style
+        self.alignment = raw_paragraph.alignment
         self.horizontal_line = raw_paragraph.horizontal_line
         self.attached_pagebreak = raw_paragraph.attached_pagebreak
         self.chars_data = raw_paragraph.chars_data
@@ -7053,8 +7084,6 @@ class Paragraph:
         self.images = raw_paragraph.images
         self.footnotes = raw_paragraph.footnotes
         self.remarks = raw_paragraph.remarks
-        self.style = raw_paragraph.style
-        self.alignment = raw_paragraph.alignment
         self.paragraph_class = raw_paragraph.paragraph_class
         # DECLARATION
         self.paragraph_number = -1
@@ -7304,20 +7333,18 @@ class Paragraph:
         f_size = Form.font_size
         lnsp = Form.line_spacing
         xls = self.xml_lines
+        style = self.style
         paragraph_class = self.paragraph_class
         head_font_revisers = self.head_font_revisers
         tail_font_revisers = self.tail_font_revisers
         length_docx \
             = {'space before': 0.0, 'space after': 0.0, 'line spacing': 0.0,
                'first indent': 0.0, 'left indent': 0.0, 'right indent': 0.0}
-        sb_xml = 0.0
-        sa_xml = 0.0
-        ls_xml = 0.0
-        fi_xml = 0.0
-        hi_xml = 0.0
-        li_xml = 0.0
-        ri_xml = 0.0
-        ti_xml = 0.0
+        rl = {'sb': 0.0, 'sa': 0.0, 'sl': 0.0, 'if': 0.0,
+              'ih': 0.0, 'il': 0.0, 'ir': 0.0, 'tw': 0.0}
+        if style is not None:
+            for k in style.raw_length:
+                rl[k] = style.raw_length[k]
         is_changed = False
         for xl in xls:
             if re.match('^<w:pPrChange( .*[^/])?>$', xl):
@@ -7326,21 +7353,21 @@ class Paragraph:
                 is_changed = False
             if is_changed:
                 continue
-            sb_xml = XML.get_value('w:spacing', 'w:before', sb_xml, xl)
-            sa_xml = XML.get_value('w:spacing', 'w:after', sa_xml, xl)
-            ls_xml = XML.get_value('w:spacing', 'w:line', ls_xml, xl)
-            fi_xml = XML.get_value('w:ind', 'w:firstLine', fi_xml, xl)
-            hi_xml = XML.get_value('w:ind', 'w:hanging', hi_xml, xl)
-            li_xml = XML.get_value('w:ind', 'w:left', li_xml, xl)
-            ri_xml = XML.get_value('w:ind', 'w:right', ri_xml, xl)
-            ti_xml = XML.get_value('w:tblInd', 'w:w', ti_xml, xl)
-        length_docx['space before'] = sb_xml / 20 / f_size / lnsp
-        length_docx['space after'] = sa_xml / 20 / f_size / lnsp
+            rl['sb'] = XML.get_value('w:spacing', 'w:before', rl['sb'], xl)
+            rl['sa'] = XML.get_value('w:spacing', 'w:after', rl['sa'], xl)
+            rl['sl'] = XML.get_value('w:spacing', 'w:line', rl['sl'], xl)
+            rl['if'] = XML.get_value('w:ind', 'w:firstLine', rl['if'], xl)
+            rl['ih'] = XML.get_value('w:ind', 'w:hanging', rl['ih'], xl)
+            rl['il'] = XML.get_value('w:ind', 'w:left', rl['il'], xl)
+            rl['ir'] = XML.get_value('w:ind', 'w:right', rl['ir'], xl)
+            rl['tw'] = XML.get_value('w:tblInd', 'w:w', rl['tw'], xl)
+        length_docx['space before'] = rl['sb'] / 20 / f_size / lnsp
+        length_docx['space after'] = rl['sa'] / 20 / f_size / lnsp
         ls = 0.0
-        if ls_xml > 0:
+        if rl['sl'] > 0:
             if paragraph_class != 'table':
                 length_docx['line spacing'] \
-                    = (ls_xml / 20 / f_size / lnsp) - 1
+                    = (rl['sl'] / 20 / f_size / lnsp) - 1
             else:
                 sc = 1.0
                 if '---' in head_font_revisers:
@@ -7358,10 +7385,10 @@ class Paragraph:
                         if c_size > 0:
                             sc = c_size / Form.font_size
                 length_docx['line spacing'] \
-                    = (ls_xml / 20 / f_size / sc / TABLE_LINE_SPACING) - 1
+                    = (rl['sl'] / 20 / f_size / sc / TABLE_LINE_SPACING) - 1
         # MODIFY SPACE BEFORE AND AFTER
-        if sb_xml != 0 or sa_xml != 0 or ls_xml != 0:
-            ls = (ls_xml / 20 / f_size / lnsp) - 1
+        if rl['sb'] != 0 or rl['sa'] != 0 or rl['sl'] != 0:
+            ls = (rl['sl'] / 20 / f_size / lnsp) - 1
             ls80 = ls * .80
             ls20 = ls * .20
             if length_docx['space before'] >= ls80 * 0.33333:
@@ -7372,22 +7399,22 @@ class Paragraph:
                 length_docx['space after'] += ls20
             else:
                 length_docx['space after'] *= 4
-        length_docx['first indent'] = (fi_xml - hi_xml) / 20 / f_size
-        length_docx['left indent'] = (li_xml + ti_xml) / 20 / f_size
-        length_docx['right indent'] = ri_xml / 20 / f_size
+        length_docx['first indent'] = (rl['if'] - rl['ih']) / 20 / f_size
+        length_docx['left indent'] = (rl['il'] + rl['tw']) / 20 / f_size
+        length_docx['right indent'] = rl['ir'] / 20 / f_size
         # AUTO NUMBERING STYLE
         ans_key = AutoNumberingStyle.get_style_key_from_xml_lines(xls)
         if ans_key is not None:
             ans = Form.auto_numbering_styles[ans_key]
-            fi_xml, hi_xml, li_xml = None, None, None
+            rl['if'], rl['ih'], rl['il'] = None, None, None
             for xl in xls:
-                fi_xml = XML.get_value('w:ind', 'w:firstLine', fi_xml, xl)
-                hi_xml = XML.get_value('w:ind', 'w:hanging', hi_xml, xl)
-                li_xml = XML.get_value('w:ind', 'w:left', li_xml, xl)
-            if fi_xml is None and hi_xml is None:
+                rl['if'] = XML.get_value('w:ind', 'w:firstLine', rl['if'], xl)
+                rl['ih'] = XML.get_value('w:ind', 'w:hanging', rl['ih'], xl)
+                rl['il'] = XML.get_value('w:ind', 'w:left', rl['il'], xl)
+            if rl['if'] is None and rl['ih'] is None:
                 length_docx['first indent'] \
                     = ans.raw_first_indent / 20 / f_size
-            if li_xml is None:
+            if rl['il'] is None:
                 length_docx['left indent'] \
                     = ans.raw_left_indent / 20 / f_size
         # （１）, （ア）, （ａ）
@@ -8591,8 +8618,9 @@ class ParagraphTable(Paragraph):
                 cd_cel = []
                 for k in range(len(par_xml_tbl[i][j])):
                     par = par_xml_tbl[i][j][k]
-                    chars_data, images, footnotes \
-                        = RawParagraph._get_chars_data_and_etc('w:tbl', par)
+                    style, alignment, chars_data, raw_text, \
+                        images, footnotes \
+                        = RawParagraph.get_raw_text_and_etc(par)
                     cd_cel.append(chars_data)
                 cd_row.append(cd_cel)
             cd_tbl.append(cd_row)
@@ -9302,7 +9330,7 @@ class ParagraphPreformatted(Paragraph):
             return False
         if ParagraphConfiguration.is_this_class(rp):
             return False
-        if rp_sty == 'makdo-g':
+        if rp_sty is not None and rp_sty.style_id == 'makdo-g':
             return True
         return False
 
@@ -9501,7 +9529,7 @@ class ParagraphRemarks(Paragraph):
     def is_this_class(cls, raw_paragraph):
         rp = raw_paragraph
         rp_sty = rp.style
-        if rp_sty == 'makdo-r':
+        if rp_sty is not None and rp_sty.style_id == 'makdo-r':
             return True
         return False
 
@@ -9524,7 +9552,7 @@ class ParagraphFootnotes(Paragraph):
     def is_this_class(cls, raw_paragraph):
         rp = raw_paragraph
         rp_sty = rp.style
-        if rp_sty == 'makdo-f':
+        if rp_sty is not None and rp_sty.style_id == 'makdo-f':
             return True
         return False
 

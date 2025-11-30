@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.11.20-07:50:43-JST>
+# Time-stamp:   <2025.11.30-12:20:28-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -1204,7 +1204,7 @@ class IO:
         ms_doc.styles['List Number 2'].font.size = Pt(f_size)
         ms_doc.styles['List Number 3'].font.size = Pt(f_size)
         # HEADER
-        # XML.set_font(ms_doc.styles['Header'], Form.mincho_font)
+        XML.set_font(ms_doc.styles['Header'], Form.mincho_font)
         # ms_doc.styles['Header'].font.size = Pt(f_size)
         if Form.header_string != '':
             # MDLINE
@@ -1231,7 +1231,7 @@ class IO:
             p.write_text(ms_par, p.chars_state, p.text_to_write_with_reviser)
             Paragraph.bridge_chars_state.initialize()
         # FOOTER
-        # XML.set_font(ms_doc.styles['Footer'], Form.mincho_font)
+        XML.set_font(ms_doc.styles['Footer'], Form.mincho_font)
         # ms_doc.styles['Footer'].font.size = Pt(f_size)
         if Form.page_number != '':
             # MDLINE
@@ -1322,6 +1322,7 @@ class IO:
         XML.set_font(ms_doc.styles['makdo-i'], Form.ivs_font)
         # TABLE
         ms_doc.styles.add_style('makdo-t', WD_STYLE_TYPE.PARAGRAPH)
+        XML.set_font(ms_doc.styles['makdo-t'], Form.mincho_font)
         # ALIGNMENT
         # ms_doc.styles.add_style('makdo-a', WD_STYLE_TYPE.PARAGRAPH)
         # SECTION
