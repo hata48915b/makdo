@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         genai.py
 # Version:      v01
-# Time-stamp:   <2025.11.25-05:18:53-JST>
+# Time-stamp:   <2025.12.03-14:07:38-JST>
 
 # genai.py
 # Copyright (C) 2025  Seiichiro HATA
@@ -77,8 +77,6 @@ class GenAI:
                     return True
         self.makdo.set_message_on_status_bar('', True)
         return False
-
-
 
     def _write_formal_answer(self, answer) -> None:
         if answer == '':

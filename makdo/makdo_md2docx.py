@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.11.30-13:23:40-JST>
+# Time-stamp:   <2025.12.03-14:08:02-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -4185,6 +4185,9 @@ class RawParagraph:
     def _get_full_text_del_or_ins(full_text,
                                   beg_erase, end_erase,
                                   beg_leave, end_leave):
+        if not re.match(NOT_ESCAPED + '[\\-\\+]>', full_text) and \
+           not re.match(NOT_ESCAPED + '<[\\-\\+]', full_text):
+            return full_text
         full_text_erase = ''
         full_text_leave = ''
         track_changes = ''
@@ -6841,8 +6844,13 @@ class Script:
 
     def execute(self):
         md_lines = self.md_lines
+        full_text = ''
+        for ml in md_lines:
+            full_text += ml.text
         for i in range(0, 10):
-            md_lines = self.__execute_at_level(md_lines, i)
+            if re.match(NOT_ESCAPED + '{' + str(i) + '?{', full_text) and \
+               re.match(NOT_ESCAPED + '}' + str(i) + '?}', full_text):
+                md_lines = self.__execute_at_level(md_lines, i)
         # self.md_lines = md_lines
         return md_lines
 

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.11.30-13:24:42-JST>
+# Time-stamp:   <2025.12.03-14:05:49-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -3426,6 +3426,7 @@ def get_real_width(s: str) -> int:
             wid += 1
     return wid
 
+
 def c2n_n_arab(s: str) -> int:
     n = 0
     for c in s:
@@ -6355,39 +6356,41 @@ class Makdo:
         char_width = tkinter.font.Font(font=pane['font']).measure('X')
         return pane_width // char_width
 
-    def _move_vertically(self, pane, ideal_h_position, height_to_move):
-        i = self._get_v_position_of_insert(pane) + height_to_move
-        j = ideal_h_position
-        m = self._get_ideal_position_index_in_line(pane, i, j)
-        pane.mark_set('insert', m)
+    @staticmethod
+    def _get_real_position_of_insert(pane):
+        rv = int(pane.index('insert').split('.')[0]) - 1
+        rh = get_real_width(pane.get('insert linestart', 'insert'))
+        return rv, rh
+
+    @staticmethod
+    def _shift_position(position, vector):
+        return (position[0] + vector[0]), (position[1] + vector[1])
+
+    def _move_for_real_position(self, pane, real_position) -> None:
+        if real_position[1] == 0:
+            index = str(real_position[0] + 1) + '.0'
+        else:
+            ideal_position \
+                = self._convert_real_position_to_ideal_position(pane,
+                                                                real_position)
+            index = str(ideal_position[0] + 1) + '.' + str(ideal_position[1])
+        pane.mark_set('insert', index)
         self._put_back_cursor_to_pane(pane)
 
-    def _move_horizontally(self, pane, width_to_move):
-        i = self._get_v_position_of_insert(pane)
-        j = self._get_ideal_h_position_of_insert(pane) + width_to_move
-        m = self._get_ideal_position_index_in_line(pane, i, j)
-        pane.mark_set('insert', m)
-
     @staticmethod
-    def _get_ideal_h_position_of_insert(pane):
-        s = pane.get('insert linestart', 'insert')
-        return get_real_width(s)
-
-    @staticmethod
-    def _get_ideal_position_index_in_line(pane, v_position, ideal_width):
-        i = v_position
-        line = pane.get(str(i) + '.0', str(i) + '.end')
-        line_pre, line_pos, iw = '', '', 0
+    def _convert_real_position_to_ideal_position(pane, real_position):
+        rv, rh = real_position[0], real_position[1]
+        s, w = '', 0
+        line = pane.get(str(rv) + '.0', str(rv) + '.0 lineend')
         for c in line:
             if c == '\t':
-                iw += (int(iw / TAB_WIDTH) + 1) * TAB_WIDTH
+                w += (int(w / TAB_WIDTH) + 1) * TAB_WIDTH
             else:
-                iw += get_real_width(c)
-            if iw > ideal_width:
+                w += get_real_width(c)
+            if w > rh:
                 break
-            line_pre += c
-        j = len(line_pre)
-        return str(i) + '.' + str(j)
+            s += c
+        return rv, len(s)
 
     def _jump_to_prev_pane(self):
         if self.current_pane == 'txt':
@@ -12733,8 +12736,8 @@ class Makdo:
                     continue
                 if kh1 == kh2:
                     self.keyboard_macro = list(reversed(kh1))
-                    self.ideal_h_position \
-                        = self._get_ideal_h_position_of_insert(pane)
+                    self.real_position \
+                        = self._get_real_position_of_insert(pane)
                     break
             else:
                 self.keyboard_macro = []
@@ -12769,14 +12772,22 @@ class Makdo:
                 self.paste_region()
             elif self._is_key(key, 'Home', 'C-l', 'C-p'):
                 width = self._get_width_of_pane(pane)
-                self._move_horizontally(pane, -width)
+                self.real_position \
+                    = self._shift_position(self.real_position, (0, -width))
+                self._move_for_real_position(pane, self.real_position)
             elif self._is_key(key, 'End', 'C-{', 'C-['):
                 width = self._get_width_of_pane(pane)
-                self._move_horizontally(pane, +width)
+                self.real_position \
+                    = self._shift_position(self.real_position, (0, +width))
+                self._move_for_real_position(pane, self.real_position)
             elif self._is_key(key, 'Up', 'C-r', 'C-o'):
-                self._move_vertically(pane, self.ideal_h_position, -1)
+                self.real_position \
+                    = self._shift_position(self.real_position, (-1, 0))
+                self._move_for_real_position(pane, self.real_position)
             elif self._is_key(key, 'Down', 'C-n', 'C-l'):
-                self._move_vertically(pane, self.ideal_h_position, +1)
+                self.real_position \
+                    = self._shift_position(self.real_position, (+1, 0))
+                self._move_for_real_position(pane, self.real_position)
             elif self._is_key(key, 'Left', 'C-t', 'C-k'):
                 pane.mark_set('insert', 'insert-1c')
             elif self._is_key(key, 'Right', 'C-s', 'C-;'):
@@ -12789,8 +12800,7 @@ class Makdo:
                 self.update_toc()
             if not self._is_key(key, 'Up', 'C-r', 'C-o') and \
                not self._is_key(key, 'Down', 'C-n', 'C-l'):
-                self.ideal_h_position \
-                    = self._get_ideal_h_position_of_insert(pane)
+                self.real_position = self._get_real_position_of_insert(pane)
         pane['autoseparators'] = True
         pane.edit_separator()
         self._put_back_cursor_to_pane(pane)
@@ -15091,24 +15101,27 @@ class Makdo:
                 self._jump_to_next_pane()
             self.key_history[-1] = ''
             return
-        if not (self._is_key(k2, 'Up', 'C-r', 'C-o') or
-                self._is_key(k2, 'Down', 'C-n', 'C-l') or
-                self._is_key(k2, 'Prior', 'C-[', 'C-@') or
-                self._is_key(k2, 'Next', 'C-]', 'C-:')):
-            self.ideal_h_position = self._get_ideal_h_position_of_insert(pane)
+        if self._must_get_real_position(k2):
+            self.real_position = self._get_real_position_of_insert(pane)
         elif (self._is_key(k3, 'F13', 'C--', 'C-q') or
               self._is_key(k3, 'F19', 'C-x', 'C-b')):
-            self.ideal_h_position = self._get_ideal_h_position_of_insert(pane)
+            self.real_position = self._get_real_position_of_insert(pane)
         if self._is_boosted_movement():
             if key == 'up':
-                self._move_vertically(pane, self.ideal_h_position, -5)
+                self.real_position \
+                    = self._shift_position(self.real_position, (-5, 0))
             else:
-                self._move_vertically(pane, self.ideal_h_position, +5)
+                self.real_position \
+                    = self._shift_position(self.real_position, (+5, 0))
+            self._move_for_real_position(pane, self.real_position)
         else:
             if key == 'up':
-                self._move_vertically(pane, self.ideal_h_position, -1)
+                self.real_position \
+                    = self._shift_position(self.real_position, (-1, 0))
             else:
-                self._move_vertically(pane, self.ideal_h_position, +1)
+                self.real_position \
+                    = self._shift_position(self.real_position, (+1, 0))
+            self._move_for_real_position(pane, self.real_position)
         self._paint_akauni_region(pane, '')
         return
 
@@ -15121,14 +15134,11 @@ class Makdo:
     def _any_process_prior_or_next(self, pane, key):
         k3 = self.key_history[-3]
         k2 = self.key_history[-2]
-        if not (self._is_key(k2, 'Up', 'C-r', 'C-o') or
-                self._is_key(k2, 'Down', 'C-n', 'C-l') or
-                self._is_key(k2, 'Prior', 'C-[', 'C-@') or
-                self._is_key(k2, 'Next', 'C-]', 'C-:')):
-            self.ideal_h_position = self._get_ideal_h_position_of_insert(pane)
+        if self._must_get_real_position(k2):
+            self.real_position = self._get_real_position_of_insert(pane)
         elif (self._is_key(k3, 'F13', 'C--', 'C-q') or
               self._is_key(k3, 'F19', 'C-x', 'C-b')):
-            self.ideal_h_position = self._get_ideal_h_position_of_insert(pane)
+            self.real_position = self._get_real_position_of_insert(pane)
         if self._is_boosted_movement():
             if key == 'prior':
                 pane.mark_set('insert', '1.0')
@@ -15138,9 +15148,13 @@ class Makdo:
         else:
             lines = self._get_lines_of_pane(pane)
             if key == 'prior':
-                self._move_vertically(pane, self.ideal_h_position, -lines)
+                self.real_position \
+                    = self._shift_position(self.real_position, (-lines, 0))
+                self._move_for_real_position(pane, self.real_position)
             else:
-                self._move_vertically(pane, self.ideal_h_position, +lines)
+                self.real_position \
+                    = self._shift_position(self.real_position, (+lines, 0))
+                self._move_for_real_position(pane, self.real_position)
         self._paint_akauni_region(pane, '')
 
     def _any_process_home(self, pane):  # Home / Ctrl+L
@@ -15150,6 +15164,7 @@ class Makdo:
         self._any_process_home_or_end(pane, 'end')
 
     def _any_process_home_or_end(self, pane, key):
+        k2 = self.key_history[-2]
         if self._is_boosted_movement():
             if key == 'home':
                 pane.mark_set('insert', 'insert linestart')
@@ -15157,11 +15172,17 @@ class Makdo:
                 pane.mark_set('insert', 'insert lineend')
             self._put_back_cursor_to_pane(pane)
         else:
+            if self._must_get_real_position(k2):
+                self.real_position = self._get_real_position_of_insert(pane)
             width = self._get_width_of_pane(pane)
             if key == 'home':
-                self._move_horizontally(pane, -width)
+                self.real_position \
+                    = self._shift_position(self.real_position, (0, -width))
+                self._move_for_real_position(pane, self.real_position)
             else:
-                self._move_horizontally(pane, +width)
+                self.real_position \
+                    = self._shift_position(self.real_position, (0, +width))
+                self._move_for_real_position(pane, self.real_position)
         self._paint_akauni_region(pane, '')
 
     def _any_process_tab(self, pane):  # Tab / Ctrl+I
@@ -15370,6 +15391,16 @@ class Makdo:
                 pane.mark_set('akauni', 'insert')
                 pane.mark_unset('prev_akauni')
 
+    def _must_get_real_position(self, previous_key) -> bool:
+        if not (self._is_key(previous_key, 'Up', 'C-r', 'C-o') or
+                self._is_key(previous_key, 'Down', 'C-n', 'C-l') or
+                self._is_key(previous_key, 'Prior', 'C-[', 'C-@') or
+                self._is_key(previous_key, 'Next', 'C-]', 'C-:') or
+                self._is_key(previous_key, 'Home', 'C-l', 'C-p') or
+                self._is_key(previous_key, 'End', 'C-{', 'C-[')):
+            return True
+        return False
+
     def _is_boosted_movement(self) -> bool:
         key4 = self.key_history[-4]
         key3 = self.key_history[-3]
@@ -15378,20 +15409,20 @@ class Makdo:
         delta34 = self.key_pressed_time[-3] - self.key_pressed_time[-4]
         delta23 = self.key_pressed_time[-2] - self.key_pressed_time[-3]
         delta12 = self.key_pressed_time[-1] - self.key_pressed_time[-2]
-        # --> O (t<0.2) O (0.4<t<1.0) O (t<0.1) O -->
         if '_has_boosted' not in vars(self):
-            # --> X X X X -->
             self._has_boosted = False
-        elif key2 != key1 or key3 != key1 or key4 != key1:
-            # --> ? ? X O --> | --> ? X ? O --> | --> X ? ? O -->
+        if key2 != key1 or key3 != key1 or key4 != key1:
+            # ? ? X O | ? X ? O | X ? ? O
             self._has_boosted = False
+        elif delta12 < 0.1:
+            if delta23 > 0.4 and delta23 < 1.0:
+                if delta34 > 0.1 and delta34 < 0.2:
+                    # X O (0.1<t<0.2) O (0.4<t<1.0) O (t<0.1) O
+                    self._has_boosted = True
         else:
-            if delta12 < 0.1:
-                if delta23 > 0.4 and delta23 < 1.0:
-                    if delta34 < 0.2:
-                        self._has_boosted = True
-            else:
-                self._has_boosted = False
+            self._has_boosted = False
+        if self._has_boosted:
+            self.set_message_on_status_bar('ブースト移動します')
         return self._has_boosted
 
     @staticmethod

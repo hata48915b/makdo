@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.11.30-12:39:59-JST>
+# Time-stamp:   <2025.12.01-15:12:19-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -2970,9 +2970,9 @@ class FontDecorator:
     def get_font_name(afont, jfont):
         f_afont = re.sub('\\s*/.*$', '', Form.mincho_font)
         f_jfont = re.sub('^.*/\\s*', '', Form.mincho_font)
-        if afont is None:
+        if afont is None or afont == '':
             afont = f_afont
-        if jfont is None:
+        if jfont is None or jfont == '':
             jfont = f_jfont
         for mfs in MS_FONTS:
             if afont in mfs:
