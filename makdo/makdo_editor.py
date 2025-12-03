@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.12.03-14:42:36-JST>
+# Time-stamp:   <2025.12.03-17:40:30-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5162,33 +5162,35 @@ class LineDatum:
                 if c == '*' and re.match(NOT_ESCAPED + '\\*$', s_lft) and \
                    (c0 != '*' or re.match(NOT_ESCAPED + '\\*\\*\\*$', s_lft)):
                     # if chars_state.script_parenthesis == '':
-                    iii = chars_state.is_in_italic
-                    iib = chars_state.is_in_bold
-                    if re.match(NOT_ESCAPED + '\\*\\*\\*$', s_lft):
-                        n = 3
-                    elif re.match(NOT_ESCAPED + '\\*\\*$', s_lft):
-                        n = 2
-                    elif re.match(NOT_ESCAPED + '\\*$', s_lft):
-                        n = 1
-                    key = chars_state.get_key('')                       # 1.key
-                    end = str(i + 1) + '.' + str(j + 1 - n)             # 2.end
-                    pane.tag_add(key, beg, end)                         # 3.tag
-                    if iii and (n == 1 or n == 3):
-                        chars_state.toggle_is_in_italic()               # 4.set
-                    if iib and (n == 2 or n == 3):
-                        chars_state.toggle_is_in_bold()                 # 4.set
-                    # tmp = '*{1,3}'                                    # 5.tmp
-                    beg = end                                           # 6.beg
-                    key = chars_state.get_key('font decorator')         # 1.key
-                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                    pane.tag_add(key, beg, end)                         # 3.tag
-                    if not iii and (n == 1 or n == 3):
-                        chars_state.toggle_is_in_italic()               # 4.set
-                    if not iib and (n == 2 or n == 3):
-                        chars_state.toggle_is_in_bold()                 # 4.set
-                    tmp = ''                                            # 5.tmp
-                    beg = end                                           # 6.beg
-                    continue
+                    if not re.match('^[\\-\\+\\*/0-9万億兆=\\s(){}\\[\\]]*$',
+                                    line_text):
+                        iii = chars_state.is_in_italic
+                        iib = chars_state.is_in_bold
+                        if re.match(NOT_ESCAPED + '\\*\\*\\*$', s_lft):
+                            n = 3
+                        elif re.match(NOT_ESCAPED + '\\*\\*$', s_lft):
+                            n = 2
+                        elif re.match(NOT_ESCAPED + '\\*$', s_lft):
+                            n = 1
+                        key = chars_state.get_key('')                   # 1.key
+                        end = str(i + 1) + '.' + str(j + 1 - n)         # 2.end
+                        pane.tag_add(key, beg, end)                     # 3.tag
+                        if iii and (n == 1 or n == 3):
+                            chars_state.toggle_is_in_italic()           # 4.set
+                        if iib and (n == 2 or n == 3):
+                            chars_state.toggle_is_in_bold()             # 4.set
+                        # tmp = '*{1,3}'                                # 5.tmp
+                        beg = end                                       # 6.beg
+                        key = chars_state.get_key('font decorator')     # 1.key
+                        end = str(i + 1) + '.' + str(j + 1)             # 2.end
+                        pane.tag_add(key, beg, end)                     # 3.tag
+                        if not iii and (n == 1 or n == 3):
+                            chars_state.toggle_is_in_italic()           # 4.set
+                        if not iib and (n == 2 or n == 3):
+                            chars_state.toggle_is_in_bold()             # 4.set
+                        tmp = ''                                        # 5.tmp
+                        beg = end                                       # 6.beg
+                        continue
                 # FOLDING
                 if line_text[0] == '#':
                     if re.match('^#+(-#+)*(\\s.*)?\\.{3}\\[$', s_lft) and \
@@ -6358,13 +6360,21 @@ class Makdo:
 
     @staticmethod
     def _get_real_position_of_insert(pane):
-        rv = int(pane.index('insert').split('.')[0]) - 1
-        rh = get_real_width(pane.get('insert linestart', 'insert'))
-        return rv, rh
+        real_v = int(pane.index('insert').split('.')[0]) - 1
+        real_h = get_real_width(pane.get('insert linestart', 'insert'))
+        max_v = int(pane.index('end-1c').split('.')[0]) - 1
+        return real_v, real_h, max_v
 
     @staticmethod
     def _shift_position(position, vector):
-        return (position[0] + vector[0]), (position[1] + vector[1])
+        real_v = position[0] + vector[0]
+        real_h = position[1] + vector[0]
+        max_v = position[2]
+        if real_v < 0:
+            real_v = 0
+        elif real_v > max_v:
+            real_v = max_v
+        return real_v, real_h, max_v
 
     def _move_for_real_position(self, pane, real_position) -> None:
         if real_position[1] == 0:
