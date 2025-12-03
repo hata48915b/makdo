@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.12.03-14:08:02-JST>
+# Time-stamp:   <2025.12.03-14:43:46-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -635,7 +635,7 @@ def get_real_width(s):
     wid = 0.0
     for c in s:
         if c == '\t':
-            wid += (int(wid / TAB_WIDTH) + 1) * TAB_WIDTH
+            wid = (int(wid / TAB_WIDTH) + 1) * TAB_WIDTH
             continue
         w = unicodedata.east_asian_width(c)
         if c == '':

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.12.03-14:05:49-JST>
+# Time-stamp:   <2025.12.03-14:42:36-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -3348,7 +3348,7 @@ def get_real_width(s: str) -> int:
         s = s.replace('\u3000', '')
     for c in s:
         if c == '\t':
-            wid += (int(wid / TAB_WIDTH) + 1) * TAB_WIDTH
+            wid = (int(wid / TAB_WIDTH) + 1) * TAB_WIDTH
             continue
         elif c == ' ' or c == '|' or c == ':' or c == '-':
             wid += 1
@@ -6379,18 +6379,18 @@ class Makdo:
 
     @staticmethod
     def _convert_real_position_to_ideal_position(pane, real_position):
-        rv, rh = real_position[0], real_position[1]
+        rv, rh = real_position[0] + 1, real_position[1]
         s, w = '', 0
         line = pane.get(str(rv) + '.0', str(rv) + '.0 lineend')
         for c in line:
             if c == '\t':
-                w += (int(w / TAB_WIDTH) + 1) * TAB_WIDTH
+                w = (int(w / TAB_WIDTH) + 1) * TAB_WIDTH
             else:
                 w += get_real_width(c)
             if w > rh:
                 break
             s += c
-        return rv, len(s)
+        return rv - 1, len(s)
 
     def _jump_to_prev_pane(self):
         if self.current_pane == 'txt':

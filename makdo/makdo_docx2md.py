@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.12.01-15:12:19-JST>
+# Time-stamp:   <2025.12.03-14:43:26-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -719,7 +719,7 @@ def get_real_width(s):
     wid = 0.0
     for c in s:
         if c == '\t':
-            wid += (int(wid / TAB_WIDTH) + 1) * TAB_WIDTH
+            wid = (int(wid / TAB_WIDTH) + 1) * TAB_WIDTH
             continue
         w = unicodedata.east_asian_width(c)
         if c == '':
@@ -796,7 +796,7 @@ def get_ideal_width(s):
     wid = 0
     for c in s:
         if c == '\t':
-            wid += (int(wid / TAB_WIDTH) + 1) * TAB_WIDTH
+            wid = (int(wid / TAB_WIDTH) + 1) * TAB_WIDTH
             continue
         w = unicodedata.east_asian_width(c)
         if (w == 'F'):    # Full alphabet ...
@@ -5668,7 +5668,7 @@ class Document:
                 if c == ' ':
                     w += 0.5
                 elif c == '\t':
-                    w += (int(w / TAB_WIDTH) + 1) * TAB_WIDTH
+                    w = (int(w / TAB_WIDTH) + 1) * TAB_WIDTH
                 elif c == '\u3000':
                     w += 1.0
             p.head_space = ''
