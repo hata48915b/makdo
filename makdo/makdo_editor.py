@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.12.03-17:40:30-JST>
+# Time-stamp:   <2025.12.03-17:47:25-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -6368,7 +6368,7 @@ class Makdo:
     @staticmethod
     def _shift_position(position, vector):
         real_v = position[0] + vector[0]
-        real_h = position[1] + vector[0]
+        real_h = position[1] + vector[1]
         max_v = position[2]
         if real_v < 0:
             real_v = 0
