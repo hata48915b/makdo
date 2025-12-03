@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.12.03-14:43:46-JST>
+# Time-stamp:   <2025.12.03-15:05:06-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -373,7 +373,7 @@ DEFAULT_PAGE_NUMBER = ': n :'
 DEFAULT_LINE_NUMBER = False
 
 DEFAULT_MINCHO_FONT = 'Times New Roman / ＭＳ 明朝'
-DEFAULT_GOTHIC_FONT = 'ＭＳ ゴシック'
+DEFAULT_GOTHIC_FONT = '= / ＭＳ ゴシック'
 DEFAULT_IVS_FONT = 'IPAmj明朝'  # IPAmjMincho
 # DEFAULT_MATH_FONT = 'Cambria Math'  # 'Liberation Serif'
 DEFAULT_LINE_NUMBER_FONT = 'Calibri'
