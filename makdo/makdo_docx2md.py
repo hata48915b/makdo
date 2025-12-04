@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.12.03-15:04:18-JST>
+# Time-stamp:   <2025.12.04-13:57:40-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -1695,17 +1695,9 @@ class Form:
             else:
                 Form.document_style = 'j'
         # FONT
-        afont = self.__get_max(afonts)
-        jfont = self.__get_max(jfonts)
-        for mfs in MS_FONTS:
-            if afont in mfs:
-                afont = mfs[0]
-            if jfont in mfs:
-                jfont = mfs[0]
-        if afont == jfont:
-            Form.mincho_font = '= / ' + jfont
-        else:
-            Form.mincho_font = afont + ' / ' + jfont
+        afnt = self.__get_max(afonts)
+        jfnt = self.__get_max(jfonts)
+        Form.mincho_font = FontDecorator.get_font_name(afnt, jfnt)
         fsize = self.__get_max(fsizes)
         if re.match('^[0-9]+$', fsize):
             Form.font_size = round(float(fsize) / 2, 1)
@@ -1844,15 +1836,7 @@ class Form:
                 asn = XML.get_value('w:autoSpaceDN', 'w:val', asn, xl)
             if name == 'makdo':
                 # MINCHO FONT
-                if afnt != '' and jfnt != '':
-                    if afnt == jfnt:
-                        Form.mincho_font = '= / ' + jfnt
-                    else:
-                        Form.mincho_font = afnt + ' / ' + jfnt
-                elif afnt != '' and jfnt == '':
-                    Form.mincho_font = afnt
-                elif afnt == '' and jfnt != '':
-                    Form.mincho_font = jfnt
+                Form.mincho_font = FontDecorator.get_font_name(afnt, jfnt)
                 # FONT SIZE
                 if sz_x > 0:
                     Form.font_size = round(sz_x / 2, 1)
@@ -1866,15 +1850,8 @@ class Form:
                     Form.auto_space = True
             elif name == 'makdo-g':
                 # GOTHIC FONT
-                if afnt != '' and jfnt != '':
-                    if afnt == jfnt:
-                        Form.gothic_font = '= / ' + jfnt
-                    else:
-                        Form.gothic_font = afnt + ' / ' + jfnt
-                elif afnt != '' and jfnt == '':
-                    Form.gothic_font = afnt
-                elif afnt == '' and jfnt != '':
-                    Form.gothic_font = jfnt
+                Form.gothic_font \
+                    = FontDecorator.get_font_name(afnt, jfnt, Form.gothic_font)
             elif name == 'makdo-i':
                 # IVS FONT
                 if jfnt != '':
@@ -2967,9 +2944,9 @@ class FontDecorator:
         # self.track_changes = ''     # TRACK CHANGES (-> / <- / +> / <+)
 
     @staticmethod
-    def get_font_name(afont, jfont):
-        f_afont = re.sub('\\s*/.*$', '', Form.mincho_font)
-        f_jfont = re.sub('^.*/\\s*', '', Form.mincho_font)
+    def get_font_name(afont, jfont, form_fonts=Form.mincho_font):
+        f_afont = re.sub('\\s*/.*$', '', form_fonts)
+        f_jfont = re.sub('^.*/\\s*', '', form_fonts)
         if afont is None or afont == '':
             afont = f_afont
         if jfont is None or jfont == '':
