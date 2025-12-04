@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.12.03-17:47:25-JST>
+# Time-stamp:   <2025.12.03-19:42:28-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5162,8 +5162,8 @@ class LineDatum:
                 if c == '*' and re.match(NOT_ESCAPED + '\\*$', s_lft) and \
                    (c0 != '*' or re.match(NOT_ESCAPED + '\\*\\*\\*$', s_lft)):
                     # if chars_state.script_parenthesis == '':
-                    if not re.match('^[\\-\\+\\*/0-9万億兆=\\s(){}\\[\\]]*$',
-                                    line_text):
+                    res = '^[\\-\\+\\*/0-9\\.,万億兆=\\s(){}\\[\\]]*$'
+                    if not re.match(res, line_text):
                         iii = chars_state.is_in_italic
                         iib = chars_state.is_in_bold
                         if re.match(NOT_ESCAPED + '\\*\\*\\*$', s_lft):
