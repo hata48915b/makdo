@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.12.05-15:05:35-JST>
+# Time-stamp:   <2025.12.08-19:20:51-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -16565,7 +16565,7 @@ class Makdo:
             if not self._import_genai():
                 return False
             if 'openai' not in vars(self):
-                self.openai = makdo.genai.OpenAI(self)
+                self.openai = self.genai.OpenAI(self)
             if not self.openai._has_key_openai():
                 return False
             if not self.openai._import_openai():
@@ -16923,7 +16923,7 @@ class Makdo:
             if not self._import_genai():
                 return False
             if 'ollama' not in vars(self):
-                self.ollama = makdo.genai.Ollama(self)
+                self.ollama = self.genai.Ollama(self)
             if not self.ollama._import_ollama():
                 return False
             if not self.ollama._test_ollama():
@@ -16933,13 +16933,14 @@ class Makdo:
             return True
 
         def _import_genai(self) -> bool:
-            if 'makdo.genai' in sys.modules:
+            if 'genai' in sys.modules:
                 return True
             try:
-                import makdo.genai
-                makdo.genai.MD_TEXT_WIDTH = MD_TEXT_WIDTH
-                makdo.genai.get_real_width = get_real_width
-                makdo.genai.RadiobuttonDialog = RadiobuttonDialog
+                import makdo.makdo_component_genai
+                self.genai = makdo.makdo_component_genai
+                self.genai.MD_TEXT_WIDTH = MD_TEXT_WIDTH
+                self.genai.get_real_width = get_real_width
+                self.genai.RadiobuttonDialog = RadiobuttonDialog
             except ImportError:
                 n, m = 'エラー', '"genai"を\nインポートできませんでした．'
                 tkinter.messagebox.showerror(n, m)
