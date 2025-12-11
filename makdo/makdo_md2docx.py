@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.12.03-15:05:06-JST>
+# Time-stamp:   <2025.12.08-19:36:21-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -113,6 +113,12 @@ from docx.enum.text import WD_COLOR_INDEX
 from docx.enum.section import WD_SECTION
 import socket   # host
 import getpass  # user
+
+
+if __name__ == '__main__' or __name__ == 'makdo_md2docx':
+    import makdo_component_tools
+else:
+    import makdo.makdo_component_tools
 
 
 def get_arguments():
