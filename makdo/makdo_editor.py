@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.12.11-13:47:38-JST>
+# Time-stamp:   <2025.12.15-16:02:45-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -34,7 +34,7 @@ __revision__ = 'v08.19'
 
 
 # USAGE
-# from makdo.makdo_gui import Makdo
+# from makdo.makdo_editor import Makdo
 # Makdo()
 
 
@@ -5792,41 +5792,48 @@ class Makdo:
             c = s[0:i]
             if c == '':
                 return False
-            for jg in makdo.jpchars.groups:
-                if ('^' + c in jg) or ('@' + c in jg) or (c in jg):
-                    g = []
-                    for t in jg:
-                        if len(t) > 1 and t[0] == '^':
-                            g.append(t[1:])
-                        elif len(t) > 1 and t[0] == '@':
-                            g.append(t[1:])
-                        else:
-                            g.append(t)
-                    if len(g) == 0:
-                        continue
-                    n = -1
-                    if c in g:
-                        n = g.index(c)
-                    for j, t in enumerate(g):
-                        if t in makdo.jpchars.chars and \
-                           makdo.jpchars.chars[t].notes != '':
-                            g[j] += '（' + makdo.jpchars.chars[t].notes + '）'
-                    t = '字体を変える'
-                    m = '字体を選んでください．'
-                    rd = RadiobuttonDialog(mother, self, t, m, g, n)
-                    v = rd.get_value()
-                    if v is not None:
-                        v = re.sub('^(.+)（.*）$', '\\1', v)
-                        pane['autoseparators'] = False
-                        pane.edit_separator()
-                        pane.delete('insert', 'insert+' + str(len(c)) + 'c')
-                        pane.insert('insert', v)
-                        pane.mark_set('insert', 'insert-' + str(len(v)) + 'c')
-                        p = self._get_v_position_of_insert(pane) - 1
-                        self.paint_out_line(p)
-                        pane.edit_separator()
-                        pane['autoseparators'] = True
-                    return True
+            group = []
+            if c in makdo.jpchars.chars:
+                group = makdo.jpchars.groups[makdo.jpchars.chars[c].group]
+            else:
+                for j in makdo.jpchars.groups:
+                    g = makdo.jpchars.groups[j]
+                    if ('^' + c in g) or ('@' + c in g) or (c in g):
+                        group = g
+                        break
+            g = []
+            for t in group:
+                if len(t) > 1 and t[0] == '^':
+                    g.append(t[1:])
+                elif len(t) > 1 and t[0] == '@':
+                    g.append(t[1:])
+                else:
+                    g.append(t)
+            if len(g) == 0:
+                continue
+            n = -1
+            if c in g:
+                n = g.index(c)
+            for j, t in enumerate(g):
+                if t in makdo.jpchars.chars and \
+                   makdo.jpchars.chars[t].notes != '':
+                    g[j] += '（' + makdo.jpchars.chars[t].notes + '）'
+            t = '字体を変える'
+            m = '字体を選んでください．'
+            rd = RadiobuttonDialog(mother, self, t, m, g, n)
+            v = rd.get_value()
+            if v is not None:
+                v = re.sub('^(.+?)（.*）$', '\\1', v)
+                pane['autoseparators'] = False
+                pane.edit_separator()
+                pane.delete('insert', 'insert+' + str(len(c)) + 'c')
+                pane.insert('insert', v)
+                pane.mark_set('insert', 'insert-' + str(len(v)) + 'c')
+                p = self._get_v_position_of_insert(pane) - 1
+                self.paint_out_line(p)
+                pane.edit_separator()
+                pane['autoseparators'] = True
+            return True
         n = '警告'
         if c == '\n':
             m = '"（改行）"に別の字体は登録されていません．'
@@ -5834,8 +5841,6 @@ class Makdo:
             m = '"' + c + '"に別の字体は登録されていません．'
         tkinter.messagebox.showwarning(n, m)
         return False
-
-
 
     def comment_out_region(self):
         pane = self._get_pane()
@@ -8687,25 +8692,19 @@ class Makdo:
                     row.append(c)
                 cell = ''
             elif c == '\n':
-                if re.match('^(\\^|=)+$', cell) and \
-                   len(row) == 0 and \
-                   len(table) > 0 and len(table[-1]) > 0:
-                    # "|...|\n^^^^^\n" or "|...|\n=====\n"
-                    table[-1][-1] += cell + c
-                    cell = ''
-                elif (i < len(bare_par) - 1 and
-                      re.match('^\\s*(\\|[:-]-*:?(\\^|=)?)+\n?(\\|(\\s*:)?)',
-                               bare_par[i + 1:]) and
-                      len(table) > 0 and len(table[-1]) > 0):
-                    # "|:--\n|:--"
-                    cell += c
-                elif (i < len(bare_par) - 1 and
+                cell += c
+                if (i < len(bare_par) - 1 and
                       not re.match('^' + indent + '\\|', bare_par[i + 1:]) and
                       not re.match('^\\s*:\\s+\\|', bare_par[i + 1:])):
                     # "|...\n...|"
-                    cell += c
+                    pass
+                elif re.match('^(\\^|=)+$', cell) and \
+                   len(row) == 0 and \
+                   len(table) > 0 and len(table[-1]) > 0:
+                    # "|...|\n^^^^^\n" or "|...|\n=====\n"
+                    table[-1][-1] += cell
+                    cell = ''
                 else:
-                    cell += c
                     if len(row) > 0:
                         # "|...|\n|...|"
                         row[-1] += cell
@@ -10994,6 +10993,7 @@ class Makdo:
             self.init = init
             self.commands = self.get_commands()
             self.help_message = self.get_help_message()
+
             self.return_to = pane
             self.history_number = 0
             if len(self.history) == 0:
@@ -12341,36 +12341,43 @@ class Makdo:
 
     def show_char_info(self) -> bool:
         n = '文字情報'
-        c = self.txt.get('insert', 'insert+1c')
-        m = ''
-        if c in makdo.jpchars.chars:
-            chars = makdo.jpchars.chars[c]
+        s = self.txt.get('insert', 'insert+5c')
+        for i in range(5, 0, -1):
+            c = s[0:i]
+            if c == '':
+                return False
+            if c not in makdo.jpchars.chars:
+                continue
+            m = ''
+            char = makdo.jpchars.chars[c]
             if c == ' ':
                 m += '・文字：（半角スペース）\n'
             elif c == '\t':
                 m += '・文字：（水平タブ）\n'
             elif c == '\u3000':
                 m += '・文字：（全角スペース）\n'
-            elif chars.char is not None:
-                m += '・文字：' + chars.char + '\n'
-            m += '・UTF-8：' + chars.utf8 + '\n'
-            m += '・分類：' + chars.char_class + '\n'
-            m += '・水準：' + chars.level + '\n'
-            m += '・部首：' + chars.bushu + '\n'
-            if chars.stroke_count > 0:
-                m += '・画数：' + str(chars.stroke_count) + '画\n'
-            m += '・読み：' + chars.pronunciation + '\n'
-            m += '・用法：' + chars.usage + '\n'
-            m += '・学年：' + chars.school_grade + '\n'
-            m += '・説明：' + chars.notes + '\n'
+            elif char.char is not None:
+                m += '・文字：' + char.char + '\n'
+            m += '・UTF-8：' + char.get_utf8_code() + '\n'
+            m += '・分類：' + char.char_class + '\n'
+            m += '・水準：' + char.level + '\n'
+            m += '・部首：' + char.bushu + '\n'
+            if char.stroke_count > 0:
+                m += '・画数：' + str(char.stroke_count) + '画\n'
+            m += '・読み：' + char.pronunciation + '\n'
+            m += '・用法：' + char.usage + '\n'
+            m += '・学年：' + char.school_grade + '\n'
+            m += '・説明：' + char.notes + '\n'
             g = ''
-            for t in chars.group:
-                if t == '' or t == c or (t[0] == '^' and t != '^'):
-                    continue
-                if t != '@' and t[0] == '@':
-                    t = re.sub('^@', '', t)
-                g += t + ','
+            if char.group != '':
+                for t in makdo.jpchars.groups[char.group]:
+                    if t == '' or t == c or (t[0] == '^' and t != '^'):
+                        continue
+                    if t != '@' and t[0] == '@':
+                        t = re.sub('^@', '', t)
+                    g += t + '/'
             m += '・類字：' + g[:-1]
+            break
         else:
             if c == '\n':
                 m += '・文字：（改行）\n'
@@ -14697,9 +14704,10 @@ class Makdo:
             if 'genai' in sys.modules:
                 return True
             try:
-                import makdo.makdo_component_genai
-                self.genai = makdo.makdo_component_genai
+                import makdo.makdo_editor_genai
+                self.genai = makdo.makdo_editor_genai
                 self.genai.MD_TEXT_WIDTH = MD_TEXT_WIDTH
+                self.genai.CONFIG_DIR = CONFIG_DIR  # save_exchanges
                 self.genai.get_real_width = get_real_width
                 self.genai.RadiobuttonDialog = RadiobuttonDialog
             except ImportError:
@@ -14707,6 +14715,16 @@ class Makdo:
                 tkinter.messagebox.showerror(n, m)
                 return False
             return True
+
+        mc = Minibuffer.MinibufferCommand(
+            'save-ollama-exchanges',
+            [None, '生成AIのやり取りを保存'],
+            ['self.mother.save_ollama_exchanges()'])
+        Minibuffer.minibuffer_commands.append(mc)
+
+        def save_ollama_exchanges(self):
+            if self._is_ollama_ready():
+                self.ollama.save_ollama_exchanges()
 
 
 ######################################################################

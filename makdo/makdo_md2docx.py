@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.12.08-19:36:21-JST>
+# Time-stamp:   <2025.12.15-09:17:50-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -116,9 +116,9 @@ import getpass  # user
 
 
 if __name__ == '__main__' or __name__ == 'makdo_md2docx':
-    import makdo_component_tools
+    import makdo_tools
 else:
-    import makdo.makdo_component_tools
+    import makdo.makdo_tools
 
 
 def get_arguments():

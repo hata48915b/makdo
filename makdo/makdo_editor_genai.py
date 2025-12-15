@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         genai.py
 # Version:      v01
-# Time-stamp:   <2025.12.03-14:07:38-JST>
+# Time-stamp:   <2025.12.15-10:08:40-JST>
 
 # genai.py
 # Copyright (C) 2025  Seiichiro HATA
@@ -25,6 +25,7 @@ import sys
 import re
 import tkinter
 import threading
+import datetime  # save_exchanges
 
 
 class GenAI:
@@ -629,3 +630,15 @@ class Ollama(GenAI):
             answer = '<!--\n' + answer + '\n-->'
         self.makdo._insert_line_break_as_necessary('ollama')
         pane.insert('ollama', answer)
+
+
+    def save_ollama_exchanges(self) -> bool:
+        if 'ollama_qanda' not in vars(self):
+            return False
+        if not os.path.exists(CONFIG_DIR + '/genai'):
+            os.mkdir(CONFIG_DIR + '/genai')
+        datetime.datetime.now()
+        time=datetime.datetime.now().strftime("%y%m%d%H%M%S")
+        with open(CONFIG_DIR + '/genai/' + time + '.md', 'w') as f:
+            f.write(re.sub('^[^#]+', '', self.ollama_qanda))
+        return True

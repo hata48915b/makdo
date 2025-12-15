@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.12.08-19:36:18-JST>
+# Time-stamp:   <2025.12.14-14:33:45-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -80,9 +80,9 @@ import tempfile
 
 
 if __name__ == '__main__' or __name__ == 'makdo_docx2md':
-    import makdo_component_tools
+    import makdo_tools
 else:
-    import makdo.makdo_component_tools
+    import makdo.makdo_tools
 
 
 def get_arguments():
