@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         jpchars.py
 # Version:      v01
-# Time-stamp:   <2025.12.14-13:57:00-JST>
+# Time-stamp:   <2025.12.22-10:53:36-JST>
 
 # jpchars.py
 # Copyright (C) 2025  Seiichiro HATA
@@ -181,16 +181,16 @@ class Char:
                     }
 
     def __init__(self):
-        self.id = '00000'            #  0 [0-9]{5}
-        self.char = ''               #  1 .|[0-9A-F]{4,5}_E01[0-9A-F]{2}
-        self.char_class = ''         #  2 記号|数字|英字|仮名|常用|人名|ＭＪ
-        self.sub_id = ''             #  3 .{2}[0-9]{4}
-        self.level = ''              #  4 第(一|二|三)水準
-        self.width = ''              #  5 (半|全)角
-        self.stroke_count = -1       #  6 (-1|[1-9][0-9]*)
-        self.bushu = ''              #  7 .*([1-9][0-9]*)
-        self.school_grade = ''       #  8 小一|小二|小三|小四|小五|小六|中学
-        self.group = ''              #  9 [0-9]+
+        self.id = '00000'            # 0 [0-9]{5}
+        self.char = ''               # 1 .|[0-9A-F]{4,5}_E01[0-9A-F]{2}
+        self.char_class = ''         # 2 記号|数字|英字|仮名|常用|人名|ＭＪ
+        self.sub_id = ''             # 3 .{2}[0-9]{4}
+        self.level = ''              # 4 第(一|二|三)水準
+        self.width = ''              # 5 (半|全)角
+        self.stroke_count = -1       # 6 (-1|[1-9][0-9]*)
+        self.bushu = ''              # 7 .*([1-9][0-9]*)
+        self.school_grade = ''       # 8 小一|小二|小三|小四|小五|小六|中学
+        self.group = ''              # 9 [0-9]+
         self.pronunciation = ''      # 10 .*{.*、.*、...}/.*{.*、.*、...}/...
         self.usage = ''              # 11 .*
         self.notes = ''              # 12 .*
@@ -374,6 +374,7 @@ class Chars:
         return False
 
 
-c = Chars()
-chars = c.chars
-groups = c.groups
+cs = Chars()
+bushus = cs.bushus
+chars = cs.chars
+groups = cs.groups

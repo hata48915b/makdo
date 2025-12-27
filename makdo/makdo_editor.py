@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.12.15-16:02:45-JST>
+# Time-stamp:   <2025.12.26-13:27:31-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -8693,14 +8693,14 @@ class Makdo:
                 cell = ''
             elif c == '\n':
                 cell += c
-                if (i < len(bare_par) - 1 and
-                      not re.match('^' + indent + '\\|', bare_par[i + 1:]) and
-                      not re.match('^\\s*:\\s+\\|', bare_par[i + 1:])):
+                if i < len(bare_par) - 1 and \
+                   not re.match('^' + indent + '\\|', bare_par[i + 1:]) and \
+                   not re.match('^\\s*:\\s+\\|', bare_par[i + 1:]):
                     # "|...\n...|"
                     pass
-                elif re.match('^(\\^|=)+$', cell) and \
-                   len(row) == 0 and \
-                   len(table) > 0 and len(table[-1]) > 0:
+                elif (re.match('^(\\^|=)+$', cell) and
+                      len(row) == 0 and
+                      len(table) > 0 and len(table[-1]) > 0):
                     # "|...|\n^^^^^\n" or "|...|\n=====\n"
                     table[-1][-1] += cell
                     cell = ''
@@ -9381,8 +9381,8 @@ class Makdo:
         tex = tex.replace('\n', '')
         n_ch = len(tex)
         t = '文字数と行数'
-        m = "{:,}".format(n_ch) + '文字\n' + \
-            "{:,}".format(n_nl) + '行'
+        m = '{:,}'.format(n_ch) + '文字\n' + \
+            '{:,}'.format(n_nl) + '行'
         tkinter.messagebox.showinfo(t, m)
 
     # INSERT AND EDIT FORMULA
@@ -12232,6 +12232,11 @@ class Makdo:
                          command=self.pick_up_proper_nouns)
         menu.add_command(label='Ollamaで本文の誤字脱字を確認',
                          command=self.find_typos)
+        menu.add_command(label='Ollamaのやり取りを保存',
+                         command=self.save_ollama_exchanges)
+        menu.add_command(label='Ollamaのやり取りを開く',
+                         command=self.open_ollama_exchanges)
+
         # menu.add_separator()
 
     @staticmethod
@@ -12312,6 +12317,14 @@ class Makdo:
         self._show_message_reducing_functions()
         return False
 
+    def save_ollama_exchanges(self) -> bool:
+        self._show_message_reducing_functions()
+        return False
+
+    def open_ollama_exchanges(self) -> bool:
+        self._show_message_reducing_functions()
+        return False
+
     ##########################
     # MENU HELP
 
@@ -12361,9 +12374,14 @@ class Makdo:
             m += '・UTF-8：' + char.get_utf8_code() + '\n'
             m += '・分類：' + char.char_class + '\n'
             m += '・水準：' + char.level + '\n'
-            m += '・部首：' + char.bushu + '\n'
+            if char.bushu != '':
+                m += '・部首：' + makdo.jpchars.bushus[char.bushu] + '\n'
+            else:
+                m += '・部首：\n'
             if char.stroke_count > 0:
                 m += '・画数：' + str(char.stroke_count) + '画\n'
+            else:
+                m += '・画数：\n'
             m += '・読み：' + char.pronunciation + '\n'
             m += '・用法：' + char.usage + '\n'
             m += '・学年：' + char.school_grade + '\n'
@@ -13109,9 +13127,8 @@ class Makdo:
                 self.close_file()
                 return
         # UNMARK
-        if 'akauni' in pane.mark_names():
-            pane.tag_remove('akauni_tag', '1.0', 'end')
-            pane.mark_unset('akauni')
+        self.cancel_region(pane)
+        # RETURN
         return
 
     def _any_process_paste(self):  # F15 / Ctrl+G
@@ -14323,11 +14340,11 @@ class Makdo:
 
         def open_openai(self) -> bool:
             if self._is_openai_ready():
-                self.openai.open_openai()
+                return self.openai.open_openai()
 
         def set_openai_model(self, mother=None) -> bool:
             if self._is_openai_ready():
-                self.openai.set_openai_model(mother)
+                return self.openai.set_openai_model(mother)
 
         def _is_openai_ready(self) -> bool:
             if not self._import_genai():
@@ -14663,29 +14680,49 @@ class Makdo:
             ['self.mother.find_typos()'])
         Minibuffer.minibuffer_commands.append(mc)
 
+        mc = Minibuffer.MinibufferCommand(
+            'save-ollama-exchanges',
+            [None, 'Ollamaのやり取りを保存'],
+            ['self.mother.save_ollama_exchanges()'])
+        Minibuffer.minibuffer_commands.append(mc)
+
+        mc = Minibuffer.MinibufferCommand(
+            'open-ollama-exchanges',
+            [None, 'Ollamaのやり取りを開く'],
+            ['self.mother.open_ollama_exchanges()'])
+        Minibuffer.minibuffer_commands.append(mc)
+
         def _execute_main_pane(self) -> bool:
             if self._is_ollama_ready():
-                self.ollama.ask_ollama_on_main_pane()
+                return self.ollama.ask_ollama_on_main_pane()
 
         def open_ollama(self) -> bool:
             if self._is_ollama_ready():
-                self.ollama.open_ollama()
+                return self.ollama.open_ollama()
 
-        def ask_ollama(self) -> bool:
+        def ask_ollama(self) -> None:
             if self._is_ollama_ready():
                 self.ollama.ask_ollama()
 
         def set_ollama_model(self, mother=None) -> bool:
             if self._is_ollama_ready():
-                self.ollama.set_ollama_model(mother)
+                return self.ollama.set_ollama_model(mother)
 
-        def pick_up_proper_nouns(self) -> bool:
+        def pick_up_proper_nouns(self) -> None:
             if self._is_ollama_ready():
                 self.ollama.pick_up_proper_nouns()
 
-        def find_typos(self) -> bool:
+        def find_typos(self) -> None:
             if self._is_ollama_ready():
-                self.ollama.find_typos()
+                return self.ollama.find_typos()
+
+        def save_ollama_exchanges(self) -> bool:
+            if self._is_ollama_ready():
+                return self.ollama.save_ollama_exchanges()
+
+        def open_ollama_exchanges(self) -> bool:
+            if self._is_ollama_ready():
+                return self.ollama.open_ollama_exchanges()
 
         def _is_ollama_ready(self) -> bool:
             if not self._import_genai():
@@ -14707,7 +14744,7 @@ class Makdo:
                 import makdo.makdo_editor_genai
                 self.genai = makdo.makdo_editor_genai
                 self.genai.MD_TEXT_WIDTH = MD_TEXT_WIDTH
-                self.genai.CONFIG_DIR = CONFIG_DIR  # save_exchanges
+                self.genai.CONFIG_DIR = CONFIG_DIR
                 self.genai.get_real_width = get_real_width
                 self.genai.RadiobuttonDialog = RadiobuttonDialog
             except ImportError:
@@ -14715,16 +14752,6 @@ class Makdo:
                 tkinter.messagebox.showerror(n, m)
                 return False
             return True
-
-        mc = Minibuffer.MinibufferCommand(
-            'save-ollama-exchanges',
-            [None, '生成AIのやり取りを保存'],
-            ['self.mother.save_ollama_exchanges()'])
-        Minibuffer.minibuffer_commands.append(mc)
-
-        def save_ollama_exchanges(self):
-            if self._is_ollama_ready():
-                self.ollama.save_ollama_exchanges()
 
 
 ######################################################################

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         genai.py
 # Version:      v01
-# Time-stamp:   <2025.12.15-10:08:40-JST>
+# Time-stamp:   <2025.12.16-14:04:19-JST>
 
 # genai.py
 # Copyright (C) 2025  Seiichiro HATA
@@ -125,6 +125,8 @@ class GenAI:
 class OpenAI(GenAI):
 
     genai_name = 'OpenAI'
+    notes = '- 外部処理ですので、個人情報の流出に注意してください。\n' \
+        + '- 有料ですので、料金に注意してください。\n\n' \
 
     # KEY
 
@@ -289,9 +291,7 @@ class OpenAI(GenAI):
         # PROMPT
         cnf_head, que_head, ans_head = self._get_genai_head()
         if 'openai_qanda' not in vars(self):
-            self.openai_qanda \
-                = '- 外部処理ですので、個人情報の流出に注意してください。\n' \
-                + '- 有料ですので、料金に注意してください。\n\n' \
+            self.openai_qanda = self.notes \
                 + cnf_head + '\n\n' + self.system_message + '\n\n' \
                 + que_head + '\n\n'
         self.makdo.txt.focus_force()
@@ -342,6 +342,8 @@ class OpenAI(GenAI):
 class Ollama(GenAI):
 
     genai_name = 'Ollama'
+    notes = '- 内部処理又はクラウドですので、情報を外部に出しません。\n' \
+        + '- 無料ですので、料金は発生しません。\n\n' \
 
     # IMPORT
 
@@ -424,9 +426,7 @@ class Ollama(GenAI):
         # PROMPT
         cnf_head, que_head, ans_head = self._get_genai_head()
         if 'ollama_qanda' not in vars(self):
-            self.ollama_qanda \
-                = '- 内部処理ですので、情報を外部に送信しません。\n' \
-                + '- 無料ですので、料金は発生しません。\n\n' \
+            self.ollama_qanda = self.notes \
                 + cnf_head + '\n\n' + self.system_message + '\n\n' \
                 + que_head + '\n\n'
         self.makdo.txt.focus_force()
@@ -631,14 +631,38 @@ class Ollama(GenAI):
         self.makdo._insert_line_break_as_necessary('ollama')
         pane.insert('ollama', answer)
 
-
     def save_ollama_exchanges(self) -> bool:
         if 'ollama_qanda' not in vars(self):
             return False
-        if not os.path.exists(CONFIG_DIR + '/genai'):
-            os.mkdir(CONFIG_DIR + '/genai')
+        if not os.path.exists(CONFIG_DIR + '/ollama'):
+            os.mkdir(CONFIG_DIR + '/ollama')
         datetime.datetime.now()
-        time=datetime.datetime.now().strftime("%y%m%d%H%M%S")
-        with open(CONFIG_DIR + '/genai/' + time + '.md', 'w') as f:
+        time = datetime.datetime.now().strftime("%y%m%d%H%M%S")
+        sc = self.system_message
+        uc = '次の対話のタイトルを1行かつ20文字程度で考えてください。\n' \
+            + '「Ollama」という単語は入れないでください。\n' \
+            + '答えはMarkdownではなくText形式でお願いします。\n\n' \
+            + self.ollama_qanda
+        answer = self._execute_ollama(sc, uc).message.content
+        answer = answer.replace('\n', '')
+        fn = CONFIG_DIR + '/ollama/' + time + '-' + answer + '.md'
+        with open(fn, 'w') as f:
             f.write(re.sub('^[^#]+', '', self.ollama_qanda))
+        return True
+
+    def open_ollama_exchanges(self) -> bool:
+        if 'ollama_qanda' in vars(self):
+            n, m = '確認', '今までの対話を保存しますか？'
+            if tkinter.messagebox.askyesno(n, m, default='yes'):
+                self.save_ollama_exchanges()
+        ti = 'ファイルを読み込む'
+        ft = [('可能な形式', '.md .docx'), ('Markdown', '.md')]
+        id = CONFIG_DIR + '/ollama'
+        filename = tkinter.filedialog.askopenfilename(
+            title=ti, filetypes=ft, initialdir=id)
+        doc = self.notes
+        with open(filename, 'r') as f:
+            doc += f.read()
+        self.ollama_qanda = doc
+        self.open_ollama()
         return True

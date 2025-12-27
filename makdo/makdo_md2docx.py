@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.12.15-09:17:50-JST>
+# Time-stamp:   <2025.12.27-07:33:19-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -5696,6 +5696,7 @@ class ParagraphTable(Paragraph):
             col_alig_list, col_widt_list, col_rule_list, \
             row_alig_list, row_heig_list, row_rule_list \
             = self.__get_tab_data(tab_lines)
+        tab = self.__calculate(tab)
         tab, merge_mtrx = self.__get_merge_mtrx(tab)
         cal, cwl, crl = col_alig_list, col_widt_list, col_rule_list
         tab, col_alig_mtrx, col_widt_mtrx, col_rule_mtrx \
@@ -5705,16 +5706,16 @@ class ParagraphTable(Paragraph):
             = self.__get_row_data(tab, conf_line_place, ral, rhl, rrl)
         # hori_alig_list = col_alig_list
         hori_leng_list = col_widt_list
-        hori_rule_list = col_rule_list
-        # vert_alig_list = row_alig_list
-        vert_leng_list = row_heig_list
-        vert_rule_list = row_rule_list
+        # hori_rule_list = col_rule_list
         hori_alig_mtrx = col_alig_mtrx
         # hori_leng_mtrx = col_widt_mtrx
-        # hori_rule_mtrx = col_rule_mtrx
+        hori_rule_mtrx = col_rule_mtrx
+        # vert_alig_list = row_alig_list
+        vert_leng_list = row_heig_list
+        # vert_rule_list = row_rule_list
         vert_alig_mtrx = row_alig_mtrx
         # vert_leng_mtrx = row_heig_mtrx
-        # vert_rule_mtrx = row_rule_mtrx
+        vert_rule_mtrx = row_rule_mtrx
         # MAKE TABLE
         row = len(tab)
         col = len(tab[0])
@@ -5786,7 +5787,7 @@ class ParagraphTable(Paragraph):
                         par = re.sub('^(.*)\\s:\\s*$', '\\1', par)
                     else:
                         ms_fmt.alignment = hori_alig_mtrx[i][j]
-                    par = re.sub('^\\s*\\\\?(\\s+)', '\\1', par)
+                    par = re.sub('^\\s*\\\\?', '', par)
                     par = re.sub('\\\\?\\s+$', '', par)
                     self.write_text(ms_par, chars_state, par)
                     ls = TABLE_LINE_SPACING * (1 + length_docx['line spacing'])
@@ -5806,21 +5807,21 @@ class ParagraphTable(Paragraph):
                 if e_i > 0 and e_j > 0:
                     i_u, i_d = i - 1, i + e_i - 1
                     j_l, j_r = j - 1, j + e_j - 1
-                    if i_u >= 0 and vert_rule_list[i_u] == '^':
+                    if i_u >= 0 and vert_rule_mtrx[i_u][j] == '^':
                         XML.add_tag(ms_tcbr, 'w:top', {'w:val': 'nil'})
-                    if vert_rule_list[i_d] == '^':
+                    if vert_rule_mtrx[i_d][j] == '^':
                         XML.add_tag(ms_tcbr, 'w:bottom', {'w:val': 'nil'})
-                    if i_u >= 0 and vert_rule_list[i_u] == '=':
+                    if i_u >= 0 and vert_rule_mtrx[i_u][j] == '=':
                         XML.add_tag(ms_tcbr, 'w:top', {'w:val': 'double'})
-                    if vert_rule_list[i_d] == '=':
+                    if vert_rule_mtrx[i_d][j] == '=':
                         XML.add_tag(ms_tcbr, 'w:bottom', {'w:val': 'double'})
-                    if j_l >= 0 and hori_rule_list[j_l] == '^':
+                    if j_l >= 0 and hori_rule_mtrx[i][j_l] == '^':
                         XML.add_tag(ms_tcbr, 'w:left', {'w:val': 'nil'})
-                    if hori_rule_list[j_r] == '^':
+                    if hori_rule_mtrx[i][j_r] == '^':
                         XML.add_tag(ms_tcbr, 'w:right', {'w:val': 'nil'})
-                    if j_l > 0 and hori_rule_list[j_l] == '=':
+                    if j_l > 0 and hori_rule_mtrx[i][j_l] == '=':
                         XML.add_tag(ms_tcbr, 'w:left', {'w:val': 'double'})
-                    if hori_rule_list[j_r] == '=':
+                    if hori_rule_mtrx[i][j_r] == '=':
                         XML.add_tag(ms_tcbr, 'w:right', {'w:val': 'double'})
         # MERGE CELLS
         for i_fr in range(len(tab)):
@@ -6018,7 +6019,7 @@ class ParagraphTable(Paragraph):
         m_i = len(tab)
         m_j = len(tab[0])
         merge_mtrx = [[(1, 1) for j in range(m_j)] for i in range(m_i)]
-        res = '^(.*)@((?:[0-9]*x)?[0-9]+)$'
+        res = '^(.*)@((?:[0-9]*x)?[0-9]+)([=\\^]?)$'
         res_i = '^x([0-9]+)$'
         res_j = '^([0-9]+)x?$'
         res_ji = '^([0-9]+)x([0-9]+)$'
@@ -6026,7 +6027,7 @@ class ParagraphTable(Paragraph):
             for j in range(len(tab[i])):
                 if re.match(res, tab[i][j]):
                     merge_text = re.sub(res, '\\2', tab[i][j])
-                    tab[i][j] = re.sub(res, '\\1', tab[i][j])
+                    tab[i][j] = re.sub(res, '\\1\\3', tab[i][j])
                     if re.match(res_i, merge_text):
                         e_i = int(re.sub(res_i, '\\1', merge_text))
                         e_j = 1
@@ -6048,6 +6049,280 @@ class ParagraphTable(Paragraph):
                     merge_mtrx[i][j] = (e_i, e_j)
         return tab, merge_mtrx
 
+    def __calculate(self, tab):
+        for i in range(len(tab)):
+            for j in range(len(tab[i])):
+                cell = tab[i][j]
+                if re.match('^[=\\^]?(:\\s)?\\s*=', cell):
+                    lft_syms, result, rgt_syms, form \
+                        = self.__calculate_cell(0, cell, tab, '0')
+                    if result is not None:
+                        adjusted = self.__adjust_number_to_form(result, form)
+                        tab[i][j] = lft_syms + adjusted + rgt_syms
+        return tab
+
+    def __calculate_cell(self, n, cell, tab, form):
+        if n > 99:
+            return None, None, None, None
+        n += 1
+        res_lft = '^([=\\^]?(?::\\s)?)\\s*(=.*?)$'
+        res_rgt = '^(.*?)((?:\\s:)?(?:@[0-9]*x?[0-9]+)?[=\\^]?)$'
+        l_sy = re.sub(res_lft, '\\1', cell)
+        cell = re.sub(res_lft, '\\2', cell)
+        r_sy = re.sub(res_rgt, '\\2', cell)
+        cell = re.sub(res_rgt, '\\1', cell)
+        formula = re.sub('^\\s*=', '', cell)
+        formula = formula.replace('(', ' ( ').replace(')', ' ) ')
+        formula = formula.replace('*', ' * ').replace('/', ' / ')
+        formula = formula.replace('+', ' + ').replace('-', ' - ')
+        formula = re.sub('\\s\\s\\s+', ' ', formula)
+        formula = formula.replace(') (', ') * (')
+        formula = re.sub('^\\s+', '', formula)
+        formula = re.sub('\\s+$', '', formula)
+        formula = ' ' + formula + ' '
+        result, form = self.__calculate_formula(n, formula, tab, form)
+        if result is None:
+            return None, None, None, None
+        return l_sy, result, r_sy, form
+
+    def __calculate_formula(self, n, formula, tab, form):
+        # FUNCTIONS
+        res = '^(.*)' \
+            + '\\s+(SUM|AVERAGE|MAX|MIN)' \
+            + '\\s*' \
+            + '\\(\\s*([A-Z][0-9]+)\\s*:\\s*([A-Z][0-9]+)\\s*\\)' \
+            + '(.*)$'
+        while re.match(res, formula):
+            prev = re.sub(res, '\\1', formula)
+            func = re.sub(res, '\\2', formula)  # SUM, AVERAGE, MAX, MIN
+            cl_f = re.sub(res, '\\3', formula)  # A2, B3, ...
+            cl_t = re.sub(res, '\\4', formula)  # A2, B3, ...
+            post = re.sub(res, '\\5', formula)
+            cell_fr = self.__get_cell_point(cl_f)  # (1, 2), (2, 3), ...
+            cell_to = self.__get_cell_point(cl_t)  # (1, 2), (2, 3), ...
+            result, count = None, 0
+            for i in range(cell_fr[0], cell_to[0] + 1):
+                for j in range(cell_fr[1], cell_to[1] + 1):
+                    if (i > len(tab) - 1) or (j > len(tab[i]) - 1):
+                        return None, form
+                    cell = tab[i][j]
+                    if re.match('^[=\\^]?\\s*=', cell):
+                        _, cell, _, form \
+                            = self.__calculate_cell(n, cell, tab, form)
+                        if cell is None:
+                            return None, form
+                    value, form = self.__get_cell_value_and_form(cell, form)
+                    if value is not None:
+                        if result is None:
+                            result = value
+                        elif func == 'SUM' or func == 'AVERAGE':
+                            if '.' not in result or '.' not in value:
+                                result = str(int(result) + int(value))
+                            else:
+                                result = str(float(result) + float(value))
+                        elif func == 'MAX':
+                            if float(value) > float(result):
+                                result = value
+                        elif func == 'MIN':
+                            if float(value) < float(result):
+                                result = value
+                        count += 1
+            if func == 'AVERAGE':
+                if '.' not in result:
+                    result = str(float(result) / count)
+            formula = prev + result + post
+        # REFERENCE
+        res = '^(.*?)\\s+([A-Z][0-9]+)\\s+(.*)$'
+        while re.match(res, formula):
+            prev = re.sub(res, '\\1', formula)
+            reff = re.sub(res, '\\2', formula)  # A2, B3, ...
+            post = re.sub(res, '\\3', formula)
+            i, j = self.__get_cell_point(reff)  # (1, 2), (2, 3), ...
+            if (i > len(tab) - 1) or (j > len(tab[i]) - 1):
+                return None, form
+            cell = tab[i][j]
+            if re.match('^\\s*=', cell):
+                _, cell, _, form = self.__calculate_cell(n, cell, tab, form)
+                if cell is None:
+                    return None, form
+            value, form = self.__get_cell_value_and_form(cell, form)
+            formula = prev + ' ' + value + ' ' + post
+        # FUNCTIONS (INT, ROUND)
+        prts = ['']
+        res_b = '^(.*\\s+)(INT|ROUND)\\s*\\($'
+        res_e = '^(INT|ROUND)\\s*\\((.*)\\)$'
+        for c in formula:
+            prts[-1] += c
+            if c == '(':
+                if re.match(res_b, prts[-1]):
+                    pre = re.sub(res_b, '\\1', prts[-1])
+                    fnc = re.sub(res_b, '\\2', prts[-1])
+                    prts[-1] = pre
+                    prts.append(fnc + '(')
+            elif c == ')':
+                n1 = prts[-1].count('(')
+                n2 = prts[-1].count(')')
+                if len(prts) > 1 and n1 == n2:
+                    fnc = re.sub(res_e, '\\1', prts[-1])
+                    arg = re.sub(res_e, '\\2', prts[-1])
+                    if fnc == 'ROUND':
+                        dgt = 0
+                        res = '^(.*),\\s*([0-9]+)\\s$'
+                        if re.match(res, arg):
+                            dgt = re.sub(res, '\\2', arg)
+                            arg = int(re.sub(res, '\\1', arg))
+                    arg = self.__calculate_in_parentheses(arg)
+                    if arg is None:
+                        return None, form
+                    if fnc == 'INT':
+                        arg = re.sub('\\.[0-9]+$', '', arg)
+                    elif fnc == 'ROUND':
+                        n = (float(arg) * (10 ** dgt) * 2) + 1
+                        arg = str(int(n / 2) / (10 ** dgt))
+                    prts.pop(-1)
+                    prts[-1] += arg
+        formula = prts[0]
+        # PARENTHESES
+        formula = self.__calculate_in_parentheses(formula)
+        if formula is None:
+            return None, form
+        # RETURN
+        return formula, form
+
+    @staticmethod
+    def __get_cell_point(cell):
+        i = int(cell[1:]) - 1
+        j = ord(cell[0]) - 65
+        return i, j
+
+    @staticmethod
+    def __get_cell_value_and_form(cell, form):
+        cell = re.sub('^\\s+', '', cell)
+        cell = re.sub('\\s+$', '', cell)
+        res0 = '^[+-]?([0-9]*\\.)?[0-9]+$'
+        res3 = '^[+-]?([0-9]{,3},)*[0-9]{3}(\\.[0-9]+)?$'
+        res4 = '^([+-])?' \
+            + '([0-9]{1,4}京)?([0-9]{1,4}兆)?([0-9]{1,4}億)?' \
+            + '([0-9]{1,4}万)?([0-9]{0,4})' \
+            + '(\\.[0-9]+)?$'
+        if re.match(res0, cell):
+            value = cell
+        elif re.match(res3, cell):
+            value = cell.replace(',', '')
+            if form == '0':
+                form = '3'
+        elif re.match(res4, cell):
+            pm = re.sub(res4, '\\1', cell)
+            ke = re.sub(res4, '\\2', cell)
+            ch = re.sub(res4, '\\3', cell)
+            ok = re.sub(res4, '\\4', cell)
+            ma = re.sub(res4, '\\5', cell)
+            su = re.sub(res4, '\\6', cell)
+            fl = re.sub(res4, '\\7', cell)
+            v = 0
+            if ke != '':
+                v += int(ke[:-1]) * 10_000_000_000_000_000
+            if ch != '':
+                v += int(ch[:-1]) * 1_000_000_000_000
+            if ok != '':
+                v += int(ok[:-1]) * 100_000_000
+            if ma != '':
+                v += int(ma[:-1]) * 10_000
+            if su != '':
+                v += int(su)
+            if fl != '':
+                v = float(v) + float(fl)
+            if pm == '-':
+                v = -v
+            value = str(v)
+            if form == '0':
+                form = '4'
+        else:
+            value = None
+        return value, form
+
+    def __calculate_in_parentheses(self, formula):
+        formula = '( ' + formula + ' )'
+        res = '^(.*)\\(([^\\(\\)]*)\\)(.*)'
+        while re.match(res, formula):
+            prev = re.sub(res, '\\1', formula)
+            inpr = re.sub(res, '\\2', formula)
+            post = re.sub(res, '\\3', formula)
+            value = self.__perform_four_arithmetic_operations(inpr)
+            if value is None:
+                return None
+            formula = prev + value + post
+        return formula
+
+    def __perform_four_arithmetic_operations(self, formula):
+        res = '^(.*?)\\s+(\\S+)\\s*([\\*/])\\s*(\\S+)\\s+(.*)$'
+        while re.match(res, formula):
+            prev = re.sub(res, '\\1', formula)
+            num1 = re.sub(res, '\\2', formula)
+            oper = re.sub(res, '\\3', formula)
+            num2 = re.sub(res, '\\4', formula)
+            post = re.sub(res, '\\5', formula)
+            val1, _ = self.__get_cell_value_and_form(num1, '0')
+            val2, _ = self.__get_cell_value_and_form(num2, '0')
+            if val1 is None or val2 is None:
+                return None
+            if oper == '*':
+                value = float(val1) * float(val2)
+            else:
+                value = float(val1) / float(val2)
+            formula = prev + ' ' + '{0:f}'.format(value) + ' ' + post
+        res = '^(.*?)\\s+(\\S+)\\s*([+-])\\s*(\\S+)\\s+(.*)$'
+        while re.match(res, formula):
+            prev = re.sub(res, '\\1', formula)
+            num1 = re.sub(res, '\\2', formula)
+            oper = re.sub(res, '\\3', formula)
+            num2 = re.sub(res, '\\4', formula)
+            post = re.sub(res, '\\5', formula)
+            val1, _ = self.__get_cell_value_and_form(num1, '0')
+            val2, _ = self.__get_cell_value_and_form(num2, '0')
+            if val1 is None or val2 is None:
+                return None
+            if oper == '+':
+                value = float(val1) + float(val2)
+            else:
+                value = float(val1) - float(val2)
+            formula = prev + ' ' + '{0:f}'.format(value) + post
+        formula = re.sub('^\\s+', '', formula)
+        formula = re.sub('\\s+$', '', formula)
+        if not re.match('^[+-]?([0-9]*\\.)?[0-9]+$', formula):
+            return None
+        return formula
+
+    @staticmethod
+    def __adjust_number_to_form(number, form):
+        number = re.sub('^\\s+', '', number)
+        number = re.sub('\\s+$', '', number)
+        if '.' not in number:
+            n = [number, '']
+        else:
+            n = number.split('.')
+        if form == '3':
+            formatted = '{:,}'.format(int(n[0]))
+        elif form == '4':
+            formatted = ''
+            units = [[10_000_000_000_000_000, '京'],
+                     [1_000_000_000_000, '兆'],
+                     [100_000_000, '億'],
+                     [10_000, '万'],
+                     [1, '']]
+            for u in units:
+                if int(n[0]) >= u[0]:
+                    if formatted == '':
+                        formatted += str(int(n[0]) // u[0]) + u[1]
+                    else:
+                        formatted += str(int(n[0]) // u[0]).zfill(4) + u[1]
+                    n[0] = str(int(n[0]) % u[0])
+        else:
+            formatted = n[0]
+        if n[1] != '' and n[1] != '0':
+            formatted += '.' + n[1]
+        return formatted
+
     @staticmethod
     def __get_col_data(tab, conf_line_place,
                        col_alig_list, col_widt_list, col_rule_list):
@@ -6057,7 +6332,17 @@ class ParagraphTable(Paragraph):
             for j in range(len(tab[i])):
                 ca.append(col_alig_list[j])
                 cw.append(col_widt_list[j])
-                cr.append(col_rule_list[j])
+                tmp = tab[i][j]
+                while re.match(NOT_ESCAPED + '\\^\\^', tmp):
+                    tmp = re.sub(NOT_ESCAPED + '\\^\\^', '', tmp)
+                if len(tmp) > 0 and tmp[-1] == '^':
+                    cr.append('^')
+                    tab[i][j] = tab[i][j][:-1]
+                elif len(tmp) > 0 and tmp[-1] == '=':
+                    cr.append('=')
+                    tab[i][j] = tab[i][j][:-1]
+                else:
+                    cr.append(col_rule_list[j])
             col_alig_mtrx.append(ca)
             col_widt_mtrx.append(cw)
             col_rule_mtrx.append(cr)
@@ -6080,7 +6365,14 @@ class ParagraphTable(Paragraph):
             for j in range(len(tab[i])):
                 ra.append(row_alig_list[i])
                 rh.append(row_heig_list[i])
-                rr.append(row_rule_list[i])
+                if len(tab[i][j]) > 0 and tab[i][j][0] == '^':
+                    rr.append('^')
+                    tab[i][j] = tab[i][j][1:]
+                elif len(tab[i][j]) > 0 and tab[i][j][0] == '=':
+                    rr.append('=')
+                    tab[i][j] = tab[i][j][1:]
+                else:
+                    rr.append(row_rule_list[i])
             row_alig_mtrx.append(ra)
             row_heig_mtrx.append(rh)
             row_rule_mtrx.append(rr)
