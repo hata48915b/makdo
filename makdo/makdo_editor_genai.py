@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         genai.py
 # Version:      v01
-# Time-stamp:   <2025.12.28-11:13:41-JST>
+# Time-stamp:   <2025.12.28-18:49:17-JST>
 
 # genai.py
 # Copyright (C) 2025  Seiichiro HATA
@@ -391,11 +391,16 @@ class Ollama(GenAI):
                 t[1] = lt[0]
             if len(lt) > 1:
                 s = lt[1]
-                s = re.sub('m$', '000000', s)
-                s = re.sub('b$', '000000000', s)
-                s = re.sub('lt$', '000000000000', s)
-                if re.match('^[0-9]+$', s):
-                    t[2] = int(s)
+                res = '([A-Za-z]*)([0-9]*\\.?[0-9])([mbt])$'
+                if re.match(res, s):
+                    n = re.sub(res, '\\2', s)
+                    u = re.sub(res, '\\3', s)
+                    if u == 'm':
+                        t[2] = int(float(n) * 1_000_000)
+                    elif u == 'b':
+                        t[2] = int(float(n) * 1_000_000_000)
+                    elif u == 't':
+                        t[2] = int(float(n) * 1_000_000_000_000)
                 elif s != '':
                     t[2] = 999_999_999_999_999
             tmp.append(t)
