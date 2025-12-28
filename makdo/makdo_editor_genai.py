@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         genai.py
 # Version:      v01
-# Time-stamp:   <2025.12.16-14:04:19-JST>
+# Time-stamp:   <2025.12.28-11:13:41-JST>
 
 # genai.py
 # Copyright (C) 2025  Seiichiro HATA
@@ -376,18 +376,48 @@ class Ollama(GenAI):
         pane = self.makdo._get_pane()
         if mother is None:
             mother = pane
+        # GET INSTALLED MODELS
         mol = self._get_installed_ollama_models()
         if mol is None:
             return False
+        tmp = []
+        for m in mol:
+            t = ['', '', 0, m]
+            if re.match('^.*-cloud$', m):
+                t[0], t[3] = '@', '@' + m  # for cloud
+            m = re.sub('-[^-]+$', '', m)
+            lt = m.split(':')
+            if len(lt) > 0:
+                t[1] = lt[0]
+            if len(lt) > 1:
+                s = lt[1]
+                s = re.sub('m$', '000000', s)
+                s = re.sub('b$', '000000000', s)
+                s = re.sub('lt$', '000000000000', s)
+                if re.match('^[0-9]+$', s):
+                    t[2] = int(s)
+                elif s != '':
+                    t[2] = 999_999_999_999_999
+            tmp.append(t)
+        tmp.sort()
+        mol = []
+        for t in tmp:
+            mol.append(t[3])
+        # SET TITLE AND MESSAGE
         tit, mes = 'Ollamaのモデルを選択', 'Ollamaのモデルを選択してください．'
+        # GET THE CURRENT MODEL
         num = -1
         if 'ollama_model' in vars(self.makdo):
             om = self.makdo.ollama_model
+            if re.match('^.*-cloud$', om):
+                om = '@' + om  # for cloud
             if om in mol:
                 num = mol.index(om)
+        # GET A NEW MODEL
         rd = RadiobuttonDialog(mother, self.makdo, tit, mes, mol, num)
         val = rd.get_value()
         if (val is not None) and (val != self.makdo.ollama_model):
+            val = re.sub('^@', '', val)  # for cloud
             self.makdo.ollama_model = val
             m = 'Ollamaのモデルを"' + val + '"に設定しました'
             self.makdo.set_message_on_status_bar(m)
