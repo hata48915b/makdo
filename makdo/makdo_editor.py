@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.12.26-13:27:31-JST>
+# Time-stamp:   <2025.12.28-16:52:10-JST>
 
 # editor.py
 # Copyright (C) 2022-2025  Seiichiro HATA
@@ -8634,14 +8634,20 @@ class Makdo:
                 indent = ' ' * len(head_string)
         # TIDY UP
         lines = par.split('\n')
-        for i, line in enumerate(lines):
-            lin = line
+        for i, lin in enumerate(lines):
+            if lin == '':
+                break
             res = '^(\\s*)((?:.|\n)*)$'
             if i > 0:
-                spc = re.sub(res, '\\1', lin)
-                bdy = re.sub(res, '\\2', lin)
-                spc = self._replace_spaces(pane, text, spc, indent)
-                lin = spc + bdy
+                if re.match('^(.|\n)*\\s:\\s*$', par):
+                    pass  # center and right alignment
+                elif re.match('^\\s*:\\s', par) and re.match('^\\s*:\\s', lin):
+                    pass  # left alignment
+                else:
+                    spc = re.sub(res, '\\1', lin)
+                    bdy = re.sub(res, '\\2', lin)
+                    spc = self._replace_spaces(pane, text, spc, indent)
+                    lin = spc + bdy
             res = '^(.*?)(\\s+)$'
             if re.match(res, lin):
                 spc = re.sub(res, '\\2', lin)
