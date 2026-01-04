@@ -1,0 +1,5 @@
+pip install python-docx
+pip install chardet
+pip install tkinterdnd2
+pip install Levenshtein
+pip install openpyxl
