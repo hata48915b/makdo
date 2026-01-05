@@ -1,7 +1,18 @@
 # pip install -r requirements.txt
 
-python-docx
+# editor, md2docx, mddiff
 chardet
+
+# md2docx
+python-docx
+
+# editor
 tkinterdnd2
-Levenshtein
 openpyxl
+
+# mddiff
+Levenshtein
+
+# generative AI
+openai
+ollama
