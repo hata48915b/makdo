@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 # Name:         genai.py
 # Version:      v01
-# Time-stamp:   <2025.12.28-18:49:17-JST>
+# Time-stamp:   <2026.01.11-08:56:00-JST>
 
 # genai.py
-# Copyright (C) 2025  Seiichiro HATA
+# Copyright (C) 2025-2026  Seiichiro HATA
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -45,10 +45,11 @@ class GenAI:
         ans_head = '## 【' + self.genai_name + 'の回答】' + ('-' * n)
         return cnf_head, que_head, ans_head
 
-    def _get_messages(self, qanda) -> list[dict]:
+    def _get_messages(self, qanda:str) -> list[dict]:
         cnf_head, que_head, ans_head = self._get_genai_head()
         messages = []
         role, mc = '', ''
+        qanda = self._remove_comments(qanda)
         doc = qanda + '\n\n' + ans_head
         for line in doc.split('\n'):
             if line == cnf_head or line == que_head or line == ans_head:
@@ -66,6 +67,12 @@ class GenAI:
             else:
                 mc += line + '\n'
         return messages
+
+    def _remove_comments(self, qanda:str) -> str:
+        res = '<!--.*?-->'
+        while re.match(res, qanda):
+            qanda = re.sub(res, '', qanda)
+        return qanda
 
     def _set_message_on_status_bar(self) -> bool:
         mes = self.genai_name + '（' + self.model + '）に質問しています'
@@ -473,6 +480,15 @@ class Ollama(GenAI):
         self._paint_genai_lines()
         return True
 
+    # ASK OLLAMA (SUB PANE)
+
+    def close_ollama(self) -> None:
+        del self.makdo._execute_sub_pane
+        del self.makdo._close_sub_pane
+        self.ollama_qanda = self.makdo.sub.get('1.0', 'end-1c')
+        self.makdo.set_message_on_status_bar('')
+        self.makdo._close_sub_pane()
+
     def ask_ollama(self) -> None:
         if self.makdo.current_pane != 'sub':
             self.ask_ollama_on_main_pane()
@@ -500,14 +516,7 @@ class Ollama(GenAI):
         self._write_formal_answer(answer)
         return True
 
-    def close_ollama(self) -> None:
-        del self.makdo._execute_sub_pane
-        del self.makdo._close_sub_pane
-        self.ollama_qanda = self.makdo.sub.get('1.0', 'end-1c')
-        self.makdo.set_message_on_status_bar('')
-        self.makdo._close_sub_pane()
-
-    # ASK OLLAMA
+    # ASK OLLAMA (MAIN PANE)
 
     def ask_ollama_on_main_pane(self):
         thread_1 = threading.Thread(

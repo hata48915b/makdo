@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.12.27-07:33:19-JST>
+# Time-stamp:   <2026.01.13-11:45:51-JST>
 
 # md2docx.py
-# Copyright (C) 2022-2025  Seiichiro HATA
+# Copyright (C) 2022-2026  Seiichiro HATA
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -1312,6 +1312,8 @@ class IO:
         ms_doc.styles.add_style('makdo', WD_STYLE_TYPE.PARAGRAPH)
         XML.set_font(ms_doc.styles['makdo'], Form.mincho_font)
         ms_doc.styles['makdo'].font.size = Pt(f_size)
+        ms_doc.styles['makdo'].paragraph_format.space_before = 0
+        ms_doc.styles['makdo'].paragraph_format.space_after = 0
         ms_doc.styles['makdo'].paragraph_format.line_spacing \
             = Pt(line_spacing * f_size)
         if not Form.auto_space:

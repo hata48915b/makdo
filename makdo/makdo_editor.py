@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.12.28-16:52:10-JST>
+# Time-stamp:   <2026.01.07-12:22:13-JST>
 
 # editor.py
-# Copyright (C) 2022-2025  Seiichiro HATA
+# Copyright (C) 2022-2026  Seiichiro HATA
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -4062,6 +4062,7 @@ class Makdo:
                 self.quit_editing_llama_rag_data()
         self.memo_pad_memory = None
         self.close_mouse_menu()  # close mouse menu
+        self.quit_editing_genai_system_message()
         self.pnd_r.remove(self.pnd2)
         #
         self.txt.focus_force()
@@ -11942,6 +11943,8 @@ class Makdo:
                     self.llama_context_size = int(valu)
             elif item == 'ollama_model':
                 self.ollama_model = valu
+            elif item == 'genai_system_message':
+                self.genai_system_message = valu.replace('\\n', '\n')
         return True
 
     def save_configurations(self):
@@ -11998,6 +12001,10 @@ class Makdo:
             if 'ollama_model' in vars(self):
                 f.write('ollama_model:           '
                         + self.ollama_model + '\n')
+            if 'genai_system_message' in vars(self):
+                f.write('genai_system_message:   '
+                        + self.genai_system_message.replace('\n', '\\n')
+                        + '\n')
             self.set_message_on_status_bar('設定を保存しました')
         os.chmod(CONFIG_FILE, 0o400)
 
@@ -12242,7 +12249,10 @@ class Makdo:
                          command=self.save_ollama_exchanges)
         menu.add_command(label='Ollamaのやり取りを開く',
                          command=self.open_ollama_exchanges)
-
+        menu.add_separator()
+        #
+        menu.add_command(label='生成AIのシステムメッセージを編集',
+                         command=self.start_editing_genai_system_message)
         # menu.add_separator()
 
     @staticmethod
@@ -12328,6 +12338,14 @@ class Makdo:
         return False
 
     def open_ollama_exchanges(self) -> bool:
+        self._show_message_reducing_functions()
+        return False
+
+    def start_editing_genai_system_message(self) -> bool:
+        self._show_message_reducing_functions()
+        return False
+
+    def quit_editing_genai_system_message(self) -> bool:
         self._show_message_reducing_functions()
         return False
 
@@ -14753,12 +14771,32 @@ class Makdo:
                 self.genai.CONFIG_DIR = CONFIG_DIR
                 self.genai.get_real_width = get_real_width
                 self.genai.RadiobuttonDialog = RadiobuttonDialog
+                if 'genai_system_message' in vars(self):
+                    self.genai.GenAI.system_message = self.genai_system_message
             except ImportError:
                 n, m = 'エラー', '"genai"を\nインポートできませんでした．'
                 tkinter.messagebox.showerror(n, m)
                 return False
             return True
 
+    def start_editing_genai_system_message(self) -> bool:
+        if 'genai_system_message' not in vars(self):
+            if not self._import_genai():
+                return False
+            self.genai_system_message = self.genai.GenAI.system_message
+        self._open_sub_pane(self.genai_system_message, False)
+        self.is_editing_genai_system_message = True
+        return False
+
+    def quit_editing_genai_system_message(self) -> bool:
+        if not 'is_editing_genai_system_message' in vars(self):
+            return False
+        self.genai_system_message = self.sub.get('1.0', 'end-1c')
+        if 'genai' in vars(self):
+            self.genai.GenAI.system_message = self.genai_system_message
+        self.show_config_help_message()
+        self.is_editing_genai_system_message = False
+        return True
 
 ######################################################################
 # MAIN
