@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.01.07-12:22:13-JST>
+# Time-stamp:   <2026.01.13-18:30:53-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -12377,15 +12377,15 @@ class Makdo:
     # COMMAND
 
     def show_char_info(self) -> bool:
-        n = '文字情報'
         s = self.txt.get('insert', 'insert+5c')
+        n = '文字情報'
+        m = ''
         for i in range(5, 0, -1):
             c = s[0:i]
             if c == '':
                 return False
             if c not in makdo.jpchars.chars:
                 continue
-            m = ''
             char = makdo.jpchars.chars[c]
             if c == ' ':
                 m += '・文字：（半角スペース）\n'
