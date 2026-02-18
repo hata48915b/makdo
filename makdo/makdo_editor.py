@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.01.13-18:30:53-JST>
+# Time-stamp:   <2026.02.18-12:44:43-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -1312,33 +1312,276 @@ def adjust_line(old_doc: str) -> str:
     return new_doc
 
 
-def count_days(date: str) -> int:
-    res = '([MTSHR]?)([0-9]+)-([0-9]+)-([0-9]+)'
-    era = re.sub(res, '\\1', date)
-    yea = re.sub(res, '\\2', date)
-    mon = re.sub(res, '\\3', date)
-    day = re.sub(res, '\\4', date)
-    if era == 'M':
-        yea = str(int(yea) + 1867)
-    elif era == 'T':
-        yea = str(int(yea) + 1911)
-    elif era == 'S':
-        yea = str(int(yea) + 1925)
-    elif era == 'H':
-        yea = str(int(yea) + 1988)
-    elif era == 'R':
-        yea = str(int(yea) + 2018)
-    if int(yea) < 100:
-        yea = str(int(yea) + 2000)
-    ymd_hms = yea + '-' + mon + '-' + day + ' 09:00:00 UTC'
-    date = datetime.datetime.strptime(ymd_hms, '%Y-%m-%d %H:%M:%S %Z')
-    unix_time = date.timestamp()
-    days: int = round(unix_time / 86400)
-    return days
-
-
 ######################################################################
 # CLASS
+
+
+############################################################
+# MATH
+
+class Math():
+
+    def __init__(self, line, default_digit_separator):
+        self.line = line
+        self.default_digit_separator = default_digit_separator
+        self.line_head, self.line_math, self.line_rslt, self.line_tail \
+            = self._split_line(line)
+        #
+        self.numerical_formula = self.line_math
+        self.numerical_formula \
+            = self._prepare_numerical_formula(self.numerical_formula)
+        #
+        self.calculation_result \
+            = self._get_calculation_result(self.numerical_formula)
+        #
+        self.last_calculation_result, self.last_digit_separator \
+            = self._get_last_info(self.line_rslt)
+        if self.last_digit_separator is None:
+            self.digit_separator = self.default_digit_separator
+        elif self.calculation_result != self.last_calculation_result:
+            self.digit_separator = self.default_digit_separator
+        else:
+            loop = {'4s': '4', '4': '3', '3': '0', '0': '4s'}
+            self.digit_separator = loop[self.last_digit_separator]
+        self.digit_separated_calculation_result \
+            = self._digit_separate(self.calculation_result,
+                                   self.digit_separator)
+
+    @staticmethod
+    def _split_line(line):
+        line_head, line_math, line_rslt, line_tail = '', line, '', ''
+        res = '^(.*(?:<!--|@))(.*)$'
+        if re.match(res, line_math):
+            line_head = re.sub(res, '\\1', line_math)
+            line_math = re.sub(res, '\\2', line_math)
+        res = '^(.*)((?:-->|#).*)$'
+        if re.match(res, line_math):
+            line_tail = re.sub(res, '\\2', line_math)
+            line_math = re.sub(res, '\\1', line_math)
+        res = '^(.*)(=.*)$'
+        if re.match(res, line_math):
+            line_rslt = re.sub(res, '\\2', line_math)
+            line_math = re.sub(res, '\\1', line_math)
+        return line_head, line_math, line_rslt, line_tail
+
+    def _prepare_numerical_formula(self, numerical_formula):
+        nfl = numerical_formula
+        if nfl == '':
+            return None
+        # CHANGE CHARACTERS
+        nfl = nfl.replace(' ', '').replace('\t', '').replace('\u3000', '')
+        nfl = nfl.replace('，', ',').replace('．', '.')
+        nfl = nfl.replace('０', '0').replace('１', '1').replace('２', '2')
+        nfl = nfl.replace('３', '3').replace('４', '4').replace('５', '5')
+        nfl = nfl.replace('６', '6').replace('７', '7').replace('８', '8')
+        nfl = nfl.replace('９', '9')
+        nfl = nfl.replace('〇', '0').replace('零', '0')
+        nfl = nfl.replace('一', '1').replace('壱', '1').replace('壹', '1')
+        nfl = nfl.replace('弌', '1')
+        nfl = nfl.replace('二', '2').replace('弐', '2').replace('貳', '2')
+        nfl = nfl.replace('貮', '2').replace('弍', '2')
+        nfl = nfl.replace('三', '3').replace('参', '3').replace('參', '3')
+        nfl = nfl.replace('弎', '3')
+        nfl = nfl.replace('四', '4').replace('亖', '4').replace('肆', '4')
+        nfl = nfl.replace('五', '5').replace('伍', '5')
+        nfl = nfl.replace('六', '6').replace('陸', '6')
+        nfl = nfl.replace('七', '7').replace('漆', '7').replace('質', '7')
+        nfl = nfl.replace('柒', '7')
+        nfl = nfl.replace('八', '8').replace('捌', '8')
+        nfl = nfl.replace('九', '9').replace('玖', '9')
+        nfl = nfl.replace('陌', '百').replace('佰', '百')
+        nfl = nfl.replace('阡', '千').replace('仟', '千')
+        nfl = nfl.replace('萬', '万')
+        nfl = nfl.replace('（', '(').replace('）', ')')
+        nfl = nfl.replace('｛', '(').replace('｝', ')')
+        nfl = nfl.replace('［', '(').replace('］', ')')
+        nfl = nfl.replace('｜', '|').replace('！', '!').replace('＾', '^')
+        nfl = nfl.replace('＊', '*').replace('／', '/').replace('％', '%')
+        nfl = nfl.replace('＋', '+').replace('−', '-')
+        nfl = nfl.replace('×', '*').replace('÷', '/').replace('ー', '-')
+        nfl = nfl.replace('△', '-').replace('▲', '-')
+        nfl = nfl.replace('ﾊﾟｰｾﾝﾄ', '%').replace('パーセント', '%')
+        # REMOVE DIGIT SEPARATORS
+        new = ''
+        res = '^(.*?)([,京兆億万千百十0-9]+)((?:\\.[0-9]+)?)(.*)$'
+        while re.match(res, nfl):
+            head = re.sub(res, '\\1', nfl)
+            numb = re.sub(res, '\\2', nfl)
+            floa = re.sub(res, '\\3', nfl)
+            tail = re.sub(res, '\\4', nfl)
+            numb = self._3_digit_separated_to_0_digit_separated(numb)
+            numb = self._4_digit_separated_to_0_digit_separated(numb)
+            new += head + numb + floa
+            nfl = tail
+        nfl = new + tail
+        # %, 割, 分, 厘
+        nfl = re.sub('([0-9\\.]+)%', '(\\1/100)', nfl)
+        nfl = re.sub('([0-9\\.]+)割', '(\\1/10)', nfl)
+        nfl = re.sub('([0-9\\.]+)分', '(\\1/100)', nfl)
+        nfl = re.sub('([0-9\\.]+)厘', '(\\1/1000)', nfl)
+        # FRACTION
+        res = '^(.*?)' \
+            + '([0-9]+|\\([^\\(\\)]+\\))分の([0-9]+|\\([^\\(\\)]+\\))' \
+            + '(.*?)$'
+        while re.match(res, nfl):
+            nfl = re.sub(res, '\\1(\\3/\\2)\\4', nfl)
+        # POWER
+        nfl = re.sub('\\^', '**', nfl)
+        # CONSTANT
+        nfl = re.sub('pi', '3.141592653589793', nfl)
+        nfl = re.sub('e', '2.718281828459045', nfl)
+        # DAYS
+        res = '^(.*)days\\(([MTSHR]?[0-9]+-[0-9]+-[0-9]+)\\)(.*)$'
+        while re.match(res, nfl):
+            pre = re.sub(res, '\\1', nfl)
+            dat = re.sub(res, '\\2', nfl)
+            pos = re.sub(res, '\\3', nfl)
+            nfl = pre + str(count_days(dat)) + pos
+        # REMOVE
+        nfl = re.sub('[^\\(\\)\\|\\*/%\\-\\+0-9\\.]', '', nfl)
+        # RETURN
+        return nfl
+
+    def _3_digit_separated_to_0_digit_separated(self, number):
+        i, f = self._separate_integer_and_fractional(number)
+        i = re.sub(',', '', i)
+        return i + f
+
+    def _4_digit_separated_to_0_digit_separated(self, number):
+        i, f = self._separate_integer_and_fractional(number)
+        n = 0
+        unit = ['京', '兆', '億', '万']
+        for k, u in enumerate(unit):
+            res = '^(.*)' + u + '(.*)$'
+            if re.match(res, i):
+                t1 = re.sub(res, '\\1', i)
+                t2 = re.sub(res, '\\2', i)
+                n += int(self._get_western_number(t1)) * (10000 ** (4 - k))
+                i = t2
+        if i != '':
+            n += int(self._get_western_number(i))
+        i = str(n)
+        return i + f
+
+    def _0_digit_separated_to_4s_digit_separated(self, number):
+        number = self._0_digit_separated_to_4_digit_separated(number)
+        number = re.sub('0000$', '', number)
+        number = re.sub('0000万$', '', number)
+        number = re.sub('0000億$', '', number)
+        number = re.sub('0000兆$', '', number)
+        return number
+
+    def _0_digit_separated_to_4_digit_separated(self, number):
+        i, f = self._separate_integer_and_fractional(number)
+        if re.match('^.*[0-9]{17}$', i):
+            i = re.sub('([0-9]{16})$', '京\\1', i)
+        if re.match('^.*[0-9]{13}$', i):
+            i = re.sub('([0-9]{12})$', '兆\\1', i)
+        if re.match('^.*[0-9]{9}$', i):
+            i = re.sub('([0-9]{8})$', '億\\1', i)
+        if re.match('^.*[0-9]{5}$', i):
+            i = re.sub('([0-9]{4})$', '万\\1', i)
+        return i + f
+
+    def _0_digit_separated_to_3_digit_separated(self, number):
+        i, f = self._separate_integer_and_fractional(number)
+        i = '{:,}'.format(int(i))
+        return i + f
+
+    @staticmethod
+    def _separate_integer_and_fractional(number):
+        i, f = number, ''
+        res = '^(.*?)(\\..*)$'
+        if re.match(res, number):
+            i = re.sub(res, '\\1', number)
+            f = re.sub(res, '\\2', number)
+        return i, f
+
+    @staticmethod
+    def _get_western_number(number):
+        # 百 -> 1百
+        unit = ['千', '百', '十']
+        for u in unit:
+            res = '^(.*[^0-9])?(' + u + '.*)$'
+            while re.match(res, number):
+                number = re.sub(res, '\\g<1>1\\g<2>', number)
+        # 1百 -> 1百0十0
+        unit, vnit = ['千', '百', '十'], ['百', '十', '']
+        for i, u in enumerate(unit):
+            v = vnit[i]
+            new, old = '', number
+            res = '^(.*?' + u + ')(.*)$'
+            while re.match(res, old):
+                t1 = re.sub(res, '\\1', old)
+                t2 = re.sub(res, '\\2', old)
+                if not re.match('^[0-9]' + v + '.*$', t2):
+                    t2 = '0' + v + t2
+                new = new + t1
+                old = t2
+            number = new + old
+        # 1百0十0 -> 100
+        number = number.replace('千', '').replace('百', '').replace('十', '')
+        return number
+
+    @staticmethod
+    def count_days(date: str) -> int:
+        res = '([MTSHR]?)([0-9]+)-([0-9]+)-([0-9]+)'
+        era = re.sub(res, '\\1', date)
+        yea = re.sub(res, '\\2', date)
+        mon = re.sub(res, '\\3', date)
+        day = re.sub(res, '\\4', date)
+        if era == 'M':
+            yea = str(int(yea) + 1867)
+        elif era == 'T':
+            yea = str(int(yea) + 1911)
+        elif era == 'S':
+            yea = str(int(yea) + 1925)
+        elif era == 'H':
+            yea = str(int(yea) + 1988)
+        elif era == 'R':
+            yea = str(int(yea) + 2018)
+        if int(yea) < 100:
+            yea = str(int(yea) + 2000)
+        ymd_hms = yea + '-' + mon + '-' + day + ' 09:00:00 UTC'
+        date = datetime.datetime.strptime(ymd_hms, '%Y-%m-%d %H:%M:%S %Z')
+        unix_time = date.timestamp()
+        days: int = round(unix_time / 86400)
+        return days
+
+    @staticmethod
+    def _get_calculation_result(numerical_formula: str) -> str:
+        try:
+            result = str(round(eval(numerical_formula), 10))
+        except BaseException:
+            return None
+        result = re.sub('\\.0$', '', result)
+        return result
+
+    def _get_last_info(self, line_result):
+        if line_result == '':
+            return None, None
+        n = re.sub('^=', '', line_result)
+        if re.match('^([0-9]*\\.)?[0-9]+$', n):
+            return n, '0'
+        elif re.match('^[1-9]{1,3}(,[0-9]{3})+(\\.[0-9]+)?$', n):
+            return self._3_digit_separated_to_0_digit_separated(n), '3'
+        elif re.match('^[京兆億万0-9]+[0-9]+(\\.[0-9]+)?$', n):
+            return self._4_digit_separated_to_0_digit_separated(n), '4'
+        elif re.match('^[京兆億万0-9]+(\\.[0-9]+)?$', n):
+            return self._4_digit_separated_to_0_digit_separated(n), '4s'
+        else:
+            return None, None
+
+    def _digit_separate(self, calculation_result, digit_separator):
+        cr, ds = calculation_result, digit_separator
+        if ds == '4s':
+            return self._0_digit_separated_to_4s_digit_separated(cr)
+        elif ds == '4':
+            return self._0_digit_separated_to_4_digit_separated(cr)
+        elif ds == '3':
+            return self._0_digit_separated_to_3_digit_separated(cr)
+        else:
+            return calculation_result
 
 
 ############################################################
@@ -5593,179 +5836,14 @@ class Makdo:
 
     def calculate(self, must_show_message=True) -> bool:
         line = self.txt.get('insert linestart', 'insert lineend')
-        line_head = ''
-        line_math = line
-        line_rslt = ''
-        line_tail = ''
-        res = '^(.*(?:<!--|@))(.*)$'
-        if re.match(res, line_math):
-            line_head = re.sub(res, '\\1', line_math)
-            line_math = re.sub(res, '\\2', line_math)
-        res = '^(.*)((?:-->|#).*)$'
-        if re.match(res, line_math):
-            line_tail = re.sub(res, '\\2', line_math)
-            line_math = re.sub(res, '\\1', line_math)
-        res = '^(.*)(=.*)$'
-        if re.match(res, line_math):
-            line_rslt = re.sub(res, '\\2', line_math)
-            line_math = re.sub(res, '\\1', line_math)
-        if line_math == '':
-            return
-        math = line_math
-        res = '^(.*)days\\(([MTSHR]?[0-9]+-[0-9]+-[0-9]+)\\)(.*)$'
-        while re.match(res, math):
-            pre = re.sub(res, '\\1', math)
-            dat = re.sub(res, '\\2', math)
-            pos = re.sub(res, '\\3', math)
-            math = pre + str(count_days(dat)) + pos
-        math = math.replace('\t', ' ').replace('\u3000', ' ')
-        math = math.replace('，', ',').replace('．', '.')
-        math = math.replace('０', '0').replace('１', '1').replace('２', '2')
-        math = math.replace('３', '3').replace('４', '4').replace('５', '5')
-        math = math.replace('６', '6').replace('７', '7').replace('８', '8')
-        math = math.replace('９', '9')
-        math = math.replace('〇', '0').replace('一', '1').replace('二', '2')
-        math = math.replace('三', '3').replace('四', '4').replace('五', '5')
-        math = math.replace('六', '6').replace('七', '7').replace('八', '8')
-        math = math.replace('九', '9')
-        math = math.replace('（', '(').replace('）', ')')
-        math = math.replace('｛', '{').replace('｝', '}')
-        math = math.replace('［', '[').replace('］', ']')
-        math = math.replace('｜', '|').replace('！', '!').replace('＾', '^')
-        math = math.replace('＊', '*').replace('／', '/').replace('％', '%')
-        math = math.replace('＋', '+').replace('−', '-')
-        math = math.replace('×', '*').replace('÷', '/').replace('ー', '-')
-        math = math.replace('△', '-').replace('▲', '-')
-        math = math.replace('パ-セント', '%')
-        # ' ', ','
-        math = math.replace(' ', '').replace(',', '')
-        # {, }, [, ]
-        math = math.replace('{', '(').replace('}', ')')
-        math = math.replace('[', '(').replace(']', ')')
-        # 千 -> 1千
-        unit = ['千', '百', '十']
-        new_math = ''
-        res1 = '^(.*?)([京兆億万千百十0-9]+)(.*)$'
-        while re.match(res1, math):
-            head = re.sub(res1, '\\1', math)
-            numb = re.sub(res1, '\\2', math)
-            math = re.sub(res1, '\\3', math)
-            tmp = ''
-            for i, u in enumerate(unit):
-                res2 = '^([^' + u + ']*' + u + ')(.*)$'
-                if re.match(res2, numb):
-                    t1 = re.sub(res2, '\\1', numb)  # [^千]*千
-                    t2 = re.sub(res2, '\\2', numb)  # .*
-                    if not re.match('^.*[0-9]' + u + '$', t1):
-                        t1 = re.sub(u + '$', '1' + u, t1)  # 千 -> 1千
-                    tmp += t1
-                    numb = t2
-            new_math += head + tmp + numb
-        math = new_math + math
-        # 1千 -> 1千0百0十0
-        unit, vnit = ['千', '百', '十'], ['百', '十', '']
-        new_math = ''
-        res1 = '^(.*?)([京兆億万千百十0-9]+)(.*)$'
-        while re.match(res1, math):
-            head = re.sub(res1, '\\1', math)
-            numb = re.sub(res1, '\\2', math)
-            math = re.sub(res1, '\\3', math)
-            tmp = ''
-            for i, u in enumerate(unit):
-                v = vnit[i]
-                res2 = '^([^' + u + ']*' + u + ')(.*)$'
-                if re.match(res2, numb):
-                    t1 = re.sub(res2, '\\1', numb)  # [^千]*千
-                    t2 = re.sub(res2, '\\2', numb)  # .*
-                    tmp += t1
-                    if not re.match('^[0-9]' + v, t2):
-                        t2 = '0' + v + t2
-                    numb = t2
-            new_math += head + tmp + numb
-        math = new_math + math
-        math = math.replace('千', '').replace('百', '').replace('十', '')
-        # 1兆2万 -> 1兆0000億0002万0000
-        new_math = ''
-        unit, vnit = ['京', '兆', '億', '万'], ['兆', '億', '万', '']
-        res1 = '^(.*?)([京兆億万千百十0-9]+)(.*)$'
-        while re.match(res1, math):
-            head = re.sub(res1, '\\1', math)
-            numb = re.sub(res1, '\\2', math)
-            math = re.sub(res1, '\\3', math)
-            tmp = ''
-            for i, u in enumerate(unit):
-                v = vnit[i]
-                res2 = '^([^' + u + ']*' + u + ')(.*)$'
-                if re.match(res2, numb):
-                    t1 = re.sub(res2, '\\1', numb)  # [^京]*京
-                    t2 = re.sub(res2, '\\2', numb)  # .*
-                    tmp += t1
-                    if re.match('[0-9]{,4}' + v, t2):
-                        t2 = '0000' + t2
-                        numb = re.sub('^[0-9]*([0-9]{4})', '\\1', t2)  # 0012兆
-                    else:
-                        numb = '0000' + v + t2  # 0000兆
-            new_math += head + tmp + numb
-        math = new_math + math
-        math = math.replace('京', '').replace('兆', '')
-        math = math.replace('億', '').replace('万', '')
-        # %, 割, 分, 厘
-        math = re.sub('([0-9\\.]+)%', '(\\1/100)', math)
-        math = re.sub('([0-9\\.]+)割', '(\\1/10)', math)
-        math = re.sub('([0-9\\.]+)分', '(\\1/100)', math)
-        math = re.sub('([0-9\\.]+)厘', '(\\1/1000)', math)
-        # FRACTION
-        res = '^(.*?)' \
-            + '([0-9]+|\\([^\\(\\)]+\\))分の([0-9]+|\\([^\\(\\)]+\\))' \
-            + '(.*?)$'
-        while re.match(res, math):
-            math = re.sub(res, '\\1(\\3/\\2)\\4', math)
-        # POWER
-        math = re.sub('\\^', '**', math)
-        # REMOVE
-        math = re.sub('pi', '3.141592653589793', math)
-        math = re.sub('e', '2.718281828459045', math)
-        math = re.sub('[^\\(\\)\\|\\*/%\\-\\+0-9\\.]', '', math)
-        # EVAL
-        try:
-            r = str(round(eval(math), 10))
-        except BaseException:
-            if must_show_message:
-                n, m = 'エラー', '計算できませんでした．'
-                tkinter.messagebox.showerror(n, m)
-            return False
-        r = re.sub('\\.0$', '', r)
-        # REPLACE
         digit_separator = self.digit_separator.get()
-        if '.' in r:
-            i = re.sub('^(.*)(\\..*)$', '\\1', r)
-            f = re.sub('^(.*)(\\..*)$', '\\2', r)
-        else:
-            i = r
-            f = ''
-        if digit_separator == '3':
-            if re.match('^.*[0-9]{19}$', i):
-                i = re.sub('([0-9]{18})$', ',\\1', i)
-            if re.match('^.*[0-9]{16}$', i):
-                i = re.sub('([0-9]{15})$', ',\\1', i)
-            if re.match('^.*[0-9]{13}$', i):
-                i = re.sub('([0-9]{12})$', ',\\1', i)
-            if re.match('^.*[0-9]{10}$', i):
-                i = re.sub('([0-9]{9})$', ',\\1', i)
-            if re.match('^.*[0-9]{7}$', i):
-                i = re.sub('([0-9]{6})$', ',\\1', i)
-            if re.match('^.*[0-9]{4}$', i):
-                i = re.sub('([0-9]{3})$', ',\\1', i)
-        elif digit_separator == '4':
-            if re.match('^.*[0-9]{17}$', i):
-                i = re.sub('([0-9]{16})$', '京\\1', i)
-            if re.match('^.*[0-9]{13}$', i):
-                i = re.sub('([0-9]{12})$', '兆\\1', i)
-            if re.match('^.*[0-9]{9}$', i):
-                i = re.sub('([0-9]{8})$', '億\\1', i)
-            if re.match('^.*[0-9]{5}$', i):
-                i = re.sub('([0-9]{4})$', '万\\1', i)
-        r = i + f
+        m = Math(line, digit_separator)
+        line_head = m.line_head
+        line_math = m.line_math
+        line_rslt = m.line_rslt
+        line_tail = m.line_tail
+        r = m.digit_separated_calculation_result
+        # REPLACE
         v_number = self._get_v_position_of_insert(self.txt)
         beg = str(v_number) + '.' + str(len(line_head + line_math))
         end = str(v_number) + '.' + str(len(line_head + line_math + line_rslt))
@@ -7571,7 +7649,6 @@ class Makdo:
                       '㉑', '㉒', '㉓', '㉔', '㉕', '㉖', '㉗', '㉘', '㉙', '㉚',
                       '㉛', '㉜', '㉝', '㉞', '㉟', '㊱', '㊲', '㊳', '㊴', '㊵',
                       '㊶', '㊷', '㊸', '㊹', '㊺', '㊻', '㊼', '㊽', '㊾', '㊿',
-                      ''
                       '²', '³', '㎠', '㎤', '㎡', '㎥',
                       'Α', 'Β', 'Γ', 'Δ', 'Ε', 'Ζ', 'Η', 'Θ', 'Ι', 'Κ',
                       'Λ', 'Μ', 'Ν', 'Ξ', 'Ο', 'Π', 'Ρ', 'Σ', 'Τ', 'Υ',
@@ -7579,12 +7656,18 @@ class Makdo:
                       'α', 'β', 'γ', 'δ', 'ε', 'ζ', 'η', 'θ', 'ι', 'κ',
                       'λ', 'μ', 'ν', 'ξ', 'ο', 'π', 'ρ', 'ς', 'σ', 'τ',
                       'υ', 'φ', 'χ', 'ψ', 'ω',
+                      'Á', 'á', 'À', 'à', 'Â', 'â', 'Ä', 'ä', 'Ã', 'ã', 'Å', 'å',
+                      'Í', 'í', 'Ì', 'ì', 'Î', 'î', 'Ï', 'ï',
+                      'Ú', 'ú', 'Ù', 'ù', 'Û', 'û', 'Ü', 'ü',
+                      'É', 'é', 'È', 'è', 'Ê', 'ê', 'Ë', 'ë',
+                      'Ó', 'ó', 'Ò', 'ò', 'Ô', 'ô', 'Ö', 'ö', 'Õ', 'õ', 'Ø', 'ø',
+                      'Ñ', 'ñ', 'Ç', 'ç', 'ß', 'Æ', 'æ',
                       '©', '®',
+                      '㊞',
                       '∞', '√', '∛', '∜', '∀', '∃', '∴', '∵',
                       '±', '∓', '≠', '≡', '≒', '≈', '≦', '≧', '≤', '≥',
                       '⊂', '⊃', '⊆', '⊇', '∈', '∋', '∩', '∪',
                       '⋮', '⋯', '⋰', '⋱', '∂', '∫', '∮', '∑', '∏',
-                      '㊞',
                       '♠', '♡', '♢', '♣', '♤', '♥', '♦', '♧',
                       '☹', '☺', '☻',
                       '✊', '✋', '✌',

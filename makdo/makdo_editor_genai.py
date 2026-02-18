@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         genai.py
 # Version:      v01
-# Time-stamp:   <2026.01.11-08:56:00-JST>
+# Time-stamp:   <2026.01.19-07:19:39-JST>
 
 # genai.py
 # Copyright (C) 2025-2026  Seiichiro HATA
@@ -633,7 +633,8 @@ class Ollama(GenAI):
                         t = f.read()
                         line = t
                 except BaseException:
-                    n, m = 'エラー', '"fn"を\n挿入できませんでした．'
+                    n = 'エラー'
+                    m = 'ファイル"' + fname + '"を\n挿入できませんでした．'
                     tkinter.messagebox.showerror(n, m)
             new += line + '\n'
         return new
