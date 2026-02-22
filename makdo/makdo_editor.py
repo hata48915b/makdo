@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.02.18-12:44:43-JST>
+# Time-stamp:   <2026.02.22-17:34:51-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -7681,30 +7681,79 @@ class Makdo:
             self.pane = pane
             self.mother = mother
             self.candidates = candidates
+            self.focused = -1
             super().__init__(pane, title='記号を挿入')
 
         def body(self, pane):
             fon = self.mother.gothic_font
             self.symbol = tkinter.StringVar()
+            self.rds = []
             for i, cnd in enumerate(self.candidates):
                 rd = tkinter.Radiobutton(pane, text=cnd, font=fon,
                                          variable=self.symbol, value=cnd)
                 y, x = int(i / 10), (i % 10)
                 rd.grid(row=y, column=x, columnspan=1, padx=3, pady=3,
                         sticky='w')
-            # self.bind('<Key-Return>', self.ok)
-            # self.bind('<Key-Escape>', self.cancel)
+                self.rds.append(rd)
+            self.bind('<Key-Up>', self.focus_up_item)
+            self.bind('<Key-Down>', self.focus_down_item)
+            self.bind('<Key-Left>', self.focus_left_item)
+            self.bind('<Key-Right>', self.focus_right_item)
             # super().body(pane)
 
-        # def buttonbox(self):
-        #     btn = tkinter.Frame(self)
-        #     self.btn1 = tkinter.Button(btn, text='OK', width=6,
-        #                                command=self.ok)
-        #     self.btn1.pack(side=tkinter.LEFT, padx=3, pady=3)
-        #     self.btn2 = tkinter.Button(btn, text='Cancel', width=6,
-        #                                command=self.cancel)
-        #     self.btn2.pack(side=tkinter.LEFT, padx=3, pady=3)
-        #     btn.pack()
+        def focus_up_item(self, event):
+            if self.focused == -1 or self.focused == 1:
+                event.widget.tk_focusPrev().focus()
+                self.focused = len(self.rds) + 2
+            elif self.focused > len(self.rds):
+                event.widget.tk_focusPrev().focus()
+                self.focused -= 1
+            elif self.focused <= 10:
+                e = event.widget
+                for i in range(self.focused - 1):
+                    e = e.tk_focusPrev()
+                e.focus()
+                self.focused = 1
+            else:
+                e = event.widget
+                for i in range(10):
+                    e = e.tk_focusPrev()
+                e.focus()
+                self.focused -= 10
+
+        def focus_down_item(self, event):
+            if self.focused == -1 or self.focused == len(self.rds) + 2:
+                event.widget.tk_focusNext().focus()
+                self.focused = 1
+            elif self.focused > len(self.rds) - 1:
+                event.widget.tk_focusNext().focus()
+                self.focused += 1
+            elif self.focused >= len(self.rds) - 10:
+                e = event.widget
+                for i in range(len(self.rds) - self.focused):
+                    e = e.tk_focusNext()
+                e.focus()
+                self.focused = len(self.rds)
+            else:
+                e = event.widget
+                for i in range(10):
+                    e = e.tk_focusNext()
+                e.focus()
+                self.focused += 10
+
+        def focus_left_item(self, event):
+            event.widget.tk_focusPrev().focus()
+            if self.focused == -1 or self.focused == 1:
+                self.focused = len(self.rds) + 2
+            else:
+                self.focused -= 1
+
+        def focus_right_item(self, event):
+            event.widget.tk_focusNext().focus()
+            if self.focused == -1 or self.focused == len(self.rds) + 2:
+                self.focused = 1
+            else:
+                self.focused += 1
 
         def apply(self):
             symbol = self.symbol.get()
