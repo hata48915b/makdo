@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.12.14-14:33:45-JST>
+# Time-stamp:   <2026.03.14-17:31:32-JST>
 
 # docx2md.py
-# Copyright (C) 2022-2025  Seiichiro HATA
+# Copyright (C) 2022-2026  Seiichiro HATA
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -2904,27 +2904,27 @@ class CharsDatum:
             if fr.font_scale == '' and bk.font_scale == '':
                 fd = FontDecorator.get_font_scale_fd(style.font_size)
                 if fd is not None:
-                    fr.font_name, bk.font_name = fd, fd
+                    fr.font_size, bk.font_size = fd, fd
         if style.is_italic:
             if fr.italic == '' and bk.italic == '':
-                fr.font_name, bk.font_name = '*', '*'
+                fr.italic, bk.italic = '*', '*'
         if style.is_bold:
             if fr.bold == '' and bk.bold == '':
-                fr.font_name, bk.font_name = '**', '**'
+                fr.bold, bk.bold = '**', '**'
         if style.has_strike:
             if fr.strike == '' and bk.strike == '':
-                fr.font_name, bk.font_name = '~~', '~~'
+                fr.strike, bk.strike = '~~', '~~'
         if style.has_frame:
             if fr.frame == '' and bk.frame == '':
-                fr.font_name, bk.font_name = '[|', '|]'
+                fr.frame, bk.frame = '[|', '|]'
         if style.underline is not None:
             if fr.underline == '' and bk.underline == '':
                 fd = FontDecorator.get_underline_fd(style.underline)
-                fr.font_name, bk.font_name = fd, fd
+                fr.underline, bk.underline = fd, fd
         if style.font_color is not None and style.font_color != 'auto':
             if fr.font_color == '' and bk.font_color == '':
                 fd = FontDecorator.get_font_color_fd(style.font_color)
-                fr.font_name, bk.font_name = fd, fd
+                fr.font_color, bk.font_color = fd, fd
 
 
 class FontDecorator:
@@ -3035,7 +3035,7 @@ class FontDecorator:
             return None
         color = color.upper()
         if color == '000000':
-            return None
+            return ''
         if color == 'FFFFFF':
             return '^^'
         if color in FONT_COLOR:
