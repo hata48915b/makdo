@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.02.22-17:34:51-JST>
+# Time-stamp:   <2026.03.19-08:25:57-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -1157,15 +1157,15 @@ def get_real_width(s: str) -> int:
             wid += 2
         elif (w == 'F'):  # Full alphabet ...
             wid += 2
-        elif(w == 'H'):   # Half katakana ...
+        elif (w == 'H'):   # Half katakana ...
             wid += 1
-        elif(w == 'W'):   # Chinese character ...
+        elif (w == 'W'):   # Chinese character ...
             wid += 2
-        elif(w == 'Na'):  # Half alphabet ...
+        elif (w == 'Na'):  # Half alphabet ...
             wid += 1
-        elif(w == 'A'):   # Greek character ...
+        elif (w == 'A'):   # Greek character ...
             wid += 1
-        elif(w == 'N'):   # Arabic character ...
+        elif (w == 'N'):   # Arabic character ...
             wid += 1
     return wid
 
@@ -7656,13 +7656,17 @@ class Makdo:
                       'α', 'β', 'γ', 'δ', 'ε', 'ζ', 'η', 'θ', 'ι', 'κ',
                       'λ', 'μ', 'ν', 'ξ', 'ο', 'π', 'ρ', 'ς', 'σ', 'τ',
                       'υ', 'φ', 'χ', 'ψ', 'ω',
-                      'Á', 'á', 'À', 'à', 'Â', 'â', 'Ä', 'ä', 'Ã', 'ã', 'Å', 'å',
+                      'Á', 'á', 'À', 'à', 'Â', 'â',
+                      'Ä', 'ä', 'Ã', 'ã', 'Å', 'å',
                       'Í', 'í', 'Ì', 'ì', 'Î', 'î', 'Ï', 'ï',
                       'Ú', 'ú', 'Ù', 'ù', 'Û', 'û', 'Ü', 'ü',
                       'É', 'é', 'È', 'è', 'Ê', 'ê', 'Ë', 'ë',
-                      'Ó', 'ó', 'Ò', 'ò', 'Ô', 'ô', 'Ö', 'ö', 'Õ', 'õ', 'Ø', 'ø',
+                      'Ó', 'ó', 'Ò', 'ò', 'Ô', 'ô',
+                      'Ö', 'ö', 'Õ', 'õ', 'Ø', 'ø',
                       'Ñ', 'ñ', 'Ç', 'ç', 'ß', 'Æ', 'æ',
                       '©', '®',
+                      '㈱', '㈲', '㈾', '㈴', '㈳', '㈶',
+                      '㈵', '㈻', '㈼', '㈿', '㈸', '㈽',
                       '㊞',
                       '∞', '√', '∛', '∜', '∀', '∃', '∴', '∵',
                       '±', '∓', '≠', '≡', '≒', '≈', '≦', '≧', '≤', '≥',
@@ -14921,7 +14925,7 @@ class Makdo:
         return False
 
     def quit_editing_genai_system_message(self) -> bool:
-        if not 'is_editing_genai_system_message' in vars(self):
+        if 'is_editing_genai_system_message' not in vars(self):
             return False
         self.genai_system_message = self.sub.get('1.0', 'end-1c')
         if 'genai' in vars(self):
