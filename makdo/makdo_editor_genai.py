@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         genai.py
 # Version:      v01
-# Time-stamp:   <2026.01.19-07:19:39-JST>
+# Time-stamp:   <2026.04.24-09:11:03-JST>
 
 # genai.py
 # Copyright (C) 2025-2026  Seiichiro HATA
@@ -45,7 +45,7 @@ class GenAI:
         ans_head = '## 【' + self.genai_name + 'の回答】' + ('-' * n)
         return cnf_head, que_head, ans_head
 
-    def _get_messages(self, qanda:str) -> list[dict]:
+    def _get_messages(self, qanda: str) -> list[dict]:
         cnf_head, que_head, ans_head = self._get_genai_head()
         messages = []
         role, mc = '', ''
@@ -68,7 +68,7 @@ class GenAI:
                 mc += line + '\n'
         return messages
 
-    def _remove_comments(self, qanda:str) -> str:
+    def _remove_comments(self, qanda: str) -> str:
         res = '<!--.*?-->'
         while re.match(res, qanda):
             qanda = re.sub(res, '', qanda)
@@ -133,7 +133,8 @@ class OpenAI(GenAI):
 
     genai_name = 'OpenAI'
     notes = '- 外部処理ですので、個人情報の流出に注意してください。\n' \
-        + '- 有料ですので、料金に注意してください。\n\n' \
+        + '- 有料ですので、料金に注意してください。\n' \
+        + '- "%[](Foobar)"で外部ファイル"Foobar"を埋め込めます。\n\n'
 
     # KEY
 
@@ -350,7 +351,8 @@ class Ollama(GenAI):
 
     genai_name = 'Ollama'
     notes = '- 内部処理又はクラウドですので、情報を外部に出しません。\n' \
-        + '- 無料ですので、料金は発生しません。\n\n' \
+        + '- 無料ですので、料金は発生しません。\n' \
+        + '- "%[](Foobar)"で外部ファイル"Foobar"を埋め込めます。\n\n'
 
     # IMPORT
 
@@ -624,7 +626,7 @@ class Ollama(GenAI):
     @staticmethod
     def _insert_files(doc):
         new = ''
-        res = '^%\\[(.+)\\]%$'
+        res = '^%\\[.*\\]\\((.+)\\)$'
         for line in doc.split('\n'):
             if re.match(res, line):
                 fname = re.sub(res, '\\1', line)

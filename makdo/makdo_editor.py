@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.03.19-08:25:57-JST>
+# Time-stamp:   <2026.04.24-07:41:10-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -1886,8 +1886,8 @@ class RadiobuttonDialog(tkinter.simpledialog.Dialog):
             head = re.sub('\n', ' ', self.cand[i])
             if head == '':
                 head = '（空）'
-            if len(head) > 15:
-                head = head[:14] + '…'
+            if len(head) > 128:
+                head = head[:127] + '…'
             rb = tkinter.Radiobutton(pane, text=head,
                                      variable=self.value, value=i)
             rb.pack(side='top', anchor='w')
@@ -4637,6 +4637,17 @@ class Makdo:
             if code4 is not None and key == code4:
                 return True
         return False
+
+    def shrink_font_size(self):
+        fs = self.font_size.get() - 3
+        if fs > 0:
+            self.font_size.set(fs)
+        self.set_font()
+
+    def enlarge_font_size(self):
+        fs = self.font_size.get() + 3
+        self.font_size.set(fs)
+        self.set_font()
 
     ####################################
     # MENU
@@ -9552,8 +9563,8 @@ class Makdo:
 
     @staticmethod
     def _get_formulas():
-        formulas = ['' for i in range(9)]
-        for i in range(9):
+        formulas = ['' for i in range(25)]
+        for i in range(25):
             try:
                 path = CONFIG_DIR + '/formula' + str(i + 1) + '.md'
                 with open(path, 'r') as f:
@@ -9610,6 +9621,70 @@ class Makdo:
 
     def insert_formula9(self):
         self.formula_number = 9
+        self._insert_formula()
+
+    def insert_formula10(self):
+        self.formula_number = 10
+        self._insert_formula()
+
+    def insert_formula11(self):
+        self.formula_number = 11
+        self._insert_formula()
+
+    def insert_formula12(self):
+        self.formula_number = 12
+        self._insert_formula()
+
+    def insert_formula13(self):
+        self.formula_number = 13
+        self._insert_formula()
+
+    def insert_formula14(self):
+        self.formula_number = 14
+        self._insert_formula()
+
+    def insert_formula15(self):
+        self.formula_number = 15
+        self._insert_formula()
+
+    def insert_formula16(self):
+        self.formula_number = 16
+        self._insert_formula()
+
+    def insert_formula17(self):
+        self.formula_number = 17
+        self._insert_formula()
+
+    def insert_formula18(self):
+        self.formula_number = 18
+        self._insert_formula()
+
+    def insert_formula19(self):
+        self.formula_number = 19
+        self._insert_formula()
+
+    def insert_formula20(self):
+        self.formula_number = 20
+        self._insert_formula()
+
+    def insert_formula21(self):
+        self.formula_number = 21
+        self._insert_formula()
+
+    def insert_formula22(self):
+        self.formula_number = 22
+        self._insert_formula()
+
+    def insert_formula23(self):
+        self.formula_number = 23
+        self._insert_formula()
+
+    def insert_formula24(self):
+        self.formula_number = 24
+        self._insert_formula()
+
+    def insert_formula25(self):
+        self.formula_number = 25
         self._insert_formula()
 
     def edit_formula(self, mother=None):
@@ -9691,6 +9766,86 @@ class Makdo:
     def edit_formula9(self):
         self.quit_editing_formula()
         self.formula_number = 9
+        self._edit_formula()
+
+    def edit_formula10(self):
+        self.quit_editing_formula()
+        self.formula_number = 10
+        self._edit_formula()
+
+    def edit_formula11(self):
+        self.quit_editing_formula()
+        self.formula_number = 11
+        self._edit_formula()
+
+    def edit_formula12(self):
+        self.quit_editing_formula()
+        self.formula_number = 12
+        self._edit_formula()
+
+    def edit_formula13(self):
+        self.quit_editing_formula()
+        self.formula_number = 13
+        self._edit_formula()
+
+    def edit_formula14(self):
+        self.quit_editing_formula()
+        self.formula_number = 14
+        self._edit_formula()
+
+    def edit_formula15(self):
+        self.quit_editing_formula()
+        self.formula_number = 15
+        self._edit_formula()
+
+    def edit_formula16(self):
+        self.quit_editing_formula()
+        self.formula_number = 16
+        self._edit_formula()
+
+    def edit_formula17(self):
+        self.quit_editing_formula()
+        self.formula_number = 17
+        self._edit_formula()
+
+    def edit_formula18(self):
+        self.quit_editing_formula()
+        self.formula_number = 18
+        self._edit_formula()
+
+    def edit_formula19(self):
+        self.quit_editing_formula()
+        self.formula_number = 19
+        self._edit_formula()
+
+    def edit_formula20(self):
+        self.quit_editing_formula()
+        self.formula_number = 20
+        self._edit_formula()
+
+    def edit_formula21(self):
+        self.quit_editing_formula()
+        self.formula_number = 21
+        self._edit_formula()
+
+    def edit_formula22(self):
+        self.quit_editing_formula()
+        self.formula_number = 22
+        self._edit_formula()
+
+    def edit_formula23(self):
+        self.quit_editing_formula()
+        self.formula_number = 23
+        self._edit_formula()
+
+    def edit_formula24(self):
+        self.quit_editing_formula()
+        self.formula_number = 24
+        self._edit_formula()
+
+    def edit_formula25(self):
+        self.quit_editing_formula()
+        self.formula_number = 25
         self._edit_formula()
 
     def quit_editing_formula(self) -> bool:
@@ -11011,39 +11166,49 @@ class Makdo:
 
         mc = MinibufferCommand(
             'insert-formula',
-            ['insert-formulaX(X=1..9)', '定型句Xを挿入'],
-            ['self.mother.insert_formula1()'])
+            ['insert-formula', '定型句を選択して挿入'],
+            ['self.mother.insert_formula()'])
         minibuffer_commands.append(mc)
-        for i in range(1, 10):
+        mc = MinibufferCommand(
+            None,
+            ['insert-formulaX(X=1..9)', '定型句Xを挿入'],
+            [])
+        minibuffer_commands.append(mc)
+        for i in range(25):
             mc = MinibufferCommand(
-                'insert-formula' + str(i),
+                'insert-formula' + str(i + 1),
                 None,
-                ['self.mother.insert_formula' + str(i) + '()'])
+                ['self.mother.insert_formula' + str(i + 1) + '()'])
             minibuffer_commands.append(mc)
 
         mc = MinibufferCommand(
             'edit-formula',
-            ['edit-formulaX(X=1..9)', '定型句Xを編集'],
-            ['self.mother.edit_formula1()'])
+            ['edit-formula', '定型句を選択して編集'],
+            ['self.mother.edit_formula()', 'self.set_return_to()'])
         minibuffer_commands.append(mc)
-        for i in range(1, 10):
+        mc = MinibufferCommand(
+            None,
+            ['edit-formulaX(X=1..9)', '定型句Xを編集'],
+            [])
+        minibuffer_commands.append(mc)
+        for i in range(25):
             mc = MinibufferCommand(
-                'edit-formula' + str(i),
+                'edit-formula' + str(i + 1),
                 None,
-                ['self.mother.edit_formula' + str(i) + '()'])
+                ['self.mother.edit_formula' + str(i + 1) + '()',
+                 'self.set_return_to()'])
             minibuffer_commands.append(mc)
 
         mc = MinibufferCommand(
             'open-memo-pad',
             [None, 'メモ帳を開く'],
-            ['self.mother.open_memo_pad()'])
+            ['self.mother.open_memo_pad()', 'self.set_return_to()'])
         minibuffer_commands.append(mc)
 
         mc = MinibufferCommand(
             'split-window',
             [None, '画面を二つに分割'],
-            ['self.mother.split_window()',
-             'self.set_return_to()'])
+            ['self.mother.split_window()', 'self.set_return_to()'])
         minibuffer_commands.append(mc)
 
         mc = MinibufferCommand(
@@ -11055,15 +11220,13 @@ class Makdo:
         mc = MinibufferCommand(
             'previous_window',
             [None, '前のウィンドウに移動'],
-            ['self.mother._jump_to_prev_pane()',
-             'self.set_return_to()'])
+            ['self.mother._jump_to_prev_pane()', 'self.set_return_to()'])
         minibuffer_commands.append(mc)
 
         mc = MinibufferCommand(
             'next_window',
             [None, '次のウィンドウに移動'],
-            ['self.mother._jump_to_next_pane()',
-             'self.set_return_to()'])
+            ['self.mother._jump_to_next_pane()', 'self.set_return_to()'])
         minibuffer_commands.append(mc)
 
         mc = MinibufferCommand(
@@ -11100,6 +11263,18 @@ class Makdo:
                 self.mother.is_read_only.set(False)
             else:
                 self.mother.is_read_only.set(True)
+
+        mc = MinibufferCommand(
+            'shrink_font_size',
+            [None, '文字を小さくする'],
+            ['self.mother.shrink_font_size()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'enlarge_font_size',
+            [None, '文字を小さくする'],
+            ['self.mother.enlarge_font_size()'])
+        minibuffer_commands.append(mc)
 
         # INTERNET
         mc = MinibufferCommand('## ネット', [None, ''], [''])
@@ -11150,8 +11325,10 @@ class Makdo:
         def get_commands(self):
             commands = []
             for mc in Makdo.Minibuffer.minibuffer_commands:
-                commands.append(mc.command_text)
-                commands.sort()
+                if mc.command_text is not None:
+                    if mc.command_text[0] != '#':  # not group title
+                        commands.append(mc.command_text)
+            commands.sort()
             return commands
 
         def get_help_message(self):
@@ -11305,8 +11482,6 @@ class Makdo:
         def process_key_tab(self, key):
             self.command_candidates = []
             com = self.etr.get()
-            if com == '':
-                return  # empty
             for c in self.commands:
                 if com == c:
                     self.command_candidates.append(c)
@@ -12923,6 +13098,12 @@ class Makdo:
             return 'break'
         elif self._is_key(k1, None, None, None, 'C-y'):
             self.edit_modified_redo()
+            return 'break'
+        elif k1 == 'C--':
+            self.shrink_font_size()
+            return 'break'
+        elif k1 == 'C-+':
+            self.enlarge_font_size()
             return 'break'
 
     def read_only_process_key(self, pane, key):

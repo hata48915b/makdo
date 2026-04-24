@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 # Name:         jpchars.py
 # Version:      v01
-# Time-stamp:   <2025.12.22-10:53:36-JST>
+# Time-stamp:   <2026.04.07-11:04:41-JST>
 
 # jpchars.py
-# Copyright (C) 2025  Seiichiro HATA
+# Copyright (C) 2025-2026  Seiichiro HATA
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -231,7 +231,8 @@ class Chars:
                 lines = f.readlines()
             return lines
         except BaseException:
-            sys.stderr.write("error: can't read a csv file\n")
+            if sys.stderr is not None:  # for pyinstaller with "--noconsole"
+                sys.stderr.write("error: can't read a csv file\n")
             return None
 
     def _get_data(self, lines):
