@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.04.24-07:41:10-JST>
+# Time-stamp:   <2026.05.06-14:26:17-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -172,7 +172,7 @@ KEYWORDS = [
      '|弁護士会' +
      '|被告|本訴被告|反訴原告|別訴原告|被控訴人|被上告人' +
      '|相手方|被申立人' +
-     '|被疑者|被告人|弁護人|対象弁護士|弁護士' +
+     '|被告訴人|被告発人|被疑者|被告人|弁護人|対象弁護士|弁護士' +
      '|連帯債務者|債務者|買主|借主|賃借人|労働者|受任者|受寄者' +
      '|卑属' +
      '|乙|戊|辛)',
@@ -182,7 +182,7 @@ KEYWORDS = [
      '|検察庁' +
      '|原告|本訴原告|反訴被告|別訴被告|控訴人|上告人' +
      '|申立人' +
-     '|検察官|検察事務官|懲戒請求者' +
+     '|告訴人|告発人|検察官|検察事務官|懲戒請求者' +
      '|債権者|根抵当権者|抵当権者|売主|貸主|賃貸人|使用者|委任者|寄託者' +
      '|尊属' +
      '|甲|丁|庚|癸)',
@@ -3528,9 +3528,12 @@ class LineDatum:
                             if re.match('^(?:.|\n)*(本|反|別)訴$', t1):
                                 continue  # 本訴原告/
                         if t2 == '被告' and c0 == '人':
-                            continue  # 被告/人
+                            continue      # 被告/人
                         if t2 == '債務者' and re.match('^.*第三$', t1):
-                            continue  # 第三/債務者
+                            continue      # 第三/債務者
+                        if t2 == '被告':
+                            if re.match('^(訴|発)人', s_rgt):
+                                continue  # 被告/訴人
                         key = chars_state.get_key('')                   # 1.key
                         end = str(i + 1) + '.' + str(j + 1 - len(t2))   # 2.end
                         pane.tag_add(key, beg, end)                     # 3.tag
