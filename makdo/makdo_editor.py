@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.05.06-14:26:17-JST>
+# Time-stamp:   <2026.05.14-11:08:21-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -1402,7 +1402,7 @@ class Math():
         nfl = nfl.replace('△', '-').replace('▲', '-')
         nfl = nfl.replace('ﾊﾟｰｾﾝﾄ', '%').replace('パーセント', '%')
         # REMOVE DIGIT SEPARATORS
-        new = ''
+        new, tail = '', nfl
         res = '^(.*?)([,京兆億万千百十0-9]+)((?:\\.[0-9]+)?)(.*)$'
         while re.match(res, nfl):
             head = re.sub(res, '\\1', nfl)

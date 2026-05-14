@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         genai.py
 # Version:      v01
-# Time-stamp:   <2026.04.24-09:11:03-JST>
+# Time-stamp:   <2026.05.14-11:52:03-JST>
 
 # genai.py
 # Copyright (C) 2025-2026  Seiichiro HATA
@@ -387,13 +387,16 @@ class Ollama(GenAI):
             mother = pane
         # GET INSTALLED MODELS
         mol = self._get_installed_ollama_models()
+        loaded_models = self._get_loaded_ollama_models()
         if mol is None:
             return False
         tmp = []
         for m in mol:
-            t = ['', '', 0, m]
+            t = ['', '', 0, m]  # ["" or "@", class, size, display name]
             if re.match('^.*-cloud$', m):
-                t[0], t[3] = '@', '@' + m  # for cloud
+                t[0], t[3] = '@', '@' + t[3]  # for cloud
+            if m in loaded_models:
+                t[3] = t[3] + '＊'
             m = re.sub('-[^-]+$', '', m)
             lt = m.split(':')
             if len(lt) > 0:
@@ -418,13 +421,18 @@ class Ollama(GenAI):
         for t in tmp:
             mol.append(t[3])
         # SET TITLE AND MESSAGE
-        tit, mes = 'Ollamaのモデルを選択', 'Ollamaのモデルを選択してください．'
+        tit = 'Ollamaのモデルを選択'
+        mes = 'Ollamaのモデルを選択してください．\n\n' \
+            + '先頭の"@"はクラウドモデルです．\n' \
+            + '末尾の"＊"はロードされているモデルです．'
         # GET THE CURRENT MODEL
         num = -1
         if 'ollama_model' in vars(self.makdo):
             om = self.makdo.ollama_model
-            if re.match('^.*-cloud$', om):
-                om = '@' + om  # for cloud
+            if re.match('^.*-cloud$', self.makdo.ollama_model):
+                om = '@' + om   # for cloud
+            if self.makdo.ollama_model in loaded_models:
+                om = om + '＊'  # for loaded
             if om in mol:
                 num = mol.index(om)
         # GET A NEW MODEL
@@ -457,7 +465,20 @@ class Ollama(GenAI):
             for om in self.ollama.list().models:
                 models.append(om.model)
         except BaseException:
-            n, m = 'エラー', '"ollama"のモデルを\n取得できませんでした．'
+            n = 'エラー'
+            m = '"ollama"のインストールモデルを\n取得できませんでした．'
+            tkinter.messagebox.showerror(n, m)
+            return None
+        return models
+
+    def _get_loaded_ollama_models(self) -> list:
+        try:
+            models = []
+            for om in self.ollama.ps().models:
+                models.append(om.model)
+        except BaseException:
+            n = 'エラー'
+            m = '"ollama"のロードモデルを\n取得できませんでした．'
             tkinter.messagebox.showerror(n, m)
             return None
         return models
@@ -529,9 +550,10 @@ class Ollama(GenAI):
         thread_2.start()
 
     def _ollama_ask_ollama_on_main_pane(self) -> bool:
-        self.makdo.txt.mark_set('ollama', 'insert')
+        pane = self.makdo.txt
         sc = self.system_message
-        doc = self._get_document(self.makdo.txt)
+        doc, n = self._get_document(pane)
+        pane.mark_set('ollama', 'insert+' + str(n) + 'c')
         doc = self._insert_files(doc)
         uc = ''
         for line in doc.split('\n'):
@@ -540,9 +562,9 @@ class Ollama(GenAI):
         if response is None:
             return False
         answer = response.message.content
-        self._write_simple_answer(self.makdo.txt, answer)
-        self.makdo.txt.tag_remove('ollama', '1.0', 'end')
-        self.makdo.cancel_region(self.makdo.txt)
+        self._write_simple_answer(pane, answer)
+        pane.tag_remove('ollama', '1.0', 'end')
+        self.makdo.cancel_region(pane)
 
     # PICK UP PROPER NOUNS
 
@@ -556,8 +578,8 @@ class Ollama(GenAI):
 
     def _ollama_pick_up_proper_nouns(self) -> bool:
         pane = self.makdo._get_pane()
-        pane.mark_set('ollama', 'insert')
-        doc = self._get_document(pane)
+        doc, n = self._get_document(pane)
+        pane.mark_set('ollama', 'insert+' + str(n) + 'c')
         sc = self.system_message
         uc = '次の文章から固有名詞を抽出してください。\n' \
             + '回答はjson形式で回答してください。\n'
@@ -569,7 +591,7 @@ class Ollama(GenAI):
         answer = ''
         for a in answer_list:
             answer += a + '\n'
-        self._write_simple_answer(self.makdo.txt, answer)
+        self._write_simple_answer(pane, answer)
         pane.tag_remove('ollama', '1.0', 'end')
         self.makdo.cancel_region(pane)
         return True
@@ -598,8 +620,8 @@ class Ollama(GenAI):
 
     def _ollama_find_typos(self) -> bool:
         pane = self.makdo._get_pane()
-        pane.mark_set('ollama', 'insert')
-        doc = self._get_document(pane)
+        doc, n = self._get_document(pane)
+        pane.mark_set('ollama', 'insert+' + str(n) + 'c')
         sc = self.system_message
         uc = '次の文章に誤字脱字があれば、指摘してください。\n'
         response = self._execute_ollama(sc, uc + '\n' + doc)
@@ -612,16 +634,39 @@ class Ollama(GenAI):
     # TOOLS
 
     @staticmethod
-    def _get_document(pane) -> str:
+    def _get_document(pane) -> tuple:
+        # SEL
         if pane.tag_ranges('sel'):
             doc = pane.get('sel.first', 'sel.last')
-        elif 'akauni' in pane.mark_names():
-            doc = ''
-            doc += pane.get('akauni', 'insert')
-            doc += pane.get('insert', 'akauni')
-        else:
-            doc = pane.get('insert', 'end-1c')
-        return doc
+            pos = pane.get('insert', 'sel.last')
+            return doc, len(pos)
+        # AKAUNI
+        if 'akauni' in pane.mark_names():
+            p1 = pane.index('akauni')
+            p2 = pane.index('insert')
+            p1_v = int(re.sub('\\..+$', '', p1))
+            p1_h = int(re.sub('^.+\\.', '', p1))
+            p2_v = int(re.sub('\\..+$', '', p2))
+            p2_h = int(re.sub('^.+\\.', '', p2))
+            if (p1_v < p2_v) or (p1_v == p2_v and p1_h < p2_h):
+                doc = pane.get('akauni', 'insert')
+                return doc, 0
+            else:
+                doc = pane.get('insert', 'akauni')
+                return doc, len(doc)
+        # COMMENT
+        pre = pane.get('1.0', 'insert')
+        pos = pane.get('insert', 'end-1c')
+        pre = re.sub('^(.|\n)*-->', '', pre)
+        pos = re.sub('<!--(.|\n)*$', '', pos)
+        if re.match('^(.|\n)*<!--(.|\n)*$', pre) and \
+           re.match('^(.|\n)*-->(.|\n)*$', pos):
+            pre = re.sub('^(.|\n)*<!--', '', pre)
+            pos = re.sub('-->(.|\n)*$', '', pos)
+            return pre + pos, len(pos)
+        # ELSE
+        doc = pane.get('insert', 'end-1c')
+        return doc, len(doc)
 
     @staticmethod
     def _insert_files(doc):
