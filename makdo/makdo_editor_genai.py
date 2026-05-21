@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         genai.py
 # Version:      v01
-# Time-stamp:   <2026.05.14-11:52:03-JST>
+# Time-stamp:   <2026.05.14-17:51:04-JST>
 
 # genai.py
 # Copyright (C) 2025-2026  Seiichiro HATA
@@ -396,7 +396,7 @@ class Ollama(GenAI):
             if re.match('^.*-cloud$', m):
                 t[0], t[3] = '@', '@' + t[3]  # for cloud
             if m in loaded_models:
-                t[3] = t[3] + '＊'
+                t[3] = t[3] + '＊'            # for loaded
             m = re.sub('-[^-]+$', '', m)
             lt = m.split(':')
             if len(lt) > 0:
@@ -439,7 +439,8 @@ class Ollama(GenAI):
         rd = RadiobuttonDialog(mother, self.makdo, tit, mes, mol, num)
         val = rd.get_value()
         if (val is not None) and (val != self.makdo.ollama_model):
-            val = re.sub('^@', '', val)  # for cloud
+            val = re.sub('^@', '', val)   # for cloud
+            val = re.sub('＊$', '', val)  # for loaded
             self.makdo.ollama_model = val
             m = 'Ollamaのモデルを"' + val + '"に設定しました'
             self.makdo.set_message_on_status_bar(m)
