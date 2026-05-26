@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.05.26-20:32:31-JST>
+# Time-stamp:   <2026.05.26-19:54:57-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -8822,12 +8822,13 @@ class Makdo:
 
     @staticmethod
     def _get_table(bare_par: str) -> [[str]]:
-        order = '\\s*:\\s+'
-        indent = '\\s{,2}'
-        res = '^(' + order + ')(\\|.*)$'
+        indent = ''
+        res = '^(\\s*:)(\\s.*)$'
         for line in bare_par.split('\n'):
             if re.match(res, line):
                 s = re.sub(res, '\\1', line)
+                s = s.replace('\t', (' ' * 4))
+                s = s.replace('\u3000', (' ' * 2))
                 indent = '\\s{,' + str(len(s)) + '}'
         table = []
         row = []
@@ -8850,9 +8851,8 @@ class Makdo:
             elif c == '\n':
                 cell += c
                 if i < len(bare_par) - 1 and \
-                   not (len(row) > 0 and row[-1] == '|' and
-                        re.match('^(' + order + '|' + indent + ')\\|',
-                                 bare_par[i + 1:])):
+                   not re.match('^' + indent + '\\|', bare_par[i + 1:]) and \
+                   not re.match('^\\s*:\\s+\\|', bare_par[i + 1:]):
                     # "|...\n...|"
                     pass
                 elif (re.match('^(\\^|=)+$', cell) and
