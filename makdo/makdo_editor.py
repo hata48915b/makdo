@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.05.26-21:52:53-JST>
+# Time-stamp:   <2026.05.27-07:04:50-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -3007,6 +3007,7 @@ class LineDatum:
                         tmp = ''                                        # 5.tmp
                         beg = end                                       # 6.beg
                         continue
+                # TABLE
                 if c == '-' and tmp == '-':
                     res1, res2 = '^.*\\|:?-{4,}$', '^-*:?[\\^|=]?$'
                     if re.match(res1, s_lft) and re.match(res2, s_rgt):
@@ -3027,6 +3028,35 @@ class LineDatum:
                         tmp = ''                                        # 5.tmp
                         beg = end                                       # 6.beg
                         continue
+                    if re.match('^[\\|\n]', s_rgt):
+                        key = chars_state.get_key('')                   # 1.key
+                        end = str(i + 1) + '.' + str(j)                 # 2.end
+                        pane.tag_add(key, beg, end)                     # 3.tag
+                        #                                               # 4.set
+                        # tmp = '@'                                     # 5.tmp
+                        beg = end                                       # 6.beg
+                        key = chars_state.get_key('hline')              # 1.key
+                        end = str(i + 1) + '.' + str(j + 1)             # 2.end
+                        pane.tag_add(key, beg, end)                     # 3.tag
+                        #                                               # 4.set
+                        tmp = ''                                        # 5.tmp
+                        beg = end                                       # 6.beg
+                        continue
+                if c == '@' and \
+                   re.match('^[0-9]*x?[0-9]+[=\\^]?[\\|\n]', s_rgt):
+                    key = chars_state.get_key('')                       # 1.key
+                    end = str(i + 1) + '.' + str(j)                     # 2.end
+                    pane.tag_add(key, beg, end)                         # 3.tag
+                    #                                                   # 4.set
+                    # tmp = '@'                                         # 5.tmp
+                    beg = end                                           # 6.beg
+                    key = chars_state.get_key('font decorator')         # 1.key
+                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
+                    pane.tag_add(key, beg, end)                         # 3.tag
+                    #                                                   # 4.set
+                    tmp = ''                                            # 5.tmp
+                    beg = end                                           # 6.beg
+                    continue
                 # IMAGE
                 if c == '!' and re.match('^\\[.*\\]\\(.*\\)', line_text[j+1:]):
                     key = chars_state.get_key('')                       # 1.key
@@ -3041,6 +3071,7 @@ class LineDatum:
                     #                                                   # 4.set
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
+                    continue
                 # SPACE (< n >) / TAB (< tab >)
                 res = '^\\s*([\\.0-9]+|:?@[\\.0-9]+:?)\\s*>.*$'
                 if c == '<' and re.match(res, s_rgt):
@@ -3225,7 +3256,29 @@ class LineDatum:
                         tmp = ''                                        # 5.tmp
                         beg = end                                       # 6.beg
                         continue  # ...[n] / #+
+            # TABLE (@nxn)
+            if c == 'x' and tmp == 'x' and \
+               re.match('^.*@[0-9]*x$', s_lft) and \
+               re.match('^.*[0-9]*[=\\^][\\|\n]', s_rgt):
+                key = chars_state.get_key('font decorator')         # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                 # 2.end
+                pane.tag_add(key, beg, end)                         # 3.tag
+                #                                                   # 4.set
+                tmp = ''                                            # 5.tmp
+                beg = end                                           # 6.beg
+                continue
             if re.match('^[0-9]$', c):
+                # TABLE (@nxn)
+                if len(tmp) == 1 and \
+                   re.match('^.*@[0-9]*x?[0-9]*$', s_lft) and \
+                   re.match('^.*[0-9]*x?[0-9]*[=\\^][\\|\n]', s_rgt):
+                    key = chars_state.get_key('font decorator')     # 1.key
+                    end = str(i + 1) + '.' + str(j + 1)             # 2.end
+                    pane.tag_add(key, beg, end)                     # 3.tag
+                    #                                               # 4.set
+                    tmp = ''                                        # 5.tmp
+                    beg = end                                       # 6.beg
+                    continue
                 # SAPCE (< n >)
                 if ((re.match('^.*<\\s*[0-9]+$', s_lft) and
                      re.match('^[0-9]*\\s*>.*$', s_rgt)) or
@@ -3262,8 +3315,7 @@ class LineDatum:
                     (re.match('^.*@[0-9]*\\.[0-9]+$', s_lft) and
                      re.match('^[0-9]*@.*$', s_rgt))):
                     continue
-            # NUMBER
-            if re.match('^[0-9]$', c):
+                # ISOLATED NUMBER (n)
                 if re.match('^#+(-#+)*(\\s.*)?\\.\\.\\.\\[[0-9]+$', s_lft) \
                    and re.match(NOT_ESCAPED + '\\.\\.\\.\\[[0-9]+$', s_lft) \
                    and re.match('^[0-9]*\\]$', s_rgt):
