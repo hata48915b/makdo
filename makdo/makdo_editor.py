@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.05.26-21:18:06-JST>
+# Time-stamp:   <2026.05.26-21:52:53-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -4114,16 +4114,29 @@ class Makdo:
         for sheet_name in wb.sheetnames:
             document += '\n<!-- ' + sheet_name + ' -->\n'
             ws = wb[sheet_name]
-            table = ''
-            for row in ws.iter_rows(min_row=1, max_row=ws.max_row,
-                                    min_col=1, max_col=ws.max_column):
-                for cell in row:
+            row, col = ws.max_row, ws.max_column
+            merged_data = [['' for i in range(col)] for j in range(row)]
+            for mc in ws.merged_cells.ranges:
+                min_col, min_row, max_col, max_row = mc.bounds
+                merged_data[min_row - 1][min_col - 1] \
+                    = '@' + str(max_col - min_col + 1) \
+                    + 'x' + str(max_row - min_row + 1)
+            table = [['' for i in range(col)] for j in range(row)]
+            for i, row in enumerate(ws.iter_rows(min_row=1,
+                                                 max_row=ws.max_row,
+                                                 min_col=1,
+                                                 max_col=ws.max_column)):
+                for j, cell in enumerate(row):
                     if cell.value is None:
-                        table += '|'
+                        table[i][j] = ''
                     else:
-                        table += '|' + str(cell.value).replace('|', '\\|')
-                table += '|\n'
-            document += table
+                        table[i][j] = str(cell.value).replace('|', '\\|')
+                    if merged_data[i][j] != '':
+                        table[i][j] += ' ' + merged_data[i][j]
+            table_text = ''
+            for row in table:
+                table_text += '|' + '|'.join(row) + '|\n'
+            document += table_text
         document = re.sub('^\n+', '', document)
         return document
 
