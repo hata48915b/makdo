@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.05.26-20:32:31-JST>
+# Time-stamp:   <2026.05.26-21:04:02-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -2569,8 +2569,10 @@ class LineDatum:
                     dep = len(re.sub(res, '\\1', line_text))
                     chars_state.set_section_depth(dep)
             # TABLE
-            res = '^\\|.*\\|(:?-*:?[=\\^]?)?$'
-            if line_text[0] == '|' and re.match(res, line_text):
+            res = '^\\s*(:\\s+)?\\|.*$'
+            if (line_text[0] == ' ' or line_text[0] == '\t' or
+                line_text[0] == '\u3000' or line_text[0] == '|') \
+               and re.match(res, line_text):
                 if chars_state.standard_size == '':
                     chars_state.standard_size = chars_state.is_resized
             res = '^(:\\s+)?\\s*(\\|:?-*:?[\\^=]?)+(\\|(\\s+:)?|\\\\)?$'

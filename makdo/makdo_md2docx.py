@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.04.20-11:07:31-JST>
+# Time-stamp:   <2026.05.26-21:12:04-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -6338,8 +6338,7 @@ class ParagraphTable(Paragraph):
                     formula = prev + ' ' + '{0:f}'.format(value) + post
         formula = re.sub('^\\s+', '', formula)
         formula = re.sub('\\s+$', '', formula)
-        #if not re.match('^[+-]?([0-9]*\\.)?[0-9]+$', formula):
-        if not re.match('^[+-]?[0-9]+(\\.[0-9]+)?$', formula):
+        if not re.match('^[+-]?([0-9]*\\.)?[0-9]+$', formula):
             return None, form
         return formula, form
 
