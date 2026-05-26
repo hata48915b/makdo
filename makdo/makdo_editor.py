@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.05.26-21:04:02-JST>
+# Time-stamp:   <2026.05.26-21:18:06-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -4121,7 +4121,7 @@ class Makdo:
                     if cell.value is None:
                         table += '|'
                     else:
-                        table += '|' + str(cell.value)
+                        table += '|' + str(cell.value).replace('|', '\\|')
                 table += '|\n'
             document += table
         document = re.sub('^\n+', '', document)
