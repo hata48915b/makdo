@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 # Name:         mddiff.py
 # Version:      v08 Omachi
-# Time-stamp:   <2025.08.12-09:25:05-JST>
+# Time-stamp:   <2026.05.27-10:37:28-JST>
 
 # mddiff.py
-# Copyright (C) 2022-2025  Seiichiro HATA
+# Copyright (C) 2022-2026  Seiichiro HATA
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -413,18 +413,23 @@ class Comparison:
                         d = dire[tx][ty]
                         if d == '.':
                             diff_text += ' | ' + str_x[tx] + '\n'
+                            track_change_text += str_x[tx] + '\n'
                         elif d == '&':
                             diff_text += 'x| ' + str_x[tx] + '\n'
                             diff_text += 'o| ' + str_y[ty] + '\n'
+                            track_change_text \
+                                += TrackChange.get_tc_text(str_x[tx],
+                                                           str_y[ty]) + '\n'
                         elif d == '-':
                             diff_text += 'X| ' + str_x[tx] + '\n'
+                            track_change_text += '->' + str_x[tx] + '<-\n'
                         elif d == '+':
                             diff_text += 'O| ' + str_y[ty] + '\n'
+                            track_change_text += '+>' + str_y[ty] + '<+\n'
                         tx, ty = self._step_z(d, tx, ty)
                         if dire[tx][ty] == '/':
                             break
-                    track_change_text \
-                        = TrackChange.get_tc_text(strs_x[x], strs_y[y])
+                    track_change_text = re.sub('\n+$', '', track_change_text)
                 elif strs_x[x] != '':  # <- for configuration
                     diff_text += re.sub('\n', '\nX| ', 'X| ' + strs_x[x]) \
                         + '\n'
