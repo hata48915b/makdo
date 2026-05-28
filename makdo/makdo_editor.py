@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.05.28-10:21:53-JST>
+# Time-stamp:   <2026.05.28-13:47:44-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -9128,30 +9128,46 @@ class Makdo:
                 text += c
 
     def _tupt_linebreaks(self, pane, text, cell, borders):
+        # RIGHT SYMBOL
+        rsym = ''
+        res = '^((?:.|\n)*?)(\\s:?(?:@[0-9]+x?[0-9]*)?[=\\^]?)$'
+        if re.match(res, cell):
+            rsym = re.sub(res, '\\2', cell)
+            cell = re.sub(res, '\\1', cell)
+            if re.match('^\\s+$', rsym):
+                cell += rsym
+                rsym = ''
         # RIGHT SPACES
+        rspc = ''
         res_nl = '^((?:.|\n)*?)(\\s*\n\\s*)$'
-        res_nn = '^((?:.|\n)*\n\\s*)(.*?)(\\s*)(:?)$'
-        rgt_spc = ''
+        res_nn = '^((?:.|\n)*\n\\s*)(.*?)(\\s*)$'
         if re.match(res_nl, cell):
             bdy = re.sub(res_nl, '\\1', cell)
             spc = re.sub(res_nl, '\\2', cell)
-            new_spc = '\n' + (' ' * borders[1])
+            if rsym == '':
+                new_spc \
+                    = '\n' + (' ' * (borders[1]))
+            else:
+                new_spc \
+                    = '\n' + (' ' * (borders[1] - get_real_width(rsym) - 1)) \
+                    + ' '
             spc = self._replace_spaces(pane, text + bdy, spc, new_spc)
-            cell, rgt_spc = bdy, spc
+            cell, rspc = bdy, spc
         elif re.match(res_nn, cell):
             bdy = re.sub(res_nn, '\\1', cell)
             lin = re.sub(res_nn, '\\2', cell)
             spc = re.sub(res_nn, '\\3', cell)
-            sym = re.sub(res_nn, '\\4', cell)
-            if sym != ':':
+            if rsym == '':
                 new_spc \
-                    = ' ' * (borders[1] - borders[0] - get_real_width(lin))
+                    = ' ' * (borders[1] - borders[0]
+                             - get_real_width(lin))
             else:
                 new_spc \
-                    = ' ' * (borders[1] - borders[0] - get_real_width(lin) - 2)
-                new_spc += ' '
+                    = ' ' * (borders[1] - borders[0]
+                             - get_real_width(lin + rsym) - 1) \
+                    + ' '
             spc = self._replace_spaces(pane, text + bdy + lin, spc, new_spc)
-            cell = bdy + lin + spc + sym
+            cell = bdy + lin + spc
         # CENTER SPACES
         if '\n' in cell:
             bdy = cell
@@ -9162,6 +9178,9 @@ class Makdo:
                 spc = re.sub(res, '\\2', bdy)
                 bdy = re.sub(res, '\\1', bdy)
                 new_spc = '\n' + (' ' * borders[0])
+                if new_bdy == '' and pos != '' and \
+                   re.match('^:?(?:@[0-9]+x?[0-9]*)[=\\^]?$', pos):
+                    new_spc = '\n' + (' ' * (borders[1] - len(pos)))
                 spc = self._replace_spaces(pane, text + bdy, spc, new_spc)
                 new_bdy = new_spc + pos + new_bdy
             cell = bdy + new_bdy
@@ -9174,7 +9193,7 @@ class Makdo:
             new_spc = ' ' if sym == ':' else ''
             spc = self._replace_spaces(pane, text + sym, spc, new_spc)
             cell = sym + spc + bdy
-        cell += rgt_spc
+        cell += rspc + rsym
         return cell
 
     def _tupt_basis(self, pane, text, cell, alignment, width):
@@ -9184,8 +9203,8 @@ class Makdo:
         if alignment == 'r':
             spaces_l_to, spaces_r_to = (' ' * w), ('')
         elif alignment == 'c':
-            w_r = int(w / 2)
-            w_l = w - w_r
+            w_l = int(w / 2)
+            w_r = w - w_l
             spaces_l_to, spaces_r_to = (' ' * w_l), (' ' * w_r)
         else:
             spaces_l_to, spaces_r_to = (''), (' ' * w)
@@ -9200,22 +9219,30 @@ class Makdo:
     @staticmethod
     def _split_cell(cell):
         sy_l, sp_l, body, sp_r, sy_r = '', '', '', '', ''
+        # LEFT SYMBOL
         res = '^(:\\s)(.*)$'
         if re.match(res, cell):
             sy_l = re.sub(res, '\\1', cell)
             cell = re.sub(res, '\\2', cell)
+        # RIGHT SYMBOL
         res = '^(.*?)(\\s:?(?:@[0-9]+x?[0-9]*)?[=\\^]?)$'
         if re.match(res, cell):
             sy_r = re.sub(res, '\\2', cell)
             cell = re.sub(res, '\\1', cell)
+        if re.match('^\\s+$', sy_r):
+            cell += sy_r
+            sy_r = ''
+        # LEFT SPACE
         res = '^(\\s+)(.*?)$'
         if re.match(res, cell):
             sp_l = re.sub(res, '\\1', cell)
             cell = re.sub(res, '\\2', cell)
+        # RIGHT SPACE
         res = '^(.*?)(\\s+)$'
         if re.match(res, cell):
             sp_r = re.sub(res, '\\2', cell)
             cell = re.sub(res, '\\1', cell)
+        # BODY
         body = cell
         return sy_l, sp_l, body, sp_r, sy_r
 
