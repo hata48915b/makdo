@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.05.29-08:00:15-JST>
+# Time-stamp:   <2026.05.29-08:26:22-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -9131,13 +9131,18 @@ class Makdo:
     def _tupt_linebreaks(self, pane, text, cell, borders):
         # RIGHT SYMBOLS
         rsym = ''
-        res = '^((?:.|\n)*?)(\\s:?(?:@[0-9]+x?[0-9]*)?[=\\^]?)$'
+        res = '^((?:.|\n)*?)([=\\^])$'
         if re.match(res, cell):
-            rsym = re.sub(res, '\\2', cell)
+            rsym = re.sub(res, '\\2', cell) + rsym
             cell = re.sub(res, '\\1', cell)
-            if re.match('^\\s$', rsym):
-                cell = cell + rsym
-                rsym = ''
+        res = '^((?:.|\n)*?)((?:@[0-9]+x?[0-9]*)?)$'
+        if re.match(res, cell):
+            rsym = re.sub(res, '\\2', cell) + rsym
+            cell = re.sub(res, '\\1', cell)
+        res = '^((?:.|\n)*?)(\\s:)$'
+        if re.match(res, cell):
+            rsym = re.sub(res, '\\2', cell) + rsym
+            cell = re.sub(res, '\\1', cell)
         # RIGHT SPACES
         rspc = ''
         res_nl = '^((?:.|\n)*?)(\\s*\n\\s*)$'
@@ -9185,19 +9190,22 @@ class Makdo:
             cell = bdy + new_bdy
         # LEFT SYMBOLS
         lsym = ''
-        res = '^([=\\^]?:?\\s)((?:.|\n)*)$'
+        res = '^([=\\^])((?:.|\n)*)$'
         if re.match(res, cell):
-            lsym = re.sub(res, '\\1', cell)
+            lsym = lsym + re.sub(res, '\\1', cell)
             cell = re.sub(res, '\\2', cell)
-            if re.match('^\\s$', lsym):
-                cell = lsym + cell
-                lsym = ''
+        res = '^(:\\s)((?:.|\n)*)$'
+        if re.match(res, cell):
+            lsym = lsym + re.sub(res, '\\1', cell)
+            cell = re.sub(res, '\\2', cell)
         # LEFT SPACE
         res = '^(\\s+)((?:.|\n)*)$'
         if re.match(res, cell):
             spc = re.sub(res, '\\1', cell)
             bdy = re.sub(res, '\\2', cell)
             new_spc = ''
+            if lsym == '' and spc != '' and re.match('^=', bdy):
+                new_spc = ' '
             spc = self._replace_spaces(pane, text + lsym, spc, new_spc)
             cell = lsym + spc + bdy
         cell += rspc + rsym
@@ -9215,6 +9223,8 @@ class Makdo:
             spaces_l_to, spaces_r_to = (' ' * w_l), (' ' * w_r)
         else:
             spaces_l_to, spaces_r_to = (''), (' ' * w)
+        if spaces_l_from != '' and spaces_l_to == '' and re.match('^=', bdy):
+            spaces_l_to = ' '  # | =SUM(A1:A9)...|
         if cell != (symbol_l + spaces_l_to + body + spaces_r_to + symbol_r):
             t = text + symbol_l + spaces_l_from + body
             sp_r = self._replace_spaces(pane, t, spaces_r_from, spaces_r_to)
