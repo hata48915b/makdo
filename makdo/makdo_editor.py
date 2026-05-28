@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.05.29-08:26:22-JST>
+# Time-stamp:   <2026.05.29-08:33:46-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -9223,7 +9223,7 @@ class Makdo:
             spaces_l_to, spaces_r_to = (' ' * w_l), (' ' * w_r)
         else:
             spaces_l_to, spaces_r_to = (''), (' ' * w)
-        if spaces_l_from != '' and spaces_l_to == '' and re.match('^=', bdy):
+        if spaces_l_from != '' and spaces_l_to == '' and re.match('^=', body):
             spaces_l_to = ' '  # | =SUM(A1:A9)...|
         if cell != (symbol_l + spaces_l_to + body + spaces_r_to + symbol_r):
             t = text + symbol_l + spaces_l_from + body
