@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.05.26-21:12:04-JST>
+# Time-stamp:   <2026.05.29-08:05:18-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -991,7 +991,7 @@ def concatenate_text(str1, str2):
           (re.match(NOT_ESCAPED + '<$', str1) and re.match('^\\-.*$', str2)) or
           (re.match(NOT_ESCAPED + '<$', str1) and re.match('^\\+.*$', str2))):
         # "...<" + "(<|>|-|+)..."
-        return str1 + ' ' + str2  # TODO (This is not the best.)
+        return str1 + '``' + str2  # TODO (This is not the best.)
     elif (  # "...<" + ">..." has processed.
           (re.match(NOT_ESCAPED + '>$', str1) and re.match('^>.*$', str2)) or
           (re.match(NOT_ESCAPED + '\\-$', str1) and re.match('^>.*$', str2)) or
