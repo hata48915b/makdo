@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.05.27-07:04:50-JST>
+# Time-stamp:   <2026.05.28-10:06:21-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -9109,14 +9109,11 @@ class Makdo:
                         b0 = borders[j - 1] if j > 0 else 0
                         b1 = borders[j]
                         bdrs = (b0, b1)
+                        ali = alignment[i][k]
                         if '\n' in c:
                             c = self._tupt_linebreaks(pane, text, c, bdrs)
-                        elif alignment[i][k] == 'c':
-                            c = self._tupt_center(pane, text, c, r_width)
-                        elif alignment[i][k] == 'r':
-                            c = self._tupt_right(pane, text, c, r_width)
                         else:
-                            c = self._tupt_left(pane, text, c, r_width)
+                            c = self._tupt_basis(pane, text, c, ali, r_width)
                 else:
                     # END OF A ROW
                     res = '^(\\|(?:\\s+:)?)(\\s+)(\n)$'
@@ -9181,33 +9178,9 @@ class Makdo:
         cell += rgt_spc
         return cell
 
-    def _tupt_left(self, pane, text, cell, width):
-        if not re.match('^:\\s.*$', cell):
-            res = '^()(\\s*)(.*?)(\\s*)((?:\\s@[0-9]*(?:x[0-9]+)?)?)$'
-        else:
-            res = '^(:\\s)(\\s*)(.*?)(\\s*)((?:\\s@[0-9]*(?:x[0-9]+)?)?)$'
-        cell = self._tupt_basis(pane, text, cell, res, 'l', width)
-        return cell
-
-    def _tupt_center(self, pane, text, cell, width):
-        if not re.match('^:\\s.*\\s:(@[0-9]*(x[0-9]+)?)?$', cell):
-            res = '^()(\\s*)(.*?)(\\s*)((?:\\s@[0-9]*(?:x[0-9]+)?)?)$'
-        else:
-            res = '^(:\\s)(\\s*)(.*?)(\\s*)(\\s:(?:@[0-9]*(?:x[0-9]+)?)?)$'
-        cell = self._tupt_basis(pane, text, cell, res, 'c', width)
-        return cell
-
-    def _tupt_right(self, pane, text, cell, width):
-        if not re.match('^.*\\s:(@[0-9]*(x[0-9]+)?)?$', cell):
-            res = '^()(\\s*)(.*?)(\\s*)((?:\\s@[0-9]*(?:x[0-9]+)?)?)$'
-        else:
-            res = '^()(\\s*)(.*?)(\\s*)(\\s:(?:@[0-9]*(?:x[0-9]+)?)?)$'
-        cell = self._tupt_basis(pane, text, cell, res, 'r', width)
-        return cell
-
-    def _tupt_basis(self, pane, text, cell, res, alignment, width):
+    def _tupt_basis(self, pane, text, cell, alignment, width):
         symbol_l, spaces_l_from, body, spaces_r_from, symbol_r \
-            = self._split_cell(res, cell)
+            = self._split_cell(cell)
         w = width - len(symbol_l) - get_real_width(body) - len(symbol_r)
         if alignment == 'r':
             spaces_l_to, spaces_r_to = (' ' * w), ('')
@@ -9226,12 +9199,25 @@ class Makdo:
         return cell
 
     @staticmethod
-    def _split_cell(res, cell):
-        sy_l = re.sub(res, '\\1', cell)
-        sp_l = re.sub(res, '\\2', cell)
-        body = re.sub(res, '\\3', cell)
-        sp_r = re.sub(res, '\\4', cell)
-        sy_r = re.sub(res, '\\5', cell)
+    def _split_cell(cell):
+        sy_l, sp_l, body, sp_r, sy_r = '', '', '', '', ''
+        res = '^(:\\s)(.*)$'
+        if re.match(res, cell):
+            sy_l = re.sub(res, '\\1', cell)
+            cell = re.sub(res, '\\2', cell)
+        res = '^(.*?)(\\s:?(?:@[0-9]+x?[0-9]*)?[=\\^]?)$'
+        if re.match(res, cell):
+            sy_r = re.sub(res, '\\2', cell)
+            cell = re.sub(res, '\\1', cell)
+        res = '^(\\s+)(.*?)$'
+        if re.match(res, cell):
+            sp_l = re.sub(res, '\\1', cell)
+            cell = re.sub(res, '\\2', cell)
+        res = '^(.*?)(\\s+)$'
+        if re.match(res, cell):
+            sp_r = re.sub(res, '\\2', cell)
+            cell = re.sub(res, '\\1', cell)
+        body = cell
         return sy_l, sp_l, body, sp_r, sy_r
 
     @staticmethod
