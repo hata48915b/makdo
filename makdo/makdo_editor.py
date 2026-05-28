@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.05.28-10:06:21-JST>
+# Time-stamp:   <2026.05.28-10:21:53-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -2981,11 +2981,10 @@ class LineDatum:
                     continue
                 if c == ':':
                     # ALIGNMENT
-                    res1, res2 = '^.*\\|', '^-*:?[\\^|=]?$'
-                    res3, res4 = '^.*\\|:?-*:$', '^[\\^|=]?$'
+                    res1, res2 = '^.*\\|:', '^-*:?[=\\^]?$'
+                    res3, res4 = '^.*\\|:?-*:$', '^[=\\^]?$'
                     res5, res6 = '^.*\\|:$', '^\\s.*$'
-                    res7, res8 = '^.*\\s:$', '^(@([0-9]*x)?[0-9]+)?\\|.*$'
-                    resA, resB = '^.*<\\s*:?@(?:[0-9]*\\.)[0-9]+:', '\\s*>'
+                    res7, res8 = '^.*\\s:$', '^(@[0-9]+x?[0-9]*)?[=\\^]?\\|.*$'
                     if (re.match(res1, s_lft) and re.match(res2, s_rgt)) or \
                        (re.match(res3, s_lft) and re.match(res4, s_rgt)) or \
                        (re.match(res5, s_lft) and re.match(res6, s_rgt)) or \
