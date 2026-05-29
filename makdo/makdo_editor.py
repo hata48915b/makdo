@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.05.29-08:33:46-JST>
+# Time-stamp:   <2026.05.29-20:50:21-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -2923,30 +2923,49 @@ class LineDatum:
                     tmp = ''                                            # 5.tmp
                     beg = end                                           # 6.beg
                     continue
-                # FONT DECORATOR ("@.+@")
-                res = NOT_ESCAPED + '(@[^@]{1,66}@)$'
-                if c == '@' and re.match(res, tmp):
-                    mdt = re.sub(res, '\\2', tmp)
-                    hsf = chars_state.has_specific_font
-                    key = chars_state.get_key('')                       # 1.key
-                    end = str(i + 1) + '.' + str(j - len(mdt) + 1)      # 2.end
-                    pane.tag_add(key, beg, end)                         # 3.tag
-                    if hsf:
-                        chars_state.toggle_has_specific_font()          # 4.set
-                    tmp = mdt                                           # 5.tmp
-                    beg = end                                           # 6.beg
-                    for k, tmp_c in enumerate(mdt):
-                        key = chars_state.get_key('font decorator')     # 1.key
-                        if tmp_c == ' ' or tmp_c == '\t' or tmp_c == '\u3000':
-                            key = chars_state.get_key(tmp_c)            # 1.key
-                        end = str(i + 1) + '.' \
-                            + str(j - len(mdt) + 1 + (k + 1))           # 2.end
+                if c == '@':
+                    # FONT DECORATOR ("@.+@")
+                    res = NOT_ESCAPED + '(@[^@]{1,66}@)$'
+                    if re.match(res, tmp):
+                        mdt = re.sub(res, '\\2', tmp)
+                        hsf = chars_state.has_specific_font
+                        key = chars_state.get_key('')                   # 1.key
+                        end = str(i + 1) + '.' + str(j - len(mdt) + 1)  # 2.end
                         pane.tag_add(key, beg, end)                     # 3.tag
+                        if hsf:
+                            chars_state.toggle_has_specific_font()      # 4.set
+                        tmp = mdt                                       # 5.tmp
                         beg = end                                       # 6.beg
-                    if not hsf:
-                        chars_state.toggle_has_specific_font()          # 4.set
-                    tmp = ''                                            # 5.tmp
-                    continue
+                        for k, tmp_c in enumerate(mdt):
+                            key = chars_state.get_key(
+                                'font decorator')                       # 1.key
+                            if tmp_c == ' ' or \
+                               tmp_c == '\t' or \
+                               tmp_c == '\u3000':
+                                key = chars_state.get_key(tmp_c)        # 1.key
+                            end = str(i + 1) + '.' \
+                                + str(j - len(mdt) + 1 + (k + 1))       # 2.end
+                            pane.tag_add(key, beg, end)                 # 3.tag
+                            beg = end                                   # 6.beg
+                        if not hsf:
+                            chars_state.toggle_has_specific_font()      # 4.set
+                        tmp = ''                                        # 5.tmp
+                        continue
+                    # TABLE "@nxn"
+                    if re.match('^[0-9]*x?[0-9]+[=\\^]?[\\|\n]', s_rgt):
+                        key = chars_state.get_key('')                   # 1.key
+                        end = str(i + 1) + '.' + str(j)                 # 2.end
+                        pane.tag_add(key, beg, end)                     # 3.tag
+                        #                                               # 4.set
+                        # tmp = '@'                                     # 5.tmp
+                        beg = end                                       # 6.beg
+                        key = chars_state.get_key('font decorator')     # 1.key
+                        end = str(i + 1) + '.' + str(j + 1)             # 2.end
+                        pane.tag_add(key, beg, end)                     # 3.tag
+                        #                                               # 4.set
+                        tmp = ''                                        # 5.tmp
+                        beg = end                                       # 6.beg
+                        continue
                 # FRAME (Should be before TABLE and IMAGE)
                 if (c1 == '[' and c0 == '|') or (c1 == '|' and c0 == ']'):
                     continue
@@ -3042,21 +3061,6 @@ class LineDatum:
                         tmp = ''                                        # 5.tmp
                         beg = end                                       # 6.beg
                         continue
-                if c == '@' and \
-                   re.match('^[0-9]*x?[0-9]+[=\\^]?[\\|\n]', s_rgt):
-                    key = chars_state.get_key('')                       # 1.key
-                    end = str(i + 1) + '.' + str(j)                     # 2.end
-                    pane.tag_add(key, beg, end)                         # 3.tag
-                    #                                                   # 4.set
-                    # tmp = '@'                                         # 5.tmp
-                    beg = end                                           # 6.beg
-                    key = chars_state.get_key('font decorator')         # 1.key
-                    end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                    pane.tag_add(key, beg, end)                         # 3.tag
-                    #                                                   # 4.set
-                    tmp = ''                                            # 5.tmp
-                    beg = end                                           # 6.beg
-                    continue
                 # IMAGE
                 if c == '!' and re.match('^\\[.*\\]\\(.*\\)', line_text[j+1:]):
                     key = chars_state.get_key('')                       # 1.key
@@ -3256,29 +3260,20 @@ class LineDatum:
                         tmp = ''                                        # 5.tmp
                         beg = end                                       # 6.beg
                         continue  # ...[n] / #+
-            # TABLE (@nxn)
-            if c == 'x' and tmp == 'x' and \
-               re.match('^.*@[0-9]*x$', s_lft) and \
-               re.match('^.*[0-9]*[=\\^][\\|\n]', s_rgt):
-                key = chars_state.get_key('font decorator')         # 1.key
-                end = str(i + 1) + '.' + str(j + 1)                 # 2.end
-                pane.tag_add(key, beg, end)                         # 3.tag
-                #                                                   # 4.set
-                tmp = ''                                            # 5.tmp
-                beg = end                                           # 6.beg
-                continue
             if re.match('^[0-9]$', c):
                 # TABLE (@nxn)
-                if len(tmp) == 1 and \
-                   re.match('^.*@[0-9]*x?[0-9]*$', s_lft) and \
-                   re.match('^.*[0-9]*x?[0-9]*[=\\^][\\|\n]', s_rgt):
-                    key = chars_state.get_key('font decorator')     # 1.key
-                    end = str(i + 1) + '.' + str(j + 1)             # 2.end
-                    pane.tag_add(key, beg, end)                     # 3.tag
-                    #                                               # 4.set
-                    tmp = ''                                        # 5.tmp
-                    beg = end                                       # 6.beg
-                    continue
+                if len(tmp) == 1:
+                    if ((re.match('^.*@[0-9]+$', s_lft) and
+                         re.match('^[0-9]*x?[0-9]*[=\\^]?[\\|\n]', s_rgt)) or
+                        (re.match('^.*@[0-9]*x[0-9]+$', s_lft) and
+                         re.match('^[0-9]*[=\\^]?[\\|\n]', s_rgt))):
+                        key = chars_state.get_key('font decorator')     # 1.key
+                        end = str(i + 1) + '.' + str(j + 1)             # 2.end
+                        pane.tag_add(key, beg, end)                     # 3.tag
+                        #                                               # 4.set
+                        tmp = ''                                        # 5.tmp
+                        beg = end                                       # 6.beg
+                        continue
                 # SAPCE (< n >)
                 if ((re.match('^.*<\\s*[0-9]+$', s_lft) and
                      re.match('^[0-9]*\\s*>.*$', s_rgt)) or
@@ -3413,6 +3408,17 @@ class LineDatum:
                 #                                                       # 4.set
                 tmp = ''                                                # 5.tmp
                 beg = end                                               # 6.beg
+                continue
+            # TABLE (@nxn)
+            if c == 'x' and tmp == 'x' and \
+               re.match('^.*@[0-9]*x$', s_lft) and \
+               re.match('^[0-9]+[=\\^]?[\\|\n]', s_rgt):
+                key = chars_state.get_key('font decorator')         # 1.key
+                end = str(i + 1) + '.' + str(j + 1)                 # 2.end
+                pane.tag_add(key, beg, end)                         # 3.tag
+                #                                                   # 4.set
+                tmp = ''                                            # 5.tmp
+                beg = end                                           # 6.beg
                 continue
             # HALF KATAKANA
             if re.match('^[ｦ-ﾟ]$', c):
