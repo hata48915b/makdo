@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.05.29-08:05:18-JST>
+# Time-stamp:   <2026.05.29-09:20:37-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -6136,7 +6136,8 @@ class ParagraphTable(Paragraph):
                                 result = value
                         count += 1
             if result is None:
-                return None, form
+                return '0', form
+                # return None, form
             if func == 'AVERAGE':
                 if '.' not in result:
                     result = str(float(result) / count)
