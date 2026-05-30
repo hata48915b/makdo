@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.05.30-15:52:03-JST>
+# Time-stamp:   <2026.05.30-18:31:36-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -2599,9 +2599,18 @@ class LineDatum:
                     pane.tag_add(key, beg, end)                         # 3.tag
                 self.end_chars_state = chars_state.copy()
                 return
-            if re.match('^\\^+$', line_text) or re.match('^=+$', line_text):
+            if re.match('^\\s*\\^+\n$', line_text) or \
+               re.match('^\\s*=+\n$', line_text):
+                spc = re.sub('^(\\s*)(.*\n)$', '\\1', line_text)
+                hrl = re.sub('^(\\s*)(.*\n)$', '\\2', line_text)
+                beg = str(i + 1) + '.0'                                 # 6.beg
+                if spc != '':
+                    print('[' + beg + ']')
+                    key = chars_state.get_key(' ')                      # 1.key
+                    end = str(i + 1) + '.0+' + str(len(spc)) + 'c'      # 2.end
+                    pane.tag_add(key, beg, end)                         # 3.tag
+                    beg = end                                           # 6.beg
                 key = chars_state.get_key('hline')                      # 1.key
-                beg = str(i + 1) + '.0'                                 # 2.end
                 end = str(i + 1) + '.end'                               # 2.end
                 pane.tag_add(key, beg, end)                             # 3.tag
                 self.end_chars_state = chars_state.copy()
@@ -8793,7 +8802,7 @@ class Makdo:
         if re.match('^([0-9]+\\.|-)\\s.*$', full_text):
             return 'list'
         # TABLE (Should be before ALIGNMENT)
-        if re.match('^(: )?\\s*\\|.*\\|(:?-*:?(\n?(\\^+|=+))?)?( :)?$',
+        if re.match('^\\s*(: )?\\|.*\\|(:?-*:?(\n?(\\^+|=+))?)?( :)?$',
                     full_text):
             return 'table'
         # ALIGNMENT
@@ -9122,13 +9131,31 @@ class Makdo:
                             c = self._tupt_basis(pane, text, c, ali, r_width)
                 else:
                     # END OF A ROW
-                    res = '^(\\|(?:\\s+:)?)(\\s+)(\n)$'
+                    sp2, hrl, sp3, nl2 = '', '', '', ''
+                    res = '^(\\|.*\n)(\\s*)([=\\^]+)(\\s*)(\n)$'
+                    if re.match(res, c):
+                        bdy = re.sub(res, '\\1', c)
+                        sp2 = re.sub(res, '\\2', c)
+                        hrl = re.sub(res, '\\3', c)
+                        sp3 = re.sub(res, '\\4', c)
+                        nl2 = re.sub(res, '\\5', c)
+                        sp3 = self._replace_spaces(pane,
+                                                   text + bdy + sp2 + hrl,
+                                                   sp3, '')
+                        w = r_width - get_real_width(sym)
+                        sp2 = self._replace_spaces(pane,
+                                                   text + bdy,
+                                                   sp2, ' ' * (widths[0] - 1))
+                        c = bdy
+                    sp1, nl1 = '', ''
+                    res = '^(\\|(?:\\s+:|:?-*:?[=\\^]?)?)(\\s*)(\n)$'
                     if re.match(res, c):
                         sym = re.sub(res, '\\1', c)
-                        spc = re.sub(res, '\\2', c)
-                        nln = re.sub(res, '\\3', c)
-                        spc = self._replace_spaces(pane, text + sym, spc, '')
-                        c = sym + spc + nln
+                        sp1 = re.sub(res, '\\2', c)
+                        nl1 = re.sub(res, '\\3', c)
+                        sp1 = self._replace_spaces(pane, text + sym, sp1, '')
+                        c = sym
+                    c += sp1 + nl1 + sp2 + hrl + sp3 + nl2
                 r_width -= get_real_width(c)
                 if '\n' in c:
                     r_width = 0
