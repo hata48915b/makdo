@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.05.30-15:10:40-JST>
+# Time-stamp:   <2026.05.30-15:14:31-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -9249,7 +9249,7 @@ class Makdo:
             cell = re.sub(res, '\\2', cell)
         if re.match('^\\s$', sy_l):
             cell = sy_l + cell
-            sy_r = ''
+            sy_l = ''
         # RIGHT SYMBOL
         res = '^(.*?)(\\s:?(?:@[0-9]+x?[0-9]*)?[=\\^]?)$'
         if re.match(res, cell):
