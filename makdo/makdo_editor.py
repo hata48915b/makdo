@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.05.29-20:50:21-JST>
+# Time-stamp:   <2026.05.30-15:10:40-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -9243,17 +9243,20 @@ class Makdo:
     def _split_cell(cell):
         sy_l, sp_l, body, sp_r, sy_r = '', '', '', '', ''
         # LEFT SYMBOL
-        res = '^(:\\s)(.*)$'
+        res = '^([=\\^]?:?\\s)(.*)$'
         if re.match(res, cell):
             sy_l = re.sub(res, '\\1', cell)
             cell = re.sub(res, '\\2', cell)
+        if re.match('^\\s$', sy_l):
+            cell = sy_l + cell
+            sy_r = ''
         # RIGHT SYMBOL
         res = '^(.*?)(\\s:?(?:@[0-9]+x?[0-9]*)?[=\\^]?)$'
         if re.match(res, cell):
             sy_r = re.sub(res, '\\2', cell)
             cell = re.sub(res, '\\1', cell)
-        if re.match('^\\s+$', sy_r):
-            cell += sy_r
+        if re.match('^\\s$', sy_r):
+            cell = cell + sy_r
             sy_r = ''
         # LEFT SPACE
         res = '^(\\s+)(.*?)$'
