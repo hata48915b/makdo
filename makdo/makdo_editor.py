@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.05.30-15:14:31-JST>
+# Time-stamp:   <2026.05.30-15:52:03-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -9205,6 +9205,7 @@ class Makdo:
             lsym = lsym + re.sub(res, '\\1', cell)
             cell = re.sub(res, '\\2', cell)
         # LEFT SPACE
+        lspc = ''
         res = '^(\\s+)((?:.|\n)*)$'
         if re.match(res, cell):
             spc = re.sub(res, '\\1', cell)
@@ -9213,8 +9214,8 @@ class Makdo:
             if lsym == '' and spc != '' and re.match('^=', bdy):
                 new_spc = ' '
             spc = self._replace_spaces(pane, text + lsym, spc, new_spc)
-            cell = lsym + spc + bdy
-        cell += rspc + rsym
+            lspc, cell = spc, bdy
+        cell = lsym + lspc + cell + rspc + rsym
         return cell
 
     def _tupt_basis(self, pane, text, cell, alignment, width):

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.05.29-20:08:23-JST>
+# Time-stamp:   <2026.05.30-16:53:06-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -5778,16 +5778,18 @@ class ParagraphTable(Paragraph):
                     ms_ppr = ms_par._p.get_or_add_pPr()
                     XML.add_tag(ms_ppr, 'w:wordWrap', {'w:val': '0'})
                     ms_fmt = ms_par.paragraph_format
-                    if re.match('^\\s*:\\s', par) and \
-                       re.match(NOT_ESCAPED + '\\s:\\s*$', par):
+                    res_lft = '^\\s*:\\s(.*)$'
+                    res_cnt = '^\\s*:\\s(.*)\\s:\\s*$'
+                    res_rgt = '^(.*)\\s:\\s*$'
+                    if re.match(res_cnt, par):
                         ms_fmt.alignment = WD_TABLE_ALIGNMENT.CENTER
-                        par = re.sub('^\\s*:\\s(.*)\\s:\\s*$', '\\1', par)
-                    elif re.match('^\\s*:\\s', par):
+                        par = re.sub(res_cnt, '\\1', par)
+                    elif re.match(res_lft, par):
                         ms_fmt.alignment = WD_TABLE_ALIGNMENT.LEFT
-                        par = re.sub('^\\s*:\\s(.*)$', '\\1', par)
-                    elif re.match(NOT_ESCAPED + '\\s:\\s*$', par):
+                        par = re.sub(res_lft, '\\1', par)
+                    elif re.match(res_rgt, par):
                         ms_fmt.alignment = WD_TABLE_ALIGNMENT.RIGHT
-                        par = re.sub('^(.*)\\s:\\s*$', '\\1', par)
+                        par = re.sub(res_rgt, '\\1', par)
                     else:
                         ms_fmt.alignment = hori_alig_mtrx[i][j]
                     par = re.sub('^\\s*\\\\?', '', par)
