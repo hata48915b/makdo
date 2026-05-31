@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.05.30-18:31:36-JST>
+# Time-stamp:   <2026.05.31-10:19:23-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -2605,7 +2605,6 @@ class LineDatum:
                 hrl = re.sub('^(\\s*)(.*\n)$', '\\2', line_text)
                 beg = str(i + 1) + '.0'                                 # 6.beg
                 if spc != '':
-                    print('[' + beg + ']')
                     key = chars_state.get_key(' ')                      # 1.key
                     end = str(i + 1) + '.0+' + str(len(spc)) + 'c'      # 2.end
                     pane.tag_add(key, beg, end)                         # 3.tag
@@ -9045,6 +9044,9 @@ class Makdo:
             else:
                 b_row.append('l')
         a_tab = []
+        res_l = '^[=\\^]?:\\s.*$'
+        res_c = '^[=\\^]?:\\s.*\\s:(@[0-9]+x?[0-9]*)?[=\\^]?$'
+        res_r = '^.*\\s:(@[0-9]+x?[0-9]*)?[=\\^]?$'
         for i, row in enumerate(table):
             a_row = []
             for j, cell in enumerate(row):
@@ -9055,11 +9057,11 @@ class Makdo:
                     a_row.append('c')
                 else:
                     a_row.append(b_row[k])
-                if re.match('^:\\s.*\\s:(\\s*@([0-9]*x)?[0-9]+)?$', cell):
+                if re.match(res_c, cell):
                     a_row[k] = 'c'
-                elif re.match('^.*\\s:(\\s*@([0-9]*x)?[0-9]+)?$', cell):
+                elif re.match(res_r, cell):
                     a_row[k] = 'r'
-                elif re.match('^:\\s.*$', cell):
+                elif re.match(res_l, cell):
                     a_row[k] = 'l'
             a_tab.append(a_row)
         alignment = a_tab
