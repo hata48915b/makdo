@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.05.31-10:19:23-JST>
+# Time-stamp:   <2026.05.31-13:55:13-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -3011,7 +3011,7 @@ class LineDatum:
                     res1, res2 = '^.*\\|[=\\^]?:', '^-*:?[=\\^]?$'
                     res3, res4 = '^.*\\|[=\\^]?:?-*:$', '^[=\\^]?$'
                     res5, res6 = '^.*\\|[=\\^]?:$', '^\\s.*$'
-                    res7, res8 = '^.*\\s:$', '^(@[0-9]+x?[0-9]*)?[=\\^]?\\|.*$'
+                    res7, res8 = '^.*\\s:$', '^(@[0-9]*x?[0-9]+)?[=\\^]?\\|.*$'
                     if (re.match(res1, s_lft) and re.match(res2, s_rgt)) or \
                        (re.match(res3, s_lft) and re.match(res4, s_rgt)) or \
                        (re.match(res5, s_lft) and re.match(res6, s_rgt)) or \
@@ -9045,8 +9045,8 @@ class Makdo:
                 b_row.append('l')
         a_tab = []
         res_l = '^[=\\^]?:\\s.*$'
-        res_c = '^[=\\^]?:\\s.*\\s:(@[0-9]+x?[0-9]*)?[=\\^]?$'
-        res_r = '^.*\\s:(@[0-9]+x?[0-9]*)?[=\\^]?$'
+        res_c = '^[=\\^]?:\\s.*\\s:(@[0-9]*x?[0-9]+)?[=\\^]?$'
+        res_r = '^.*\\s:(@[0-9]*x?[0-9]+)?[=\\^]?$'
         for i, row in enumerate(table):
             a_row = []
             for j, cell in enumerate(row):
@@ -9170,7 +9170,7 @@ class Makdo:
         if re.match(res, cell):
             rsym = re.sub(res, '\\2', cell) + rsym
             cell = re.sub(res, '\\1', cell)
-        res = '^((?:.|\n)*?)((?:@[0-9]+x?[0-9]*)?)$'
+        res = '^((?:.|\n)*?)((?:@[0-9]*x?[0-9]+)?)$'
         if re.match(res, cell):
             rsym = re.sub(res, '\\2', cell) + rsym
             cell = re.sub(res, '\\1', cell)
@@ -9218,7 +9218,7 @@ class Makdo:
                 bdy = re.sub(res, '\\1', bdy)
                 new_spc = '\n' + (' ' * borders[0])
                 if new_bdy == '' and pos != '' and \
-                   re.match('^:?(?:@[0-9]+x?[0-9]*)[=\\^]?$', pos):
+                   re.match('^:?(?:@[0-9]*x?[0-9]+)[=\\^]?$', pos):
                     new_spc = '\n' + (' ' * (borders[1] - len(pos)))
                 spc = self._replace_spaces(pane, text + bdy, spc, new_spc)
                 new_bdy = new_spc + pos + new_bdy
@@ -9281,7 +9281,7 @@ class Makdo:
             cell = sy_l + cell
             sy_l = ''
         # RIGHT SYMBOL
-        res = '^(.*?)(\\s:?(?:@[0-9]+x?[0-9]*)?[=\\^]?)$'
+        res = '^(.*?)(\\s:?(?:@[0-9]*x?[0-9]+)?[=\\^]?)$'
         if re.match(res, cell):
             sy_r = re.sub(res, '\\2', cell)
             cell = re.sub(res, '\\1', cell)
