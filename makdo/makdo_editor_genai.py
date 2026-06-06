@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         genai.py
 # Version:      v01
-# Time-stamp:   <2026.06.06-15:17:20-JST>
+# Time-stamp:   <2026.06.06-15:41:07-JST>
 
 # genai.py
 # Copyright (C) 2025-2026  Seiichiro HATA
@@ -388,15 +388,16 @@ class Ollama(GenAI):
         # GET INSTALLED MODELS
         mol = self._get_installed_ollama_models()
         loaded_models = self._get_loaded_ollama_models()
+        cloud_models = self._get_cloud_ollama_models()
         if mol is None:
             return False
         tmp = []
         for m in mol:
             t = ['', '', 0, m]  # ["" or "@", class, size, display name]
-            if re.match('^.*-cloud$', m):
+            if m in cloud_models:
                 t[0], t[3] = '@', '@' + t[3]  # for cloud
             if m in loaded_models:
-                t[3] = t[3] + '＊'            # for loaded
+                t[3] = t[3] + ' ＊'            # for loaded
             m = re.sub('-[^-]+$', '', m)
             lt = m.split(':')
             if len(lt) > 0:
@@ -480,6 +481,19 @@ class Ollama(GenAI):
         except BaseException:
             n = 'エラー'
             m = '"ollama"のロードモデルを\n取得できませんでした．'
+            tkinter.messagebox.showerror(n, m)
+            return None
+        return models
+
+    def _get_cloud_ollama_models(self) -> list:
+        try:
+            models = []
+            for om in self.ollama.list().models:
+                if om.size < 1_000_000_000:
+                    models.append(om.model)
+        except BaseException:
+            n = 'エラー'
+            m = '"ollama"のインストールモデルを\n取得できませんでした．'
             tkinter.messagebox.showerror(n, m)
             return None
         return models
@@ -688,7 +702,8 @@ class Ollama(GenAI):
         return new
 
     def _execute_ollama(self, system_content, user_content, messages=None):
-        if re.match('.*-cloud$', self.makdo.ollama_model):
+        cloud_models = self._get_cloud_ollama_models()
+        if self.makdo.ollama_model in cloud_models:
             if not self._warning_dialog():
                 return None
         if messages is None:
