@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         genai.py
 # Version:      v01
-# Time-stamp:   <2026.06.06-15:41:07-JST>
+# Time-stamp:   <2026.06.09-12:38:42-JST>
 
 # genai.py
 # Copyright (C) 2025-2026  Seiichiro HATA
@@ -430,10 +430,10 @@ class Ollama(GenAI):
         num = -1
         if 'ollama_model' in vars(self.makdo):
             om = self.makdo.ollama_model
-            if re.match('^.*-cloud$', self.makdo.ollama_model):
+            if om in cloud_models:
                 om = '@' + om   # for cloud
             if self.makdo.ollama_model in loaded_models:
-                om = om + '＊'  # for loaded
+                om = om + ' ＊'  # for loaded
             if om in mol:
                 num = mol.index(om)
         # GET A NEW MODEL
@@ -441,7 +441,7 @@ class Ollama(GenAI):
         val = rd.get_value()
         if (val is not None) and (val != self.makdo.ollama_model):
             val = re.sub('^@', '', val)   # for cloud
-            val = re.sub('＊$', '', val)  # for loaded
+            val = re.sub(' ＊$', '', val)  # for loaded
             self.makdo.ollama_model = val
             m = 'Ollamaのモデルを"' + val + '"に設定しました'
             self.makdo.set_message_on_status_bar(m)
