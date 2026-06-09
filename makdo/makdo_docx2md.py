@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.03.14-17:31:32-JST>
+# Time-stamp:   <2026.06.09-11:40:25-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -2545,19 +2545,18 @@ class Form:
             elif re.match(res_s1b_end, xl):
                 paragraph_class, proper_depth \
                     = AutoNumberingStyle.get_class_and_depth(s1_fmt, s1_txt)
-                if paragraph_class is not None and proper_depth is not None:
-                    ans = AutoNumberingStyle()
-                    ans.paragraph_class = paragraph_class
-                    ans.proper_depth = proper_depth
-                    ans.number_format = s1_fmt
-                    ans.head_string = s1_txt
-                    ans.start = s1_str
-                    ans.raw_first_indent = s1_fir - s1_han
-                    # ans.raw_firstline_indent = s1_fir
-                    # ans.raw_hanging_indent = s1_han
-                    ans.raw_left_indent = s1_lef
-                    s1_key = str(s1a_num) + '-' + str(s1b_num)
-                    s1_styles[s1_key] = ans
+                ans = AutoNumberingStyle()
+                ans.paragraph_class = paragraph_class
+                ans.proper_depth = proper_depth
+                ans.number_format = s1_fmt
+                ans.head_string = s1_txt
+                ans.start = s1_str
+                ans.raw_first_indent = s1_fir - s1_han
+                # ans.raw_firstline_indent = s1_fir
+                # ans.raw_hanging_indent = s1_han
+                ans.raw_left_indent = s1_lef
+                s1_key = str(s1a_num) + '-' + str(s1b_num)
+                s1_styles[s1_key] = ans
                 s1b_num = -1
             elif re.match(res_s1a_end, xl):
                 s1a_num = -1
@@ -2662,7 +2661,9 @@ class AutoNumberingStyle:
                 return 'section', 7
             if re.match(res_s8_a, txt):
                 return 'section', 8
-        return None, None
+        if fmt == 'bullet':
+            return 'bullet', None
+        return 'number', None
 
     @staticmethod
     def get_style_key_from_xml_lines(xml_lines):
@@ -7857,6 +7858,8 @@ class ParagraphBlank(Paragraph):
     def is_this_class(cls, raw_paragraph):
         rp = raw_paragraph
         rp_rtx = rp.raw_text_doi
+        if ParagraphSystemlist.is_this_class(rp):
+            return False
         if ParagraphTable.is_this_class(rp):
             return False
         if ParagraphImage.is_this_class(rp):
@@ -8228,21 +8231,19 @@ class ParagraphSystemlist(Paragraph):
         depth = 1
         for xl in xml_lines:
             if re.match(res_xml_bullet_ms, xl):
+                # MS: DEPTH
                 n = re.sub(res_xml_bullet_ms, '\\1', xl)
                 depth = int(n) + 1
-            if re.match(res_xml_number_ms, xl):
+            elif re.match(res_xml_number_ms, xl):
+                # MS: LIST TYPE
                 n = re.sub(res_xml_number_ms, '\\1', xl)
-                if n == '10':
-                    list_type = 'bullet'
-                else:
-                    list_type = 'number'
-            if re.match(res_xml_bullet_lo, xl):
-                list_type = 'bullet'
+            elif re.match(res_xml_bullet_lo, xl):
+                # LO: BULLET
                 n = re.sub(res_xml_bullet_lo, '\\1', xl)
                 if n != '':
                     depth = int(n)
-            if re.match(res_xml_number_lo, xl):
-                list_type = 'number'
+            elif re.match(res_xml_number_lo, xl):
+                # LO: NUMBER
                 n = re.sub(res_xml_number_lo, '\\1', xl)
                 if n != '':
                     depth = int(n)
@@ -8261,20 +8262,23 @@ class ParagraphSystemlist(Paragraph):
         depth = 1
         for xl in xml_lines:
             if re.match(res_xml_bullet_ms, xl):
+                # MS: DEPTH
                 n = re.sub(res_xml_bullet_ms, '\\1', xl)
                 depth = int(n) + 1
             if re.match(res_xml_number_ms, xl):
+                # MS: LIST TYPE
                 n = re.sub(res_xml_number_ms, '\\1', xl)
-                if n == '10':
-                    list_type = 'bullet'
-                else:
-                    list_type = 'number'
+                key = str(n) + '-' + str(depth - 1)
+                if key in Form.auto_numbering_styles:
+                    list_type = Form.auto_numbering_styles[key].paragraph_class
             if re.match(res_xml_bullet_lo, xl):
+                # LO: BULLET
                 list_type = 'bullet'
                 n = re.sub(res_xml_bullet_lo, '\\1', xl)
                 if n != '':
                     depth = int(n)
             if re.match(res_xml_number_lo, xl):
+                # LO: NUMBER
                 list_type = 'number'
                 n = re.sub(res_xml_number_lo, '\\1', xl)
                 if n != '':
