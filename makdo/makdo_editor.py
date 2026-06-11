@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.05.31-13:55:13-JST>
+# Time-stamp:   <2026.06.11-11:41:20-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -8745,7 +8745,7 @@ class Makdo:
                     pre = pre + re.sub(res, '\\1', par)
                     par = re.sub(res, '\\2', par)
             for res_xx in res_tail:
-                res = '^((?:.|\n)*?)' + res_xx + '$'
+                res = '^((?:.|\n)*)' + res_xx + '$'
                 if re.match(res, par):
                     pos = re.sub(res, '\\2', par) + pos
                     par = re.sub(res, '\\1', par)
