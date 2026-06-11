@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.06.12-05:51:42-JST>
+# Time-stamp:   <2026.06.12-07:00:16-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -9352,13 +9352,17 @@ class Makdo:
         else:
             spaces_l_to, spaces_r_to = (''), (' ' * w)
         if spaces_l_from != '' and spaces_l_to == '' and re.match('^=', body):
-            spaces_l_to = ' '  # | =SUM(A1:A9)...|
+            # | =SUM(A1:A9)...|
+            spaces_l_to = ' '
+            if spaces_r_to != '':
+                spaces_r_to = re.sub('^ ', '', spaces_r_to)
         if cell != (symbol_l + spaces_l_to + body + spaces_r_to + symbol_r):
             t = text + symbol_l + spaces_l_from + body
             sp_r = self._replace_spaces(pane, t, spaces_r_from, spaces_r_to)
             t = text + symbol_l
             sp_l = self._replace_spaces(pane, t, spaces_l_from, spaces_l_to)
             cell = symbol_l + sp_l + body + sp_r + symbol_r
+        print('[' + cell + ']')
         return cell
 
     @staticmethod

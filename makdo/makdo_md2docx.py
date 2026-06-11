@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.05.31-13:57:43-JST>
+# Time-stamp:   <2026.06.12-06:34:09-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -6061,7 +6061,7 @@ class ParagraphTable(Paragraph):
         for i in range(len(tab)):
             for j in range(len(tab[i])):
                 cell = tab[i][j]
-                if re.match('^[=\\^]?(:\\s)?\\s*=', cell):
+                if re.match('^[=\\^]?(:\\s)?\\s*=.+', cell):
                     lft_syms, result, rgt_syms, form \
                         = self.__calculate_cell(0, cell, tab, '0')
                     if result is not None:
@@ -6088,6 +6088,7 @@ class ParagraphTable(Paragraph):
         formula = formula.replace('(', ' ( ').replace(')', ' ) ')
         formula = formula.replace('*', ' * ').replace('/', ' / ')
         formula = formula.replace('+', ' + ').replace('-', ' - ')
+        formula = re.sub('([A-Z]) - ([0-9]+)', '\\1-\\2', formula)
         formula = re.sub('\\s\\s\\s+', ' ', formula)
         formula = formula.replace(') (', ') * (')
         formula = re.sub('^\\s+', '', formula)
@@ -6103,7 +6104,7 @@ class ParagraphTable(Paragraph):
         res = '^(.*)' \
             + '\\s+(SUM|AVERAGE|MAX|MIN)' \
             + '\\s*' \
-            + '\\(\\s*([A-Z][0-9]+)\\s*:\\s*([A-Z][0-9]+)\\s*\\)' \
+            + '\\(\\s*([A-Z]-?[0-9]+)\\s*:\\s*([A-Z]-?[0-9]+)\\s*\\)' \
             + '(.*)$'
         while re.match(res, formula):
             prev = re.sub(res, '\\1', formula)
@@ -6111,8 +6112,8 @@ class ParagraphTable(Paragraph):
             cl_f = re.sub(res, '\\3', formula)  # A2, B3, ...
             cl_t = re.sub(res, '\\4', formula)  # A2, B3, ...
             post = re.sub(res, '\\5', formula)
-            cell_fr = self.__get_cell_point(cl_f)  # (1, 2), (2, 3), ...
-            cell_to = self.__get_cell_point(cl_t)  # (1, 2), (2, 3), ...
+            cell_fr = self.__get_cell_point(tab, cl_f)  # (1, 2), (2, 3), ...
+            cell_to = self.__get_cell_point(tab, cl_t)  # (1, 2), (2, 3), ...
             result, count = None, 0
             for i in range(cell_fr[0], cell_to[0] + 1):
                 for j in range(cell_fr[1], cell_to[1] + 1):
@@ -6125,7 +6126,19 @@ class ParagraphTable(Paragraph):
                         if cell is None:
                             return None, form
                     value, form = self.__get_cell_value_and_form(cell, form)
-                    if value is not None:
+                    if value is None:
+                        cell_id = chr(j + 65) + str(i + 1)
+                        msg = '※ 警告: セルが数値又は数式ではありません\n' \
+                            + '  ' + cell_id + ' (' \
+                            + re.sub('\\s*(.*?)\\s*', '\\1', cell) \
+                            + ')\n'
+                        # msg = 'warning: ' \
+                        #     + 'cell must be a numeric value or formula\n  ' \
+                        #     + '  ' + cell_id + ' (' \
+                        #     + re.sub('\\s*(.*?)\\s*', '\\1', cell) \
+                        #     + ')\n'
+                        sys.stderr.write(msg)
+                    else:
                         if result is None:
                             result = value
                         elif func == 'SUM' or func == 'AVERAGE':
@@ -6148,12 +6161,12 @@ class ParagraphTable(Paragraph):
                     result = str(float(result) / count)
             formula = prev + result + post
         # REFERENCE
-        res = '^(.*?)\\s+([A-Z][0-9]+)\\s+(.*)$'
+        res = '^(.*?)\\s+([A-Z]-?[0-9]+)\\s+(.*)$'
         while re.match(res, formula):
             prev = re.sub(res, '\\1', formula)
             reff = re.sub(res, '\\2', formula)  # A2, B3, ...
             post = re.sub(res, '\\3', formula)
-            i, j = self.__get_cell_point(reff)  # (1, 2), (2, 3), ...
+            i, j = self.__get_cell_point(tab, reff)  # (1, 2), (2, 3), ...
             if (i > len(tab) - 1) or (j > len(tab[i]) - 1):
                 return None, form
             cell = tab[i][j]
@@ -6208,8 +6221,10 @@ class ParagraphTable(Paragraph):
         return formula, form
 
     @staticmethod
-    def __get_cell_point(cell):
+    def __get_cell_point(tab, cell):
         i = int(cell[1:]) - 1
+        if i < 0:
+            i = len(tab) + i + 1
         j = ord(cell[0]) - 65
         return i, j
 
