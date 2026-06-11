@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.06.11-11:41:20-JST>
+# Time-stamp:   <2026.06.12-05:51:42-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -7893,6 +7893,10 @@ class Makdo:
                          command=self.set_list_number)
         menu.add_separator()
         #
+        menu.add_command(label='表に行番号を挿入・削除',
+                         command=self.insert_or_remove_row_numbers)
+        menu.add_separator()
+        #
         menu.add_command(label='段落を整形',
                          command=self.tidy_up_paragraph)
         # menu.add_separator()
@@ -8679,6 +8683,93 @@ class Makdo:
         doc = re.sub(res, '\\1', doc)
         pane.insert('1.0+' + str(len(doc)) + 'c', revisers + '\n')
 
+    def insert_or_remove_row_numbers(self) -> bool:
+        pane = self._get_pane()
+        pane['autoseparators'] = False
+        pane.edit_separator()
+        pre_text, bare_par, pos_text = self.get_bare_paragraph(pane)
+        res = '^(<!--[0-9]+-->)((?:.|\n)*)$'
+        if re.match(res, pos_text):
+            row_numb = re.sub(res, '\\1', pos_text)
+            pos_text = re.sub(res, '\\2', pos_text)
+            bare_par += row_numb
+        par_class = self.get_par_class(bare_par)
+        if par_class != 'table':
+            return False
+        table = self._get_table(bare_par)
+        if not self._has_row_numbers(table):
+            self.insert_row_numbers(pane, pre_text, table)
+        else:
+            self.remove_row_numbers(pane, pre_text, table)
+
+    @staticmethod
+    def _has_row_numbers(table):
+        res_conf_row = '^\\s*(<!--.*-->)?\\s*' + \
+            '(:\\s+)?' + '\\|(:?-*:?[=\\^]?\\|)+' + '(\\s+:)?' + \
+            '\\s*(<!--.*-->)?\\s*$'
+        i = 0
+        for row in table:
+            line = ''.join(row)
+            line = re.sub('\n', '', line)
+            if re.match(res_conf_row, line):
+                continue
+            last = row[-1]
+            last = re.sub('\n(.|\n)*$', '', last)
+            i += 1
+            if re.match('.*<!--' + str(i) + '-->$', last):
+                return True
+        return False
+
+    def insert_row_numbers(self, pane, pre_text, table):
+        text = pre_text
+        res_conf_row = '^\\s*(<!--.*-->)?\\s*' + \
+            '(:\\s+)?' + '\\|(:?-*:?[=\\^]?\\|)+' + '(\\s+:)?' + \
+            '\\s*(<!--.*-->)?\\s*$'
+        res_insert_point = '^(.+)((?:.|\n)*)$'
+        row_number = 0
+        for row in table:
+            line = ''.join(row)
+            if re.match(res_conf_row, line):
+                text += line
+                continue
+            str1 = re.sub(res_insert_point, '\\1', line)
+            str2 = re.sub(res_insert_point, '\\2', line)
+            text += str1
+            ins = '1.0+' + str(len(text)) + 'c'
+            row_number += 1
+            row_number_symbol = '<!--' + str(row_number) + '-->'
+            pane.insert(ins, row_number_symbol)
+            text += row_number_symbol + str2
+        beg_line, end_line = pre_text.count('\n'), text.count('\n')
+        for i in range(beg_line, end_line):
+            self.paint_out_line(i)
+
+    def remove_row_numbers(self, pane, pre_text, table):
+        text = pre_text
+        res_conf_row = '^\\s*(<!--.*-->)?\\s*' + \
+            '(:\\s+)?' + '\\|(:?-*:?[=\\^]?\\|)+' + '(\\s+:)?' + \
+            '\\s*(<!--.*-->)?\\s*$'
+        res_row_number = '^(.+)(<!--[0-9]+-->)((?:\n(?:=+|\\^+))?\n?)$'
+        for row in table:
+            line = ''.join(row)
+            if re.match(res_conf_row, line):
+                text += line
+                continue
+            if not re.match(res_row_number, line):
+                text += line
+                continue
+            str1 = re.sub(res_row_number, '\\1', line)
+            str2 = re.sub(res_row_number, '\\2', line)
+            str3 = re.sub(res_row_number, '\\3', line)
+            text += str1
+            beg = '1.0+' + str(len(text)) + 'c'
+            end = '1.0+' + str(len(text + str2)) + 'c'
+            tmp = pane.get(beg, end)
+            if re.match('^<!--[0-9]+-->$', tmp):
+                pane.delete(beg, end)
+                str2 = ''
+            text += str2 + str3
+
     def tidy_up_paragraph(self) -> bool:
         pane = self._get_pane()
         pane['autoseparators'] = False
@@ -8801,7 +8892,7 @@ class Makdo:
         if re.match('^([0-9]+\\.|-)\\s.*$', full_text):
             return 'list'
         # TABLE (Should be before ALIGNMENT)
-        if re.match('^\\s*(: )?\\|.*\\|(:?-*:?(\n?(\\^+|=+))?)?( :)?$',
+        if re.match('^\\s*(: )?\\|.*\\|(:?-*:?( ?(\\^+|=+))?)?( :)?$',
                     full_text):
             return 'table'
         # ALIGNMENT
@@ -8954,6 +9045,7 @@ class Makdo:
                     cell = ''
             elif c == '\0':
                 if row != []:
+                    row[-1] += cell
                     table.append(row)
                     row = []
             else:
@@ -11244,6 +11336,12 @@ class Makdo:
             'insert-table-from-excel',
             [None, '表をエクセルのファイルから挿入'],
             ['self.mother.insert_table_from_excel()'])
+        minibuffer_commands.append(mc)
+
+        mc = MinibufferCommand(
+            'insert-or-remove-row-numbers',
+            [None, '表に行番号を挿入・削除'],
+            ['self.mother.insert_or_remove_row_numbers()'])
         minibuffer_commands.append(mc)
 
         # MOVE
