@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.06.12-07:00:16-JST>
+# Time-stamp:   <2026.06.12-10:21:20-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -1333,6 +1333,8 @@ class Math():
         #
         self.calculation_result \
             = self._get_calculation_result(self.numerical_formula)
+        if self.calculation_result is None:
+            return
         #
         self.last_calculation_result, self.last_digit_separator \
             = self._get_last_info(self.line_rslt)
@@ -5933,6 +5935,8 @@ class Makdo:
         line = self.txt.get('insert linestart', 'insert lineend')
         digit_separator = self.digit_separator.get()
         m = Math(line, digit_separator)
+        if m.calculation_result is None:
+            return False
         line_head = m.line_head
         line_math = m.line_math
         line_rslt = m.line_rslt
@@ -7893,8 +7897,8 @@ class Makdo:
                          command=self.set_list_number)
         menu.add_separator()
         #
-        menu.add_command(label='表に行番号を挿入・削除',
-                         command=self.insert_or_remove_row_numbers)
+        menu.add_command(label='表に行番号と列記号を挿入・削除',
+                         command=self.insert_or_remove_axes_in_table)
         menu.add_separator()
         #
         menu.add_command(label='段落を整形',
@@ -8683,7 +8687,7 @@ class Makdo:
         doc = re.sub(res, '\\1', doc)
         pane.insert('1.0+' + str(len(doc)) + 'c', revisers + '\n')
 
-    def insert_or_remove_row_numbers(self) -> bool:
+    def insert_or_remove_axes_in_table(self) -> bool:
         pane = self._get_pane()
         pane['autoseparators'] = False
         pane.edit_separator()
@@ -8697,10 +8701,19 @@ class Makdo:
         if par_class != 'table':
             return False
         table = self._get_table(bare_par)
-        if not self._has_row_numbers(table):
-            self.insert_row_numbers(pane, pre_text, table)
+        if not self._has_column_symbols(pre_text) and \
+           not self._has_row_numbers(table):
+            self.insert_axes_in_table(pane, pre_text, table)
         else:
-            self.remove_row_numbers(pane, pre_text, table)
+            self.remove_axes_in_table(pane, pre_text, table)
+
+    @staticmethod
+    def _has_column_symbols(text):
+        res_column_sybmol = '^((?:.|\n)*\n)?' \
+            + '(<!--\n\\s*\\|(?:\\s*[A-Z]\\s*\\|)+\n-->\n)$'
+        if re.match(res_column_sybmol, text):
+            return True
+        return False
 
     @staticmethod
     def _has_row_numbers(table):
@@ -8720,8 +8733,37 @@ class Makdo:
                 return True
         return False
 
-    def insert_row_numbers(self, pane, pre_text, table):
+    def insert_axes_in_table(self, pane, pre_text, table):
         text = pre_text
+        #
+        symb = '<!--\n'
+        res_conf_row = '^\\s*(<!--.*-->)?\\s*' + \
+            '(:\\s+)?' + '\\|(:?-*:?[=\\^]?\\|)+' + '(\\s+:)?' + \
+            '\\s*(<!--.*-->)?\\s*$'
+        for row in table:
+            line = ''.join(row)
+            if re.match(res_conf_row, line):
+                res = '^([^\\|]+)(.*\n?)$'
+                if re.match(res, line):
+                    head = re.sub(res, '\\1', line)
+                    line = re.sub(res, '\\2', line)
+                    symb += ' ' * len(head)
+                res = '^(.+?)([^\\|]+)$'
+                if re.match(res, line):
+                    # tail = re.sub(res, '\\2', line)
+                    line = re.sub(res, '\\1', line)
+                line = re.sub('^\\|', '', line)
+                line = re.sub('\\|$', '', line)
+                for i, cell in enumerate(line.split('|')):
+                    n = len(cell) - 1
+                    k = int(n / 2)
+                    j = n - k
+                    symb += '|' + (' ' * j) + chr(i + 65) + (' ' * k)
+        symb += '|\n-->\n'
+        ins = '1.0+' + str(len(text)) + 'c'
+        pane.insert(ins, symb)
+        text += symb
+        #
         res_conf_row = '^\\s*(<!--.*-->)?\\s*' + \
             '(:\\s+)?' + '\\|(:?-*:?[=\\^]?\\|)+' + '(\\s+:)?' + \
             '\\s*(<!--.*-->)?\\s*$'
@@ -8740,16 +8782,29 @@ class Makdo:
             row_number_symbol = '<!--' + str(row_number) + '-->'
             pane.insert(ins, row_number_symbol)
             text += row_number_symbol + str2
+        #
         beg_line, end_line = pre_text.count('\n'), text.count('\n')
         for i in range(beg_line, end_line):
             self.paint_out_line(i)
 
-    def remove_row_numbers(self, pane, pre_text, table):
+    def remove_axes_in_table(self, pane, pre_text, table):
         text = pre_text
+        #
+        res_column_sybmol = '^((?:.|\n)*\n)?' \
+            + '(<!--\n\\s*\\|(?:\\s*[A-Z]\\s*\\|)+\n-->\n)$'
+        if re.match(res_column_sybmol, text):
+            text = re.sub(res_column_sybmol, '\\1', text)
+            beg = '1.0+' + str(len(text)) + 'c'
+            end = '1.0+' + str(len(pre_text)) + 'c'
+            tmp = pane.get(beg, end)
+            if re.match('^<!--\n\\s*\\|(?:\\s*[A-Z]\\s*\\|)+\n-->$', tmp):
+                pane.delete(beg, end)
+            pre_text = text
+        #
         res_conf_row = '^\\s*(<!--.*-->)?\\s*' + \
             '(:\\s+)?' + '\\|(:?-*:?[=\\^]?\\|)+' + '(\\s+:)?' + \
             '\\s*(<!--.*-->)?\\s*$'
-        res_row_number = '^(.+)(<!--[0-9]+-->)((?:\n(?:=+|\\^+))?\n?)$'
+        res_row_number = '^(.+)(<!--[0-9]+-->)((?:\n\\s*(?:=+|\\^+))?\n?)$'
         for row in table:
             line = ''.join(row)
             if re.match(res_conf_row, line):
@@ -8769,6 +8824,10 @@ class Makdo:
                 pane.delete(beg, end)
                 str2 = ''
             text += str2 + str3
+        #
+        beg_line, end_line = pre_text.count('\n'), text.count('\n')
+        for i in range(beg_line, end_line + 1):
+            self.paint_out_line(i)
 
     def tidy_up_paragraph(self) -> bool:
         pane = self._get_pane()
@@ -8990,6 +9049,20 @@ class Makdo:
         widths, borders = self._get_cell_widths_and_borders(cr_number, table)
         self._tidy_up_table(pane, pre_text, bare_par, pos_text,
                             alignment, widths, borders, table)
+        #
+        pre_text, bare_par, pos_text = self.get_bare_paragraph(pane)
+        res = '^(<!--[0-9]+-->)((?:.|\n)*)$'
+        if re.match(res, pos_text):
+            row_numb = re.sub(res, '\\1', pos_text)
+            pos_text = re.sub(res, '\\2', pos_text)
+            bare_par += row_numb
+        table = self._get_table(bare_par)
+        if self._has_column_symbols(pre_text) or \
+           self._has_row_numbers(table):
+            self.remove_axes_in_table(pane, pre_text, table)
+            pre_text, bare_par, pos_text = self.get_bare_paragraph(pane)
+            table = self._get_table(bare_par)
+            self.insert_axes_in_table(pane, pre_text, table)
         return True
 
     @staticmethod
@@ -9362,7 +9435,6 @@ class Makdo:
             t = text + symbol_l
             sp_l = self._replace_spaces(pane, t, spaces_l_from, spaces_l_to)
             cell = symbol_l + sp_l + body + sp_r + symbol_r
-        print('[' + cell + ']')
         return cell
 
     @staticmethod
@@ -11343,9 +11415,9 @@ class Makdo:
         minibuffer_commands.append(mc)
 
         mc = MinibufferCommand(
-            'insert-or-remove-row-numbers',
-            [None, '表に行番号を挿入・削除'],
-            ['self.mother.insert_or_remove_row_numbers()'])
+            'insert-or-remove-axes-in-table',
+            [None, '表に行番号と列記号を挿入・削除'],
+            ['self.mother.insert_or_remove_axes_in_table()'])
         minibuffer_commands.append(mc)
 
         # MOVE
