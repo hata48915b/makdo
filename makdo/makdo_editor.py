@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.06.12-10:21:20-JST>
+# Time-stamp:   <2026.06.12-17:38:54-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -5552,6 +5552,8 @@ class Makdo:
                          command=self.replace_forward, accelerator='Ctrl+L')
         menu.add_command(label='全体又は選択範囲を全て置換',
                          command=self.replace_all)
+        menu.add_command(label='全体又は選択範囲の全角カンマを全角読点に変換',
+                         command=self.replace_comma_with_toten)
         menu.add_separator()
         #
         menu.add_command(label='選択範囲を大文字に変換',
@@ -5818,6 +5820,9 @@ class Makdo:
         self.stb_sor2.insert('0', word2)
         if Makdo.search_word != word1:
             Makdo.search_word = word1
+        self._replace_all(pane, word1, word2)
+
+    def _replace_all(self, pane, word1, word2):
         if pane.tag_ranges('sel'):
             beg, end = pane.index('sel.first'), pane.index('sel.last')
         elif 'akauni' in pane.mark_names():
@@ -5856,6 +5861,12 @@ class Makdo:
         pane.focus_set()
         # MESSAGE
         self.set_message_on_status_bar(str(m) + '個を置換しました')
+
+    def replace_comma_with_toten(self):
+        pane = self._get_pane()
+        if self._is_read_only_pane(pane):
+            return
+        self._replace_all(pane, '，', '、')
 
     def replace_lower_case_with_upper_case(self):
         self._replace_x_with_y('lower_case_with_upper_case')
@@ -8361,11 +8372,15 @@ class Makdo:
 
     def insert_table_format(self):
         md_text = ''
-        md_text += '|タイトル  |タイトル  |タイトル  |\n'
-        md_text += '==================================\n'
-        md_text += '|:---------|:--------:|---------:|\n'
-        md_text += '|左寄せセル|中寄せセル|右寄せセル|\n'
-        md_text += '|左寄せセル|中寄せセル|右寄せセル|'
+        md_text += '<!--\n'
+        md_text += '|       A      |       B      |       C      |\n'
+        md_text += '-->\n'
+        md_text += '|   タイトル   |   タイトル   |   タイトル   |<!--1-->\n'
+        md_text += '==============================================\n'
+        md_text += '|:-------------|:------------:|-------------:|\n'
+        md_text += '|左寄せセル    |  中寄せセル  |    右寄せセル|<!--2-->\n'
+        md_text += '|: 中寄せセル :|  右寄せセル :|: 左寄せセル  |<!--3-->\n'
+        md_text += '|  右寄せセル :|: 左寄せセル  |: 中寄せセル :|<!--4-->'
         self._insert_paragraph_text(md_text)
 
     ################

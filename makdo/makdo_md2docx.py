@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.06.12-06:34:09-JST>
+# Time-stamp:   <2026.06.13-12:07:32-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -6138,6 +6138,8 @@ class ParagraphTable(Paragraph):
                         #     + re.sub('\\s*(.*?)\\s*', '\\1', cell) \
                         #     + ')\n'
                         sys.stderr.write(msg)
+                    elif value == '':
+                        pass  # emtpy cell
                     else:
                         if result is None:
                             result = value
@@ -6238,13 +6240,19 @@ class ParagraphTable(Paragraph):
             + '([0-9]{1,4}京)?([0-9]{1,4}兆)?([0-9]{1,4}億)?' \
             + '([0-9]{1,4}万)([0-9]{0,4})' \
             + '(\\.[0-9]+)?$'
-        if re.match(res0, cell):
+        if cell == '':
+            # EMPTY CELL
+            value = ''
+        elif re.match(res0, cell):
+            # "12345"
             value = cell
         elif re.match(res3, cell):
+            # "12,345"
             value = cell.replace(',', '')
             if form == '0':
                 form = '3'
         elif re.match(res4, cell):
+            # "1万2345"
             pm = re.sub(res4, '\\1', cell)
             ke = re.sub(res4, '\\2', cell)
             ch = re.sub(res4, '\\3', cell)
@@ -6271,6 +6279,7 @@ class ParagraphTable(Paragraph):
             if form == '0':
                 form = '4'
         else:
+            # NOT NUMBER
             value = None
         return value, form
 
