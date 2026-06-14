@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.06.13-16:28:14-JST>
+# Time-stamp:   <2026.06.14-11:44:51-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -100,7 +100,7 @@ MS_MINCHO_FONT = ('ＭＳ 明朝', 'MS Mincho')
 YU_MINCHO_FONT = ('游明朝', 'Yu Mincho')
 HIRAGINO_MINCHO_FONT = ('ヒラギノ明朝 ProN', 'Hiragino Mincho ProN')
 
-EOF_CHAR = '⬆'
+EOF_SYMBOL = '⬆'
 
 TAB_WIDTH = 4
 
@@ -2476,7 +2476,7 @@ class LineDatum:
         for tag in pane.tag_names():
             if tag == 'IMEmarkedtext':  # macos ime
                 continue
-            if tag != 'search_tag' and tag != 'eol_tag' and tag != 'eof_tag':
+            if tag != 'search_tag':
                 pane.tag_remove(tag, str(i + 1) + '.0', str(i + 1) + '.end')
         # LINE
         if not chars_state.is_in_comment:
@@ -2665,9 +2665,6 @@ class LineDatum:
                 continue
             # END OF THE LINE "\n"
             if c1 == '\n':
-                n = pane.get('1.0', 'end-2c').count('\n')
-                if i == n:
-                    break  # EOF_CHAR
                 key = chars_state.get_key('')                           # 1.key
                 end = str(i + 1) + '.' + str(j + 1)                     # 2.end
                 pane.tag_add(key, beg, end)                             # 3.tag
@@ -3889,7 +3886,7 @@ class Makdo:
 
     @staticmethod
     def _get_max_v_position(pane):
-        max_position = pane.index('end-2c')
+        max_position = pane.index('end-1c')
         max_v_position = int(re.sub('\\.[0-9]+$', '', max_position))
         return max_v_position
 
@@ -3928,10 +3925,7 @@ class Makdo:
                     self.cut_region()
         else:
             ins = pane.index('insert')
-            end = pane.index('insert lineend')
-            eof = pane.index('end-1c')
-            if end == eof:
-                end = pane.index('insert lineend-1c')
+            end = re.sub('\\..*$', '.end', ins)
             c = pane.get(ins, end)
             if self._is_read_only_pane(pane):
                 self.win.clipboard_clear()
@@ -3940,7 +3934,7 @@ class Makdo:
                     self.clipboard_list.append('')
                 self.clipboard_list[-1] += c
             else:
-                if c == '' and pane.index('insert lineend') != eof:
+                if c == '':
                     self.win.clipboard_append('\n')
                     self.clipboard_list[-1] += '\n'
                     # pane.edit_separator()
@@ -3963,7 +3957,7 @@ class Makdo:
         if 'akauni' in pane.mark_names():
             return
         # UPDATE TEXT
-        file_text = pane.get('1.0', 'end-2c')
+        file_text = pane.get('1.0', 'end-1c')
         self.file_lines = file_text.split('\n')
         m = len(self.file_lines) - 1
         while len(self.line_data) < m + 1:
@@ -3997,7 +3991,7 @@ class Makdo:
         self.line_data[ln].paint_line(pane, paint_keywords)
 
     def paint_all_lines(self, pane):
-        document = pane.get('1.0', 'end-2c')
+        document = pane.get('1.0', 'end-1c')
         if document != '':
             paint_keywords = self.paint_keywords.get()
             self.line_data = [LineDatum() for line in self.file_lines]
@@ -4014,9 +4008,6 @@ class Makdo:
                     self.set_message_on_status_bar(t, True)
                 self.line_data[i].paint_line(pane, paint_keywords)
             self.set_message_on_status_bar('', True)
-        c = pane.get('end-2c', 'end-1c')
-        if c == EOF_CHAR:
-            pane.tag_add('eof_tag', 'end-2c', 'end-1c')
 
     @staticmethod
     def _get_now():
@@ -4082,7 +4073,7 @@ class Makdo:
 
     def _get_tmp_md(self):
         md_path = self.temp_dir.name + '/doc.md'
-        file_text = self.txt.get('1.0', 'end-2c')
+        file_text = self.txt.get('1.0', 'end-1c')
         # No warning here. Warning will be given during conversion.
         file_text = self.get_fully_unfolded_document(file_text, False)
         with open(md_path, 'w') as f:
@@ -4348,10 +4339,18 @@ class Makdo:
         #
         self.sub.delete('1.0', 'end')
         self.sub.insert('1.0', document)
+        eof_symbol \
+            = tkinter.Label(self.sub, text=EOF_SYMBOL,
+                            bd=0, highlightthickness=0,
+                            fg='red', bg=self.txt.cget('bg'),
+                            font=self.gothic_font)
+        self.sub.window_create('end', window=eof_symbol)
         self.sub.mark_set('insert', '1.0')
         # self.sub.configure(state='disabled')
+        #
         self.sub.focus_force()
         self.current_pane = 'sub'
+        self.sub.edit_reset()
         return True
 
     def _close_sub_pane(self) -> bool:
@@ -4447,7 +4446,7 @@ class Makdo:
     def _get_real_position_of_insert(pane):
         real_v = int(pane.index('insert').split('.')[0]) - 1
         real_h = get_real_width(pane.get('insert linestart', 'insert'))
-        max_v = int(pane.index('end-2c').split('.')[0]) - 1
+        max_v = int(pane.index('end-1c').split('.')[0]) - 1
         return real_v, real_h, max_v
 
     @staticmethod
@@ -4673,7 +4672,7 @@ class Makdo:
             else:
                 pane.insert(index, '\n\n')
         p = pane.index(index)
-        t = pane.get(index, 'end-2c')
+        t = pane.get(index, 'end-1c')
         if len(t) == 0:
             pane.insert(index, '\n')
         elif len(t) == 1:
@@ -4922,7 +4921,7 @@ class Makdo:
     # SAVE FILE
 
     def _has_edited(self, must_warn=True):
-        file_text = self.txt.get('1.0', 'end-2c')
+        file_text = self.txt.get('1.0', 'end-1c')
         file_text = self.get_fully_unfolded_document(file_text, must_warn)
         # REMOVED 24.11.13 >
         # if file_text != '':
@@ -4954,10 +4953,10 @@ class Makdo:
             self.file_path = file_path
             self._set_file_name(file_path)
         # FILE
-        file_text = self.txt.get('1.0', 'end-2c')
+        file_text = self.txt.get('1.0', 'end-1c')
         if file_text != '' and file_text[-1] != '\n':
             file_text += '\n'
-            self.txt.insert('end-2c', '\n')
+            self.txt.insert('end', '\n')
             self._put_back_cursor_to_pane(self.txt)
         must_warn = True
         if re.match('^(.|\n)+.docx$', self.file_path):
@@ -4966,7 +4965,7 @@ class Makdo:
             self.set_message_on_status_bar('保存済みです')
             return False
         self._stamp_config(file_text)
-        file_text = self.txt.get('1.0', 'end-2c')
+        file_text = self.txt.get('1.0', 'end-1c')
         file_text = self.get_fully_unfolded_document(file_text,
                                                      False)  # must not warn
         # BACKUP FILE
@@ -5161,7 +5160,7 @@ class Makdo:
 
     def save_auto_file(self, file_path):
         if file_path is not None and file_path != '':
-            new_text = self.txt.get('1.0', 'end-2c')
+            new_text = self.txt.get('1.0', 'end-1c')
             auto_path = self.get_auto_path(file_path)
             if os.path.exists(auto_path):
                 with zipfile.ZipFile(auto_path, 'r') as old_zip:
@@ -5483,7 +5482,7 @@ class Makdo:
         elif re.match('^(.|\n)*\\.docx$', self.file_path):
             file_name = os.path.basename(filepath)
             file_path = self.onedrive_directory + '/' + file_name
-        file_text = self.txt.get('1.0', 'end-2c')
+        file_text = self.txt.get('1.0', 'end-1c')
         md_path = self.temp_dir.name + '/doc.md'
         try:
             with open(md_path, 'w') as f:
@@ -5801,7 +5800,7 @@ class Makdo:
         return True
 
     def select_all(self):
-        self.txt.tag_add('sel', '1.0', 'end-2c')
+        self.txt.tag_add('sel', '1.0', 'end-1c')
 
     def replace_backward(self):
         self.search_or_replace_backward(True)  # must_replace = True
@@ -5839,7 +5838,7 @@ class Makdo:
         elif 'akauni' in pane.mark_names():
             beg, end = self._get_indices_in_order(pane, 'insert', 'akauni')
         else:
-            beg, end = '1.0', 'end-2c'
+            beg, end = '1.0', 'end-1c'
         pane['autoseparators'] = False
         pane.edit_separator()
         m = 0
@@ -6148,10 +6147,10 @@ class Makdo:
         substitute_symbols = {}
         res = '^(?:.|\n)*?\n%\\[(.+?)\\]%\\s*=\\s*"([^"]+?)"((?:.|\n)*)'
         pre = ''
-        cur = self.txt.get('1.0', 'end-2c')
+        cur = self.txt.get('1.0', 'end-1c')
         i = 0
         while pre != cur:
-            doc = '\n' + self.txt.get('1.0', 'end-2c')
+            doc = '\n' + self.txt.get('1.0', 'end-1c')
             while re.match(res, doc):
                 t1 = re.sub(res, '\\1', doc)
                 t2 = re.sub(res, '\\2', doc)
@@ -6160,7 +6159,7 @@ class Makdo:
             for ss in substitute_symbols:
                 es1 = self._escape_search_word(ss)
                 es2 = self._escape_search_word(substitute_symbols[ss])
-                doc1 = self.txt.get('1.0', 'end-2c')
+                doc1 = self.txt.get('1.0', 'end-1c')
                 res2 = '^((?:.|\n)*)' + es2 + '((?:.|\n)*)$'
                 while re.match(res2, doc1):
                     doc3 = re.sub(res2, '\\2', doc1)
@@ -6181,7 +6180,7 @@ class Makdo:
                     self.txt.insert(p1, '%[' + ss + ']%')
                     i += 1
             pre = cur
-            cur = self.txt.get('1.0', 'end-2c')
+            cur = self.txt.get('1.0', 'end-1c')
         self.set_message_on_status_bar(str(i) + '個の文字列をマスクしました')
         self.txt['autoseparators'] = True
         self.txt.edit_separator()
@@ -6358,7 +6357,7 @@ class Makdo:
         return document
 
     def insert_sample(self, sample_document):
-        txt_text = self.txt.get('1.0', 'end-2c')
+        txt_text = self.txt.get('1.0', 'end-1c')
         if txt_text != '':
             n, m = 'エラー', 'テキストが空ではありません．'
             tkinter.messagebox.showerror(n, m)
@@ -6859,7 +6858,7 @@ class Makdo:
         if not re.match(NOT_ESCAPED + '\\\\\\[', doc_up):
             inline_text = '\\[' + inline_text
         #
-        doc_dn = pane.get('insert', 'end-2c')
+        doc_dn = pane.get('insert', 'end-1c')
         doc_dn = re.sub(NOT_ESCAPED + '\\\\\\[(.|\n)*$', '\\1', doc_dn)
         if not re.match(NOT_ESCAPED + '\\\\\\]', doc_dn):
             inline_text = inline_text + '\\]'
@@ -7939,7 +7938,7 @@ class Makdo:
             self.pane = pane
             self.mother = mother
             bef_text = self.pane.get('1.0', 'insert')
-            aft_text = self.pane.get('insert', 'end-2c')
+            aft_text = self.pane.get('insert', 'end-1c')
             self.head_text \
                 = re.sub('^((?:.|\n)*\n\n)((?:.|\n)*)?', '\\1', bef_text)
             bef_para = re.sub('^(.|\n)*\n\n', '', bef_text)
@@ -8878,7 +8877,7 @@ class Makdo:
             if par_class == 'table':
                 # MOVE TO A NEXT CELL
                 res = NOT_ESCAPED + '\\|(.|\n)*$'
-                doc_rgt = pane.get('insert', 'end-2c')
+                doc_rgt = pane.get('insert', 'end-1c')
                 par_rgt = re.sub('\n\n(.|\n)*$', '', doc_rgt)
                 if re.match(res, par_rgt):
                     n = len(re.sub(res, '\\1', par_rgt)) + 1
@@ -8948,7 +8947,7 @@ class Makdo:
         else:
             pre_pars = ''
             par_head = pre
-        pos = pane.get('insert', 'end-2c')
+        pos = pane.get('insert', 'end-1c')
         res = '^((?:.|\n)*?\n)(\n(?:.|\n)*)$'
         if re.match(res, pos):
             par_tail = re.sub(res, '\\1', pos)
@@ -9556,7 +9555,7 @@ class Makdo:
         self._put_back_cursor_to_pane(self.txt)
 
     def goto_end_of_doc(self):
-        self.txt.mark_set('insert', 'end-2c')
+        self.txt.mark_set('insert', 'end-1c')
         self._put_back_cursor_to_pane(self.txt)
 
     def goto_beg_of_line(self):
@@ -9596,7 +9595,7 @@ class Makdo:
         cha = pane.get('insert', 'insert+1c')
         for par in parens:
             if par[0] == cha:
-                doc, dep, num = pane.get('insert', 'end-2c'), 0, -1
+                doc, dep, num = pane.get('insert', 'end-1c'), 0, -1
                 for c in doc:
                     num += 1
                     if c == par[0]:
@@ -9861,7 +9860,7 @@ class Makdo:
         elif 'akauni' in pane.mark_names():
             beg, end = self._get_indices_in_order(pane, 'insert', 'akauni')
         else:
-            beg, end = '1.0', 'end-2c'
+            beg, end = '1.0', 'end-1c'
         tex = pane.get(beg, end)
         n_nl = tex.count('\n') + 1
         tex = tex.replace('\n', '')
@@ -10387,7 +10386,7 @@ class Makdo:
 
     def _compare_files_loop(self, para2):
         cols = self.colors
-        text1 = self.txt.get('1.0', 'end-2c')
+        text1 = self.txt.get('1.0', 'end-1c')
         file1 = makdo.makdo_mddiff.File()
         file1.set_up_from_text(text1)
         #
@@ -10610,7 +10609,7 @@ class Makdo:
 
     def _apply_diff(self, frame, diff_id, comp):
         def x():
-            txt = self.txt.get('1.0', 'end-2c')
+            txt = self.txt.get('1.0', 'end-1c')
             beg, end = self._get_diff_position(diff_id, comp, txt)
             if beg < 0 or end < 0:
                 return False
@@ -10668,7 +10667,7 @@ class Makdo:
 
     def _goto_diff(self, diff_id, comp):
         def x():
-            txt = self.txt.get('1.0', 'end-2c')
+            txt = self.txt.get('1.0', 'end-1c')
             beg, end = self._get_diff_position(diff_id, comp, txt)
             if beg < 0 or end < 0:
                 return False
@@ -10725,7 +10724,7 @@ class Makdo:
     # MDDIFF<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
     def insert_track_change_tags(self):
-        text1 = self.txt.get('1.0', 'end-2c')
+        text1 = self.txt.get('1.0', 'end-1c')
         text2 = self.init_text
         file1 = makdo.makdo_mddiff.File()
         file2 = makdo.makdo_mddiff.File()
@@ -10743,7 +10742,7 @@ class Makdo:
         doc = re.sub('\n+$', '\n', doc)
         self.txt['autoseparators'] = False
         self.txt.edit_separator()
-        self.txt.delete('1.0', 'end-2c')
+        self.txt.delete('1.0', 'end-1c')
         self.txt.insert('1.0', doc)
         self.txt.edit_separator()
         self.txt['autoseparators'] = True
@@ -10752,7 +10751,7 @@ class Makdo:
         self.paint_all_lines(self.txt)
 
     def search_previous_track_change_tag(self):
-        doc = self.txt.get('1.0', 'end-2c')
+        doc = self.txt.get('1.0', 'end-1c')
         p = len(self.txt.get('1.0', 'insert'))
         beg = makdo.makdo_mddiff.TrackChange.get_previous_track_change(doc, p)
         if beg > 0:
@@ -10761,7 +10760,7 @@ class Makdo:
         return False
 
     def search_next_track_change_tag(self):
-        doc = self.txt.get('1.0', 'end-2c')
+        doc = self.txt.get('1.0', 'end-1c')
         p = len(self.txt.get('1.0', 'insert'))
         beg = makdo.makdo_mddiff.TrackChange.get_next_track_change(doc, p)
         if beg > 0:
@@ -10770,7 +10769,7 @@ class Makdo:
         return False
 
     def accept_current_track_change(self):
-        doc = self.txt.get('1.0', 'end-2c')
+        doc = self.txt.get('1.0', 'end-1c')
         p = len(self.txt.get('1.0', 'insert'))
         del_or_ins, beg_num, end_num \
             = makdo.makdo_mddiff.TrackChange.get_current_track_change(doc, p)
@@ -10803,7 +10802,7 @@ class Makdo:
     # FOLD
 
     def fold_section(self):
-        sub_document = self.txt.get('insert linestart', 'end-2c')
+        sub_document = self.txt.get('insert linestart', 'end-1c')
         tmp_document = self._remove_head_and_tail_fds(sub_document)
         # CHECK THAT THE LINE IS SECITION
         res = '^#+(?:-#+)*(?:\\s.*)?\n'
@@ -10837,7 +10836,7 @@ class Makdo:
         self.show_folding_help_message()
         # GET FOLDING NUMBER
         folding_number = 1
-        all_document = self.txt.get('1.0', 'end-2c')
+        all_document = self.txt.get('1.0', 'end-1c')
         res = '^\\.\\.\\.\\[([0-9]+)\\].*$'
         for line in all_document.split('\n'):
             if re.match(res, line):
@@ -10894,7 +10893,7 @@ class Makdo:
         self.txt.insert('end', section_line + '\n')
         self.txt.insert('end', text_to_fold)
         if re.match('^(.|\n)*\n\n\n', text_to_fold):
-            self.txt.delete('end-2c', 'end')
+            self.txt.delete('end-1c', 'end')
         # DELETE FOLDING TEXT
         beg = 'insert lineend + 1c'
         end = 'insert lineend +' + str(len(text_to_fold)) + 'c'
@@ -10903,7 +10902,7 @@ class Makdo:
         # self.txt.mark_set('insert', 'insert linestart')
 
     def unfold_section(self):
-        sub_document = self.txt.get('insert linestart', 'end-2c')
+        sub_document = self.txt.get('insert linestart', 'end-1c')
         tmp_document = self._remove_head_and_tail_fds(sub_document)
         # CHECK THAT THE LINE IS SECITION
         res = '^#+(?:-#+)*(?:\\s.*)?\n'
@@ -10981,7 +10980,7 @@ class Makdo:
         # self.txt.mark_set('insert', 'insert linestart')
 
     def unfold_section_fully(self):
-        old_document = self.txt.get('1.0', 'end-2c')
+        old_document = self.txt.get('1.0', 'end-1c')
         if old_document == '':
             return
         new_document = self.get_fully_unfolded_document(old_document)
@@ -11084,7 +11083,7 @@ class Makdo:
         return new_document
 
     def fold_or_unfold_section(self):
-        sub_document = self.txt.get('insert linestart', 'end-2c')
+        sub_document = self.txt.get('insert linestart', 'end-1c')
         sub_document = self._remove_head_and_tail_fds(sub_document)
         # CHECK THAT THE LINE IS SECITION
         res = '^#+(?:-#+)*(?:\\s.*)?\n'
@@ -12069,7 +12068,7 @@ class Makdo:
             return
         cols = self.colors
         # TOC LINES
-        file_text = self.txt.get('1.0', 'end-2c')
+        file_text = self.txt.get('1.0', 'end-1c')
         toc_lines = []
         c4, c3, c2, n, line, is_in_comment = '', '', '', 1, '', False
         for c1 in file_text + '\n':
@@ -12363,9 +12362,7 @@ class Makdo:
         if background_color == 'W':
             self.txt.config(bg='white', fg='black')
             self.txt.tag_config('eol_tag', background='#EEEEEE')
-            self.txt.tag_config('eof_tag', foreground='#FF0000')
-            # self.sub.tag_config('eol_tag', background='#EEEEEE')
-            self.sub.tag_config('eof_tag', foreground='#FF0000')
+            self.sub.tag_config('eol_tag', background='#EEEEEE')
             self.txt.tag_config('akauni_tag', background='#CCCCCC')
             self.sub.tag_config('akauni_tag', background='#CCCCCC')
             self.txt.tag_config('hsp_tag', foreground='#C8C8FF',
@@ -12383,9 +12380,7 @@ class Makdo:
         elif background_color == 'B':
             self.txt.config(bg='black', fg='white')
             self.txt.tag_config('eol_tag', background='#333333')
-            self.txt.tag_config('eof_tag', foreground='#FF0000')
-            # self.sub.tag_config('eol_tag', background='#333333')
-            self.sub.tag_config('eof_tag', foreground='#FF0000')
+            self.sub.tag_config('eol_tag', background='#333333')
             self.txt.tag_config('akauni_tag', background='#666666')
             self.sub.tag_config('akauni_tag', background='#666666')
             self.txt.tag_config('hsp_tag', foreground='#7676FF',
@@ -12403,9 +12398,7 @@ class Makdo:
         elif background_color == 'G':
             self.txt.config(bg='darkgreen', fg='lightyellow')  # 006400/FFFFE0
             self.txt.tag_config('eol_tag', background='#117511')
-            self.txt.tag_config('eof_tag', foreground='#FF0000')
-            # self.sub.tag_config('eol_tag', background='#117511')
-            self.sub.tag_config('eof_tag', foreground='#FF0000')
+            self.sub.tag_config('eol_tag', background='#117511')
             self.txt.tag_config('akauni_tag', background='#888888')
             self.sub.tag_config('akauni_tag', background='#888888')
             self.txt.tag_config('hsp_tag', foreground='#7676FF',
@@ -13321,7 +13314,7 @@ class Makdo:
             if pane == self.txt and \
                not pane.tag_ranges('sel') and \
                'akauni' not in pane.mark_names():
-                if pane.index('insert') != pane.index('end-2c'):
+                if pane.index('insert') != pane.index('end-1c'):
                     c = self.txt.get('insert', 'insert+1c')
                     if c == '\n':
                         vp = self._get_v_position_of_insert(pane)
@@ -13534,7 +13527,7 @@ class Makdo:
     def _any_process_right(self, pane):  # Right / Ctrl+S
         self._any_process_left_or_right(pane, 'right')
         if pane.index('insert') == pane.index('end-1c'):
-            pane.mark_set('insert', 'insert-1c')
+            pane.mark_set('insert', 'end-2c')
 
     def _any_process_left_or_right(self, pane, key):
         k2 = self.key_history[-2]
@@ -13561,8 +13554,6 @@ class Makdo:
 
     def _any_process_down(self, pane):  # Down / Ctrl+N
         self._any_process_up_or_down(pane, 'down')
-        if pane.index('insert') == pane.index('end-1c'):
-            pane.mark_set('insert', 'insert-1c')
 
     def _any_process_up_or_down(self, pane, key):
         k3 = self.key_history[-3]
@@ -13616,7 +13607,7 @@ class Makdo:
             if key == 'prior':
                 pane.mark_set('insert', '1.0')
             else:
-                pane.mark_set('insert', 'end-2c')
+                pane.mark_set('insert', 'end-1c')
             self._put_back_cursor_to_pane(pane)
         else:
             lines = self._get_lines_of_pane(pane)
@@ -13688,7 +13679,7 @@ class Makdo:
             numb = re.sub(res_open, '\\2', text)
             scri = re.sub(res_open, '\\3', text)
             if not re.match(res_close, text):
-                cur_to_end = pane.get('insert', 'end-2c')
+                cur_to_end = pane.get('insert', 'end-1c')
                 if re.match('^}' + numb + '}', cur_to_end):
                     msg = '（ここにスクリプトを挿入（サンプルはTabを押す））'
                     if scri == msg:
@@ -14064,7 +14055,7 @@ class Makdo:
         s = self.txt.get('insert linestart', 'insert')
         cur_h = str(get_real_width(s))
         cur_p = cur_v + 'x' + cur_h
-        p = self.txt.index('end-2c')
+        p = self.txt.index('end-1c')
         max_v = re.sub('\\.[0-9]+$', '', p)
         s = self.txt.get('insert linestart', 'insert lineend')
         max_h = str(get_real_width(s))
@@ -14347,7 +14338,7 @@ class Makdo:
             Makdo.search_word = word1
             if word1 != '':
                 self._highlight_search_word()
-        tex = pane.get('insert', 'end-2c')
+        tex = pane.get('insert', 'end-1c')
         res_word1 = word1
         if not self.use_regexps.get():
             res_word1 = self._escape_search_word(word1)
@@ -14392,7 +14383,7 @@ class Makdo:
                 break
         #
         y = 0
-        tex = pane.get('insert', 'end-2c')
+        tex = pane.get('insert', 'end-1c')
         while re.match(res, tex):
             y += 1
             pre = re.sub(res, '\\1', tex)
@@ -14412,7 +14403,7 @@ class Makdo:
         word = Makdo.search_word
         for pane in (self.txt, self.sub):
             pane.tag_remove('search_tag', '1.0', 'end')
-            tex = pane.get('1.0', 'end-2c')
+            tex = pane.get('1.0', 'end-1c')
             beg = 0
             res_word = word
             if not self.use_regexps.get():
@@ -14720,6 +14711,9 @@ class Makdo:
                     self.run_periodically_to_paint_line_globally()
         if focus == self.sub:  # if focus is not None:
             n = self.run_periodically
+            if True:
+                # LOCALLY
+                self.run_periodically_to_paint_line_locally_on_sub_pane()
             if self.formula_number > 0 or \
                self.memo_pad_memory is not None:
                 # CURSOR LINE
@@ -14730,7 +14724,8 @@ class Makdo:
                 if c == '\n':
                     self.paint_out_line(vp - 2, self.sub)
                 # GLOBALLY
-                self.run_periodically_to_paint_line_globally_on_sub_pane()
+                if (n % 200) == 0:
+                    self.run_periodically_to_paint_line_globally_on_sub_pane()
 
     # LOCAL PAINTING
     def run_periodically_to_paint_line_locally(self):
@@ -14765,19 +14760,19 @@ class Makdo:
                 self.goal_line_to_paint = 0
             if self.goal_line_to_paint > m:
                 self.goal_line_to_paint = m
-        # CURRENT LINE PAINTING
+        # EOL
         self.txt.tag_remove('eol_tag', '1.0', 'end')
-        cl = self.txt.index('insert')
-        self.txt.tag_add('eol_tag', cl + ' linestart', cl + ' lineend+1c')
-        # EOF PAINTING
-        c_eof = self.txt.get('end-2c', 'end-1c')
-        if c_eof != EOF_CHAR:
-            self.txt.insert('end-1c', EOF_CHAR)
-        self.txt.tag_remove('eof_tag', '1.0', 'end')
-        self.txt.tag_add('eof_tag', 'end-2c', 'end-1c')
-        i_ins = self.txt.index('insert')
-        i_eof = self.txt.index('end-1c')
-        if i_ins == i_eof:
+        self.txt.tag_add('eol_tag', 'insert linestart', 'insert lineend +1c')
+        # EOF
+        if 'eof_symbol' not in vars(self) or \
+           str(self.eof_symbol) not in self.txt.window_names():
+            self.eof_symbol \
+                = tkinter.Label(self.txt, text=EOF_SYMBOL,
+                                bd=0, highlightthickness=0,
+                                fg='red', bg=self.txt.cget('bg'),
+                                font=self.gothic_font)
+            self.txt.window_create('end', window=self.eof_symbol)
+        if self.txt.index('insert') == self.txt.index('end-1c'):
             self.txt.mark_set('insert', 'end-2c')
 
     # GLOBAL PAINTING
@@ -14787,12 +14782,21 @@ class Makdo:
         if self.global_line_to_paint > len(self.file_lines) - 1:
             self.global_line_to_paint = 0
 
+    # LOCAL PAINTING ON SUB PANE
+    def run_periodically_to_paint_line_locally_on_sub_pane(self):
+        # EOL
+        self.sub.tag_remove('eol_tag', '1.0', 'end')
+        self.sub.tag_add('eol_tag', 'insert linestart', 'insert lineend +1c')
+        # EOF
+        if self.sub.index('insert') == self.sub.index('end-1c'):
+            self.sub.mark_set('insert', 'end-2c')
+
     # GLOBAL PAINTING ON SUB PANE
     def run_periodically_to_paint_line_globally_on_sub_pane(self):
         if 'global_line_to_paint_on_sub_pane' not in vars(self):
             self.global_line_to_paint_on_sub_pane = 0
             self.file_lines_on_sub_pane \
-                = self.sub.get('1.0', 'end-2c').split('\n')
+                = self.sub.get('1.0', 'end-1c').split('\n')
         self.paint_out_line(self.global_line_to_paint_on_sub_pane, self.sub)
         self.global_line_to_paint_on_sub_pane += 1
         if self.global_line_to_paint_on_sub_pane \
@@ -14830,7 +14834,7 @@ class Makdo:
             self._load_keiji()
             # GET DATA
             upper_text = self.txt.get('1.0', 'insert')
-            lower_text = self.txt.get('insert', 'end-2c')
+            lower_text = self.txt.get('insert', 'end-1c')
             res = '^((?:.|\n)*\n\n)((?:.|\n)*)$'
             if re.match(res, upper_text):
                 prev_par = re.sub(res, '\\1', upper_text)
@@ -14949,7 +14953,7 @@ class Makdo:
             if event.keysym != 'Return':
                 self.sub.mark_set('insert', 'current')
             doc_lft = self.sub.get('1.0', 'insert')
-            doc_rgt = self.sub.get('insert', 'end-2c')
+            doc_rgt = self.sub.get('insert', 'end-1c')
             doc = doc_lft + doc_rgt
             ins = self.sub.index('insert')
             if doc[:6] == '[戻る]\n\n' and re.match('^1\\.[0-3]$', ins):
@@ -14979,7 +14983,7 @@ class Makdo:
             return 'break'
 
         def _goto_next_item_or_link(self, event):
-            rgt = self.sub.get('insert', 'end-2c')
+            rgt = self.sub.get('insert', 'end-1c')
             res = '^((?:.|\n)*?)(\n## |.<[0-9]+:[0-9]+:[0-9]+>)((?:.|\n)*)$'
             if not re.match(res, rgt):
                 return 'break'
@@ -15111,7 +15115,7 @@ class Makdo:
             self._execute_sub_pane = self.ask_llama_without_rag
             self._close_sub_pane = self.close_llama_without_rag
             self._open_sub_pane(self.llama_qanda, False, '質問')
-            self.sub.mark_set('insert', 'end-2c')
+            self.sub.mark_set('insert', 'end-1c')
             self._paint_geneai_lines('Llama')
             self.sub.edit_separator()
             return True
@@ -15186,7 +15190,7 @@ class Makdo:
             self._execute_sub_pane = self.ask_llama_with_rag
             self._close_sub_pane = self.close_llama_with_rag
             self._open_sub_pane(self.llama_qanda, False, '質問')
-            self.sub.mark_set('insert', 'end-2c')
+            self.sub.mark_set('insert', 'end-1c')
             self._paint_geneai_lines('Llama')
             self.sub.edit_separator()
             return True
@@ -15207,7 +15211,7 @@ class Makdo:
             answer = output['choices'][0]['message']['content']
             # answer = adjust_line(answer)
             self._write_answer('Llama', answer)
-            self.llama_qanda = self.sub.get('1.0', 'end-2c')
+            self.llama_qanda = self.sub.get('1.0', 'end-1c')
 
         def ask_llama_with_rag(self) -> None:
             messages = self._get_message('Llama')
@@ -15224,12 +15228,12 @@ class Makdo:
             answer = re.sub('\\\\n', '\n', answer)
             # answer = adjust_line(answer)
             self._write_answer('Llama', answer)
-            self.llama_qanda = self.sub.get('1.0', 'end-2c')
+            self.llama_qanda = self.sub.get('1.0', 'end-1c')
 
         def close_llama_without_rag(self) -> None:
             del self._execute_sub_pane
             del self._close_sub_pane
-            self.llama_qanda = self.sub.get('1.0', 'end-2c')
+            self.llama_qanda = self.sub.get('1.0', 'end-1c')
             self.set_message_on_status_bar('')
             self._close_sub_pane()
 
@@ -15314,7 +15318,7 @@ class Makdo:
 
         def quit_editing_llama_rag_data(self) -> bool:
             self.is_editing_llama_rag_data = False
-            llama_rag_data = self.sub.get('1.0', 'end-2c')
+            llama_rag_data = self.sub.get('1.0', 'end-1c')
             self._save_config_file(self.llama_rag_file, llama_rag_data)
             return True
 
@@ -15439,7 +15443,7 @@ class Makdo:
     def quit_editing_genai_system_message(self) -> bool:
         if 'is_editing_genai_system_message' not in vars(self):
             return False
-        self.genai_system_message = self.sub.get('1.0', 'end-2c')
+        self.genai_system_message = self.sub.get('1.0', 'end-1c')
         if 'genai' in vars(self):
             self.genai.GenAI.system_message = self.genai_system_message
         self.show_config_help_message()

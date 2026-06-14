@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         genai.py
 # Version:      v01
-# Time-stamp:   <2026.06.09-12:38:42-JST>
+# Time-stamp:   <2026.06.14-12:00:46-JST>
 
 # genai.py
 # Copyright (C) 2025-2026  Seiichiro HATA
@@ -94,14 +94,20 @@ class GenAI:
         self.makdo.sub.edit_separator()
         doc = self.makdo.sub.get('1.0', 'end-1c')
         if not re.match('^(.|\n)*\n$', doc):
-            self.makdo.sub.insert('end', '\n')
+            self.makdo.sub.insert('end-2c', '\n')
+            # self.makdo.sub.insert('end-1c', '\n')  # eof
         if not re.match('^(.|\n)*\n\n$', doc):
-            self.makdo.sub.insert('end', '\n')
-        self.makdo.sub.insert('end', ans_head + '\n\n')
-        self.makdo.sub.insert('end', answer + '\n\n')
+            self.makdo.sub.insert('end-2c', '\n')
+            # self.makdo.sub.insert('end-1c', '\n')  # eof
+        self.makdo.sub.insert('end-2c', ans_head + '\n\n')
+        self.makdo.sub.insert('end-2c', answer + '\n\n')
+        # self.makdo.sub.insert('end-1c', ans_head + '\n\n')  # eof
+        # self.makdo.sub.insert('end-1c', answer + '\n\n')  # eof
         self.makdo.sub.edit_separator()
-        self.makdo.sub.insert('end', que_head + '\n\n')
-        self.makdo.sub.mark_set('insert', 'end-1c')
+        self.makdo.sub.insert('end-2c', que_head + '\n\n\n')
+        self.makdo.sub.mark_set('insert', 'end-3c')
+        # self.makdo.sub.insert('end-1c', que_head + '\n\n')  # eof
+        # self.makdo.sub.mark_set('insert', 'end-1c')  # eof
         self.makdo._put_back_cursor_to_pane(self.makdo.sub)
         self.makdo.sub['autoseparators'] = True
         self.makdo.sub.edit_separator()
@@ -301,12 +307,14 @@ class OpenAI(GenAI):
         if 'openai_qanda' not in vars(self):
             self.openai_qanda = self.notes \
                 + cnf_head + '\n\n' + self.system_message + '\n\n' \
-                + que_head + '\n\n'
+                + que_head + '\n\n\n'
+            #    + que_head + '\n\n'  # eof
         self.makdo.txt.focus_force()
         self.makdo._execute_sub_pane = self.ask_openai
         self.makdo._close_sub_pane = self.close_openai
         self.makdo._open_sub_pane(self.openai_qanda, False, '質問')
-        self.makdo.sub.mark_set('insert', 'end-1c')
+        self.makdo.sub.mark_set('insert', 'end-3c')
+        # self.makdo.sub.mark_set('insert', 'end-1c')  # eof
         self.makdo.sub.edit_separator()
         self._paint_genai_lines()
         return True
@@ -508,12 +516,14 @@ class Ollama(GenAI):
         if 'ollama_qanda' not in vars(self):
             self.ollama_qanda = self.notes \
                 + cnf_head + '\n\n' + self.system_message + '\n\n' \
-                + que_head + '\n\n'
+                + que_head + '\n\n\n'
+            #    + que_head + '\n\n'  # eof
         self.makdo.txt.focus_force()
         self.makdo._execute_sub_pane = self.ask_ollama
         self.makdo._close_sub_pane = self.close_ollama
         self.makdo._open_sub_pane(self.ollama_qanda, False, '質問')
-        self.makdo.sub.mark_set('insert', 'end-1c')
+        self.makdo.sub.mark_set('insert', 'end-3c')
+        # self.makdo.sub.mark_set('insert', 'end-1c')  # eof
         self.makdo.sub.edit_separator()
         self._paint_genai_lines()
         return True
