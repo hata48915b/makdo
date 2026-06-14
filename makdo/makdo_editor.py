@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.06.14-16:00:36-JST>
+# Time-stamp:   <2026.06.14-18:07:33-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -7900,7 +7900,16 @@ class Makdo:
         pane = self._get_pane()
         if self._is_read_only_pane(pane):
             return
-        chr1 = pane.get('insert-1c', 'insert')
+        if pane.tag_ranges('sel'):
+            beg, end = pane.index('sel.first'), pane.index('sel.last')
+            pane.tag_remove('sel', '1.0', 'end')
+        elif 'akauni' in pane.mark_names():
+            beg, end = self._get_indices_in_order(pane, 'insert', 'akauni')
+            pane.tag_remove('akauni_tag', '1.0', 'end')
+            pane.mark_unset('akauni')
+        else:
+            beg, end = 'insert-1c', 'insert'
+        chr1 = pane.get(beg, end)
         if len(chr1) < 1:
             return False
         cands = []
@@ -14871,6 +14880,10 @@ class Makdo:
         # EOL
         self.txt.tag_remove('eol_tag', '1.0', 'end-1c')
         self.txt.tag_add('eol_tag', 'insert linestart', 'insert lineend+1c')
+        if self.txt.tag_ranges('sel'):
+            self.txt.tag_add('akauni_tag', 'sel.first', 'sel.last')
+        # if 'akauni' in self.txt.mark_names():
+        #     self.txt.tag_add('akauni_tag', 'akauni', 'insert')
         # EOF
         if 'eof_symbol' not in vars(self) or \
            str(self.eof_symbol) not in self.txt.window_names():
