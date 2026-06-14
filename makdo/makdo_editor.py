@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.06.14-18:07:33-JST>
+# Time-stamp:   <2026.06.15-07:46:35-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -14881,9 +14881,11 @@ class Makdo:
         self.txt.tag_remove('eol_tag', '1.0', 'end-1c')
         self.txt.tag_add('eol_tag', 'insert linestart', 'insert lineend+1c')
         if self.txt.tag_ranges('sel'):
+            self.txt.tag_remove('akauni_tag', '1.0', 'sel.first')
             self.txt.tag_add('akauni_tag', 'sel.first', 'sel.last')
-        # if 'akauni' in self.txt.mark_names():
-        #     self.txt.tag_add('akauni_tag', 'akauni', 'insert')
+            self.txt.tag_remove('akauni_tag', 'sel.last', 'end-1c')
+        elif 'akauni' not in self.txt.mark_names():
+            self.txt.tag_remove('akauni_tag', '1.0', 'end-1c')
         # EOF
         if 'eof_symbol' not in vars(self) or \
            str(self.eof_symbol) not in self.txt.window_names():
