@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.06.14-11:44:51-JST>
+# Time-stamp:   <2026.06.14-13:17:54-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -2476,7 +2476,7 @@ class LineDatum:
         for tag in pane.tag_names():
             if tag == 'IMEmarkedtext':  # macos ime
                 continue
-            if tag != 'search_tag':
+            if tag != 'search_tag' and tag != 'eol_tag':
                 pane.tag_remove(tag, str(i + 1) + '.0', str(i + 1) + '.end')
         # LINE
         if not chars_state.is_in_comment:
@@ -13663,12 +13663,24 @@ class Makdo:
                     pane.insert('insert', CONFIGURATION_SAMPLE[i + 1])
                     pane.mark_set('insert', 'insert lineend')
                     return True
+        # PARAGRAPH SAMPLE
+        if posi == pane.index('insert lineend'):
+            for i, sample in enumerate(PARAGRAPH_SAMPLE):
+                if line == sample:
+                    pane.delete('insert linestart', 'insert lineend')
+                    pane.insert('insert', PARAGRAPH_SAMPLE[i + 1])
+                    pane.mark_set('insert', 'insert lineend')
+                    return True
+        # TIDY UP PARAGRAPH
+        has_tidied = self.tidy_up_paragraph()
+        if has_tidied:
+            return True
         # CALCULATE
         res_open = '^((?:.|\n)*)(<!--(?:.|\n)*)'
         res_close = '^((?:.|\n)*)(-->(?:.|\n)*)'
         if re.match(res_open, text):
-            text = re.sub(res_open, '\\2', text)
-            if not re.match(res_close, text):
+            txt = re.sub(res_open, '\\2', text)
+            if not re.match(res_close, txt):
                 if self.calculate(False):
                     return True
         # SCRIPT
@@ -13699,17 +13711,34 @@ class Makdo:
                             pane.delete(beg, end)
                             pane.insert(beg, SCRIPT_SAMPLE[i + 1])
                             return True
-        # PARAGRAPH SAMPLE
-        if posi == pane.index('insert lineend'):
-            for i, sample in enumerate(PARAGRAPH_SAMPLE):
-                if line == sample:
-                    pane.delete('insert linestart', 'insert lineend')
-                    pane.insert('insert', PARAGRAPH_SAMPLE[i + 1])
-                    pane.mark_set('insert', 'insert lineend')
-                    return True
-        # TIDY UP PARAGRAPH
-        has_tidied = self.tidy_up_paragraph()
-        if has_tidied:
+        # SUBSTITUTE SYMBOL
+        res_sym = '^((?:.|\n)*)(%\\[.*\\]%)$'
+        if re.match(res_sym, text):
+            cur_sym = re.sub(res_sym, '\\2', text)
+            pre_txt = re.sub(res_sym, '\\1', text)
+            #
+            all_syms = ['%[]%']
+            lines = pane.get('1.0', 'end-1c').split('\n')
+            res_def = '^\\s*(%\\[.+?\\]%)\\s*=\\s*(.*)$'
+            for ln in lines:
+                if re.match(res_def, ln):
+                    sym = re.sub(res_def, '\\1', ln)
+                    if sym not in all_syms:
+                        all_syms.append(sym)
+            print(all_syms)
+            #
+            for i, sym in enumerate(all_syms):
+                if cur_sym == sym:
+                    j = i + 1
+                    if j < len(all_syms):
+                        nex_sym = all_syms[j]
+                        break
+            else:
+                nex_sym = '%[]%'
+            beg = '1.0+' + str(len(pre_txt)) + 'c'
+            end = '1.0+' + str(len(pre_txt + cur_sym)) + 'c'
+            pane.delete(beg, end)
+            pane.insert(beg, nex_sym)
             return True
         # AUTO CORRECT
         left = pane.get('insert linestart', 'insert')
@@ -14730,9 +14759,9 @@ class Makdo:
     # LOCAL PAINTING
     def run_periodically_to_paint_line_locally(self):
         # FOOTMARKS
-        p_ind = self.txt.index('insert')
-        p_lin = int(re.sub('\\.[0-9]+$', '', p_ind)) - 1
-        self.footmarks.append(p_lin)
+        p_ins = self.txt.index('insert')
+        l_ins = int(re.sub('\\.[0-9]+$', '', p_ins)) - 1
+        self.footmarks.append(l_ins)
         # PAINT
         self.paint_out_line(self.local_line_to_paint)
         # NEXT
@@ -14761,8 +14790,8 @@ class Makdo:
             if self.goal_line_to_paint > m:
                 self.goal_line_to_paint = m
         # EOL
-        self.txt.tag_remove('eol_tag', '1.0', 'end')
-        self.txt.tag_add('eol_tag', 'insert linestart', 'insert lineend +1c')
+        self.txt.tag_remove('eol_tag', '1.0', 'end-1c')
+        self.txt.tag_add('eol_tag', 'insert linestart', 'insert lineend+1c')
         # EOF
         if 'eof_symbol' not in vars(self) or \
            str(self.eof_symbol) not in self.txt.window_names():

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.06.13-12:07:32-JST>
+# Time-stamp:   <2026.06.14-13:24:40-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -7169,7 +7169,7 @@ class MdLine:
             sys.stderr.write(msg + '\n\n')
 
 
-class SubstitutePhrase:
+class SubstituteSymbol:
 
     def __init__(self, initial_md_lines):
         self.initial_md_lines = initial_md_lines
@@ -7177,7 +7177,7 @@ class SubstitutePhrase:
 
     def assign(self):
         doc = '\n'.join(self.initial_md_lines)
-        substitute_phrases = {}
+        substitute_symbols = {}
         res = '^((?:.|\n)*\n)?' \
             + '%\\[(.+?)\\]%\\s*=\\s*"' \
             + '((?:(?:.|\n)*?[^\\\\])??(?:\\\\\\\\)*?)?' \
@@ -7185,14 +7185,14 @@ class SubstitutePhrase:
         while re.match(res, doc):
             prop_id = re.sub(res, '\\2', doc)
             prop_val = re.sub(res, '\\3', doc)
-            substitute_phrases[prop_id] = prop_val
+            substitute_symbols[prop_id] = prop_val
             doc = re.sub(res, '\\1\\4', doc)
         tmp1 = None
         while tmp1 != doc:
             tmp1 = doc
-            for pn in substitute_phrases:
+            for pn in substitute_symbols:
                 res_fr = NOT_ESCAPED + '%\\[' + pn + '\\]%((?:.|\n)*)$'
-                res_to = '\\g<1>' + substitute_phrases[pn] + '\\g<2>'
+                res_to = '\\g<1>' + substitute_symbols[pn] + '\\g<2>'
                 tmp2 = None
                 while tmp2 != doc:
                     tmp2 = doc
@@ -7205,7 +7205,7 @@ class SubstitutePhrase:
                 msg = '※ 警告: ' \
                     + '置換されていない代語句が残っています'
                 # msg = 'warning: ' \
-                #     + 'unsubstituted substitute phrases'
+                #     + 'unsubstituted substitute symbols'
                 msg = msg + '\n' + '  (line ' + str(i + 1) + ') ' + fd
                 sys.stderr.write(msg + '\n\n')
         self.final_document = final_document
@@ -7619,7 +7619,7 @@ class Md2Docx:
         # READ MARKDOWN FILE
         io.set_md_file(inputed_md_file)
         formal_md_lines = io.read_md_file()
-        assigned_md_lines = SubstitutePhrase(formal_md_lines).assign()
+        assigned_md_lines = SubstituteSymbol(formal_md_lines).assign()
         doc.md_lines = doc.get_md_lines(assigned_md_lines)
         # CONFIGURE
         frm.md_lines = doc.md_lines
