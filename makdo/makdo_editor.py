@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.06.14-13:17:54-JST>
+# Time-stamp:   <2026.06.14-16:00:36-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -4402,6 +4402,10 @@ class Makdo:
         self.memo_pad_memory = None
         self.close_mouse_menu()  # close mouse menu
         self.quit_editing_genai_system_message()
+        #
+        self.cancel_region(self.sub)
+        self.sub.config(wrap='char')
+        self.sub.bind('<Key>', self.sub_process_key)
         self.pnd_r.remove(self.pnd2)
         #
         self.txt.focus_force()
@@ -6230,6 +6234,10 @@ class Makdo:
         self._make_submenu_insert_parentheses(menu)
         menu.add_command(label='記号を挿入',
                          command=self.insert_symbol)
+        menu.add_separator()
+        #
+        menu.add_command(label='続きを探して挿入',
+                         command=self.find_and_insert_subsequent_text)
         # menu.add_separator()
 
     ################
@@ -7884,6 +7892,68 @@ class Makdo:
             self.pane.insert('insert', symbol)
             # self.pane.mark_set('insert', 'insert-1c')
             self.pane.focus_set()
+
+    ################
+    # COMMAND
+
+    def find_and_insert_subsequent_text(self):
+        pane = self._get_pane()
+        if self._is_read_only_pane(pane):
+            return
+        chr1 = pane.get('insert-1c', 'insert')
+        if len(chr1) < 1:
+            return False
+        cands = []
+        text = pane.get('1.0', 'end-1c')
+        res = '^((?:.|\n)*?)' + chr1 + '([^' + chr1 + '\n]+)' + '((?:.|\n)*)$'
+        while re.match(res, text):
+            cand = re.sub(res, '\\2', text)
+            text = re.sub(res, '\\3', text)
+            if cand not in cands:
+                cands.append(cand)
+        if len(cands) == 0:
+            return False
+        cand_text = '\n'.join(cands) + '\n'
+        self._open_sub_pane(cand_text, True)
+        self.real_position = self._get_real_position_of_insert(self.sub)
+        self.sub.config(wrap='none')
+        self.sub.bind('<Key>', self.faist_process_key)
+        self.sub.focus_force()
+
+    def faist_process_key(self, key):
+        k = self._get_key(key)
+        if k == 'Escape':
+            self._close_sub_pane()
+        elif self._is_key(k, 'Left', 'C-t', 'C-k'):           # C-t
+            self.sub.mark_set('insert', 'insert-1c')
+        elif self._is_key(k, 'Right', 'C-s', 'C-;'):          # C-s
+            self.sub.mark_set('insert', 'insert+1c')
+        elif self._is_key(k, 'Up', 'C-r', 'C-o'):             # C-r
+            self.real_position \
+                = self._shift_position(self.real_position, (-1, 0))
+            self._move_for_real_position(self.sub, self.real_position)
+        elif self._is_key(k, 'Down', 'C-n', 'C-l'):           # C-n
+            self.real_position \
+                = self._shift_position(self.real_position, (+1, 0))
+            self._move_for_real_position(self.sub, self.real_position)
+        elif self._is_key(k, 'Home', 'C-l', 'C-p'):
+            self.sub.mark_set('insert', 'insert linestart')
+        elif self._is_key(k, 'End', 'C-{', 'C-['):
+            self.sub.mark_set('insert', 'insert lineend')
+        elif self._is_key(k, 'Prior', 'C-[', 'C-@'):
+            self.sub.mark_set('insert', '1.0')
+        elif self._is_key(k, 'Next', 'C-]', 'C-:'):
+            self.sub.mark_set('insert', 'end-1c')
+        elif self._is_key(k, 'Return', 'C-m', 'C-m'):
+            sub_text = self.sub.get('insert linestart', 'insert')
+            self.txt.insert('insert', sub_text)
+            self._close_sub_pane()
+        if not self._is_key(k, 'Up', 'C-r', 'C-o') and \
+           not self._is_key(k, 'Down', 'C-n', 'C-l'):
+            self.real_position = self._get_real_position_of_insert(self.sub)
+        self.sub.tag_remove('akauni_tag', '1.0', 'end-1c')
+        self.sub.tag_add('akauni_tag', 'insert linestart', 'insert')
+        return 'break'
 
     ##########################
     # MENU PARAGRAPH
@@ -11429,6 +11499,12 @@ class Makdo:
             ['self.mother.insert_symbol()'])
         minibuffer_commands.append(mc)
 
+        mc = MinibufferCommand(
+            'find-and-insert-subsequent-text',
+            [None, '続きを探して挿入'],
+            ['self.mother.find_and_insert_subsequent_text()', 'self.set_return_to()'])
+        minibuffer_commands.append(mc)
+
         # PARAGRAPH
         mc = MinibufferCommand('## 段落', [None, ''], [''])
         minibuffer_commands.append(mc)
@@ -13372,6 +13448,9 @@ class Makdo:
             return 'break'
         elif self._is_key(k1, 'F22', 'C-f', 'C-.'):            # C-f
             self._any_process_mark(pane)
+            return 'break'
+        elif self._is_key(k1, 'F23', 'C-z', 'C-/'):            # C-z
+            self.find_and_insert_subsequent_text()
             return 'break'
         elif k1 == 'g':
             if k2 == 'Escape':
