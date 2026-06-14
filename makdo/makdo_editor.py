@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.06.15-07:46:35-JST>
+# Time-stamp:   <2026.06.15-08:15:30-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -13813,7 +13813,6 @@ class Makdo:
                     sym = re.sub(res_def, '\\1', ln)
                     if sym not in all_syms:
                         all_syms.append(sym)
-            print(all_syms)
             #
             for i, sym in enumerate(all_syms):
                 if cur_sym == sym:
