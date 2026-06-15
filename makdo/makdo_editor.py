@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.06.15-12:25:31-JST>
+# Time-stamp:   <2026.06.15-13:11:35-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -1345,7 +1345,7 @@ class Math():
         elif self.calculation_result != self.last_calculation_result:
             self.digit_separator = self.default_digit_separator
         else:
-            loop = {'4s': '4', '4': '3', '3': '0', '0': '4s'}
+            loop = {'0': '3', '3': '4s', '4s': '4', '4': '0'}
             self.digit_separator = loop[self.last_digit_separator]
         self.digit_separated_calculation_result \
             = self._digit_separate(self.calculation_result,
@@ -1567,7 +1567,7 @@ class Math():
         n = re.sub('^=', '', line_result)
         if re.match('^([0-9]*\\.)?[0-9]+$', n):
             return n, '0'
-        elif re.match('^[1-9]{1,3}(,[0-9]{3})+(\\.[0-9]+)?$', n):
+        elif re.match('^[1-9][0-9]{1,2}(,[0-9]{3})+(\\.[0-9]+)?$', n):
             return self._3_digit_separated_to_0_digit_separated(n), '3'
         elif re.match('^[京兆億万0-9]+[0-9]+(\\.[0-9]+)?$', n):
             return self._4_digit_separated_to_0_digit_separated(n), '4'
