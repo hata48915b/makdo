@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.06.09-11:40:25-JST>
+# Time-stamp:   <2026.06.15-09:47:22-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -9039,8 +9039,19 @@ class ParagraphTable(Paragraph):
                     if tbl_alig == 'left':
                         md_text += ': '
                     for j, _ in enumerate(txt_row):
-                        md_text += '|' + h_conf_row[j]
+                        #
+                        if re.match(NOT_ESCAPED + '[=\\^]$', md_text):
+                            md_text += ' '  # <>
+                        md_text += '|'
+                        #
+                        if re.match('^[=\\^]', h_conf_row[j]):
+                            md_text += ' '  # <>
+                        md_text += h_conf_row[j]
+                    #
+                    if re.match(NOT_ESCAPED + '[=\\^]$', md_text):
+                        md_text += ' '  # <>
                     md_text += '|'
+                    #
                     if tbl_alig == 'right':
                         md_text += ' :'
                     md_text += '\n'
@@ -9053,10 +9064,22 @@ class ParagraphTable(Paragraph):
                     for k, txt_par in enumerate(txt_cel):
                         txt_par = re.sub('\n', '<br>', txt_par)
                         if k == 0:
+                            #
+                            if re.match(NOT_ESCAPED + '[=\\^]$', md_text):
+                                md_text += ' '  # <>
                             md_text += '|'
+                            #
                         else:
+                            #
+                            if re.match('^.*<$', md_text):
+                                md_text += '``'  # <>
                             md_text += '<Br>'
                         if h_alig_tbl[i][j][k] == 'R':
+                            #
+                            if re.match(NOT_ESCAPED + '\\|$', md_text):
+                                if re.match('^[=\\^]', txt_par):
+                                    md_text += ' '  # <>
+                            #
                             if is_in_head:
                                 md_text += txt_par + ' :'
                             elif merge_tbl[i][j] != '':
@@ -9067,7 +9090,12 @@ class ParagraphTable(Paragraph):
                                 md_text += txt_par
                         elif h_alig_tbl[i][j][k] == 'C':
                             if is_in_head:
+                                #
+                                if re.match(NOT_ESCAPED + '\\|$', md_text):
+                                    if re.match('^[=\\^]', txt_par):
+                                        md_text += ' '  # <>
                                 md_text += txt_par
+                                #
                             elif merge_tbl[i][j] != '':
                                 md_text += ': ' + txt_par + ' :'
                             elif h_alig_tbl[std_row][j][0] != 'C':
@@ -9083,7 +9111,12 @@ class ParagraphTable(Paragraph):
                                   h_alig_tbl[std_row][j][0] != 'L'):
                                 md_text += ': ' + txt_par
                             else:
+                                #
+                                if re.match(NOT_ESCAPED + '\\|$', md_text):
+                                    if re.match('^[=\\^]', txt_par):
+                                        md_text += ' '  # <>
                                 md_text += txt_par
+                                #
                 # MERGE CELLS
                 if merge_tbl[i][j] != '':
                     if not re.match('^(.|\n)*\\s:$', md_text):

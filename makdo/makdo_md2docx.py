@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.06.14-13:24:40-JST>
+# Time-stamp:   <2026.06.15-10:41:50-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -5866,6 +5866,9 @@ class ParagraphTable(Paragraph):
                re.match('^.*\\|$', t_ln) and re.match('^:\\|', ml.text):
                 t_ln += '  '  # for an empty cell with alignment
             if re.match('^:(@[0-9]*x?[0-9]+)?[=\\^]?\\|', ml.text):
+                t_ln += ' ' + ml.text
+            elif (re.match('^(.*)[=\\^]$', t_ln) and
+                  re.match('^\\|(.*)$', ml.text)):
                 t_ln += ' ' + ml.text
             else:
                 t_ln = concatenate_text(t_ln, ml.text)

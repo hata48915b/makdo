@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.06.15-08:15:30-JST>
+# Time-stamp:   <2026.06.15-10:30:06-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -9509,7 +9509,7 @@ class Makdo:
             spc = re.sub(res, '\\1', cell)
             bdy = re.sub(res, '\\2', cell)
             new_spc = ''
-            if lsym == '' and spc != '' and re.match('^=', bdy):
+            if lsym == '' and spc != '' and re.match('^[=\\^]', bdy):
                 new_spc = ' '
             spc = self._replace_spaces(pane, text + lsym, spc, new_spc)
             lspc, cell = spc, bdy
@@ -9528,11 +9528,22 @@ class Makdo:
             spaces_l_to, spaces_r_to = (' ' * w_l), (' ' * w_r)
         else:
             spaces_l_to, spaces_r_to = (''), (' ' * w)
-        if spaces_l_from != '' and spaces_l_to == '' and re.match('^=', body):
-            # | =SUM(A1:A9)...|
+        if symbol_l == '' and \
+           spaces_l_from != '' and spaces_l_to == '' and \
+           re.match('^[=\\^].*$', body):
+            # | =SUM(A1:A9)...| or | ^red^...|
             spaces_l_to = ' '
             if spaces_r_to != '':
-                spaces_r_to = re.sub('^ ', '', spaces_r_to)
+                if spaces_r_to != ' ' or not re.match('^.*[=\\^]$', body):
+                    spaces_r_to = re.sub('^ ', '', spaces_r_to)
+        if symbol_r == '' and \
+           spaces_r_from != '' and spaces_r_to == '' and \
+           re.match('^.*[=\\^]$', body):
+            # |...= | or |...^red^ |
+            spaces_r_to = ' '
+            if spaces_l_to != '':
+                if spaces_l_to != ' ' or not re.match('^[=\\^].*$', body):
+                    spaces_l_to = re.sub('^ ', '', spaces_l_to)
         if cell != (symbol_l + spaces_l_to + body + spaces_r_to + symbol_r):
             t = text + symbol_l + spaces_l_from + body
             sp_r = self._replace_spaces(pane, t, spaces_r_from, spaces_r_to)
@@ -9545,21 +9556,27 @@ class Makdo:
     def _split_cell(cell):
         sy_l, sp_l, body, sp_r, sy_r = '', '', '', '', ''
         # LEFT SYMBOL
-        res = '^([=\\^]?:?\\s)(.*)$'
+        res = '^([=\\^])(.*)$'
         if re.match(res, cell):
-            sy_l = re.sub(res, '\\1', cell)
+            sy_l = sy_l + re.sub(res, '\\1', cell)
             cell = re.sub(res, '\\2', cell)
-        if re.match('^\\s$', sy_l):
-            cell = sy_l + cell
-            sy_l = ''
-        # RIGHT SYMBOL
-        res = '^(.*?)(\\s:?(?:@[0-9]*x?[0-9]+)?[=\\^]?)$'
+        res = '^(:\\s)(.*)$'
         if re.match(res, cell):
-            sy_r = re.sub(res, '\\2', cell)
+            sy_l = sy_l + re.sub(res, '\\1', cell)
+            cell = re.sub(res, '\\2', cell)
+        # RIGHT SYMBOL
+        res = '^(.*?)([=\\^])$'
+        if re.match(res, cell):
+            sy_r = re.sub(res, '\\2', cell) + sy_r
             cell = re.sub(res, '\\1', cell)
-        if re.match('^\\s$', sy_r):
-            cell = cell + sy_r
-            sy_r = ''
+        res = '^(.*?)(@[0-9]*x?[0-9]+)$'
+        if re.match(res, cell):
+            sy_r = re.sub(res, '\\2', cell) + sy_r
+            cell = re.sub(res, '\\1', cell)
+        res = '^(.*?)(\\s:)$'
+        if re.match(res, cell):
+            sy_r = re.sub(res, '\\2', cell) + sy_r
+            cell = re.sub(res, '\\1', cell)
         # LEFT SPACE
         res = '^(\\s+)(.*?)$'
         if re.match(res, cell):
@@ -11511,7 +11528,8 @@ class Makdo:
         mc = MinibufferCommand(
             'find-and-insert-subsequent-text',
             [None, '続きを探して挿入'],
-            ['self.mother.find_and_insert_subsequent_text()', 'self.set_return_to()'])
+            ['self.mother.find_and_insert_subsequent_text()',
+             'self.set_return_to()'])
         minibuffer_commands.append(mc)
 
         # PARAGRAPH
