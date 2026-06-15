@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.06.15-13:11:35-JST>
+# Time-stamp:   <2026.06.16-07:57:37-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -13769,6 +13769,34 @@ class Makdo:
                     pane.insert('insert', CONFIGURATION_SAMPLE[i + 1])
                     pane.mark_set('insert', 'insert lineend')
                     return True
+        # SUBSTITUTE SYMBOL
+        res_sym = '^((?:.|\n)*)(%\\[.*\\]%)$'
+        if re.match(res_sym, text):
+            cur_sym = re.sub(res_sym, '\\2', text)
+            pre_txt = re.sub(res_sym, '\\1', text)
+            #
+            all_syms = ['%[]%']
+            lines = pane.get('1.0', 'end-1c').split('\n')
+            res_def = '^\\s*(%\\[.+?\\]%)\\s*=\\s*(.*)$'
+            for ln in lines:
+                if re.match(res_def, ln):
+                    sym = re.sub(res_def, '\\1', ln)
+                    if sym not in all_syms:
+                        all_syms.append(sym)
+            #
+            for i, sym in enumerate(all_syms):
+                if cur_sym == sym:
+                    j = i + 1
+                    if j < len(all_syms):
+                        nex_sym = all_syms[j]
+                        break
+            else:
+                nex_sym = '%[]%'
+            beg = '1.0+' + str(len(pre_txt)) + 'c'
+            end = '1.0+' + str(len(pre_txt + cur_sym)) + 'c'
+            pane.delete(beg, end)
+            pane.insert(beg, nex_sym)
+            return True
         # PARAGRAPH SAMPLE
         if posi == pane.index('insert lineend'):
             for i, sample in enumerate(PARAGRAPH_SAMPLE):
@@ -13817,34 +13845,6 @@ class Makdo:
                             pane.delete(beg, end)
                             pane.insert(beg, SCRIPT_SAMPLE[i + 1])
                             return True
-        # SUBSTITUTE SYMBOL
-        res_sym = '^((?:.|\n)*)(%\\[.*\\]%)$'
-        if re.match(res_sym, text):
-            cur_sym = re.sub(res_sym, '\\2', text)
-            pre_txt = re.sub(res_sym, '\\1', text)
-            #
-            all_syms = ['%[]%']
-            lines = pane.get('1.0', 'end-1c').split('\n')
-            res_def = '^\\s*(%\\[.+?\\]%)\\s*=\\s*(.*)$'
-            for ln in lines:
-                if re.match(res_def, ln):
-                    sym = re.sub(res_def, '\\1', ln)
-                    if sym not in all_syms:
-                        all_syms.append(sym)
-            #
-            for i, sym in enumerate(all_syms):
-                if cur_sym == sym:
-                    j = i + 1
-                    if j < len(all_syms):
-                        nex_sym = all_syms[j]
-                        break
-            else:
-                nex_sym = '%[]%'
-            beg = '1.0+' + str(len(pre_txt)) + 'c'
-            end = '1.0+' + str(len(pre_txt + cur_sym)) + 'c'
-            pane.delete(beg, end)
-            pane.insert(beg, nex_sym)
-            return True
         # AUTO CORRECT
         left = pane.get('insert linestart', 'insert')
         if len(left) > 0:
