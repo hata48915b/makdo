@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.06.15-09:47:22-JST>
+# Time-stamp:   <2026.06.15-18:46:11-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -4325,6 +4325,8 @@ class XML:
                 else:
                     # MOVE TO ABNORMAL STATE
                     xml_class = ''
+            elif re.match(res_oneline_tag, xl):
+                pass
             elif re.match(res_class_tag, xl):
                 xml_depth += 1
             elif re.match(res_end_tag, xl):
