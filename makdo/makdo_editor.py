@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.06.15-10:30:06-JST>
+# Time-stamp:   <2026.06.15-12:25:31-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -8435,7 +8435,7 @@ class Makdo:
         menu.add_cascade(label='表を挿入', menu=submenu)
         submenu.add_command(label='表をエクセルのファイルから挿入',
                             command=self.insert_table_from_excel)
-        submenu.add_command(label='表を書式で挿入',
+        submenu.add_command(label='表の書式を挿入',
                             command=self.insert_table_format)
 
     ######
@@ -14895,7 +14895,7 @@ class Makdo:
             if self.goal_line_to_paint > m:
                 self.goal_line_to_paint = m
         # EOL
-        self.txt.tag_remove('eol_tag', '1.0', 'end-1c')
+        self.txt.tag_remove('eol_tag', '1.0', 'end')
         self.txt.tag_add('eol_tag', 'insert linestart', 'insert lineend+1c')
         if self.txt.tag_ranges('sel'):
             self.txt.tag_remove('akauni_tag', '1.0', 'sel.first')
