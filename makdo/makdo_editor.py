@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.06.16-07:57:37-JST>
+# Time-stamp:   <2026.06.16-12:29:23-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -13770,20 +13770,23 @@ class Makdo:
                     pane.mark_set('insert', 'insert lineend')
                     return True
         # SUBSTITUTE SYMBOL
-        res_sym = '^((?:.|\n)*)(%\\[.*\\]%)$'
-        if re.match(res_sym, text):
-            cur_sym = re.sub(res_sym, '\\2', text)
-            pre_txt = re.sub(res_sym, '\\1', text)
+        res = '^((?:.|\n)*)(%\\[.*\\]%)$'
+        if re.match(res, text):
+            cur_sym = re.sub(res, '\\2', text)
+            pre_txt = re.sub(res, '\\1', text)
             #
             all_syms = ['%[]%']
-            lines = pane.get('1.0', 'end-1c').split('\n')
-            res_def = '^\\s*(%\\[.+?\\]%)\\s*=\\s*(.*)$'
-            for ln in lines:
-                if re.match(res_def, ln):
-                    sym = re.sub(res_def, '\\1', ln)
+            tmp = ''
+            pos = pane.get('1.0', 'end-1c')
+            res = '^((?:.|\n)*?)(%\\[.+?\\]%)((?:.|\n)*)$'
+            while re.match(res, pos):
+                pre = re.sub(res, '\\1', pos)
+                sym = re.sub(res, '\\2', pos)
+                pos = re.sub(res, '\\3', pos)
+                tmp += pre + sym
+                if tmp != text:
                     if sym not in all_syms:
                         all_syms.append(sym)
-            #
             for i, sym in enumerate(all_syms):
                 if cur_sym == sym:
                     j = i + 1
