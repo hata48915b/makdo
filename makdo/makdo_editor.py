@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.06.16-12:29:23-JST>
+# Time-stamp:   <2026.06.22-10:52:18-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -3916,6 +3916,8 @@ class Makdo:
                 if not self._is_read_only_pane(pane):
                     pane.edit_separator()
                     pane.delete(beg, akn)
+                    self.real_position \
+                        = self._get_real_position_of_insert(pane)
                     pane.edit_separator()
                 self.cancel_region(pane)
             else:
@@ -3939,12 +3941,16 @@ class Makdo:
                     self.clipboard_list[-1] += '\n'
                     # pane.edit_separator()
                     pane.delete(ins, end + '+1c')
+                    self.real_position \
+                        = self._get_real_position_of_insert(pane)
                     pane.edit_separator()
                 else:
                     self.win.clipboard_append(c)
                     self.clipboard_list[-1] += c
                     pane.edit_separator()
                     pane.delete(ins, end)
+                    self.real_position \
+                        = self._get_real_position_of_insert(pane)
                     # pane.edit_separator()
 
     def paint_out_line(self, line_number, pane=None):
@@ -4346,6 +4352,7 @@ class Makdo:
                             font=self.gothic_font)
         self.sub.window_create('end', window=eof_symbol)
         self.sub.mark_set('insert', '1.0')
+        self.real_position = self._get_real_position_of_insert(self.sub)
         # self.sub.configure(state='disabled')
         #
         self.sub.focus_force()
@@ -4410,6 +4417,7 @@ class Makdo:
         #
         self.txt.focus_force()
         self.current_pane = 'txt'
+        self.real_position = self._get_real_position_of_insert(self.txt)
         #
         return True
 
@@ -4451,7 +4459,7 @@ class Makdo:
         real_v = int(pane.index('insert').split('.')[0]) - 1
         real_h = get_real_width(pane.get('insert linestart', 'insert'))
         max_v = int(pane.index('end-1c').split('.')[0]) - 1
-        return real_v, real_h, max_v
+        return [real_v, real_h, max_v]
 
     @staticmethod
     def _shift_position(position, vector):
@@ -4462,7 +4470,7 @@ class Makdo:
             real_v = 0
         elif real_v > max_v:
             real_v = max_v
-        return real_v, real_h, max_v
+        return [real_v, real_h, max_v]
 
     def _move_for_real_position(self, pane, real_position) -> None:
         if real_position[1] == 0:
@@ -4646,6 +4654,7 @@ class Makdo:
         if step >= 0:
             s = '+' + str(step) + 'c'
         pane.mark_set('insert', 'insert' + s)
+        self.real_position = self._get_real_position_of_insert(pane)
         self.paint_out_line(self._get_v_position_of_insert(pane) - 1)
         pane.edit_separator()
 
@@ -4656,6 +4665,7 @@ class Makdo:
         pane.edit_separator()
         self._insert_line_break_as_necessary()
         pane.insert('insert', paragraph_text)
+        self.real_position = self._get_real_position_of_insert(pane)
         pane.edit_separator()
 
     def _insert_line_break_as_necessary(self, index='insert'):
@@ -4854,6 +4864,7 @@ class Makdo:
         self.txt.focus_set()
         self.current_pane = 'txt'
         self.txt.mark_set('insert', '1.0')
+        self.real_position = self._get_real_position_of_insert(self.txt)
         self._set_file_name(file_path)
         if not os.access(file_path, os.W_OK):
             self.is_read_only.set(True)
@@ -4883,6 +4894,7 @@ class Makdo:
             image_md_text = '![代替テキスト @横x縦](' + file_path + ' "説明")'
             self.txt.edit_separator()
             self.txt.insert('insert', image_md_text)
+            self.real_position = self._get_real_position_of_insert(self.txt)
             self.paint_out_line(self._get_v_position_of_insert(pane) - 1)
             self.txt.edit_separator()
 
@@ -4962,6 +4974,7 @@ class Makdo:
             file_text += '\n'
             self.txt.insert('end', '\n')
             self._put_back_cursor_to_pane(self.txt)
+            self.real_position = self._get_real_position_of_insert(self.txt)
         must_warn = True
         if re.match('^(.|\n)+.docx$', self.file_path):
             must_warn = False
@@ -5670,6 +5683,7 @@ class Makdo:
                 # UPDATE TOC
                 self.update_toc()
             pane.edit_separator()
+        self.real_position = self._get_real_position_of_insert(pane)
         return True
 
     def paste_region(self):
@@ -5686,6 +5700,7 @@ class Makdo:
             return True
         pane.edit_separator()
         pane.insert('insert', cb)
+        self.real_position = self._get_real_position_of_insert(pane)
         if self.current_pane == 'txt':
             # PAINT LINES
             end_v = self._get_v_position_of_insert(self.txt)
@@ -5714,6 +5729,7 @@ class Makdo:
         if v is not None:
             pane.edit_separator()
             pane.insert('insert', v)
+            self.real_position = self._get_real_position_of_insert(pane)
             p = self._get_v_position_of_insert(pane) - 1
             for i in range(v.count('\n')):
                 self.paint_out_line(p + i)
@@ -5766,6 +5782,7 @@ class Makdo:
         if must_cut:
             pane['autoseparators'] = True
             pane.edit_separator()
+        self.real_position = self._get_real_position_of_insert(pane)
         return True
 
     def paste_rectangle(self):
@@ -5796,6 +5813,7 @@ class Makdo:
                 line_md += '\n'
             pane.insert(ins_h, line_md)
             pane.mark_set('insert', ins_h)
+            self.real_position = self._get_real_position_of_insert(pane)
             self.paint_out_line(i)
             self.update_toc()
         pane['autoseparators'] = True
@@ -5854,6 +5872,8 @@ class Makdo:
             tex = pane.get(beg, end)
             try:
                 if not re.match(res, tex):
+                    self.real_position \
+                        = self._get_real_position_of_insert(pane)
                     break
             except BaseException:
                 pane.focus_set()
@@ -5869,6 +5889,7 @@ class Makdo:
             pane.insert(beg + '+' + str(len(s)) + 'c', word2)
             end = beg + '+' + str(len(s)) + 'c'
             m += 1
+        self.real_position = self._get_real_position_of_insert(pane)
         self.cancel_region(pane)
         pane['autoseparators'] = True
         pane.edit_separator()
@@ -5947,6 +5968,7 @@ class Makdo:
         pane.edit_separator()
         pane.delete(beg_c, end_c)
         pane.insert(beg_c, new_str)
+        self.real_position = self._get_real_position_of_insert(pane)
         self.cancel_region(pane)
         if self.current_pane == 'txt':
             for i in range(beg_v - 1, end_v):
@@ -5976,14 +5998,16 @@ class Makdo:
             self.txt.edit_separator()
             self.txt.delete(beg, end)
             self.txt.insert(beg, '=' + r)
+            self.real_position = self._get_real_position_of_insert(self.txt)
             self.paint_out_line(v_number - 1)
             self.txt['autoseparators'] = True
             self.txt.edit_separator()
-        self.win.clipboard_clear()
-        self.win.clipboard_append(r)
-        if self.clipboard_list[-1] != '':
-            self.clipboard_list.append('')
-        self.clipboard_list[-1] += r
+            self.win.clipboard_clear()
+            self.win.clipboard_append(r)
+            if self.clipboard_list[-1] != '':
+                self.clipboard_list.append('')
+            self.clipboard_list[-1] += r
+            self.set_message_on_status_bar('再度実行すると、桁区切りが変わります')
         return True
 
     def change_typeface(self, mother=None):
@@ -6032,6 +6056,7 @@ class Makdo:
                 pane.delete('insert', 'insert+' + str(len(c)) + 'c')
                 pane.insert('insert', v)
                 pane.mark_set('insert', 'insert-' + str(len(v)) + 'c')
+                self.real_position = self._get_real_position_of_insert(pane)
                 p = self._get_v_position_of_insert(pane) - 1
                 self.paint_out_line(p)
                 pane.edit_separator()
@@ -6077,6 +6102,7 @@ class Makdo:
                     pane.insert(beg + '+' + str(len(sub)) + 'c', t[1])
         pane.insert(end, '-->')
         pane.insert(beg, '<!--')
+        self.real_position = self._get_real_position_of_insert(pane)
         self.cancel_region(pane)
         beg_v = int(re.sub('\\.[0-9]+$', '', beg))
         end_v = int(re.sub('\\.[0-9]+$', '', end))
@@ -6132,6 +6158,7 @@ class Makdo:
                     pane.delete(beg + '+' + str(len(sub)) + 'c',
                                 beg + '+' + str(len(sub + t[1])) + 'c')
                     pane.insert(beg + '+' + str(len(sub)) + 'c', t[0])
+        self.real_position = self._get_real_position_of_insert(pane)
         self.cancel_region(pane)
         beg_v = int(re.sub('\\.[0-9]+$', '', beg))
         end_v = int(re.sub('\\.[0-9]+$', '', end))
@@ -6144,6 +6171,7 @@ class Makdo:
     def insert_substitute_symbol(self):
         self.txt.insert('insert',
                         '\n%[（代記号名）]% = "（内容）"\n%[（代記号名）]%\n')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def mask_with_substitute_symbols(self):
         self.txt['autoseparators'] = False
@@ -6185,6 +6213,7 @@ class Makdo:
                     i += 1
             pre = cur
             cur = self.txt.get('1.0', 'end-1c')
+        self.real_position = self._get_real_position_of_insert(self.txt)
         self.set_message_on_status_bar(str(i) + '個の文字列をマスクしました')
         self.txt['autoseparators'] = True
         self.txt.edit_separator()
@@ -6362,6 +6391,7 @@ class Makdo:
 
 ---------------------------------------------------------------->
 '''
+        self.real_position = self._get_real_position_of_insert(self.txt)
         return document
 
     def insert_sample(self, sample_document):
@@ -6375,6 +6405,7 @@ class Makdo:
         self.txt.focus_set()
         self.current_pane = 'txt'
         self.txt.mark_set('insert', '1.0')
+        self.real_position = self._get_real_position_of_insert(self.txt)
         # PAINT
         self.paint_all_lines(self.txt)
         # CLEAR THE UNDO STACK
@@ -6385,6 +6416,7 @@ class Makdo:
 
     def insert_comment(self):
         self.txt.insert('insert', '<!--（ここにコメントを書く）-->')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_space(self):
         b = '空白の幅'
@@ -6396,9 +6428,11 @@ class Makdo:
             if f is None:
                 return
         self.txt.insert('insert', '< ' + f + ' >')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_line_break(self):
         self.txt.insert('insert', '<br>')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     ################
     # SUBMENU INSERT IMAGE
@@ -6424,10 +6458,12 @@ class Makdo:
         for i in image_paths:
             image_md_text = '![代替テキスト @横x縦](' + i + ' "説明")'
             self.txt.insert('insert', image_md_text)
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_image_format(self):
         t = '![代替テキスト @横x縦](ファイルパス "説明")'
         self.txt.insert('insert', t)
+        self.real_position = self._get_real_position_of_insert(self.txt)
         n = self._get_v_position_of_insert(self.txt) - 1
         self.paint_out_line(n)
 
@@ -6478,6 +6514,7 @@ class Makdo:
             d = '@' + v + '@（ここはフォントが変わる）@' + v + '@'
             pane.insert('insert', d)
             pane.mark_set('insert', 'insert-' + str(len(v) + 2) + 'c')
+            self.real_position = self._get_real_position_of_insert(pane)
             p = self._get_v_position_of_insert(pane) - 1
             self.paint_out_line(p)
             pane.edit_separator()
@@ -6534,6 +6571,7 @@ class Makdo:
             d = '@' + v + '@（ここはフォントが変わる）@' + v + '@'
             pane.insert('insert', d)
             pane.mark_set('insert', 'insert-' + str(len(v) + 2) + 'c')
+            self.real_position = self._get_real_position_of_insert(pane)
             p = self._get_v_position_of_insert(pane) - 1
             self.paint_out_line(p)
             pane.edit_separator()
@@ -6541,6 +6579,7 @@ class Makdo:
     def insert_gothic_font(self):
         self.txt.insert('insert', '`（ここはゴシック体）`')
         self.txt.mark_set('insert', 'insert-1c')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_font_manually(self):
         b = 'フォント'
@@ -6552,6 +6591,7 @@ class Makdo:
         d = '@' + s + '@（ここはフォントが変わる）@' + s + '@'
         self.txt.insert('insert', d)
         self.txt.mark_set('insert', 'insert-' + str(len(s) + 2) + 'c')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     ################
     # SUBMENU INSERT FONT SIZE CHANGE
@@ -6578,18 +6618,22 @@ class Makdo:
     def insert_ss_font_size(self):
         self.txt.insert('insert', '---（ここは文字が特に小さい）---')
         self.txt.mark_set('insert', 'insert-3c')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_s_font_size(self):
         self.txt.insert('insert', '--（ここは文字が小さい）--')
         self.txt.mark_set('insert', 'insert-2c')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_l_font_size(self):
         self.txt.insert('insert', '++（ここは文字が大きい）++')
         self.txt.mark_set('insert', 'insert-2c')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_ll_font_size(self):
         self.txt.insert('insert', '+++（ここは文字が特に大きい）+++')
         self.txt.mark_set('insert', 'insert-3c')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_font_size_manually(self):
         b = '文字の大きさ'
@@ -6604,6 +6648,7 @@ class Makdo:
         d = '@' + f + '@（ここは文字の大きさが変わる）@' + f + '@'
         self.txt.insert('insert', d)
         self.txt.mark_set('insert', 'insert-' + str(len(f) + 2) + 'c')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     ################
     # SUBMENU INSERT FONT WIDTH CHANGE
@@ -6627,18 +6672,22 @@ class Makdo:
     def insert_ss_font_width(self):
         self.txt.insert('insert', '>>>（ここは文字が特に細い）<<<')
         self.txt.mark_set('insert', 'insert-3c')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_s_font_width(self):
         self.txt.insert('insert', '>>（ここは文字が細い）<<')
         self.txt.mark_set('insert', 'insert-2c')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_l_font_width(self):
         self.txt.insert('insert', '<<（ここは文字が太い）>>')
         self.txt.mark_set('insert', 'insert-2c')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_ll_font_width(self):
         self.txt.insert('insert', '<<<（ここは文字が特に太い）>>>')
         self.txt.mark_set('insert', 'insert-3c')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     ################
     # SUBMENU INSERT UNDERLINE
@@ -6664,22 +6713,27 @@ class Makdo:
     def insert_single_underline(self):
         self.txt.insert('insert', '__（ここは下線が引かれる）__')
         self.txt.mark_set('insert', 'insert-2c')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_double_underline(self):
         self.txt.insert('insert', '_=_（ここは下線が引かれる）_=_')
         self.txt.mark_set('insert', 'insert-3c')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_wave_underline(self):
         self.txt.insert('insert', '_~_（ここは下線が引かれる）_~_')
         self.txt.mark_set('insert', 'insert-3c')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_dash_underline(self):
         self.txt.insert('insert', '_-_（ここは下線が引かれる）_-_')
         self.txt.mark_set('insert', 'insert-3c')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_dot_underline(self):
         self.txt.insert('insert', '_._（ここは下線が引かれる）_._')
         self.txt.mark_set('insert', 'insert-3c')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     ################
     # SUBMENU INSERT FONT COLOR CHANGE
@@ -6709,30 +6763,37 @@ class Makdo:
     def insert_r_font_color(self):
         self.txt.insert('insert', '^R^（ここは文字が赤色）^R^')
         self.txt.mark_set('insert', 'insert-3c')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_y_font_color(self):
         self.txt.insert('insert', '^Y^（ここは文字が黄色）^Y^')
         self.txt.mark_set('insert', 'insert-3c')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_g_font_color(self):
         self.txt.insert('insert', '^G^（ここは文字が緑色）^G^')
         self.txt.mark_set('insert', 'insert-3c')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_c_font_color(self):
         self.txt.insert('insert', '^C^（ここは文字がシアン）^C^')
         self.txt.mark_set('insert', 'insert-3c')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_b_font_color(self):
         self.txt.insert('insert', '^B^（ここは文字が青色）^B^')
         self.txt.mark_set('insert', 'insert-3c')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_m_font_color(self):
         self.txt.insert('insert', '^M^（ここは文字がマゼンタ）^M^')
         self.txt.mark_set('insert', 'insert-3c')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_w_font_color(self):
         self.txt.insert('insert', '^^（ここは文字が白色）^^')
         self.txt.mark_set('insert', 'insert-2c')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     ################
     # SUBMENU INSERT HIGHLIGHT COLOR CHANGE
@@ -6760,26 +6821,32 @@ class Makdo:
     def insert_r_highlight_color(self):
         self.txt.insert('insert', '_R_（ここは下地が赤色）_R_')
         self.txt.mark_set('insert', 'insert-3c')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_y_highlight_color(self):
         self.txt.insert('insert', '_Y_（ここは下地が黄色）_Y_')
         self.txt.mark_set('insert', 'insert-3c')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_g_highlight_color(self):
         self.txt.insert('insert', '_G_（ここは下地が緑色）_G_')
         self.txt.mark_set('insert', 'insert-3c')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_c_highlight_color(self):
         self.txt.insert('insert', '_C_（ここは下地がシアン）_C_')
         self.txt.mark_set('insert', 'insert-3c')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_b_highlight_color(self):
         self.txt.insert('insert', '_B_（ここは下地が青色）_B_')
         self.txt.mark_set('insert', 'insert-3c')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_m_highlight_color(self):
         self.txt.insert('insert', '_M_（ここは下地がマゼンタ）_M_')
         self.txt.mark_set('insert', 'insert-3c')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     ################
     # SUBMENU INSERT MATH EXPRESSINO
@@ -6872,6 +6939,7 @@ class Makdo:
             inline_text = inline_text + '\\]'
         #
         self._insert_inline_text(inline_text, -2)
+        self.real_position = self._get_real_position_of_insert(pane)
 
     ################
     # COMMAND
@@ -6901,6 +6969,7 @@ class Makdo:
         if document is None:
             return
         self.txt.insert('insert', document)
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     ################
     # SUBMENU INSERT SCRIPT
@@ -6923,16 +6992,19 @@ class Makdo:
         msg = '（ここにスクリプトを挿入（サンプルはTabを押す））'
         self.txt.insert('insert', '{{' + msg + '}}')
         self.txt.mark_set('insert', 'insert-2c')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_script_to_exec_2nd_time(self):
         msg = '（ここにスクリプトを挿入（サンプルはTabを押す））'
         self.txt.insert('insert', '{2{' + msg + '}2}')
         self.txt.mark_set('insert', 'insert-3c')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_script_to_exec_3rd_time(self):
         msg = '（ここにスクリプトを挿入（サンプルはTabを押す））'
         self.txt.insert('insert', '{3{' + msg + '}3}')
         self.txt.mark_set('insert', 'insert-3c')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     ################
     # SUBMENU INSERT FILE
@@ -6960,6 +7032,7 @@ class Makdo:
             = tkinter.filedialog.askopenfilenames(title=ti, initialdir=_d)
         for f in file_paths:
             self.txt.insert('insert', f + '\n')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_file_names(self):
         ti = 'ファイル名をファイル名のみで挿入'
@@ -6971,6 +7044,7 @@ class Makdo:
         for f in file_paths:
             f = re.sub('^(.|\n)*/', '', f)
             self.txt.insert('insert', f + '\n')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_file_names_in_same_folder(self):
         file_path = self.file_path
@@ -6985,6 +7059,7 @@ class Makdo:
             if not re.match('^\\.', f) and os.path.isfile(f):
                 if not re.match('^~\\$.*\\.zip$', f):
                     self.txt.insert('insert', f + '\n')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     ################
     # SUBMENU INSERT TIME
@@ -7035,6 +7110,7 @@ class Makdo:
         date = self._remove_zero(date)
         date = self._convert_half_to_full(date)
         self.txt.insert('insert', date)
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_date_GYMD(self):
         now = self._get_now()
@@ -7043,12 +7119,14 @@ class Makdo:
         date = self._remove_zero(date)
         date = self._convert_half_to_full(date)
         self.txt.insert('insert', date)
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_date_yymd(self):
         now = self._get_now()
         date = now.strftime('%Y年%m月%d日')
         date = self._remove_zero(date)
         self.txt.insert('insert', date)
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_date_Gymd(self):
         now = self._get_now()
@@ -7056,11 +7134,13 @@ class Makdo:
         date = '令和' + str(year) + '年' + now.strftime('%m月%d日')
         date = self._remove_zero(date)
         self.txt.insert('insert', date)
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_date_iso(self):
         now = self._get_now()
         date = now.strftime('%Y-%m-%d')
         self.txt.insert('insert', date)
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_date_giso(self):
         now = self._get_now()
@@ -7070,6 +7150,7 @@ class Makdo:
         else:
             date = 'R' + str(year) + '-' + now.strftime('%m-%d')
         self.txt.insert('insert', date)
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_time_HHMS(self):
         now = self._get_now()
@@ -7077,6 +7158,7 @@ class Makdo:
         time = self._remove_zero(time)
         time = self._convert_half_to_full(time)
         self.txt.insert('insert', time)
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_time_GHMS(self):
         now = self._get_now()
@@ -7088,12 +7170,14 @@ class Makdo:
         time = self._remove_zero(time)
         time = self._convert_half_to_full(time)
         self.txt.insert('insert', time)
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_time_hhms(self):
         now = self._get_now()
         time = now.strftime('%H時%M分%S秒')
         time = self._remove_zero(time)
         self.txt.insert('insert', time)
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_time_Ghms(self):
         now = self._get_now()
@@ -7104,11 +7188,13 @@ class Makdo:
             time = '午後' + str(hour - 12) + '時' + now.strftime('%M分%S秒')
         time = self._remove_zero(time)
         self.txt.insert('insert', time)
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_time_iso(self):
         now = self._get_now()
         time = now.strftime('%H:%M:%S')
         self.txt.insert('insert', time)
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_time_giso(self):
         now = self._get_now()
@@ -7118,14 +7204,17 @@ class Makdo:
         else:
             time = 'PM' + str(hour - 12) + ':' + now.strftime('%M:%S')
         self.txt.insert('insert', time)
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_datetime(self):
         now = self._get_now()
         self.txt.insert('insert', now.isoformat(timespec='seconds'))
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_datetime_simple(self):
         now = self._get_now()
         self.txt.insert('insert', now.strftime('%y-%m-%dT%H:%M:%S'))
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     @staticmethod
     def _remove_zero(text):
@@ -7149,6 +7238,7 @@ class Makdo:
             if s is None:
                 return
         self.txt.insert('insert', chr(int(s, 16)))
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     ################
     # SUBMENU INSERT IVS CHARACTER
@@ -7244,6 +7334,7 @@ class Makdo:
                     self.txt.delete('akauni', 'akauni+1c')
                 elif self.txt.get('insert', 'akauni') != '':
                     self.txt.delete('akauni-1c', 'akauni')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     class IvsDialog(tkinter.simpledialog.Dialog):
 
@@ -7309,6 +7400,8 @@ class Makdo:
                     i = int('E01' + ivs, 16) - 917760
                     self.pane.insert('insert', str(i) + ';')
                     self.has_inserted = True
+                self.mother.real_position \
+                    = self._get_real_position_of_insert(self.pane)
 
     def insert_ivs_of_517c(self):
         self.txt.insert('insert',
@@ -7317,11 +7410,13 @@ class Makdo:
                         'C兼4;' +  # E0104 MJ007296
                         'D兼5;' +  # E0105 MJ056985
                         'E兼6;')   # E0106 MJ056989
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_ivs_of_5316(self):
         self.txt.insert('insert',
                         'A化2;' +  # E0102 MJ007779
                         'B化3;')   # E0103 MJ007778
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_ivs_of_5544(self):
         self.txt.insert('insert',
@@ -7330,11 +7425,13 @@ class Makdo:
                         'C啄4;' +  # E0104 MJ008372
                         'D啄5;' +  # E0105 MJ008371
                         'E啄6;')   # E0106 MJ008373
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_ivs_of_5d29(self):
         self.txt.insert('insert',
                         'A崩2;' +  # E0102 MJ010574
                         'B崩3;')   # E0103 MJ010573
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_ivs_of_5ee3(self):
         self.txt.insert('insert',
@@ -7342,42 +7439,50 @@ class Makdo:
                         'B廣4;' +  # E0104 MJ011075
                         'C廣5;' +  # E0105 MJ011076
                         'D廣12;')  # E010C MJ011078
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_ivs_of_6109(self):
         self.txt.insert('insert',
                         'A愉2;' +  # E0102 MJ011726
                         'B愉3;')   # E0103 MJ011725
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_ivs_of_62f3(self):
         self.txt.insert('insert',
                         'A拳2;' +  # E0102 MJ012304
                         'B拳3;')   # E0103 MJ012303
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_ivs_of_66d9(self):
         self.txt.insert('insert',
                         'A曙2;' +  # E0102 MJ013447
                         'B曙3;')   # E0103 MJ013448
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_ivs_of_698a(self):
         self.txt.insert('insert',
                         'A榊2;' +  # E0102 MJ014255
                         'B榊3;')   # E0103 MJ014256
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_ivs_of_6d69(self):
         self.txt.insert('insert',
                         'A浩2;' +  # E0102 MJ015356
                         'B浩3;')   # E0103 MJ015355
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_ivs_of_6d6e(self):
         self.txt.insert('insert',
                         'A浮2;' +  # E0102 MJ015362
                         'B浮3;')   # E0103 MJ015361
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_ivs_of_6f22(self):
         self.txt.insert('insert',
                         'A漢2;' +  # E0102 MJ015841
                         'B漢3;' +  # E0102 MJ030268
                         'C漢7;')   # E0107 MJ015844
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_ivs_of_7422(self):
         self.txt.insert('insert',
@@ -7385,28 +7490,33 @@ class Makdo:
                         'B琢3;' +  # E0103 MJ030273
                         'C琢4;' +  # E0104 MJ017283
                         'D琢5;')   # E0105 MJ030271
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_ivs_of_793e(self):
         self.txt.insert('insert',
                         'A社2;' +  # E0102 MJ018753
                         'B社3;' +  # E0103 MJ030274
                         'C社4;')   # E0104 MJ058201
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_ivs_of_7947(self):
         self.txt.insert('insert',
                         'A祇2;' +  # E0102 MJ018770
                         'B祇3;')   # E0103 MJ018771
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_ivs_of_7a7a(self):
         self.txt.insert('insert',
                         'A空2;' +  # E0102 MJ019210
                         'B空3;')   # E0103 MJ039211
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_ivs_of_7bc4(self):
         self.txt.insert('insert',
                         'A範1;' +  # E0101 MJ019582
                         'B範2;' +  # E0102 MJ019583
                         'C範3;')   # E0103 MJ019584
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_ivs_of_82b1(self):
         self.txt.insert('insert',
@@ -7414,16 +7524,19 @@ class Makdo:
                         'B花3;' +  # E0103 MJ021592
                         'C花4;' +  # E0104 MJ021593
                         'D花6;')   # E0106 MJ021594
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_ivs_of_82b8(self):
         self.txt.insert('insert',
                         'A芸1;' +  # E0101 MJ021606
                         'B芸2;')   # E0102 MJ021607
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_ivs_of_83c5(self):
         self.txt.insert('insert',
                         'A菅1;' +  # E0101 MJ022070
                         'B菅2;')   # E0102 MJ022071
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_ivs_of_845b(self):
         self.txt.insert('insert',
@@ -7434,6 +7547,7 @@ class Makdo:
                         'E葛6;' +  # E0106 MJ022338
                         'F葛7;' +  # E0107 MJ022337
                         'G葛8;')   # E0108 MJ022339
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_ivs_of_85cf(self):
         self.txt.insert('insert',
@@ -7441,6 +7555,7 @@ class Makdo:
                         'B藏3;' +  # E0103 MJ023046
                         'C藏4;' +  # E0104 MJ023047
                         'D藏5;')   # E0105 MJ023045
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_ivs_of_85e4(self):
         self.txt.insert('insert',
@@ -7449,28 +7564,33 @@ class Makdo:
                         'C藤4;' +  # E0104 MJ023081
                         'D藤5;' +  # E0105 MJ023082
                         'E藤6;')   # E0106 MJ060144
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_ivs_of_8987(self):
         self.txt.insert('insert',
                         'A覇2;' +  # E0102 MJ024210
                         'B覇3;')   # E0103 MJ024209
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_ivs_of_89d2(self):
         self.txt.insert('insert',
                         'A角2;' +  # E0102 MJ024281
                         'B角3;' +  # E0103 MJ024283
                         'C角4;')   # E0104 MJ024282
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_ivs_of_8aed(self):
         self.txt.insert('insert',
                         'A諭2;' +  # E0102 MJ024620
                         'B諭3;' +  # E0103 MJ024621
                         'C諭4;')   # E0104 MJ024619
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_ivs_of_8fbb(self):
         self.txt.insert('insert',
                         'A辻2;' +  # E0102 MJ025760
                         'B辻3;')   # E0103 MJ025761
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_ivs_of_9089(self):
         self.txt.insert('insert',
@@ -7490,6 +7610,7 @@ class Makdo:
                         'N邉28;' +  # E011C MJ026195
                         'O邉29;' +  # E011D MJ026196
                         'P邉31;')   # E011F MJ026193
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_ivs_of_908a(self):
         self.txt.insert('insert',
@@ -7504,11 +7625,13 @@ class Makdo:
                         'I邊16;' +  # E0110 MJ026206
                         'J邊17;' +  # E0111 MJ058870
                         'K邊18;')   # E0112 MJ026207
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def insert_ivs_of_9905(self):
         self.txt.insert('insert',
                         'A餅2;' +  # E0102 MJ028397
                         'B餅3;')   # E0103 MJ028398
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     ################
     # SUBMENU INSERT HORIZONTAL LINE
@@ -7692,6 +7815,7 @@ class Makdo:
         if self._is_read_only_pane(pane):
             return
         pane.insert('insert', char)
+        self.real_position = self._get_real_position_of_insert(pane)
         self.paint_out_line(self._get_v_position_of_insert(pane) - 1)
 
     ################
@@ -7763,6 +7887,7 @@ class Makdo:
             return
         pane.insert('insert', chars)
         pane.mark_set('insert', 'insert-1c')
+        self.real_position = self._get_real_position_of_insert(pane)
         self.paint_out_line(self._get_v_position_of_insert(pane) - 1)
 
     ################
@@ -7891,6 +8016,8 @@ class Makdo:
             symbol = self.symbol.get()
             self.pane.insert('insert', symbol)
             # self.pane.mark_set('insert', 'insert-1c')
+            self.mother.real_position \
+                = self._get_real_position_of_insert(self.pane)
             self.pane.focus_set()
 
     ################
@@ -7924,7 +8051,6 @@ class Makdo:
             return False
         cand_text = '\n'.join(cands) + '\n'
         self._open_sub_pane(cand_text, True)
-        self.real_position = self._get_real_position_of_insert(self.sub)
         self.sub.config(wrap='none')
         self.sub.bind('<Key>', self.faist_process_key)
         self.sub.focus_force()
@@ -8186,6 +8312,8 @@ class Makdo:
                     leng_revs += '>=' + re.sub('\\.0+$', '', str(leng)) + ' '
                 leng_revs = re.sub(' $', '', leng_revs)
                 self.pane.insert(beg, leng_revs + '\n')
+                self.mother.real_position \
+                    = self._get_real_position_of_insert(self.pane)
 
     def insert_config(self):
         config = '''\
@@ -8250,6 +8378,7 @@ class Makdo:
         for i in range(n):
             self.paint_out_line(i)
         self._put_back_cursor_to_pane(self.txt)
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     ################
     # SUBMENU INSERT MULTICOLUMNS
@@ -8790,6 +8919,7 @@ class Makdo:
             + ')(.|\n)*$'
         doc = re.sub(res, '\\1', doc)
         pane.insert('1.0+' + str(len(doc)) + 'c', revisers + '\n')
+        self.real_position = self._get_real_position_of_insert(pane)
 
     def insert_or_remove_axes_in_table(self) -> bool:
         pane = self._get_pane()
@@ -8871,7 +9001,7 @@ class Makdo:
         res_conf_row = '^\\s*(<!--.*-->)?\\s*' + \
             '(:\\s+)?' + '\\|(:?-*:?[=\\^]?\\|)+' + '(\\s+:)?' + \
             '\\s*(<!--.*-->)?\\s*$'
-        res_insert_point = '^(.+)((?:.|\n)*)$'
+        res_insert_point = '^((?:.|\n)+?)(\n\\s*(?:=*|\\^*)\n?)$'
         row_number = 0
         for row in table:
             line = ''.join(row)
@@ -8886,6 +9016,7 @@ class Makdo:
             row_number_symbol = '<!--' + str(row_number) + '-->'
             pane.insert(ins, row_number_symbol)
             text += row_number_symbol + str2
+        self.real_position = self._get_real_position_of_insert(pane)
         #
         beg_line, end_line = pre_text.count('\n'), text.count('\n')
         for i in range(beg_line, end_line):
@@ -8908,7 +9039,8 @@ class Makdo:
         res_conf_row = '^\\s*(<!--.*-->)?\\s*' + \
             '(:\\s+)?' + '\\|(:?-*:?[=\\^]?\\|)+' + '(\\s+:)?' + \
             '\\s*(<!--.*-->)?\\s*$'
-        res_row_number = '^(.+)(<!--[0-9]+-->)((?:\n\\s*(?:=+|\\^+))?\n?)$'
+        res_row_number = '^((?:.|\n)+)' + '(<!--[0-9]+-->)' \
+            + '((?:\n\\s*(?:=+|\\^+))?\n?)$'
         for row in table:
             line = ''.join(row)
             if re.match(res_conf_row, line):
@@ -8928,6 +9060,7 @@ class Makdo:
                 pane.delete(beg, end)
                 str2 = ''
             text += str2 + str3
+        self.real_position = self._get_real_position_of_insert(pane)
         #
         beg_line, end_line = pre_text.count('\n'), text.count('\n')
         for i in range(beg_line, end_line + 1):
@@ -8968,6 +9101,7 @@ class Makdo:
                     pane.mark_set('insert', '1.0+' + str(n) + 'c')
                     return True
             return False
+        self.real_position = self._get_real_position_of_insert(pane)
         pre, par, pos = self.get_paragraph(pane)
         pre_n, par_n = pre.count('\n'), par.count('\n')
         for i in range(pre_n, (pre_n + par_n)):
@@ -9481,7 +9615,7 @@ class Makdo:
             bdy = cell
             new_bdy = ''
             res = '^((?:.|\n)*)(\\s*\n\\s*)(.*\\S.*)$'
-            while '\n' in bdy:
+            while re.match(res, bdy):
                 pos = re.sub(res, '\\3', bdy)
                 spc = re.sub(res, '\\2', bdy)
                 bdy = re.sub(res, '\\1', bdy)
@@ -9874,6 +10008,8 @@ class Makdo:
                 ic -= 1
                 self.pane.mark_set('insert', str(il) + '.' + str(ic))
                 self.mother._put_back_cursor_to_pane(self.pane)
+                self.mother.real_position \
+                    = self._get_real_position_of_insert(self.pane)
                 self.pane.focus_force()
 
     ##########################
@@ -10008,6 +10144,7 @@ class Makdo:
         v = re.sub('^タイトル:\\s*.*\n', '', v)
         pane.edit_separator()
         pane.insert('insert', v)
+        self.real_position = self._get_real_position_of_insert(pane)
         p = self._get_v_position_of_insert(pane) - 1
         for i in range(v.count('\n')):
             self.paint_out_line(p + i)
@@ -10331,6 +10468,7 @@ class Makdo:
             # DISPLAY
             self.sub.delete('1.0', 'end')
             self.sub.insert('1.0', memo_pad_file)
+            self.real_position = self._get_real_position_of_insert(self.sub)
 
     def close_memo_pad(self):
         if self.memo_pad_memory is not None:
@@ -10720,6 +10858,8 @@ class Makdo:
                     if cp.sub_paragraph != '':  # for empty configuration
                         insert_text = cp.sub_paragraph + '\n\n'
                         self.txt.insert('1.0+' + str(beg) + 'c', insert_text)
+                        self.real_position \
+                            = self._get_real_position_of_insert(self.txt)
                         t = self.txt.get('1.0', '1.0+' + str(beg) + 'c')
                         beg_line = t.count('\n')
                         end_line = beg_line + insert_text.count('\n')
@@ -10742,6 +10882,8 @@ class Makdo:
                         else:
                             insert_text = '\n' + cp.sub_paragraph + '\n'
                         self.txt.insert('1.0+' + str(beg) + 'c', insert_text)
+                        self.real_position \
+                            = self._get_real_position_of_insert(self.txt)
                         t = self.txt.get('1.0', '1.0+' + str(beg) + 'c')
                         beg_line = t.count('\n')
                         end_line = beg_line + insert_text.count('\n')
@@ -10840,6 +10982,7 @@ class Makdo:
         self.txt.edit_separator()
         self.txt.delete('1.0', 'end-1c')
         self.txt.insert('1.0', doc)
+        self.real_position = self._get_real_position_of_insert(self.txt)
         self.txt.edit_separator()
         self.txt['autoseparators'] = True
         # PAINT
@@ -10872,11 +11015,13 @@ class Makdo:
         if del_or_ins == 'del':
             self.txt.delete('1.0+' + str(beg_num) + 'c',
                             '1.0+' + str(end_num) + 'c')
+            self.real_position = self._get_real_position_of_insert(self.txt)
         elif del_or_ins == 'ins':
             self.txt.delete('1.0+' + str(beg_num + 0) + 'c',
                             '1.0+' + str(beg_num + 2) + 'c')
             self.txt.delete('1.0+' + str(end_num - 4) + 'c',
                             '1.0+' + str(end_num - 2) + 'c')
+            self.real_position = self._get_real_position_of_insert(self.txt)
             # PAINT
             beg_line = doc[:beg_num].count('\n')
             end_line = doc[:end_num].count('\n')
@@ -10996,6 +11141,7 @@ class Makdo:
         self.txt.delete(beg, end)
         # MOVE
         # self.txt.mark_set('insert', 'insert linestart')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def unfold_section(self):
         sub_document = self.txt.get('insert linestart', 'end-1c')
@@ -11074,6 +11220,7 @@ class Makdo:
         self.txt.delete(beg, end)
         # MOVE
         # self.txt.mark_set('insert', 'insert linestart')
+        self.real_position = self._get_real_position_of_insert(self.txt)
 
     def unfold_section_fully(self):
         old_document = self.txt.get('1.0', 'end-1c')
@@ -11086,6 +11233,7 @@ class Makdo:
         self.txt.focus_set()
         self.current_pane = 'txt'
         self.txt.mark_set('insert', '1.0')
+        self.real_position = self._get_real_position_of_insert(self.txt)
         # PAINT
         self.paint_all_lines(self.txt)
 
@@ -11237,6 +11385,7 @@ class Makdo:
                 key = ASCII_SYMBOLS[key]
             if self._is_key(key, 'BackSpace', 'C-h', 'C-j'):
                 pane.delete('insert-1c', 'insert')
+                self.real_position = self._get_real_position_of_insert(pane)
                 self.paint_out_line(self._get_v_position_of_insert(pane) - 1)
                 self.update_toc()
             elif self._is_key(key, 'Delete', 'C-d', 'C-h', 'C-x'):
@@ -11256,6 +11405,7 @@ class Makdo:
                     self.paint_out_line(vp - 2)
                     self.paint_out_line(vp - 1)
                     self.update_toc()
+                self.real_position = self._get_real_position_of_insert(pane)
             elif self._is_key(key, 'F15', 'C-g', 'C-u', 'C-v'):
                 self.paste_region()
             elif self._is_key(key, 'Home', 'C-l', 'C-p'):
@@ -12482,8 +12632,8 @@ class Makdo:
             }
         elif background_color == 'B':
             self.txt.config(bg='black', fg='white')
-            self.txt.tag_config('eol_tag', background='#333333')
-            self.sub.tag_config('eol_tag', background='#333333')
+            self.txt.tag_config('eol_tag', background='#444444')
+            self.sub.tag_config('eol_tag', background='#444444')
             self.txt.tag_config('akauni_tag', background='#666666')
             self.sub.tag_config('akauni_tag', background='#666666')
             self.txt.tag_config('hsp_tag', foreground='#7676FF',
@@ -12500,8 +12650,8 @@ class Makdo:
             }
         elif background_color == 'G':
             self.txt.config(bg='darkgreen', fg='lightyellow')  # 006400/FFFFE0
-            self.txt.tag_config('eol_tag', background='#117511')
-            self.sub.tag_config('eol_tag', background='#117511')
+            self.txt.tag_config('eol_tag', background='#0C700C')
+            self.sub.tag_config('eol_tag', background='#0C700C')
             self.txt.tag_config('akauni_tag', background='#888888')
             self.sub.tag_config('akauni_tag', background='#888888')
             self.txt.tag_config('hsp_tag', foreground='#7676FF',
@@ -12840,6 +12990,7 @@ class Makdo:
                     self.txt.delete('akauni', 'akauni+1c')
                 elif self.txt.get('insert', 'akauni') != '':
                     self.txt.delete('akauni-1c', 'akauni')
+            self.real_position = self._get_real_position_of_insert(self.txt)
 
     def browse_goo_dictionary(self):
         if self.txt.tag_ranges('sel'):
@@ -13439,6 +13590,7 @@ class Makdo:
                     for i, ld in enumerate(self.line_data):
                         ld.line_number = i
             pane.delete('insert-1c', 'insert')
+            self.real_position = self._get_real_position_of_insert(pane)
             return 'break'
         elif self._is_key(k1, 'Return', 'C-m', 'C-m'):         # C-m
             # FOR PAINTING
@@ -13499,6 +13651,8 @@ class Makdo:
                     curr = self.clipboard_list[self.clipboard_list_number]
                     pane.delete('insert-' + str(len(prev)) + 'c', 'insert')
                     pane.insert('insert', curr)
+                    self.real_position \
+                        = self._get_real_position_of_insert(pane)
                     return 'break'
             return
         elif k1 == 'x':
@@ -13768,6 +13922,8 @@ class Makdo:
                     pane.delete('insert linestart', 'insert lineend')
                     pane.insert('insert', CONFIGURATION_SAMPLE[i + 1])
                     pane.mark_set('insert', 'insert lineend')
+                    self.real_position \
+                        = self._get_real_position_of_insert(pane)
                     return True
         # SUBSTITUTE SYMBOL
         res = '^((?:.|\n)*)(%\\[.*\\]%)$'
@@ -13799,6 +13955,7 @@ class Makdo:
             end = '1.0+' + str(len(pre_txt + cur_sym)) + 'c'
             pane.delete(beg, end)
             pane.insert(beg, nex_sym)
+            self.real_position = self._get_real_position_of_insert(pane)
             return True
         # PARAGRAPH SAMPLE
         if posi == pane.index('insert lineend'):
@@ -13807,6 +13964,8 @@ class Makdo:
                     pane.delete('insert linestart', 'insert lineend')
                     pane.insert('insert', PARAGRAPH_SAMPLE[i + 1])
                     pane.mark_set('insert', 'insert lineend')
+                    self.real_position \
+                        = self._get_real_position_of_insert(pane)
                     return True
         # TIDY UP PARAGRAPH
         has_tidied = self.tidy_up_paragraph()
@@ -13838,6 +13997,8 @@ class Makdo:
                         end = '1.0+' + str(end_n) + 'c'
                         pane.delete(beg, end)
                         pane.insert(beg, SCRIPT_SAMPLE[1])
+                        self.real_position \
+                            = self._get_real_position_of_insert(pane)
                         return True
                     for i, sample in enumerate(SCRIPT_SAMPLE):
                         if scri == sample:
@@ -13847,6 +14008,8 @@ class Makdo:
                             end = '1.0+' + str(end_n) + 'c'
                             pane.delete(beg, end)
                             pane.insert(beg, SCRIPT_SAMPLE[i + 1])
+                            self.real_position \
+                                = self._get_real_position_of_insert(pane)
                             return True
         # AUTO CORRECT
         left = pane.get('insert linestart', 'insert')
@@ -13881,6 +14044,8 @@ class Makdo:
                     if half != full:
                         pane.delete('insert-' + str(len(full)) + 'c', 'insert')
                         pane.insert('insert', half)
+                        self.real_position \
+                            = self._get_real_position_of_insert(pane)
                         return True
             # HALF TO FULL
             res = '^(.*?)( +)$'
@@ -13890,6 +14055,7 @@ class Makdo:
                 full = half.replace(' ', '\u3000')
                 pane.delete('insert-' + str(len(half)) + 'c', 'insert')
                 pane.insert('insert', full)
+                self.real_position = self._get_real_position_of_insert(pane)
                 return True
         # FONT DECORATER
         for i, sample in enumerate(FONT_DECORATOR_SAMPLE):
@@ -13905,8 +14071,10 @@ class Makdo:
             if re.match('^.*' + sample_esc + '$', beg_to_ins):
                 pane.delete(posi + '-' + str(len(sample)) + 'c', posi)
                 pane.insert('insert', FONT_DECORATOR_SAMPLE[i + 1])
+                self.real_position = self._get_real_position_of_insert(pane)
                 return True
         pane.insert('insert', FONT_DECORATOR_SAMPLE[1])
+        self.real_position = self._get_real_position_of_insert(pane)
         return True
 
     def _any_process_delete(self) -> bool:  # Delete / Ctrl+D
@@ -14438,6 +14606,7 @@ class Makdo:
                     # REPLACE
                     pane.delete('insert-' + str(len(wrd)) + 'c', 'insert')
                     pane.insert('insert', word2)
+        self.real_position = self._get_real_position_of_insert(pane)
         pane.focus_set()
         # MESSAGE
         n, m = self._count_word(pane, word1)
@@ -14501,6 +14670,7 @@ class Makdo:
                     # REPLACE
                     pane.delete('insert-' + str(len(wrd)) + 'c', 'insert')
                     pane.insert('insert', word2)
+        self.real_position = self._get_real_position_of_insert(pane)
         pane.focus_set()
         # MESSAGE
         n, m = self._count_word(pane, word1)
@@ -14972,6 +15142,8 @@ class Makdo:
             for i in range(n):
                 self.paint_out_line(vp - n + i + 1)
             self.txt.mark_set('insert', 'insert+1c')
+            self.real_position \
+                = self._get_real_position_of_insert(self.txt)
 
         def calculate_interest_and_charge(self):
             self._load_keiji()
@@ -14993,6 +15165,8 @@ class Makdo:
             # WRITE
             self.txt.edit_separator()
             self.txt.insert(end, '\n' + output)
+            self.real_position \
+                = self._get_real_position_of_insert(self.txt)
             self.txt.edit_separator()
 
         # EPWING

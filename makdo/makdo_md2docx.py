@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.06.15-10:41:50-JST>
+# Time-stamp:   <2026.06.22-08:47:13-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -983,8 +983,10 @@ def n2c_c_kanj(n, md_line=None):
 
 
 def concatenate_text(str1, str2):
-    res = '[0-9A-Za-z,\\.\\)}\\]]'
-    if re.match('^.*' + res + '$', str1) and re.match('^' + res + '.*$', str2):
+    res1 = '[0-9A-Za-z"\\)}\\],\\.?!:]'
+    res2 = '[0-9A-Za-z"\\({\\[]'
+    if re.match('^.*' + res1 + '$', str1) and \
+       re.match('^' + res2 + '.*$', str2):
         return str1 + ' ' + str2
     elif ((re.match(NOT_ESCAPED + '<$', str1) and re.match('^<.*$', str2)) or
           (re.match(NOT_ESCAPED + '<$', str1) and re.match('^>.*$', str2)) or
@@ -6065,10 +6067,11 @@ class ParagraphTable(Paragraph):
             for j in range(len(tab[i])):
                 cell = tab[i][j]
                 if re.match('^[=\\^]?(:\\s)?\\s*=.+', cell):
-                    lft_syms, result, rgt_syms, form \
-                        = self.__calculate_cell(0, cell, tab, '0')
+                    lft_syms, result, rgt_syms, form, dec \
+                        = self.__calculate_cell(0, cell, tab, '0', 0)
                     if result is not None:
-                        adjusted = self.__adjust_number_to_form(result, form)
+                        adjusted \
+                            = self.__adjust_number_to_form(result, form, dec)
                         tab[i][j] = lft_syms + adjusted + rgt_syms
                     else:
                         msg = '※ 警告: 表中の数式の計算に失敗しました'
@@ -6077,7 +6080,7 @@ class ParagraphTable(Paragraph):
                                 ml.append_warning_message(msg)
         return tab
 
-    def __calculate_cell(self, n, cell, tab, form):
+    def __calculate_cell(self, n, cell, tab, form, dec):
         if n > 99:
             return None, None, None, None
         n += 1
@@ -6097,12 +6100,13 @@ class ParagraphTable(Paragraph):
         formula = re.sub('^\\s+', '', formula)
         formula = re.sub('\\s+$', '', formula)
         formula = ' ' + formula + ' '
-        result, form = self.__calculate_formula(n, formula, tab, form)
+        result, form, dec \
+            = self.__calculate_formula(n, formula, tab, form, dec)
         if result is None:
             return None, None, None, None
-        return l_sy, result, r_sy, form
+        return l_sy, result, r_sy, form, dec
 
-    def __calculate_formula(self, n, formula, tab, form):
+    def __calculate_formula(self, n, formula, tab, form, dec):
         # FUNCTIONS
         res = '^(.*)' \
             + '\\s+(SUM|AVERAGE|MAX|MIN)' \
@@ -6121,14 +6125,16 @@ class ParagraphTable(Paragraph):
             for i in range(cell_fr[0], cell_to[0] + 1):
                 for j in range(cell_fr[1], cell_to[1] + 1):
                     if (i > len(tab) - 1) or (j > len(tab[i]) - 1):
-                        return None, form
+                        return None, form, dec
                     cell = tab[i][j]
                     if re.match('^[=\\^]?\\s*=', cell):
-                        _, cell, _, form \
-                            = self.__calculate_cell(n, cell, tab, form)
+                        _, cell, _, form, dec \
+                            = self.__calculate_cell(n, cell, tab, form, dec)
                         if cell is None:
-                            return None, form
-                    value, form = self.__get_cell_value_and_form(cell, form)
+                            return None, form, dec
+                    value, form, dec \
+                        = self.__get_cell_value_and_form_and_dec(
+                            cell, form, dec)
                     if value is None:
                         cell_id = chr(j + 65) + str(i + 1)
                         msg = '※ 警告: セルが数値又は数式ではありません\n' \
@@ -6159,8 +6165,8 @@ class ParagraphTable(Paragraph):
                                 result = value
                         count += 1
             if result is None:
-                return '0', form
-                # return None, form
+                return '0', form, dec
+                # return None, form, dec
             if func == 'AVERAGE':
                 if '.' not in result:
                     result = str(float(result) / count)
@@ -6173,15 +6179,17 @@ class ParagraphTable(Paragraph):
             post = re.sub(res, '\\3', formula)
             i, j = self.__get_cell_point(tab, reff)  # (1, 2), (2, 3), ...
             if (i > len(tab) - 1) or (j > len(tab[i]) - 1):
-                return None, form
+                return None, form, dec
             cell = tab[i][j]
             if re.match('^\\s*$', cell):
                 cell = '0'  # for the cell is empty
             if re.match('^\\s*=', cell):
-                _, cell, _, form = self.__calculate_cell(n, cell, tab, form)
+                _, cell, _, form, dec \
+                    = self.__calculate_cell(n, cell, tab, form, dec)
                 if cell is None:
-                    return None, form
-            value, form = self.__get_cell_value_and_form(cell, form)
+                    return None, form, dec
+            value, form, dec \
+                = self.__get_cell_value_and_form_and_dec(cell, form, dec)
             formula = prev + ' ' + value + ' ' + post
         # FUNCTIONS (INT, ROUND)
         prts = ['']
@@ -6209,7 +6217,7 @@ class ParagraphTable(Paragraph):
                             arg = int(re.sub(res, '\\1', arg))
                     arg, form = self.__calculate_in_parentheses(arg, form)
                     if arg is None:
-                        return None, form
+                        return None, form, dec
                     if fnc == 'INT':
                         arg = re.sub('\\.[0-9]+$', '', arg)
                     elif fnc == 'ROUND':
@@ -6221,9 +6229,9 @@ class ParagraphTable(Paragraph):
         # PARENTHESES
         formula, form = self.__calculate_in_parentheses(formula, form)
         if formula is None:
-            return None, form
+            return None, form, dec
         # RETURN
-        return formula, form
+        return formula, form, dec
 
     @staticmethod
     def __get_cell_point(tab, cell):
@@ -6234,7 +6242,7 @@ class ParagraphTable(Paragraph):
         return i, j
 
     @staticmethod
-    def __get_cell_value_and_form(cell, form):
+    def __get_cell_value_and_form_and_dec(cell, form, dec):
         cell = re.sub('^\\s+', '', cell)
         cell = re.sub('\\s+$', '', cell)
         res0 = '^[+-]?([0-9]*\\.)?[0-9]+$'
@@ -6284,7 +6292,13 @@ class ParagraphTable(Paragraph):
         else:
             # NOT NUMBER
             value = None
-        return value, form
+        if value is not None:
+            res = '^.*\\.([0-9]+)$'
+            if re.match(res, cell):
+                fl = re.sub(res, '\\1', cell)
+                if dec < len(fl):
+                    dec = len(fl)
+        return value, form, dec
 
     def __calculate_in_parentheses(self, formula, form):
         formula = '( ' + formula + ' )'
@@ -6321,8 +6335,8 @@ class ParagraphTable(Paragraph):
                     form = '3'
                 elif re.match(res4, num2):
                     form = '4'
-            val1, _ = self.__get_cell_value_and_form(num1, '0')
-            val2, _ = self.__get_cell_value_and_form(num2, '0')
+            val1, _, _ = self.__get_cell_value_and_form_and_dec(num1, '0', 0)
+            val2, _, _ = self.__get_cell_value_and_form_and_dec(num2, '0', 0)
             if val1 is None or val2 is None:
                 return None, form
             if oper == '*':
@@ -6351,8 +6365,8 @@ class ParagraphTable(Paragraph):
                     form = '3'
                 elif re.match(res4, num2):
                     form = '4'
-            val1, _ = self.__get_cell_value_and_form(num1, '0')
-            val2, _ = self.__get_cell_value_and_form(num2, '0')
+            val1, _, _ = self.__get_cell_value_and_form_and_dec(num1, '0', 0)
+            val2, _, _ = self.__get_cell_value_and_form_and_dec(num2, '0', 0)
             if val1 is None or val2 is None:
                 return None, form
             if oper == '+':
@@ -6376,7 +6390,8 @@ class ParagraphTable(Paragraph):
         return formula, form
 
     @staticmethod
-    def __adjust_number_to_form(number, form):
+    def __adjust_number_to_form(number, form, dec):
+        number = str(round(float(number), 10))
         number = re.sub('^\\s+', '', number)
         number = re.sub('\\s+$', '', number)
         if '.' not in number:
@@ -6402,6 +6417,8 @@ class ParagraphTable(Paragraph):
         else:
             formatted = n[0]
         if n[1] != '' and n[1] != '0':
+            while dec > len(n[1]):
+                n[1] += '0'
             formatted += '.' + n[1]
         return formatted
 

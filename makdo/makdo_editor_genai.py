@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         genai.py
 # Version:      v01
-# Time-stamp:   <2026.06.14-12:00:46-JST>
+# Time-stamp:   <2026.06.22-09:33:48-JST>
 
 # genai.py
 # Copyright (C) 2025-2026  Seiichiro HATA
@@ -713,8 +713,13 @@ class Ollama(GenAI):
 
     def _execute_ollama(self, system_content, user_content, messages=None):
         cloud_models = self._get_cloud_ollama_models()
+        loaded_models = self._get_loaded_ollama_models()
         if self.makdo.ollama_model in cloud_models:
             if not self._warning_dialog():
+                return None
+        elif self.makdo.ollama_model not in loaded_models:
+            n, m = '警告', 'モデルをロードしますか？'
+            if not tkinter.messagebox.askyesno(n, m, default='no'):
                 return None
         if messages is None:
             messages = [
@@ -748,6 +753,12 @@ class Ollama(GenAI):
             answer = '<!--\n' + answer + '\n-->'
         self.makdo._insert_line_break_as_necessary('ollama')
         pane.insert('ollama', answer)
+        #
+        if 'real_position' in vars(self.makdo):
+            self.makdo.real_position[0] \
+                = int(pane.index('insert').split('.')[0]) - 1
+            self.makdo.real_position[2] \
+                = int(pane.index('end-1c').split('.')[0]) - 1
 
     def save_ollama_exchanges(self) -> bool:
         if 'ollama_qanda' not in vars(self):
