@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         genai.py
 # Version:      v01
-# Time-stamp:   <2026.06.22-09:33:48-JST>
+# Time-stamp:   <2026.06.23-07:58:20-JST>
 
 # genai.py
 # Copyright (C) 2025-2026  Seiichiro HATA
@@ -579,17 +579,14 @@ class Ollama(GenAI):
         sc = self.system_message
         doc, n = self._get_document(pane)
         pane.mark_set('ollama', 'insert+' + str(n) + 'c')
+        self.makdo.cancel_region(pane)
         doc = self._insert_files(doc)
-        uc = ''
-        for line in doc.split('\n'):
-            uc += line
-        response = self._execute_ollama(sc, uc + '\n' + doc)
+        response = self._execute_ollama(sc, doc)
         if response is None:
             return False
         answer = response.message.content
         self._write_simple_answer(pane, answer)
         pane.tag_remove('ollama', '1.0', 'end')
-        self.makdo.cancel_region(pane)
 
     # PICK UP PROPER NOUNS
 
@@ -649,6 +646,29 @@ class Ollama(GenAI):
         pane.mark_set('ollama', 'insert+' + str(n) + 'c')
         sc = self.system_message
         uc = '次の文章に誤字脱字があれば、指摘してください。\n'
+        response = self._execute_ollama(sc, uc + '\n' + doc)
+        answer = response.message.content
+        self._write_simple_answer(self.makdo.txt, answer)
+        pane.tag_remove('ollama', '1.0', 'end')
+        self.makdo.cancel_region(pane)
+        return True
+
+    # FIND UNCLEAR POINTS
+
+    def find_unclear_points(self):
+        thread_1 = threading.Thread(target=self._ollama_find_unclear_points,
+                                    daemon=True)
+        thread_2 = threading.Thread(target=self._set_message_on_status_bar,
+                                    daemon=True)
+        thread_1.start()
+        thread_2.start()
+
+    def _ollama_find_unclear_points(self) -> bool:
+        pane = self.makdo._get_pane()
+        doc, n = self._get_document(pane)
+        pane.mark_set('ollama', 'insert+' + str(n) + 'c')
+        sc = self.system_message
+        uc = '次の文章に分かりにくい点など修正すべき点があれば、指摘してください。\n'
         response = self._execute_ollama(sc, uc + '\n' + doc)
         answer = response.message.content
         self._write_simple_answer(self.makdo.txt, answer)
@@ -753,10 +773,11 @@ class Ollama(GenAI):
             answer = '<!--\n' + answer + '\n-->'
         self.makdo._insert_line_break_as_necessary('ollama')
         pane.insert('ollama', answer)
+        # self.makdo._put_back_cursor_to_pane(pane)
         #
         if 'real_position' in vars(self.makdo):
-            self.makdo.real_position[0] \
-                = int(pane.index('insert').split('.')[0]) - 1
+            # self.makdo.real_position[0] \
+            #     = int(pane.index('insert').split('.')[0]) - 1
             self.makdo.real_position[2] \
                 = int(pane.index('end-1c').split('.')[0]) - 1
 

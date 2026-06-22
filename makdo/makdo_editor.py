@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.06.22-10:52:18-JST>
+# Time-stamp:   <2026.06.23-08:05:40-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -13135,6 +13135,8 @@ class Makdo:
                          command=self.pick_up_proper_nouns)
         menu.add_command(label='Ollamaで本文の誤字脱字を確認',
                          command=self.find_typos)
+        menu.add_command(label='Ollamaで分かりにくい点を確認',
+                         command=self.find_unclear_points)
         menu.add_command(label='Ollamaのやり取りを保存',
                          command=self.save_ollama_exchanges)
         menu.add_command(label='Ollamaのやり取りを開く',
@@ -13220,6 +13222,10 @@ class Makdo:
         return False
 
     def find_typos(self) -> bool:
+        self._show_message_reducing_functions()
+        return False
+
+    def find_unclear_points(self) -> bool:
         self._show_message_reducing_functions()
         return False
 
@@ -15674,6 +15680,12 @@ class Makdo:
         Minibuffer.minibuffer_commands.append(mc)
 
         mc = Minibuffer.MinibufferCommand(
+            'find-unclear-ponits',
+            [None, 'Ollamaで本文の分かりにくい点を確認'],
+            ['self.mother.find_unclear_points()'])
+        Minibuffer.minibuffer_commands.append(mc)
+
+        mc = Minibuffer.MinibufferCommand(
             'save-ollama-exchanges',
             [None, 'Ollamaのやり取りを保存'],
             ['self.mother.save_ollama_exchanges()'])
@@ -15708,6 +15720,10 @@ class Makdo:
         def find_typos(self) -> None:
             if self._is_ollama_ready():
                 return self.ollama.find_typos()
+
+        def find_unclear_points(self) -> None:
+            if self._is_ollama_ready():
+                return self.ollama.find_unclear_points()
 
         def save_ollama_exchanges(self) -> bool:
             if self._is_ollama_ready():
