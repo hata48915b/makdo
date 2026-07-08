@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         docx2md.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.06.15-18:46:11-JST>
+# Time-stamp:   <2026.07.08-15:45:34-JST>
 
 # docx2md.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -2676,7 +2676,8 @@ class AutoNumberingStyle:
             if re.match(res_xml_number_ms, xl):
                 numid = int(re.sub(res_xml_number_ms, '\\1', xl))
             elif re.match(res_xml_number_lo, xl):
-                numid = int(re.sub(res_xml_number_lo, '\\1', xl))
+                n = re.sub(res_xml_number_lo, '\\1', xl)
+                numid = 1 if n == '' else int(n)
             elif re.match(res_xml_ilvl, xl):
                 ilvl = re.sub(res_xml_ilvl, '\\1', xl)
         ans_key = str(numid) + '-' + str(ilvl)

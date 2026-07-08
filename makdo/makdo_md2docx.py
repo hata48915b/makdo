@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.06.22-08:47:13-JST>
+# Time-stamp:   <2026.07.02-12:02:07-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -985,6 +985,7 @@ def n2c_c_kanj(n, md_line=None):
 def concatenate_text(str1, str2):
     res1 = '[0-9A-Za-z"\\)}\\],\\.?!:]'
     res2 = '[0-9A-Za-z"\\({\\[]'
+    str2 = re.sub('\\\\$', '', str2)
     if re.match('^.*' + res1 + '$', str1) and \
        re.match('^' + res2 + '.*$', str2):
         return str1 + ' ' + str2
@@ -6245,6 +6246,7 @@ class ParagraphTable(Paragraph):
     def __get_cell_value_and_form_and_dec(cell, form, dec):
         cell = re.sub('^\\s+', '', cell)
         cell = re.sub('\\s+$', '', cell)
+        cell = re.sub('^[△▲]', '-', cell)
         res0 = '^[+-]?([0-9]*\\.)?[0-9]+$'
         res3 = '^[+-]?[0-9]{,3}(,[0-9]{3})+(\\.[0-9]+)?$'
         res4 = '^([+-])?' \

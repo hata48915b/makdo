@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.06.23-08:05:40-JST>
+# Time-stamp:   <2026.06.25-16:58:34-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -3194,6 +3194,10 @@ class LineDatum:
                     if c == '*' or c == '(' or c == ')':
                         continue
                 # ITALIC AND BOLD
+                if c == '*' and \
+                   re.match('^\\s*\\|.*\\|\\s*=[^\\|]+', s_lft) and \
+                   re.match('^[^\\|]+.*\\|.*$', s_rgt):
+                    continue  # Multiplication symbol in a table cell
                 if c == '*' and re.match(NOT_ESCAPED + '\\*$', s_lft) and \
                    (c0 != '*' or re.match(NOT_ESCAPED + '\\*\\*\\*$', s_lft)):
                     # if chars_state.script_parenthesis == '':
@@ -4972,7 +4976,7 @@ class Makdo:
         file_text = self.txt.get('1.0', 'end-1c')
         if file_text != '' and file_text[-1] != '\n':
             file_text += '\n'
-            self.txt.insert('end', '\n')
+            self.txt.insert('end-2c', '\n')
             self._put_back_cursor_to_pane(self.txt)
             self.real_position = self._get_real_position_of_insert(self.txt)
         must_warn = True
@@ -14018,49 +14022,33 @@ class Makdo:
                                 = self._get_real_position_of_insert(pane)
                             return True
         # AUTO CORRECT
-        left = pane.get('insert linestart', 'insert')
-        if len(left) > 0:
-            # FULL TO HALF
-            res = '^(.*?)([' \
-                + '\t\u3000！”＃＄％＆’（）＊＋，―−－ー．／０-９：；＜＝＞？＠Ａ-Ｚ［￥＼］＾＿｀ａ-ｚ｛｜｝〜' \
-                + ']+)$'  # "―"(2015), "−"(2212), "－"(FF0D)
+        ind_ins = pane.index('insert')
+        ind_eol = pane.index('insert lineend')
+        ind_eof = pane.index('end-2c')
+        if ind_ins == ind_eol or ind_ins == ind_eof:
+            left = pane.get('insert linestart', 'insert')
+            # HALF ALPHABET TO FULL ALPHABET
+            res = '^.*?([ !-~]+)$'
             if re.match(res, left):
-                rest = re.sub(res, '\\1', left)
-                full = re.sub(res, '\\2', left)
-                if rest == '' or full != 'ー':
-                    half = full
-                    fhs = [['\t', ' '], ['\u3000', ' '],
-                           ['！', '!'], ['”', '"'], ['＃', '#'], ['＄', '$'],
-                           ['％', '%'], ['＆', '&'], ['’', "'"], ['（', '('],
-                           ['）', ')'], ['＊', '*'], ['＋', '+'], ['，', ','],
-                           ['−', '-'], ['―', '-'], ['ー', '-'],
-                           ['．', '.'], ['／', '/'],  # 0-9
-                           ['：', ':'], ['；', ';'], ['＜', '<'], ['＝', '='],
-                           ['＞', '>'], ['？', '?'], ['＠', '@'],  # A-Z
-                           ['［', '['], ['￥', '\\'], ['＼', '\\'], ['］', ']'],
-                           ['＾', '^'], ['＿', '_'], ['｀', '`'],  # a-z
-                           ['｛', '{'], ['｜', '|'], ['｝', '}'], ['〜', '~']]
-                    for fh in fhs:
-                        half = half.replace(fh[0], fh[1])
-                    for i in range(0, 10):
-                        half = half.replace(chr(i + 65296), chr(i + 48))  # 0-9
-                    for i in range(0, 26):
-                        half = half.replace(chr(i + 65313), chr(i + 65))  # A-Z
-                        half = half.replace(chr(i + 65345), chr(i + 97))  # a-z
-                    if half != full:
-                        pane.delete('insert-' + str(len(full)) + 'c', 'insert')
-                        pane.insert('insert', half)
-                        self.real_position \
-                            = self._get_real_position_of_insert(pane)
-                        return True
-            # HALF TO FULL
-            res = '^(.*?)( +)$'
-            if re.match(res, left):
-                rest = re.sub(res, '\\1', left)
-                half = re.sub(res, '\\2', left)
-                full = half.replace(' ', '\u3000')
+                half = re.sub(res, '\\1', left)
+                full = half
+                full = full.replace(' ', '\u3000')
+                for i in range(32, 127):
+                    full = full.replace(chr(i), chr(i + 65248))
                 pane.delete('insert-' + str(len(half)) + 'c', 'insert')
                 pane.insert('insert', full)
+                self.real_position = self._get_real_position_of_insert(pane)
+                return True
+            # HALF ALPHABET TO FULL ALPHABET
+            res = '^.*?([\u3000\uFF01-\uFF5E]+)$'
+            if re.match(res, left):
+                full = re.sub(res, '\\1', left)
+                half = full
+                half = half.replace('\u3000', ' ')
+                for i in range(32, 127):
+                    half = half.replace(chr(i + 65248), chr(i))
+                pane.delete('insert-' + str(len(full)) + 'c', 'insert')
+                pane.insert('insert', half)
                 self.real_position = self._get_real_position_of_insert(pane)
                 return True
         # FONT DECORATER
