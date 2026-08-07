@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.06.25-16:58:34-JST>
+# Time-stamp:   <2026.08.04-16:34:34-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -5697,7 +5697,12 @@ class Makdo:
         if self.current_pane == 'txt':
             beg_v = self._get_v_position_of_insert(self.txt)
         try:
-            cb = self.win.clipboard_get()
+            # FIXME: Workaround for text corruption on Ubuntu/X11.
+            # Unify into clipboard_get() once the bug is resolved.
+            if sys.platform.startswith('linux'):
+                cb = self.win.selection_get(selection='CLIPBOARD')
+            else:
+                cb = self.win.clipboard_get()
         except BaseException:
             cb = ''
         if cb == '':
@@ -10830,12 +10835,12 @@ class Makdo:
         for i, part in enumerate(parts_lines):
             pre = '' if i == 0 else parts_lines[i - 1]
             nex = '' if i == m else parts_lines[i + 1]
-            if re.match(res_del, part) and re.match(res_ins, nex):
+            if re.match(res_del, part):
                 if doi == 'del':
                     parts.append(['del', re.sub(res_del, '\\1', part)])
-                if doi == 'ins':
+                elif doi == 'ins':
                     parts.append(['ins', re.sub(res_del, '\\1', part)])
-            elif re.match(res_ins, part) and re.match(res_del, pre):
+            elif re.match(res_ins, part):
                 pass
             else:
                 parts.append(['nor', part])

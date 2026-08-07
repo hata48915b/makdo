@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         mddiff.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.05.27-10:37:28-JST>
+# Time-stamp:   <2026.08.04-15:43:17-JST>
 
 # mddiff.py
 # Copyright (C) 2022-2026  Seiichiro HATA

@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         md2docx.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.07.02-12:02:07-JST>
+# Time-stamp:   <2026.07.29-17:07:43-JST>
 
 # md2docx.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -6083,7 +6083,7 @@ class ParagraphTable(Paragraph):
 
     def __calculate_cell(self, n, cell, tab, form, dec):
         if n > 99:
-            return None, None, None, None
+            return None, None, None, None, None
         n += 1
         res_lft = '^([=\\^]?(?::\\s)?)\\s*(=.*?)$'
         res_rgt = '^(.*?)((?:\\s:)?(?:@[0-9]*x?[0-9]+)?[=\\^]?)$'
@@ -6104,7 +6104,7 @@ class ParagraphTable(Paragraph):
         result, form, dec \
             = self.__calculate_formula(n, formula, tab, form, dec)
         if result is None:
-            return None, None, None, None
+            return None, None, None, None, None
         return l_sy, result, r_sy, form, dec
 
     def __calculate_formula(self, n, formula, tab, form, dec):
@@ -6128,6 +6128,10 @@ class ParagraphTable(Paragraph):
                     if (i > len(tab) - 1) or (j > len(tab[i]) - 1):
                         return None, form, dec
                     cell = tab[i][j]
+                    res_lft = '^[=\\^]?(?::\\s)?\\s*'
+                    res_rgt = '(?:\\s:)?(?:@[0-9]*x?[0-9]+)?[=\\^]?$'
+                    cell = re.sub(res_lft, '', cell)
+                    cell = re.sub(res_rgt, '', cell)
                     if re.match('^[=\\^]?\\s*=', cell):
                         _, cell, _, form, dec \
                             = self.__calculate_cell(n, cell, tab, form, dec)
@@ -6182,6 +6186,10 @@ class ParagraphTable(Paragraph):
             if (i > len(tab) - 1) or (j > len(tab[i]) - 1):
                 return None, form, dec
             cell = tab[i][j]
+            res_lft = '^[=\\^]?(?::\\s)?\\s*'
+            res_rgt = '(?:\\s:)?(?:@[0-9]*x?[0-9]+)?[=\\^]?$'
+            cell = re.sub(res_lft, '', cell)
+            cell = re.sub(res_rgt, '', cell)
             if re.match('^\\s*$', cell):
                 cell = '0'  # for the cell is empty
             if re.match('^\\s*=', cell):
@@ -6342,12 +6350,8 @@ class ParagraphTable(Paragraph):
             if val1 is None or val2 is None:
                 return None, form
             if oper == '*':
-                if float(val1).is_integer() and float(val2).is_integer():
-                    value = int(val1) * int(val2)
-                    formula = prev + ' ' + str(value) + ' ' + post
-                else:
-                    value = float(val1) * float(val2)
-                    formula = prev + ' ' + '{0:f}'.format(value) + ' ' + post
+                value = float(val1) * float(val2)
+                formula = prev + ' ' + '{0:f}'.format(value) + ' ' + post
             else:
                 value = float(val1) / float(val2)
                 formula = prev + ' ' + '{0:f}'.format(value) + ' ' + post
@@ -6372,19 +6376,11 @@ class ParagraphTable(Paragraph):
             if val1 is None or val2 is None:
                 return None, form
             if oper == '+':
-                if float(val1).is_integer() and float(val2).is_integer():
-                    value = int(val1) + int(val2)
-                    formula = prev + ' ' + str(value) + post
-                else:
-                    value = float(val1) + float(val2)
-                    formula = prev + ' ' + '{0:f}'.format(value) + post
+                value = float(val1) + float(val2)
+                formula = prev + ' ' + '{0:f}'.format(value) + post
             else:
-                if float(val1).is_integer() and float(val2).is_integer():
-                    value = int(val1) - int(val2)
-                    formula = prev + ' ' + str(value) + post
-                else:
-                    value = float(val1) - float(val2)
-                    formula = prev + ' ' + '{0:f}'.format(value) + post
+                value = float(val1) - float(val2)
+                formula = prev + ' ' + '{0:f}'.format(value) + post
         formula = re.sub('^\\s+', '', formula)
         formula = re.sub('\\s+$', '', formula)
         if not re.match('^[+-]?([0-9]*\\.)?[0-9]+$', formula):
