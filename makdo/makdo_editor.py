@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.08.04-16:34:34-JST>
+# Time-stamp:   <2026.08.07-10:46:23-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -1413,8 +1413,9 @@ class Math():
             numb = re.sub(res, '\\2', nfl)
             floa = re.sub(res, '\\3', nfl)
             tail = re.sub(res, '\\4', nfl)
-            numb = self._3_digit_separated_to_0_digit_separated(numb)
-            numb = self._4_digit_separated_to_0_digit_separated(numb)
+            if not re.match('^.*\\.$', head) or not re.match('^[0-9]+$', numb):
+                numb = self._3_digit_separated_to_0_digit_separated(numb)
+                numb = self._4_digit_separated_to_0_digit_separated(numb)
             new += head + numb + floa
             nfl = tail
         nfl = new + tail
