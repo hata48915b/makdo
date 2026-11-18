@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.08.07-10:46:23-JST>
+# Time-stamp:   <2026.11.18-11:45:37-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -5624,6 +5624,10 @@ class Makdo:
                          command=self.insert_substitute_symbol)
         menu.add_command(label='代記号でマスキング',
                          command=self.mask_with_substitute_symbols)
+        menu.add_separator()
+        #
+        menu.add_command(label='フォント変更を全て消去',
+                         command=self.remove_all_font_changes)
         # menu.add_separator()
 
     ######
@@ -6227,6 +6231,28 @@ class Makdo:
         self.set_message_on_status_bar(str(i) + '個の文字列をマスクしました')
         self.txt['autoseparators'] = True
         self.txt.edit_separator()
+
+    def remove_all_font_changes(self):
+        pane = self._get_pane()
+        if self._is_read_only_pane(pane):
+            return
+        pane['autoseparators'] = False
+        pane.edit_separator()
+        doc = pane.get('0.0', 'end-1c')
+        i = 0
+        res = '^((?:.|\n)*)(@[^@]{1,66}@\n?)((?:.|\n)*)$'
+        while re.match(res, doc):
+            fnt = re.sub(res, '\\2', doc)
+            doc = re.sub(res, '\\1', doc)
+            if re.match('^@(?:[0-9]*\\.)?[0-9]+@\n?', fnt):
+                continue
+            beg = '0.0+' + str(len(doc)) + 'c'
+            end = '0.0+' + str(len(doc + fnt)) + 'c'
+            pane.delete(beg, end)
+            i += 1
+        self.set_message_on_status_bar(str(i) + '個のフォント変更を削除しました')
+        pane['autoseparators'] = True
+        pane.edit_separator()
 
     ##########################
     # MENU INSERT
@@ -15130,6 +15156,7 @@ class Makdo:
             if 'keiji' not in vars(self):
                 import makdo.keiji  # keiji
                 self.keiji = makdo.keiji
+            importlib.reload(self.keiji)
 
         def insert_sample_trading_history(self) -> None:
             self._load_keiji()
