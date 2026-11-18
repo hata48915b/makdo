@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Name:         editor.py
 # Version:      v08 Omachi
-# Time-stamp:   <2026.11.18-11:45:37-JST>
+# Time-stamp:   <2026.11.19-08:03:51-JST>
 
 # editor.py
 # Copyright (C) 2022-2026  Seiichiro HATA
@@ -6093,10 +6093,11 @@ class Makdo:
         elif 'akauni' in pane.mark_names():
             beg, end = self._get_indices_in_order(pane, 'insert', 'akauni')
         else:
-            n = 'エラー'
-            m = 'コメントアウトする範囲が選択されていません．'
-            tkinter.messagebox.showerror(n, m)
-            return
+            beg = pane.index('insert linestart')
+            end = pane.index('insert lineend')
+            eob = pane.index('end-1c')
+            if end == eob:
+                end = pane.index('insert lineend-1c')
         pane['autoseparators'] = False
         pane.edit_separator()
         tex = pane.get(beg, end)
@@ -6116,6 +6117,8 @@ class Makdo:
                     pane.insert(beg + '+' + str(len(sub)) + 'c', t[1])
         pane.insert(end, '-->')
         pane.insert(beg, '<!--')
+        if pane.index('insert') == pane.index(beg + '+4c'):
+            pane.mark_set('insert', 'insert-4c')
         self.real_position = self._get_real_position_of_insert(pane)
         self.cancel_region(pane)
         beg_v = int(re.sub('\\.[0-9]+$', '', beg))
@@ -6136,10 +6139,11 @@ class Makdo:
         elif 'akauni' in pane.mark_names():
             beg, end = self._get_indices_in_order(pane, 'insert', 'akauni')
         else:
-            n = 'エラー'
-            m = 'コメントアウトを解除する範囲が選択されていません．'
-            tkinter.messagebox.showerror(n, m)
-            return
+            beg = pane.index('insert linestart')
+            end = pane.index('insert lineend')
+            eob = pane.index('end-1c')
+            if end == eob:
+                end = pane.index('insert lineend-1c')
         pane['autoseparators'] = False
         pane.edit_separator()
         tex = pane.get(beg, end)
@@ -6181,6 +6185,26 @@ class Makdo:
         pane['autoseparators'] = True
         pane.edit_separator()
         self.update_toc()
+
+    def toggle_comment_out_region(self):
+        pane = self._get_pane()
+        if self._is_read_only_pane(pane):
+            return
+        if pane.tag_ranges('sel'):
+            beg, end = pane.index('sel.first'), pane.index('sel.last')
+        elif 'akauni' in pane.mark_names():
+            beg, end = self._get_indices_in_order(pane, 'insert', 'akauni')
+        else:
+            beg = pane.index('insert linestart')
+            end = pane.index('insert lineend')
+            eob = pane.index('end-1c')
+            if end == eob:
+                end = pane.index('insert lineend-1c')
+        tex = pane.get(beg, end)
+        if re.match('^<!--(.|\n)*-->$', tex):
+            self.uncomment_in_region()
+        else:
+            self.comment_out_region()
 
     def insert_substitute_symbol(self):
         self.txt.insert('insert',
@@ -12025,7 +12049,7 @@ class Makdo:
                 super().__init__(minibuffer, title='ヘルプ')
 
             def body(self, minibuffer):
-                res = '^((?:.*\n){40})((?:.|\n)*)$'
+                res = '^((?:.*\n){46})((?:.|\n)*)$'  # 46 lines
                 mes1 = re.sub(res, '\\1', self.message)
                 mes2 = re.sub(res, '\\2', self.message)
                 fon = self.mother.gothic_font.copy()
@@ -13673,6 +13697,8 @@ class Makdo:
         elif self._is_key(k1, 'F23', 'C-z', 'C-/'):            # C-z
             self.find_and_insert_subsequent_text()
             return 'break'
+        elif self._is_key(k1, 'F24', 'C-*', 'C-_'):            # C-*
+            return 'break'
         elif k1 == 'g':
             if k2 == 'Escape':
                 k3, k4 = self.key_history[-3], self.key_history[-4]
@@ -13967,6 +13993,10 @@ class Makdo:
                     self.real_position \
                         = self._get_real_position_of_insert(pane)
                     return True
+        # COMMENT OUT
+        if len(text) > 0 and text[-1] == '\n':
+            self.toggle_comment_out_region()
+            return True
         # SUBSTITUTE SYMBOL
         res = '^((?:.|\n)*)(%\\[.*\\]%)$'
         if re.match(res, text):
